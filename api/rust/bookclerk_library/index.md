@@ -1931,7 +1931,7 @@ pub fn audible_asin(&self) -> Option<&str>
 
 Audible ASIN for Audible license / catalog APIs when one is known.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### ClaimTicketRecord
 
@@ -2967,7 +2967,7 @@ Returns true when both rows represent the same person for aggregation.
 
 True for two operator wishes, the same `user_id`, or the same unlinked identity.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### SecurityAuditEvent
 
@@ -3083,7 +3083,7 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `created_at`: RFC 3339 timestamp when the row was inserted.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### TitleRequestSourceRecord
 
@@ -3157,7 +3157,7 @@ Per-storefront catalog/pricing snapshot attached to a wishlist row.
 - `created_at`: RFC 3339 timestamp when the row was inserted.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### UserIntegrationHint
 
@@ -3393,7 +3393,7 @@ Snapshotted purchase link/price for a wishlist title.
 - `member_price_cents`: Member/subscriber price in minor units, when known.
 - `member_price_label`: Storefront-formatted member price for display.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### WishlistStoreEdition
 
@@ -3411,7 +3411,7 @@ Storefront edition key for wishlist / queue payloads.
 - `source`: Content-source plugin id (`audible`, `libro`, …).
 - `product_id`: Storefront product id (ASIN, ISBN, UUID, …).
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### WorkRecord
 
@@ -9263,7 +9263,7 @@ pub fn from_classic(status: i64) -> Self
 
 Parse classic EF `LiberatedStatus` integer.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### EnqueueOutcome
 
@@ -9533,7 +9533,7 @@ pub fn parse(s: &str) -> Option<Self>
 
 Parses the canonical wire string; returns `None` when unknown.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### UserRole
 

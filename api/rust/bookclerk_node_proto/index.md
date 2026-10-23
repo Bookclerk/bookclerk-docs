@@ -662,7 +662,7 @@ Answer of the upload endpoint (every status carries one).
 - `reason`: Why, for `refused`.
 - `job_completed`: For `committed`: the job is finished.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### UploadCommitRequest
 
@@ -680,7 +680,7 @@ Body of `POST <UPLOADS_PATH><upload_id>/commit`.
 - `finish`: Complete the job with this commit (the job's closing upload).
 - `detail`: Outcome text recorded as the job's progress when `finish` is set.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### UploadFile
 
@@ -805,7 +805,7 @@ padding.
 - `connection`: The connection type the code was approved for. It must match the
   one bound to the code at consent; left out for a branch.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OwnerInfo
 
@@ -1060,7 +1060,7 @@ pub fn granted_scope(self) -> &'static str
 
 The scope a code for this connection type is granted.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### Body
 

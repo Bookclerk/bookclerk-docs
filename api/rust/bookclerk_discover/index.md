@@ -351,7 +351,7 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `price_cents`: Catalog list/deal price in cents when the storefront provided it.
 - `purchase_hints`: Buy / open-in-store links with optional member vs list pricing.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### CatalogSearchPage
 
@@ -377,7 +377,7 @@ Paged catalog-search response.
 - `sort`: Sort field applied to the merged result set.
 - `sort_dir`: Ascending or descending order for [`Self::sort`](#catalogsearchpage).
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### CatalogSearchPageOpts
 
@@ -529,7 +529,7 @@ Creates a store edition from a storefront id and native product id.
 
 Newly constructed `new` value.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### WorkIdentity
 
@@ -692,7 +692,7 @@ URL-only catalog link (no price yet).
 
 Updated `Self` for chaining.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### PurchaseHintsQuery
 
@@ -726,7 +726,7 @@ Inputs for view-time catalog + pricing lookup.
   pricing when picking `best`; other stores are compared at list /
   non-member price. Every catalog match is still returned in `hints`.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### PurchaseHintsResponse
 
@@ -744,7 +744,7 @@ Priced catalog matches for one title, sorted best-first.
 - `hints`: Resolved purchase hints for this query.
 - `best`: Lowest-priced hint (or first catalog hit when no prices resolved).
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### RankedQueueEntry
 
@@ -787,7 +787,7 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 - `taste_score`: Local taste / embedding component before the wish-count boost.
 - `reasons`: Short human-readable explanations for why this item was ranked here.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### RecommendOptions
 
@@ -908,7 +908,7 @@ One ranked recommendation (typically an unowned storefront title).
 - `wishers`: Distinct people who have this title on an open wishlist.
 - `wish_count`: Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### DiscoverFeed
 
@@ -926,7 +926,7 @@ Full Discover page payload: ordered shelves of personalized candidates.
 - `shelves`: Ordered horizontal shelves that make up the Discover page.
 - `shelf_kinds`: Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### DiscoverShelf
 
@@ -948,7 +948,7 @@ One horizontal Discover row (series to finish, more by author, …).
 - `subtitle`: Optional subtitle when the catalog distinguishes it from the title.
 - `items`: Ordered collection of child entries for this response.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### ShelfKindInfo
 
@@ -966,7 +966,7 @@ A shelf kind the operator can ignore (all offered by default).
 - `id`: Stable kind id (`finish_series`, `author`, `genre`, `from_store`, …).
 - `label`: Operator-visible label for this account or item.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### ShelfTaste
 
@@ -1049,7 +1049,7 @@ Bibliographic fields suitable for an Audible-style detail panel.
 - `reviews`: Deprecated: reviews load via `/api/discover/title-reviews`. Kept empty
   for older clients; prefer the paginated reviews endpoint.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### TitleMetaQuery
 
@@ -1077,7 +1077,7 @@ Query for public title metadata (Audnexus / Audible catalog).
 - `length_minutes`: Audiobook runtime in whole minutes when known.
 - `region`: Marketplace / region code (`us`, `uk`, …) for catalog lookups.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### TitleReview
 
@@ -1107,7 +1107,7 @@ One Audible customer review for the title detail panel.
 - `story_rating`: Story sub-rating for this review when present.
 - `submitted_at`: When the review was submitted (storefront timestamp string).
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `From<CatalogReview>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `From<CatalogReview>`, `Serialize`, `ToSchema`
 
 ### TitleReviewsPage
 
@@ -1133,7 +1133,7 @@ One page of title reviews for infinite scroll.
 - `sort_by`: Remote sort key for reviews (`most_helpful`, `most_recent`, …).
 - `reviews`: Review rows on this page.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### TitleReviewsQuery
 
@@ -1157,7 +1157,7 @@ Query for a page of Audible customer reviews.
 - `page_size`: Page size (clamped server-side to 1..=20).
 - `sort_by`: `MostHelpful` (default) or `MostRecent`.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ## Functions
 

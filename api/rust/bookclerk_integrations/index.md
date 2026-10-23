@@ -30,7 +30,8 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`upsert_listening_snapshots`](#upsert_listening_snapshots) | function | Upsert provider-agnostic listening snapshots into `listening_progress`. |
 | [`mint_for_external_user`](#mint_for_external_user) | function | Mint a claim ticket for an external user (daemon watcher / CLI). |
 | [`portal_identity_from_headers`](#portal_identity_from_headers) | function | Resolve a portal identity from the request cookie, if present and valid. |
-| [`portal_spa_router`](#portal_spa_router) | function | SPA-facing portal API. Nest under `/api/portal`. |
+| [`portal_spa_router`](#portal_spa_router) | function | The SPA Accounts / claim routes with their state, ready to nest. |
+| [`portal_spa_routes`](#portal_spa_routes) | function | The SPA Accounts / claim routes, before state: the daemon nests them at `/api/portal` and lists them in its OpenAPI document. |
 | [`redeem_lose_next_responses`](#redeem_lose_next_responses) | function | Drop the next N successful redeem HTTP responses after the DB commit. |
 | [`generate_token`](#generate_token) | function | Generate a URL-safe random token. |
 | [`identity_from_session`](#identity_from_session) | function | Resolve identity from a portal session cookie value. |
@@ -1171,15 +1172,24 @@ Resolve a portal identity from the request cookie, if present and valid.
 pub fn portal_spa_router(state: PortalState) -> Router
 ```
 
-SPA-facing portal API. Nest under `/api/portal`.
+The SPA Accounts / claim routes with their state, ready to nest.
 
 #### Arguments
 
-* `state` - Shared portal / handler state.
+* `state` - Shared portal state.
+
+### portal_spa_routes
+
+```rust
+pub fn portal_spa_routes() -> OpenApiRouter<PortalState>
+```
+
+The SPA Accounts / claim routes, before state: the daemon nests them at
+`/api/portal` and lists them in its OpenAPI document.
 
 #### Returns
 
-`Router` result.
+The routes, relative to their mount point.
 
 ### redeem_lose_next_responses
 
