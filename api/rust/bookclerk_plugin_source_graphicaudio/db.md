@@ -1,79 +1,72 @@
-**bookclerk_plugin_source_graphicaudio > db**
+# bookclerk_plugin_source_graphicaudio::db
 
-# Module: db
+DB-backed credential storage for GraphicAudio accounts.
 
-## Contents
+Credentials live in `encrypted_secrets` under `provider =` the plugin id
+(`graphicaudio`), accessed only through [`SourceScope`](../bookclerk_library/scope.md#sourcescope).
 
-**Functions**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`save_auth_to_db`](#save_auth_to_db) | function | Persist a `GraphicAudioAuthFile` via the plugin scope. |
+| [`load_auth_from_db`](#load_auth_from_db) | function | Load a `GraphicAudioAuthFile` for this plugin only. |
+| [`list_auth_from_db`](#list_auth_from_db) | function | List GraphicAudio accounts for this plugin only. |
+| [`delete_auth_from_db`](#delete_auth_from_db) | function | Remove a GraphicAudio account secret. |
 
-- [`delete_auth_from_db`](#delete_auth_from_db) - Remove a GraphicAudio account secret.
-- [`list_auth_from_db`](#list_auth_from_db) - List GraphicAudio accounts for this plugin only.
-- [`load_auth_from_db`](#load_auth_from_db) - Load a [`GraphicAudioAuthFile`](auth.md#bookclerk_plugin_source_graphicaudioauthgraphicaudioauthfile) for this plugin only.
-- [`save_auth_to_db`](#save_auth_to_db) - Persist a [`GraphicAudioAuthFile`](auth.md#bookclerk_plugin_source_graphicaudioauthgraphicaudioauthfile) via the plugin scope.
+## Functions
 
----
+### save_auth_to_db
 
-## bookclerk_plugin_source_graphicaudio::db::delete_auth_from_db
+```rust
+pub async fn save_auth_to_db(
+    auth: &GraphicAudioAuthFile,
+    scope: &SourceScope,
+    account_id: &str,
+) -> Result<()>
+```
 
-*Function*
+Persist a [`GraphicAudioAuthFile`](index.md#graphicaudioauthfile) via the plugin scope.
 
-Remove a GraphicAudio account secret.
-
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### load_auth_from_db
+
 ```rust
-fn delete_auth_from_db(scope: &bookclerk_library::SourceScope, account_id: &str) -> crate::error::Result<()>
+pub async fn load_auth_from_db(
+    scope: &SourceScope,
+    account_id: &str,
+) -> Result<Option<GraphicAudioAuthFile>>
 ```
 
+Load a [`GraphicAudioAuthFile`](index.md#graphicaudioauthfile) for this plugin only.
 
+#### Errors
 
-## bookclerk_plugin_source_graphicaudio::db::list_auth_from_db
+Returns an error when the operation fails.
 
-*Function*
+### list_auth_from_db
+
+```rust
+pub async fn list_auth_from_db(
+    scope: &SourceScope,
+) -> Result<Vec<(String, GraphicAudioAuthFile)>>
+```
 
 List GraphicAudio accounts for this plugin only.
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### delete_auth_from_db
+
 ```rust
-fn list_auth_from_db(scope: &bookclerk_library::SourceScope) -> crate::error::Result<Vec<(String, crate::auth::GraphicAudioAuthFile)>>
+pub async fn delete_auth_from_db(scope: &SourceScope, account_id: &str) -> Result<()>
 ```
 
+Remove a GraphicAudio account secret.
 
-
-## bookclerk_plugin_source_graphicaudio::db::load_auth_from_db
-
-*Function*
-
-Load a [`GraphicAudioAuthFile`](auth.md#bookclerk_plugin_source_graphicaudioauthgraphicaudioauthfile) for this plugin only.
-
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
-
-```rust
-fn load_auth_from_db(scope: &bookclerk_library::SourceScope, account_id: &str) -> crate::error::Result<Option<crate::auth::GraphicAudioAuthFile>>
-```
-
-
-
-## bookclerk_plugin_source_graphicaudio::db::save_auth_to_db
-
-*Function*
-
-Persist a [`GraphicAudioAuthFile`](auth.md#bookclerk_plugin_source_graphicaudioauthgraphicaudioauthfile) via the plugin scope.
-
-# Errors
-
-Returns an error when the operation fails.
-
-```rust
-fn save_auth_to_db(auth: &crate::auth::GraphicAudioAuthFile, scope: &bookclerk_library::SourceScope, account_id: &str) -> crate::error::Result<()>
-```
-
-
-

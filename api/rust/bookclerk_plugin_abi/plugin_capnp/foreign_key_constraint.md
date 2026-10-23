@@ -1,122 +1,192 @@
-**bookclerk_plugin_abi > plugin_capnp > foreign_key_constraint**
+# bookclerk_plugin_abi::plugin_capnp::foreign_key_constraint
 
-# Module: plugin_capnp::foreign_key_constraint
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::foreign_key_constraint::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_columns(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_columns<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_columns(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_columns(self: &Self) -> bool`
-- `fn get_ref_table(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_ref_table<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_ref_table(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_ref_table(self: &Self) -> bool`
-- `fn get_ref_columns(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_ref_columns<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_ref_columns(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_ref_columns(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_columns
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_columns(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_columns
 
+```rust
+pub fn has_columns(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::foreign_key_constraint::Owned
+#### Reader::get_ref_table
 
-*Struct*
+```rust
+pub fn get_ref_table(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_ref_table
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_ref_table(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_ref_columns
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_ref_columns(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_ref_columns
 
+```rust
+pub fn has_ref_columns(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::foreign_key_constraint::Pipeline
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Trait Implementations:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
+#### Builder::reborrow
 
-## bookclerk_plugin_abi::plugin_capnp::foreign_key_constraint::Reader
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-*Struct*
+#### Builder::reborrow_as_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-**Methods:**
+#### Builder::total_size
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_columns(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_columns(self: &Self) -> bool`
-- `fn get_ref_table(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_ref_table(self: &Self) -> bool`
-- `fn get_ref_columns(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_ref_columns(self: &Self) -> bool`
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::get_columns
 
-**Trait Implementations:**
+```rust
+pub fn get_columns(self) -> Result<Builder<'a>>
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+#### Builder::set_columns
 
+```rust
+pub fn set_columns(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
 
+#### Builder::init_columns
 
+```rust
+pub fn init_columns(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_columns
+
+```rust
+pub fn has_columns(&self) -> bool
+```
+
+#### Builder::get_ref_table
+
+```rust
+pub fn get_ref_table(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_ref_table
+
+```rust
+pub fn set_ref_table(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_ref_table
+
+```rust
+pub fn init_ref_table(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_ref_table
+
+```rust
+pub fn has_ref_table(&self) -> bool
+```
+
+#### Builder::get_ref_columns
+
+```rust
+pub fn get_ref_columns(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_ref_columns
+
+```rust
+pub fn set_ref_columns(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_ref_columns
+
+```rust
+pub fn init_ref_columns(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_ref_columns
+
+```rust
+pub fn has_ref_columns(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

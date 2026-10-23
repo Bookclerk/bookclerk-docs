@@ -1,103 +1,160 @@
-**bookclerk_workerd > granted_http**
+# bookclerk_workerd::granted_http
 
-# Module: granted_http
+Sans-IO HTTP/1.1 parsing for the granted reverse channel.
 
-## Contents
+Every byte on the granted channel comes from a plugin isolate, so the
+request head, the chunked body framing and the query string are parsed
+here over plain byte slices, with no socket in sight. [`crate::granted`](granted.md)
+feeds these from its reader; unit tests and the `granted_http` fuzz
+target feed them directly, so all three drive the same code
+(`docs/adr/untrusted-input-fuzzing.md`).
 
-**Structs**
+Limits enforced here are structural (head size, chunk-size digits,
+trailer count). Body byte caps belong to the route and stay in
+[`crate::granted`](granted.md).
 
-- [`BodyReader`](#bodyreader) - Sans-IO reader for one request body under its declared framing.
-- [`ChunkedDecoder`](#chunkeddecoder) - Incremental `Transfer-Encoding: chunked` decoder.
-- [`ChunkedProgress`](#chunkedprogress) - Progress made by one `ChunkedDecoder::decode` call.
-- [`RequestHead`](#requesthead) - Parsed request line and headers.
+Parsing is strict rather than lenient: the only client is the plugin
+runtime's own `fetch`, so anything RFC 9112 does not require accepting
+(bare LF, whitespace before a chunk size, a second transfer coding) is
+rejected and answered with `400 Bad Request` instead of being guessed at.
 
-**Enums**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`RequestHead`](#requesthead) | struct | Parsed request line and headers. |
+| [`ChunkedProgress`](#chunkedprogress) | struct | Progress made by one `ChunkedDecoder::decode` call. |
+| [`ChunkedDecoder`](#chunkeddecoder) | struct | Incremental `Transfer-Encoding: chunked` decoder. |
+| [`BodyReader`](#bodyreader) | struct | Sans-IO reader for one request body under its declared framing. |
+| [`HeadError`](#headerror) | enum | Why a request head was rejected. |
+| [`HeadParse`](#headparse) | enum | Outcome of `parse_request_head` on the bytes buffered so far. |
+| [`BodyFraming`](#bodyframing) | enum | How the request frames its body. |
+| [`FramingError`](#framingerror) | enum | Why the body framing headers were rejected. |
+| [`ChunkedError`](#chunkederror) | enum | Why a chunked body was rejected. |
+| [`BodyError`](#bodyerror) | enum | Why a request body was rejected or cut short. |
+| [`parse_request_head`](#parse_request_head) | function | Parses an HTTP/1.1 request head from the start of `buf`. |
+| [`header`](#header) | function | The first header named `name` (ASCII case-insensitive). |
+| [`transfer_encodings`](#transfer_encodings) | function | Every transfer coding named by the `Transfer-Encoding` headers, in wire order, lowercased and trimmed, with empty list elements dropped. |
+| [`transfer_encoding_is_chunked`](#transfer_encoding_is_chunked) | function | True when a `Transfer-Encoding` header lists the `chunked` coding as a token (so `chunkedx` or `notchunked` do not count). |
+| [`body_framing`](#body_framing) | function | Decides the body framing from the headers. |
+| [`declared_content_length_over_cap`](#declared_content_length_over_cap) | function | True when a well-formed `Content-Length` declares more than `cap` bytes. A malformed one is left for `body_framing` to reject. |
+| [`query_param`](#query_param) | function | The percent-decoded value of the first `name=` pair in `query`. |
+| [`percent_decode`](#percent_decode) | function | Decodes `%HH` escapes and `+` (as space); malformed escapes are kept as written, and the result is UTF-8 with replacement characters. |
+| [`MAX_HEAD_BYTES`](#max_head_bytes) | constant | Largest request head (request line plus headers plus the blank line) accepted before the connection is dropped. |
+| [`MAX_CHUNK_SIZE_DIGITS`](#max_chunk_size_digits) | constant | Most hex digits a chunk-size field may carry. Sixteen digits already overflow `u64`; real clients send far fewer. |
+| [`MAX_CHUNK_LINE_BYTES`](#max_chunk_line_bytes) | constant | Longest chunk-size line (digits, extensions and CRLF) before the body is rejected as malformed. |
+| [`MAX_TRAILER_LINES`](#max_trailer_lines) | constant | Most trailer lines accepted after the terminating chunk. |
 
-- [`BodyError`](#bodyerror) - Why a request body was rejected or cut short.
-- [`BodyFraming`](#bodyframing) - How the request frames its body.
-- [`ChunkedError`](#chunkederror) - Why a chunked body was rejected.
-- [`FramingError`](#framingerror) - Why the body framing headers were rejected.
-- [`HeadError`](#headerror) - Why a request head was rejected.
-- [`HeadParse`](#headparse) - Outcome of [`parse_request_head`](granted_http.md#bookclerk_workerdgranted_httpparse_request_head) on the bytes buffered so far.
+## Structs
 
-**Functions**
+### RequestHead
 
-- [`body_framing`](#body_framing) - Decides the body framing from the headers.
-- [`declared_content_length_over_cap`](#declared_content_length_over_cap) - True when a well-formed `Content-Length` declares more than `cap` bytes.
-- [`header`](#header) - The first header named `name` (ASCII case-insensitive).
-- [`parse_request_head`](#parse_request_head) - Parses an HTTP/1.1 request head from the start of `buf`.
-- [`percent_decode`](#percent_decode) - Decodes `%HH` escapes and `+` (as space); malformed escapes are kept as
-- [`query_param`](#query_param) - The percent-decoded value of the first `name=` pair in `query`.
-- [`transfer_encoding_is_chunked`](#transfer_encoding_is_chunked) - True when a `Transfer-Encoding` header lists the `chunked` coding as a
-- [`transfer_encodings`](#transfer_encodings) - Every transfer coding named by the `Transfer-Encoding` headers, in wire
+```rust
+pub struct RequestHead {
+    pub method: String,
+    pub path: String,
+    pub headers: Vec<(String, String)>,
+}
+```
 
-**Constants**
+Parsed request line and headers.
 
-- [`MAX_CHUNK_LINE_BYTES`](#max_chunk_line_bytes) - Longest chunk-size line (digits, extensions and CRLF) before the body is
-- [`MAX_CHUNK_SIZE_DIGITS`](#max_chunk_size_digits) - Most hex digits a chunk-size field may carry. Sixteen digits already
-- [`MAX_HEAD_BYTES`](#max_head_bytes) - Largest request head (request line plus headers plus the blank line)
-- [`MAX_TRAILER_LINES`](#max_trailer_lines) - Most trailer lines accepted after the terminating chunk.
+**Fields**
 
----
+- `method`: HTTP method token as sent (case preserved).
+- `path`: Request target as sent, including any query string.
+- `headers`: Header fields in wire order, names and values trimmed, names with
+  their original case.
 
-## bookclerk_workerd::granted_http::BodyError
+#### RequestHead::split_query
 
-*Enum*
+```rust
+pub fn split_query(&self) -> (&str, &str)
+```
 
-Why a request body was rejected or cut short.
+The path without its query string, and the query string (empty when
+absent).
 
-**Variants:**
-- `Framing(FramingError)` - The framing headers were malformed or ambiguous.
-- `Chunked(ChunkedError)` - The chunked framing was malformed.
-- `TooLarge{ cap: usize }` - The body (declared or received) exceeds the route's byte cap.
-- `Truncated` - The stream ended before the declared `Content-Length` or the
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-**Traits:** Eq, Copy, Error
+### ChunkedProgress
 
-**Trait Implementations:**
+```rust
+pub struct ChunkedProgress {
+    pub consumed: usize,
+    pub done: bool,
+}
+```
 
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
-- **From**
-  - `fn from(err: ChunkedError) -> Self`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **From**
-  - `fn from(err: FramingError) -> Self`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &BodyError) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> BodyError`
+Progress made by one [`ChunkedDecoder::decode`](#chunkeddecoderdecode) call.
 
+**Fields**
 
+- `consumed`: Input bytes consumed; the caller drops them from its buffer.
+- `done`: True once the terminating chunk and its trailers are consumed.
 
-## bookclerk_workerd::granted_http::BodyFraming
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
-*Enum*
+### ChunkedDecoder
 
-How the request frames its body.
+```rust
+pub struct ChunkedDecoder {
+    /* private fields */
+}
+```
 
-**Variants:**
-- `UntilEof` - No `Content-Length` and no chunked encoding: the body runs to EOF.
-- `Length(usize)` - `Content-Length` in bytes.
-- `Chunked` - `Transfer-Encoding: chunked`.
+Incremental `Transfer-Encoding: chunked` decoder.
 
-**Traits:** Eq, Copy
+Decoding is incremental so a chunk of any declared size streams through
+without being buffered whole: the caller's buffer only ever holds what the
+peer has sent, never what it promised. The decoder itself keeps a few
+bytes of state.
 
-**Trait Implementations:**
+#### ChunkedDecoder::new
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &BodyFraming) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> BodyFraming`
+```rust
+pub fn new() -> Self
+```
 
+A decoder positioned before the first chunk-size line.
 
+#### ChunkedDecoder::is_done
 
-## bookclerk_workerd::granted_http::BodyReader
+```rust
+pub fn is_done(&self) -> bool
+```
 
-*Struct*
+True once the terminating chunk has been consumed.
+
+#### ChunkedDecoder::decode
+
+```rust
+pub fn decode(
+    &mut self,
+    input: &[u8],
+    out: &mut Vec<u8>,
+) -> Result<ChunkedProgress, ChunkedError>
+```
+
+Decodes as much of `input` as is complete, appending chunk data to
+`out`.
+
+Stops at the first incomplete element (a size line without its CRLF,
+data the peer has not sent yet) and reports how many bytes were
+consumed; the caller keeps the rest and calls again with more input.
+
+##### Errors
+
+Returns [`ChunkedError`](#chunkederror) on malformed framing; the decoder is then
+unusable and the connection should be dropped.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### BodyReader
+
+```rust
+pub struct BodyReader {
+    /* private fields */
+}
+```
 
 Sans-IO reader for one request body under its declared framing.
 
@@ -110,255 +167,271 @@ code path for all three (`docs/adr/untrusted-input-fuzzing.md`).
 A `Content-Length` body yields its first `len` bytes and ignores anything
 after them (the connection closes after one request). A chunked body is
 decoded incrementally; a read-until-EOF body yields every byte and is
-done only at `Self::finish`.
+done only at [`Self::finish`](#bodyreaderfinish).
 
-**Methods:**
+#### BodyReader::new
 
-- `fn new(headers: &[(String, String)]) -> Result<Self, BodyError>` - Starts a reader for the body `headers` describe.
-- `fn for_framing(framing: BodyFraming) -> Self` - Starts a reader for an already decided framing.
-- `fn with_cap(self: Self, cap: usize) -> Self` - Caps the decoded body at `cap` bytes; a body that declares or
-- `fn framing(self: &Self) -> BodyFraming` - The framing this reader follows.
-- `fn is_done(self: &Self) -> bool` - True once the body is complete (a read-until-EOF body only after
-- `fn push(self: & mut Self, input: &[u8], out: & mut Vec<u8>) -> Result<bool, BodyError>` - Feeds the next bytes from the stream, appending decoded body bytes to
-- `fn finish(self: & mut Self) -> Result<(), BodyError>` - Reports end of stream.
+```rust
+pub fn new(headers: &[(String, String)]) -> Result<Self, BodyError>
+```
 
-**Traits:** Eq
+Starts a reader for the body `headers` describe.
 
-**Trait Implementations:**
+##### Errors
 
-- **Clone**
-  - `fn clone(self: &Self) -> BodyReader`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &BodyReader) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+Returns [`BodyError::Framing`](#bodyerror) when the framing headers are malformed
+or ambiguous.
 
+#### BodyReader::for_framing
 
+```rust
+pub fn for_framing(framing: BodyFraming) -> Self
+```
 
-## bookclerk_workerd::granted_http::ChunkedDecoder
+Starts a reader for an already decided framing.
 
-*Struct*
+#### BodyReader::with_cap
 
-Incremental `Transfer-Encoding: chunked` decoder.
+```rust
+pub fn with_cap(self, cap: usize) -> Self
+```
 
-Decoding is incremental so a chunk of any declared size streams through
-without being buffered whole: the caller's buffer only ever holds what the
-peer has sent, never what it promised. The decoder itself keeps a few
-bytes of state.
+Caps the decoded body at `cap` bytes; a body that declares or
+delivers more fails with [`BodyError::TooLarge`](#bodyerror).
 
-**Methods:**
+#### BodyReader::framing
 
-- `fn new() -> Self` - A decoder positioned before the first chunk-size line.
-- `fn is_done(self: &Self) -> bool` - True once the terminating chunk has been consumed.
-- `fn decode(self: & mut Self, input: &[u8], out: & mut Vec<u8>) -> Result<ChunkedProgress, ChunkedError>` - Decodes as much of `input` as is complete, appending chunk data to
+```rust
+pub fn framing(&self) -> BodyFraming
+```
 
-**Traits:** Eq
+The framing this reader follows.
 
-**Trait Implementations:**
+#### BodyReader::is_done
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ChunkedDecoder) -> bool`
-- **Default**
-  - `fn default() -> Self`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> ChunkedDecoder`
+```rust
+pub fn is_done(&self) -> bool
+```
 
+True once the body is complete (a read-until-EOF body only after
+[`Self::finish`](#bodyreaderfinish)).
 
+#### BodyReader::push
 
-## bookclerk_workerd::granted_http::ChunkedError
+```rust
+pub fn push(&mut self, input: &[u8], out: &mut Vec<u8>) -> Result<bool, BodyError>
+```
 
-*Enum*
+Feeds the next bytes from the stream, appending decoded body bytes to
+`out`.
 
-Why a chunked body was rejected.
+##### Returns
 
-**Variants:**
-- `BadChunkSize` - A chunk-size field is empty, not hex, or longer than
-- `ChunkLineTooLong` - A chunk-size line ran past [`MAX_CHUNK_LINE_BYTES`](granted_http.md#bookclerk_workerdgranted_httpmax_chunk_line_bytes) without CRLF.
-- `MissingChunkTerminator` - Chunk data was not followed by CRLF.
-- `BadTrailer` - More than [`MAX_TRAILER_LINES`](granted_http.md#bookclerk_workerdgranted_httpmax_trailer_lines) trailer lines, or a trailer line
+`true` once the body is complete; later input is ignored.
 
-**Traits:** Eq, Copy, Error
+##### Errors
 
-**Trait Implementations:**
+[`BodyError::TooLarge`](#bodyerror) when the declared or received body passes the
+cap, or [`BodyError::Chunked`](#bodyerror) on malformed chunked framing. Either
+error is final.
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ChunkedError) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> ChunkedError`
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
+#### BodyReader::finish
 
+```rust
+pub fn finish(&mut self) -> Result<(), BodyError>
+```
 
+Reports end of stream.
 
-## bookclerk_workerd::granted_http::ChunkedProgress
+##### Errors
 
-*Struct*
+[`BodyError::Truncated`](#bodyerror) when a `Content-Length` or chunked body is
+incomplete. A read-until-EOF body completes here.
 
-Progress made by one `ChunkedDecoder::decode` call.
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-**Fields:**
-- `consumed: usize` - Input bytes consumed; the caller drops them from its buffer.
-- `done: bool` - True once the terminating chunk and its trailers are consumed.
+## Enums
 
-**Traits:** Eq, Copy
+### HeadError
 
-**Trait Implementations:**
-
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ChunkedProgress) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> ChunkedProgress`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-
-
-
-## bookclerk_workerd::granted_http::FramingError
-
-*Enum*
-
-Why the body framing headers were rejected.
-
-**Variants:**
-- `BadContentLength` - `Content-Length` is not a decimal `usize`, or two differ.
-- `Ambiguous` - Both `Content-Length` and chunked encoding are present.
-- `UnsupportedTransferEncoding` - `Transfer-Encoding` names a coding other than a single `chunked`
-
-**Traits:** Eq, Copy, Error
-
-**Trait Implementations:**
-
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &FramingError) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> FramingError`
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
-
-
-
-## bookclerk_workerd::granted_http::HeadError
-
-*Enum*
+```rust
+pub enum HeadError {
+    TooLarge,
+    NotUtf8,
+    BadRequestLine,
+    BadHeaderLine,
+}
+```
 
 Why a request head was rejected.
 
-**Variants:**
-- `TooLarge` - The head grew past [`MAX_HEAD_BYTES`](granted_http.md#bookclerk_workerdgranted_httpmax_head_bytes) without a blank line.
-- `NotUtf8` - The head is not UTF-8.
-- `BadRequestLine` - The request line is missing its method or target.
-- `BadHeaderLine` - A header line has no `:`.
+**Variants**
 
-**Traits:** Eq, Error, Copy
+- `TooLarge`: The head grew past [`MAX_HEAD_BYTES`](#max_head_bytes) without a blank line.
+- `NotUtf8`: The head is not UTF-8.
+- `BadRequestLine`: The request line is missing its method or target.
+- `BadHeaderLine`: A header line has no `:`.
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &HeadError) -> bool`
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> HeadError`
+### HeadParse
 
+```rust
+pub enum HeadParse {
+    Incomplete,
+    Complete { head: RequestHead, consumed: usize },
+}
+```
 
+Outcome of [`parse_request_head`](#parse_request_head) on the bytes buffered so far.
 
-## bookclerk_workerd::granted_http::HeadParse
+**Variants**
 
-*Enum*
+- `Incomplete`: No blank line yet; read more.
+- `Complete`: A complete head; `consumed` bytes belong to it and the rest of the
+  buffer is the start of the body.
+  - `head`: The parsed head.
+  - `consumed`: Bytes of `buf` the head occupied, including the blank line.
 
-Outcome of [`parse_request_head`](granted_http.md#bookclerk_workerdgranted_httpparse_request_head) on the bytes buffered so far.
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-**Variants:**
-- `Incomplete` - No blank line yet; read more.
-- `Complete{ head: RequestHead, consumed: usize }` - A complete head; `consumed` bytes belong to it and the rest of the
+### BodyFraming
 
-**Traits:** Eq
+```rust
+pub enum BodyFraming {
+    UntilEof,
+    Length(usize),
+    Chunked,
+}
+```
 
-**Trait Implementations:**
+How the request frames its body.
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &HeadParse) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> HeadParse`
+**Variants**
 
+- `UntilEof`: No `Content-Length` and no chunked encoding: the body runs to EOF.
+- `Length`: `Content-Length` in bytes.
+- `Chunked`: `Transfer-Encoding: chunked`.
 
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
-## bookclerk_workerd::granted_http::MAX_CHUNK_LINE_BYTES
+### FramingError
 
-*Constant*: `usize`
+```rust
+pub enum FramingError {
+    BadContentLength,
+    Ambiguous,
+    UnsupportedTransferEncoding,
+}
+```
 
-Longest chunk-size line (digits, extensions and CRLF) before the body is
-rejected as malformed.
+Why the body framing headers were rejected.
 
+**Variants**
 
+- `BadContentLength`: `Content-Length` is not a decimal `usize`, or two differ.
+- `Ambiguous`: Both `Content-Length` and chunked encoding are present.
+- `UnsupportedTransferEncoding`: `Transfer-Encoding` names a coding other than a single `chunked`
+  (`gzip, chunked`, `identity`, `chunked, chunked`); the channel does
+  not decode those, so the body length would be unknown.
 
-## bookclerk_workerd::granted_http::MAX_CHUNK_SIZE_DIGITS
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `From<FramingError>`, `PartialEq`
 
-*Constant*: `usize`
+### ChunkedError
 
-Most hex digits a chunk-size field may carry. Sixteen digits already
-overflow `u64`; real clients send far fewer.
+```rust
+pub enum ChunkedError {
+    BadChunkSize,
+    ChunkLineTooLong,
+    MissingChunkTerminator,
+    BadTrailer,
+}
+```
 
+Why a chunked body was rejected.
 
+**Variants**
 
-## bookclerk_workerd::granted_http::MAX_HEAD_BYTES
+- `BadChunkSize`: A chunk-size field is empty, not hex, or longer than
+  [`MAX_CHUNK_SIZE_DIGITS`](#max_chunk_size_digits).
+- `ChunkLineTooLong`: A chunk-size line ran past [`MAX_CHUNK_LINE_BYTES`](#max_chunk_line_bytes) without CRLF.
+- `MissingChunkTerminator`: Chunk data was not followed by CRLF.
+- `BadTrailer`: More than [`MAX_TRAILER_LINES`](#max_trailer_lines) trailer lines, or a trailer line
+  longer than [`MAX_CHUNK_LINE_BYTES`](#max_chunk_line_bytes).
 
-*Constant*: `usize`
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `From<ChunkedError>`, `PartialEq`
 
-Largest request head (request line plus headers plus the blank line)
-accepted before the connection is dropped.
+### BodyError
 
+```rust
+pub enum BodyError {
+    Framing(FramingError),
+    Chunked(ChunkedError),
+    TooLarge { cap: usize },
+    Truncated,
+}
+```
 
+Why a request body was rejected or cut short.
 
-## bookclerk_workerd::granted_http::MAX_TRAILER_LINES
+**Variants**
 
-*Constant*: `usize`
+- `Framing`: The framing headers were malformed or ambiguous.
+- `Chunked`: The chunked framing was malformed.
+- `TooLarge`: The body (declared or received) exceeds the route's byte cap.
+  - `cap`: The cap the body ran past, in bytes.
+- `Truncated`: The stream ended before the declared `Content-Length` or the
+  terminating chunk.
 
-Most trailer lines accepted after the terminating chunk.
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `From<ChunkedError>`, `From<FramingError>`, `PartialEq`
 
+## Functions
 
+### parse_request_head
 
-## bookclerk_workerd::granted_http::RequestHead
+```rust
+pub fn parse_request_head(buf: &[u8]) -> Result<HeadParse, HeadError>
+```
 
-*Struct*
+Parses an HTTP/1.1 request head from the start of `buf`.
 
-Parsed request line and headers.
+#### Errors
 
-**Fields:**
-- `method: String` - HTTP method token as sent (case preserved).
-- `path: String` - Request target as sent, including any query string.
-- `headers: Vec<(String, String)>` - Header fields in wire order, names and values trimmed, names with
+Returns [`HeadError`](#headerror) when the head is oversized, not UTF-8, or has a
+malformed request or header line. An incomplete head is not an error
+until it exceeds [`MAX_HEAD_BYTES`](#max_head_bytes).
 
-**Methods:**
+### header
 
-- `fn split_query(self: &Self) -> (&str, &str)` - The path without its query string, and the query string (empty when
+```rust
+pub fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str>
+```
 
-**Traits:** Eq
+The first header named `name` (ASCII case-insensitive).
 
-**Trait Implementations:**
+### transfer_encodings
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &RequestHead) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> RequestHead`
+```rust
+pub fn transfer_encodings(headers: &[(String, String)]) -> Vec<String>
+```
 
+Every transfer coding named by the `Transfer-Encoding` headers, in wire
+order, lowercased and trimmed, with empty list elements dropped.
 
+### transfer_encoding_is_chunked
 
-## bookclerk_workerd::granted_http::body_framing
+```rust
+pub fn transfer_encoding_is_chunked(headers: &[(String, String)]) -> bool
+```
 
-*Function*
+True when a `Transfer-Encoding` header lists the `chunked` coding as a
+token (so `chunkedx` or `notchunked` do not count).
+
+### body_framing
+
+```rust
+pub fn body_framing(headers: &[(String, String)]) -> Result<BodyFraming, FramingError>
+```
 
 Decides the body framing from the headers.
 
@@ -369,62 +442,32 @@ header can never turn a bounded body into a read-until-EOF one. A
 that coding is `chunked`; any other coding list is rejected because the
 channel cannot know where such a body ends.
 
-# Errors
+#### Errors
 
-Returns [`FramingError`](granted_http.md#bookclerk_workerdgranted_httpframingerror) on a malformed or ambiguous framing.
+Returns [`FramingError`](#framingerror) on a malformed or ambiguous framing.
+
+### declared_content_length_over_cap
 
 ```rust
-fn body_framing(headers: &[(String, String)]) -> Result<BodyFraming, FramingError>
+pub fn declared_content_length_over_cap(headers: &[(String, String)], cap: u32) -> bool
 ```
-
-
-
-## bookclerk_workerd::granted_http::declared_content_length_over_cap
-
-*Function*
 
 True when a well-formed `Content-Length` declares more than `cap` bytes.
-A malformed one is left for [`body_framing`](granted_http.md#bookclerk_workerdgranted_httpbody_framing) to reject.
+A malformed one is left for [`body_framing`](#body_framing) to reject.
+
+### query_param
 
 ```rust
-fn declared_content_length_over_cap(headers: &[(String, String)], cap: u32) -> bool
+pub fn query_param(query: &str, name: &str) -> Option<String>
 ```
 
+The percent-decoded value of the first `name=` pair in `query`.
 
-
-## bookclerk_workerd::granted_http::header
-
-*Function*
-
-The first header named `name` (ASCII case-insensitive).
+### percent_decode
 
 ```rust
-fn header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str>
+pub fn percent_decode(s: &str) -> String
 ```
-
-
-
-## bookclerk_workerd::granted_http::parse_request_head
-
-*Function*
-
-Parses an HTTP/1.1 request head from the start of `buf`.
-
-# Errors
-
-Returns [`HeadError`](granted_http.md#bookclerk_workerdgranted_httpheaderror) when the head is oversized, not UTF-8, or has a
-malformed request or header line. An incomplete head is not an error
-until it exceeds [`MAX_HEAD_BYTES`](granted_http.md#bookclerk_workerdgranted_httpmax_head_bytes).
-
-```rust
-fn parse_request_head(buf: &[u8]) -> Result<HeadParse, HeadError>
-```
-
-
-
-## bookclerk_workerd::granted_http::percent_decode
-
-*Function*
 
 Decodes `%HH` escapes and `+` (as space); malformed escapes are kept as
 written, and the result is UTF-8 with replacement characters.
@@ -432,47 +475,39 @@ written, and the result is UTF-8 with replacement characters.
 Works on bytes throughout: a `%` escape may end inside a multi-byte
 character, so slicing the `str` would panic.
 
-```rust
-fn percent_decode(s: &str) -> String
-```
+## Constants
 
-
-
-## bookclerk_workerd::granted_http::query_param
-
-*Function*
-
-The percent-decoded value of the first `name=` pair in `query`.
+### MAX_HEAD_BYTES
 
 ```rust
-fn query_param(query: &str, name: &str) -> Option<String>
+pub const MAX_HEAD_BYTES: usize = _;
 ```
 
+Largest request head (request line plus headers plus the blank line)
+accepted before the connection is dropped.
 
-
-## bookclerk_workerd::granted_http::transfer_encoding_is_chunked
-
-*Function*
-
-True when a `Transfer-Encoding` header lists the `chunked` coding as a
-token (so `chunkedx` or `notchunked` do not count).
+### MAX_CHUNK_SIZE_DIGITS
 
 ```rust
-fn transfer_encoding_is_chunked(headers: &[(String, String)]) -> bool
+pub const MAX_CHUNK_SIZE_DIGITS: usize = 16;
 ```
 
+Most hex digits a chunk-size field may carry. Sixteen digits already
+overflow `u64`; real clients send far fewer.
 
-
-## bookclerk_workerd::granted_http::transfer_encodings
-
-*Function*
-
-Every transfer coding named by the `Transfer-Encoding` headers, in wire
-order, lowercased and trimmed, with empty list elements dropped.
+### MAX_CHUNK_LINE_BYTES
 
 ```rust
-fn transfer_encodings(headers: &[(String, String)]) -> Vec<String>
+pub const MAX_CHUNK_LINE_BYTES: usize = 1024;
 ```
 
+Longest chunk-size line (digits, extensions and CRLF) before the body is
+rejected as malformed.
 
+### MAX_TRAILER_LINES
 
+```rust
+pub const MAX_TRAILER_LINES: usize = 16;
+```
+
+Most trailer lines accepted after the terminating chunk.

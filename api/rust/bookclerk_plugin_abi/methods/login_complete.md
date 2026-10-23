@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > login_complete**
+# bookclerk_plugin_abi::methods::login_complete
 
-# Module: methods::login_complete
+Finish interactive OAuth after the operator completes the browser flow.
 
-## Contents
+Params: [`crate::LoginCompleteParams`](../generated.md#logincompleteparams). Result: [`crate::LoginResult`](../generated.md#loginresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"loginComplete"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::login_complete::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "loginComplete";
+```
 
 Wire method name `"loginComplete"`.
-
-
-

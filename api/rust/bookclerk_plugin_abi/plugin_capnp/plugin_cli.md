@@ -1,160 +1,137 @@
-**bookclerk_plugin_abi > plugin_capnp > plugin_cli**
+# bookclerk_plugin_abi::plugin_capnp::plugin_cli
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`DescribeParams`](#describeparams) | type alias |  |
+| [`DescribeResults`](#describeresults) | type alias |  |
+| [`InvokeParams`](#invokeparams) | type alias |  |
+| [`InvokeResults`](#invokeresults) | type alias |  |
+
+## Modules
+
+- [`describe_params`](plugin_cli/describe_params.md)
+- [`describe_results`](plugin_cli/describe_results.md)
+- [`invoke_params`](plugin_cli/invoke_params.md)
+- [`invoke_results`](plugin_cli/invoke_results.md)
+
+## Traits
+
+### Server
 
-# Module: plugin_capnp::plugin_cli
+```rust
+pub trait Server: 'static {
+    fn describe(
+        self: Rc<Self>,
+        _: DescribeParams,
+        _: DescribeResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn invoke(
+        self: Rc<Self>,
+        _: InvokeParams,
+        _: InvokeResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
 
-## Contents
+#### Server::describe
 
-**Modules**
+```rust
+fn describe(
+    self: Rc<Self>,
+    _: DescribeParams,
+    _: DescribeResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`describe_params`](#describe_params)
-- [`describe_results`](#describe_results)
-- [`invoke_params`](#invoke_params)
-- [`invoke_results`](#invoke_results)
+#### Server::invoke
 
-**Structs**
+```rust
+fn invoke(
+    self: Rc<Self>,
+    _: InvokeParams,
+    _: InvokeResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+## Structs
 
-**Traits**
+### Client
 
-- [`Server`](#server)
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-**Type Aliases**
+#### Client::describe_request
 
-- [`DescribeParams`](#describeparams)
-- [`DescribeResults`](#describeresults)
-- [`InvokeParams`](#invokeparams)
-- [`InvokeResults`](#invokeresults)
+```rust
+pub fn describe_request(&self) -> Request<Owned, Owned>
+```
 
----
+#### Client::invoke_request
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::Client
+```rust
+pub fn invoke_request(&self) -> Request<Owned, Owned>
+```
 
-*Struct*
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+### Owned
 
-**Methods:**
+```rust
+pub struct Owned(/* private */);
+```
 
-- `fn describe_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_cli::describe_params::Owned, crate::plugin_capnp::plugin_cli::describe_results::Owned>`
-- `fn invoke_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_cli::invoke_params::Owned, crate::plugin_capnp::plugin_cli::invoke_results::Owned>`
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-**Traits:** HasTypeId
+### ServerDispatch
 
-**Trait Implementations:**
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
+#### ServerDispatch::dispatch_call_internal
 
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
+Implements: `Clone`, `Deref`, `Server`
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::DescribeParams
+## Type aliases
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_cli::describe_params::Owned>`
+### DescribeParams
 
+```rust
+pub type DescribeParams = Params<Owned>;
+```
 
+### DescribeResults
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::DescribeResults
+```rust
+pub type DescribeResults = Results<Owned>;
+```
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_cli::describe_results::Owned>`
+### InvokeParams
 
+```rust
+pub type InvokeParams = Params<Owned>;
+```
 
+### InvokeResults
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::InvokeParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_cli::invoke_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::InvokeResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_cli::invoke_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Copy, Pipelined, Owned
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::Server
-
-*Trait*
-
-**Methods:**
-
-- `describe`
-- `invoke`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_cli::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-
-
-
-## Module: describe_params
-
-
-
-## Module: describe_results
-
-
-
-## Module: invoke_params
-
-
-
-## Module: invoke_results
-
-
-
+```rust
+pub type InvokeResults = Results<Owned>;
+```

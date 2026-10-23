@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > publish**
+# bookclerk_plugin_abi::methods::publish
 
-# Module: methods::publish
+Append one guest event to the host outbox (Cap'n Proto `EventPublisher.publish`).
 
-## Contents
+Params: [`crate::PluginEvent`](../generated.md#pluginevent). Result: [`crate::PublishOk`](../generated.md#publishok).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"publish"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::publish::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "publish";
+```
 
 Wire method name `"publish"`.
-
-
-

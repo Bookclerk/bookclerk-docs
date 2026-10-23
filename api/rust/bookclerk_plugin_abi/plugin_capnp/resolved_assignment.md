@@ -1,122 +1,192 @@
-**bookclerk_plugin_abi > plugin_capnp > resolved_assignment**
+# bookclerk_plugin_abi::plugin_capnp::resolved_assignment
 
-# Module: plugin_capnp::resolved_assignment
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_assignment::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_table(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_table<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_table(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_table(self: &Self) -> bool`
-- `fn get_column(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_column<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_column(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_column(self: &Self) -> bool`
-- `fn get_dest(self: Self) -> ::core::result::Result<crate::plugin_capnp::ResolvedSqlType, ::capnp::NotInSchema>`
-- `fn set_dest(self: & mut Self, value: crate::plugin_capnp::ResolvedSqlType)`
-- `fn get_source(self: Self) -> ::core::result::Result<crate::plugin_capnp::ResolvedSqlType, ::capnp::NotInSchema>`
-- `fn set_source(self: & mut Self, value: crate::plugin_capnp::ResolvedSqlType)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_table
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_table(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_table
 
+```rust
+pub fn has_table(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_assignment::Owned
+#### Reader::get_column
 
-*Struct*
+```rust
+pub fn get_column(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_column
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_column(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_dest
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_dest(self) -> Result<ResolvedSqlType, NotInSchema>
+```
 
+#### Reader::get_source
 
+```rust
+pub fn get_source(self) -> Result<ResolvedSqlType, NotInSchema>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_assignment::Pipeline
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Trait Implementations:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
+#### Builder::reborrow
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_assignment::Reader
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-*Struct*
+#### Builder::reborrow_as_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-**Methods:**
+#### Builder::total_size
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_table(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_table(self: &Self) -> bool`
-- `fn get_column(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_column(self: &Self) -> bool`
-- `fn get_dest(self: Self) -> ::core::result::Result<crate::plugin_capnp::ResolvedSqlType, ::capnp::NotInSchema>`
-- `fn get_source(self: Self) -> ::core::result::Result<crate::plugin_capnp::ResolvedSqlType, ::capnp::NotInSchema>`
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Traits:** HasTypeId, Copy
+#### Builder::get_table
 
-**Trait Implementations:**
+```rust
+pub fn get_table(self) -> Result<Builder<'a>>
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+#### Builder::set_table
 
+```rust
+pub fn set_table(&mut self, value: impl SetterInput<Owned>)
+```
 
+#### Builder::init_table
 
+```rust
+pub fn init_table(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_table
+
+```rust
+pub fn has_table(&self) -> bool
+```
+
+#### Builder::get_column
+
+```rust
+pub fn get_column(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_column
+
+```rust
+pub fn set_column(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_column
+
+```rust
+pub fn init_column(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_column
+
+```rust
+pub fn has_column(&self) -> bool
+```
+
+#### Builder::get_dest
+
+```rust
+pub fn get_dest(self) -> Result<ResolvedSqlType, NotInSchema>
+```
+
+#### Builder::set_dest
+
+```rust
+pub fn set_dest(&mut self, value: ResolvedSqlType)
+```
+
+#### Builder::get_source
+
+```rust
+pub fn get_source(self) -> Result<ResolvedSqlType, NotInSchema>
+```
+
+#### Builder::set_source
+
+```rust
+pub fn set_source(&mut self, value: ResolvedSqlType)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

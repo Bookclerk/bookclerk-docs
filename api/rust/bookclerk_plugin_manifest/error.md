@@ -1,22 +1,30 @@
-**bookclerk_plugin_manifest > error**
+# bookclerk_plugin_manifest::error
 
-# Module: error
+Manifest parse and semantic-validation errors.
 
-## Contents
+All fallible entry points in this crate ([`crate::parse`](index.md#parse),
+[`crate::validate_plugin_id`](id.md#validate_plugin_id), [`crate::validate_logo`](logo.md#validate_logo),
+[`crate::format_manifest`](fmt.md#format_manifest), and so on) return [`Result`](#result) with this
+[`enum@Error`](#error) type. TOML serde failures are preserved via
+[`Error::TomlDe`](#error) / [`Error::TomlSer`](#error); semantic rules use
+[`Error::Message`](#error).
 
-**Enums**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Error`](#error) | enum | Errors produced while deserializing or validating `plugin.toml`. |
+| [`Result`](#result) | type alias | Result alias for manifest parse, validate, and format operations. |
 
-- [`Error`](#error) - Errors produced while deserializing or validating `plugin.toml`.
+## Enums
 
-**Type Aliases**
+### Error
 
-- [`Result`](#result) - Result alias for manifest parse, validate, and format operations.
-
----
-
-## bookclerk_plugin_manifest::error::Error
-
-*Enum*
+```rust
+pub enum Error {
+    Message(String),
+    TomlDe(Error),
+    TomlSer(Error),
+}
+```
 
 Errors produced while deserializing or validating `plugin.toml`.
 
@@ -24,35 +32,39 @@ Display implementations are operator-facing (prefixed where useful, e.g.
 `toml: …`). There is no structured error code; callers typically match on
 the variant or format the message for CLI / doctor output.
 
-**Variants:**
-- `Message(String)` - Operator-facing semantic failure with no structured code.
-- `TomlDe(toml::de::Error)` - TOML deserialize failure from `toml::from_str`.
-- `TomlSer(toml::ser::Error)` - TOML serialize failure from canonical [`crate::format_manifest`](fmt.md#bookclerk_plugin_manifestfmtformat_manifest).
+**Variants**
 
-**Methods:**
+- `Message`: Operator-facing semantic failure with no structured code.
+  
+  Used for id grammar, runtime field requirements, network domain rules,
+  logo validation, and similar checks after TOML deserialize succeeds.
+- `TomlDe`: TOML deserialize failure from `toml::from_str`.
+- `TomlSer`: TOML serialize failure from canonical [`crate::format_manifest`](fmt.md#format_manifest).
 
-- `fn message<impl Into<String>>(msg: impl Trait) -> Self` - Builds an `Error::Message` from any string-like value.
+#### Error::message
 
-**Trait Implementations:**
+```rust
+pub fn message(msg: impl Into<String>) -> Self
+```
 
-- **From**
-  - `fn from(source: toml::ser::Error) -> Self`
-- **Display**
-  - `fn fmt(self: &Self, __formatter: & mut ::core::fmt::Formatter) -> ::core::fmt::Result`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **From**
-  - `fn from(source: toml::de::Error) -> Self`
-- **Error**
-  - `fn source(self: &Self) -> ::core::option::Option<&dyn ::thiserror::__private21::Error>`
+Builds an [`Error::Message`](#error) from any string-like value.
 
+##### Arguments
 
+* `msg` - Human-readable explanation (often prefixed with `plugin.toml:`).
 
-## bookclerk_plugin_manifest::error::Result
+##### Returns
 
-*Type Alias*: `std::result::Result<T, Error>`
+An [`Error::Message`](#error) wrapping the owned string.
+
+Implements: `Debug`, `Display`, `Error`, `From<Error>`
+
+## Type aliases
+
+### Result
+
+```rust
+pub type Result<T> = Result<T, Error>;
+```
 
 Result alias for manifest parse, validate, and format operations.
-
-
-

@@ -1,54 +1,61 @@
-**bookclerk_plugin_destination_s3 > plugin**
+# bookclerk_plugin_destination_s3::plugin
 
-# Module: plugin
+Destination + job-handler surface for the S3 / MinIO guest.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`S3Destination`](#s3destination) | struct | S3 destination capability (multipart sink for streamed puts). |
+| [`S3Root`](#s3root) | struct | Root capability for the optional S3 destination guest. |
 
-**Structs**
+## Structs
 
-- [`S3Destination`](#s3destination) - S3 destination capability (multipart sink for streamed puts).
-- [`S3Root`](#s3root) - Root capability for the optional S3 destination guest.
+### S3Destination
 
----
-
-## bookclerk_plugin_destination_s3::plugin::S3Destination
-
-*Struct*
+```rust
+pub struct S3Destination {
+    /* private fields */
+}
+```
 
 S3 destination capability (multipart sink for streamed puts).
 
-**Methods:**
+#### S3Destination::from_config
 
-- `fn from_config(config: &ExtensibleConfig) -> std::result::Result<Self, bookclerk_plugin_sdk::PluginError>` - Builds a destination from the `open` `Bindings::config` payload
-- `fn from_bindings(bindings: &Bindings) -> std::result::Result<Self, bookclerk_plugin_sdk::PluginError>` - `Self::from_config` plus credentials from `SECRETS` when `CONFIG` omits them.
+```rust
+pub async fn from_config(config: &ExtensibleConfig) -> Result<Self, PluginError>
+```
 
-**Trait Implementations:**
+Builds a destination from the `open` `Bindings::config` payload
+(an [`OutputS3ContextDto`](../bookclerk_plugin_abi/kind.md#outputs3contextdto) as `application/json`).
 
-- **Destination**
-  - `fn head(self: &'life0 Self, key: &'life1 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn list(self: &'life0 Self, options: ListOptions) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn get(self: &'life0 Self, key: &'life1 str, range: Option<ByteRange>) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn put(self: &'life0 Self, key: &'life1 str, body: Pin<Box<dyn AsyncRead>>, options: WriteOptions) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn copy(self: &'life0 Self, from: &'life1 str, to: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn delete(self: &'life0 Self, key: &'life1 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn commit(self: &'life0 Self, key: &'life1 str, commit_token: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn abort_stage(self: &'life0 Self, key: &'life1 str, commit_token: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
+##### Errors
 
+Returns invalid_params when the payload is not an S3 context, or internal
+when the client cannot be constructed.
 
+#### S3Destination::from_bindings
 
-## bookclerk_plugin_destination_s3::plugin::S3Root
+```rust
+pub async fn from_bindings(bindings: &Bindings) -> Result<Self, PluginError>
+```
 
-*Struct*
+[`Self::from_config`](#s3destinationfrom_config) plus credentials from `SECRETS` when `CONFIG` omits them.
+
+The host keeps access keys out of `CONFIG` and the spawn config table.
+
+##### Errors
+
+Returns invalid_params when the payload is not an S3 context, or internal
+when the client cannot be constructed.
+
+Implements: `Destination`
+
+### S3Root
+
+```rust
+pub struct S3Root;
+```
 
 Root capability for the optional S3 destination guest.
 
-**Unit Struct**
-
-**Trait Implementations:**
-
-- **PluginWorker**
-  - `fn describe(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn open(self: &'life0 Self, _invocation: Invocation, bindings: Bindings) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-
-
-
+Implements: `PluginWorker`

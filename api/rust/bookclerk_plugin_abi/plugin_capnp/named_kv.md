@@ -1,125 +1,192 @@
-**bookclerk_plugin_abi > plugin_capnp > named_kv**
+# bookclerk_plugin_abi::plugin_capnp::named_kv
 
-# Module: plugin_capnp::named_kv
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::named_kv::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_name(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_name<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_name(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_name(self: &Self) -> bool`
-- `fn get_namespace(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_namespace<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_namespace(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_namespace(self: &Self) -> bool`
-- `fn get_kv(self: Self) -> ::capnp::Result<crate::plugin_capnp::kv_namespace::Client>`
-- `fn set_kv(self: & mut Self, value: crate::plugin_capnp::kv_namespace::Client)`
-- `fn has_kv(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_name
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_name(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_name
 
+```rust
+pub fn has_name(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::named_kv::Owned
+#### Reader::get_namespace
 
-*Struct*
+```rust
+pub fn get_namespace(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_namespace
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_namespace(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_kv
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_kv(self) -> Result<Client>
+```
 
+#### Reader::has_kv
 
+```rust
+pub fn has_kv(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::named_kv::Pipeline
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Methods:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- `fn get_kv(self: &Self) -> crate::plugin_capnp::kv_namespace::Client`
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
-## bookclerk_plugin_abi::plugin_capnp::named_kv::Reader
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-*Struct*
+#### Builder::total_size
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Methods:**
+#### Builder::get_name
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_name(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_name(self: &Self) -> bool`
-- `fn get_namespace(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_namespace(self: &Self) -> bool`
-- `fn get_kv(self: Self) -> ::capnp::Result<crate::plugin_capnp::kv_namespace::Client>`
-- `fn has_kv(self: &Self) -> bool`
+```rust
+pub fn get_name(self) -> Result<Builder<'a>>
+```
 
-**Traits:** HasTypeId, Copy
+#### Builder::set_name
 
-**Trait Implementations:**
+```rust
+pub fn set_name(&mut self, value: impl SetterInput<Owned>)
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+#### Builder::init_name
 
+```rust
+pub fn init_name(self, size: u32) -> Builder<'a>
+```
 
+#### Builder::has_name
 
+```rust
+pub fn has_name(&self) -> bool
+```
+
+#### Builder::get_namespace
+
+```rust
+pub fn get_namespace(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_namespace
+
+```rust
+pub fn set_namespace(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_namespace
+
+```rust
+pub fn init_namespace(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_namespace
+
+```rust
+pub fn has_namespace(&self) -> bool
+```
+
+#### Builder::get_kv
+
+```rust
+pub fn get_kv(self) -> Result<Client>
+```
+
+#### Builder::set_kv
+
+```rust
+pub fn set_kv(&mut self, value: Client)
+```
+
+#### Builder::has_kv
+
+```rust
+pub fn has_kv(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_kv
+
+```rust
+pub fn get_kv(&self) -> Client
+```
+
+Implements: `FromTypelessPipeline`

@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > expand_candidates**
+# bookclerk_plugin_abi::methods::expand_candidates
 
-# Module: methods::expand_candidates
+Expand related catalog candidates from a seed title.
 
-## Contents
+Params: [`crate::ExpandCandidatesParams`](../generated.md#expandcandidatesparams). Result: list of [`crate::CatalogHit`](../generated.md#cataloghit).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"expandCandidates"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::expand_candidates::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "expandCandidates";
+```
 
 Wire method name `"expandCandidates"`.
-
-
-

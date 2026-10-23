@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > invoke**
+# bookclerk_plugin_abi::methods::invoke
 
-# Module: methods::invoke
+Invoke a declared plugin CLI command (Cap'n Proto `PluginCli.invoke`).
 
-## Contents
+Params: [`crate::CliInvokeParams`](../generated.md#cliinvokeparams). Result: [`crate::CliInvokeResult`](../generated.md#cliinvokeresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"invoke"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::invoke::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "invoke";
+```
 
 Wire method name `"invoke"`.
-
-
-

@@ -1,39 +1,39 @@
-# bookclerk\_plugin\_sdk.sparse\_workerd.smoke
+# bookclerk_plugin_sdk.sparse_workerd.smoke
 
 Out-of-tree workerd plugin smoke: ensure → materialize → describe + health.
 
-Spawns the pinned Cloudflare ``workerd`` with a materialized Cap'n Proto config
-and POSTs ``describe`` (plus a ``POST /invoke`` ``health`` call for storefront /
+Spawns the pinned Cloudflare `workerd` with a materialized Cap'n Proto config
+and POSTs `describe` (plus a `POST /invoke` `health` call for storefront /
 remoteLibrary guests) to the HTTP bridge. Does not require the Rust
-``bookclerk-workerd`` binary.
+`bookclerk-workerd` binary.
 
-#### run\_smoke
+## Functions
+
+### run_smoke
 
 ```python
 def run_smoke(plugin_dir: Path) -> str
 ```
 
-Smoke a workerd plugin without the Rust ``bookclerk-workerd`` binary.
+Smoke a workerd plugin without the Rust `bookclerk-workerd` binary.
 
-**Arguments**:
+**Args**
 
-- `plugin_dir` - Path to a ``runtime = "workerd"`` plugin root.
-  
+- `plugin_dir`: Path to a `runtime = "workerd"` plugin root.
 
-**Returns**:
+**Returns**
 
-  Multi-line status including plugin id and JSON describe/health detail.
-  
+Multi-line status including plugin id and JSON describe/health detail.
 
-**Raises**:
+**Raises**
 
-- `FileNotFoundError` - If ``plugin.toml`` is missing.
-- `ValueError` - If the manifest is invalid or not a workerd plugin.
-- `TimeoutError` - If the bridge health endpoint never becomes ready.
-- `RuntimeError` - If the describe/health bridge call fails.
-  
+- `FileNotFoundError`: If `plugin.toml` is missing.
+- `ValueError`: If the manifest is invalid or not a workerd plugin.
+- `TimeoutError`: If the bridge health endpoint never becomes ready.
+- `RuntimeError`: If the describe/health bridge call fails.
 
-**Examples**:
+**Examples**
 
-  >>> # print(run_smoke(Path("./my-workerd-plugin")))
-
+```python
+>>> # print(run_smoke(Path("./my-workerd-plugin")))
+```

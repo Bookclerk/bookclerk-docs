@@ -1,160 +1,137 @@
-**bookclerk_plugin_abi > plugin_capnp > queue_producer**
+# bookclerk_plugin_abi::plugin_capnp::queue_producer
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`SendParams`](#sendparams) | type alias |  |
+| [`SendResults`](#sendresults) | type alias |  |
+| [`SendBatchParams`](#sendbatchparams) | type alias |  |
+| [`SendBatchResults`](#sendbatchresults) | type alias |  |
+
+## Modules
+
+- [`send_params`](queue_producer/send_params.md)
+- [`send_results`](queue_producer/send_results.md)
+- [`send_batch_params`](queue_producer/send_batch_params.md)
+- [`send_batch_results`](queue_producer/send_batch_results.md)
+
+## Traits
+
+### Server
 
-# Module: plugin_capnp::queue_producer
+```rust
+pub trait Server: 'static {
+    fn send(
+        self: Rc<Self>,
+        _: SendParams,
+        _: SendResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn send_batch(
+        self: Rc<Self>,
+        _: SendBatchParams,
+        _: SendBatchResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
 
-## Contents
+#### Server::send
 
-**Modules**
+```rust
+fn send(
+    self: Rc<Self>,
+    _: SendParams,
+    _: SendResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`send_batch_params`](#send_batch_params)
-- [`send_batch_results`](#send_batch_results)
-- [`send_params`](#send_params)
-- [`send_results`](#send_results)
+#### Server::send_batch
 
-**Structs**
+```rust
+fn send_batch(
+    self: Rc<Self>,
+    _: SendBatchParams,
+    _: SendBatchResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+## Structs
 
-**Traits**
+### Client
 
-- [`Server`](#server)
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-**Type Aliases**
+#### Client::send_request
 
-- [`SendBatchParams`](#sendbatchparams)
-- [`SendBatchResults`](#sendbatchresults)
-- [`SendParams`](#sendparams)
-- [`SendResults`](#sendresults)
+```rust
+pub fn send_request(&self) -> Request<Owned, Owned>
+```
 
----
+#### Client::send_batch_request
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::Client
+```rust
+pub fn send_batch_request(&self) -> Request<Owned, Owned>
+```
 
-*Struct*
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+### Owned
 
-**Methods:**
+```rust
+pub struct Owned(/* private */);
+```
 
-- `fn send_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::queue_producer::send_params::Owned, crate::plugin_capnp::queue_producer::send_results::Owned>`
-- `fn send_batch_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::queue_producer::send_batch_params::Owned, crate::plugin_capnp::queue_producer::send_batch_results::Owned>`
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-**Traits:** HasTypeId
+### ServerDispatch
 
-**Trait Implementations:**
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
+#### ServerDispatch::dispatch_call_internal
 
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
+Implements: `Clone`, `Deref`, `Server`
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::Owned
+## Type aliases
 
-*Struct*
+### SendParams
 
-**Tuple Struct**: `()`
+```rust
+pub type SendParams = Params<Owned>;
+```
 
-**Traits:** Pipelined, Owned, Copy
+### SendResults
 
-**Trait Implementations:**
+```rust
+pub type SendResults = Results<Owned>;
+```
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+### SendBatchParams
 
+```rust
+pub type SendBatchParams = Params<Owned>;
+```
 
+### SendBatchResults
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::SendBatchParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::queue_producer::send_batch_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::SendBatchResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::queue_producer::send_batch_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::SendParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::queue_producer::send_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::SendResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::queue_producer::send_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::Server
-
-*Trait*
-
-**Methods:**
-
-- `send`
-- `send_batch`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-
-
-
-## Module: send_batch_params
-
-
-
-## Module: send_batch_results
-
-
-
-## Module: send_params
-
-
-
-## Module: send_results
-
-
-
+```rust
+pub type SendBatchResults = Results<Owned>;
+```

@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > copy**
+# bookclerk_plugin_abi::methods::copy
 
-# Module: methods::copy
+Copy an object within an output destination.
 
-## Contents
+Typed Cap'n Proto `Destination.copy` ([`crate::Destination::copy`](../index.md#destinationcopy)).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"copy"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::copy::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "copy";
+```
 
 Wire method name `"copy"`.
-
-
-

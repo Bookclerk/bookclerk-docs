@@ -1,212 +1,213 @@
-**bookclerk_plugin_abi > plugin_capnp > plugin_worker**
+# bookclerk_plugin_abi::plugin_capnp::plugin_worker
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`DescribeParams`](#describeparams) | type alias |  |
+| [`DescribeResults`](#describeresults) | type alias |  |
+| [`OpenParams`](#openparams) | type alias |  |
+| [`OpenResults`](#openresults) | type alias |  |
+| [`ShutdownParams`](#shutdownparams) | type alias |  |
+| [`ShutdownResults`](#shutdownresults) | type alias |  |
+| [`DatabaseMigrationsParams`](#databasemigrationsparams) | type alias |  |
+| [`DatabaseMigrationsResults`](#databasemigrationsresults) | type alias |  |
+
+## Modules
+
+- [`describe_params`](plugin_worker/describe_params.md)
+- [`describe_results`](plugin_worker/describe_results.md)
+- [`open_params`](plugin_worker/open_params.md)
+- [`open_results`](plugin_worker/open_results.md)
+- [`shutdown_params`](plugin_worker/shutdown_params.md)
+- [`shutdown_results`](plugin_worker/shutdown_results.md)
+- [`database_migrations_params`](plugin_worker/database_migrations_params.md)
+- [`database_migrations_results`](plugin_worker/database_migrations_results.md)
+
+## Traits
+
+### Server
+
+```rust
+pub trait Server: 'static {
+    fn describe(
+        self: Rc<Self>,
+        _: DescribeParams,
+        _: DescribeResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn open(
+        self: Rc<Self>,
+        _: OpenParams,
+        _: OpenResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn shutdown(
+        self: Rc<Self>,
+        _: ShutdownParams,
+        _: ShutdownResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn database_migrations(
+        self: Rc<Self>,
+        _: DatabaseMigrationsParams,
+        _: DatabaseMigrationsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
+
+#### Server::describe
+
+```rust
+fn describe(
+    self: Rc<Self>,
+    _: DescribeParams,
+    _: DescribeResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::open
+
+```rust
+fn open(
+    self: Rc<Self>,
+    _: OpenParams,
+    _: OpenResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::shutdown
+
+```rust
+fn shutdown(
+    self: Rc<Self>,
+    _: ShutdownParams,
+    _: ShutdownResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::database_migrations
+
+```rust
+fn database_migrations(
+    self: Rc<Self>,
+    _: DatabaseMigrationsParams,
+    _: DatabaseMigrationsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+Implemented by: `PluginServer`
+
+## Structs
+
+### Client
 
-# Module: plugin_capnp::plugin_worker
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-## Contents
+#### Client::describe_request
 
-**Modules**
+```rust
+pub fn describe_request(&self) -> Request<Owned, Owned>
+```
 
-- [`database_migrations_params`](#database_migrations_params)
-- [`database_migrations_results`](#database_migrations_results)
-- [`describe_params`](#describe_params)
-- [`describe_results`](#describe_results)
-- [`open_params`](#open_params)
-- [`open_results`](#open_results)
-- [`shutdown_params`](#shutdown_params)
-- [`shutdown_results`](#shutdown_results)
+#### Client::open_request
 
-**Structs**
+```rust
+pub fn open_request(&self) -> Request<Owned, Owned>
+```
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+#### Client::shutdown_request
 
-**Traits**
+```rust
+pub fn shutdown_request(&self) -> Request<Owned, Owned>
+```
 
-- [`Server`](#server)
+#### Client::database_migrations_request
 
-**Type Aliases**
+```rust
+pub fn database_migrations_request(&self) -> Request<Owned, Owned>
+```
 
-- [`DatabaseMigrationsParams`](#databasemigrationsparams)
-- [`DatabaseMigrationsResults`](#databasemigrationsresults)
-- [`DescribeParams`](#describeparams)
-- [`DescribeResults`](#describeresults)
-- [`OpenParams`](#openparams)
-- [`OpenResults`](#openresults)
-- [`ShutdownParams`](#shutdownparams)
-- [`ShutdownResults`](#shutdownresults)
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
----
+### Owned
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::Client
+```rust
+pub struct Owned(/* private */);
+```
 
-*Struct*
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+### ServerDispatch
 
-**Methods:**
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-- `fn describe_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_worker::describe_params::Owned, crate::plugin_capnp::plugin_worker::describe_results::Owned>`
-- `fn open_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_worker::open_params::Owned, crate::plugin_capnp::plugin_worker::open_results::Owned>`
-- `fn shutdown_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_worker::shutdown_params::Owned, crate::plugin_capnp::plugin_worker::shutdown_results::Owned>`
-- `fn database_migrations_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::plugin_worker::database_migrations_params::Owned, crate::plugin_capnp::plugin_worker::database_migrations_results::Owned>`
+#### ServerDispatch::dispatch_call_internal
 
-**Traits:** HasTypeId
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Deref`, `Server`
 
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
+## Type aliases
 
+### DescribeParams
 
+```rust
+pub type DescribeParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::DatabaseMigrationsParams
+### DescribeResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_worker::database_migrations_params::Owned>`
+```rust
+pub type DescribeResults = Results<Owned>;
+```
 
+### OpenParams
 
+```rust
+pub type OpenParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::DatabaseMigrationsResults
+### OpenResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_worker::database_migrations_results::Owned>`
+```rust
+pub type OpenResults = Results<Owned>;
+```
 
+### ShutdownParams
 
+```rust
+pub type ShutdownParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::DescribeParams
+### ShutdownResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_worker::describe_params::Owned>`
+```rust
+pub type ShutdownResults = Results<Owned>;
+```
 
+### DatabaseMigrationsParams
 
+```rust
+pub type DatabaseMigrationsParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::DescribeResults
+### DatabaseMigrationsResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_worker::describe_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::OpenParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_worker::open_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::OpenResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_worker::open_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Pipelined, Owned, Copy
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::Server
-
-*Trait*
-
-**Methods:**
-
-- `describe`
-- `open`
-- `shutdown`
-- `database_migrations`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::ShutdownParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::plugin_worker::shutdown_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::plugin_worker::ShutdownResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::plugin_worker::shutdown_results::Owned>`
-
-
-
-## Module: database_migrations_params
-
-
-
-## Module: database_migrations_results
-
-
-
-## Module: describe_params
-
-
-
-## Module: describe_results
-
-
-
-## Module: open_params
-
-
-
-## Module: open_results
-
-
-
-## Module: shutdown_params
-
-
-
-## Module: shutdown_results
-
-
-
+```rust
+pub type DatabaseMigrationsResults = Results<Owned>;
+```

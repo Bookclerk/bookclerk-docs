@@ -1,155 +1,390 @@
-**bookclerk_plugin_abi > plugin_capnp > purchase_hint**
+# bookclerk_plugin_abi::plugin_capnp::purchase_hint
 
-# Module: plugin_capnp::purchase_hint
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_product_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_product_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_product_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_product_id(self: &Self) -> bool`
-- `fn get_title(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_title<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_title(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_title(self: &Self) -> bool`
-- `fn get_url(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_url<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_url(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_url(self: &Self) -> bool`
-- `fn get_price_cents(self: Self) -> i64`
-- `fn set_price_cents(self: & mut Self, value: i64)`
-- `fn get_currency(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_currency<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_currency(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_currency(self: &Self) -> bool`
-- `fn get_price_label(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_price_label<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_price_label(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_price_label(self: &Self) -> bool`
-- `fn get_list_price_cents(self: Self) -> i64`
-- `fn set_list_price_cents(self: & mut Self, value: i64)`
-- `fn get_list_price_label(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_list_price_label<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_list_price_label(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_list_price_label(self: &Self) -> bool`
-- `fn get_member_price_cents(self: Self) -> i64`
-- `fn set_member_price_cents(self: & mut Self, value: i64)`
-- `fn get_member_price_label(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_member_price_label<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_member_price_label(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_member_price_label(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_product_id
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_product_id(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_product_id
 
+```rust
+pub fn has_product_id(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint::Owned
+#### Reader::get_title
 
-*Struct*
+```rust
+pub fn get_title(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_title
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_title(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_url
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_url(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_url
 
+```rust
+pub fn has_url(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint::Pipeline
+#### Reader::get_price_cents
 
-*Struct*
+```rust
+pub fn get_price_cents(self) -> i64
+```
 
-**Trait Implementations:**
+#### Reader::get_currency
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_currency(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_currency
 
+```rust
+pub fn has_currency(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint::Reader
+#### Reader::get_price_label
 
-*Struct*
+```rust
+pub fn get_price_label(self) -> Result<Reader<'a>>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_price_label
 
-**Methods:**
+```rust
+pub fn has_price_label(&self) -> bool
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_product_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_product_id(self: &Self) -> bool`
-- `fn get_title(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_title(self: &Self) -> bool`
-- `fn get_url(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_url(self: &Self) -> bool`
-- `fn get_price_cents(self: Self) -> i64`
-- `fn get_currency(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_currency(self: &Self) -> bool`
-- `fn get_price_label(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_price_label(self: &Self) -> bool`
-- `fn get_list_price_cents(self: Self) -> i64`
-- `fn get_list_price_label(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_list_price_label(self: &Self) -> bool`
-- `fn get_member_price_cents(self: Self) -> i64`
-- `fn get_member_price_label(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_member_price_label(self: &Self) -> bool`
+#### Reader::get_list_price_cents
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn get_list_price_cents(self) -> i64
+```
 
-**Trait Implementations:**
+#### Reader::get_list_price_label
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_list_price_label(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_list_price_label
 
+```rust
+pub fn has_list_price_label(&self) -> bool
+```
 
+#### Reader::get_member_price_cents
+
+```rust
+pub fn get_member_price_cents(self) -> i64
+```
+
+#### Reader::get_member_price_label
+
+```rust
+pub fn get_member_price_label(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_member_price_label
+
+```rust
+pub fn has_member_price_label(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_product_id
+
+```rust
+pub fn get_product_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_product_id
+
+```rust
+pub fn set_product_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_product_id
+
+```rust
+pub fn init_product_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_product_id
+
+```rust
+pub fn has_product_id(&self) -> bool
+```
+
+#### Builder::get_title
+
+```rust
+pub fn get_title(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_title
+
+```rust
+pub fn set_title(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_title
+
+```rust
+pub fn init_title(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_title
+
+```rust
+pub fn has_title(&self) -> bool
+```
+
+#### Builder::get_url
+
+```rust
+pub fn get_url(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_url
+
+```rust
+pub fn set_url(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_url
+
+```rust
+pub fn init_url(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_url
+
+```rust
+pub fn has_url(&self) -> bool
+```
+
+#### Builder::get_price_cents
+
+```rust
+pub fn get_price_cents(self) -> i64
+```
+
+#### Builder::set_price_cents
+
+```rust
+pub fn set_price_cents(&mut self, value: i64)
+```
+
+#### Builder::get_currency
+
+```rust
+pub fn get_currency(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_currency
+
+```rust
+pub fn set_currency(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_currency
+
+```rust
+pub fn init_currency(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_currency
+
+```rust
+pub fn has_currency(&self) -> bool
+```
+
+#### Builder::get_price_label
+
+```rust
+pub fn get_price_label(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_price_label
+
+```rust
+pub fn set_price_label(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_price_label
+
+```rust
+pub fn init_price_label(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_price_label
+
+```rust
+pub fn has_price_label(&self) -> bool
+```
+
+#### Builder::get_list_price_cents
+
+```rust
+pub fn get_list_price_cents(self) -> i64
+```
+
+#### Builder::set_list_price_cents
+
+```rust
+pub fn set_list_price_cents(&mut self, value: i64)
+```
+
+#### Builder::get_list_price_label
+
+```rust
+pub fn get_list_price_label(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_list_price_label
+
+```rust
+pub fn set_list_price_label(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_list_price_label
+
+```rust
+pub fn init_list_price_label(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_list_price_label
+
+```rust
+pub fn has_list_price_label(&self) -> bool
+```
+
+#### Builder::get_member_price_cents
+
+```rust
+pub fn get_member_price_cents(self) -> i64
+```
+
+#### Builder::set_member_price_cents
+
+```rust
+pub fn set_member_price_cents(&mut self, value: i64)
+```
+
+#### Builder::get_member_price_label
+
+```rust
+pub fn get_member_price_label(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_member_price_label
+
+```rust
+pub fn set_member_price_label(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_member_price_label
+
+```rust
+pub fn init_member_price_label(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_member_price_label
+
+```rust
+pub fn has_member_price_label(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

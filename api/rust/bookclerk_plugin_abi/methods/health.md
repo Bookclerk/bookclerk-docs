@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > health**
+# bookclerk_plugin_abi::methods::health
 
-# Module: methods::health
+Connectivity / configuration probe.
 
-## Contents
+Result: [`crate::HealthOk`](../index.md#healthok).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"health"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::health::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "health";
+```
 
 Wire method name `"health"`.
-
-
-

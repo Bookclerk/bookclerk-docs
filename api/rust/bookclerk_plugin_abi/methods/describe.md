@@ -1,20 +1,14 @@
-**bookclerk_plugin_abi > methods > describe**
+# bookclerk_plugin_abi::methods::describe
 
-# Module: methods::describe
+Return the guest's declared CLI schema ([`crate::CliSchema`](../generated.md#clischema); Cap'n Proto
+`PluginCli.describe`). Also the root `PluginWorker.describe` identity call.
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"describe"`.
-
----
-
-## bookclerk_plugin_abi::methods::describe::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "describe";
+```
 
 Wire method name `"describe"`.
-
-
-

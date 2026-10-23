@@ -1,58 +1,43 @@
-**bookclerk_library > email**
+# bookclerk_library::email
 
-# Module: email
+Contact-email normalization and library-backed validation.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`normalize_user_email`](#normalize_user_email) | function | Trim, lowercase, and validate a contact email; empty becomes `None`. |
+| [`is_valid_user_email`](#is_valid_user_email) | function | True when `value` is a syntactically valid email with a dotted domain. |
+| [`gravatar_hash`](#gravatar_hash) | function | SHA-256 hex digest of a trimmed, lowercased email for Gravatar URLs. |
 
-**Functions**
+## Functions
 
-- [`gravatar_hash`](#gravatar_hash) - SHA-256 hex digest of a trimmed, lowercased email for Gravatar URLs.
-- [`is_valid_user_email`](#is_valid_user_email) - True when `value` is a syntactically valid email with a dotted domain.
-- [`normalize_user_email`](#normalize_user_email) - Trim, lowercase, and validate a contact email; empty becomes `None`.
+### normalize_user_email
 
----
+```rust
+pub fn normalize_user_email(email: Option<&str>) -> Result<Option<String>>
+```
 
-## bookclerk_library::email::gravatar_hash
+Trim, lowercase, and validate a contact email; empty becomes `None`.
 
-*Function*
+#### Errors
+
+Returns [`LibraryError::InvalidEmail`](index.md#libraryerror) when the value is non-empty but not a
+valid address (including a domain without a dot, such as `user@gmail`).
+
+### is_valid_user_email
+
+```rust
+pub fn is_valid_user_email(value: &str) -> bool
+```
+
+True when `value` is a syntactically valid email with a dotted domain.
+
+### gravatar_hash
+
+```rust
+pub fn gravatar_hash(email: &str) -> String
+```
 
 SHA-256 hex digest of a trimmed, lowercased email for Gravatar URLs.
 
 Gravatar matches on this digest; callers should pass a stored/normalized
 address. Empty or whitespace-only input still hashes (callers should skip).
-
-```rust
-fn gravatar_hash(email: &str) -> String
-```
-
-
-
-## bookclerk_library::email::is_valid_user_email
-
-*Function*
-
-True when `value` is a syntactically valid email with a dotted domain.
-
-```rust
-fn is_valid_user_email(value: &str) -> bool
-```
-
-
-
-## bookclerk_library::email::normalize_user_email
-
-*Function*
-
-Trim, lowercase, and validate a contact email; empty becomes `None`.
-
-# Errors
-
-Returns `LibraryError::InvalidEmail` when the value is non-empty but not a
-valid address (including a domain without a dot, such as `user@gmail`).
-
-```rust
-fn normalize_user_email(email: Option<&str>) -> crate::error::Result<Option<String>>
-```
-
-
-

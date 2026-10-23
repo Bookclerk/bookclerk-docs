@@ -1,212 +1,211 @@
-**bookclerk_plugin_abi > plugin_capnp > kv_namespace**
+# bookclerk_plugin_abi::plugin_capnp::kv_namespace
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`GetParams`](#getparams) | type alias |  |
+| [`GetResults`](#getresults) | type alias |  |
+| [`PutParams`](#putparams) | type alias |  |
+| [`PutResults`](#putresults) | type alias |  |
+| [`DeleteParams`](#deleteparams) | type alias |  |
+| [`DeleteResults`](#deleteresults) | type alias |  |
+| [`ListParams`](#listparams) | type alias |  |
+| [`ListResults`](#listresults) | type alias |  |
+
+## Modules
+
+- [`get_params`](kv_namespace/get_params.md)
+- [`get_results`](kv_namespace/get_results.md)
+- [`put_params`](kv_namespace/put_params.md)
+- [`put_results`](kv_namespace/put_results.md)
+- [`delete_params`](kv_namespace/delete_params.md)
+- [`delete_results`](kv_namespace/delete_results.md)
+- [`list_params`](kv_namespace/list_params.md)
+- [`list_results`](kv_namespace/list_results.md)
+
+## Traits
+
+### Server
+
+```rust
+pub trait Server: 'static {
+    fn get(
+        self: Rc<Self>,
+        _: GetParams,
+        _: GetResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn put(
+        self: Rc<Self>,
+        _: PutParams,
+        _: PutResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn delete(
+        self: Rc<Self>,
+        _: DeleteParams,
+        _: DeleteResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn list(
+        self: Rc<Self>,
+        _: ListParams,
+        _: ListResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
+
+#### Server::get
+
+```rust
+fn get(
+    self: Rc<Self>,
+    _: GetParams,
+    _: GetResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::put
+
+```rust
+fn put(
+    self: Rc<Self>,
+    _: PutParams,
+    _: PutResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::delete
+
+```rust
+fn delete(
+    self: Rc<Self>,
+    _: DeleteParams,
+    _: DeleteResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::list
+
+```rust
+fn list(
+    self: Rc<Self>,
+    _: ListParams,
+    _: ListResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+## Structs
+
+### Client
+
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-# Module: plugin_capnp::kv_namespace
+#### Client::get_request
 
-## Contents
+```rust
+pub fn get_request(&self) -> Request<Owned, Owned>
+```
 
-**Modules**
+#### Client::put_request
 
-- [`delete_params`](#delete_params)
-- [`delete_results`](#delete_results)
-- [`get_params`](#get_params)
-- [`get_results`](#get_results)
-- [`list_params`](#list_params)
-- [`list_results`](#list_results)
-- [`put_params`](#put_params)
-- [`put_results`](#put_results)
+```rust
+pub fn put_request(&self) -> Request<Owned, Owned>
+```
 
-**Structs**
+#### Client::delete_request
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+```rust
+pub fn delete_request(&self) -> Request<Owned, Owned>
+```
 
-**Traits**
+#### Client::list_request
 
-- [`Server`](#server)
+```rust
+pub fn list_request(&self) -> Request<Owned, Owned>
+```
 
-**Type Aliases**
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-- [`DeleteParams`](#deleteparams)
-- [`DeleteResults`](#deleteresults)
-- [`GetParams`](#getparams)
-- [`GetResults`](#getresults)
-- [`ListParams`](#listparams)
-- [`ListResults`](#listresults)
-- [`PutParams`](#putparams)
-- [`PutResults`](#putresults)
+### Owned
 
----
+```rust
+pub struct Owned(/* private */);
+```
 
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::Client
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-*Struct*
+### ServerDispatch
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-**Methods:**
+#### ServerDispatch::dispatch_call_internal
 
-- `fn get_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::kv_namespace::get_params::Owned, crate::plugin_capnp::kv_namespace::get_results::Owned>`
-- `fn put_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::kv_namespace::put_params::Owned, crate::plugin_capnp::kv_namespace::put_results::Owned>`
-- `fn delete_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::kv_namespace::delete_params::Owned, crate::plugin_capnp::kv_namespace::delete_results::Owned>`
-- `fn list_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::kv_namespace::list_params::Owned, crate::plugin_capnp::kv_namespace::list_results::Owned>`
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-**Traits:** HasTypeId
+Implements: `Clone`, `Deref`, `Server`
 
-**Trait Implementations:**
+## Type aliases
 
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+### GetParams
 
+```rust
+pub type GetParams = Params<Owned>;
+```
 
+### GetResults
 
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::DeleteParams
+```rust
+pub type GetResults = Results<Owned>;
+```
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::kv_namespace::delete_params::Owned>`
+### PutParams
 
+```rust
+pub type PutParams = Params<Owned>;
+```
 
+### PutResults
 
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::DeleteResults
+```rust
+pub type PutResults = Results<Owned>;
+```
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::kv_namespace::delete_results::Owned>`
+### DeleteParams
 
+```rust
+pub type DeleteParams = Params<Owned>;
+```
 
+### DeleteResults
 
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::GetParams
+```rust
+pub type DeleteResults = Results<Owned>;
+```
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::kv_namespace::get_params::Owned>`
+### ListParams
 
+```rust
+pub type ListParams = Params<Owned>;
+```
 
+### ListResults
 
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::GetResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::kv_namespace::get_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::ListParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::kv_namespace::list_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::ListResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::kv_namespace::list_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Pipelined, Owned, Copy
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::PutParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::kv_namespace::put_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::PutResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::kv_namespace::put_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::Server
-
-*Trait*
-
-**Methods:**
-
-- `get`
-- `put`
-- `delete`
-- `list`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::kv_namespace::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-
-
-
-## Module: delete_params
-
-
-
-## Module: delete_results
-
-
-
-## Module: get_params
-
-
-
-## Module: get_results
-
-
-
-## Module: list_params
-
-
-
-## Module: list_results
-
-
-
-## Module: put_params
-
-
-
-## Module: put_results
-
-
-
+```rust
+pub type ListResults = Results<Owned>;
+```

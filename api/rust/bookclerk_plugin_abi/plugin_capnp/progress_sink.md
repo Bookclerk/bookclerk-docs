@@ -1,134 +1,100 @@
-**bookclerk_plugin_abi > plugin_capnp > progress_sink**
+# bookclerk_plugin_abi::plugin_capnp::progress_sink
 
-# Module: plugin_capnp::progress_sink
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`ReportParams`](#reportparams) | type alias |  |
+| [`ReportResults`](#reportresults) | type alias |  |
 
-## Contents
+## Modules
 
-**Modules**
+- [`report_params`](progress_sink/report_params.md)
+- [`report_results`](progress_sink/report_results.md)
 
-- [`report_params`](#report_params)
-- [`report_results`](#report_results)
+## Traits
 
-**Structs**
+### Server
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+```rust
+pub trait Server: 'static {
+    fn report(
+        self: Rc<Self>,
+        _: ReportParams,
+        _: ReportResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
 
-**Traits**
+#### Server::report
 
-- [`Server`](#server)
+```rust
+fn report(
+    self: Rc<Self>,
+    _: ReportParams,
+    _: ReportResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Type Aliases**
+## Structs
 
-- [`ReportParams`](#reportparams)
-- [`ReportResults`](#reportresults)
+### Client
 
----
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::Client
+#### Client::report_request
 
-*Struct*
+```rust
+pub fn report_request(&self) -> Request<Owned, Owned>
+```
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-**Methods:**
+### Owned
 
-- `fn report_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::progress_sink::report_params::Owned, crate::plugin_capnp::progress_sink::report_results::Owned>`
+```rust
+pub struct Owned(/* private */);
+```
 
-**Traits:** HasTypeId
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-**Trait Implementations:**
+### ServerDispatch
 
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
+#### ServerDispatch::dispatch_call_internal
 
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::Owned
+Implements: `Clone`, `Deref`, `Server`
 
-*Struct*
+## Type aliases
 
-**Tuple Struct**: `()`
+### ReportParams
 
-**Traits:** Pipelined, Owned, Copy
+```rust
+pub type ReportParams = Params<Owned>;
+```
 
-**Trait Implementations:**
+### ReportResults
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::ReportParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::progress_sink::report_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::ReportResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::progress_sink::report_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::Server
-
-*Trait*
-
-**Methods:**
-
-- `report`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::progress_sink::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-
-
-
-## Module: report_params
-
-
-
-## Module: report_results
-
-
-
+```rust
+pub type ReportResults = Results<Owned>;
+```

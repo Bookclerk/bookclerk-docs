@@ -1,143 +1,318 @@
-**bookclerk_plugin_abi > plugin_capnp > purchase_hint_params**
+# bookclerk_plugin_abi::plugin_capnp::purchase_hint_params
 
-# Module: plugin_capnp::purchase_hint_params
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint_params::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_product_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_product_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_product_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_product_id(self: &Self) -> bool`
-- `fn get_title(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_title<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_title(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_title(self: &Self) -> bool`
-- `fn get_authors(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_authors<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_authors(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_authors(self: &Self) -> bool`
-- `fn get_asin(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_asin<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_asin(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_asin(self: &Self) -> bool`
-- `fn get_isbn(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_isbn<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_isbn(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_isbn(self: &Self) -> bool`
-- `fn get_region(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_region<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_region(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_region(self: &Self) -> bool`
-- `fn get_with_price(self: Self) -> bool`
-- `fn set_with_price(self: & mut Self, value: bool)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_product_id
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_product_id(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_product_id
 
+```rust
+pub fn has_product_id(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint_params::Owned
+#### Reader::get_title
 
-*Struct*
+```rust
+pub fn get_title(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_title
 
-**Traits:** Copy, Pipelined, OwnedStruct, Owned
+```rust
+pub fn has_title(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_authors
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_authors(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_authors
 
+```rust
+pub fn has_authors(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint_params::Pipeline
+#### Reader::get_asin
 
-*Struct*
+```rust
+pub fn get_asin(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_asin
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn has_asin(&self) -> bool
+```
 
+#### Reader::get_isbn
 
+```rust
+pub fn get_isbn(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::purchase_hint_params::Reader
+#### Reader::has_isbn
 
-*Struct*
+```rust
+pub fn has_isbn(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_region
 
-**Methods:**
+```rust
+pub fn get_region(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_product_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_product_id(self: &Self) -> bool`
-- `fn get_title(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_title(self: &Self) -> bool`
-- `fn get_authors(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_authors(self: &Self) -> bool`
-- `fn get_asin(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_asin(self: &Self) -> bool`
-- `fn get_isbn(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_isbn(self: &Self) -> bool`
-- `fn get_region(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_region(self: &Self) -> bool`
-- `fn get_with_price(self: Self) -> bool`
+#### Reader::has_region
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn has_region(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_with_price
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+```rust
+pub fn get_with_price(self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_product_id
+
+```rust
+pub fn get_product_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_product_id
+
+```rust
+pub fn set_product_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_product_id
+
+```rust
+pub fn init_product_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_product_id
+
+```rust
+pub fn has_product_id(&self) -> bool
+```
+
+#### Builder::get_title
+
+```rust
+pub fn get_title(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_title
+
+```rust
+pub fn set_title(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_title
+
+```rust
+pub fn init_title(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_title
+
+```rust
+pub fn has_title(&self) -> bool
+```
+
+#### Builder::get_authors
+
+```rust
+pub fn get_authors(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_authors
+
+```rust
+pub fn set_authors(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_authors
+
+```rust
+pub fn init_authors(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_authors
+
+```rust
+pub fn has_authors(&self) -> bool
+```
+
+#### Builder::get_asin
+
+```rust
+pub fn get_asin(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_asin
+
+```rust
+pub fn set_asin(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_asin
+
+```rust
+pub fn init_asin(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_asin
+
+```rust
+pub fn has_asin(&self) -> bool
+```
+
+#### Builder::get_isbn
+
+```rust
+pub fn get_isbn(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_isbn
+
+```rust
+pub fn set_isbn(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_isbn
+
+```rust
+pub fn init_isbn(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_isbn
+
+```rust
+pub fn has_isbn(&self) -> bool
+```
+
+#### Builder::get_region
+
+```rust
+pub fn get_region(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_region
+
+```rust
+pub fn set_region(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_region
+
+```rust
+pub fn init_region(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_region
+
+```rust
+pub fn has_region(&self) -> bool
+```
+
+#### Builder::get_with_price
+
+```rust
+pub fn get_with_price(self) -> bool
+```
+
+#### Builder::set_with_price
+
+```rust
+pub fn set_with_price(&mut self, value: bool)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > list_deals**
+# bookclerk_plugin_abi::methods::list_deals
 
-# Module: methods::list_deals
+List current storefront deals / promotions.
 
-## Contents
+Params: [`crate::ListDealsParams`](../generated.md#listdealsparams).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"listDeals"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::list_deals::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "listDeals";
+```
 
 Wire method name `"listDeals"`.
-
-
-

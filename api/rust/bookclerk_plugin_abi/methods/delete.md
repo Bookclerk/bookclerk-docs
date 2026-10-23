@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > delete**
+# bookclerk_plugin_abi::methods::delete
 
-# Module: methods::delete
+Delete an object key from an output destination.
 
-## Contents
+Typed Cap'n Proto `Destination.delete` ([`crate::Destination::delete`](../index.md#destinationdelete)).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"delete"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::delete::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "delete";
+```
 
 Wire method name `"delete"`.
-
-
-

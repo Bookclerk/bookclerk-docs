@@ -1,20 +1,13 @@
-**bookclerk_plugin_abi > methods > clients**
+# bookclerk_plugin_abi::methods::clients
 
-# Module: methods::clients
+Plugin-provided OIDC client templates (Cap'n Proto `Oidc.clients`).
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"clients"`.
-
----
-
-## bookclerk_plugin_abi::methods::clients::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "clients";
+```
 
 Wire method name `"clients"`.
-
-
-

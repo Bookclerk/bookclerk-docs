@@ -1,32 +1,22 @@
-**bookclerk_plugin_abi > plugin_capnp > json_enum**
+# bookclerk_plugin_abi::plugin_capnp::json_enum
 
-# Module: plugin_capnp::json_enum
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`get_type`](#get_type) | function |  |
+| [`ID`](#id) | constant |  |
 
-## Contents
+## Functions
 
-**Functions**
-
-- [`get_type`](#get_type)
-
-**Constants**
-
-- [`ID`](#id)
-
----
-
-## bookclerk_plugin_abi::plugin_capnp::json_enum::ID
-
-*Constant*: `u64`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::json_enum::get_type
-
-*Function*
+### get_type
 
 ```rust
-fn get_type() -> ::capnp::introspect::Type
+pub fn get_type() -> Type
 ```
 
+## Constants
 
+### ID
 
+```rust
+pub const ID: u64 = 0xba425910028861ab;
+```

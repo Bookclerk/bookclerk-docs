@@ -1,20 +1,16 @@
-**bookclerk_plugin_abi > methods > exists**
+# bookclerk_plugin_abi::methods::exists
 
-# Module: methods::exists
+Test whether an object key exists in an output destination.
 
-## Contents
+Wire name kept for consent grants; guests implement existence via
+[`crate::Destination::head`](../index.md#destinationhead) (`None` means the key is missing).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"exists"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::exists::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "exists";
+```
 
 Wire method name `"exists"`.
-
-
-

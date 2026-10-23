@@ -1,20 +1,13 @@
-**bookclerk_plugin_abi > methods > list_accounts**
+# bookclerk_plugin_abi::methods::list_accounts
 
-# Module: methods::list_accounts
+List source accounts known to the guest (host usually prefers DB rows).
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"listAccounts"`.
-
----
-
-## bookclerk_plugin_abi::methods::list_accounts::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "listAccounts";
+```
 
 Wire method name `"listAccounts"`.
-
-
-

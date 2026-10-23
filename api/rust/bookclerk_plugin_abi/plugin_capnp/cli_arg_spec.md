@@ -1,143 +1,318 @@
-**bookclerk_plugin_abi > plugin_capnp > cli_arg_spec**
+# bookclerk_plugin_abi::plugin_capnp::cli_arg_spec
 
-# Module: plugin_capnp::cli_arg_spec
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::cli_arg_spec::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_name(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_name<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_name(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_name(self: &Self) -> bool`
-- `fn get_long(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_long<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_long(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_long(self: &Self) -> bool`
-- `fn get_short(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_short<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_short(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_short(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::CliArgKind, ::capnp::NotInSchema>`
-- `fn set_kind(self: & mut Self, value: crate::plugin_capnp::CliArgKind)`
-- `fn get_required(self: Self) -> bool`
-- `fn set_required(self: & mut Self, value: bool)`
-- `fn get_default(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_default<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_default(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_default(self: &Self) -> bool`
-- `fn get_about(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_about<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_about(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_about(self: &Self) -> bool`
-- `fn get_positional(self: Self) -> bool`
-- `fn set_positional(self: & mut Self, value: bool)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_name
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_name(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_name
 
+```rust
+pub fn has_name(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::cli_arg_spec::Owned
+#### Reader::get_long
 
-*Struct*
+```rust
+pub fn get_long(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_long
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_long(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_short
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_short(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_short
 
+```rust
+pub fn has_short(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::cli_arg_spec::Pipeline
+#### Reader::get_kind
 
-*Struct*
+```rust
+pub fn get_kind(self) -> Result<CliArgKind, NotInSchema>
+```
 
-**Trait Implementations:**
+#### Reader::get_required
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_required(self) -> bool
+```
 
+#### Reader::get_default
 
+```rust
+pub fn get_default(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::cli_arg_spec::Reader
+#### Reader::has_default
 
-*Struct*
+```rust
+pub fn has_default(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_about
 
-**Methods:**
+```rust
+pub fn get_about(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_name(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_name(self: &Self) -> bool`
-- `fn get_long(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_long(self: &Self) -> bool`
-- `fn get_short(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_short(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::CliArgKind, ::capnp::NotInSchema>`
-- `fn get_required(self: Self) -> bool`
-- `fn get_default(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_default(self: &Self) -> bool`
-- `fn get_about(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_about(self: &Self) -> bool`
-- `fn get_positional(self: Self) -> bool`
+#### Reader::has_about
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn has_about(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_positional
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+```rust
+pub fn get_positional(self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_name
+
+```rust
+pub fn get_name(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_name
+
+```rust
+pub fn set_name(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_name
+
+```rust
+pub fn init_name(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_name
+
+```rust
+pub fn has_name(&self) -> bool
+```
+
+#### Builder::get_long
+
+```rust
+pub fn get_long(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_long
+
+```rust
+pub fn set_long(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_long
+
+```rust
+pub fn init_long(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_long
+
+```rust
+pub fn has_long(&self) -> bool
+```
+
+#### Builder::get_short
+
+```rust
+pub fn get_short(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_short
+
+```rust
+pub fn set_short(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_short
+
+```rust
+pub fn init_short(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_short
+
+```rust
+pub fn has_short(&self) -> bool
+```
+
+#### Builder::get_kind
+
+```rust
+pub fn get_kind(self) -> Result<CliArgKind, NotInSchema>
+```
+
+#### Builder::set_kind
+
+```rust
+pub fn set_kind(&mut self, value: CliArgKind)
+```
+
+#### Builder::get_required
+
+```rust
+pub fn get_required(self) -> bool
+```
+
+#### Builder::set_required
+
+```rust
+pub fn set_required(&mut self, value: bool)
+```
+
+#### Builder::get_default
+
+```rust
+pub fn get_default(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_default
+
+```rust
+pub fn set_default(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_default
+
+```rust
+pub fn init_default(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_default
+
+```rust
+pub fn has_default(&self) -> bool
+```
+
+#### Builder::get_about
+
+```rust
+pub fn get_about(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_about
+
+```rust
+pub fn set_about(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_about
+
+```rust
+pub fn init_about(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_about
+
+```rust
+pub fn has_about(&self) -> bool
+```
+
+#### Builder::get_positional
+
+```rust
+pub fn get_positional(self) -> bool
+```
+
+#### Builder::set_positional
+
+```rust
+pub fn set_positional(&mut self, value: bool)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

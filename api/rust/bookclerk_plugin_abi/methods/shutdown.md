@@ -1,20 +1,13 @@
-**bookclerk_plugin_abi > methods > shutdown**
+# bookclerk_plugin_abi::methods::shutdown
 
-# Module: methods::shutdown
+Graceful guest teardown before the host closes the transport.
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"shutdown"`.
-
----
-
-## bookclerk_plugin_abi::methods::shutdown::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "shutdown";
+```
 
 Wire method name `"shutdown"`.
-
-
-

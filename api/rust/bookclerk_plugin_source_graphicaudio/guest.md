@@ -1,61 +1,38 @@
-**bookclerk_plugin_source_graphicaudio > guest**
+# bookclerk_plugin_source_graphicaudio::guest
 
-# Module: guest
+Guest-process helpers for the external GraphicAudio source plugin.
 
-## Contents
+These APIs do **not** open the library DB — the host seals credentials and
+upserts scan rows via `bookclerk_plugin_host::ExternalSource`. Conversions
+between storefront types and the typed ABI live in [`bookclerk_source::abi`](../bookclerk_source/abi.md).
 
-**Functions**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`guest_login`](#guest_login) | function | Login against GraphicAudio and return account metadata + credential JSON. |
+| [`guest_login_rpc`](#guest_login_rpc) | function | RPC login: build `LoginOptions` from typed params and return the ABI result. |
+| [`guest_scan`](#guest_scan) | function | Scan libraries for the credential blobs the host injected. |
+| [`guest_scan_rpc`](#guest_scan_rpc) | function | RPC scan: return the typed `ScanSummary` (host upserts books). |
+| [`guest_fetch_title`](#guest_fetch_title) | function | Download one title into `cache_dir` using host-injected credentials. |
+| [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) | function | RPC fetch: return the typed plain fetch result. |
+| [`resolve_access_base_url`](#resolve_access_base_url) | function | Resolve Access App API base URL from `[sources.graphicaudio]` JSON. |
+| [`resolve_store_base_url`](#resolve_store_base_url) | function | Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON. |
+| [`resolve_access`](#resolve_access) | function | Resolve download access path from granted `CONFIG`. |
+| [`resolve_bitrate`](#resolve_bitrate) | function | Resolve device bitrate preference from `[sources.graphicaudio]` JSON. |
+| [`resolve_container`](#resolve_container) | function | Resolve ZIP container preference from `[sources.graphicaudio]` JSON. |
+| [`source_id`](#source_id) | function | Source id returned in describe(); must match `crate::source::ID`. |
 
-- [`guest_fetch_title`](#guest_fetch_title) - Download one title into `cache_dir` using host-injected credentials.
-- [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) - RPC fetch: return the typed plain fetch result.
-- [`guest_login`](#guest_login) - Login against GraphicAudio and return account metadata + credential JSON.
-- [`guest_login_rpc`](#guest_login_rpc) - RPC login: build [`LoginOptions`](../bookclerk_source/types.md#bookclerk_sourcetypesloginoptions) from typed params and return the ABI result.
-- [`guest_scan`](#guest_scan) - Scan libraries for the credential blobs the host injected.
-- [`guest_scan_rpc`](#guest_scan_rpc) - RPC scan: return the typed [`ScanSummary`](../bookclerk_plugin_abi/generated.md#bookclerk_plugin_abigeneratedscansummary) (host upserts books).
-- [`resolve_access`](#resolve_access) - Resolve download access path from granted `CONFIG`.
-- [`resolve_access_base_url`](#resolve_access_base_url) - Resolve Access App API base URL from `[sources.graphicaudio]` JSON.
-- [`resolve_bitrate`](#resolve_bitrate) - Resolve device bitrate preference from `[sources.graphicaudio]` JSON.
-- [`resolve_container`](#resolve_container) - Resolve ZIP container preference from `[sources.graphicaudio]` JSON.
-- [`resolve_store_base_url`](#resolve_store_base_url) - Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON.
-- [`source_id`](#source_id) - Source id returned in describe(); must match [`crate::source::ID`](source.md#bookclerk_plugin_source_graphicaudiosourceid).
+## Functions
 
----
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_fetch_title
-
-*Function*
-
-Download one title into `cache_dir` using host-injected credentials.
-
-# Errors
-
-Returns an error when the operation fails.
+### guest_login
 
 ```rust
-fn guest_fetch_title(access_base_url: &str, store_base_url: &str, credentials: &serde_json::Value, title_id: &str, cache_dir: &std::path::Path, access: crate::options::GraphicAudioAccess, bitrate: crate::options::GraphicAudioBitrate, container: crate::options::GraphicAudioContainer, magento_password: Option<&str>) -> crate::error::Result<bookclerk_source::PlainFetch>
+pub async fn guest_login(
+    access_base_url: &str,
+    store_base_url: &str,
+    access: GraphicAudioAccess,
+    opts: LoginOptions,
+) -> Result<(String, String, Option<String>, bool, Value)>
 ```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_fetch_title_rpc
-
-*Function*
-
-RPC fetch: return the typed plain fetch result.
-
-# Errors
-
-Returns an error when the operation fails.
-
-```rust
-fn guest_fetch_title_rpc(access_base_url: &str, store_base_url: &str, params: &bookclerk_plugin_sdk::FetchTitleParams, access: crate::options::GraphicAudioAccess, bitrate: crate::options::GraphicAudioBitrate, container: crate::options::GraphicAudioContainer, magento_password: Option<&str>) -> crate::error::Result<bookclerk_plugin_sdk::PlainFetch>
-```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_login
-
-*Function*
 
 Login against GraphicAudio and return account metadata + credential JSON.
 
@@ -64,70 +41,131 @@ Login against GraphicAudio and return account metadata + credential JSON.
 
 Does not write to `encrypted_secrets` — the host seals `credentials`.
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_login_rpc
+
 ```rust
-fn guest_login(access_base_url: &str, store_base_url: &str, access: crate::options::GraphicAudioAccess, opts: bookclerk_source::LoginOptions) -> crate::error::Result<(String, String, Option<String>, bool, serde_json::Value)>
+pub async fn guest_login_rpc(
+    access_base_url: &str,
+    store_base_url: &str,
+    access: GraphicAudioAccess,
+    params: LoginParams,
+) -> Result<LoginResult>
 ```
 
+RPC login: build [`LoginOptions`](../bookclerk_source/index.md#loginoptions) from typed params and return the ABI result.
 
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_login_rpc
-
-*Function*
-
-RPC login: build [`LoginOptions`](../bookclerk_source/types.md#bookclerk_sourcetypesloginoptions) from typed params and return the ABI result.
-
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_scan
+
 ```rust
-fn guest_login_rpc(access_base_url: &str, store_base_url: &str, access: crate::options::GraphicAudioAccess, params: bookclerk_plugin_sdk::LoginParams) -> crate::error::Result<bookclerk_plugin_sdk::LoginResult>
+pub async fn guest_scan(
+    access_base_url: &str,
+    store_base_url: &str,
+    access: GraphicAudioAccess,
+    magento_password: Option<&str>,
+    credentials: &BTreeMap<String, Value>,
+    account_filter: &[String],
+    include_samples: bool,
+) -> Result<(Vec<NewBook>, usize, u32)>
 ```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_scan
-
-*Function*
 
 Scan libraries for the credential blobs the host injected.
 
 `magento_password` is required for Magento web/zip listing unless a device
 token is present on the credentials (legacy Access App fallback).
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_scan_rpc
+
 ```rust
-fn guest_scan(access_base_url: &str, store_base_url: &str, access: crate::options::GraphicAudioAccess, magento_password: Option<&str>, credentials: &std::collections::BTreeMap<String, serde_json::Value>, account_filter: &[String], include_samples: bool) -> crate::error::Result<(Vec<bookclerk_library::NewBook>, usize, u32)>
+pub async fn guest_scan_rpc(
+    access_base_url: &str,
+    store_base_url: &str,
+    access: GraphicAudioAccess,
+    magento_password: Option<&str>,
+    params: &ScanParams,
+) -> Result<ScanSummary>
 ```
 
+RPC scan: return the typed [`ScanSummary`](../bookclerk_plugin_abi/generated.md#scansummary) (host upserts books).
 
-
-## bookclerk_plugin_source_graphicaudio::guest::guest_scan_rpc
-
-*Function*
-
-RPC scan: return the typed [`ScanSummary`](../bookclerk_plugin_abi/generated.md#bookclerk_plugin_abigeneratedscansummary) (host upserts books).
-
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_fetch_title
+
 ```rust
-fn guest_scan_rpc(access_base_url: &str, store_base_url: &str, access: crate::options::GraphicAudioAccess, magento_password: Option<&str>, params: &bookclerk_plugin_sdk::ScanParams) -> crate::error::Result<bookclerk_plugin_sdk::ScanSummary>
+pub async fn guest_fetch_title(
+    access_base_url: &str,
+    store_base_url: &str,
+    credentials: &Value,
+    title_id: &str,
+    cache_dir: &Path,
+    access: GraphicAudioAccess,
+    bitrate: GraphicAudioBitrate,
+    container: GraphicAudioContainer,
+    magento_password: Option<&str>,
+) -> Result<PlainFetch>
 ```
 
+Download one title into `cache_dir` using host-injected credentials.
 
+#### Errors
 
-## bookclerk_plugin_source_graphicaudio::guest::resolve_access
+Returns an error when the operation fails.
 
-*Function*
+### guest_fetch_title_rpc
+
+```rust
+pub async fn guest_fetch_title_rpc(
+    access_base_url: &str,
+    store_base_url: &str,
+    params: &FetchTitleParams,
+    access: GraphicAudioAccess,
+    bitrate: GraphicAudioBitrate,
+    container: GraphicAudioContainer,
+    magento_password: Option<&str>,
+) -> Result<PlainFetch>
+```
+
+RPC fetch: return the typed plain fetch result.
+
+#### Errors
+
+Returns an error when the operation fails.
+
+### resolve_access_base_url
+
+```rust
+pub fn resolve_access_base_url(source_config: &Value) -> String
+```
+
+Resolve Access App API base URL from `[sources.graphicaudio]` JSON.
+
+### resolve_store_base_url
+
+```rust
+pub fn resolve_store_base_url(source_config: &Value) -> String
+```
+
+Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON.
+
+### resolve_access
+
+```rust
+pub fn resolve_access(source_config: &Value) -> GraphicAudioAccess
+```
 
 Resolve download access path from granted `CONFIG`.
 
@@ -135,69 +173,26 @@ A missing `access` key uses the default. `BOOKCLERK_GA_ACCESS` is not read
 here: after import, the instance document is the authority, and a document
 that omits `access` must not fall back to the process environment.
 
-```rust
-fn resolve_access(source_config: &serde_json::Value) -> crate::options::GraphicAudioAccess
-```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::resolve_access_base_url
-
-*Function*
-
-Resolve Access App API base URL from `[sources.graphicaudio]` JSON.
+### resolve_bitrate
 
 ```rust
-fn resolve_access_base_url(source_config: &serde_json::Value) -> String
+pub fn resolve_bitrate(source_config: &Value) -> GraphicAudioBitrate
 ```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::resolve_bitrate
-
-*Function*
 
 Resolve device bitrate preference from `[sources.graphicaudio]` JSON.
 
+### resolve_container
+
 ```rust
-fn resolve_bitrate(source_config: &serde_json::Value) -> crate::options::GraphicAudioBitrate
+pub fn resolve_container(source_config: &Value) -> GraphicAudioContainer
 ```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::resolve_container
-
-*Function*
 
 Resolve ZIP container preference from `[sources.graphicaudio]` JSON.
 
-```rust
-fn resolve_container(source_config: &serde_json::Value) -> crate::options::GraphicAudioContainer
-```
-
-
-
-## bookclerk_plugin_source_graphicaudio::guest::resolve_store_base_url
-
-*Function*
-
-Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON.
+### source_id
 
 ```rust
-fn resolve_store_base_url(source_config: &serde_json::Value) -> String
+pub fn source_id() -> &'static str
 ```
 
-
-
-## bookclerk_plugin_source_graphicaudio::guest::source_id
-
-*Function*
-
-Source id returned in describe(); must match [`crate::source::ID`](source.md#bookclerk_plugin_source_graphicaudiosourceid).
-
-```rust
-fn source_id() -> &'static str
-```
-
-
-
+Source id returned in describe(); must match [`crate::source::ID`](index.md#graphicaudio_source_id).

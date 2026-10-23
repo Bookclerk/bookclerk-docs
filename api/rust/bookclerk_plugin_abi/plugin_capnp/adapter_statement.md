@@ -1,135 +1,252 @@
-**bookclerk_plugin_abi > plugin_capnp > adapter_statement**
+# bookclerk_plugin_abi::plugin_capnp::adapter_statement
 
-# Module: plugin_capnp::adapter_statement
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::adapter_statement::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_sql(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_sql<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_sql(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_sql(self: &Self) -> bool`
-- `fn get_parameters(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_value::Owned>>`
-- `fn set_parameters(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::db_value::Owned>) -> ::capnp::Result<()>`
-- `fn init_parameters(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_value::Owned>`
-- `fn has_parameters(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::DbStatementKind, ::capnp::NotInSchema>`
-- `fn set_kind(self: & mut Self, value: crate::plugin_capnp::DbStatementKind)`
-- `fn get_max_rows(self: Self) -> u32`
-- `fn set_max_rows(self: & mut Self, value: u32)`
-- `fn get_result_selection(self: Self) -> ::core::result::Result<crate::plugin_capnp::DbResultSelection, ::capnp::NotInSchema>`
-- `fn set_result_selection(self: & mut Self, value: crate::plugin_capnp::DbResultSelection)`
-- `fn get_proof(self: Self) -> ::capnp::Result<crate::plugin_capnp::resolved_statement::Builder<'a>>`
-- `fn set_proof(self: & mut Self, value: crate::plugin_capnp::resolved_statement::Reader) -> ::capnp::Result<()>`
-- `fn init_proof(self: Self) -> crate::plugin_capnp::resolved_statement::Builder<'a>`
-- `fn has_proof(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_sql
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_sql(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_sql
 
+```rust
+pub fn has_sql(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::adapter_statement::Owned
+#### Reader::get_parameters
 
-*Struct*
+```rust
+pub fn get_parameters(self) -> Result<Reader<'a, Owned>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_parameters
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_parameters(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_kind
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_kind(self) -> Result<DbStatementKind, NotInSchema>
+```
 
+#### Reader::get_max_rows
 
+```rust
+pub fn get_max_rows(self) -> u32
+```
 
-## bookclerk_plugin_abi::plugin_capnp::adapter_statement::Pipeline
+#### Reader::get_result_selection
 
-*Struct*
+```rust
+pub fn get_result_selection(self) -> Result<DbResultSelection, NotInSchema>
+```
 
-**Methods:**
+#### Reader::get_proof
 
-- `fn get_proof(self: &Self) -> crate::plugin_capnp::resolved_statement::Pipeline`
+```rust
+pub fn get_proof(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_proof
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn has_proof(&self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::adapter_statement::Reader
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Methods:**
+#### Builder::reborrow
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_sql(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_sql(self: &Self) -> bool`
-- `fn get_parameters(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::db_value::Owned>>`
-- `fn has_parameters(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::DbStatementKind, ::capnp::NotInSchema>`
-- `fn get_max_rows(self: Self) -> u32`
-- `fn get_result_selection(self: Self) -> ::core::result::Result<crate::plugin_capnp::DbResultSelection, ::capnp::NotInSchema>`
-- `fn get_proof(self: Self) -> ::capnp::Result<crate::plugin_capnp::resolved_statement::Reader<'a>>`
-- `fn has_proof(self: &Self) -> bool`
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-**Traits:** HasTypeId, Copy
+#### Builder::reborrow_as_reader
 
-**Trait Implementations:**
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
+#### Builder::get_sql
 
+```rust
+pub fn get_sql(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_sql
+
+```rust
+pub fn set_sql(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_sql
+
+```rust
+pub fn init_sql(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_sql
+
+```rust
+pub fn has_sql(&self) -> bool
+```
+
+#### Builder::get_parameters
+
+```rust
+pub fn get_parameters(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_parameters
+
+```rust
+pub fn set_parameters(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_parameters
+
+```rust
+pub fn init_parameters(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_parameters
+
+```rust
+pub fn has_parameters(&self) -> bool
+```
+
+#### Builder::get_kind
+
+```rust
+pub fn get_kind(self) -> Result<DbStatementKind, NotInSchema>
+```
+
+#### Builder::set_kind
+
+```rust
+pub fn set_kind(&mut self, value: DbStatementKind)
+```
+
+#### Builder::get_max_rows
+
+```rust
+pub fn get_max_rows(self) -> u32
+```
+
+#### Builder::set_max_rows
+
+```rust
+pub fn set_max_rows(&mut self, value: u32)
+```
+
+#### Builder::get_result_selection
+
+```rust
+pub fn get_result_selection(self) -> Result<DbResultSelection, NotInSchema>
+```
+
+#### Builder::set_result_selection
+
+```rust
+pub fn set_result_selection(&mut self, value: DbResultSelection)
+```
+
+#### Builder::get_proof
+
+```rust
+pub fn get_proof(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_proof
+
+```rust
+pub fn set_proof(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_proof
+
+```rust
+pub fn init_proof(self) -> Builder<'a>
+```
+
+#### Builder::has_proof
+
+```rust
+pub fn has_proof(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_proof
+
+```rust
+pub fn get_proof(&self) -> Pipeline
+```
+
+Implements: `FromTypelessPipeline`

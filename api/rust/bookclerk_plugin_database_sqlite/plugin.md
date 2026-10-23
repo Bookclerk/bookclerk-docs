@@ -1,28 +1,15 @@
-**bookclerk_plugin_database_sqlite > plugin**
+# bookclerk_plugin_database_sqlite::plugin
 
-# Module: plugin
+Database factory for the platform SQLite guest.
 
-## Contents
+## Structs
 
-**Structs**
+### SqliteRoot
 
-- [`SqliteRoot`](#sqliteroot) - Root capability for the platform SQLite database guest.
-
----
-
-## bookclerk_plugin_database_sqlite::plugin::SqliteRoot
-
-*Struct*
+```rust
+pub struct SqliteRoot;
+```
 
 Root capability for the platform SQLite database guest.
 
-**Unit Struct**
-
-**Trait Implementations:**
-
-- **PluginWorker**
-  - `fn describe(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn open(self: &'life0 Self, _invocation: Invocation, bindings: Bindings) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-
-
-
+Implements: `PluginWorker`

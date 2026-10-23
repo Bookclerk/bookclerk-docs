@@ -1,119 +1,174 @@
-**bookclerk_plugin_abi > plugin_capnp > extensible_config**
+# bookclerk_plugin_abi::plugin_capnp::extensible_config
 
-# Module: plugin_capnp::extensible_config
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::extensible_config::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_schema_version(self: Self) -> u32`
-- `fn set_schema_version(self: & mut Self, value: u32)`
-- `fn get_media_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_media_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_media_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_media_type(self: &Self) -> bool`
-- `fn get_payload(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_payload(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_payload(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_payload(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_schema_version
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_schema_version(self) -> u32
+```
 
+#### Reader::get_media_type
 
+```rust
+pub fn get_media_type(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::extensible_config::Owned
+#### Reader::has_media_type
 
-*Struct*
+```rust
+pub fn has_media_type(&self) -> bool
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_payload
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn get_payload(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_payload
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn has_payload(&self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::extensible_config::Pipeline
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
-## bookclerk_plugin_abi::plugin_capnp::extensible_config::Reader
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-*Struct*
+#### Builder::total_size
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Methods:**
+#### Builder::get_schema_version
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_schema_version(self: Self) -> u32`
-- `fn get_media_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_media_type(self: &Self) -> bool`
-- `fn get_payload(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_payload(self: &Self) -> bool`
+```rust
+pub fn get_schema_version(self) -> u32
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::set_schema_version
 
-**Trait Implementations:**
+```rust
+pub fn set_schema_version(&mut self, value: u32)
+```
 
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
+#### Builder::get_media_type
 
+```rust
+pub fn get_media_type(self) -> Result<Builder<'a>>
+```
 
+#### Builder::set_media_type
 
+```rust
+pub fn set_media_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_media_type
+
+```rust
+pub fn init_media_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_media_type
+
+```rust
+pub fn has_media_type(&self) -> bool
+```
+
+#### Builder::get_payload
+
+```rust
+pub fn get_payload(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_payload
+
+```rust
+pub fn set_payload(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_payload
+
+```rust
+pub fn init_payload(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_payload
+
+```rust
+pub fn has_payload(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

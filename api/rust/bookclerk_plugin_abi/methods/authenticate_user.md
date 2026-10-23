@@ -1,20 +1,16 @@
-**bookclerk_plugin_abi > methods > authenticate_user**
+# bookclerk_plugin_abi::methods::authenticate_user
 
-# Module: methods::authenticate_user
+Validate a username/password against a remote IdP (Cap'n Proto
+`Oidc.authenticateUser`) and return an external user.
 
-## Contents
+Params: [`crate::AuthenticateUserParams`](../generated.md#authenticateuserparams).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"authenticateUser"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::authenticate_user::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "authenticateUser";
+```
 
 Wire method name `"authenticateUser"`.
-
-
-

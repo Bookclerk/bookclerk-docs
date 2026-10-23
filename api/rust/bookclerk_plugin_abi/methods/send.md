@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > send**
+# bookclerk_plugin_abi::methods::send
 
-# Module: methods::send
+Send one message into a granted queue (Cap'n Proto `QueueProducer.send`).
 
-## Contents
+Params: [`crate::QueueSendMessage`](../generated.md#queuesendmessage). Result: [`crate::QueueSendOk`](../generated.md#queuesendok).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"send"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::send::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "send";
+```
 
 Wire method name `"send"`.
-
-
-

@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > purchase_hint**
+# bookclerk_plugin_abi::methods::purchase_hint
 
-# Module: methods::purchase_hint
+Resolve a purchase URL / price hint for a catalog product.
 
-## Contents
+Params: [`crate::PurchaseHintParams`](../generated.md#purchasehintparams). Result: [`crate::PurchaseHint`](../generated.md#purchasehint).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"purchaseHint"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::purchase_hint::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "purchaseHint";
+```
 
 Wire method name `"purchaseHint"`.
-
-
-

@@ -1,160 +1,137 @@
-**bookclerk_plugin_abi > plugin_host_capnp > host_adapter_database_session**
+# bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`BeginParams`](#beginparams) | type alias |  |
+| [`BeginResults`](#beginresults) | type alias |  |
+| [`ExecuteParams`](#executeparams) | type alias |  |
+| [`ExecuteResults`](#executeresults) | type alias |  |
+
+## Modules
+
+- [`begin_params`](host_adapter_database_session/begin_params.md)
+- [`begin_results`](host_adapter_database_session/begin_results.md)
+- [`execute_params`](host_adapter_database_session/execute_params.md)
+- [`execute_results`](host_adapter_database_session/execute_results.md)
+
+## Traits
+
+### Server
 
-# Module: plugin_host_capnp::host_adapter_database_session
+```rust
+pub trait Server: 'static {
+    fn begin(
+        self: Rc<Self>,
+        _: BeginParams,
+        _: BeginResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn execute(
+        self: Rc<Self>,
+        _: ExecuteParams,
+        _: ExecuteResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
 
-## Contents
+#### Server::begin
 
-**Modules**
+```rust
+fn begin(
+    self: Rc<Self>,
+    _: BeginParams,
+    _: BeginResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`begin_params`](#begin_params)
-- [`begin_results`](#begin_results)
-- [`execute_params`](#execute_params)
-- [`execute_results`](#execute_results)
+#### Server::execute
 
-**Structs**
+```rust
+fn execute(
+    self: Rc<Self>,
+    _: ExecuteParams,
+    _: ExecuteResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+## Structs
 
-**Traits**
+### Client
 
-- [`Server`](#server)
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-**Type Aliases**
+#### Client::begin_request
 
-- [`BeginParams`](#beginparams)
-- [`BeginResults`](#beginresults)
-- [`ExecuteParams`](#executeparams)
-- [`ExecuteResults`](#executeresults)
+```rust
+pub fn begin_request(&self) -> Request<Owned, Owned>
+```
 
----
+#### Client::execute_request
 
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::BeginParams
+```rust
+pub fn execute_request(&self) -> Request<Owned, Owned>
+```
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::host_adapter_database_session::begin_params::Owned>`
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
+### Owned
 
+```rust
+pub struct Owned(/* private */);
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::BeginResults
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::host_adapter_database_session::begin_results::Owned>`
+### ServerDispatch
 
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
+#### ServerDispatch::dispatch_call_internal
 
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::Client
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-*Struct*
+Implements: `Clone`, `Deref`, `Server`
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+## Type aliases
 
-**Methods:**
+### BeginParams
 
-- `fn begin_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::host_adapter_database_session::begin_params::Owned, crate::plugin_host_capnp::host_adapter_database_session::begin_results::Owned>`
-- `fn execute_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::host_adapter_database_session::execute_params::Owned, crate::plugin_host_capnp::host_adapter_database_session::execute_results::Owned>`
+```rust
+pub type BeginParams = Params<Owned>;
+```
 
-**Traits:** HasTypeId
+### BeginResults
 
-**Trait Implementations:**
+```rust
+pub type BeginResults = Results<Owned>;
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
+### ExecuteParams
 
+```rust
+pub type ExecuteParams = Params<Owned>;
+```
 
+### ExecuteResults
 
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::ExecuteParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::host_adapter_database_session::execute_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::ExecuteResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::host_adapter_database_session::execute_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Owned, Copy, Pipelined
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::Server
-
-*Trait*
-
-**Methods:**
-
-- `begin`
-- `execute`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::host_adapter_database_session::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-
-
-
-## Module: begin_params
-
-
-
-## Module: begin_results
-
-
-
-## Module: execute_params
-
-
-
-## Module: execute_results
-
-
-
+```rust
+pub type ExecuteResults = Results<Owned>;
+```

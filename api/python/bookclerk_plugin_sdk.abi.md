@@ -1,72 +1,343 @@
-# bookclerk\_plugin\_sdk.abi
+# bookclerk_plugin_sdk.abi
 
 GENERATED FILE - do not edit. Run `python3 scripts/gen-plugin-abi.py --write` after changing crates/bookclerk-plugin-abi/schema/plugin.capnp.
 
 Author-facing Python projection of every struct, union, enum, and
-interface in ``crates/bookclerk-plugin-abi/schema/plugin.capnp``.
+interface in `crates/bookclerk-plugin-abi/schema/plugin.capnp`.
 TypedDict keys are the schema names (camelCase). Cap'n Proto unions
-become ``{"kind": ..., "value": ...}`` TypedDict unions; ``Void``
-members carry no ``value``. 64-bit integers are Python ``int``; ``Data``
-is ``bytes``. Interfaces are ``Protocol`` classes with ``async`` methods.
+become `{"kind": ..., "value": ...}` TypedDict unions; `Void`
+members carry no `value`. 64-bit integers are Python `int`; `Data`
+is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 
-#### PluginErrorCode
+| Name | Kind | Summary |
+| --- | --- | --- |
+| [`ScalarLimits`](#scalarlimits) | class | Guest-advertised caps for `rpc.scalarLimits`; never above the file constants. |
+| [`PluginError`](#pluginerror) | class | `code` is a snake_case string (`not_found`, `invalid_cursor`, …). Unknown codes are forwarded as-is; SDKs surface them as PluginErrorCode.unknown while retaining the raw wire code. |
+| [`ObjectMetadata`](#objectmetadata) | class | Full metadata of one stored object. |
+| [`ObjectInfo`](#objectinfo) | class | Compact object entry in a list page. |
+| [`ListOptions`](#listoptions) | class | Paging options for `Destination.list`. |
+| [`ListPage`](#listpage) | class | One page of `Destination.list` results. |
+| [`ByteRange`](#byterange) | class | Half-open byte window `[offset, offset + length)`. |
+| [`ReadOptions`](#readoptions) | class | Options for `Destination.get`. |
+| [`WriteOptions`](#writeoptions) | class | Options for `Destination.put`. |
+| [`PutResult`](#putresult) | class | Summary of a stored (or committed) object. |
+| [`CopyResult`](#copyresult) | class | Summary of a server-side copy. |
+| [`PluginDescribe`](#plugindescribe) | class | Guest identity and negotiation surface returned by `describe()`. |
+| [`OidcClientTemplate`](#oidcclienttemplate) | class | Bookclerk-as-IdP relying-party template. Plugins declare callback path and client id; the host materializes `oidc_clients` rows and remains the AS. `originConfigKey` is a dotted config path (e.g. integrations.audiobookshelf.base_url). |
+| [`OidcClientsOk`](#oidcclientsok) | class | Success payload of `Oidc.clients`. |
+| [`OidcClientsReplyOk`](#oidcclientsreplyok) | class | `OidcClientsReply` member `ok`. |
+| [`OidcClientsReplyErr`](#oidcclientsreplyerr) | class | `OidcClientsReply` member `err`. |
+| [`ExtensibleConfig`](#extensibleconfig) | class | Plugin-specific extensible config. Not a substitute for typed ABI fields. |
+| [`Bindings`](#bindings) | class | Host-granted bindings for one `PluginWorker.open` (`env` in the Workers idiom). OS paths, FDs, and sockets are transport-private. Capability fields are null when the manifest does not declare (or the operator did not grant) the binding. |
+| [`Entrypoints`](#entrypoints) | class | Exported entrypoints returned by `PluginWorker.open`. One capability per `plugin.toml` `entrypoints` entry / trigger; null when not exported. The host refuses an entrypoint the manifest or operator grant did not allow. |
+| [`EntrypointsReplyOk`](#entrypointsreplyok) | class | `EntrypointsReply` member `ok`. |
+| [`EntrypointsReplyErr`](#entrypointsreplyerr) | class | `EntrypointsReply` member `err`. |
+| [`JobInvocation`](#jobinvocation) | class | Durable command envelope (not a domain event). Command payload schema version and checkpoint schema versions are independent of the plugin ABI. The envelope itself is not persisted as opaque bytes across ABI majors. Idempotency keys are scoped to (account, plugin, commandType) until a terminal fenced outcome is committed. |
+| [`CompletedOutcome`](#completedoutcome) | class | Job finished successfully. |
+| [`RetryableOutcome`](#retryableoutcome) | class | Job failed transiently; the host reschedules it. |
+| [`RejectedOutcome`](#rejectedoutcome) | class | Job failed permanently; no retry. |
+| [`CancelledOutcome`](#cancelledoutcome) | class | Job observed cancellation and stopped. |
+| [`SuspendedOutcome`](#suspendedoutcome) | class | Job released the process and asks to be resumed later. |
+| [`JobOutcomeCompleted`](#joboutcomecompleted) | class | `JobOutcome` member `completed`. |
+| [`JobOutcomeRetryable`](#joboutcomeretryable) | class | `JobOutcome` member `retryable`. |
+| [`JobOutcomeRejected`](#joboutcomerejected) | class | `JobOutcome` member `rejected`. |
+| [`JobOutcomeCancelled`](#joboutcomecancelled) | class | `JobOutcome` member `cancelled`. |
+| [`JobOutcomeSuspended`](#joboutcomesuspended) | class | `JobOutcome` member `suspended`. |
+| [`DomainEvent`](#domainevent) | class | Domain event (not a job). Outbox-produced, at-least-once, idempotent consume. |
+| [`EventAck`](#eventack) | class | Event handled; the host marks it delivered. |
+| [`EventRetry`](#eventretry) | class | Redeliver later. |
+| [`EventReject`](#eventreject) | class | Event rejected; the host records the reason and stops delivering. |
+| [`EventDeadLetter`](#eventdeadletter) | class | Event moved to the dead-letter queue for operator review. |
+| [`EventSuspended`](#eventsuspended) | class | Append-only. Mirrors job SuspendedOutcome; event handlers persist a bounded checkpoint and release the process until wakeAtUnixMs. Optional wake-on-matching-event fields (empty = timestamp-only). |
+| [`EventResultAck`](#eventresultack) | class | `EventResult` member `ack`. |
+| [`EventResultRetry`](#eventresultretry) | class | `EventResult` member `retry`. |
+| [`EventResultReject`](#eventresultreject) | class | `EventResult` member `reject`. |
+| [`EventResultDeadLetter`](#eventresultdeadletter) | class | `EventResult` member `deadLetter`. |
+| [`EventResultSuspended`](#eventresultsuspended) | class | `EventResult` member `suspended`. |
+| [`EventBatch`](#eventbatch) | class | One `EventConsumer.event` delivery: at most `maxListPage` events, each bounded by `maxEventPayloadBytes` / `maxCheckpointBytes`. |
+| [`EventBatchReplyOk`](#eventbatchreplyok) | class | `EventBatchReply` member `ok`. |
+| [`EventBatchReplyErr`](#eventbatchreplyerr) | class | `EventBatchReply` member `err`. |
+| [`JobController`](#jobcontroller) | class | Everything one `JobRunner.job` invocation may touch. Capabilities are host-served; the guest never sees OS paths or sockets. |
+| [`HeadOk`](#headok) | class | Success payload of `Destination.head`. |
+| [`HeadReplyOk`](#headreplyok) | class | `HeadReply` member `ok`. |
+| [`HeadReplyErr`](#headreplyerr) | class | `HeadReply` member `err`. |
+| [`ListReplyOk`](#listreplyok) | class | `ListReply` member `ok`. |
+| [`ListReplyErr`](#listreplyerr) | class | `ListReply` member `err`. |
+| [`GetOk`](#getok) | class | Success payload of `Destination.get`. |
+| [`GetReplyOk`](#getreplyok) | class | `GetReply` member `ok`. |
+| [`GetReplyErr`](#getreplyerr) | class | `GetReply` member `err`. |
+| [`PutReplyOk`](#putreplyok) | class | `PutReply` member `ok`. |
+| [`PutReplyErr`](#putreplyerr) | class | `PutReply` member `err`. |
+| [`CopyReplyOk`](#copyreplyok) | class | `CopyReply` member `ok`. |
+| [`CopyReplyErr`](#copyreplyerr) | class | `CopyReply` member `err`. |
+| [`EmptyReplyOk`](#emptyreplyok) | class | `EmptyReply` member `ok`. |
+| [`EmptyReplyErr`](#emptyreplyerr) | class | `EmptyReply` member `err`. |
+| [`PullOk`](#pullok) | class | Success payload of `ByteSource.pull`. |
+| [`PullReplyOk`](#pullreplyok) | class | `PullReply` member `ok`. |
+| [`PullReplyErr`](#pullreplyerr) | class | `PullReply` member `err`. |
+| [`OpenOk`](#openok) | class | Success payload of `Source.open`. |
+| [`OpenReplyOk`](#openreplyok) | class | `OpenReply` member `ok`. |
+| [`OpenReplyErr`](#openreplyerr) | class | `OpenReply` member `err`. |
+| [`DescribeReplyOk`](#describereplyok) | class | `DescribeReply` member `ok`. |
+| [`DescribeReplyErr`](#describereplyerr) | class | `DescribeReply` member `err`. |
+| [`HandleReplyOk`](#handlereplyok) | class | `HandleReply` member `ok`. |
+| [`HandleReplyErr`](#handlereplyerr) | class | `HandleReply` member `err`. |
+| [`HealthOk`](#healthok) | class | Typed liveness report. |
+| [`HealthReplyOk`](#healthreplyok) | class | `HealthReply` member `ok`. |
+| [`HealthReplyErr`](#healthreplyerr) | class | `HealthReply` member `err`. |
+| [`AdapterSessionReplyOk`](#adaptersessionreplyok) | class | `AdapterSessionReply` member `ok`. |
+| [`AdapterSessionReplyErr`](#adaptersessionreplyerr) | class | `AdapterSessionReply` member `err`. |
+| [`GuestDatabaseReplyOk`](#guestdatabasereplyok) | class | `GuestDatabaseReply` member `ok`. |
+| [`GuestDatabaseReplyErr`](#guestdatabasereplyerr) | class | `GuestDatabaseReply` member `err`. |
+| [`ByteSource`](#bytesource) | class | Transferred readable byte stream. The capability *is* the stream; callers pull bounded windows. Abort is capability drop / RPC cancel. A failed pull MUST set `err` — never a successful empty EOF. |
+| [`Destination`](#destination) | class | Object store the host writes acquired media into (`output.*` plugins). Keys are relative object paths; the plugin owns the physical layout. |
+| [`Source`](#source) | class | Read-only byte source for job inputs (not a storefront). |
+| [`ProgressSink`](#progresssink) | class | Host-side progress reporter handed to job handlers. |
+| [`Cancellation`](#cancellation) | class | Transport cancellation. SDKs project this into a locally created AbortSignal (AbortSignal is not a serializable Workers RPC value). |
+| [`JobRunner`](#jobrunner) | class | `[triggers] jobs` handler (`Entrypoints.jobRunner`); runs one durable command. |
+| [`EventConsumer`](#eventconsumer) | class | `[[events.consumers]]` handler (`Entrypoints.eventConsumer`). Delivery is at-least-once; consumers must be idempotent on `deduplicationKey`. |
+| [`EventPublisher`](#eventpublisher) | class | `EVENTS` binding: host-served outbox publisher granted through `Bindings.events`. Event types must be listed in `[[events.producers]]`. |
+| [`NamedDatabase`](#nameddatabase) | class | One named plugin-owned database binding delivered on `Bindings.databases`. |
+| [`QueueConsumer`](#queueconsumer) | class | `[[queues.consumers]]` handler (`Entrypoints.queueConsumer`). Delivery is at-least-once; consumers must be idempotent on `QueueMessage.id`. |
+| [`QueueProducer`](#queueproducer) | class | Queue producer binding: host-served send into the queue a `[[queues.producers]]` row names, granted through `Bindings.queues`. |
+| [`NamedQueue`](#namedqueue) | class | One named queue producer delivered on `Bindings.queues`. |
+| [`KvNamespace`](#kvnamespace) | class | Durable key/value namespace: a Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names, granted through `Bindings.kv`. Values live in the cluster, so an instance moved to another host reads its own keys. |
+| [`NamedKv`](#namedkv) | class | One named durable namespace delivered on `Bindings.kv`. |
+| [`ContentSource`](#contentsource) | class | Storefront content source (not byte Source). Every method takes and returns typed structs from the "Typed method payloads" section. |
+| [`RemoteLibrary`](#remotelibrary) | class | `remoteLibrary` entrypoint: long-running remote-library lifecycle (start / stop, library rescan, listening sync, external-user polling). Event delivery is `EventConsumer`; credential verification is `Oidc`. |
+| [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
+| [`Oidc`](#oidc) | class | `oidc` entrypoint: relying-party client templates and credential verification on behalf of the host authorization server. |
+| [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
+| [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
+| [`Brand`](#brand) | class | Portal brand crossing the RPC boundary. Distinct from `plugin.toml` `logo`: `iconUrl` is the live URL or data URI the SPA renders. |
+| [`ConfigOption`](#configoption) | class | One discoverable config option group advertised for sources. |
+| [`ConfigOptionValue`](#configoptionvalue) | class | One selectable value under a `ConfigOption`. |
+| [`CliSchema`](#clischema) | class | Declared plugin CLI surface (`PluginCli.describe` / `describe().cli`). |
+| [`CliCommandSpec`](#clicommandspec) | class | One plugin CLI command under `CliSchema`. |
+| [`CliArgSpec`](#cliargspec) | class | One CLI argument or flag under a `CliCommandSpec`. |
+| [`CliArg`](#cliarg) | class | One named argument value passed to `PluginCli.invoke`. |
+| [`CliInvokeParams`](#cliinvokeparams) | class | Params of `PluginCli.invoke`. |
+| [`CliInvokeResult`](#cliinvokeresult) | class | Result of `PluginCli.invoke`. |
+| [`CliSchemaReplyOk`](#clischemareplyok) | class | `CliSchemaReply` member `ok`. |
+| [`CliSchemaReplyErr`](#clischemareplyerr) | class | `CliSchemaReply` member `err`. |
+| [`CliInvokeReplyOk`](#cliinvokereplyok) | class | `CliInvokeReply` member `ok`. |
+| [`CliInvokeReplyErr`](#cliinvokereplyerr) | class | `CliInvokeReply` member `err`. |
+| [`DatabaseAdapterConfig`](#databaseadapterconfig) | class | Author-facing database adapter configuration carried in `DatabaseContext.adapter`. This is the generic bootstrap mechanism for third-party adapters: the operator's granted `[database.<id>]` table plus the scoped writable data dir. First-party host-managed adapters receive host-private connect params in `DatabaseContext.config` instead. |
+| [`DiagnoseResult`](#diagnoseresult) | class | Operator-facing diagnostic lines printed by `bookclerk plugins diagnose`. |
+| [`DiagnoseReplyOk`](#diagnosereplyok) | class | `DiagnoseReply` member `ok`. |
+| [`DiagnoseReplyErr`](#diagnosereplyerr) | class | `DiagnoseReply` member `err`. |
+| [`SourceAccount`](#sourceaccount) | class | Source account metadata returned from login and stored by the host. |
+| [`LoginParams`](#loginparams) | class | Params of `ContentSource.login` and `ContentSource.loginStart`. Password sources fill email/password; OAuth sources use callback / external fields. There is no files-dir root or library DB path -- only `pluginDataDir`. |
+| [`LoginResult`](#loginresult) | class | Result of `ContentSource.login` / `loginComplete`: account metadata plus opaque credentials for the host to seal into `encrypted_secrets` (`provider = plugin id`). Guests never write secrets into the library DB. |
+| [`LoginStartResult`](#loginstartresult) | class | Result of `ContentSource.loginStart` (interactive OAuth). The operator opens `url`; `loginComplete` later uses `sessionId`. |
+| [`LoginCompleteParams`](#logincompleteparams) | class | Params of `ContentSource.loginComplete`. |
+| [`LoginReplyOk`](#loginreplyok) | class | `LoginReply` member `ok`. |
+| [`LoginReplyErr`](#loginreplyerr) | class | `LoginReply` member `err`. |
+| [`LoginStartReplyOk`](#loginstartreplyok) | class | `LoginStartReply` member `ok`. |
+| [`LoginStartReplyErr`](#loginstartreplyerr) | class | `LoginStartReply` member `err`. |
+| [`AccountCredential`](#accountcredential) | class | Host-sealed credentials for one account, delivered on `scan`. |
+| [`ScanParams`](#scanparams) | class | Params of `ContentSource.scan`. The host injects sealed credentials so the plugin does not need a private credential store under `pluginDataDir`. |
+| [`ScanBook`](#scanbook) | class | One library title returned by `ContentSource.scan`. The host upserts these rows and forces `source` to the plugin id. |
+| [`ScanSummary`](#scansummary) | class | Summary result of `ContentSource.scan`. |
+| [`ScanReplyOk`](#scanreplyok) | class | `ScanReply` member `ok`. |
+| [`ScanReplyErr`](#scanreplyerr) | class | `ScanReply` member `err`. |
+| [`FetchOptions`](#fetchoptions) | class | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
+| [`FetchTitleParams`](#fetchtitleparams) | class | Params of `ContentSource.fetchTitle`. The plugin writes media under `cacheDir` and returns plain (DRM-free) paths. The host injects credentials; guests must not open `library.db` or `master.key`. |
+| [`PlainPart`](#plainpart) | class | One plain audio part written under the cache directory. |
+| [`ChapterMarker`](#chaptermarker) | class | One chapter marker of a fetched title. |
+| [`PlainFetch`](#plainfetch) | class | Plain (DRM-free) fetch result. Sources always return decrypted media; DRM guests decrypt before responding. |
+| [`FetchTitleReplyOk`](#fetchtitlereplyok) | class | `FetchTitleReply` member `ok`. |
+| [`FetchTitleReplyErr`](#fetchtitlereplyerr) | class | `FetchTitleReply` member `err`. |
+| [`SourceAccounts`](#sourceaccounts) | class | Success payload of `ContentSource.listAccounts`. |
+| [`SourceAccountsReplyOk`](#sourceaccountsreplyok) | class | `SourceAccountsReply` member `ok`. |
+| [`SourceAccountsReplyErr`](#sourceaccountsreplyerr) | class | `SourceAccountsReply` member `err`. |
+| [`SearchCatalogParams`](#searchcatalogparams) | class | Params of `ContentSource.searchCatalog`. |
+| [`ExpandCandidatesParams`](#expandcandidatesparams) | class | Params of `ContentSource.expandCandidates`. Seed fields identify a known title; the guest returns related catalog hits. |
+| [`PurchaseHintParams`](#purchasehintparams) | class | Params of `ContentSource.purchaseHint`. At least one identity field (`productId` / `asin` / `isbn` / title+authors) should be set; guests may return `invalid_params` when none are usable. |
+| [`ListDealsParams`](#listdealsparams) | class | Params of `ContentSource.listDeals`. |
+| [`CatalogDetailParams`](#catalogdetailparams) | class | Params of `ContentSource.catalogDetail`. |
+| [`CatalogHit`](#cataloghit) | class | One catalog / candidate hit returned by `searchCatalog`, `expandCandidates`, `listDeals`, and `catalogDetail`. |
+| [`CatalogHits`](#cataloghits) | class | Success payload of the catalog list methods. |
+| [`CatalogHitsReplyOk`](#cataloghitsreplyok) | class | `CatalogHitsReply` member `ok`. |
+| [`CatalogHitsReplyErr`](#cataloghitsreplyerr) | class | `CatalogHitsReply` member `err`. |
+| [`CatalogDetail`](#catalogdetail) | class | Success payload of `ContentSource.catalogDetail`. |
+| [`CatalogDetailReplyOk`](#catalogdetailreplyok) | class | `CatalogDetailReply` member `ok`. |
+| [`CatalogDetailReplyErr`](#catalogdetailreplyerr) | class | `CatalogDetailReply` member `err`. |
+| [`PurchaseHint`](#purchasehint) | class | Purchase hint for SPA / CLI purchase deep-links. |
+| [`PurchaseHintResult`](#purchasehintresult) | class | Success payload of `ContentSource.purchaseHint`. |
+| [`PurchaseHintReplyOk`](#purchasehintreplyok) | class | `PurchaseHintReply` member `ok`. |
+| [`PurchaseHintReplyErr`](#purchasehintreplyerr) | class | `PurchaseHintReply` member `err`. |
+| [`ScanLibraryParams`](#scanlibraryparams) | class | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
+| [`AuthenticateUserParams`](#authenticateuserparams) | class | Params of `Oidc.authenticateUser`. |
+| [`ExternalUser`](#externaluser) | class | One external user observed by an integration. The host may mint claim tickets without exposing portal details to the guest. |
+| [`ExternalUserReplyOk`](#externaluserreplyok) | class | `ExternalUserReply` member `ok`. |
+| [`ExternalUserReplyErr`](#externaluserreplyerr) | class | `ExternalUserReply` member `err`. |
+| [`EventPollResult`](#eventpollresult) | class | Success payload of `RemoteLibrary.pollEvents`: signals for the host to kick off workflows. |
+| [`EventPollReplyOk`](#eventpollreplyok) | class | `EventPollReply` member `ok`. |
+| [`EventPollReplyErr`](#eventpollreplyerr) | class | `EventPollReply` member `err`. |
+| [`ListeningProgress`](#listeningprogress) | class | One listening-progress row. The host upserts into `listening_progress` tagged with the plugin id; plugins never open the library DB. |
+| [`SyncListeningResult`](#synclisteningresult) | class | Success payload of `RemoteLibrary.syncListening`. |
+| [`SyncListeningReplyOk`](#synclisteningreplyok) | class | `SyncListeningReply` member `ok`. |
+| [`SyncListeningReplyErr`](#synclisteningreplyerr) | class | `SyncListeningReply` member `err`. |
+| [`PluginEvent`](#pluginevent) | class | Guest-published domain event (`EventPublisher.publish`). The host stamps `eventId`, `source` (the plugin id), and `accountId` from the invocation; guests cannot forge either. |
+| [`PublishOk`](#publishok) | class | Success payload of `EventPublisher.publish`. |
+| [`PublishReplyOk`](#publishreplyok) | class | `PublishReply` member `ok`. |
+| [`PublishReplyErr`](#publishreplyerr) | class | `PublishReply` member `err`. |
+| [`Invocation`](#invocation) | class | Identity of one `PluginWorker.open` invocation. The host issues ids; guests echo `correlationId` / `causationId` onto published events. |
+| [`QueueMessage`](#queuemessage) | class | One message on a Workers-style queue, delivered by `QueueConsumer.queue`. |
+| [`QueueBatch`](#queuebatch) | class | One `QueueConsumer.queue` delivery: messages from one queue in send order. |
+| [`QueueRetry`](#queueretry) | class | Redeliver a queue message later. |
+| [`QueueResultAck`](#queueresultack) | class | `QueueResult` member `ack`. |
+| [`QueueResultRetry`](#queueresultretry) | class | `QueueResult` member `retry`. |
+| [`QueueBatchOk`](#queuebatchok) | class | Success payload of `QueueConsumer.queue`: exactly one entry per `QueueBatch.messages` entry, in order. A short list is a host-side error and the missing tail is retried. |
+| [`QueueBatchReplyOk`](#queuebatchreplyok) | class | `QueueBatchReply` member `ok`. |
+| [`QueueBatchReplyErr`](#queuebatchreplyerr) | class | `QueueBatchReply` member `err`. |
+| [`QueueSendMessage`](#queuesendmessage) | class | One message to send through a `[[queues.producers]]` binding. |
+| [`QueueSendOk`](#queuesendok) | class | Success payload of `QueueProducer.send` / `sendBatch`. |
+| [`QueueSendReplyOk`](#queuesendreplyok) | class | `QueueSendReply` member `ok`. |
+| [`QueueSendReplyErr`](#queuesendreplyerr) | class | `QueueSendReply` member `err`. |
+| [`KvPutOptions`](#kvputoptions) | class | Expiration and metadata for `KvNamespace.put`. |
+| [`KvGetOk`](#kvgetok) | class | Success payload of `KvNamespace.get`. |
+| [`KvGetReplyOk`](#kvgetreplyok) | class | `KvGetReply` member `ok`. |
+| [`KvGetReplyErr`](#kvgetreplyerr) | class | `KvGetReply` member `err`. |
+| [`KvPutOk`](#kvputok) | class | Success payload of `KvNamespace.put`. |
+| [`KvDeleteOk`](#kvdeleteok) | class | Success payload of `KvNamespace.delete`. |
+| [`KvPutReplyOk`](#kvputreplyok) | class | `KvPutReply` member `ok`. |
+| [`KvPutReplyErr`](#kvputreplyerr) | class | `KvPutReply` member `err`. |
+| [`KvDeleteReplyOk`](#kvdeletereplyok) | class | `KvDeleteReply` member `ok`. |
+| [`KvDeleteReplyErr`](#kvdeletereplyerr) | class | `KvDeleteReply` member `err`. |
+| [`KvListOptions`](#kvlistoptions) | class | Page request for `KvNamespace.list`. |
+| [`KvListKey`](#kvlistkey) | class | One key on a `KvNamespace.list` page. |
+| [`KvListOk`](#kvlistok) | class | Success payload of `KvNamespace.list`. |
+| [`KvListReplyOk`](#kvlistreplyok) | class | `KvListReply` member `ok`. |
+| [`KvListReplyErr`](#kvlistreplyerr) | class | `KvListReply` member `err`. |
+| [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
+| [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
+| [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
+| [`DbValueFloat64`](#dbvaluefloat64) | class | `DbValue` member `float64`. |
+| [`DbValueText`](#dbvaluetext) | class | `DbValue` member `text`. |
+| [`DbValueBytes`](#dbvaluebytes) | class | `DbValue` member `bytes`. |
+| [`DbColumn`](#dbcolumn) | class | Result column descriptor. |
+| [`DbRow`](#dbrow) | class | One result row. |
+| [`DbStatement`](#dbstatement) | class | One guest statement in an `ExecuteRequest`. |
+| [`ExecuteRequest`](#executerequest) | class | Guest statement batch for `GuestDatabase.execute`; runs atomically. |
+| [`SqlSpan`](#sqlspan) | class | Byte span in the exact canonical SQL string a proof is bound to. |
+| [`TextCollateSite`](#textcollatesite) | class | One TEXT expression the adapter must collate bytewise (`COLLATE "C"`). |
+| [`IntegerArithSite`](#integerarithsite) | class | One INTEGER arithmetic expression that must not wrap or error on overflow. |
+| [`PhysicalAccess`](#physicalaccess) | class | Physical table/column access used for authorization. |
+| [`ResolvedAssignment`](#resolvedassignment) | class | Destination assignment `lhs = rhs` (INSERT, UPDATE, ...). |
+| [`NamedSqlType`](#namedsqltype) | class | Column name paired with its resolved type. |
+| [`ColumnReference`](#columnreference) | class | `REFERENCES` target of one column. |
+| [`OptionalColumnReferenceNone`](#optionalcolumnreferencenone) | class | `OptionalColumnReference` member `none`. |
+| [`OptionalColumnReferenceSome`](#optionalcolumnreferencesome) | class | `OptionalColumnReference` member `some`. |
+| [`ForeignKeyConstraint`](#foreignkeyconstraint) | class | Table-level `FOREIGN KEY` constraint. |
+| [`TableConstraintPrimaryKey`](#tableconstraintprimarykey) | class | `TableConstraint` member `primaryKey`. |
+| [`TableConstraintUnique`](#tableconstraintunique) | class | `TableConstraint` member `unique`. |
+| [`TableConstraintCheck`](#tableconstraintcheck) | class | `TableConstraint` member `check`. |
+| [`TableConstraintForeignKey`](#tableconstraintforeignkey) | class | `TableConstraint` member `foreignKey`. |
+| [`CreateTableSchema`](#createtableschema) | class | Parsed `CREATE TABLE` (canonical SQL v1). Per-column lists align with `columns`. |
+| [`SchemaCreate`](#schemacreate) | class | `CREATE TABLE` action with its durable fingerprint. |
+| [`SchemaActionNone`](#schemaactionnone) | class | `SchemaAction` member `none`. |
+| [`SchemaActionCreate`](#schemaactioncreate) | class | `SchemaAction` member `create`. |
+| [`SchemaActionDrop`](#schemaactiondrop) | class | `SchemaAction` member `drop`. |
+| [`ResolvedStatement`](#resolvedstatement) | class | Host-produced typed proof bound to one exact canonical statement. |
+| [`AdapterReceipt`](#adapterreceipt) | class | Replay receipt the host asks the adapter to persist with the batch. |
+| [`AdapterStatement`](#adapterstatement) | class | One host-lowered statement with its proof. |
+| [`AdapterExecuteRequest`](#adapterexecuterequest) | class | Host -> adapter batch: proven statements plus isolation and receipt. |
+| [`StatementResult`](#statementresult) | class | Outcome of one statement. |
+| [`DbTiming`](#dbtiming) | class | Engine timing on `ExecuteReply`. |
+| [`ExecuteReply`](#executereply) | class | Success payload of `execute`. |
+| [`ExecuteResultReplyOk`](#executeresultreplyok) | class | `ExecuteResultReply` member `ok`. |
+| [`ExecuteResultReplyErr`](#executeresultreplyerr) | class | `ExecuteResultReply` member `err`. |
+| [`DbCapabilities`](#dbcapabilities) | class | Semantic SQL-contract advertisement. Diagnostic engine identity is not part of the capability plane — see `DbBootstrap`. |
+| [`DbBootstrapReplyOk`](#dbbootstrapreplyok) | class | `DbBootstrapReply` member `ok`. |
+| [`DbBootstrapReplyErr`](#dbbootstrapreplyerr) | class | `DbBootstrapReply` member `err`. |
+| [`DbBootstrap`](#dbbootstrap) | class | Bootstrap-only diagnostic metadata (not a capability). |
+| [`DbCapabilitiesReplyOk`](#dbcapabilitiesreplyok) | class | `DbCapabilitiesReply` member `ok`. |
+| [`DbCapabilitiesReplyErr`](#dbcapabilitiesreplyerr) | class | `DbCapabilitiesReply` member `err`. |
+| [`Database`](#database) | class | `databaseAdapter` entrypoint (`Entrypoints.databaseAdapter`). |
+| [`IdentityHighWater`](#identityhighwater) | class | Adapter-private identity high-water (sqlite_sequence / bookclerk_identity). Column names live in the canonical backup schema, not this catalog. |
+| [`IdentityExportReplyOk`](#identityexportreplyok) | class | `IdentityExportReply` member `ok`. |
+| [`IdentityExportReplyErr`](#identityexportreplyerr) | class | `IdentityExportReply` member `err`. |
+| [`UserRelationsReplyOk`](#userrelationsreplyok) | class | `UserRelationsReply` member `ok`. |
+| [`UserRelationsReplyErr`](#userrelationsreplyerr) | class | `UserRelationsReply` member `err`. |
+| [`AdapterDatabaseSession`](#adapterdatabasesession) | class | Host ↔ database adapter plugin. Capability negotiation + typed execute only. |
+| [`GuestDatabase`](#guestdatabase) | class | Host-granted SQL for job plugin authors. SDK `DatabaseBinding` mirrors the Cloudflare Workers D1 surface (`prepare`/`bind`/`run`/`first`/`all`/`raw`, `batch`, `exec`) over this typed `execute` transport; wire types stay Cap'n `ExecuteRequest`/`ExecuteReply`. |
+| [`PluginMigrationOpSchema`](#pluginmigrationopschema) | class | `PluginMigrationOp` member `schema`. |
+| [`PluginMigrationOpData`](#pluginmigrationopdata) | class | `PluginMigrationOp` member `data`. |
+| [`PluginMigration`](#pluginmigration) | class | One plugin-owned migration application. `id` is an opaque plugin-chosen stable identity (name, UUID, timestamp-like string, or digits-as-text). Bookclerk assigns no order, version, or predecessor meaning to `id`. Registration order is the forward sequence. |
+| [`PluginMigrationsOk`](#pluginmigrationsok) | class | Success payload of `PluginWorker.databaseMigrations`. |
+| [`PluginMigrationsReplyOk`](#pluginmigrationsreplyok) | class | `PluginMigrationsReply` member `ok`. |
+| [`PluginMigrationsReplyErr`](#pluginmigrationsreplyerr) | class | `PluginMigrationsReply` member `err`. |
+| [`PluginWorker`](#pluginworker) | class | Plugin bootstrap capability: the guest's root object (Workers `default` export analogue). `describe()` first; `open()` once per invocation. |
+| [`PluginErrorCode`](#pluginerrorcode) | constant | Stable `PluginError.code` strings. Unknown future codes are forwarded as-is; SDKs surface them as a local `unknown` while keeping the raw wire code. |
+| [`Entrypoint`](#entrypoint) | constant | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
+| [`PortalAuthMode`](#portalauthmode) | constant | Portal Accounts connect mode for storefronts. |
+| [`CliArgKind`](#cliargkind) | constant | Value kind for a `CliArgSpec`. |
+| [`CatalogSort`](#catalogsort) | constant | Catalog search ordering. |
+| [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
+| [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
+| [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
+| [`DbStatementKind`](#dbstatementkind) | constant | How the host classifies a statement for result handling. |
+| [`DbResultSelection`](#dbresultselection) | constant | Which part of a statement's outcome the caller wants back. |
+| [`IsolationReq`](#isolationreq) | constant | Host → adapter execute. GuestDatabase stays ExecuteRequest-only. |
+| [`ResolvedSqlType`](#resolvedsqltype) | constant | Resolved BookclerkSQL column type after type checking. |
+| [`IntegerArithKind`](#integerarithkind) | constant | INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL. |
+| [`OidcClientsReply`](#oidcclientsreply) | constant | Result union of `Oidc.clients`. |
+| [`EntrypointsReply`](#entrypointsreply) | constant | Result union of `PluginWorker.open`. |
+| [`JobOutcome`](#joboutcome) | constant | Terminal or suspended result of `JobRunner.job`. |
+| [`EventResult`](#eventresult) | constant | Per-event outcome inside an `EventConsumer.event` batch reply. |
+| [`EventBatchReply`](#eventbatchreply) | constant | Result union of `EventConsumer.event`. `ok` has exactly one entry per `EventBatch.events` entry, in order; a short list is a host-side error and the missing tail is retried. |
+| [`HeadReply`](#headreply) | constant | Result union of `Destination.head`. |
+| [`ListReply`](#listreply) | constant | Result union of `Destination.list`. |
+| [`GetReply`](#getreply) | constant | Result union of `Destination.get`. |
+| [`PutReply`](#putreply) | constant | Result union of `Destination.put` / `Destination.commit`. |
+| [`CopyReply`](#copyreply) | constant | Result union of `Destination.copy`. |
+| [`EmptyReply`](#emptyreply) | constant | Result union of `methods without a success payload`. |
+| [`PullReply`](#pullreply) | constant | Result union of `ByteSource.pull`. |
+| [`OpenReply`](#openreply) | constant | Result union of `Source.open`. |
+| [`DescribeReply`](#describereply) | constant | Result union of `PluginWorker.describe`. |
+| [`HandleReply`](#handlereply) | constant | Result union of `JobRunner.job`. |
+| [`HealthReply`](#healthreply) | constant | Result union of `health`. |
+| [`AdapterSessionReply`](#adaptersessionreply) | constant | Result union of `Database.openSession`. |
+| [`GuestDatabaseReply`](#guestdatabasereply) | constant | Result union of `guest database opens`. |
+| [`CliSchemaReply`](#clischemareply) | constant | Result union of `PluginCli.describe`. |
+| [`CliInvokeReply`](#cliinvokereply) | constant | Result union of `PluginCli.invoke`. |
+| [`DiagnoseReply`](#diagnosereply) | constant | Result union of `diagnose`. |
+| [`LoginReply`](#loginreply) | constant | Result union of `ContentSource.login` / `loginComplete`. |
+| [`LoginStartReply`](#loginstartreply) | constant | Result union of `ContentSource.loginStart`. |
+| [`ScanReply`](#scanreply) | constant | Result union of `ContentSource.scan`. |
+| [`FetchTitleReply`](#fetchtitlereply) | constant | Result union of `ContentSource.fetchTitle`. |
+| [`SourceAccountsReply`](#sourceaccountsreply) | constant | Result union of `ContentSource.listAccounts`. |
+| [`CatalogHitsReply`](#cataloghitsreply) | constant | Result union of `searchCatalog` / `expandCandidates` / `listDeals`. |
+| [`CatalogDetailReply`](#catalogdetailreply) | constant | Result union of `ContentSource.catalogDetail`. |
+| [`PurchaseHintReply`](#purchasehintreply) | constant | Result union of `ContentSource.purchaseHint`. |
+| [`ExternalUserReply`](#externaluserreply) | constant | Result union of `Oidc.authenticateUser`. |
+| [`EventPollReply`](#eventpollreply) | constant | Result union of `RemoteLibrary.pollEvents`. |
+| [`SyncListeningReply`](#synclisteningreply) | constant | Result union of `RemoteLibrary.syncListening`. |
+| [`PublishReply`](#publishreply) | constant | Result union of `EventPublisher.publish`. |
+| [`QueueResult`](#queueresult) | constant | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
+| [`QueueBatchReply`](#queuebatchreply) | constant | Result union of `QueueConsumer.queue`. |
+| [`QueueSendReply`](#queuesendreply) | constant | Result union of `QueueProducer.send` / `sendBatch`. |
+| [`KvGetReply`](#kvgetreply) | constant | Result union of `KvNamespace.get`. |
+| [`KvPutReply`](#kvputreply) | constant | Result union of `KvNamespace.put`. |
+| [`KvDeleteReply`](#kvdeletereply) | constant | Result union of `KvNamespace.delete`. |
+| [`KvListReply`](#kvlistreply) | constant | Result union of `KvNamespace.list`. |
+| [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
+| [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
+| [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
+| [`SchemaAction`](#schemaaction) | constant | CREATE/DROP action recorded on a proof. |
+| [`ExecuteResultReply`](#executeresultreply) | constant | Result union of `execute`. |
+| [`DbBootstrapReply`](#dbbootstrapreply) | constant | Result union of `AdapterDatabaseSession.bootstrap`. |
+| [`DbCapabilitiesReply`](#dbcapabilitiesreply) | constant | Result union of `AdapterDatabaseSession.capabilities`. |
+| [`IdentityExportReply`](#identityexportreply) | constant | Result union of `AdapterDatabaseSession.exportIdentity`. |
+| [`UserRelationsReply`](#userrelationsreply) | constant | Result union of `AdapterDatabaseSession.listUserRelations`. |
+| [`PluginMigrationOp`](#pluginmigrationop) | constant | One already-separated BookclerkSQL operation in a plugin-owned migration. `schema` is admitted DDL; `data` is admitted DML. There is no native SQL escape hatch. |
+| [`PluginMigrationsReply`](#pluginmigrationsreply) | constant | Result union of `PluginWorker.databaseMigrations`. |
 
-Stable `PluginError.code` strings. Unknown future codes are forwarded
-as-is; SDKs surface them as a local `unknown` while keeping the raw wire
-code.
+## Classes
 
-#### Entrypoint
-
-Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
-analogue). Each value is a capability the host calls over RPC; triggers on
-the default entrypoint (`event`, `job`) are declared separately.
-
-#### PortalAuthMode
-
-Portal Accounts connect mode for storefronts.
-
-#### CliArgKind
-
-Value kind for a `CliArgSpec`.
-
-#### CatalogSort
-
-Catalog search ordering.
-
-#### CatalogField
-
-Catalog search facet restricting which field the query matches.
-
-#### Abridgement
-
-Whether an edition is abridged.
-
-#### DbType
-
-Universal database cell/parameter domain. Engine-native arrays, enums,
-unsigned integers, and JSON text sentinels are not baseline ABI values.
-
-#### DbStatementKind
-
-How the host classifies a statement for result handling.
-
-#### DbResultSelection
-
-Which part of a statement's outcome the caller wants back.
-
-#### IsolationReq
-
-Host → adapter execute. GuestDatabase stays ExecuteRequest-only.
-
-#### ResolvedSqlType
-
-Resolved BookclerkSQL column type after type checking.
-
-#### IntegerArithKind
-
-INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL.
-
-## ScalarLimits
+### ScalarLimits
 
 ```python
 class ScalarLimits(TypedDict)
@@ -74,14 +345,13 @@ class ScalarLimits(TypedDict)
 
 Guest-advertised caps for `rpc.scalarLimits`; never above the file constants.
 
-**Attributes**:
+**Attributes**
 
-- `maxScalarBytes` - Largest scalar the guest accepts; at most `maxScalarBytes`.
-- `maxStreamWindowBytes` - Largest `ByteSource.pull` window; at most
-  `maxStreamWindowBytes`.
-- `maxListPage` - Largest list page; at most `maxListPage`.
+- `maxScalarBytes`: Largest scalar the guest accepts; at most `maxScalarBytes`.
+- `maxStreamWindowBytes`: Largest `ByteSource.pull` window; at most `maxStreamWindowBytes`.
+- `maxListPage`: Largest list page; at most `maxListPage`.
 
-## PluginError
+### PluginError
 
 ```python
 class PluginError(TypedDict)
@@ -91,12 +361,12 @@ class PluginError(TypedDict)
 codes are forwarded as-is; SDKs surface them as PluginErrorCode.unknown
 while retaining the raw wire code.
 
-**Attributes**:
+**Attributes**
 
-- `code` - Stable snake_case error code (see `PluginErrorCode`).
-- `message` - Human-readable detail; never contains secrets.
+- `code`: Stable snake_case error code (see `PluginErrorCode`).
+- `message`: Human-readable detail; never contains secrets.
 
-## ObjectMetadata
+### ObjectMetadata
 
 ```python
 class ObjectMetadata(TypedDict)
@@ -104,15 +374,15 @@ class ObjectMetadata(TypedDict)
 
 Full metadata of one stored object.
 
-**Attributes**:
+**Attributes**
 
-- `key` - Object key.
-- `size` - Object size in bytes.
-- `contentType` - MIME type; empty when unknown.
-- `etag` - Backend entity tag; empty when unsupported.
-- `sha256` - Raw SHA-256 digest (32 bytes) or empty when unknown.
+- `key`: Object key.
+- `size`: Object size in bytes.
+- `contentType`: MIME type; empty when unknown.
+- `etag`: Backend entity tag; empty when unsupported.
+- `sha256`: Raw SHA-256 digest (32 bytes) or empty when unknown.
 
-## ObjectInfo
+### ObjectInfo
 
 ```python
 class ObjectInfo(TypedDict)
@@ -120,12 +390,12 @@ class ObjectInfo(TypedDict)
 
 Compact object entry in a list page.
 
-**Attributes**:
+**Attributes**
 
-- `key` - Object key.
-- `size` - Object size in bytes.
+- `key`: Object key.
+- `size`: Object size in bytes.
 
-## ListOptions
+### ListOptions
 
 ```python
 class ListOptions(TypedDict)
@@ -133,13 +403,13 @@ class ListOptions(TypedDict)
 
 Paging options for `Destination.list`.
 
-**Attributes**:
+**Attributes**
 
-- `prefix` - Only keys starting with this prefix; empty lists everything.
-- `cursor` - Opaque cursor from a previous `ListPage.nextCursor`; empty starts over.
-- `limit` - Requested page size; clamped to `maxListPage`. `0` means guest default.
+- `prefix`: Only keys starting with this prefix; empty lists everything.
+- `cursor`: Opaque cursor from a previous `ListPage.nextCursor`; empty starts over.
+- `limit`: Requested page size; clamped to `maxListPage`. `0` means guest default.
 
-## ListPage
+### ListPage
 
 ```python
 class ListPage(TypedDict)
@@ -147,12 +417,12 @@ class ListPage(TypedDict)
 
 One page of `Destination.list` results.
 
-**Attributes**:
+**Attributes**
 
-- `objects` - Objects in this page, in backend order.
-- `nextCursor` - Cursor for the next page; empty when exhausted.
+- `objects`: Objects in this page, in backend order.
+- `nextCursor`: Cursor for the next page; empty when exhausted.
 
-## ByteRange
+### ByteRange
 
 ```python
 class ByteRange(TypedDict)
@@ -160,12 +430,12 @@ class ByteRange(TypedDict)
 
 Half-open byte window `[offset, offset + length)`.
 
-**Attributes**:
+**Attributes**
 
-- `offset` - First byte offset.
-- `length` - Number of bytes; `0` reads to the end.
+- `offset`: First byte offset.
+- `length`: Number of bytes; `0` reads to the end.
 
-## ReadOptions
+### ReadOptions
 
 ```python
 class ReadOptions(TypedDict)
@@ -173,11 +443,11 @@ class ReadOptions(TypedDict)
 
 Options for `Destination.get`.
 
-**Attributes**:
+**Attributes**
 
-- `range` - Byte range to read; an all-zero range reads the whole object.
+- `range`: Byte range to read; an all-zero range reads the whole object.
 
-## WriteOptions
+### WriteOptions
 
 ```python
 class WriteOptions(TypedDict)
@@ -185,15 +455,15 @@ class WriteOptions(TypedDict)
 
 Options for `Destination.put`.
 
-**Attributes**:
+**Attributes**
 
-- `contentType` - MIME type to record; empty when unknown.
-- `contentLength` - Expected body length in bytes; `0` when unknown (chunked).
-- `sha256` - Expected raw SHA-256 digest; empty skips verification.
-- `commitToken` - Destination-side stage-and-publish. Empty means a one-shot put.
-- `stageOnly` - When true, `put` stages remotely and does not publish until `commit`.
+- `contentType`: MIME type to record; empty when unknown.
+- `contentLength`: Expected body length in bytes; `0` when unknown (chunked).
+- `sha256`: Expected raw SHA-256 digest; empty skips verification.
+- `commitToken`: Destination-side stage-and-publish. Empty means a one-shot put.
+- `stageOnly`: When true, `put` stages remotely and does not publish until `commit`.
 
-## PutResult
+### PutResult
 
 ```python
 class PutResult(TypedDict)
@@ -201,14 +471,14 @@ class PutResult(TypedDict)
 
 Summary of a stored (or committed) object.
 
-**Attributes**:
+**Attributes**
 
-- `key` - Object key written.
-- `bytesWritten` - Bytes persisted.
-- `etag` - Backend entity tag; empty when unsupported.
-- `sha256` - Raw SHA-256 digest of the stored bytes; empty when not computed.
+- `key`: Object key written.
+- `bytesWritten`: Bytes persisted.
+- `etag`: Backend entity tag; empty when unsupported.
+- `sha256`: Raw SHA-256 digest of the stored bytes; empty when not computed.
 
-## CopyResult
+### CopyResult
 
 ```python
 class CopyResult(TypedDict)
@@ -216,11 +486,11 @@ class CopyResult(TypedDict)
 
 Summary of a server-side copy.
 
-**Attributes**:
+**Attributes**
 
-- `bytesCopied` - Bytes copied.
+- `bytesCopied`: Bytes copied.
 
-## PluginDescribe
+### PluginDescribe
 
 ```python
 class PluginDescribe(TypedDict)
@@ -228,29 +498,23 @@ class PluginDescribe(TypedDict)
 
 Guest identity and negotiation surface returned by `describe()`.
 
-**Attributes**:
+**Attributes**
 
-- `apiVersion` - ABI version the guest speaks; must equal `apiVersion`.
-- `id` - Stable plugin id (`[a-z][a-z0-9_]{0,63}`).
-- `displayName` - Human-readable name for UI lists.
-- `rpcFeatures` - Negotiable feature names the guest supports (see `feature*`
-  constants).
-- `scalarLimits` - Guest caps when `rpc.scalarLimits` is advertised.
-- `capabilities` - Exported entrypoints, triggers, and bindings the guest implements.
-  The host rejects anything wider than the manifest and the operator grant.
-- `portalAuthMode` - Portal Accounts connect mode for storefronts.
-- `passwordEnvVar` - Env var name operators may set for password helpers; never
-  required for Accounts UI connect. Empty when the guest accepts none. Omitted
-  when absent (wire zero value).
-- `aliases` - Alternate ids accepted for config / CLI targeting.
-- `sortKey` - UI sort weight among peers of the same family; lower sorts first.
-- `brand` - Portal brand colors and icon URL; `brand.id` is empty when the guest has
-  no brand and the host renders a neutral fallback.
-- `configOptions` - Discoverable config option groups for source UIs.
-- `cli` - Embedded CLI schema (same shape as `PluginCli.describe`); empty when
-  unused.
+- `apiVersion`: ABI version the guest speaks; must equal `apiVersion`.
+- `id`: Stable plugin id (`[a-z][a-z0-9_]{0,63}`).
+- `displayName`: Human-readable name for UI lists.
+- `rpcFeatures`: Negotiable feature names the guest supports (see `feature*` constants).
+- `scalarLimits`: Guest caps when `rpc.scalarLimits` is advertised.
+- `capabilities`: Exported entrypoints, triggers, and bindings the guest implements. The host rejects anything wider than the manifest and the operator grant.
+- `portalAuthMode`: Portal Accounts connect mode for storefronts.
+- `passwordEnvVar`: Env var name operators may set for password helpers; never required for Accounts UI connect. Empty when the guest accepts none. Omitted when absent (wire zero value).
+- `aliases`: Alternate ids accepted for config / CLI targeting.
+- `sortKey`: UI sort weight among peers of the same family; lower sorts first.
+- `brand`: Portal brand colors and icon URL; `brand.id` is empty when the guest has no brand and the host renders a neutral fallback.
+- `configOptions`: Discoverable config option groups for source UIs.
+- `cli`: Embedded CLI schema (same shape as `PluginCli.describe`); empty when unused.
 
-## OidcClientTemplate
+### OidcClientTemplate
 
 ```python
 class OidcClientTemplate(TypedDict)
@@ -260,17 +524,17 @@ Bookclerk-as-IdP relying-party template. Plugins declare callback path and
 client id; the host materializes `oidc_clients` rows and remains the AS.
 `originConfigKey` is a dotted config path (e.g. integrations.audiobookshelf.base_url).
 
-**Attributes**:
+**Attributes**
 
-- `clientId` - OIDC client id the host materializes.
-- `displayName` - Name shown on consent / admin screens.
-- `callbackPath` - Redirect URI path relative to the integration origin.
-- `publicClient` - When true, the client uses PKCE without a client secret.
-- `defaultScopes` - Scopes granted by default.
-- `issueRefreshToken` - When true, the AS issues refresh tokens to this client.
-- `originConfigKey` - Dotted config path holding the client's origin URL.
+- `clientId`: OIDC client id the host materializes.
+- `displayName`: Name shown on consent / admin screens.
+- `callbackPath`: Redirect URI path relative to the integration origin.
+- `publicClient`: When true, the client uses PKCE without a client secret.
+- `defaultScopes`: Scopes granted by default.
+- `issueRefreshToken`: When true, the AS issues refresh tokens to this client.
+- `originConfigKey`: Dotted config path holding the client's origin URL.
 
-## OidcClientsOk
+### OidcClientsOk
 
 ```python
 class OidcClientsOk(TypedDict)
@@ -278,45 +542,41 @@ class OidcClientsOk(TypedDict)
 
 Success payload of `Oidc.clients`.
 
-**Attributes**:
+**Attributes**
 
-- `clients` - Client templates; empty when the plugin is not a relying party.
+- `clients`: Client templates; empty when the plugin is not a relying party.
 
-## OidcClientsReplyOk
+### OidcClientsReplyOk
 
 ```python
 class OidcClientsReplyOk(TypedDict)
 ```
 
-``OidcClientsReply`` member ``ok``.
+`OidcClientsReply` member `ok`.
 
 Success: OIDC client templates.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: OIDC client templates.
+- `kind`: Always `"ok"`.
+- `value`: Success: OIDC client templates.
 
-## OidcClientsReplyErr
+### OidcClientsReplyErr
 
 ```python
 class OidcClientsReplyErr(TypedDict)
 ```
 
-``OidcClientsReply`` member ``err``.
+`OidcClientsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### OidcClientsReply
-
-Result union of `Oidc.clients`.
-
-## ExtensibleConfig
+### ExtensibleConfig
 
 ```python
 class ExtensibleConfig(TypedDict)
@@ -324,13 +584,13 @@ class ExtensibleConfig(TypedDict)
 
 Plugin-specific extensible config. Not a substitute for typed ABI fields.
 
-**Attributes**:
+**Attributes**
 
-- `schemaVersion` - Version of `payload`'s schema, owned by the plugin.
-- `mediaType` - Media type of `payload` (e.g. `application/json`).
-- `payload` - Bounded encoded payload; at most `maxConfigPayloadBytes`.
+- `schemaVersion`: Version of `payload`'s schema, owned by the plugin.
+- `mediaType`: Media type of `payload` (e.g. `application/json`).
+- `payload`: Bounded encoded payload; at most `maxConfigPayloadBytes`.
 
-## Bindings
+### Bindings
 
 ```python
 class Bindings(TypedDict)
@@ -341,34 +601,19 @@ idiom). OS paths, FDs, and sockets are transport-private. Capability fields
 are null when the manifest does not declare (or the operator did not grant)
 the binding.
 
-**Attributes**:
+**Attributes**
 
-- `config` - `CONFIG`: granted plugin settings (operator `[vars]` plus the family
-  settings table) as `application/json`; at most `maxConfigPayloadBytes`.
-- `secrets` - `SECRETS`: granted secret values as `application/json`; empty payload
-  when the manifest declares no `[secrets]`.
-- `adapter` - Database-adapter bootstrap for the `databaseAdapter` entrypoint. First-
-  party host-managed adapters receive host-private connect params in `config`;
-  third-party adapters receive this typed bootstrap (and an empty `config`).
-- `events` - `EVENTS`: outbox publisher; null unless `[[events.producers]]` is
-  granted. Null when the guest does not export this capability.
-- `databases` - Named plugin-owned `[[databases]]` bindings: each entry is an
-  isolated database provisioned by the active adapter, separate from the
-  Bookclerk library and from every other plugin. Empty when the manifest
-  declares none.
-- `cancel` - Host cancellation for the whole invocation (fence / lease loss). Null
-  when the guest does not export this capability.
-- `storage` - `WORK_FS`: host-granted object storage for durable plugin files (work
-  filesystem); null unless `[work_fs]` is granted. Job input/output travel on
-  `JobRunner.job(controller)`, never here. Null when the guest does not export
-  this capability.
-- `queues` - Named `[[queues.producers]]` bindings: one host-served producer per
-  binding, each sending into the queue the row names. Empty when the manifest
-  declares none.
-- `kv` - Named `[[kv_namespaces]]` bindings: one host-served durable namespace per
-  binding, scoped to this plugin. Empty when the manifest declares none.
+- `config`: `CONFIG`: granted plugin settings (operator `[vars]` plus the family settings table) as `application/json`; at most `maxConfigPayloadBytes`.
+- `secrets`: `SECRETS`: granted secret values as `application/json`; empty payload when the manifest declares no `[secrets]`.
+- `adapter`: Database-adapter bootstrap for the `databaseAdapter` entrypoint. First- party host-managed adapters receive host-private connect params in `config`; third-party adapters receive this typed bootstrap (and an empty `config`).
+- `events`: `EVENTS`: outbox publisher; null unless `[[events.producers]]` is granted. Null when the guest does not export this capability.
+- `databases`: Named plugin-owned `[[databases]]` bindings: each entry is an isolated database provisioned by the active adapter, separate from the Bookclerk library and from every other plugin. Empty when the manifest declares none.
+- `cancel`: Host cancellation for the whole invocation (fence / lease loss). Null when the guest does not export this capability.
+- `storage`: `WORK_FS`: host-granted object storage for durable plugin files (work filesystem); null unless `[work_fs]` is granted. Job input/output travel on `JobRunner.job(controller)`, never here. Null when the guest does not export this capability.
+- `queues`: Named `[[queues.producers]]` bindings: one host-served producer per binding, each sending into the queue the row names. Empty when the manifest declares none.
+- `kv`: Named `[[kv_namespaces]]` bindings: one host-served durable namespace per binding, scoped to this plugin. Empty when the manifest declares none.
 
-## Entrypoints
+### Entrypoints
 
 ```python
 class Entrypoints(TypedDict)
@@ -378,60 +623,49 @@ Exported entrypoints returned by `PluginWorker.open`. One capability per
 `plugin.toml` `entrypoints` entry / trigger; null when not exported. The host
 refuses an entrypoint the manifest or operator grant did not allow.
 
-**Attributes**:
+**Attributes**
 
-- `eventConsumer` - `[[events.consumers]]` trigger: `event(batch)` handler. Null when
-  the guest does not export this capability.
-- `jobRunner` - `[triggers] jobs` trigger: `job(controller)` handler. Null when the
-  guest does not export this capability.
-- `storefront` - `storefront` entrypoint. Null when the guest does not export this
-  capability.
-- `storage` - `storage` entrypoint. Null when the guest does not export this
-  capability.
-- `databaseAdapter` - `databaseAdapter` entrypoint. Null when the guest does not
-  export this capability.
-- `remoteLibrary` - `remoteLibrary` entrypoint. Null when the guest does not export
-  this capability.
-- `cli` - `cli` entrypoint. Null when the guest does not export this capability.
-- `oidc` - `oidc` entrypoint. Null when the guest does not export this capability.
-- `queueConsumer` - `[[queues.consumers]]` trigger: `queue(batch)` handler. Null when
-  the guest does not export this capability.
+- `eventConsumer`: `[[events.consumers]]` trigger: `event(batch)` handler. Null when the guest does not export this capability.
+- `jobRunner`: `[triggers] jobs` trigger: `job(controller)` handler. Null when the guest does not export this capability.
+- `storefront`: `storefront` entrypoint. Null when the guest does not export this capability.
+- `storage`: `storage` entrypoint. Null when the guest does not export this capability.
+- `databaseAdapter`: `databaseAdapter` entrypoint. Null when the guest does not export this capability.
+- `remoteLibrary`: `remoteLibrary` entrypoint. Null when the guest does not export this capability.
+- `cli`: `cli` entrypoint. Null when the guest does not export this capability.
+- `oidc`: `oidc` entrypoint. Null when the guest does not export this capability.
+- `queueConsumer`: `[[queues.consumers]]` trigger: `queue(batch)` handler. Null when the guest does not export this capability.
 
-## EntrypointsReplyOk
+### EntrypointsReplyOk
 
 ```python
 class EntrypointsReplyOk(TypedDict)
 ```
 
-``EntrypointsReply`` member ``ok``.
+`EntrypointsReply` member `ok`.
 
 Success: exported entrypoint capabilities.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: exported entrypoint capabilities.
+- `kind`: Always `"ok"`.
+- `value`: Success: exported entrypoint capabilities.
 
-## EntrypointsReplyErr
+### EntrypointsReplyErr
 
 ```python
 class EntrypointsReplyErr(TypedDict)
 ```
 
-``EntrypointsReply`` member ``err``.
+`EntrypointsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### EntrypointsReply
-
-Result union of `PluginWorker.open`.
-
-## JobInvocation
+### JobInvocation
 
 ```python
 class JobInvocation(TypedDict)
@@ -443,26 +677,23 @@ The envelope itself is not persisted as opaque bytes across ABI majors.
 Idempotency keys are scoped to (account, plugin, commandType) until a
 terminal fenced outcome is committed.
 
-**Attributes**:
+**Attributes**
 
-- `payloadSchemaVersion` - Schema version of `payloadJson`, owned by the command
-  type.
-- `invocationId` - Unique id of this invocation attempt.
-- `commandType` - Command type the handler dispatches on.
-- `payloadJson` - Command payload (JSON); at most `maxScalarBytes`.
-- `idempotencyKey` - Caller idempotency key scoped to (account, plugin, commandType).
-- `attempt` - Failure retry counter, starting at 1.
-- `correlationId` - Trace correlation id; empty when none.
-- `causationId` - Id of the event or command that caused this one; empty when none.
-- `deadlineUnixMs` - UTC Unix milliseconds. Host fence/lease is authoritative; this
-  hint must not outlive the fence (clock skew across VPS nodes).
-- `checkpointJson` - Checkpoint persisted by a prior `SuspendedOutcome`; empty on
-  first run.
-- `checkpointSchemaVersion` - Schema version of `checkpointJson`.
-- `invocationSequence` - Resume ordinal; distinct from failure `attempt`.
-- `stepId` - Optional step identifier for multi-step commands.
+- `payloadSchemaVersion`: Schema version of `payloadJson`, owned by the command type.
+- `invocationId`: Unique id of this invocation attempt.
+- `commandType`: Command type the handler dispatches on.
+- `payloadJson`: Command payload (JSON); at most `maxScalarBytes`.
+- `idempotencyKey`: Caller idempotency key scoped to (account, plugin, commandType).
+- `attempt`: Failure retry counter, starting at 1.
+- `correlationId`: Trace correlation id; empty when none.
+- `causationId`: Id of the event or command that caused this one; empty when none.
+- `deadlineUnixMs`: UTC Unix milliseconds. Host fence/lease is authoritative; this hint must not outlive the fence (clock skew across VPS nodes).
+- `checkpointJson`: Checkpoint persisted by a prior `SuspendedOutcome`; empty on first run.
+- `checkpointSchemaVersion`: Schema version of `checkpointJson`.
+- `invocationSequence`: Resume ordinal; distinct from failure `attempt`.
+- `stepId`: Optional step identifier for multi-step commands.
 
-## CompletedOutcome
+### CompletedOutcome
 
 ```python
 class CompletedOutcome(TypedDict)
@@ -470,12 +701,12 @@ class CompletedOutcome(TypedDict)
 
 Job finished successfully.
 
-**Attributes**:
+**Attributes**
 
-- `message` - Short human summary.
-- `bytesCopied` - Bytes produced, when meaningful.
+- `message`: Short human summary.
+- `bytesCopied`: Bytes produced, when meaningful.
 
-## RetryableOutcome
+### RetryableOutcome
 
 ```python
 class RetryableOutcome(TypedDict)
@@ -483,12 +714,12 @@ class RetryableOutcome(TypedDict)
 
 Job failed transiently; the host reschedules it.
 
-**Attributes**:
+**Attributes**
 
-- `message` - Short human reason.
-- `retryAfterUnixMs` - Earliest retry time; `0` lets the host choose.
+- `message`: Short human reason.
+- `retryAfterUnixMs`: Earliest retry time; `0` lets the host choose.
 
-## RejectedOutcome
+### RejectedOutcome
 
 ```python
 class RejectedOutcome(TypedDict)
@@ -496,11 +727,11 @@ class RejectedOutcome(TypedDict)
 
 Job failed permanently; no retry.
 
-**Attributes**:
+**Attributes**
 
-- `message` - Short human reason.
+- `message`: Short human reason.
 
-## CancelledOutcome
+### CancelledOutcome
 
 ```python
 class CancelledOutcome(TypedDict)
@@ -508,11 +739,11 @@ class CancelledOutcome(TypedDict)
 
 Job observed cancellation and stopped.
 
-**Attributes**:
+**Attributes**
 
-- `message` - Short human note.
+- `message`: Short human note.
 
-## SuspendedOutcome
+### SuspendedOutcome
 
 ```python
 class SuspendedOutcome(TypedDict)
@@ -520,93 +751,88 @@ class SuspendedOutcome(TypedDict)
 
 Job released the process and asks to be resumed later.
 
-**Attributes**:
+**Attributes**
 
-- `checkpointJson` - Bounded checkpoint to replay on resume; at most
-  `maxCheckpointBytes`.
-- `checkpointSchemaVersion` - Schema version of `checkpointJson`.
-- `wakeAtUnixMs` - Earliest resume time.
+- `checkpointJson`: Bounded checkpoint to replay on resume; at most `maxCheckpointBytes`.
+- `checkpointSchemaVersion`: Schema version of `checkpointJson`.
+- `wakeAtUnixMs`: Earliest resume time.
 
-## JobOutcomeCompleted
+### JobOutcomeCompleted
 
 ```python
 class JobOutcomeCompleted(TypedDict)
 ```
 
-``JobOutcome`` member ``completed``.
+`JobOutcome` member `completed`.
 
 Finished successfully.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"completed"``.
-- `value` - Finished successfully.
+- `kind`: Always `"completed"`.
+- `value`: Finished successfully.
 
-## JobOutcomeRetryable
+### JobOutcomeRetryable
 
 ```python
 class JobOutcomeRetryable(TypedDict)
 ```
 
-``JobOutcome`` member ``retryable``.
+`JobOutcome` member `retryable`.
 
 Transient failure; retry later.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"retryable"``.
-- `value` - Transient failure; retry later.
+- `kind`: Always `"retryable"`.
+- `value`: Transient failure; retry later.
 
-## JobOutcomeRejected
+### JobOutcomeRejected
 
 ```python
 class JobOutcomeRejected(TypedDict)
 ```
 
-``JobOutcome`` member ``rejected``.
+`JobOutcome` member `rejected`.
 
 Permanent failure.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"rejected"``.
-- `value` - Permanent failure.
+- `kind`: Always `"rejected"`.
+- `value`: Permanent failure.
 
-## JobOutcomeCancelled
+### JobOutcomeCancelled
 
 ```python
 class JobOutcomeCancelled(TypedDict)
 ```
 
-``JobOutcome`` member ``cancelled``.
+`JobOutcome` member `cancelled`.
 
 Stopped on cancellation.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"cancelled"``.
-- `value` - Stopped on cancellation.
+- `kind`: Always `"cancelled"`.
+- `value`: Stopped on cancellation.
 
-## JobOutcomeSuspended
+### JobOutcomeSuspended
 
 ```python
 class JobOutcomeSuspended(TypedDict)
 ```
 
-``JobOutcome`` member ``suspended``.
+`JobOutcome` member `suspended`.
 
 Released with a checkpoint.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"suspended"``.
-- `value` - Released with a checkpoint.
+- `kind`: Always `"suspended"`.
+- `value`: Released with a checkpoint.
 
-#### JobOutcome
-
-Terminal or suspended result of `JobRunner.job`.
-
-## DomainEvent
+### DomainEvent
 
 ```python
 class DomainEvent(TypedDict)
@@ -614,25 +840,25 @@ class DomainEvent(TypedDict)
 
 Domain event (not a job). Outbox-produced, at-least-once, idempotent consume.
 
-**Attributes**:
+**Attributes**
 
-- `eventId` - Unique event id (outbox row identity).
-- `eventType` - Dotted event type (e.g. `library.title.added`).
-- `schemaVersion` - Schema version of `payload`, owned by the event type.
-- `occurredAtUnixMs` - When the producer observed the fact.
-- `accountId` - Account scope; empty for host-wide events.
-- `correlationId` - Trace correlation id; empty when none.
-- `causationId` - Id of the command or event that caused this one; empty when none.
-- `deduplicationKey` - Consumer-side idempotency key; stable across redeliveries.
-- `deliveryAttempt` - Delivery counter, starting at 1.
-- `payload` - Encoded event payload; at most `maxEventPayloadBytes`.
-- `checkpointJson` - Append-only. Resume a prior EventResult.suspended.
-- `checkpointSchemaVersion` - Schema version of `checkpointJson`.
-- `invocationSequence` - Resume ordinal; distinct from `deliveryAttempt`.
-- `resumePending` - True when this delivery resumes a prior suspension.
-- `source` - Append-only. Producer plugin id; empty when unknown.
+- `eventId`: Unique event id (outbox row identity).
+- `eventType`: Dotted event type (e.g. `library.title.added`).
+- `schemaVersion`: Schema version of `payload`, owned by the event type.
+- `occurredAtUnixMs`: When the producer observed the fact.
+- `accountId`: Account scope; empty for host-wide events.
+- `correlationId`: Trace correlation id; empty when none.
+- `causationId`: Id of the command or event that caused this one; empty when none.
+- `deduplicationKey`: Consumer-side idempotency key; stable across redeliveries.
+- `deliveryAttempt`: Delivery counter, starting at 1.
+- `payload`: Encoded event payload; at most `maxEventPayloadBytes`.
+- `checkpointJson`: Append-only. Resume a prior EventResult.suspended.
+- `checkpointSchemaVersion`: Schema version of `checkpointJson`.
+- `invocationSequence`: Resume ordinal; distinct from `deliveryAttempt`.
+- `resumePending`: True when this delivery resumes a prior suspension.
+- `source`: Append-only. Producer plugin id; empty when unknown.
 
-## EventAck
+### EventAck
 
 ```python
 class EventAck(TypedDict)
@@ -640,11 +866,11 @@ class EventAck(TypedDict)
 
 Event handled; the host marks it delivered.
 
-**Attributes**:
+**Attributes**
 
-- `dummy` - Placeholder; the struct carries no data.
+- `dummy`: Placeholder; the struct carries no data.
 
-## EventRetry
+### EventRetry
 
 ```python
 class EventRetry(TypedDict)
@@ -652,12 +878,12 @@ class EventRetry(TypedDict)
 
 Redeliver later.
 
-**Attributes**:
+**Attributes**
 
-- `retryAtUnixMs` - Earliest redelivery time; `0` lets the host choose.
-- `reason` - Short human reason.
+- `retryAtUnixMs`: Earliest redelivery time; `0` lets the host choose.
+- `reason`: Short human reason.
 
-## EventReject
+### EventReject
 
 ```python
 class EventReject(TypedDict)
@@ -665,11 +891,11 @@ class EventReject(TypedDict)
 
 Event rejected; the host records the reason and stops delivering.
 
-**Attributes**:
+**Attributes**
 
-- `reason` - Short human reason.
+- `reason`: Short human reason.
 
-## EventDeadLetter
+### EventDeadLetter
 
 ```python
 class EventDeadLetter(TypedDict)
@@ -677,11 +903,11 @@ class EventDeadLetter(TypedDict)
 
 Event moved to the dead-letter queue for operator review.
 
-**Attributes**:
+**Attributes**
 
-- `reason` - Short human reason.
+- `reason`: Short human reason.
 
-## EventSuspended
+### EventSuspended
 
 ```python
 class EventSuspended(TypedDict)
@@ -691,96 +917,90 @@ Append-only. Mirrors job SuspendedOutcome; event handlers persist a
 bounded checkpoint and release the process until wakeAtUnixMs. Optional
 wake-on-matching-event fields (empty = timestamp-only).
 
-**Attributes**:
+**Attributes**
 
-- `checkpointJson` - Bounded checkpoint to replay on resume; at most
-  `maxCheckpointBytes`.
-- `checkpointSchemaVersion` - Schema version of `checkpointJson`.
-- `wakeAtUnixMs` - Earliest resume time.
-- `wakeOnEventType` - Also wake when an event of this type arrives; empty disables.
-- `wakeOnFilterJson` - JSON filter applied to matching wake events; empty matches
-  all.
+- `checkpointJson`: Bounded checkpoint to replay on resume; at most `maxCheckpointBytes`.
+- `checkpointSchemaVersion`: Schema version of `checkpointJson`.
+- `wakeAtUnixMs`: Earliest resume time.
+- `wakeOnEventType`: Also wake when an event of this type arrives; empty disables.
+- `wakeOnFilterJson`: JSON filter applied to matching wake events; empty matches all.
 
-## EventResultAck
+### EventResultAck
 
 ```python
 class EventResultAck(TypedDict)
 ```
 
-``EventResult`` member ``ack``.
+`EventResult` member `ack`.
 
 Handled.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ack"``.
-- `value` - Handled.
+- `kind`: Always `"ack"`.
+- `value`: Handled.
 
-## EventResultRetry
+### EventResultRetry
 
 ```python
 class EventResultRetry(TypedDict)
 ```
 
-``EventResult`` member ``retry``.
+`EventResult` member `retry`.
 
 Redeliver later.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"retry"``.
-- `value` - Redeliver later.
+- `kind`: Always `"retry"`.
+- `value`: Redeliver later.
 
-## EventResultReject
+### EventResultReject
 
 ```python
 class EventResultReject(TypedDict)
 ```
 
-``EventResult`` member ``reject``.
+`EventResult` member `reject`.
 
 Stop delivering.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"reject"``.
-- `value` - Stop delivering.
+- `kind`: Always `"reject"`.
+- `value`: Stop delivering.
 
-## EventResultDeadLetter
+### EventResultDeadLetter
 
 ```python
 class EventResultDeadLetter(TypedDict)
 ```
 
-``EventResult`` member ``deadLetter``.
+`EventResult` member `deadLetter`.
 
 Park for operator review.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"deadLetter"``.
-- `value` - Park for operator review.
+- `kind`: Always `"deadLetter"`.
+- `value`: Park for operator review.
 
-## EventResultSuspended
+### EventResultSuspended
 
 ```python
 class EventResultSuspended(TypedDict)
 ```
 
-``EventResult`` member ``suspended``.
+`EventResult` member `suspended`.
 
 Released with a checkpoint.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"suspended"``.
-- `value` - Released with a checkpoint.
+- `kind`: Always `"suspended"`.
+- `value`: Released with a checkpoint.
 
-#### EventResult
-
-Per-event outcome inside an `EventConsumer.event` batch reply.
-
-## EventBatch
+### EventBatch
 
 ```python
 class EventBatch(TypedDict)
@@ -789,47 +1009,41 @@ class EventBatch(TypedDict)
 One `EventConsumer.event` delivery: at most `maxListPage` events, each
 bounded by `maxEventPayloadBytes` / `maxCheckpointBytes`.
 
-**Attributes**:
+**Attributes**
 
-- `events` - Events in delivery order; the reply carries one `EventResult` per entry.
+- `events`: Events in delivery order; the reply carries one `EventResult` per entry.
 
-## EventBatchReplyOk
+### EventBatchReplyOk
 
 ```python
 class EventBatchReplyOk(TypedDict)
 ```
 
-``EventBatchReply`` member ``ok``.
+`EventBatchReply` member `ok`.
 
 Success: per-event outcomes.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: per-event outcomes.
+- `kind`: Always `"ok"`.
+- `value`: Success: per-event outcomes.
 
-## EventBatchReplyErr
+### EventBatchReplyErr
 
 ```python
 class EventBatchReplyErr(TypedDict)
 ```
 
-``EventBatchReply`` member ``err``.
+`EventBatchReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### EventBatchReply
-
-Result union of `EventConsumer.event`. `ok` has exactly one entry per
-`EventBatch.events` entry, in order; a short list is a host-side error and
-the missing tail is retried.
-
-## JobController
+### JobController
 
 ```python
 class JobController(TypedDict)
@@ -838,18 +1052,15 @@ class JobController(TypedDict)
 Everything one `JobRunner.job` invocation may touch. Capabilities are
 host-served; the guest never sees OS paths or sockets.
 
-**Attributes**:
+**Attributes**
 
-- `invocation` - Durable command envelope.
-- `input` - Job input objects. Null when the guest does not export this capability.
-- `output` - Job output object store. Null when the guest does not export this
-  capability.
-- `progress` - Progress reporter (host coalesces frequent updates). Null when the
-  guest does not export this capability.
-- `cancel` - Host cancellation probe for this job (fence / lease). Null when the
-  guest does not export this capability.
+- `invocation`: Durable command envelope.
+- `input`: Job input objects. Null when the guest does not export this capability.
+- `output`: Job output object store. Null when the guest does not export this capability.
+- `progress`: Progress reporter (host coalesces frequent updates). Null when the guest does not export this capability.
+- `cancel`: Host cancellation probe for this job (fence / lease). Null when the guest does not export this capability.
 
-## HeadOk
+### HeadOk
 
 ```python
 class HeadOk(TypedDict)
@@ -857,80 +1068,72 @@ class HeadOk(TypedDict)
 
 Success payload of `Destination.head`.
 
-**Attributes**:
+**Attributes**
 
-- `found` - Whether the object exists.
-- `meta` - Object metadata; meaningful only when `found`.
+- `found`: Whether the object exists.
+- `meta`: Object metadata; meaningful only when `found`.
 
-## HeadReplyOk
+### HeadReplyOk
 
 ```python
 class HeadReplyOk(TypedDict)
 ```
 
-``HeadReply`` member ``ok``.
+`HeadReply` member `ok`.
 
 Success: head probe outcome.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: head probe outcome.
+- `kind`: Always `"ok"`.
+- `value`: Success: head probe outcome.
 
-## HeadReplyErr
+### HeadReplyErr
 
 ```python
 class HeadReplyErr(TypedDict)
 ```
 
-``HeadReply`` member ``err``.
+`HeadReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### HeadReply
-
-Result union of `Destination.head`.
-
-## ListReplyOk
+### ListReplyOk
 
 ```python
 class ListReplyOk(TypedDict)
 ```
 
-``ListReply`` member ``ok``.
+`ListReply` member `ok`.
 
 Success: one list page.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: one list page.
+- `kind`: Always `"ok"`.
+- `value`: Success: one list page.
 
-## ListReplyErr
+### ListReplyErr
 
 ```python
 class ListReplyErr(TypedDict)
 ```
 
-``ListReply`` member ``err``.
+`ListReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### ListReply
-
-Result union of `Destination.list`.
-
-## GetOk
+### GetOk
 
 ```python
 class GetOk(TypedDict)
@@ -938,148 +1141,131 @@ class GetOk(TypedDict)
 
 Success payload of `Destination.get`.
 
-**Attributes**:
+**Attributes**
 
-- `meta` - Object metadata.
-- `body` - Streamed object bytes. Null when the guest does not export this
-  capability.
+- `meta`: Object metadata.
+- `body`: Streamed object bytes. Null when the guest does not export this capability.
 
-## GetReplyOk
+### GetReplyOk
 
 ```python
 class GetReplyOk(TypedDict)
 ```
 
-``GetReply`` member ``ok``.
+`GetReply` member `ok`.
 
 Success: object metadata and body stream.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: object metadata and body stream.
+- `kind`: Always `"ok"`.
+- `value`: Success: object metadata and body stream.
 
-## GetReplyErr
+### GetReplyErr
 
 ```python
 class GetReplyErr(TypedDict)
 ```
 
-``GetReply`` member ``err``.
+`GetReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### GetReply
-
-Result union of `Destination.get`.
-
-## PutReplyOk
+### PutReplyOk
 
 ```python
 class PutReplyOk(TypedDict)
 ```
 
-``PutReply`` member ``ok``.
+`PutReply` member `ok`.
 
 Success: stored object summary.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: stored object summary.
+- `kind`: Always `"ok"`.
+- `value`: Success: stored object summary.
 
-## PutReplyErr
+### PutReplyErr
 
 ```python
 class PutReplyErr(TypedDict)
 ```
 
-``PutReply`` member ``err``.
+`PutReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### PutReply
-
-Result union of `Destination.put` / `Destination.commit`.
-
-## CopyReplyOk
+### CopyReplyOk
 
 ```python
 class CopyReplyOk(TypedDict)
 ```
 
-``CopyReply`` member ``ok``.
+`CopyReply` member `ok`.
 
 Success: copy summary.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: copy summary.
+- `kind`: Always `"ok"`.
+- `value`: Success: copy summary.
 
-## CopyReplyErr
+### CopyReplyErr
 
 ```python
 class CopyReplyErr(TypedDict)
 ```
 
-``CopyReply`` member ``err``.
+`CopyReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### CopyReply
-
-Result union of `Destination.copy`.
-
-## EmptyReplyOk
+### EmptyReplyOk
 
 ```python
 class EmptyReplyOk(TypedDict)
 ```
 
-``EmptyReply`` member ``ok``.
+`EmptyReply` member `ok`.
 
 Success: no payload.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
+- `kind`: Always `"ok"`.
 
-## EmptyReplyErr
+### EmptyReplyErr
 
 ```python
 class EmptyReplyErr(TypedDict)
 ```
 
-``EmptyReply`` member ``err``.
+`EmptyReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### EmptyReply
-
-Result union of `methods without a success payload`.
-
-## PullOk
+### PullOk
 
 ```python
 class PullOk(TypedDict)
@@ -1087,46 +1273,42 @@ class PullOk(TypedDict)
 
 Success payload of `ByteSource.pull`.
 
-**Attributes**:
+**Attributes**
 
-- `chunk` - Next bytes; may be shorter than requested.
-- `done` - True when the stream is exhausted after `chunk`.
+- `chunk`: Next bytes; may be shorter than requested.
+- `done`: True when the stream is exhausted after `chunk`.
 
-## PullReplyOk
+### PullReplyOk
 
 ```python
 class PullReplyOk(TypedDict)
 ```
 
-``PullReply`` member ``ok``.
+`PullReply` member `ok`.
 
 Success: one stream window.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: one stream window.
+- `kind`: Always `"ok"`.
+- `value`: Success: one stream window.
 
-## PullReplyErr
+### PullReplyErr
 
 ```python
 class PullReplyErr(TypedDict)
 ```
 
-``PullReply`` member ``err``.
+`PullReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### PullReply
-
-Result union of `ByteSource.pull`.
-
-## OpenOk
+### OpenOk
 
 ```python
 class OpenOk(TypedDict)
@@ -1134,115 +1316,102 @@ class OpenOk(TypedDict)
 
 Success payload of `Source.open`.
 
-**Attributes**:
+**Attributes**
 
-- `meta` - Object metadata.
-- `body` - Streamed object bytes. Null when the guest does not export this
-  capability.
+- `meta`: Object metadata.
+- `body`: Streamed object bytes. Null when the guest does not export this capability.
 
-## OpenReplyOk
+### OpenReplyOk
 
 ```python
 class OpenReplyOk(TypedDict)
 ```
 
-``OpenReply`` member ``ok``.
+`OpenReply` member `ok`.
 
 Success: object metadata and body stream.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: object metadata and body stream.
+- `kind`: Always `"ok"`.
+- `value`: Success: object metadata and body stream.
 
-## OpenReplyErr
+### OpenReplyErr
 
 ```python
 class OpenReplyErr(TypedDict)
 ```
 
-``OpenReply`` member ``err``.
+`OpenReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### OpenReply
-
-Result union of `Source.open`.
-
-## DescribeReplyOk
+### DescribeReplyOk
 
 ```python
 class DescribeReplyOk(TypedDict)
 ```
 
-``DescribeReply`` member ``ok``.
+`DescribeReply` member `ok`.
 
 Success: plugin identity.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: plugin identity.
+- `kind`: Always `"ok"`.
+- `value`: Success: plugin identity.
 
-## DescribeReplyErr
+### DescribeReplyErr
 
 ```python
 class DescribeReplyErr(TypedDict)
 ```
 
-``DescribeReply`` member ``err``.
+`DescribeReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### DescribeReply
-
-Result union of `PluginWorker.describe`.
-
-## HandleReplyOk
+### HandleReplyOk
 
 ```python
 class HandleReplyOk(TypedDict)
 ```
 
-``HandleReply`` member ``ok``.
+`HandleReply` member `ok`.
 
 Success: job outcome.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: job outcome.
+- `kind`: Always `"ok"`.
+- `value`: Success: job outcome.
 
-## HandleReplyErr
+### HandleReplyErr
 
 ```python
 class HandleReplyErr(TypedDict)
 ```
 
-``HandleReply`` member ``err``.
+`HandleReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### HandleReply
-
-Result union of `JobRunner.job`.
-
-## HealthOk
+### HealthOk
 
 ```python
 class HealthOk(TypedDict)
@@ -1250,114 +1419,102 @@ class HealthOk(TypedDict)
 
 Typed liveness report.
 
-**Attributes**:
+**Attributes**
 
-- `ok` - True when the guest is healthy enough for traffic.
-- `detail` - Short human status line; empty when none.
+- `ok`: True when the guest is healthy enough for traffic.
+- `detail`: Short human status line; empty when none.
 
-## HealthReplyOk
+### HealthReplyOk
 
 ```python
 class HealthReplyOk(TypedDict)
 ```
 
-``HealthReply`` member ``ok``.
+`HealthReply` member `ok`.
 
 Success: health status.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: health status.
+- `kind`: Always `"ok"`.
+- `value`: Success: health status.
 
-## HealthReplyErr
+### HealthReplyErr
 
 ```python
 class HealthReplyErr(TypedDict)
 ```
 
-``HealthReply`` member ``err``.
+`HealthReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### HealthReply
-
-Result union of `health`.
-
-## AdapterSessionReplyOk
+### AdapterSessionReplyOk
 
 ```python
 class AdapterSessionReplyOk(TypedDict)
 ```
 
-``AdapterSessionReply`` member ``ok``.
+`AdapterSessionReply` member `ok`.
 
 Success: opened `AdapterDatabaseSession` capability.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: opened `AdapterDatabaseSession` capability.
+- `kind`: Always `"ok"`.
+- `value`: Success: opened `AdapterDatabaseSession` capability.
 
-## AdapterSessionReplyErr
+### AdapterSessionReplyErr
 
 ```python
 class AdapterSessionReplyErr(TypedDict)
 ```
 
-``AdapterSessionReply`` member ``err``.
+`AdapterSessionReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### AdapterSessionReply
-
-Result union of `Database.openSession`.
-
-## GuestDatabaseReplyOk
+### GuestDatabaseReplyOk
 
 ```python
 class GuestDatabaseReplyOk(TypedDict)
 ```
 
-``GuestDatabaseReply`` member ``ok``.
+`GuestDatabaseReply` member `ok`.
 
 Success: opened `GuestDatabase` capability.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: opened `GuestDatabase` capability.
+- `kind`: Always `"ok"`.
+- `value`: Success: opened `GuestDatabase` capability.
 
-## GuestDatabaseReplyErr
+### GuestDatabaseReplyErr
 
 ```python
 class GuestDatabaseReplyErr(TypedDict)
 ```
 
-``GuestDatabaseReply`` member ``err``.
+`GuestDatabaseReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### GuestDatabaseReply
-
-Result union of `guest database opens`.
-
-## ByteSource
+### ByteSource
 
 ```python
 class ByteSource(Protocol)
@@ -1370,21 +1527,20 @@ MUST set `err` — never a successful empty EOF.
 #### ByteSource.pull
 
 ```python
-async def pull(max_bytes: int) -> PullReply
+async def pull(self, max_bytes: int) -> PullReply
 ```
 
 Pull the next window of bytes. `done = true` on the final chunk.
 
-**Arguments**:
+**Args**
 
-- `max_bytes` - Upper bound for this window; at most `maxStreamWindowBytes`.
-  
+- `max_bytes`: Upper bound for this window; at most `maxStreamWindowBytes`.
 
-**Returns**:
+**Returns**
 
-  ``PullReply``
+`PullReply`
 
-## Destination
+### Destination
 
 ```python
 class Destination(Protocol)
@@ -1396,148 +1552,140 @@ Keys are relative object paths; the plugin owns the physical layout.
 #### Destination.head
 
 ```python
-async def head(key: str) -> HeadReply
+async def head(self, key: str) -> HeadReply
 ```
 
 Metadata probe. `found = false` is a success, not `not_found`.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key to probe.
-  
+- `key`: Object key to probe.
 
-**Returns**:
+**Returns**
 
-  ``HeadReply``
+`HeadReply`
 
 #### Destination.list
 
 ```python
-async def list(options: ListOptions) -> ListReply
+async def list(self, options: ListOptions) -> ListReply
 ```
 
 Page through objects under a prefix; at most `maxListPage` per page.
 
-**Arguments**:
+**Args**
 
-- `options` - Prefix, cursor, and page size.
-  
+- `options`: Prefix, cursor, and page size.
 
-**Returns**:
+**Returns**
 
-  ``ListReply``
+`ListReply`
 
 #### Destination.get
 
 ```python
-async def get(key: str, options: ReadOptions) -> GetReply
+async def get(self, key: str, options: ReadOptions) -> GetReply
 ```
 
 Open an object (or a byte range of it) for reading.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key to read.
-- `options` - Optional byte range.
-  
+- `key`: Object key to read.
+- `options`: Optional byte range.
 
-**Returns**:
+**Returns**
 
-  ``GetReply``
+`GetReply`
 
 #### Destination.put
 
 ```python
-async def put(key: str, body: ByteSource, options: WriteOptions) -> PutReply
+async def put(self, key: str, body: ByteSource, options: WriteOptions) -> PutReply
 ```
 
 Store an object from a transferred byte stream.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key to write.
-- `body` - Streamed object bytes.
-- `options` - Content type, length, digest, staging.
-  
+- `key`: Object key to write.
+- `body`: Streamed object bytes.
+- `options`: Content type, length, digest, staging.
 
-**Returns**:
+**Returns**
 
-  ``PutReply``
+`PutReply`
 
 #### Destination.copy
 
 ```python
-async def copy(from_: str, to: str) -> CopyReply
+async def copy(self, from_: str, to: str) -> CopyReply
 ```
 
 Server-side copy (requires `storage.copy`).
 
-**Arguments**:
+**Args**
 
-- `from_` - Source object key.
-- `to` - Destination object key.
-  
+- `from_`: Source object key.
+- `to`: Destination object key.
 
-**Returns**:
+**Returns**
 
-  ``CopyReply``
+`CopyReply`
 
 #### Destination.delete
 
 ```python
-async def delete(key: str) -> EmptyReply
+async def delete(self, key: str) -> EmptyReply
 ```
 
 Remove an object; deleting a missing key is a success.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key to remove.
-  
+- `key`: Object key to remove.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
 #### Destination.commit
 
 ```python
-async def commit(key: str, commit_token: str) -> PutReply
+async def commit(self, key: str, commit_token: str) -> PutReply
 ```
 
 Finalize a destination-side staged object. Staging itself is `put` with
 `stageOnly = true`; bytes must stream into destination-managed temp/multipart
 storage, never a complete local spool on host/adapter/broker/guest.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key that was staged.
-- `commit_token` - Token from `WriteOptions.commitToken`.
-  
+- `key`: Object key that was staged.
+- `commit_token`: Token from `WriteOptions.commitToken`.
 
-**Returns**:
+**Returns**
 
-  ``PutReply``
+`PutReply`
 
-#### Destination.abort\_stage
+#### Destination.abort_stage
 
 ```python
-async def abort_stage(key: str, commit_token: str) -> EmptyReply
+async def abort_stage(self, key: str, commit_token: str) -> EmptyReply
 ```
 
 Discard a staged object without publishing it.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key that was staged.
-- `commit_token` - Token from `WriteOptions.commitToken`.
-  
+- `key`: Object key that was staged.
+- `commit_token`: Token from `WriteOptions.commitToken`.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-## Source
+### Source
 
 ```python
 class Source(Protocol)
@@ -1548,21 +1696,20 @@ Read-only byte source for job inputs (not a storefront).
 #### Source.open
 
 ```python
-async def open(key: str) -> OpenReply
+async def open(self, key: str) -> OpenReply
 ```
 
 Open an object for streaming reads.
 
-**Arguments**:
+**Args**
 
-- `key` - Object key to open.
-  
+- `key`: Object key to open.
 
-**Returns**:
+**Returns**
 
-  ``OpenReply``
+`OpenReply`
 
-## ProgressSink
+### ProgressSink
 
 ```python
 class ProgressSink(Protocol)
@@ -1573,22 +1720,21 @@ Host-side progress reporter handed to job handlers.
 #### ProgressSink.report
 
 ```python
-async def report(percent: float, message: str) -> EmptyReply
+async def report(self, percent: float, message: str) -> EmptyReply
 ```
 
 Report progress; the host coalesces frequent updates.
 
-**Arguments**:
+**Args**
 
-- `percent` - Completion in `[0, 100]`.
-- `message` - Short human-readable status line.
-  
+- `percent`: Completion in `[0, 100]`.
+- `message`: Short human-readable status line.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-## Cancellation
+### Cancellation
 
 ```python
 class Cancellation(Protocol)
@@ -1600,16 +1746,16 @@ Transport cancellation. SDKs project this into a locally created AbortSignal
 #### Cancellation.poll
 
 ```python
-async def poll() -> bool
+async def poll(self) -> bool
 ```
 
 Non-blocking check; `true` once the host has fenced the invocation.
 
-**Returns**:
+**Returns**
 
-  ``bool``
+`bool`
 
-## JobRunner
+### JobRunner
 
 ```python
 class JobRunner(Protocol)
@@ -1620,22 +1766,21 @@ class JobRunner(Protocol)
 #### JobRunner.job
 
 ```python
-async def job(controller: JobController) -> HandleReply
+async def job(self, controller: JobController) -> HandleReply
 ```
 
 Run one command invocation to a terminal or suspended outcome. Named
 database bindings come from `Bindings.databases` at `open`, not per job.
 
-**Arguments**:
+**Args**
 
-- `controller` - Envelope plus host-served capabilities.
-  
+- `controller`: Envelope plus host-served capabilities.
 
-**Returns**:
+**Returns**
 
-  ``HandleReply``
+`HandleReply`
 
-## EventConsumer
+### EventConsumer
 
 ```python
 class EventConsumer(Protocol)
@@ -1647,21 +1792,20 @@ at-least-once; consumers must be idempotent on `deduplicationKey`.
 #### EventConsumer.event
 
 ```python
-async def event(batch: EventBatch) -> EventBatchReply
+async def event(self, batch: EventBatch) -> EventBatchReply
 ```
 
 Deliver one ordered batch of domain events.
 
-**Arguments**:
+**Args**
 
-- `batch` - Events in delivery order.
-  
+- `batch`: Events in delivery order.
 
-**Returns**:
+**Returns**
 
-  ``EventBatchReply``
+`EventBatchReply`
 
-## EventPublisher
+### EventPublisher
 
 ```python
 class EventPublisher(Protocol)
@@ -1673,21 +1817,20 @@ class EventPublisher(Protocol)
 #### EventPublisher.publish
 
 ```python
-async def publish(event: PluginEvent) -> PublishReply
+async def publish(self, event: PluginEvent) -> PublishReply
 ```
 
 Append one event to the outbox (idempotent on `deduplicationKey`).
 
-**Arguments**:
+**Args**
 
-- `event` - Event to publish.
-  
+- `event`: Event to publish.
 
-**Returns**:
+**Returns**
 
-  ``PublishReply``
+`PublishReply`
 
-## NamedDatabase
+### NamedDatabase
 
 ```python
 class NamedDatabase(TypedDict)
@@ -1695,13 +1838,12 @@ class NamedDatabase(TypedDict)
 
 One named plugin-owned database binding delivered on `Bindings.databases`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Binding name from `plugin.toml` `[[databases]]`.
-- `database` - Isolated typed SQL session for this binding (plugin-owned schema).
-  Null when the guest does not export this capability.
+- `name`: Binding name from `plugin.toml` `[[databases]]`.
+- `database`: Isolated typed SQL session for this binding (plugin-owned schema). Null when the guest does not export this capability.
 
-## QueueConsumer
+### QueueConsumer
 
 ```python
 class QueueConsumer(Protocol)
@@ -1713,21 +1855,20 @@ at-least-once; consumers must be idempotent on `QueueMessage.id`.
 #### QueueConsumer.queue
 
 ```python
-async def queue(batch: QueueBatch) -> QueueBatchReply
+async def queue(self, batch: QueueBatch) -> QueueBatchReply
 ```
 
 Deliver one ordered batch of messages from one queue.
 
-**Arguments**:
+**Args**
 
-- `batch` - Messages in delivery order.
-  
+- `batch`: Messages in delivery order.
 
-**Returns**:
+**Returns**
 
-  ``QueueBatchReply``
+`QueueBatchReply`
 
-## QueueProducer
+### QueueProducer
 
 ```python
 class QueueProducer(Protocol)
@@ -1739,41 +1880,42 @@ Queue producer binding: host-served send into the queue a
 #### QueueProducer.send
 
 ```python
-async def send(message: QueueSendMessage) -> QueueSendReply
+async def send(self, message: QueueSendMessage) -> QueueSendReply
 ```
 
 Send one message.
 
-**Arguments**:
+**Args**
 
-- `message` - Body, encoding, and delay.
-  
+- `message`: Body, encoding, and delay.
 
-**Returns**:
+**Returns**
 
-  ``QueueSendReply``
+`QueueSendReply`
 
-#### QueueProducer.send\_batch
+#### QueueProducer.send_batch
 
 ```python
-async def send_batch(messages: list[QueueSendMessage],
-                     delay_seconds: int) -> QueueSendReply
+async def send_batch(
+    self,
+    messages: list[QueueSendMessage],
+    delay_seconds: int,
+) -> QueueSendReply
 ```
 
 Send up to `maxListPage` messages in order; `delaySeconds` applies to
 every message that carries no delay of its own.
 
-**Arguments**:
+**Args**
 
-- `messages` - Messages in send order.
-- `delay_seconds` - Default delay for the batch.
-  
+- `messages`: Messages in send order.
+- `delay_seconds`: Default delay for the batch.
 
-**Returns**:
+**Returns**
 
-  ``QueueSendReply``
+`QueueSendReply`
 
-## NamedQueue
+### NamedQueue
 
 ```python
 class NamedQueue(TypedDict)
@@ -1781,14 +1923,13 @@ class NamedQueue(TypedDict)
 
 One named queue producer delivered on `Bindings.queues`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Binding name from `plugin.toml` `[[queues.producers]]`.
-- `queue` - Queue the binding sends to.
-- `producer` - Host-served producer for that queue. Null when the guest does not
-  export this capability.
+- `name`: Binding name from `plugin.toml` `[[queues.producers]]`.
+- `queue`: Queue the binding sends to.
+- `producer`: Host-served producer for that queue. Null when the guest does not export this capability.
 
-## KvNamespace
+### KvNamespace
 
 ```python
 class KvNamespace(Protocol)
@@ -1802,74 +1943,70 @@ the cluster, so an instance moved to another host reads its own keys.
 #### KvNamespace.get
 
 ```python
-async def get(key: str) -> KvGetReply
+async def get(self, key: str) -> KvGetReply
 ```
 
 Read one key; `found = false` when absent or expired.
 
-**Arguments**:
+**Args**
 
-- `key` - Key, at most `maxKvKeyBytes` UTF-8 bytes.
-  
+- `key`: Key, at most `maxKvKeyBytes` UTF-8 bytes.
 
-**Returns**:
+**Returns**
 
-  ``KvGetReply``
+`KvGetReply`
 
 #### KvNamespace.put
 
 ```python
-async def put(key: str, value: bytes, options: KvPutOptions) -> KvPutReply
+async def put(self, key: str, value: bytes, options: KvPutOptions) -> KvPutReply
 ```
 
 Write one key, replacing any previous value and metadata.
 
-**Arguments**:
+**Args**
 
-- `key` - Key, at most `maxKvKeyBytes` UTF-8 bytes.
-- `value` - Value, at most the namespace's `max_value_bytes`.
-- `options` - Expiration and metadata.
-  
+- `key`: Key, at most `maxKvKeyBytes` UTF-8 bytes.
+- `value`: Value, at most the namespace's `max_value_bytes`.
+- `options`: Expiration and metadata.
 
-**Returns**:
+**Returns**
 
-  ``KvPutReply``
+`KvPutReply`
 
 #### KvNamespace.delete
 
 ```python
-async def delete(key: str) -> KvDeleteReply
+async def delete(self, key: str) -> KvDeleteReply
 ```
 
 Delete one key; a missing key is not an error.
 
-**Arguments**:
+**Args**
 
-- `key` - Key to delete.
-  
+- `key`: Key to delete.
 
-**Returns**:
+**Returns**
 
-  ``KvDeleteReply``
+`KvDeleteReply`
 
 #### KvNamespace.list
 
 ```python
-async def list(options: KvListOptions) -> KvListReply
+async def list(self, options: KvListOptions) -> KvListReply
 ```
 
 List keys in lexical order, one page at a time.
 
-**Arguments**:
+**Args**
 
-- `options` - Prefix, cursor, and page size.
-  
+- `options`: Prefix, cursor, and page size.
 
-**Returns**:
+**Returns**
 
-  ``KvListReply``
+`KvListReply`
 
-## NamedKv
+### NamedKv
 
 ```python
 class NamedKv(TypedDict)
@@ -1877,13 +2014,13 @@ class NamedKv(TypedDict)
 
 One named durable namespace delivered on `Bindings.kv`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Binding name from `plugin.toml` `[[kv_namespaces]]`.
-- `namespace` - Namespace the binding is scoped to.
-- `kv` - Host-served namespace. Null when the guest does not export this capability.
+- `name`: Binding name from `plugin.toml` `[[kv_namespaces]]`.
+- `namespace`: Namespace the binding is scoped to.
+- `kv`: Host-served namespace. Null when the guest does not export this capability.
 
-## ContentSource
+### ContentSource
 
 ```python
 class ContentSource(Protocol)
@@ -1895,211 +2032,200 @@ returns typed structs from the "Typed method payloads" section.
 #### ContentSource.login
 
 ```python
-async def login(params: LoginParams) -> LoginReply
+async def login(self, params: LoginParams) -> LoginReply
 ```
 
 Connect an account (password or one-shot OAuth).
 
-**Arguments**:
+**Args**
 
-- `params` - Credentials, marketplace, callback wiring.
-  
+- `params`: Credentials, marketplace, callback wiring.
 
-**Returns**:
+**Returns**
 
-  ``LoginReply``
+`LoginReply`
 
 #### ContentSource.scan
 
 ```python
-async def scan(params: ScanParams) -> ScanReply
+async def scan(self, params: ScanParams) -> ScanReply
 ```
 
 Sync library rows for one or more accounts.
 
-**Arguments**:
+**Args**
 
-- `params` - Accounts, paging, and host-sealed credentials.
-  
+- `params`: Accounts, paging, and host-sealed credentials.
 
-**Returns**:
+**Returns**
 
-  ``ScanReply``
+`ScanReply`
 
-#### ContentSource.fetch\_title
+#### ContentSource.fetch_title
 
 ```python
-async def fetch_title(params: FetchTitleParams) -> FetchTitleReply
+async def fetch_title(self, params: FetchTitleParams) -> FetchTitleReply
 ```
 
 Download and decrypt one title into `cacheDir`.
 
-**Arguments**:
+**Args**
 
-- `params` - Title, credentials, and fetch options.
-  
+- `params`: Title, credentials, and fetch options.
 
-**Returns**:
+**Returns**
 
-  ``FetchTitleReply``
+`FetchTitleReply`
 
-#### ContentSource.list\_accounts
+#### ContentSource.list_accounts
 
 ```python
-async def list_accounts() -> SourceAccountsReply
+async def list_accounts(self) -> SourceAccountsReply
 ```
 
 Enumerate accounts the guest knows about.
 
-**Returns**:
+**Returns**
 
-  ``SourceAccountsReply``
+`SourceAccountsReply`
 
-#### ContentSource.login\_start
+#### ContentSource.login_start
 
 ```python
-async def login_start(params: LoginParams) -> LoginStartReply
+async def login_start(self, params: LoginParams) -> LoginStartReply
 ```
 
 Begin an interactive OAuth login; returns a session id.
 
-**Arguments**:
+**Args**
 
-- `params` - Same shape as `login`; host fills callback IPC.
-  
+- `params`: Same shape as `login`; host fills callback IPC.
 
-**Returns**:
+**Returns**
 
-  ``LoginStartReply``
+`LoginStartReply`
 
-#### ContentSource.login\_complete
+#### ContentSource.login_complete
 
 ```python
-async def login_complete(params: LoginCompleteParams) -> LoginReply
+async def login_complete(self, params: LoginCompleteParams) -> LoginReply
 ```
 
 Finish an interactive OAuth login started by `loginStart`.
 
-**Arguments**:
+**Args**
 
-- `params` - Session id from `loginStart`.
-  
+- `params`: Session id from `loginStart`.
 
-**Returns**:
+**Returns**
 
-  ``LoginReply``
+`LoginReply`
 
-#### ContentSource.search\_catalog
+#### ContentSource.search_catalog
 
 ```python
-async def search_catalog(params: SearchCatalogParams) -> CatalogHitsReply
+async def search_catalog(self, params: SearchCatalogParams) -> CatalogHitsReply
 ```
 
 Free-text storefront catalog search.
 
-**Arguments**:
+**Args**
 
-- `params` - Query, region, paging, sort, facet.
-  
+- `params`: Query, region, paging, sort, facet.
 
-**Returns**:
+**Returns**
 
-  ``CatalogHitsReply``
+`CatalogHitsReply`
 
-#### ContentSource.expand\_candidates
+#### ContentSource.expand_candidates
 
 ```python
-async def expand_candidates(
-        params: ExpandCandidatesParams) -> CatalogHitsReply
+async def expand_candidates(self, params: ExpandCandidatesParams) -> CatalogHitsReply
 ```
 
 Related-title expansion from a seed title.
 
-**Arguments**:
+**Args**
 
-- `params` - Seed identity fields and limit.
-  
+- `params`: Seed identity fields and limit.
 
-**Returns**:
+**Returns**
 
-  ``CatalogHitsReply``
+`CatalogHitsReply`
 
-#### ContentSource.purchase\_hint
+#### ContentSource.purchase_hint
 
 ```python
-async def purchase_hint(params: PurchaseHintParams) -> PurchaseHintReply
+async def purchase_hint(self, params: PurchaseHintParams) -> PurchaseHintReply
 ```
 
 Purchase link / price hint for one title.
 
-**Arguments**:
+**Args**
 
-- `params` - Identity fields and price flag.
-  
+- `params`: Identity fields and price flag.
 
-**Returns**:
+**Returns**
 
-  ``PurchaseHintReply``
+`PurchaseHintReply`
 
-#### ContentSource.list\_deals
+#### ContentSource.list_deals
 
 ```python
-async def list_deals(params: ListDealsParams) -> CatalogHitsReply
+async def list_deals(self, params: ListDealsParams) -> CatalogHitsReply
 ```
 
 Current storefront deals.
 
-**Arguments**:
+**Args**
 
-- `params` - Optional result cap.
-  
+- `params`: Optional result cap.
 
-**Returns**:
+**Returns**
 
-  ``CatalogHitsReply``
+`CatalogHitsReply`
 
 #### ContentSource.health
 
 ```python
-async def health() -> HealthReply
+async def health(self) -> HealthReply
 ```
 
 Liveness / readiness probe.
 
-**Returns**:
+**Returns**
 
-  ``HealthReply``
+`HealthReply`
 
 #### ContentSource.diagnose
 
 ```python
-async def diagnose() -> DiagnoseReply
+async def diagnose(self) -> DiagnoseReply
 ```
 
 Human-readable diagnostic lines.
 
-**Returns**:
+**Returns**
 
-  ``DiagnoseReply``
+`DiagnoseReply`
 
-#### ContentSource.catalog\_detail
+#### ContentSource.catalog_detail
 
 ```python
-async def catalog_detail(params: CatalogDetailParams) -> CatalogDetailReply
+async def catalog_detail(self, params: CatalogDetailParams) -> CatalogDetailReply
 ```
 
 Full catalog record for one product.
 
-**Arguments**:
+**Args**
 
-- `params` - Product id and optional ISBN.
-  
+- `params`: Product id and optional ISBN.
 
-**Returns**:
+**Returns**
 
-  ``CatalogDetailReply``
+`CatalogDetailReply`
 
-## RemoteLibrary
+### RemoteLibrary
 
 ```python
 class RemoteLibrary(Protocol)
@@ -2112,93 +2238,92 @@ is `EventConsumer`; credential verification is `Oidc`.
 #### RemoteLibrary.health
 
 ```python
-async def health() -> HealthReply
+async def health(self) -> HealthReply
 ```
 
 Liveness / readiness probe.
 
-**Returns**:
+**Returns**
 
-  ``HealthReply``
+`HealthReply`
 
 #### RemoteLibrary.start
 
 ```python
-async def start() -> EmptyReply
+async def start(self) -> EmptyReply
 ```
 
 Start background work after the host has granted bindings.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
 #### RemoteLibrary.stop
 
 ```python
-async def stop() -> EmptyReply
+async def stop(self) -> EmptyReply
 ```
 
 Stop background work; the host may drop the capability afterwards.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
 #### RemoteLibrary.diagnose
 
 ```python
-async def diagnose() -> DiagnoseReply
+async def diagnose(self) -> DiagnoseReply
 ```
 
 Human-readable diagnostic lines.
 
-**Returns**:
+**Returns**
 
-  ``DiagnoseReply``
+`DiagnoseReply`
 
-#### RemoteLibrary.scan\_library
+#### RemoteLibrary.scan_library
 
 ```python
-async def scan_library(params: ScanLibraryParams) -> EmptyReply
+async def scan_library(self, params: ScanLibraryParams) -> EmptyReply
 ```
 
 Re-sync the remote library.
 
-**Arguments**:
+**Args**
 
-- `params` - Full-rescan flag.
-  
+- `params`: Full-rescan flag.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-#### RemoteLibrary.sync\_listening
+#### RemoteLibrary.sync_listening
 
 ```python
-async def sync_listening() -> SyncListeningReply
+async def sync_listening(self) -> SyncListeningReply
 ```
 
 Push / pull listening progress.
 
-**Returns**:
+**Returns**
 
-  ``SyncListeningReply``
+`SyncListeningReply`
 
-#### RemoteLibrary.poll\_events
+#### RemoteLibrary.poll_events
 
 ```python
-async def poll_events() -> EventPollReply
+async def poll_events(self) -> EventPollReply
 ```
 
 Drain external users the remote side observed since the last poll.
 
-**Returns**:
+**Returns**
 
-  ``EventPollReply``
+`EventPollReply`
 
-## PluginCli
+### PluginCli
 
 ```python
 class PluginCli(Protocol)
@@ -2209,33 +2334,32 @@ class PluginCli(Protocol)
 #### PluginCli.describe
 
 ```python
-async def describe() -> CliSchemaReply
+async def describe(self) -> CliSchemaReply
 ```
 
 Declared CLI surface.
 
-**Returns**:
+**Returns**
 
-  ``CliSchemaReply``
+`CliSchemaReply`
 
 #### PluginCli.invoke
 
 ```python
-async def invoke(params: CliInvokeParams) -> CliInvokeReply
+async def invoke(self, params: CliInvokeParams) -> CliInvokeReply
 ```
 
 Run one plugin CLI command.
 
-**Arguments**:
+**Args**
 
-- `params` - Command name and argument values.
-  
+- `params`: Command name and argument values.
 
-**Returns**:
+**Returns**
 
-  ``CliInvokeReply``
+`CliInvokeReply`
 
-## Oidc
+### Oidc
 
 ```python
 class Oidc(Protocol)
@@ -2247,34 +2371,32 @@ verification on behalf of the host authorization server.
 #### Oidc.clients
 
 ```python
-async def clients() -> OidcClientsReply
+async def clients(self) -> OidcClientsReply
 ```
 
 Plugin-provided OIDC AS client templates. Empty list when unused.
 
-**Returns**:
+**Returns**
 
-  ``OidcClientsReply``
+`OidcClientsReply`
 
-#### Oidc.authenticate\_user
+#### Oidc.authenticate_user
 
 ```python
-async def authenticate_user(
-        params: AuthenticateUserParams) -> ExternalUserReply
+async def authenticate_user(self, params: AuthenticateUserParams) -> ExternalUserReply
 ```
 
 Verify remote credentials on behalf of the host.
 
-**Arguments**:
+**Args**
 
-- `params` - Username and password.
-  
+- `params`: Username and password.
 
-**Returns**:
+**Returns**
 
-  ``ExternalUserReply``
+`ExternalUserReply`
 
-## EventConsumerSpec
+### EventConsumerSpec
 
 ```python
 class EventConsumerSpec(TypedDict)
@@ -2283,13 +2405,13 @@ class EventConsumerSpec(TypedDict)
 One declared event consumer: a `[[events.consumers]]` row the default
 entrypoint's `event(batch)` handler accepts.
 
-**Attributes**:
+**Attributes**
 
-- `eventType` - Versioned event type (snake_case, e.g. `book_acquired`).
-- `schemaVersions` - Schema versions the guest can consume; never empty.
-- `supportsSuspend` - Whether `EventResult.suspended` is supported for this type.
+- `eventType`: Versioned event type (snake_case, e.g. `book_acquired`).
+- `schemaVersions`: Schema versions the guest can consume; never empty.
+- `supportsSuspend`: Whether `EventResult.suspended` is supported for this type.
 
-## PluginCapabilities
+### PluginCapabilities
 
 ```python
 class PluginCapabilities(TypedDict)
@@ -2298,20 +2420,18 @@ class PluginCapabilities(TypedDict)
 Typed capability declaration returned by `describe()`. The host compares
 it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 
-**Attributes**:
+**Attributes**
 
-- `entrypoints` - Named entrypoints the guest exports.
-- `consumes` - Event types the default entrypoint consumes (`event(batch)` trigger).
-- `produces` - Event types the guest may publish through its `EVENTS` binding.
-- `jobs` - Command types the default entrypoint runs (`job(controller)` trigger).
-- `databases` - Plugin-owned database binding names (`[[databases]]`).
-- `bindings` - Other named bindings the guest expects on `env` (`CONFIG`, `SECRETS`,
-  `WORK_FS`, `OAUTH`, `KV`, `EVENTS`, `[[queues.producers]]` names, ...).
-- `queueConsumers` - Queues the default entrypoint consumes (`queue(batch)` trigger).
-- `queueProducers` - Queues the guest may send to through its `[[queues.producers]]`
-  bindings.
+- `entrypoints`: Named entrypoints the guest exports.
+- `consumes`: Event types the default entrypoint consumes (`event(batch)` trigger).
+- `produces`: Event types the guest may publish through its `EVENTS` binding.
+- `jobs`: Command types the default entrypoint runs (`job(controller)` trigger).
+- `databases`: Plugin-owned database binding names (`[[databases]]`).
+- `bindings`: Other named bindings the guest expects on `env` (`CONFIG`, `SECRETS`, `WORK_FS`, `OAUTH`, `KV`, `EVENTS`, `[[queues.producers]]` names, ...).
+- `queueConsumers`: Queues the default entrypoint consumes (`queue(batch)` trigger).
+- `queueProducers`: Queues the guest may send to through its `[[queues.producers]]` bindings.
 
-## Brand
+### Brand
 
 ```python
 class Brand(TypedDict)
@@ -2320,17 +2440,16 @@ class Brand(TypedDict)
 Portal brand crossing the RPC boundary. Distinct from `plugin.toml`
 `logo`: `iconUrl` is the live URL or data URI the SPA renders.
 
-**Attributes**:
+**Attributes**
 
-- `id` - Brand id (often matches the plugin id); empty means "no brand".
-- `name` - Display name shown next to the brand swatch.
-- `bg` - Background CSS color (hex or named).
-- `fg` - Foreground CSS color for text on `bg`.
-- `accent` - Accent CSS color for highlights / CTAs.
-- `iconUrl` - Icon URL or data URI for the portal. Omitted when absent (wire zero
-  value).
+- `id`: Brand id (often matches the plugin id); empty means "no brand".
+- `name`: Display name shown next to the brand swatch.
+- `bg`: Background CSS color (hex or named).
+- `fg`: Foreground CSS color for text on `bg`.
+- `accent`: Accent CSS color for highlights / CTAs.
+- `iconUrl`: Icon URL or data URI for the portal. Omitted when absent (wire zero value).
 
-## ConfigOption
+### ConfigOption
 
 ```python
 class ConfigOption(TypedDict)
@@ -2338,13 +2457,13 @@ class ConfigOption(TypedDict)
 
 One discoverable config option group advertised for sources.
 
-**Attributes**:
+**Attributes**
 
-- `key` - Config key under the plugin's `config.toml` table.
-- `label` - Operator-facing label for the option group.
-- `values` - Allowed selectable values for this key.
+- `key`: Config key under the plugin's `config.toml` table.
+- `label`: Operator-facing label for the option group.
+- `values`: Allowed selectable values for this key.
 
-## ConfigOptionValue
+### ConfigOptionValue
 
 ```python
 class ConfigOptionValue(TypedDict)
@@ -2352,12 +2471,12 @@ class ConfigOptionValue(TypedDict)
 
 One selectable value under a `ConfigOption`.
 
-**Attributes**:
+**Attributes**
 
-- `id` - Value written to config when selected.
-- `label` - Operator-facing label for this value.
+- `id`: Value written to config when selected.
+- `label`: Operator-facing label for this value.
 
-## CliSchema
+### CliSchema
 
 ```python
 class CliSchema(TypedDict)
@@ -2365,11 +2484,11 @@ class CliSchema(TypedDict)
 
 Declared plugin CLI surface (`PluginCli.describe` / `describe().cli`).
 
-**Attributes**:
+**Attributes**
 
-- `commands` - Commands exposed as `bookclerk plugins <id> <command> ...`.
+- `commands`: Commands exposed as `bookclerk plugins <id> <command> ...`.
 
-## CliCommandSpec
+### CliCommandSpec
 
 ```python
 class CliCommandSpec(TypedDict)
@@ -2377,13 +2496,13 @@ class CliCommandSpec(TypedDict)
 
 One plugin CLI command under `CliSchema`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Command verb after the plugin id (for example "ping").
-- `about` - Short help text for `--help`. Omitted when absent (wire zero value).
-- `args` - Argument / flag specs for this command.
+- `name`: Command verb after the plugin id (for example "ping").
+- `about`: Short help text for `--help`. Omitted when absent (wire zero value).
+- `args`: Argument / flag specs for this command.
 
-## CliArgSpec
+### CliArgSpec
 
 ```python
 class CliArgSpec(TypedDict)
@@ -2391,21 +2510,18 @@ class CliArgSpec(TypedDict)
 
 One CLI argument or flag under a `CliCommandSpec`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Internal arg name used as `CliArg.name` on invoke.
-- `long` - Long flag without leading dashes (e.g. "message" -> `--message`). Omitted
-  when absent (wire zero value).
-- `short` - Short flag character (e.g. "m" -> `-m`). Omitted when absent (wire zero
-  value).
-- `kind` - Parsed value kind.
-- `required` - When true, the host rejects invoke if the arg is missing.
-- `default` - Default string form when the operator omits the arg. Omitted when
-  absent (wire zero value).
-- `about` - Help text for this arg. Omitted when absent (wire zero value).
-- `positional` - When true, the arg is positional rather than a flagged option.
+- `name`: Internal arg name used as `CliArg.name` on invoke.
+- `long`: Long flag without leading dashes (e.g. "message" -> `--message`). Omitted when absent (wire zero value).
+- `short`: Short flag character (e.g. "m" -> `-m`). Omitted when absent (wire zero value).
+- `kind`: Parsed value kind.
+- `required`: When true, the host rejects invoke if the arg is missing.
+- `default`: Default string form when the operator omits the arg. Omitted when absent (wire zero value).
+- `about`: Help text for this arg. Omitted when absent (wire zero value).
+- `positional`: When true, the arg is positional rather than a flagged option.
 
-## CliArg
+### CliArg
 
 ```python
 class CliArg(TypedDict)
@@ -2413,12 +2529,12 @@ class CliArg(TypedDict)
 
 One named argument value passed to `PluginCli.invoke`.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Arg name matching a `CliArgSpec.name`.
-- `value` - String form of the value (the guest parses per `CliArgSpec.kind`).
+- `name`: Arg name matching a `CliArgSpec.name`.
+- `value`: String form of the value (the guest parses per `CliArgSpec.kind`).
 
-## CliInvokeParams
+### CliInvokeParams
 
 ```python
 class CliInvokeParams(TypedDict)
@@ -2426,12 +2542,12 @@ class CliInvokeParams(TypedDict)
 
 Params of `PluginCli.invoke`.
 
-**Attributes**:
+**Attributes**
 
-- `command` - Command name matching a `CliCommandSpec.name`.
-- `args` - Named argument values.
+- `command`: Command name matching a `CliCommandSpec.name`.
+- `args`: Named argument values.
 
-## CliInvokeResult
+### CliInvokeResult
 
 ```python
 class CliInvokeResult(TypedDict)
@@ -2439,83 +2555,74 @@ class CliInvokeResult(TypedDict)
 
 Result of `PluginCli.invoke`.
 
-**Attributes**:
+**Attributes**
 
-- `exitCode` - Process-style exit code (0 = success).
-- `stdout` - Captured standard output text.
-- `stderr` - Captured standard error text.
-- `payload` - Structured payload for machine consumers; empty `mediaType` when
-  absent.
+- `exitCode`: Process-style exit code (0 = success).
+- `stdout`: Captured standard output text.
+- `stderr`: Captured standard error text.
+- `payload`: Structured payload for machine consumers; empty `mediaType` when absent.
 
-## CliSchemaReplyOk
+### CliSchemaReplyOk
 
 ```python
 class CliSchemaReplyOk(TypedDict)
 ```
 
-``CliSchemaReply`` member ``ok``.
+`CliSchemaReply` member `ok`.
 
 Success: declared CLI surface.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: declared CLI surface.
+- `kind`: Always `"ok"`.
+- `value`: Success: declared CLI surface.
 
-## CliSchemaReplyErr
+### CliSchemaReplyErr
 
 ```python
 class CliSchemaReplyErr(TypedDict)
 ```
 
-``CliSchemaReply`` member ``err``.
+`CliSchemaReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### CliSchemaReply
-
-Result union of `PluginCli.describe`.
-
-## CliInvokeReplyOk
+### CliInvokeReplyOk
 
 ```python
 class CliInvokeReplyOk(TypedDict)
 ```
 
-``CliInvokeReply`` member ``ok``.
+`CliInvokeReply` member `ok`.
 
 Success: command output.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: command output.
+- `kind`: Always `"ok"`.
+- `value`: Success: command output.
 
-## CliInvokeReplyErr
+### CliInvokeReplyErr
 
 ```python
 class CliInvokeReplyErr(TypedDict)
 ```
 
-``CliInvokeReply`` member ``err``.
+`CliInvokeReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### CliInvokeReply
-
-Result union of `PluginCli.invoke`.
-
-## DatabaseAdapterConfig
+### DatabaseAdapterConfig
 
 ```python
 class DatabaseAdapterConfig(TypedDict)
@@ -2527,26 +2634,15 @@ third-party adapters: the operator's granted `[database.<id>]` table plus
 the scoped writable data dir. First-party host-managed adapters receive
 host-private connect params in `DatabaseContext.config` instead.
 
-**Attributes**:
+**Attributes**
 
-- `pluginDataDir` - Scoped writable directory for this plugin
-  (`.../plugins/<id>/data`).
-- `settings` - Granted plugin settings (operator `[database.<id>]` table) as
-  `application/json`; `{}` when the operator configured nothing.
-- `binding` - Named plugin database binding this open serves; empty for the primary
-  library open. Adapters advertising `DbCapabilities.pluginDatabases` must
-  serve each binding from its own isolated database. Omitted when absent (wire
-  zero value).
-- `instanceId` - Host-issued opaque instance id for this (owner plugin, binding)
-  pair. Collision-resistant and stable across re-opens. Empty for the primary
-  library open. Third-party adapters must key isolated databases on this value
-  rather than `binding` alone (two plugins may both declare `DB`). Omitted
-  when absent (wire zero value).
-- `openExisting` - When true, open an existing binding unit and do not provision a
-  missing one (read-only backup capture). False lets the adapter create the
-  unit.
+- `pluginDataDir`: Scoped writable directory for this plugin (`.../plugins/<id>/data`).
+- `settings`: Granted plugin settings (operator `[database.<id>]` table) as `application/json`; `{}` when the operator configured nothing.
+- `binding`: Named plugin database binding this open serves; empty for the primary library open. Adapters advertising `DbCapabilities.pluginDatabases` must serve each binding from its own isolated database. Omitted when absent (wire zero value).
+- `instanceId`: Host-issued opaque instance id for this (owner plugin, binding) pair. Collision-resistant and stable across re-opens. Empty for the primary library open. Third-party adapters must key isolated databases on this value rather than `binding` alone (two plugins may both declare `DB`). Omitted when absent (wire zero value).
+- `openExisting`: When true, open an existing binding unit and do not provision a missing one (read-only backup capture). False lets the adapter create the unit.
 
-## DiagnoseResult
+### DiagnoseResult
 
 ```python
 class DiagnoseResult(TypedDict)
@@ -2554,45 +2650,41 @@ class DiagnoseResult(TypedDict)
 
 Operator-facing diagnostic lines printed by `bookclerk plugins diagnose`.
 
-**Attributes**:
+**Attributes**
 
-- `lines` - Human-readable probe lines.
+- `lines`: Human-readable probe lines.
 
-## DiagnoseReplyOk
+### DiagnoseReplyOk
 
 ```python
 class DiagnoseReplyOk(TypedDict)
 ```
 
-``DiagnoseReply`` member ``ok``.
+`DiagnoseReply` member `ok`.
 
 Success: diagnostic lines.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: diagnostic lines.
+- `kind`: Always `"ok"`.
+- `value`: Success: diagnostic lines.
 
-## DiagnoseReplyErr
+### DiagnoseReplyErr
 
 ```python
 class DiagnoseReplyErr(TypedDict)
 ```
 
-``DiagnoseReply`` member ``err``.
+`DiagnoseReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### DiagnoseReply
-
-Result union of `diagnose`.
-
-## SourceAccount
+### SourceAccount
 
 ```python
 class SourceAccount(TypedDict)
@@ -2600,16 +2692,15 @@ class SourceAccount(TypedDict)
 
 Source account metadata returned from login and stored by the host.
 
-**Attributes**:
+**Attributes**
 
-- `accountId` - Stable account id within this source plugin.
-- `source` - Source plugin id (the host forces this to the guest's install id).
-- `marketplace` - Storefront marketplace / region code (for example `us`, `uk`).
-- `label` - Operator-facing label. Omitted when absent (wire zero value).
-- `scanEnabled` - When true, bare / scheduled scans include this account. Explicit
-  CLI `--account` bypasses this flag.
+- `accountId`: Stable account id within this source plugin.
+- `source`: Source plugin id (the host forces this to the guest's install id).
+- `marketplace`: Storefront marketplace / region code (for example `us`, `uk`).
+- `label`: Operator-facing label. Omitted when absent (wire zero value).
+- `scanEnabled`: When true, bare / scheduled scans include this account. Explicit CLI `--account` bypasses this flag.
 
-## LoginParams
+### LoginParams
 
 ```python
 class LoginParams(TypedDict)
@@ -2619,37 +2710,24 @@ Params of `ContentSource.login` and `ContentSource.loginStart`. Password
 sources fill email/password; OAuth sources use callback / external fields.
 There is no files-dir root or library DB path -- only `pluginDataDir`.
 
-**Attributes**:
+**Attributes**
 
-- `pluginDataDir` - Scoped writable directory for this plugin only
-  (`.../plugins/<id>/data`).
-- `marketplace` - Marketplace / locale for the storefront; empty means the guest
-  default.
-- `label` - Operator label stored on the account row. Omitted when absent (wire zero
-  value).
-- `email` - Account email / username for password logins; empty for pure OAuth.
-  Omitted when absent (wire zero value).
-- `password` - Account password for password logins; never logged; empty for OAuth.
-  Omitted when absent (wire zero value).
-- `force` - When true, overwrite an existing sealed credential for this account.
-- `callbackBind` - Bind address for OAuth callback servers (`host:port`). Ignored
-  when `callbackIpc` is set (host owns the TCP listener). Omitted when absent
-  (wire zero value).
-- `callbackIpc` - Host-owned callback IPC endpoint the guest must connect to. When
-  set (with `callbackPublicBase`), the guest must not bind a TCP listener.
-  Omitted when absent (wire zero value).
-- `callbackPublicBase` - Public base URL for the host TCP listener, e.g.
-  `http://127.0.0.1:12345`. Omitted when absent (wire zero value).
-- `external` - When true, use external / paste-redirect OAuth instead of a local
-  callback server.
-- `responseUrl` - Pre-supplied OAuth redirect URL (paste flow). Omitted when absent
-  (wire zero value).
-- `showQr` - Prefer QR output when the guest supports it.
-- `timeoutSecs` - Seconds to wait for OAuth callback capture; guest default when 0.
-  Omitted when absent (wire zero value).
-- `extra` - Store-specific knobs as `application/json`; guests may ignore unknowns.
+- `pluginDataDir`: Scoped writable directory for this plugin only (`.../plugins/<id>/data`).
+- `marketplace`: Marketplace / locale for the storefront; empty means the guest default.
+- `label`: Operator label stored on the account row. Omitted when absent (wire zero value).
+- `email`: Account email / username for password logins; empty for pure OAuth. Omitted when absent (wire zero value).
+- `password`: Account password for password logins; never logged; empty for OAuth. Omitted when absent (wire zero value).
+- `force`: When true, overwrite an existing sealed credential for this account.
+- `callbackBind`: Bind address for OAuth callback servers (`host:port`). Ignored when `callbackIpc` is set (host owns the TCP listener). Omitted when absent (wire zero value).
+- `callbackIpc`: Host-owned callback IPC endpoint the guest must connect to. When set (with `callbackPublicBase`), the guest must not bind a TCP listener. Omitted when absent (wire zero value).
+- `callbackPublicBase`: Public base URL for the host TCP listener, e.g. `http://127.0.0.1:12345`. Omitted when absent (wire zero value).
+- `external`: When true, use external / paste-redirect OAuth instead of a local callback server.
+- `responseUrl`: Pre-supplied OAuth redirect URL (paste flow). Omitted when absent (wire zero value).
+- `showQr`: Prefer QR output when the guest supports it.
+- `timeoutSecs`: Seconds to wait for OAuth callback capture; guest default when 0. Omitted when absent (wire zero value).
+- `extra`: Store-specific knobs as `application/json`; guests may ignore unknowns.
 
-## LoginResult
+### LoginResult
 
 ```python
 class LoginResult(TypedDict)
@@ -2659,14 +2737,12 @@ Result of `ContentSource.login` / `loginComplete`: account metadata plus
 opaque credentials for the host to seal into `encrypted_secrets`
 (`provider = plugin id`). Guests never write secrets into the library DB.
 
-**Attributes**:
+**Attributes**
 
-- `account` - Account row fields for the host to upsert.
-- `credentials` - Opaque credential blob the host seals; empty when login only
-  refreshed metadata. Guests choose the encoding (typically JSON bytes).
-  Omitted when absent (wire zero value).
+- `account`: Account row fields for the host to upsert.
+- `credentials`: Opaque credential blob the host seals; empty when login only refreshed metadata. Guests choose the encoding (typically JSON bytes). Omitted when absent (wire zero value).
 
-## LoginStartResult
+### LoginStartResult
 
 ```python
 class LoginStartResult(TypedDict)
@@ -2675,12 +2751,12 @@ class LoginStartResult(TypedDict)
 Result of `ContentSource.loginStart` (interactive OAuth). The operator
 opens `url`; `loginComplete` later uses `sessionId`.
 
-**Attributes**:
+**Attributes**
 
-- `sessionId` - Opaque session id for `loginComplete`.
-- `url` - Browser URL the operator should open to complete OAuth.
+- `sessionId`: Opaque session id for `loginComplete`.
+- `url`: Browser URL the operator should open to complete OAuth.
 
-## LoginCompleteParams
+### LoginCompleteParams
 
 ```python
 class LoginCompleteParams(TypedDict)
@@ -2688,79 +2764,71 @@ class LoginCompleteParams(TypedDict)
 
 Params of `ContentSource.loginComplete`.
 
-**Attributes**:
+**Attributes**
 
-- `sessionId` - Session id previously returned by `loginStart`.
+- `sessionId`: Session id previously returned by `loginStart`.
 
-## LoginReplyOk
+### LoginReplyOk
 
 ```python
 class LoginReplyOk(TypedDict)
 ```
 
-``LoginReply`` member ``ok``.
+`LoginReply` member `ok`.
 
 Success: account plus credentials to seal.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: account plus credentials to seal.
+- `kind`: Always `"ok"`.
+- `value`: Success: account plus credentials to seal.
 
-## LoginReplyErr
+### LoginReplyErr
 
 ```python
 class LoginReplyErr(TypedDict)
 ```
 
-``LoginReply`` member ``err``.
+`LoginReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### LoginReply
-
-Result union of `ContentSource.login` / `loginComplete`.
-
-## LoginStartReplyOk
+### LoginStartReplyOk
 
 ```python
 class LoginStartReplyOk(TypedDict)
 ```
 
-``LoginStartReply`` member ``ok``.
+`LoginStartReply` member `ok`.
 
 Success: session id and browser URL.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: session id and browser URL.
+- `kind`: Always `"ok"`.
+- `value`: Success: session id and browser URL.
 
-## LoginStartReplyErr
+### LoginStartReplyErr
 
 ```python
 class LoginStartReplyErr(TypedDict)
 ```
 
-``LoginStartReply`` member ``err``.
+`LoginStartReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### LoginStartReply
-
-Result union of `ContentSource.loginStart`.
-
-## AccountCredential
+### AccountCredential
 
 ```python
 class AccountCredential(TypedDict)
@@ -2768,13 +2836,12 @@ class AccountCredential(TypedDict)
 
 Host-sealed credentials for one account, delivered on `scan`.
 
-**Attributes**:
+**Attributes**
 
-- `accountId` - Account id the blob belongs to.
-- `credentials` - Opaque credential bytes exactly as the guest returned them at
-  login.
+- `accountId`: Account id the blob belongs to.
+- `credentials`: Opaque credential bytes exactly as the guest returned them at login.
 
-## ScanParams
+### ScanParams
 
 ```python
 class ScanParams(TypedDict)
@@ -2783,16 +2850,16 @@ class ScanParams(TypedDict)
 Params of `ContentSource.scan`. The host injects sealed credentials so the
 plugin does not need a private credential store under `pluginDataDir`.
 
-**Attributes**:
+**Attributes**
 
-- `pluginDataDir` - Scoped plugin data directory.
-- `accounts` - Account ids to scan; empty means all scan-enabled accounts.
-- `pageSize` - Storefront page size; the host always sends an explicit value.
-- `importEpisodes` - When true, import podcast/episode-style rows.
-- `importPlusTitles` - When true, import Plus/catalog entitlement titles.
-- `credentials` - Host-loaded credential blobs for the requested accounts.
+- `pluginDataDir`: Scoped plugin data directory.
+- `accounts`: Account ids to scan; empty means all scan-enabled accounts.
+- `pageSize`: Storefront page size; the host always sends an explicit value.
+- `importEpisodes`: When true, import podcast/episode-style rows.
+- `importPlusTitles`: When true, import Plus/catalog entitlement titles.
+- `credentials`: Host-loaded credential blobs for the requested accounts.
 
-## ScanBook
+### ScanBook
 
 ```python
 class ScanBook(TypedDict)
@@ -2801,33 +2868,24 @@ class ScanBook(TypedDict)
 One library title returned by `ContentSource.scan`. The host upserts these
 rows and forces `source` to the plugin id.
 
-**Attributes**:
+**Attributes**
 
-- `accountId` - Account that owns this library entry.
-- `productId` - Storefront product / SKU id.
-- `title` - Primary title string.
-- `marketplace` - Marketplace / region when known. Omitted when absent (wire zero
-  value).
-- `asin` - Amazon ASIN when the storefront exposes one. Omitted when absent (wire
-  zero value).
-- `isbn` - ISBN when the storefront exposes one. Omitted when absent (wire zero
-  value).
-- `authors` - Comma- or guest-formatted author list. Omitted when absent (wire zero
-  value).
-- `narrators` - Comma- or guest-formatted narrator list. Omitted when absent (wire
-  zero value).
-- `series` - Series name when applicable. Omitted when absent (wire zero value).
-- `seriesIndex` - Series index / sequence label. Omitted when absent (wire zero
-  value).
-- `contentKind` - Content classification (e.g. `book` vs `episode`). Omitted when
-  absent (wire zero value).
-- `publisher` - Publisher name when known. Omitted when absent (wire zero value).
-- `lengthMinutes` - Runtime in whole minutes when known. Omitted when absent (wire
-  zero value).
-- `subtitle` - Subtitle when distinct from `title`. Omitted when absent (wire zero
-  value).
+- `accountId`: Account that owns this library entry.
+- `productId`: Storefront product / SKU id.
+- `title`: Primary title string.
+- `marketplace`: Marketplace / region when known. Omitted when absent (wire zero value).
+- `asin`: Amazon ASIN when the storefront exposes one. Omitted when absent (wire zero value).
+- `isbn`: ISBN when the storefront exposes one. Omitted when absent (wire zero value).
+- `authors`: Comma- or guest-formatted author list. Omitted when absent (wire zero value).
+- `narrators`: Comma- or guest-formatted narrator list. Omitted when absent (wire zero value).
+- `series`: Series name when applicable. Omitted when absent (wire zero value).
+- `seriesIndex`: Series index / sequence label. Omitted when absent (wire zero value).
+- `contentKind`: Content classification (e.g. `book` vs `episode`). Omitted when absent (wire zero value).
+- `publisher`: Publisher name when known. Omitted when absent (wire zero value).
+- `lengthMinutes`: Runtime in whole minutes when known. Omitted when absent (wire zero value).
+- `subtitle`: Subtitle when distinct from `title`. Omitted when absent (wire zero value).
 
-## ScanSummary
+### ScanSummary
 
 ```python
 class ScanSummary(TypedDict)
@@ -2835,50 +2893,45 @@ class ScanSummary(TypedDict)
 
 Summary result of `ContentSource.scan`.
 
-**Attributes**:
+**Attributes**
 
-- `accounts` - Number of accounts touched during the scan.
-- `booksUpserted` - Count of titles the guest expects the host to upsert; may mirror
-  `books.length`.
-- `pages` - Number of storefront pages fetched.
-- `skippedDisabled` - Accounts skipped because `scanEnabled` was false.
-- `books` - Titles for the host to upsert. Prefer this over plugin-side DB writes.
+- `accounts`: Number of accounts touched during the scan.
+- `booksUpserted`: Count of titles the guest expects the host to upsert; may mirror `books.length`.
+- `pages`: Number of storefront pages fetched.
+- `skippedDisabled`: Accounts skipped because `scanEnabled` was false.
+- `books`: Titles for the host to upsert. Prefer this over plugin-side DB writes.
 
-## ScanReplyOk
+### ScanReplyOk
 
 ```python
 class ScanReplyOk(TypedDict)
 ```
 
-``ScanReply`` member ``ok``.
+`ScanReply` member `ok`.
 
 Success: scan summary and titles to upsert.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: scan summary and titles to upsert.
+- `kind`: Always `"ok"`.
+- `value`: Success: scan summary and titles to upsert.
 
-## ScanReplyErr
+### ScanReplyErr
 
 ```python
 class ScanReplyErr(TypedDict)
 ```
 
-``ScanReply`` member ``err``.
+`ScanReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### ScanReply
-
-Result union of `ContentSource.scan`.
-
-## FetchOptions
+### FetchOptions
 
 ```python
 class FetchOptions(TypedDict)
@@ -2887,28 +2940,23 @@ class FetchOptions(TypedDict)
 Fetch-relevant acquire knobs the host forwards so external load matches
 in-process. Packaging / naming knobs stay host-side.
 
-**Attributes**:
+**Attributes**
 
-- `widevine` - Prefer Widevine/CENC download when the store offers it.
-- `xheAac` - Prefer xHE-AAC on the Widevine path when offered.
-- `widevineCdmPath` - Local Widevine `.wvd` path granted to the guest. Omitted when
-  absent (wire zero value).
-- `widevineCdmProvider` - Remote L3 CDM provider URL; empty means the classic
-  default, `off` disables remote provisioning. Omitted when absent (wire zero
-  value).
-- `downloadCover` - When true, download a cover image alongside audio.
-- `downloadPdf` - When true, download a companion PDF when the store exposes one.
-- `coverSize` - Cover image size request (`500`, `1215`, or `native`).
-- `chapterLayout` - Preferred chapter API layout when fetching (`tree` or `flat`).
-- `stripAudibleBrandAudio` - When true, trim Audible brand intro/outro from the remux
-  window.
-- `downloadClipsBookmarks` - When true, download clips/bookmarks sidecars when
-  offered.
-- `retainAaxFile` - When true, keep the encrypted download in storage.
-- `downloadSpeedLimitKbps` - Fetch speed cap in KB/s (`0` = unlimited).
-- `saveMetadataJson` - When true, persist raw catalog API JSON as `metadata.json`.
+- `widevine`: Prefer Widevine/CENC download when the store offers it.
+- `xheAac`: Prefer xHE-AAC on the Widevine path when offered.
+- `widevineCdmPath`: Local Widevine `.wvd` path granted to the guest. Omitted when absent (wire zero value).
+- `widevineCdmProvider`: Remote L3 CDM provider URL; empty means the classic default, `off` disables remote provisioning. Omitted when absent (wire zero value).
+- `downloadCover`: When true, download a cover image alongside audio.
+- `downloadPdf`: When true, download a companion PDF when the store exposes one.
+- `coverSize`: Cover image size request (`500`, `1215`, or `native`).
+- `chapterLayout`: Preferred chapter API layout when fetching (`tree` or `flat`).
+- `stripAudibleBrandAudio`: When true, trim Audible brand intro/outro from the remux window.
+- `downloadClipsBookmarks`: When true, download clips/bookmarks sidecars when offered.
+- `retainAaxFile`: When true, keep the encrypted download in storage.
+- `downloadSpeedLimitKbps`: Fetch speed cap in KB/s (`0` = unlimited).
+- `saveMetadataJson`: When true, persist raw catalog API JSON as `metadata.json`.
 
-## FetchTitleParams
+### FetchTitleParams
 
 ```python
 class FetchTitleParams(TypedDict)
@@ -2918,18 +2966,17 @@ Params of `ContentSource.fetchTitle`. The plugin writes media under
 `cacheDir` and returns plain (DRM-free) paths. The host injects
 credentials; guests must not open `library.db` or `master.key`.
 
-**Attributes**:
+**Attributes**
 
-- `pluginDataDir` - Scoped plugin data directory.
-- `accountId` - Account whose credentials apply.
-- `titleId` - Library / storefront title id to download.
-- `cacheDir` - Absolute path the guest should write media into (jail-granted TMPDIR).
-- `credentials` - Host-loaded credential blob for this account; empty when
-  unavailable. Omitted when absent (wire zero value).
-- `sourceConfig` - Granted `[sources.<id>]` table as `application/json`.
-- `fetch` - Fetch-relevant acquire options.
+- `pluginDataDir`: Scoped plugin data directory.
+- `accountId`: Account whose credentials apply.
+- `titleId`: Library / storefront title id to download.
+- `cacheDir`: Absolute path the guest should write media into (jail-granted TMPDIR).
+- `credentials`: Host-loaded credential blob for this account; empty when unavailable. Omitted when absent (wire zero value).
+- `sourceConfig`: Granted `[sources.<id>]` table as `application/json`.
+- `fetch`: Fetch-relevant acquire options.
 
-## PlainPart
+### PlainPart
 
 ```python
 class PlainPart(TypedDict)
@@ -2937,14 +2984,13 @@ class PlainPart(TypedDict)
 
 One plain audio part written under the cache directory.
 
-**Attributes**:
+**Attributes**
 
-- `path` - Absolute path to the part file under `cacheDir`.
-- `title` - Part title (disc / chapter label). Omitted when absent (wire zero value).
-- `durationMs` - Duration of this part in milliseconds when known. Omitted when
-  absent (wire zero value).
+- `path`: Absolute path to the part file under `cacheDir`.
+- `title`: Part title (disc / chapter label). Omitted when absent (wire zero value).
+- `durationMs`: Duration of this part in milliseconds when known. Omitted when absent (wire zero value).
 
-## ChapterMarker
+### ChapterMarker
 
 ```python
 class ChapterMarker(TypedDict)
@@ -2952,12 +2998,12 @@ class ChapterMarker(TypedDict)
 
 One chapter marker of a fetched title.
 
-**Attributes**:
+**Attributes**
 
-- `title` - Chapter title.
-- `startMs` - Chapter start offset in milliseconds from the beginning of the title.
+- `title`: Chapter title.
+- `startMs`: Chapter start offset in milliseconds from the beginning of the title.
 
-## PlainFetch
+### PlainFetch
 
 ```python
 class PlainFetch(TypedDict)
@@ -2966,52 +3012,45 @@ class PlainFetch(TypedDict)
 Plain (DRM-free) fetch result. Sources always return decrypted media; DRM
 guests decrypt before responding.
 
-**Attributes**:
+**Attributes**
 
-- `parts` - Ordered audio part files written under the cache directory.
-- `m4bPath` - Single M4B path when the guest assembled one. Omitted when absent (wire
-  zero value).
-- `coverPath` - Cover image path under the cache directory. Omitted when absent (wire
-  zero value).
-- `chapters` - Chapter markers; empty when unknown.
-- `pdfUrl` - Companion PDF download URL when the store exposes one. Omitted when
-  absent (wire zero value).
+- `parts`: Ordered audio part files written under the cache directory.
+- `m4bPath`: Single M4B path when the guest assembled one. Omitted when absent (wire zero value).
+- `coverPath`: Cover image path under the cache directory. Omitted when absent (wire zero value).
+- `chapters`: Chapter markers; empty when unknown.
+- `pdfUrl`: Companion PDF download URL when the store exposes one. Omitted when absent (wire zero value).
 
-## FetchTitleReplyOk
+### FetchTitleReplyOk
 
 ```python
 class FetchTitleReplyOk(TypedDict)
 ```
 
-``FetchTitleReply`` member ``ok``.
+`FetchTitleReply` member `ok`.
 
 Success: plain media paths.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: plain media paths.
+- `kind`: Always `"ok"`.
+- `value`: Success: plain media paths.
 
-## FetchTitleReplyErr
+### FetchTitleReplyErr
 
 ```python
 class FetchTitleReplyErr(TypedDict)
 ```
 
-``FetchTitleReply`` member ``err``.
+`FetchTitleReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### FetchTitleReply
-
-Result union of `ContentSource.fetchTitle`.
-
-## SourceAccounts
+### SourceAccounts
 
 ```python
 class SourceAccounts(TypedDict)
@@ -3019,45 +3058,41 @@ class SourceAccounts(TypedDict)
 
 Success payload of `ContentSource.listAccounts`.
 
-**Attributes**:
+**Attributes**
 
-- `accounts` - Accounts the guest knows about.
+- `accounts`: Accounts the guest knows about.
 
-## SourceAccountsReplyOk
+### SourceAccountsReplyOk
 
 ```python
 class SourceAccountsReplyOk(TypedDict)
 ```
 
-``SourceAccountsReply`` member ``ok``.
+`SourceAccountsReply` member `ok`.
 
 Success: account list.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: account list.
+- `kind`: Always `"ok"`.
+- `value`: Success: account list.
 
-## SourceAccountsReplyErr
+### SourceAccountsReplyErr
 
 ```python
 class SourceAccountsReplyErr(TypedDict)
 ```
 
-``SourceAccountsReply`` member ``err``.
+`SourceAccountsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### SourceAccountsReply
-
-Result union of `ContentSource.listAccounts`.
-
-## SearchCatalogParams
+### SearchCatalogParams
 
 ```python
 class SearchCatalogParams(TypedDict)
@@ -3065,18 +3100,17 @@ class SearchCatalogParams(TypedDict)
 
 Params of `ContentSource.searchCatalog`.
 
-**Attributes**:
+**Attributes**
 
-- `query` - Free-text search query.
-- `region` - Storefront region / marketplace code; empty means the guest default.
-- `limit` - Maximum hits to return; the host always sends an explicit value.
-- `page` - 1-based page for storefronts that page.
-- `sort` - Sort order.
-- `field` - Facet restriction.
-- `language` - Preferred content language (soft-prioritize; e.g. `en`). Omitted when
-  absent (wire zero value).
+- `query`: Free-text search query.
+- `region`: Storefront region / marketplace code; empty means the guest default.
+- `limit`: Maximum hits to return; the host always sends an explicit value.
+- `page`: 1-based page for storefronts that page.
+- `sort`: Sort order.
+- `field`: Facet restriction.
+- `language`: Preferred content language (soft-prioritize; e.g. `en`). Omitted when absent (wire zero value).
 
-## ExpandCandidatesParams
+### ExpandCandidatesParams
 
 ```python
 class ExpandCandidatesParams(TypedDict)
@@ -3085,21 +3119,21 @@ class ExpandCandidatesParams(TypedDict)
 Params of `ContentSource.expandCandidates`. Seed fields identify a known
 title; the guest returns related catalog hits.
 
-**Attributes**:
+**Attributes**
 
-- `source` - Source plugin id hint when expanding across storefronts.
-- `productId` - Seed storefront product id.
-- `title` - Seed title text.
-- `authors` - Seed authors string. Omitted when absent (wire zero value).
-- `narrators` - Seed narrators string. Omitted when absent (wire zero value).
-- `series` - Seed series name. Omitted when absent (wire zero value).
-- `seriesAsin` - Seed series ASIN when known. Omitted when absent (wire zero value).
-- `asin` - Seed Amazon ASIN. Omitted when absent (wire zero value).
-- `isbn` - Seed ISBN. Omitted when absent (wire zero value).
-- `region` - Storefront region / marketplace code.
-- `limit` - Maximum candidates to return; the host always sends an explicit value.
+- `source`: Source plugin id hint when expanding across storefronts.
+- `productId`: Seed storefront product id.
+- `title`: Seed title text.
+- `authors`: Seed authors string. Omitted when absent (wire zero value).
+- `narrators`: Seed narrators string. Omitted when absent (wire zero value).
+- `series`: Seed series name. Omitted when absent (wire zero value).
+- `seriesAsin`: Seed series ASIN when known. Omitted when absent (wire zero value).
+- `asin`: Seed Amazon ASIN. Omitted when absent (wire zero value).
+- `isbn`: Seed ISBN. Omitted when absent (wire zero value).
+- `region`: Storefront region / marketplace code.
+- `limit`: Maximum candidates to return; the host always sends an explicit value.
 
-## PurchaseHintParams
+### PurchaseHintParams
 
 ```python
 class PurchaseHintParams(TypedDict)
@@ -3109,18 +3143,17 @@ Params of `ContentSource.purchaseHint`. At least one identity field
 (`productId` / `asin` / `isbn` / title+authors) should be set; guests may
 return `invalid_params` when none are usable.
 
-**Attributes**:
+**Attributes**
 
-- `productId` - Storefront product id when known. Omitted when absent (wire zero
-  value).
-- `title` - Title text for fuzzy lookup. Omitted when absent (wire zero value).
-- `authors` - Authors string for fuzzy lookup. Omitted when absent (wire zero value).
-- `asin` - Amazon ASIN when known. Omitted when absent (wire zero value).
-- `isbn` - ISBN when known. Omitted when absent (wire zero value).
-- `region` - Storefront region / marketplace code.
-- `withPrice` - When true, guests should include live price fields when available.
+- `productId`: Storefront product id when known. Omitted when absent (wire zero value).
+- `title`: Title text for fuzzy lookup. Omitted when absent (wire zero value).
+- `authors`: Authors string for fuzzy lookup. Omitted when absent (wire zero value).
+- `asin`: Amazon ASIN when known. Omitted when absent (wire zero value).
+- `isbn`: ISBN when known. Omitted when absent (wire zero value).
+- `region`: Storefront region / marketplace code.
+- `withPrice`: When true, guests should include live price fields when available.
 
-## ListDealsParams
+### ListDealsParams
 
 ```python
 class ListDealsParams(TypedDict)
@@ -3128,12 +3161,11 @@ class ListDealsParams(TypedDict)
 
 Params of `ContentSource.listDeals`.
 
-**Attributes**:
+**Attributes**
 
-- `limit` - Maximum number of deals to return; guest default when 0. Omitted when
-  absent (wire zero value).
+- `limit`: Maximum number of deals to return; guest default when 0. Omitted when absent (wire zero value).
 
-## CatalogDetailParams
+### CatalogDetailParams
 
 ```python
 class CatalogDetailParams(TypedDict)
@@ -3141,13 +3173,12 @@ class CatalogDetailParams(TypedDict)
 
 Params of `ContentSource.catalogDetail`.
 
-**Attributes**:
+**Attributes**
 
-- `productId` - Store product id (Libro ISBN or ISBN-slug).
-- `isbn` - ISBN when it differs from `productId`. Omitted when absent (wire zero
-  value).
+- `productId`: Store product id (Libro ISBN or ISBN-slug).
+- `isbn`: ISBN when it differs from `productId`. Omitted when absent (wire zero value).
 
-## CatalogHit
+### CatalogHit
 
 ```python
 class CatalogHit(TypedDict)
@@ -3156,45 +3187,34 @@ class CatalogHit(TypedDict)
 One catalog / candidate hit returned by `searchCatalog`,
 `expandCandidates`, `listDeals`, and `catalogDetail`.
 
-**Attributes**:
+**Attributes**
 
-- `productId` - Storefront product / SKU id.
-- `title` - Primary title.
-- `authors` - Authors string when known. Omitted when absent (wire zero value).
-- `narrators` - Narrators string when known. Omitted when absent (wire zero value).
-- `series` - Series name when applicable. Omitted when absent (wire zero value).
-- `seriesIndex` - Series index / sequence label. Omitted when absent (wire zero
-  value).
-- `asin` - Amazon ASIN when known. Omitted when absent (wire zero value).
-- `isbn` - ISBN when known. Omitted when absent (wire zero value).
-- `url` - Storefront product page URL. Omitted when absent (wire zero value).
-- `coverUrl` - Cover image URL. Omitted when absent (wire zero value).
-- `origin` - Hit origin label (plugin id or storefront name).
-- `subtitle` - Subtitle when distinct from `title`. Omitted when absent (wire zero
-  value).
-- `description` - Long description / blurb when fetched. Omitted when absent (wire
-  zero value).
-- `publisher` - Publisher name when known. Omitted when absent (wire zero value).
-- `lengthMinutes` - Runtime in whole minutes. Omitted when absent (wire zero value).
-- `publishedAt` - Publication date string as provided by the storefront. Omitted when
-  absent (wire zero value).
-- `categories` - Category / genre labels as a single string when known. Omitted when
-  absent (wire zero value).
-- `language` - Content language code when known. Omitted when absent (wire zero
-  value).
-- `priceCents` - Current price in minor units (cents). Omitted when absent (wire zero
-  value).
-- `currency` - ISO currency code for `priceCents`. Omitted when absent (wire zero
-  value).
-- `priceLabel` - Pre-formatted price for display. Omitted when absent (wire zero
-  value).
-- `ratingOverall` - Aggregate rating when known. Omitted when absent (wire zero
-  value).
-- `ratingCount` - Number of ratings when known. Omitted when absent (wire zero
-  value).
-- `abridgement` - Whether the edition is abridged when the storefront says so.
+- `productId`: Storefront product / SKU id.
+- `title`: Primary title.
+- `authors`: Authors string when known. Omitted when absent (wire zero value).
+- `narrators`: Narrators string when known. Omitted when absent (wire zero value).
+- `series`: Series name when applicable. Omitted when absent (wire zero value).
+- `seriesIndex`: Series index / sequence label. Omitted when absent (wire zero value).
+- `asin`: Amazon ASIN when known. Omitted when absent (wire zero value).
+- `isbn`: ISBN when known. Omitted when absent (wire zero value).
+- `url`: Storefront product page URL. Omitted when absent (wire zero value).
+- `coverUrl`: Cover image URL. Omitted when absent (wire zero value).
+- `origin`: Hit origin label (plugin id or storefront name).
+- `subtitle`: Subtitle when distinct from `title`. Omitted when absent (wire zero value).
+- `description`: Long description / blurb when fetched. Omitted when absent (wire zero value).
+- `publisher`: Publisher name when known. Omitted when absent (wire zero value).
+- `lengthMinutes`: Runtime in whole minutes. Omitted when absent (wire zero value).
+- `publishedAt`: Publication date string as provided by the storefront. Omitted when absent (wire zero value).
+- `categories`: Category / genre labels as a single string when known. Omitted when absent (wire zero value).
+- `language`: Content language code when known. Omitted when absent (wire zero value).
+- `priceCents`: Current price in minor units (cents). Omitted when absent (wire zero value).
+- `currency`: ISO currency code for `priceCents`. Omitted when absent (wire zero value).
+- `priceLabel`: Pre-formatted price for display. Omitted when absent (wire zero value).
+- `ratingOverall`: Aggregate rating when known. Omitted when absent (wire zero value).
+- `ratingCount`: Number of ratings when known. Omitted when absent (wire zero value).
+- `abridgement`: Whether the edition is abridged when the storefront says so.
 
-## CatalogHits
+### CatalogHits
 
 ```python
 class CatalogHits(TypedDict)
@@ -3202,45 +3222,41 @@ class CatalogHits(TypedDict)
 
 Success payload of the catalog list methods.
 
-**Attributes**:
+**Attributes**
 
-- `hits` - Hits in storefront order.
+- `hits`: Hits in storefront order.
 
-## CatalogHitsReplyOk
+### CatalogHitsReplyOk
 
 ```python
 class CatalogHitsReplyOk(TypedDict)
 ```
 
-``CatalogHitsReply`` member ``ok``.
+`CatalogHitsReply` member `ok`.
 
 Success: catalog hits.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: catalog hits.
+- `kind`: Always `"ok"`.
+- `value`: Success: catalog hits.
 
-## CatalogHitsReplyErr
+### CatalogHitsReplyErr
 
 ```python
 class CatalogHitsReplyErr(TypedDict)
 ```
 
-``CatalogHitsReply`` member ``err``.
+`CatalogHitsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### CatalogHitsReply
-
-Result union of `searchCatalog` / `expandCandidates` / `listDeals`.
-
-## CatalogDetail
+### CatalogDetail
 
 ```python
 class CatalogDetail(TypedDict)
@@ -3248,46 +3264,42 @@ class CatalogDetail(TypedDict)
 
 Success payload of `ContentSource.catalogDetail`.
 
-**Attributes**:
+**Attributes**
 
-- `found` - False when the product is unknown to the storefront (`hit` is empty).
-- `hit` - Full catalog record when `found`.
+- `found`: False when the product is unknown to the storefront (`hit` is empty).
+- `hit`: Full catalog record when `found`.
 
-## CatalogDetailReplyOk
+### CatalogDetailReplyOk
 
 ```python
 class CatalogDetailReplyOk(TypedDict)
 ```
 
-``CatalogDetailReply`` member ``ok``.
+`CatalogDetailReply` member `ok`.
 
 Success: detail record or not-found marker.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: detail record or not-found marker.
+- `kind`: Always `"ok"`.
+- `value`: Success: detail record or not-found marker.
 
-## CatalogDetailReplyErr
+### CatalogDetailReplyErr
 
 ```python
 class CatalogDetailReplyErr(TypedDict)
 ```
 
-``CatalogDetailReply`` member ``err``.
+`CatalogDetailReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### CatalogDetailReply
-
-Result union of `ContentSource.catalogDetail`.
-
-## PurchaseHint
+### PurchaseHint
 
 ```python
 class PurchaseHint(TypedDict)
@@ -3295,24 +3307,20 @@ class PurchaseHint(TypedDict)
 
 Purchase hint for SPA / CLI purchase deep-links.
 
-**Attributes**:
+**Attributes**
 
-- `productId` - Storefront product id.
-- `title` - Title when resolved. Omitted when absent (wire zero value).
-- `url` - Purchase or product-page URL. Omitted when absent (wire zero value).
-- `priceCents` - Current price in minor units. Omitted when absent (wire zero value).
-- `currency` - ISO currency code for price fields. Omitted when absent (wire zero
-  value).
-- `priceLabel` - Pre-formatted current price. Omitted when absent (wire zero value).
-- `listPriceCents` - List / MSRP price in minor units. Omitted when absent (wire zero
-  value).
-- `listPriceLabel` - Pre-formatted list price. Omitted when absent (wire zero value).
-- `memberPriceCents` - Member / Plus price in minor units. Omitted when absent (wire
-  zero value).
-- `memberPriceLabel` - Pre-formatted member price. Omitted when absent (wire zero
-  value).
+- `productId`: Storefront product id.
+- `title`: Title when resolved. Omitted when absent (wire zero value).
+- `url`: Purchase or product-page URL. Omitted when absent (wire zero value).
+- `priceCents`: Current price in minor units. Omitted when absent (wire zero value).
+- `currency`: ISO currency code for price fields. Omitted when absent (wire zero value).
+- `priceLabel`: Pre-formatted current price. Omitted when absent (wire zero value).
+- `listPriceCents`: List / MSRP price in minor units. Omitted when absent (wire zero value).
+- `listPriceLabel`: Pre-formatted list price. Omitted when absent (wire zero value).
+- `memberPriceCents`: Member / Plus price in minor units. Omitted when absent (wire zero value).
+- `memberPriceLabel`: Pre-formatted member price. Omitted when absent (wire zero value).
 
-## PurchaseHintResult
+### PurchaseHintResult
 
 ```python
 class PurchaseHintResult(TypedDict)
@@ -3320,46 +3328,42 @@ class PurchaseHintResult(TypedDict)
 
 Success payload of `ContentSource.purchaseHint`.
 
-**Attributes**:
+**Attributes**
 
-- `found` - False when the guest could not resolve the title (`hint` is empty).
-- `hint` - Purchase hint when `found`.
+- `found`: False when the guest could not resolve the title (`hint` is empty).
+- `hint`: Purchase hint when `found`.
 
-## PurchaseHintReplyOk
+### PurchaseHintReplyOk
 
 ```python
 class PurchaseHintReplyOk(TypedDict)
 ```
 
-``PurchaseHintReply`` member ``ok``.
+`PurchaseHintReply` member `ok`.
 
 Success: hint or not-found marker.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: hint or not-found marker.
+- `kind`: Always `"ok"`.
+- `value`: Success: hint or not-found marker.
 
-## PurchaseHintReplyErr
+### PurchaseHintReplyErr
 
 ```python
 class PurchaseHintReplyErr(TypedDict)
 ```
 
-``PurchaseHintReply`` member ``err``.
+`PurchaseHintReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### PurchaseHintReply
-
-Result union of `ContentSource.purchaseHint`.
-
-## ScanLibraryParams
+### ScanLibraryParams
 
 ```python
 class ScanLibraryParams(TypedDict)
@@ -3367,12 +3371,11 @@ class ScanLibraryParams(TypedDict)
 
 Params of `RemoteLibrary.scanLibrary` (remote library sync).
 
-**Attributes**:
+**Attributes**
 
-- `force` - When true, force a full rescan even if the guest would otherwise
-  incremental-sync.
+- `force`: When true, force a full rescan even if the guest would otherwise incremental-sync.
 
-## AuthenticateUserParams
+### AuthenticateUserParams
 
 ```python
 class AuthenticateUserParams(TypedDict)
@@ -3380,12 +3383,12 @@ class AuthenticateUserParams(TypedDict)
 
 Params of `Oidc.authenticateUser`.
 
-**Attributes**:
+**Attributes**
 
-- `username` - Integration username / login id.
-- `password` - Integration password; never logged by the host.
+- `username`: Integration username / login id.
+- `password`: Integration password; never logged by the host.
 
-## ExternalUser
+### ExternalUser
 
 ```python
 class ExternalUser(TypedDict)
@@ -3394,49 +3397,44 @@ class ExternalUser(TypedDict)
 One external user observed by an integration. The host may mint claim
 tickets without exposing portal details to the guest.
 
-**Attributes**:
+**Attributes**
 
-- `provider` - Integration provider id (often the plugin id).
-- `externalUserId` - Provider-scoped user id.
-- `displayName` - Display name for UI. Omitted when absent (wire zero value).
-- `accessToken` - Ephemeral remote token (e.g. ABS JWT). Guest-to-host only; never
-  persisted. Omitted when absent (wire zero value).
+- `provider`: Integration provider id (often the plugin id).
+- `externalUserId`: Provider-scoped user id.
+- `displayName`: Display name for UI. Omitted when absent (wire zero value).
+- `accessToken`: Ephemeral remote token (e.g. ABS JWT). Guest-to-host only; never persisted. Omitted when absent (wire zero value).
 
-## ExternalUserReplyOk
+### ExternalUserReplyOk
 
 ```python
 class ExternalUserReplyOk(TypedDict)
 ```
 
-``ExternalUserReply`` member ``ok``.
+`ExternalUserReply` member `ok`.
 
 Success: verified external user.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: verified external user.
+- `kind`: Always `"ok"`.
+- `value`: Success: verified external user.
 
-## ExternalUserReplyErr
+### ExternalUserReplyErr
 
 ```python
 class ExternalUserReplyErr(TypedDict)
 ```
 
-``ExternalUserReply`` member ``err``.
+`ExternalUserReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### ExternalUserReply
-
-Result union of `Oidc.authenticateUser`.
-
-## EventPollResult
+### EventPollResult
 
 ```python
 class EventPollResult(TypedDict)
@@ -3445,45 +3443,41 @@ class EventPollResult(TypedDict)
 Success payload of `RemoteLibrary.pollEvents`: signals for the host to kick
 off workflows.
 
-**Attributes**:
+**Attributes**
 
-- `users` - Newly observed external users since the last poll.
+- `users`: Newly observed external users since the last poll.
 
-## EventPollReplyOk
+### EventPollReplyOk
 
 ```python
 class EventPollReplyOk(TypedDict)
 ```
 
-``EventPollReply`` member ``ok``.
+`EventPollReply` member `ok`.
 
 Success: observed users.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: observed users.
+- `kind`: Always `"ok"`.
+- `value`: Success: observed users.
 
-## EventPollReplyErr
+### EventPollReplyErr
 
 ```python
 class EventPollReplyErr(TypedDict)
 ```
 
-``EventPollReply`` member ``err``.
+`EventPollReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### EventPollReply
-
-Result union of `RemoteLibrary.pollEvents`.
-
-## ListeningProgress
+### ListeningProgress
 
 ```python
 class ListeningProgress(TypedDict)
@@ -3492,27 +3486,22 @@ class ListeningProgress(TypedDict)
 One listening-progress row. The host upserts into `listening_progress`
 tagged with the plugin id; plugins never open the library DB.
 
-**Attributes**:
+**Attributes**
 
-- `externalUserId` - Provider-scoped user id.
-- `externalItemId` - Provider-scoped item / library id.
-- `identityId` - Bookclerk identity row id when already linked. Omitted when absent
-  (wire zero value).
-- `title` - Title text when known. Omitted when absent (wire zero value).
-- `authors` - Authors string when known. Omitted when absent (wire zero value).
-- `asin` - Amazon ASIN when known. Omitted when absent (wire zero value).
-- `isbn` - ISBN when known. Omitted when absent (wire zero value).
-- `progress` - Fractional progress in `0.0..=1.0` when the provider reports it.
-  Omitted when absent (wire zero value).
-- `currentTimeSeconds` - Current playback position in seconds. Omitted when absent
-  (wire zero value).
-- `durationSeconds` - Total duration in seconds when known. Omitted when absent (wire
-  zero value).
-- `isFinished` - When true, the provider marks the item finished.
-- `lastListenedAtUnixMs` - Last listen timestamp as unix milliseconds (UTC). Omitted
-  when absent (wire zero value).
+- `externalUserId`: Provider-scoped user id.
+- `externalItemId`: Provider-scoped item / library id.
+- `identityId`: Bookclerk identity row id when already linked. Omitted when absent (wire zero value).
+- `title`: Title text when known. Omitted when absent (wire zero value).
+- `authors`: Authors string when known. Omitted when absent (wire zero value).
+- `asin`: Amazon ASIN when known. Omitted when absent (wire zero value).
+- `isbn`: ISBN when known. Omitted when absent (wire zero value).
+- `progress`: Fractional progress in `0.0..=1.0` when the provider reports it. Omitted when absent (wire zero value).
+- `currentTimeSeconds`: Current playback position in seconds. Omitted when absent (wire zero value).
+- `durationSeconds`: Total duration in seconds when known. Omitted when absent (wire zero value).
+- `isFinished`: When true, the provider marks the item finished.
+- `lastListenedAtUnixMs`: Last listen timestamp as unix milliseconds (UTC). Omitted when absent (wire zero value).
 
-## SyncListeningResult
+### SyncListeningResult
 
 ```python
 class SyncListeningResult(TypedDict)
@@ -3520,45 +3509,41 @@ class SyncListeningResult(TypedDict)
 
 Success payload of `RemoteLibrary.syncListening`.
 
-**Attributes**:
+**Attributes**
 
-- `items` - Progress snapshots to upsert.
+- `items`: Progress snapshots to upsert.
 
-## SyncListeningReplyOk
+### SyncListeningReplyOk
 
 ```python
 class SyncListeningReplyOk(TypedDict)
 ```
 
-``SyncListeningReply`` member ``ok``.
+`SyncListeningReply` member `ok`.
 
 Success: progress snapshots.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: progress snapshots.
+- `kind`: Always `"ok"`.
+- `value`: Success: progress snapshots.
 
-## SyncListeningReplyErr
+### SyncListeningReplyErr
 
 ```python
 class SyncListeningReplyErr(TypedDict)
 ```
 
-``SyncListeningReply`` member ``err``.
+`SyncListeningReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### SyncListeningReply
-
-Result union of `RemoteLibrary.syncListening`.
-
-## PluginEvent
+### PluginEvent
 
 ```python
 class PluginEvent(TypedDict)
@@ -3568,21 +3553,17 @@ Guest-published domain event (`EventPublisher.publish`). The host stamps
 `eventId`, `source` (the plugin id), and `accountId` from the invocation;
 guests cannot forge either.
 
-**Attributes**:
+**Attributes**
 
-- `eventType` - Snake_case event type; must be listed in `[[events.producers]]`.
-- `schemaVersion` - Schema version of `payload`, owned by the event type.
-- `deduplicationKey` - Producer idempotency key, unique per (account, source,
-  eventType) in the outbox; a repeat returns `PublishOk.duplicate = true` with
-  the earlier id. Empty publishes unconditionally.
-- `payload` - Encoded event payload; at most `maxEventPayloadBytes`.
-- `occurredAtUnixMs` - When the producer observed the fact; zero means "now" on the
-  host clock.
-- `correlationId` - Trace correlation id; empty inherits `Invocation.correlationId`.
-- `causationId` - Id of the event or command that caused this one; empty inherits
-  `Invocation.causationId`.
+- `eventType`: Snake_case event type; must be listed in `[[events.producers]]`.
+- `schemaVersion`: Schema version of `payload`, owned by the event type.
+- `deduplicationKey`: Producer idempotency key, unique per (account, source, eventType) in the outbox; a repeat returns `PublishOk.duplicate = true` with the earlier id. Empty publishes unconditionally.
+- `payload`: Encoded event payload; at most `maxEventPayloadBytes`.
+- `occurredAtUnixMs`: When the producer observed the fact; zero means "now" on the host clock.
+- `correlationId`: Trace correlation id; empty inherits `Invocation.correlationId`.
+- `causationId`: Id of the event or command that caused this one; empty inherits `Invocation.causationId`.
 
-## PublishOk
+### PublishOk
 
 ```python
 class PublishOk(TypedDict)
@@ -3590,46 +3571,42 @@ class PublishOk(TypedDict)
 
 Success payload of `EventPublisher.publish`.
 
-**Attributes**:
+**Attributes**
 
-- `eventId` - Outbox event id (new or the earlier row when `duplicate`).
-- `duplicate` - True when `deduplicationKey` matched an existing outbox row.
+- `eventId`: Outbox event id (new or the earlier row when `duplicate`).
+- `duplicate`: True when `deduplicationKey` matched an existing outbox row.
 
-## PublishReplyOk
+### PublishReplyOk
 
 ```python
 class PublishReplyOk(TypedDict)
 ```
 
-``PublishReply`` member ``ok``.
+`PublishReply` member `ok`.
 
 Success: outbox row identity.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: outbox row identity.
+- `kind`: Always `"ok"`.
+- `value`: Success: outbox row identity.
 
-## PublishReplyErr
+### PublishReplyErr
 
 ```python
 class PublishReplyErr(TypedDict)
 ```
 
-``PublishReply`` member ``err``.
+`PublishReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### PublishReply
-
-Result union of `EventPublisher.publish`.
-
-## Invocation
+### Invocation
 
 ```python
 class Invocation(TypedDict)
@@ -3638,17 +3615,15 @@ class Invocation(TypedDict)
 Identity of one `PluginWorker.open` invocation. The host issues ids; guests
 echo `correlationId` / `causationId` onto published events.
 
-**Attributes**:
+**Attributes**
 
-- `id` - Unique host-issued invocation id.
-- `accountId` - Account scope; empty for operator / host-wide invocations.
-- `deadlineUnixMs` - UTC Unix milliseconds; zero when the invocation has no deadline.
-  The host fence is authoritative.
-- `correlationId` - Trace correlation id; empty when none.
-- `causationId` - Id of the event or command that caused this invocation; empty when
-  none.
+- `id`: Unique host-issued invocation id.
+- `accountId`: Account scope; empty for operator / host-wide invocations.
+- `deadlineUnixMs`: UTC Unix milliseconds; zero when the invocation has no deadline. The host fence is authoritative.
+- `correlationId`: Trace correlation id; empty when none.
+- `causationId`: Id of the event or command that caused this invocation; empty when none.
 
-## QueueMessage
+### QueueMessage
 
 ```python
 class QueueMessage(TypedDict)
@@ -3656,16 +3631,16 @@ class QueueMessage(TypedDict)
 
 One message on a Workers-style queue, delivered by `QueueConsumer.queue`.
 
-**Attributes**:
+**Attributes**
 
-- `id` - Outbox row id; stable across redeliveries.
-- `timestampUnixMs` - When the producer sent the message (UTC Unix milliseconds).
-- `body` - Encoded body; at most `maxEventPayloadBytes`.
-- `contentType` - Body encoding: `json`, `text`, or `bytes`.
-- `attempts` - Delivery counter, starting at 1.
-- `source` - Producer plugin id; empty when the host sent it.
+- `id`: Outbox row id; stable across redeliveries.
+- `timestampUnixMs`: When the producer sent the message (UTC Unix milliseconds).
+- `body`: Encoded body; at most `maxEventPayloadBytes`.
+- `contentType`: Body encoding: `json`, `text`, or `bytes`.
+- `attempts`: Delivery counter, starting at 1.
+- `source`: Producer plugin id; empty when the host sent it.
 
-## QueueBatch
+### QueueBatch
 
 ```python
 class QueueBatch(TypedDict)
@@ -3673,13 +3648,12 @@ class QueueBatch(TypedDict)
 
 One `QueueConsumer.queue` delivery: messages from one queue in send order.
 
-**Attributes**:
+**Attributes**
 
-- `queue` - Queue the messages were sent to.
-- `messages` - Messages in delivery order; the reply carries one `QueueResult` per
-  entry.
+- `queue`: Queue the messages were sent to.
+- `messages`: Messages in delivery order; the reply carries one `QueueResult` per entry.
 
-## QueueRetry
+### QueueRetry
 
 ```python
 class QueueRetry(TypedDict)
@@ -3687,46 +3661,41 @@ class QueueRetry(TypedDict)
 
 Redeliver a queue message later.
 
-**Attributes**:
+**Attributes**
 
-- `delaySeconds` - Seconds before redelivery; zero applies the consumer's
-  `retry_delay`.
-- `reason` - Short human reason.
+- `delaySeconds`: Seconds before redelivery; zero applies the consumer's `retry_delay`.
+- `reason`: Short human reason.
 
-## QueueResultAck
+### QueueResultAck
 
 ```python
 class QueueResultAck(TypedDict)
 ```
 
-``QueueResult`` member ``ack``.
+`QueueResult` member `ack`.
 
 Handled; the host marks the message delivered.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ack"``.
+- `kind`: Always `"ack"`.
 
-## QueueResultRetry
+### QueueResultRetry
 
 ```python
 class QueueResultRetry(TypedDict)
 ```
 
-``QueueResult`` member ``retry``.
+`QueueResult` member `retry`.
 
 Redeliver later.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"retry"``.
-- `value` - Redeliver later.
+- `kind`: Always `"retry"`.
+- `value`: Redeliver later.
 
-#### QueueResult
-
-Per-message outcome inside a `QueueConsumer.queue` batch reply.
-
-## QueueBatchOk
+### QueueBatchOk
 
 ```python
 class QueueBatchOk(TypedDict)
@@ -3736,45 +3705,41 @@ Success payload of `QueueConsumer.queue`: exactly one entry per
 `QueueBatch.messages` entry, in order. A short list is a host-side error
 and the missing tail is retried.
 
-**Attributes**:
+**Attributes**
 
-- `results` - Per-message outcomes in delivery order.
+- `results`: Per-message outcomes in delivery order.
 
-## QueueBatchReplyOk
+### QueueBatchReplyOk
 
 ```python
 class QueueBatchReplyOk(TypedDict)
 ```
 
-``QueueBatchReply`` member ``ok``.
+`QueueBatchReply` member `ok`.
 
 Success: per-message outcomes.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: per-message outcomes.
+- `kind`: Always `"ok"`.
+- `value`: Success: per-message outcomes.
 
-## QueueBatchReplyErr
+### QueueBatchReplyErr
 
 ```python
 class QueueBatchReplyErr(TypedDict)
 ```
 
-``QueueBatchReply`` member ``err``.
+`QueueBatchReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### QueueBatchReply
-
-Result union of `QueueConsumer.queue`.
-
-## QueueSendMessage
+### QueueSendMessage
 
 ```python
 class QueueSendMessage(TypedDict)
@@ -3782,13 +3747,13 @@ class QueueSendMessage(TypedDict)
 
 One message to send through a `[[queues.producers]]` binding.
 
-**Attributes**:
+**Attributes**
 
-- `body` - Encoded body; at most `maxEventPayloadBytes`.
-- `contentType` - Body encoding: `json` (default when empty), `text`, or `bytes`.
-- `delaySeconds` - Seconds before the message may be delivered; zero means now.
+- `body`: Encoded body; at most `maxEventPayloadBytes`.
+- `contentType`: Body encoding: `json` (default when empty), `text`, or `bytes`.
+- `delaySeconds`: Seconds before the message may be delivered; zero means now.
 
-## QueueSendOk
+### QueueSendOk
 
 ```python
 class QueueSendOk(TypedDict)
@@ -3796,45 +3761,41 @@ class QueueSendOk(TypedDict)
 
 Success payload of `QueueProducer.send` / `sendBatch`.
 
-**Attributes**:
+**Attributes**
 
-- `messageIds` - Outbox row ids in send order.
+- `messageIds`: Outbox row ids in send order.
 
-## QueueSendReplyOk
+### QueueSendReplyOk
 
 ```python
 class QueueSendReplyOk(TypedDict)
 ```
 
-``QueueSendReply`` member ``ok``.
+`QueueSendReply` member `ok`.
 
 Success: the ids the host assigned.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: the ids the host assigned.
+- `kind`: Always `"ok"`.
+- `value`: Success: the ids the host assigned.
 
-## QueueSendReplyErr
+### QueueSendReplyErr
 
 ```python
 class QueueSendReplyErr(TypedDict)
 ```
 
-``QueueSendReply`` member ``err``.
+`QueueSendReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### QueueSendReply
-
-Result union of `QueueProducer.send` / `sendBatch`.
-
-## KvPutOptions
+### KvPutOptions
 
 ```python
 class KvPutOptions(TypedDict)
@@ -3842,15 +3803,13 @@ class KvPutOptions(TypedDict)
 
 Expiration and metadata for `KvNamespace.put`.
 
-**Attributes**:
+**Attributes**
 
-- `expirationUnixMs` - Absolute expiry (UTC Unix milliseconds); zero means none.
-- `expirationTtlSeconds` - Relative expiry in seconds from the write; zero means
-  none. Ignored when `expirationUnixMs` is set.
-- `metadata` - Opaque JSON metadata text, at most `maxKvMetadataBytes`; empty means
-  none.
+- `expirationUnixMs`: Absolute expiry (UTC Unix milliseconds); zero means none.
+- `expirationTtlSeconds`: Relative expiry in seconds from the write; zero means none. Ignored when `expirationUnixMs` is set.
+- `metadata`: Opaque JSON metadata text, at most `maxKvMetadataBytes`; empty means none.
 
-## KvGetOk
+### KvGetOk
 
 ```python
 class KvGetOk(TypedDict)
@@ -3858,48 +3817,44 @@ class KvGetOk(TypedDict)
 
 Success payload of `KvNamespace.get`.
 
-**Attributes**:
+**Attributes**
 
-- `found` - True when the key exists and has not expired.
-- `value` - Stored value; empty when not found.
-- `metadata` - Stored metadata JSON text; empty when none.
-- `expirationUnixMs` - Absolute expiry (UTC Unix milliseconds); zero means none.
+- `found`: True when the key exists and has not expired.
+- `value`: Stored value; empty when not found.
+- `metadata`: Stored metadata JSON text; empty when none.
+- `expirationUnixMs`: Absolute expiry (UTC Unix milliseconds); zero means none.
 
-## KvGetReplyOk
+### KvGetReplyOk
 
 ```python
 class KvGetReplyOk(TypedDict)
 ```
 
-``KvGetReply`` member ``ok``.
+`KvGetReply` member `ok`.
 
 Success: the value, when found.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: the value, when found.
+- `kind`: Always `"ok"`.
+- `value`: Success: the value, when found.
 
-## KvGetReplyErr
+### KvGetReplyErr
 
 ```python
 class KvGetReplyErr(TypedDict)
 ```
 
-``KvGetReply`` member ``err``.
+`KvGetReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### KvGetReply
-
-Result union of `KvNamespace.get`.
-
-## KvPutOk
+### KvPutOk
 
 ```python
 class KvPutOk(TypedDict)
@@ -3907,12 +3862,11 @@ class KvPutOk(TypedDict)
 
 Success payload of `KvNamespace.put`.
 
-**Attributes**:
+**Attributes**
 
-- `expirationUnixMs` - Effective absolute expiry (UTC Unix milliseconds); zero means
-  none.
+- `expirationUnixMs`: Effective absolute expiry (UTC Unix milliseconds); zero means none.
 
-## KvDeleteOk
+### KvDeleteOk
 
 ```python
 class KvDeleteOk(TypedDict)
@@ -3920,79 +3874,71 @@ class KvDeleteOk(TypedDict)
 
 Success payload of `KvNamespace.delete`.
 
-**Attributes**:
+**Attributes**
 
-- `existed` - True when a live value existed before the delete.
+- `existed`: True when a live value existed before the delete.
 
-## KvPutReplyOk
+### KvPutReplyOk
 
 ```python
 class KvPutReplyOk(TypedDict)
 ```
 
-``KvPutReply`` member ``ok``.
+`KvPutReply` member `ok`.
 
 Success: the write is durable.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: the write is durable.
+- `kind`: Always `"ok"`.
+- `value`: Success: the write is durable.
 
-## KvPutReplyErr
+### KvPutReplyErr
 
 ```python
 class KvPutReplyErr(TypedDict)
 ```
 
-``KvPutReply`` member ``err``.
+`KvPutReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### KvPutReply
-
-Result union of `KvNamespace.put`.
-
-## KvDeleteReplyOk
+### KvDeleteReplyOk
 
 ```python
 class KvDeleteReplyOk(TypedDict)
 ```
 
-``KvDeleteReply`` member ``ok``.
+`KvDeleteReply` member `ok`.
 
 Success: the key is gone (or never existed).
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: the key is gone (or never existed).
+- `kind`: Always `"ok"`.
+- `value`: Success: the key is gone (or never existed).
 
-## KvDeleteReplyErr
+### KvDeleteReplyErr
 
 ```python
 class KvDeleteReplyErr(TypedDict)
 ```
 
-``KvDeleteReply`` member ``err``.
+`KvDeleteReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### KvDeleteReply
-
-Result union of `KvNamespace.delete`.
-
-## KvListOptions
+### KvListOptions
 
 ```python
 class KvListOptions(TypedDict)
@@ -4000,13 +3946,13 @@ class KvListOptions(TypedDict)
 
 Page request for `KvNamespace.list`.
 
-**Attributes**:
+**Attributes**
 
-- `prefix` - Only keys starting with this prefix; empty means all.
-- `cursor` - Opaque cursor from a previous page; empty means the first page.
-- `limit` - Most keys to return; zero means the host default, at most `maxListPage`.
+- `prefix`: Only keys starting with this prefix; empty means all.
+- `cursor`: Opaque cursor from a previous page; empty means the first page.
+- `limit`: Most keys to return; zero means the host default, at most `maxListPage`.
 
-## KvListKey
+### KvListKey
 
 ```python
 class KvListKey(TypedDict)
@@ -4014,13 +3960,13 @@ class KvListKey(TypedDict)
 
 One key on a `KvNamespace.list` page.
 
-**Attributes**:
+**Attributes**
 
-- `key` - Key name.
-- `metadata` - Stored metadata JSON text; empty when none.
-- `expirationUnixMs` - Absolute expiry (UTC Unix milliseconds); zero means none.
+- `key`: Key name.
+- `metadata`: Stored metadata JSON text; empty when none.
+- `expirationUnixMs`: Absolute expiry (UTC Unix milliseconds); zero means none.
 
-## KvListOk
+### KvListOk
 
 ```python
 class KvListOk(TypedDict)
@@ -4028,141 +3974,133 @@ class KvListOk(TypedDict)
 
 Success payload of `KvNamespace.list`.
 
-**Attributes**:
+**Attributes**
 
-- `keys` - Keys in lexical order.
-- `listComplete` - True when no further page exists.
-- `cursor` - Cursor for the next page; empty when `listComplete`.
+- `keys`: Keys in lexical order.
+- `listComplete`: True when no further page exists.
+- `cursor`: Cursor for the next page; empty when `listComplete`.
 
-## KvListReplyOk
+### KvListReplyOk
 
 ```python
 class KvListReplyOk(TypedDict)
 ```
 
-``KvListReply`` member ``ok``.
+`KvListReply` member `ok`.
 
 Success: one page of keys.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: one page of keys.
+- `kind`: Always `"ok"`.
+- `value`: Success: one page of keys.
 
-## KvListReplyErr
+### KvListReplyErr
 
 ```python
 class KvListReplyErr(TypedDict)
 ```
 
-``KvListReply`` member ``err``.
+`KvListReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### KvListReply
-
-Result union of `KvNamespace.list`.
-
-## DbValueNull
+### DbValueNull
 
 ```python
 class DbValueNull(TypedDict)
 ```
 
-``DbValue`` member ``null``.
+`DbValue` member `null`.
 
 SQL NULL with its declared type.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"null"``.
-- `value` - SQL NULL with its declared type.
+- `kind`: Always `"null"`.
+- `value`: SQL NULL with its declared type.
 
-## DbValueBoolean
+### DbValueBoolean
 
 ```python
 class DbValueBoolean(TypedDict)
 ```
 
-``DbValue`` member ``boolean``.
+`DbValue` member `boolean`.
 
 Boolean.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"boolean"``.
-- `value` - Boolean.
+- `kind`: Always `"boolean"`.
+- `value`: Boolean.
 
-## DbValueInt64
+### DbValueInt64
 
 ```python
 class DbValueInt64(TypedDict)
 ```
 
-``DbValue`` member ``int64``.
+`DbValue` member `int64`.
 
 Signed 64-bit integer.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"int64"``.
-- `value` - Signed 64-bit integer.
+- `kind`: Always `"int64"`.
+- `value`: Signed 64-bit integer.
 
-## DbValueFloat64
+### DbValueFloat64
 
 ```python
 class DbValueFloat64(TypedDict)
 ```
 
-``DbValue`` member ``float64``.
+`DbValue` member `float64`.
 
 IEEE-754 double.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"float64"``.
-- `value` - IEEE-754 double.
+- `kind`: Always `"float64"`.
+- `value`: IEEE-754 double.
 
-## DbValueText
+### DbValueText
 
 ```python
 class DbValueText(TypedDict)
 ```
 
-``DbValue`` member ``text``.
+`DbValue` member `text`.
 
 UTF-8 text.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"text"``.
-- `value` - UTF-8 text.
+- `kind`: Always `"text"`.
+- `value`: UTF-8 text.
 
-## DbValueBytes
+### DbValueBytes
 
 ```python
 class DbValueBytes(TypedDict)
 ```
 
-``DbValue`` member ``bytes``.
+`DbValue` member `bytes`.
 
 Raw bytes.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"bytes"``.
-- `value` - Raw bytes.
+- `kind`: Always `"bytes"`.
+- `value`: Raw bytes.
 
-#### DbValue
-
-One typed SQL cell or bind parameter.
-
-## DbColumn
+### DbColumn
 
 ```python
 class DbColumn(TypedDict)
@@ -4170,12 +4108,12 @@ class DbColumn(TypedDict)
 
 Result column descriptor.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Column name as projected.
-- `dbType` - Declared or inferred column type.
+- `name`: Column name as projected.
+- `dbType`: Declared or inferred column type.
 
-## DbRow
+### DbRow
 
 ```python
 class DbRow(TypedDict)
@@ -4183,11 +4121,11 @@ class DbRow(TypedDict)
 
 One result row.
 
-**Attributes**:
+**Attributes**
 
-- `values` - Cells in `columns` order.
+- `values`: Cells in `columns` order.
 
-## DbStatement
+### DbStatement
 
 ```python
 class DbStatement(TypedDict)
@@ -4195,15 +4133,15 @@ class DbStatement(TypedDict)
 
 One guest statement in an `ExecuteRequest`.
 
-**Attributes**:
+**Attributes**
 
-- `sql` - BookclerkSQL text; at most `maxScalarBytes`.
-- `parameters` - Positional bind values.
-- `kind` - Statement classification.
-- `maxRows` - Row cap for queries; `0` means adapter default.
-- `resultSelection` - Which outcome parts to return.
+- `sql`: BookclerkSQL text; at most `maxScalarBytes`.
+- `parameters`: Positional bind values.
+- `kind`: Statement classification.
+- `maxRows`: Row cap for queries; `0` means adapter default.
+- `resultSelection`: Which outcome parts to return.
 
-## ExecuteRequest
+### ExecuteRequest
 
 ```python
 class ExecuteRequest(TypedDict)
@@ -4211,15 +4149,14 @@ class ExecuteRequest(TypedDict)
 
 Guest statement batch for `GuestDatabase.execute`; runs atomically.
 
-**Attributes**:
+**Attributes**
 
-- `operationId` - Caller-chosen idempotency key.
-- `requestHash` - SHA-256 hex of the idempotency-relevant request; empty when
-  omitted.
-- `statements` - Statements in execution order; at most `maxStatements`.
-- `deadlineUnixMs` - Deadline hint; `0` means none.
+- `operationId`: Caller-chosen idempotency key.
+- `requestHash`: SHA-256 hex of the idempotency-relevant request; empty when omitted.
+- `statements`: Statements in execution order; at most `maxStatements`.
+- `deadlineUnixMs`: Deadline hint; `0` means none.
 
-## SqlSpan
+### SqlSpan
 
 ```python
 class SqlSpan(TypedDict)
@@ -4227,12 +4164,12 @@ class SqlSpan(TypedDict)
 
 Byte span in the exact canonical SQL string a proof is bound to.
 
-**Attributes**:
+**Attributes**
 
-- `start` - Inclusive start byte offset.
-- `end` - Exclusive end byte offset.
+- `start`: Inclusive start byte offset.
+- `end`: Exclusive end byte offset.
 
-## TextCollateSite
+### TextCollateSite
 
 ```python
 class TextCollateSite(TypedDict)
@@ -4240,11 +4177,11 @@ class TextCollateSite(TypedDict)
 
 One TEXT expression the adapter must collate bytewise (`COLLATE "C"`).
 
-**Attributes**:
+**Attributes**
 
-- `span` - Identifier or string-literal span in canonical SQL.
+- `span`: Identifier or string-literal span in canonical SQL.
 
-## IntegerArithSite
+### IntegerArithSite
 
 ```python
 class IntegerArithSite(TypedDict)
@@ -4252,14 +4189,14 @@ class IntegerArithSite(TypedDict)
 
 One INTEGER arithmetic expression that must not wrap or error on overflow.
 
-**Attributes**:
+**Attributes**
 
-- `full` - Full expression span (`a + b` or `abs(n)`).
-- `lhs` - Left operand (or `abs` argument).
-- `rhs` - Right operand (`abs` repeats `lhs`).
-- `kind` - Operator.
+- `full`: Full expression span (`a + b` or `abs(n)`).
+- `lhs`: Left operand (or `abs` argument).
+- `rhs`: Right operand (`abs` repeats `lhs`).
+- `kind`: Operator.
 
-## PhysicalAccess
+### PhysicalAccess
 
 ```python
 class PhysicalAccess(TypedDict)
@@ -4267,12 +4204,12 @@ class PhysicalAccess(TypedDict)
 
 Physical table/column access used for authorization.
 
-**Attributes**:
+**Attributes**
 
-- `table` - Physical table name.
-- `column` - Empty = table presence only; "*" = projection wildcard.
+- `table`: Physical table name.
+- `column`: Empty = table presence only; "*" = projection wildcard.
 
-## ResolvedAssignment
+### ResolvedAssignment
 
 ```python
 class ResolvedAssignment(TypedDict)
@@ -4280,14 +4217,14 @@ class ResolvedAssignment(TypedDict)
 
 Destination assignment `lhs = rhs` (INSERT, UPDATE, ...).
 
-**Attributes**:
+**Attributes**
 
-- `table` - Target table.
-- `column` - Target column.
-- `dest` - Declared column type.
-- `source` - Resolved type of the assigned expression.
+- `table`: Target table.
+- `column`: Target column.
+- `dest`: Declared column type.
+- `source`: Resolved type of the assigned expression.
 
-## NamedSqlType
+### NamedSqlType
 
 ```python
 class NamedSqlType(TypedDict)
@@ -4295,12 +4232,12 @@ class NamedSqlType(TypedDict)
 
 Column name paired with its resolved type.
 
-**Attributes**:
+**Attributes**
 
-- `name` - Column name.
-- `sqlType` - Resolved type.
+- `name`: Column name.
+- `sqlType`: Resolved type.
 
-## ColumnReference
+### ColumnReference
 
 ```python
 class ColumnReference(TypedDict)
@@ -4308,45 +4245,41 @@ class ColumnReference(TypedDict)
 
 `REFERENCES` target of one column.
 
-**Attributes**:
+**Attributes**
 
-- `refTable` - Referenced table.
-- `refColumns` - Referenced columns.
+- `refTable`: Referenced table.
+- `refColumns`: Referenced columns.
 
-## OptionalColumnReferenceNone
+### OptionalColumnReferenceNone
 
 ```python
 class OptionalColumnReferenceNone(TypedDict)
 ```
 
-``OptionalColumnReference`` member ``none``.
+`OptionalColumnReference` member `none`.
 
 Column has no reference.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"none"``.
+- `kind`: Always `"none"`.
 
-## OptionalColumnReferenceSome
+### OptionalColumnReferenceSome
 
 ```python
 class OptionalColumnReferenceSome(TypedDict)
 ```
 
-``OptionalColumnReference`` member ``some``.
+`OptionalColumnReference` member `some`.
 
 Column references another table.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"some"``.
-- `value` - Column references another table.
+- `kind`: Always `"some"`.
+- `value`: Column references another table.
 
-#### OptionalColumnReference
-
-Per-column `REFERENCES` slot in `CreateTableSchema`.
-
-## ForeignKeyConstraint
+### ForeignKeyConstraint
 
 ```python
 class ForeignKeyConstraint(TypedDict)
@@ -4354,77 +4287,73 @@ class ForeignKeyConstraint(TypedDict)
 
 Table-level `FOREIGN KEY` constraint.
 
-**Attributes**:
+**Attributes**
 
-- `columns` - Local columns.
-- `refTable` - Referenced table.
-- `refColumns` - Referenced columns.
+- `columns`: Local columns.
+- `refTable`: Referenced table.
+- `refColumns`: Referenced columns.
 
-## TableConstraintPrimaryKey
+### TableConstraintPrimaryKey
 
 ```python
 class TableConstraintPrimaryKey(TypedDict)
 ```
 
-``TableConstraint`` member ``primaryKey``.
+`TableConstraint` member `primaryKey`.
 
 `PRIMARY KEY (...)` columns.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"primaryKey"``.
-- `value` - `PRIMARY KEY (...)` columns.
+- `kind`: Always `"primaryKey"`.
+- `value`: `PRIMARY KEY (...)` columns.
 
-## TableConstraintUnique
+### TableConstraintUnique
 
 ```python
 class TableConstraintUnique(TypedDict)
 ```
 
-``TableConstraint`` member ``unique``.
+`TableConstraint` member `unique`.
 
 `UNIQUE (...)` columns.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"unique"``.
-- `value` - `UNIQUE (...)` columns.
+- `kind`: Always `"unique"`.
+- `value`: `UNIQUE (...)` columns.
 
-## TableConstraintCheck
+### TableConstraintCheck
 
 ```python
 class TableConstraintCheck(TypedDict)
 ```
 
-``TableConstraint`` member ``check``.
+`TableConstraint` member `check`.
 
 `CHECK (...)` expression text.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"check"``.
-- `value` - `CHECK (...)` expression text.
+- `kind`: Always `"check"`.
+- `value`: `CHECK (...)` expression text.
 
-## TableConstraintForeignKey
+### TableConstraintForeignKey
 
 ```python
 class TableConstraintForeignKey(TypedDict)
 ```
 
-``TableConstraint`` member ``foreignKey``.
+`TableConstraint` member `foreignKey`.
 
 `FOREIGN KEY (...) REFERENCES ...`.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"foreignKey"``.
-- `value` - `FOREIGN KEY (...) REFERENCES ...`.
+- `kind`: Always `"foreignKey"`.
+- `value`: `FOREIGN KEY (...) REFERENCES ...`.
 
-#### TableConstraint
-
-One table-level constraint.
-
-## CreateTableSchema
+### CreateTableSchema
 
 ```python
 class CreateTableSchema(TypedDict)
@@ -4432,20 +4361,20 @@ class CreateTableSchema(TypedDict)
 
 Parsed `CREATE TABLE` (canonical SQL v1). Per-column lists align with `columns`.
 
-**Attributes**:
+**Attributes**
 
-- `table` - Table name.
-- `columns` - Columns with resolved types, in order.
-- `identityColumn` - `INTEGER PRIMARY KEY AUTOINCREMENT` column; empty when none.
-- `columnNotNull` - Per-column NOT NULL flags.
-- `columnUnique` - Per-column UNIQUE flags.
-- `columnPrimaryKey` - Per-column PRIMARY KEY flags.
-- `columnDefaults` - Per-column DEFAULT expression text; empty when none.
-- `columnChecks` - Per-column CHECK expression text; empty when none.
-- `columnReferences` - Per-column REFERENCES targets.
-- `tableConstraints` - Table-level constraints, in order.
+- `table`: Table name.
+- `columns`: Columns with resolved types, in order.
+- `identityColumn`: `INTEGER PRIMARY KEY AUTOINCREMENT` column; empty when none.
+- `columnNotNull`: Per-column NOT NULL flags.
+- `columnUnique`: Per-column UNIQUE flags.
+- `columnPrimaryKey`: Per-column PRIMARY KEY flags.
+- `columnDefaults`: Per-column DEFAULT expression text; empty when none.
+- `columnChecks`: Per-column CHECK expression text; empty when none.
+- `columnReferences`: Per-column REFERENCES targets.
+- `tableConstraints`: Table-level constraints, in order.
 
-## SchemaCreate
+### SchemaCreate
 
 ```python
 class SchemaCreate(TypedDict)
@@ -4453,61 +4382,57 @@ class SchemaCreate(TypedDict)
 
 `CREATE TABLE` action with its durable fingerprint.
 
-**Attributes**:
+**Attributes**
 
-- `schema` - Parsed table schema.
-- `fingerprint` - Structured schema fingerprint (hex SHA-256).
-- `noop` - True when the catalog already holds this exact fingerprint.
+- `schema`: Parsed table schema.
+- `fingerprint`: Structured schema fingerprint (hex SHA-256).
+- `noop`: True when the catalog already holds this exact fingerprint.
 
-## SchemaActionNone
+### SchemaActionNone
 
 ```python
 class SchemaActionNone(TypedDict)
 ```
 
-``SchemaAction`` member ``none``.
+`SchemaAction` member `none`.
 
 Not DDL.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"none"``.
+- `kind`: Always `"none"`.
 
-## SchemaActionCreate
+### SchemaActionCreate
 
 ```python
 class SchemaActionCreate(TypedDict)
 ```
 
-``SchemaAction`` member ``create``.
+`SchemaAction` member `create`.
 
 `CREATE TABLE`.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"create"``.
-- `value` - `CREATE TABLE`.
+- `kind`: Always `"create"`.
+- `value`: `CREATE TABLE`.
 
-## SchemaActionDrop
+### SchemaActionDrop
 
 ```python
 class SchemaActionDrop(TypedDict)
 ```
 
-``SchemaAction`` member ``drop``.
+`SchemaAction` member `drop`.
 
 `DROP TABLE` of the named table.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"drop"``.
-- `value` - `DROP TABLE` of the named table.
+- `kind`: Always `"drop"`.
+- `value`: `DROP TABLE` of the named table.
 
-#### SchemaAction
-
-CREATE/DROP action recorded on a proof.
-
-## ResolvedStatement
+### ResolvedStatement
 
 ```python
 class ResolvedStatement(TypedDict)
@@ -4515,18 +4440,18 @@ class ResolvedStatement(TypedDict)
 
 Host-produced typed proof bound to one exact canonical statement.
 
-**Attributes**:
+**Attributes**
 
-- `statementHash` - SHA-256 hex of the exact canonical SQL this proof claims.
-- `outputColumns` - SELECT / RETURNING / VALUES output columns in order.
-- `physicalAccesses` - Physical tables/columns referenced (authorization).
-- `assignments` - Mutation destination assignments.
-- `textCollateSites` - TEXT expression spans needing bytewise collation.
-- `integerArithSites` - INTEGER overflow sites (`+` `-` `*` `abs`).
-- `functions` - Function names invoked (folded), for authorization.
-- `schemaAction` - DDL action + fingerprint.
+- `statementHash`: SHA-256 hex of the exact canonical SQL this proof claims.
+- `outputColumns`: SELECT / RETURNING / VALUES output columns in order.
+- `physicalAccesses`: Physical tables/columns referenced (authorization).
+- `assignments`: Mutation destination assignments.
+- `textCollateSites`: TEXT expression spans needing bytewise collation.
+- `integerArithSites`: INTEGER overflow sites (`+` `-` `*` `abs`).
+- `functions`: Function names invoked (folded), for authorization.
+- `schemaAction`: DDL action + fingerprint.
 
-## AdapterReceipt
+### AdapterReceipt
 
 ```python
 class AdapterReceipt(TypedDict)
@@ -4534,13 +4459,12 @@ class AdapterReceipt(TypedDict)
 
 Replay receipt the host asks the adapter to persist with the batch.
 
-**Attributes**:
+**Attributes**
 
-- `guestLen` - Guest statement count inside the receipt wrap (excluding host
-  prune/select).
-- `guestHash` - Guest `requestHash` compared on replay.
+- `guestLen`: Guest statement count inside the receipt wrap (excluding host prune/select).
+- `guestHash`: Guest `requestHash` compared on replay.
 
-## AdapterStatement
+### AdapterStatement
 
 ```python
 class AdapterStatement(TypedDict)
@@ -4548,16 +4472,16 @@ class AdapterStatement(TypedDict)
 
 One host-lowered statement with its proof.
 
-**Attributes**:
+**Attributes**
 
-- `sql` - Canonical SQL text.
-- `parameters` - Positional bind values.
-- `kind` - Statement classification.
-- `maxRows` - Row cap for queries; `0` means adapter default.
-- `resultSelection` - Which outcome parts to return.
-- `proof` - Typed proof bound to `sql`.
+- `sql`: Canonical SQL text.
+- `parameters`: Positional bind values.
+- `kind`: Statement classification.
+- `maxRows`: Row cap for queries; `0` means adapter default.
+- `resultSelection`: Which outcome parts to return.
+- `proof`: Typed proof bound to `sql`.
 
-## AdapterExecuteRequest
+### AdapterExecuteRequest
 
 ```python
 class AdapterExecuteRequest(TypedDict)
@@ -4565,16 +4489,16 @@ class AdapterExecuteRequest(TypedDict)
 
 Host -> adapter batch: proven statements plus isolation and receipt.
 
-**Attributes**:
+**Attributes**
 
-- `operationId` - Host-chosen idempotency key.
-- `requestHash` - SHA-256 hex of the idempotency-relevant request.
-- `statements` - Statements in execution order.
-- `deadlineUnixMs` - Deadline hint; `0` means none.
-- `isolation` - Transaction isolation the adapter must realize.
-- `receipt` - Replay receipt to persist; zero/empty when not required.
+- `operationId`: Host-chosen idempotency key.
+- `requestHash`: SHA-256 hex of the idempotency-relevant request.
+- `statements`: Statements in execution order.
+- `deadlineUnixMs`: Deadline hint; `0` means none.
+- `isolation`: Transaction isolation the adapter must realize.
+- `receipt`: Replay receipt to persist; zero/empty when not required.
 
-## StatementResult
+### StatementResult
 
 ```python
 class StatementResult(TypedDict)
@@ -4582,13 +4506,13 @@ class StatementResult(TypedDict)
 
 Outcome of one statement.
 
-**Attributes**:
+**Attributes**
 
-- `rows` - Result rows (empty unless `rows` selected).
-- `columns` - Result column descriptors.
-- `rowsAffected` - Rows changed by a mutation.
+- `rows`: Result rows (empty unless `rows` selected).
+- `columns`: Result column descriptors.
+- `rowsAffected`: Rows changed by a mutation.
 
-## DbTiming
+### DbTiming
 
 ```python
 class DbTiming(TypedDict)
@@ -4596,14 +4520,13 @@ class DbTiming(TypedDict)
 
 Engine timing on `ExecuteReply`.
 
-**Attributes**:
+**Attributes**
 
-- `attemptElapsedUs` - Monotonic duration of this handler attempt (microseconds).
-- `dbExecutionUs` - Engine-reported SQL/transaction time when available (`0` =
-  omitted).
-- `dbTimingSource` - How `dbExecutionUs` was measured.
+- `attemptElapsedUs`: Monotonic duration of this handler attempt (microseconds).
+- `dbExecutionUs`: Engine-reported SQL/transaction time when available (`0` = omitted).
+- `dbTimingSource`: How `dbExecutionUs` was measured.
 
-## ExecuteReply
+### ExecuteReply
 
 ```python
 class ExecuteReply(TypedDict)
@@ -4611,47 +4534,43 @@ class ExecuteReply(TypedDict)
 
 Success payload of `execute`.
 
-**Attributes**:
+**Attributes**
 
-- `operationId` - Echo of the request `operationId`.
-- `statements` - Per-statement results in request order.
-- `timing` - Engine timing.
+- `operationId`: Echo of the request `operationId`.
+- `statements`: Per-statement results in request order.
+- `timing`: Engine timing.
 
-## ExecuteResultReplyOk
+### ExecuteResultReplyOk
 
 ```python
 class ExecuteResultReplyOk(TypedDict)
 ```
 
-``ExecuteResultReply`` member ``ok``.
+`ExecuteResultReply` member `ok`.
 
 Success: statement results.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: statement results.
+- `kind`: Always `"ok"`.
+- `value`: Success: statement results.
 
-## ExecuteResultReplyErr
+### ExecuteResultReplyErr
 
 ```python
 class ExecuteResultReplyErr(TypedDict)
 ```
 
-``ExecuteResultReply`` member ``err``.
+`ExecuteResultReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### ExecuteResultReply
-
-Result union of `execute`.
-
-## DbCapabilities
+### DbCapabilities
 
 ```python
 class DbCapabilities(TypedDict)
@@ -4660,81 +4579,62 @@ class DbCapabilities(TypedDict)
 Semantic SQL-contract advertisement. Diagnostic engine identity is not
 part of the capability plane — see `DbBootstrap`.
 
-**Attributes**:
+**Attributes**
 
-- `sqlContractVersion` - Bookclerk SQL contract version.
-- `atomicBatch` - Guest can run a bounded statement list as one SQL transaction.
-- `returning` - Guest SQL supports `RETURNING`.
-- `affectedRows` - Guest reports `rowsAffected`.
-- `schemaMigrations` - Guest versions schema with a `bookclerk_schema_migrations`
-  table.
-- `cancellation` - Guest honors RPC/session cancellation.
-- `timing` - Guest can fill `DbTiming.dbExecutionUs`. Not a host connect minimum.
-- `maxBinds` - Maximum bound parameters per statement.
-- `maxStatements` - Maximum statements in one atomic batch.
-- `maxResultRows` - Maximum rows a query statement may return.
-- `maxPayloadBytes` - Maximum UTF-8 bytes of SQL plus binds per statement.
-- `maxResultBytes` - Maximum encoded bytes of one statement's result rows.
-- `maxCellBytes` - Maximum UTF-8 / blob bytes of one result cell.
-- `maxRequestBytes` - Maximum encoded bytes of one `ExecuteRequest`.
-- `maxAtomicResultBytes` - Maximum encoded bytes of one `ExecuteReply`.
-- `pluginDatabases` - Append-only. Adapter can open additional isolated sessions for
-  plugin-owned database bindings (per-binding file / schema / database).
-- `maxFunctionArgs` - Maximum arguments in one physical function call after adapter
-  hiding (nested min / max / coalesce). Portable json_object is already ≤ 32
-  arguments (16 pairs), matching D1. `0` is unspecified.
-- `maxSchemaColumns` - Maximum columns in one CREATE TABLE / result row. `0` is
-  unspecified.
-- `maxPatternBytes` - Maximum UTF-8 bytes of a BookclerkSQL LIKE pattern value
-  (literals and TEXT binds). Adapters that expand LIKE into GLOB must
-  advertise a conservative value that still fits the physical pattern cap. `0`
-  is unspecified.
-- `maxLoweredStatementBytes` - Maximum UTF-8 bytes of sqlite-family lowered SQL the
-  adapter can realize for one statement (INTEGER overflow wraps, LIKE→GLOB,
-  NULLIF, INSERT OR IGNORE, query LIMIT wrap, bytes-placeholder expansion).
-  `0` is unspecified: the host does not enforce a lowered-size ceiling. First-
-  party D1 advertises 100000. Hosts compare a standardized Bookclerk lowering
-  upper bound against this number and must not branch on engine identity.
-- `consistentBackupRead` - Adapter can expose one stable logical database state while
-  the host reads schema, rows, and identity.
-- `atomicUnitRestore` - Adapter can destructively replace one logical database unit
-  so an ordinary restore failure does not leave that unit partially replaced.
+- `sqlContractVersion`: Bookclerk SQL contract version.
+- `atomicBatch`: Guest can run a bounded statement list as one SQL transaction.
+- `returning`: Guest SQL supports `RETURNING`.
+- `affectedRows`: Guest reports `rowsAffected`.
+- `schemaMigrations`: Guest versions schema with a `bookclerk_schema_migrations` table.
+- `cancellation`: Guest honors RPC/session cancellation.
+- `timing`: Guest can fill `DbTiming.dbExecutionUs`. Not a host connect minimum.
+- `maxBinds`: Maximum bound parameters per statement.
+- `maxStatements`: Maximum statements in one atomic batch.
+- `maxResultRows`: Maximum rows a query statement may return.
+- `maxPayloadBytes`: Maximum UTF-8 bytes of SQL plus binds per statement.
+- `maxResultBytes`: Maximum encoded bytes of one statement's result rows.
+- `maxCellBytes`: Maximum UTF-8 / blob bytes of one result cell.
+- `maxRequestBytes`: Maximum encoded bytes of one `ExecuteRequest`.
+- `maxAtomicResultBytes`: Maximum encoded bytes of one `ExecuteReply`.
+- `pluginDatabases`: Append-only. Adapter can open additional isolated sessions for plugin-owned database bindings (per-binding file / schema / database).
+- `maxFunctionArgs`: Maximum arguments in one physical function call after adapter hiding (nested min / max / coalesce). Portable json_object is already ≤ 32 arguments (16 pairs), matching D1. `0` is unspecified.
+- `maxSchemaColumns`: Maximum columns in one CREATE TABLE / result row. `0` is unspecified.
+- `maxPatternBytes`: Maximum UTF-8 bytes of a BookclerkSQL LIKE pattern value (literals and TEXT binds). Adapters that expand LIKE into GLOB must advertise a conservative value that still fits the physical pattern cap. `0` is unspecified.
+- `maxLoweredStatementBytes`: Maximum UTF-8 bytes of sqlite-family lowered SQL the adapter can realize for one statement (INTEGER overflow wraps, LIKE→GLOB, NULLIF, INSERT OR IGNORE, query LIMIT wrap, bytes-placeholder expansion). `0` is unspecified: the host does not enforce a lowered-size ceiling. First- party D1 advertises 100000. Hosts compare a standardized Bookclerk lowering upper bound against this number and must not branch on engine identity.
+- `consistentBackupRead`: Adapter can expose one stable logical database state while the host reads schema, rows, and identity.
+- `atomicUnitRestore`: Adapter can destructively replace one logical database unit so an ordinary restore failure does not leave that unit partially replaced.
 
-## DbBootstrapReplyOk
+### DbBootstrapReplyOk
 
 ```python
 class DbBootstrapReplyOk(TypedDict)
 ```
 
-``DbBootstrapReply`` member ``ok``.
+`DbBootstrapReply` member `ok`.
 
 Success: bootstrap metadata.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: bootstrap metadata.
+- `kind`: Always `"ok"`.
+- `value`: Success: bootstrap metadata.
 
-## DbBootstrapReplyErr
+### DbBootstrapReplyErr
 
 ```python
 class DbBootstrapReplyErr(TypedDict)
 ```
 
-``DbBootstrapReply`` member ``err``.
+`DbBootstrapReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### DbBootstrapReply
-
-Result union of `AdapterDatabaseSession.bootstrap`.
-
-## DbBootstrap
+### DbBootstrap
 
 ```python
 class DbBootstrap(TypedDict)
@@ -4742,46 +4642,41 @@ class DbBootstrap(TypedDict)
 
 Bootstrap-only diagnostic metadata (not a capability).
 
-**Attributes**:
+**Attributes**
 
-- `engine` - Diagnostic physical engine name. Hosts must not admit or generate SQL
-  from this value. Any string is valid.
+- `engine`: Diagnostic physical engine name. Hosts must not admit or generate SQL from this value. Any string is valid.
 
-## DbCapabilitiesReplyOk
+### DbCapabilitiesReplyOk
 
 ```python
 class DbCapabilitiesReplyOk(TypedDict)
 ```
 
-``DbCapabilitiesReply`` member ``ok``.
+`DbCapabilitiesReply` member `ok`.
 
 Success: capability advertisement.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: capability advertisement.
+- `kind`: Always `"ok"`.
+- `value`: Success: capability advertisement.
 
-## DbCapabilitiesReplyErr
+### DbCapabilitiesReplyErr
 
 ```python
 class DbCapabilitiesReplyErr(TypedDict)
 ```
 
-``DbCapabilitiesReply`` member ``err``.
+`DbCapabilitiesReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### DbCapabilitiesReply
-
-Result union of `AdapterDatabaseSession.capabilities`.
-
-## Database
+### Database
 
 ```python
 class Database(Protocol)
@@ -4789,36 +4684,35 @@ class Database(Protocol)
 
 `databaseAdapter` entrypoint (`Entrypoints.databaseAdapter`).
 
-#### Database.open\_session
+#### Database.open_session
 
 ```python
-async def open_session() -> AdapterSessionReply
+async def open_session(self) -> AdapterSessionReply
 ```
 
 Open one adapter session (capability negotiation + typed execute).
 
-**Returns**:
+**Returns**
 
-  ``AdapterSessionReply``
+`AdapterSessionReply`
 
-#### Database.drop\_unit
+#### Database.drop_unit
 
 ```python
-async def drop_unit(unit_ref: str) -> EmptyReply
+async def drop_unit(self, unit_ref: str) -> EmptyReply
 ```
 
 Physically drop one provisioned binding unit (`unitRef` is adapter-owned).
 
-**Arguments**:
+**Args**
 
-- `unit_ref` - Adapter-native unit (sqlite path, postgres database, D1 name).
-  
+- `unit_ref`: Adapter-native unit (sqlite path, postgres database, D1 name).
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-## IdentityHighWater
+### IdentityHighWater
 
 ```python
 class IdentityHighWater(TypedDict)
@@ -4827,80 +4721,72 @@ class IdentityHighWater(TypedDict)
 Adapter-private identity high-water (sqlite_sequence / bookclerk_identity).
 Column names live in the canonical backup schema, not this catalog.
 
-**Attributes**:
+**Attributes**
 
-- `table` - Table whose identity column the mark belongs to.
-- `last` - Highest generated or stored value that must not be reused.
+- `table`: Table whose identity column the mark belongs to.
+- `last`: Highest generated or stored value that must not be reused.
 
-## IdentityExportReplyOk
+### IdentityExportReplyOk
 
 ```python
 class IdentityExportReplyOk(TypedDict)
 ```
 
-``IdentityExportReply`` member ``ok``.
+`IdentityExportReply` member `ok`.
 
 Success: identity high-water rows.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: identity high-water rows.
+- `kind`: Always `"ok"`.
+- `value`: Success: identity high-water rows.
 
-## IdentityExportReplyErr
+### IdentityExportReplyErr
 
 ```python
 class IdentityExportReplyErr(TypedDict)
 ```
 
-``IdentityExportReply`` member ``err``.
+`IdentityExportReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### IdentityExportReply
-
-Result union of `AdapterDatabaseSession.exportIdentity`.
-
-## UserRelationsReplyOk
+### UserRelationsReplyOk
 
 ```python
 class UserRelationsReplyOk(TypedDict)
 ```
 
-``UserRelationsReply`` member ``ok``.
+`UserRelationsReply` member `ok`.
 
 Success: user relation names.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: user relation names.
+- `kind`: Always `"ok"`.
+- `value`: Success: user relation names.
 
-## UserRelationsReplyErr
+### UserRelationsReplyErr
 
 ```python
 class UserRelationsReplyErr(TypedDict)
 ```
 
-``UserRelationsReply`` member ``err``.
+`UserRelationsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### UserRelationsReply
-
-Result union of `AdapterDatabaseSession.listUserRelations`.
-
-## AdapterDatabaseSession
+### AdapterDatabaseSession
 
 ```python
 class AdapterDatabaseSession(Protocol)
@@ -4911,139 +4797,136 @@ Host ↔ database adapter plugin. Capability negotiation + typed execute only.
 #### AdapterDatabaseSession.capabilities
 
 ```python
-async def capabilities() -> DbCapabilitiesReply
+async def capabilities(self) -> DbCapabilitiesReply
 ```
 
 Semantic SQL-contract advertisement for this session.
 
-**Returns**:
+**Returns**
 
-  ``DbCapabilitiesReply``
+`DbCapabilitiesReply`
 
 #### AdapterDatabaseSession.execute
 
 ```python
-async def execute(request: AdapterExecuteRequest) -> ExecuteResultReply
+async def execute(self, request: AdapterExecuteRequest) -> ExecuteResultReply
 ```
 
 Canonical SQL + required structured proofs (not JSON).
 
-**Arguments**:
+**Args**
 
-- `request` - Proven statements plus isolation and receipt.
-  
+- `request`: Proven statements plus isolation and receipt.
 
-**Returns**:
+**Returns**
 
-  ``ExecuteResultReply``
+`ExecuteResultReply`
 
 #### AdapterDatabaseSession.close
 
 ```python
-async def close() -> EmptyReply
+async def close(self) -> EmptyReply
 ```
 
 Release the session; further calls fail.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
 #### AdapterDatabaseSession.bootstrap
 
 ```python
-async def bootstrap() -> DbBootstrapReply
+async def bootstrap(self) -> DbBootstrapReply
 ```
 
 Bootstrap-only SeaORM proxy metadata (not part of DbCapabilities).
 
-**Returns**:
+**Returns**
 
-  ``DbBootstrapReply``
+`DbBootstrapReply`
 
-#### AdapterDatabaseSession.export\_identity
+#### AdapterDatabaseSession.export_identity
 
 ```python
-async def export_identity() -> IdentityExportReply
+async def export_identity(self) -> IdentityExportReply
 ```
 
 Snapshot/identity/restore primitives (not a SQL dialect API).
 
-**Returns**:
+**Returns**
 
-  ``IdentityExportReply``
+`IdentityExportReply`
 
-#### AdapterDatabaseSession.import\_identity
+#### AdapterDatabaseSession.import_identity
 
 ```python
-async def import_identity(rows: list[IdentityHighWater]) -> EmptyReply
+async def import_identity(self, rows: list[IdentityHighWater]) -> EmptyReply
 ```
 
 Restore identity high-water marks captured by `exportIdentity`.
 
-**Arguments**:
+**Args**
 
-- `rows` - High-water rows to apply.
-  
+- `rows`: High-water rows to apply.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-#### AdapterDatabaseSession.list\_user\_relations
+#### AdapterDatabaseSession.list_user_relations
 
 ```python
-async def list_user_relations() -> UserRelationsReply
+async def list_user_relations(self) -> UserRelationsReply
 ```
 
 Names of user relations present in the logical database unit.
 
-**Returns**:
+**Returns**
 
-  ``UserRelationsReply``
+`UserRelationsReply`
 
-#### AdapterDatabaseSession.prepare\_unit\_restore
+#### AdapterDatabaseSession.prepare_unit_restore
 
 ```python
-async def prepare_unit_restore() -> EmptyReply
+async def prepare_unit_restore(self) -> EmptyReply
 ```
 
 Enter restore mode for one logical unit (`atomicUnitRestore`).
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-#### AdapterDatabaseSession.drop\_user\_relations
+#### AdapterDatabaseSession.drop_user_relations
 
 ```python
-async def drop_user_relations(names: list[str]) -> EmptyReply
+async def drop_user_relations(self, names: list[str]) -> EmptyReply
 ```
 
 Drop the named user relations during restore.
 
-**Arguments**:
+**Args**
 
-- `names` - Relation names from `listUserRelations`.
-  
+- `names`: Relation names from `listUserRelations`.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-#### AdapterDatabaseSession.assert\_restore\_constraints
+#### AdapterDatabaseSession.assert_restore_constraints
 
 ```python
-async def assert_restore_constraints() -> EmptyReply
+async def assert_restore_constraints(self) -> EmptyReply
 ```
 
 Verify constraints hold after restore rows were written.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-## GuestDatabase
+### GuestDatabase
 
 ```python
 class GuestDatabase(Protocol)
@@ -5057,69 +4940,62 @@ Cloudflare Workers D1 surface (`prepare`/`bind`/`run`/`first`/`all`/`raw`,
 #### GuestDatabase.execute
 
 ```python
-async def execute(request: ExecuteRequest) -> ExecuteResultReply
+async def execute(self, request: ExecuteRequest) -> ExecuteResultReply
 ```
 
 Run one typed statement batch.
 
-**Arguments**:
+**Args**
 
-- `request` - Statements, binds, and deadline.
-  
+- `request`: Statements, binds, and deadline.
 
-**Returns**:
+**Returns**
 
-  ``ExecuteResultReply``
+`ExecuteResultReply`
 
 #### GuestDatabase.close
 
 ```python
-async def close() -> EmptyReply
+async def close(self) -> EmptyReply
 ```
 
 Release the session; further calls fail.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-## PluginMigrationOpSchema
+### PluginMigrationOpSchema
 
 ```python
 class PluginMigrationOpSchema(TypedDict)
 ```
 
-``PluginMigrationOp`` member ``schema``.
+`PluginMigrationOp` member `schema`.
 
 Admitted DDL statement text.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"schema"``.
-- `value` - Admitted DDL statement text.
+- `kind`: Always `"schema"`.
+- `value`: Admitted DDL statement text.
 
-## PluginMigrationOpData
+### PluginMigrationOpData
 
 ```python
 class PluginMigrationOpData(TypedDict)
 ```
 
-``PluginMigrationOp`` member ``data``.
+`PluginMigrationOp` member `data`.
 
 Admitted DML statement text.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"data"``.
-- `value` - Admitted DML statement text.
+- `kind`: Always `"data"`.
+- `value`: Admitted DML statement text.
 
-#### PluginMigrationOp
-
-One already-separated BookclerkSQL operation in a plugin-owned migration.
-`schema` is admitted DDL; `data` is admitted DML. There is no native SQL
-escape hatch.
-
-## PluginMigration
+### PluginMigration
 
 ```python
 class PluginMigration(TypedDict)
@@ -5130,12 +5006,12 @@ stable identity (name, UUID, timestamp-like string, or digits-as-text).
 Bookclerk assigns no order, version, or predecessor meaning to `id`.
 Registration order is the forward sequence.
 
-**Attributes**:
+**Attributes**
 
-- `id` - Opaque plugin-chosen stable identity.
-- `operations` - Operations in forward order; at most `maxPluginMigrationOps`.
+- `id`: Opaque plugin-chosen stable identity.
+- `operations`: Operations in forward order; at most `maxPluginMigrationOps`.
 
-## PluginMigrationsOk
+### PluginMigrationsOk
 
 ```python
 class PluginMigrationsOk(TypedDict)
@@ -5143,47 +5019,41 @@ class PluginMigrationsOk(TypedDict)
 
 Success payload of `PluginWorker.databaseMigrations`.
 
-**Attributes**:
+**Attributes**
 
-- `migrations` - At most `maxListPage` entries; aggregate id+SQL bytes at most
-  `maxPluginMigrationRegistrationBytes`; total operations at most
-  `maxPluginMigrationTotalOps`.
+- `migrations`: At most `maxListPage` entries; aggregate id+SQL bytes at most `maxPluginMigrationRegistrationBytes`; total operations at most `maxPluginMigrationTotalOps`.
 
-## PluginMigrationsReplyOk
+### PluginMigrationsReplyOk
 
 ```python
 class PluginMigrationsReplyOk(TypedDict)
 ```
 
-``PluginMigrationsReply`` member ``ok``.
+`PluginMigrationsReply` member `ok`.
 
 Success: ordered migration sequence.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"ok"``.
-- `value` - Success: ordered migration sequence.
+- `kind`: Always `"ok"`.
+- `value`: Success: ordered migration sequence.
 
-## PluginMigrationsReplyErr
+### PluginMigrationsReplyErr
 
 ```python
 class PluginMigrationsReplyErr(TypedDict)
 ```
 
-``PluginMigrationsReply`` member ``err``.
+`PluginMigrationsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
-**Attributes**:
+**Attributes**
 
-- `kind` - Always ``"err"``.
-- `value` - Typed failure; `code` is a `PluginErrorCode` wire string.
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
-#### PluginMigrationsReply
-
-Result union of `PluginWorker.databaseMigrations`.
-
-## PluginWorker
+### PluginWorker
 
 ```python
 class PluginWorker(Protocol)
@@ -5195,50 +5065,49 @@ export analogue). `describe()` first; `open()` once per invocation.
 #### PluginWorker.describe
 
 ```python
-async def describe() -> DescribeReply
+async def describe(self) -> DescribeReply
 ```
 
 Identity, ABI version, negotiated features, and typed capabilities.
 
-**Returns**:
+**Returns**
 
-  ``DescribeReply``
+`DescribeReply`
 
 #### PluginWorker.open
 
 ```python
-async def open(invocation: Invocation, bindings: Bindings) -> EntrypointsReply
+async def open(self, invocation: Invocation, bindings: Bindings) -> EntrypointsReply
 ```
 
 Open the exported entrypoints for one invocation with host-granted
 bindings. Entrypoints the manifest does not export are null.
 
-**Arguments**:
+**Args**
 
-- `invocation` - Host-issued invocation identity.
-- `bindings` - Granted `env` bindings.
-  
+- `invocation`: Host-issued invocation identity.
+- `bindings`: Granted `env` bindings.
 
-**Returns**:
+**Returns**
 
-  ``EntrypointsReply``
+`EntrypointsReply`
 
 #### PluginWorker.shutdown
 
 ```python
-async def shutdown() -> EmptyReply
+async def shutdown(self) -> EmptyReply
 ```
 
 Flush and release resources before the process exits.
 
-**Returns**:
+**Returns**
 
-  ``EmptyReply``
+`EmptyReply`
 
-#### PluginWorker.database\_migrations
+#### PluginWorker.database_migrations
 
 ```python
-async def database_migrations(binding: str) -> PluginMigrationsReply
+async def database_migrations(self, binding: str) -> PluginMigrationsReply
 ```
 
 Complete ordered plugin-owned migration sequence for one named binding.
@@ -5249,12 +5118,533 @@ Bounded by `maxListPage` / `maxPluginMigrationOps` /
 `maxPluginMigrationTotalOps` / `maxScalarBytes` /
 `maxPluginMigrationRegistrationBytes`.
 
-**Arguments**:
+**Args**
 
-- `binding` - Binding name from `plugin.toml`.
-  
+- `binding`: Binding name from `plugin.toml`.
 
-**Returns**:
+**Returns**
 
-  ``PluginMigrationsReply``
+`PluginMigrationsReply`
 
+## Constants
+
+### PluginErrorCode
+
+```python
+PluginErrorCode = Literal['invalid_params', 'unauthorized', 'forbidden', 'not_found', 'unavaila...
+```
+
+Stable `PluginError.code` strings. Unknown future codes are forwarded
+as-is; SDKs surface them as a local `unknown` while keeping the raw wire
+code.
+
+### Entrypoint
+
+```python
+Entrypoint = Literal['storefront', 'storage', 'databaseAdapter', 'remoteLibrary', 'cli', '...
+```
+
+Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
+analogue). Each value is a capability the host calls over RPC; triggers on
+the default entrypoint (`event`, `job`) are declared separately.
+
+### PortalAuthMode
+
+```python
+PortalAuthMode = Literal['unspecified', 'password', 'oauth']
+```
+
+Portal Accounts connect mode for storefronts.
+
+### CliArgKind
+
+```python
+CliArgKind = Literal['string', 'bool', 'int', 'path']
+```
+
+Value kind for a `CliArgSpec`.
+
+### CatalogSort
+
+```python
+CatalogSort = Literal['relevance', 'popularity', 'rating', 'title', 'author']
+```
+
+Catalog search ordering.
+
+### CatalogField
+
+```python
+CatalogField = Literal['any', 'author', 'narrator', 'series', 'genre']
+```
+
+Catalog search facet restricting which field the query matches.
+
+### Abridgement
+
+```python
+Abridgement = Literal['unknown', 'unabridged', 'abridged']
+```
+
+Whether an edition is abridged.
+
+### DbType
+
+```python
+DbType = Literal['unspecified', 'bool', 'int64', 'float64', 'text', 'bytes']
+```
+
+Universal database cell/parameter domain. Engine-native arrays, enums,
+unsigned integers, and JSON text sentinels are not baseline ABI values.
+
+### DbStatementKind
+
+```python
+DbStatementKind = Literal['execute', 'select', 'returning']
+```
+
+How the host classifies a statement for result handling.
+
+### DbResultSelection
+
+```python
+DbResultSelection = Literal['discard', 'affectedRows', 'rows']
+```
+
+Which part of a statement's outcome the caller wants back.
+
+### IsolationReq
+
+```python
+IsolationReq = Literal['atomicBatch', 'nestedSavepoint', 'consistentSnapshot']
+```
+
+Host → adapter execute. GuestDatabase stays ExecuteRequest-only.
+
+### ResolvedSqlType
+
+```python
+ResolvedSqlType = Literal['integer', 'real', 'text', 'blob', 'boolean', 'null']
+```
+
+Resolved BookclerkSQL column type after type checking.
+
+### IntegerArithKind
+
+```python
+IntegerArithKind = Literal['add', 'sub', 'mul', 'abs']
+```
+
+INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL.
+
+### OidcClientsReply
+
+```python
+OidcClientsReply = Union[OidcClientsReplyOk, OidcClientsReplyErr]
+```
+
+Result union of `Oidc.clients`.
+
+### EntrypointsReply
+
+```python
+EntrypointsReply = Union[EntrypointsReplyOk, EntrypointsReplyErr]
+```
+
+Result union of `PluginWorker.open`.
+
+### JobOutcome
+
+```python
+JobOutcome = Union[JobOutcomeCompleted, JobOutcomeRetryable, JobOutcomeRejected, JobOutcom...
+```
+
+Terminal or suspended result of `JobRunner.job`.
+
+### EventResult
+
+```python
+EventResult = Union[EventResultAck, EventResultRetry, EventResultReject, EventResultDeadLet...
+```
+
+Per-event outcome inside an `EventConsumer.event` batch reply.
+
+### EventBatchReply
+
+```python
+EventBatchReply = Union[EventBatchReplyOk, EventBatchReplyErr]
+```
+
+Result union of `EventConsumer.event`. `ok` has exactly one entry per
+`EventBatch.events` entry, in order; a short list is a host-side error and
+the missing tail is retried.
+
+### HeadReply
+
+```python
+HeadReply = Union[HeadReplyOk, HeadReplyErr]
+```
+
+Result union of `Destination.head`.
+
+### ListReply
+
+```python
+ListReply = Union[ListReplyOk, ListReplyErr]
+```
+
+Result union of `Destination.list`.
+
+### GetReply
+
+```python
+GetReply = Union[GetReplyOk, GetReplyErr]
+```
+
+Result union of `Destination.get`.
+
+### PutReply
+
+```python
+PutReply = Union[PutReplyOk, PutReplyErr]
+```
+
+Result union of `Destination.put` / `Destination.commit`.
+
+### CopyReply
+
+```python
+CopyReply = Union[CopyReplyOk, CopyReplyErr]
+```
+
+Result union of `Destination.copy`.
+
+### EmptyReply
+
+```python
+EmptyReply = Union[EmptyReplyOk, EmptyReplyErr]
+```
+
+Result union of `methods without a success payload`.
+
+### PullReply
+
+```python
+PullReply = Union[PullReplyOk, PullReplyErr]
+```
+
+Result union of `ByteSource.pull`.
+
+### OpenReply
+
+```python
+OpenReply = Union[OpenReplyOk, OpenReplyErr]
+```
+
+Result union of `Source.open`.
+
+### DescribeReply
+
+```python
+DescribeReply = Union[DescribeReplyOk, DescribeReplyErr]
+```
+
+Result union of `PluginWorker.describe`.
+
+### HandleReply
+
+```python
+HandleReply = Union[HandleReplyOk, HandleReplyErr]
+```
+
+Result union of `JobRunner.job`.
+
+### HealthReply
+
+```python
+HealthReply = Union[HealthReplyOk, HealthReplyErr]
+```
+
+Result union of `health`.
+
+### AdapterSessionReply
+
+```python
+AdapterSessionReply = Union[AdapterSessionReplyOk, AdapterSessionReplyErr]
+```
+
+Result union of `Database.openSession`.
+
+### GuestDatabaseReply
+
+```python
+GuestDatabaseReply = Union[GuestDatabaseReplyOk, GuestDatabaseReplyErr]
+```
+
+Result union of `guest database opens`.
+
+### CliSchemaReply
+
+```python
+CliSchemaReply = Union[CliSchemaReplyOk, CliSchemaReplyErr]
+```
+
+Result union of `PluginCli.describe`.
+
+### CliInvokeReply
+
+```python
+CliInvokeReply = Union[CliInvokeReplyOk, CliInvokeReplyErr]
+```
+
+Result union of `PluginCli.invoke`.
+
+### DiagnoseReply
+
+```python
+DiagnoseReply = Union[DiagnoseReplyOk, DiagnoseReplyErr]
+```
+
+Result union of `diagnose`.
+
+### LoginReply
+
+```python
+LoginReply = Union[LoginReplyOk, LoginReplyErr]
+```
+
+Result union of `ContentSource.login` / `loginComplete`.
+
+### LoginStartReply
+
+```python
+LoginStartReply = Union[LoginStartReplyOk, LoginStartReplyErr]
+```
+
+Result union of `ContentSource.loginStart`.
+
+### ScanReply
+
+```python
+ScanReply = Union[ScanReplyOk, ScanReplyErr]
+```
+
+Result union of `ContentSource.scan`.
+
+### FetchTitleReply
+
+```python
+FetchTitleReply = Union[FetchTitleReplyOk, FetchTitleReplyErr]
+```
+
+Result union of `ContentSource.fetchTitle`.
+
+### SourceAccountsReply
+
+```python
+SourceAccountsReply = Union[SourceAccountsReplyOk, SourceAccountsReplyErr]
+```
+
+Result union of `ContentSource.listAccounts`.
+
+### CatalogHitsReply
+
+```python
+CatalogHitsReply = Union[CatalogHitsReplyOk, CatalogHitsReplyErr]
+```
+
+Result union of `searchCatalog` / `expandCandidates` / `listDeals`.
+
+### CatalogDetailReply
+
+```python
+CatalogDetailReply = Union[CatalogDetailReplyOk, CatalogDetailReplyErr]
+```
+
+Result union of `ContentSource.catalogDetail`.
+
+### PurchaseHintReply
+
+```python
+PurchaseHintReply = Union[PurchaseHintReplyOk, PurchaseHintReplyErr]
+```
+
+Result union of `ContentSource.purchaseHint`.
+
+### ExternalUserReply
+
+```python
+ExternalUserReply = Union[ExternalUserReplyOk, ExternalUserReplyErr]
+```
+
+Result union of `Oidc.authenticateUser`.
+
+### EventPollReply
+
+```python
+EventPollReply = Union[EventPollReplyOk, EventPollReplyErr]
+```
+
+Result union of `RemoteLibrary.pollEvents`.
+
+### SyncListeningReply
+
+```python
+SyncListeningReply = Union[SyncListeningReplyOk, SyncListeningReplyErr]
+```
+
+Result union of `RemoteLibrary.syncListening`.
+
+### PublishReply
+
+```python
+PublishReply = Union[PublishReplyOk, PublishReplyErr]
+```
+
+Result union of `EventPublisher.publish`.
+
+### QueueResult
+
+```python
+QueueResult = Union[QueueResultAck, QueueResultRetry]
+```
+
+Per-message outcome inside a `QueueConsumer.queue` batch reply.
+
+### QueueBatchReply
+
+```python
+QueueBatchReply = Union[QueueBatchReplyOk, QueueBatchReplyErr]
+```
+
+Result union of `QueueConsumer.queue`.
+
+### QueueSendReply
+
+```python
+QueueSendReply = Union[QueueSendReplyOk, QueueSendReplyErr]
+```
+
+Result union of `QueueProducer.send` / `sendBatch`.
+
+### KvGetReply
+
+```python
+KvGetReply = Union[KvGetReplyOk, KvGetReplyErr]
+```
+
+Result union of `KvNamespace.get`.
+
+### KvPutReply
+
+```python
+KvPutReply = Union[KvPutReplyOk, KvPutReplyErr]
+```
+
+Result union of `KvNamespace.put`.
+
+### KvDeleteReply
+
+```python
+KvDeleteReply = Union[KvDeleteReplyOk, KvDeleteReplyErr]
+```
+
+Result union of `KvNamespace.delete`.
+
+### KvListReply
+
+```python
+KvListReply = Union[KvListReplyOk, KvListReplyErr]
+```
+
+Result union of `KvNamespace.list`.
+
+### DbValue
+
+```python
+DbValue = Union[DbValueNull, DbValueBoolean, DbValueInt64, DbValueFloat64, DbValueText,...
+```
+
+One typed SQL cell or bind parameter.
+
+### OptionalColumnReference
+
+```python
+OptionalColumnReference = Union[OptionalColumnReferenceNone, OptionalColumnReferenceSome]
+```
+
+Per-column `REFERENCES` slot in `CreateTableSchema`.
+
+### TableConstraint
+
+```python
+TableConstraint = Union[TableConstraintPrimaryKey, TableConstraintUnique, TableConstraintCheck,...
+```
+
+One table-level constraint.
+
+### SchemaAction
+
+```python
+SchemaAction = Union[SchemaActionNone, SchemaActionCreate, SchemaActionDrop]
+```
+
+CREATE/DROP action recorded on a proof.
+
+### ExecuteResultReply
+
+```python
+ExecuteResultReply = Union[ExecuteResultReplyOk, ExecuteResultReplyErr]
+```
+
+Result union of `execute`.
+
+### DbBootstrapReply
+
+```python
+DbBootstrapReply = Union[DbBootstrapReplyOk, DbBootstrapReplyErr]
+```
+
+Result union of `AdapterDatabaseSession.bootstrap`.
+
+### DbCapabilitiesReply
+
+```python
+DbCapabilitiesReply = Union[DbCapabilitiesReplyOk, DbCapabilitiesReplyErr]
+```
+
+Result union of `AdapterDatabaseSession.capabilities`.
+
+### IdentityExportReply
+
+```python
+IdentityExportReply = Union[IdentityExportReplyOk, IdentityExportReplyErr]
+```
+
+Result union of `AdapterDatabaseSession.exportIdentity`.
+
+### UserRelationsReply
+
+```python
+UserRelationsReply = Union[UserRelationsReplyOk, UserRelationsReplyErr]
+```
+
+Result union of `AdapterDatabaseSession.listUserRelations`.
+
+### PluginMigrationOp
+
+```python
+PluginMigrationOp = Union[PluginMigrationOpSchema, PluginMigrationOpData]
+```
+
+One already-separated BookclerkSQL operation in a plugin-owned migration.
+`schema` is admitted DDL; `data` is admitted DML. There is no native SQL
+escape hatch.
+
+### PluginMigrationsReply
+
+```python
+PluginMigrationsReply = Union[PluginMigrationsReplyOk, PluginMigrationsReplyErr]
+```
+
+Result union of `PluginWorker.databaseMigrations`.

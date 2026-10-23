@@ -1,48 +1,42 @@
-**bookclerk_plugin_abi > package_version**
+# bookclerk_plugin_abi::package_version
 
-# Module: package_version
+`plugin.toml` `version` as a semantic version.
 
-## Contents
+Every plugin declares a semver `version`. The host pins the `[[settings]]`
+schema per plugin key together with the version that produced it, and
+orders versions to decide whether a host may re-pin (newer), must refuse
+to spawn (older), or is unchanged.
 
-**Functions**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`parse_package_version`](#parse_package_version) | function | Parses `raw` as a semantic version. |
+| [`package_version_order`](#package_version_order) | function | Orders a host's local package version against the pinned one. |
 
-- [`package_version_order`](#package_version_order) - Orders a host's local package version against the pinned one.
-- [`parse_package_version`](#parse_package_version) - Parses `raw` as a semantic version.
+## Functions
 
----
+### parse_package_version
 
-## bookclerk_plugin_abi::package_version::package_version_order
+```rust
+pub fn parse_package_version(raw: &str) -> Result<Version, String>
+```
 
-*Function*
+Parses `raw` as a semantic version.
+
+#### Errors
+
+Returns an operator-facing message when `raw` is empty or is not semver.
+
+### package_version_order
+
+```rust
+pub fn package_version_order(local: &str, pinned: &str) -> Result<Ordering, String>
+```
 
 Orders a host's local package version against the pinned one.
 
 A pinned version that is empty or does not parse counts as `0.0.0`, so a
 host with a real version repairs the pin instead of refusing forever.
 
-# Errors
+#### Errors
 
 Returns an error when `local` is not a semantic version.
-
-```rust
-fn package_version_order(local: &str, pinned: &str) -> Result<std::cmp::Ordering, String>
-```
-
-
-
-## bookclerk_plugin_abi::package_version::parse_package_version
-
-*Function*
-
-Parses `raw` as a semantic version.
-
-# Errors
-
-Returns an operator-facing message when `raw` is empty or is not semver.
-
-```rust
-fn parse_package_version(raw: &str) -> Result<semver::Version, String>
-```
-
-
-

@@ -1,20 +1,13 @@
-**bookclerk_plugin_abi > methods > event**
+# bookclerk_plugin_abi::methods::event
 
-# Module: methods::event
+Deliver one ordered batch of domain events (Cap'n Proto `EventConsumer.event`).
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"event"`.
-
----
-
-## bookclerk_plugin_abi::methods::event::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "event";
+```
 
 Wire method name `"event"`.
-
-
-

@@ -8,11 +8,14 @@ destination / job-handler surface.
 
 ## Modules
 
-### [`bookclerk_plugin_destination_s3`](bookclerk_plugin_destination_s3.md)
+- [`plugin`](plugin.md): Destination + job-handler surface for the S3 / MinIO guest.
 
-*1 constant, 1 module*
+## Constants
 
-### [`plugin`](plugin.md)
+### ID
 
-*2 structs*
+```rust
+pub const ID: &str = "s3";
+```
 
+Plugin id string advertised in describe() and config (`[output.s3]`).

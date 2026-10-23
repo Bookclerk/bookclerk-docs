@@ -1,7 +1,3 @@
-**@bookclerk/plugin-sdk**
-
-***
-
 # @bookclerk/plugin-sdk
 
 TypeScript guest SDK for Bookclerk plugins (`api_version = 3`).
@@ -154,3 +150,10 @@ the embed. The bundle is committed; CI fails when it is stale, and
 keep the Rust and Python mirrors byte-identical. See
 [`docs/workerd-bridge.md`](../../workerd-bridge.md) for the wire the
 launcher and the embedded adapter speak.
+
+## Modules
+
+- [cli](cli.md)
+- [index](index.md)
+- [sparse-workerd](sparse-workerd.md)
+- [workerd](workerd.md)

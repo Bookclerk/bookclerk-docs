@@ -1,116 +1,156 @@
-**bookclerk_plugin_abi > plugin_capnp > db_timing**
+# bookclerk_plugin_abi::plugin_capnp::db_timing
 
-# Module: plugin_capnp::db_timing
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::db_timing::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_attempt_elapsed_us(self: Self) -> u64`
-- `fn set_attempt_elapsed_us(self: & mut Self, value: u64)`
-- `fn get_db_execution_us(self: Self) -> u64`
-- `fn set_db_execution_us(self: & mut Self, value: u64)`
-- `fn get_db_timing_source(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_db_timing_source<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_db_timing_source(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_db_timing_source(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_attempt_elapsed_us
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_attempt_elapsed_us(self) -> u64
+```
 
+#### Reader::get_db_execution_us
 
+```rust
+pub fn get_db_execution_us(self) -> u64
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_timing::Owned
+#### Reader::get_db_timing_source
 
-*Struct*
+```rust
+pub fn get_db_timing_source(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_db_timing_source
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_db_timing_source(&self) -> bool
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
+#### Builder::into_reader
 
-## bookclerk_plugin_abi::plugin_capnp::db_timing::Pipeline
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-*Struct*
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
-## bookclerk_plugin_abi::plugin_capnp::db_timing::Reader
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-*Struct*
+#### Builder::get_attempt_elapsed_us
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn get_attempt_elapsed_us(self) -> u64
+```
 
-**Methods:**
+#### Builder::set_attempt_elapsed_us
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_attempt_elapsed_us(self: Self) -> u64`
-- `fn get_db_execution_us(self: Self) -> u64`
-- `fn get_db_timing_source(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_db_timing_source(self: &Self) -> bool`
+```rust
+pub fn set_attempt_elapsed_us(&mut self, value: u64)
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::get_db_execution_us
 
-**Trait Implementations:**
+```rust
+pub fn get_db_execution_us(self) -> u64
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::set_db_execution_us
 
+```rust
+pub fn set_db_execution_us(&mut self, value: u64)
+```
 
+#### Builder::get_db_timing_source
 
+```rust
+pub fn get_db_timing_source(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_db_timing_source
+
+```rust
+pub fn set_db_timing_source(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_db_timing_source
+
+```rust
+pub fn init_db_timing_source(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_db_timing_source
+
+```rust
+pub fn has_db_timing_source(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

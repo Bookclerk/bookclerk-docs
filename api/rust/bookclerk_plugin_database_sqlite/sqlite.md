@@ -1,160 +1,135 @@
-**bookclerk_plugin_database_sqlite > sqlite**
+# bookclerk_plugin_database_sqlite::sqlite
 
-# Module: sqlite
+Local SQLite engine for the database plugin (rusqlite SeaORM proxy).
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`SqliteProxy`](#sqliteproxy) | struct | SeaORM proxy over a shared rusqlite connection. |
+| [`open`](#open) | function | Opens a SQLite file and returns a SeaORM proxy (no schema application). |
+| [`drop_unit_files`](#drop_unit_files) | function | Deletes a SQLite binding unit and journal sidecars. Missing files are success. |
+| [`open_memory`](#open_memory) | function | Opens an in-memory SQLite database, applies host schema, and returns a SeaORM proxy. |
+| [`open_memory_unmigrated`](#open_memory_unmigrated) | function | Opens in-memory SQLite without applying schema (guest-shaped connect). |
+| [`open_store`](#open_store) | function | Opens SQLite at `path`, applies host schema, and wraps it as a `LibraryStore`. |
+| [`open_store_memory`](#open_store_memory) | function | Opens an in-memory `LibraryStore` for tests. |
 
-**Structs**
+## Structs
 
-- [`SqliteProxy`](#sqliteproxy) - SeaORM proxy over a shared rusqlite connection.
+### SqliteProxy
 
-**Functions**
-
-- [`drop_unit_files`](#drop_unit_files) - Deletes a SQLite binding unit and journal sidecars. Missing files are success.
-- [`open`](#open) - Opens a SQLite file and returns a SeaORM proxy (no schema application).
-- [`open_memory`](#open_memory) - Opens an in-memory SQLite database, applies host schema, and returns a SeaORM proxy.
-- [`open_memory_unmigrated`](#open_memory_unmigrated) - Opens in-memory SQLite without applying schema (guest-shaped connect).
-- [`open_store`](#open_store) - Opens SQLite at `path`, applies host schema, and wraps it as a [`LibraryStore`](../bookclerk_library/store.md#bookclerk_librarystorelibrarystore).
-- [`open_store_memory`](#open_store_memory) - Opens an in-memory [`LibraryStore`](../bookclerk_library/store.md#bookclerk_librarystorelibrarystore) for tests.
-
----
-
-## bookclerk_plugin_database_sqlite::sqlite::SqliteProxy
-
-*Struct*
+```rust
+pub struct SqliteProxy {
+    /* private fields */
+}
+```
 
 SeaORM proxy over a shared rusqlite connection.
 
-**Methods:**
+#### SqliteProxy::new
 
-- `fn new(conn: Connection) -> rusqlite::Result<Self>` - Wraps an already-opened rusqlite connection for SeaORM proxy queries.
+```rust
+pub fn new(conn: Connection) -> Result<Self>
+```
 
-**Trait Implementations:**
+Wraps an already-opened rusqlite connection for SeaORM proxy queries.
 
-- **ProxyDatabaseTrait**
-  - `fn query(self: &'life0 Self, statement: Statement) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn execute(self: &'life0 Self, statement: Statement) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn ping(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn begin(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn commit(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn rollback(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn start_rollback(self: &Self)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut std::fmt::Formatter) -> std::fmt::Result`
+Call after the host applies schema (see [`open`](#open) / [`open_memory`](#open_memory)).
 
+##### Errors
 
+Returns when this connection refuses the query-deadline progress
+handler. rusqlite 0.38+ returns that error when the handle is not owned
+by this [`Connection`](https://docs.rs/rusqlite/latest/rusqlite/struct.Connection.html), which would leave statements without a deadline.
 
-## bookclerk_plugin_database_sqlite::sqlite::drop_unit_files
+Implements: `Debug`, `ProxyDatabaseTrait`
 
-*Function*
+## Functions
+
+### open
+
+```rust
+pub async fn open(path: &Path) -> Result<DatabaseConnection, DbErr>
+```
+
+Opens a SQLite file and returns a SeaORM proxy (no schema application).
+
+The host applies DDL after `openSession` + capability negotiation.
+
+#### Errors
+
+Returns [`DbErr`](https://docs.rs/sea_orm/latest/sea_orm/error/enum.DbErr.html) when the parent directory cannot be created, the file
+cannot be opened, the query-deadline handler cannot be installed, or the
+SeaORM proxy cannot connect.
+
+### drop_unit_files
+
+```rust
+pub fn drop_unit_files(unit_ref: &str) -> Result<(), DbErr>
+```
 
 Deletes a SQLite binding unit and journal sidecars. Missing files are success.
 
 Called from the sqlite adapter's `Database.dropUnit` implementation so the
 host does not link this crate to unlink plugin-database files.
 
-# Errors
+#### Errors
 
 Returns when a sidecar exists but cannot be removed.
 
-```rust
-fn drop_unit_files(unit_ref: &str) -> std::result::Result<(), sea_orm::DbErr>
-```
-
-
-
-## bookclerk_plugin_database_sqlite::sqlite::open
-
-*Function*
-
-Opens a SQLite file and returns a SeaORM proxy (no schema application).
-
-The host applies DDL after `openSession` + capability negotiation.
-
-# Errors
-
-Returns [`DbErr`](https://docs.rs/sea_orm/latest/sea_orm/error/enum.DbErr.html) when the parent directory cannot be created, the file
-cannot be opened, the query-deadline handler cannot be installed, or the
-SeaORM proxy cannot connect.
+### open_memory
 
 ```rust
-fn open(path: &std::path::Path) -> std::result::Result<sea_orm::DatabaseConnection, sea_orm::DbErr>
+pub async fn open_memory() -> Result<DatabaseConnection>
 ```
-
-
-
-## bookclerk_plugin_database_sqlite::sqlite::open_memory
-
-*Function*
 
 Opens an in-memory SQLite database, applies host schema, and returns a SeaORM proxy.
 
 Intended for unit tests and dry-run paths (no durable file). Version
-selection lives in [`bookclerk_library::apply_host_schema`](../bookclerk_library/host_schema.md#bookclerk_libraryhost_schemaapply_host_schema).
+selection lives in [`bookclerk_library::apply_host_schema`](../bookclerk_library/index.md#apply_host_schema).
 
-# Errors
+#### Errors
 
-Returns [`bookclerk_library::LibraryError`](../bookclerk_library/error.md#bookclerk_libraryerrorlibraryerror) when the SeaORM proxy or host schema fails.
+Returns [`bookclerk_library::LibraryError`](../bookclerk_library/index.md#libraryerror) when the SeaORM proxy or host schema fails.
+
+### open_memory_unmigrated
 
 ```rust
-fn open_memory() -> bookclerk_library::Result<sea_orm::DatabaseConnection>
+pub async fn open_memory_unmigrated() -> Result<DatabaseConnection, DbErr>
 ```
-
-
-
-## bookclerk_plugin_database_sqlite::sqlite::open_memory_unmigrated
-
-*Function*
 
 Opens in-memory SQLite without applying schema (guest-shaped connect).
 
-# Errors
+#### Errors
 
 Returns [`DbErr`](https://docs.rs/sea_orm/latest/sea_orm/error/enum.DbErr.html) when the in-memory database cannot be opened, the
 query-deadline handler cannot be installed, or the SeaORM proxy fails.
 
+### open_store
+
 ```rust
-fn open_memory_unmigrated() -> std::result::Result<sea_orm::DatabaseConnection, sea_orm::DbErr>
+pub async fn open_store(path: &Path) -> Result<LibraryStore>
 ```
 
-
-
-## bookclerk_plugin_database_sqlite::sqlite::open_store
-
-*Function*
-
-Opens SQLite at `path`, applies host schema, and wraps it as a [`LibraryStore`](../bookclerk_library/store.md#bookclerk_librarystorelibrarystore).
+Opens SQLite at `path`, applies host schema, and wraps it as a [`LibraryStore`](../bookclerk_library/index.md#librarystore).
 
 Prefer this entry point from CLI / tests that need the high-level library
-API rather than a raw [`DatabaseConnection`](https://docs.rs/sea_orm/latest/sea_orm/database/db_connection/struct.DatabaseConnection.html). Production guests use [`open`](sqlite.md#bookclerk_plugin_database_sqlitesqliteopen).
+API rather than a raw [`DatabaseConnection`](https://docs.rs/sea_orm/latest/sea_orm/database/db_connection/struct.DatabaseConnection.html). Production guests use [`open`](#open).
 
-# Arguments
+#### Arguments
 
 * `path` - Absolute path to the SQLite database file.
 
-# Errors
+#### Errors
 
-Propagates errors from [`open`](sqlite.md#bookclerk_plugin_database_sqlitesqliteopen) or host schema application.
+Propagates errors from [`open`](#open) or host schema application.
 
-```rust
-fn open_store(path: &std::path::Path) -> bookclerk_library::Result<bookclerk_library::LibraryStore>
-```
-
-
-
-## bookclerk_plugin_database_sqlite::sqlite::open_store_memory
-
-*Function*
-
-Opens an in-memory [`LibraryStore`](../bookclerk_library/store.md#bookclerk_librarystorelibrarystore) for tests.
-
-# Errors
-
-Propagates errors from [`open_memory`](sqlite.md#bookclerk_plugin_database_sqlitesqliteopen_memory).
+### open_store_memory
 
 ```rust
-fn open_store_memory() -> bookclerk_library::Result<bookclerk_library::LibraryStore>
+pub async fn open_store_memory() -> Result<LibraryStore>
 ```
 
+Opens an in-memory [`LibraryStore`](../bookclerk_library/index.md#librarystore) for tests.
 
+#### Errors
 
+Propagates errors from [`open_memory`](#open_memory).

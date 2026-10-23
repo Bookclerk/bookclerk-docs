@@ -1,155 +1,390 @@
-**bookclerk_plugin_abi > plugin_capnp > fetch_options**
+# bookclerk_plugin_abi::plugin_capnp::fetch_options
 
-# Module: plugin_capnp::fetch_options
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_options::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_widevine(self: Self) -> bool`
-- `fn set_widevine(self: & mut Self, value: bool)`
-- `fn get_xhe_aac(self: Self) -> bool`
-- `fn set_xhe_aac(self: & mut Self, value: bool)`
-- `fn get_widevine_cdm_path(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_widevine_cdm_path<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_widevine_cdm_path(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_widevine_cdm_path(self: &Self) -> bool`
-- `fn get_widevine_cdm_provider(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_widevine_cdm_provider<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_widevine_cdm_provider(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_widevine_cdm_provider(self: &Self) -> bool`
-- `fn get_download_cover(self: Self) -> bool`
-- `fn set_download_cover(self: & mut Self, value: bool)`
-- `fn get_download_pdf(self: Self) -> bool`
-- `fn set_download_pdf(self: & mut Self, value: bool)`
-- `fn get_cover_size(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_cover_size<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_cover_size(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_cover_size(self: &Self) -> bool`
-- `fn get_chapter_layout(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_chapter_layout<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_chapter_layout(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_chapter_layout(self: &Self) -> bool`
-- `fn get_strip_audible_brand_audio(self: Self) -> bool`
-- `fn set_strip_audible_brand_audio(self: & mut Self, value: bool)`
-- `fn get_download_clips_bookmarks(self: Self) -> bool`
-- `fn set_download_clips_bookmarks(self: & mut Self, value: bool)`
-- `fn get_retain_aax_file(self: Self) -> bool`
-- `fn set_retain_aax_file(self: & mut Self, value: bool)`
-- `fn get_download_speed_limit_kbps(self: Self) -> u32`
-- `fn set_download_speed_limit_kbps(self: & mut Self, value: u32)`
-- `fn get_save_metadata_json(self: Self) -> bool`
-- `fn set_save_metadata_json(self: & mut Self, value: bool)`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_widevine
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_widevine(self) -> bool
+```
 
+#### Reader::get_xhe_aac
 
+```rust
+pub fn get_xhe_aac(self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_options::Owned
+#### Reader::get_widevine_cdm_path
 
-*Struct*
+```rust
+pub fn get_widevine_cdm_path(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_widevine_cdm_path
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_widevine_cdm_path(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_widevine_cdm_provider
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_widevine_cdm_provider(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_widevine_cdm_provider
 
+```rust
+pub fn has_widevine_cdm_provider(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_options::Pipeline
+#### Reader::get_download_cover
 
-*Struct*
+```rust
+pub fn get_download_cover(self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_download_pdf
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_download_pdf(self) -> bool
+```
 
+#### Reader::get_cover_size
 
+```rust
+pub fn get_cover_size(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_options::Reader
+#### Reader::has_cover_size
 
-*Struct*
+```rust
+pub fn has_cover_size(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_chapter_layout
 
-**Methods:**
+```rust
+pub fn get_chapter_layout(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_widevine(self: Self) -> bool`
-- `fn get_xhe_aac(self: Self) -> bool`
-- `fn get_widevine_cdm_path(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_widevine_cdm_path(self: &Self) -> bool`
-- `fn get_widevine_cdm_provider(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_widevine_cdm_provider(self: &Self) -> bool`
-- `fn get_download_cover(self: Self) -> bool`
-- `fn get_download_pdf(self: Self) -> bool`
-- `fn get_cover_size(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_cover_size(self: &Self) -> bool`
-- `fn get_chapter_layout(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_chapter_layout(self: &Self) -> bool`
-- `fn get_strip_audible_brand_audio(self: Self) -> bool`
-- `fn get_download_clips_bookmarks(self: Self) -> bool`
-- `fn get_retain_aax_file(self: Self) -> bool`
-- `fn get_download_speed_limit_kbps(self: Self) -> u32`
-- `fn get_save_metadata_json(self: Self) -> bool`
+#### Reader::has_chapter_layout
 
-**Traits:** HasTypeId, Copy
+```rust
+pub fn has_chapter_layout(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_strip_audible_brand_audio
 
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_strip_audible_brand_audio(self) -> bool
+```
 
+#### Reader::get_download_clips_bookmarks
 
+```rust
+pub fn get_download_clips_bookmarks(self) -> bool
+```
 
+#### Reader::get_retain_aax_file
+
+```rust
+pub fn get_retain_aax_file(self) -> bool
+```
+
+#### Reader::get_download_speed_limit_kbps
+
+```rust
+pub fn get_download_speed_limit_kbps(self) -> u32
+```
+
+#### Reader::get_save_metadata_json
+
+```rust
+pub fn get_save_metadata_json(self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_widevine
+
+```rust
+pub fn get_widevine(self) -> bool
+```
+
+#### Builder::set_widevine
+
+```rust
+pub fn set_widevine(&mut self, value: bool)
+```
+
+#### Builder::get_xhe_aac
+
+```rust
+pub fn get_xhe_aac(self) -> bool
+```
+
+#### Builder::set_xhe_aac
+
+```rust
+pub fn set_xhe_aac(&mut self, value: bool)
+```
+
+#### Builder::get_widevine_cdm_path
+
+```rust
+pub fn get_widevine_cdm_path(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_widevine_cdm_path
+
+```rust
+pub fn set_widevine_cdm_path(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_widevine_cdm_path
+
+```rust
+pub fn init_widevine_cdm_path(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_widevine_cdm_path
+
+```rust
+pub fn has_widevine_cdm_path(&self) -> bool
+```
+
+#### Builder::get_widevine_cdm_provider
+
+```rust
+pub fn get_widevine_cdm_provider(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_widevine_cdm_provider
+
+```rust
+pub fn set_widevine_cdm_provider(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_widevine_cdm_provider
+
+```rust
+pub fn init_widevine_cdm_provider(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_widevine_cdm_provider
+
+```rust
+pub fn has_widevine_cdm_provider(&self) -> bool
+```
+
+#### Builder::get_download_cover
+
+```rust
+pub fn get_download_cover(self) -> bool
+```
+
+#### Builder::set_download_cover
+
+```rust
+pub fn set_download_cover(&mut self, value: bool)
+```
+
+#### Builder::get_download_pdf
+
+```rust
+pub fn get_download_pdf(self) -> bool
+```
+
+#### Builder::set_download_pdf
+
+```rust
+pub fn set_download_pdf(&mut self, value: bool)
+```
+
+#### Builder::get_cover_size
+
+```rust
+pub fn get_cover_size(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_cover_size
+
+```rust
+pub fn set_cover_size(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_cover_size
+
+```rust
+pub fn init_cover_size(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_cover_size
+
+```rust
+pub fn has_cover_size(&self) -> bool
+```
+
+#### Builder::get_chapter_layout
+
+```rust
+pub fn get_chapter_layout(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_chapter_layout
+
+```rust
+pub fn set_chapter_layout(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_chapter_layout
+
+```rust
+pub fn init_chapter_layout(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_chapter_layout
+
+```rust
+pub fn has_chapter_layout(&self) -> bool
+```
+
+#### Builder::get_strip_audible_brand_audio
+
+```rust
+pub fn get_strip_audible_brand_audio(self) -> bool
+```
+
+#### Builder::set_strip_audible_brand_audio
+
+```rust
+pub fn set_strip_audible_brand_audio(&mut self, value: bool)
+```
+
+#### Builder::get_download_clips_bookmarks
+
+```rust
+pub fn get_download_clips_bookmarks(self) -> bool
+```
+
+#### Builder::set_download_clips_bookmarks
+
+```rust
+pub fn set_download_clips_bookmarks(&mut self, value: bool)
+```
+
+#### Builder::get_retain_aax_file
+
+```rust
+pub fn get_retain_aax_file(self) -> bool
+```
+
+#### Builder::set_retain_aax_file
+
+```rust
+pub fn set_retain_aax_file(&mut self, value: bool)
+```
+
+#### Builder::get_download_speed_limit_kbps
+
+```rust
+pub fn get_download_speed_limit_kbps(self) -> u32
+```
+
+#### Builder::set_download_speed_limit_kbps
+
+```rust
+pub fn set_download_speed_limit_kbps(&mut self, value: u32)
+```
+
+#### Builder::get_save_metadata_json
+
+```rust
+pub fn get_save_metadata_json(self) -> bool
+```
+
+#### Builder::set_save_metadata_json
+
+```rust
+pub fn set_save_metadata_json(&mut self, value: bool)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

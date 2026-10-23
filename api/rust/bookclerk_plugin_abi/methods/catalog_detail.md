@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > catalog_detail**
+# bookclerk_plugin_abi::methods::catalog_detail
 
-# Module: methods::catalog_detail
+Fetch rich catalog detail for one product id.
 
-## Contents
+Params: [`crate::CatalogDetailParams`](../generated.md#catalogdetailparams). Result: [`crate::CatalogHit`](../generated.md#cataloghit).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"catalogDetail"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::catalog_detail::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "catalogDetail";
+```
 
 Wire method name `"catalogDetail"`.
-
-
-

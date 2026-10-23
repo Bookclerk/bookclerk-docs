@@ -1,138 +1,270 @@
-**bookclerk_plugin_abi > plugin_capnp > job_controller**
+# bookclerk_plugin_abi::plugin_capnp::job_controller
 
-# Module: plugin_capnp::job_controller
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::job_controller::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_invocation(self: Self) -> ::capnp::Result<crate::plugin_capnp::job_invocation::Builder<'a>>`
-- `fn set_invocation(self: & mut Self, value: crate::plugin_capnp::job_invocation::Reader) -> ::capnp::Result<()>`
-- `fn init_invocation(self: Self) -> crate::plugin_capnp::job_invocation::Builder<'a>`
-- `fn has_invocation(self: &Self) -> bool`
-- `fn get_input(self: Self) -> ::capnp::Result<crate::plugin_capnp::source::Client>`
-- `fn set_input(self: & mut Self, value: crate::plugin_capnp::source::Client)`
-- `fn has_input(self: &Self) -> bool`
-- `fn get_output(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn set_output(self: & mut Self, value: crate::plugin_capnp::destination::Client)`
-- `fn has_output(self: &Self) -> bool`
-- `fn get_progress(self: Self) -> ::capnp::Result<crate::plugin_capnp::progress_sink::Client>`
-- `fn set_progress(self: & mut Self, value: crate::plugin_capnp::progress_sink::Client)`
-- `fn has_progress(self: &Self) -> bool`
-- `fn get_cancel(self: Self) -> ::capnp::Result<crate::plugin_capnp::cancellation::Client>`
-- `fn set_cancel(self: & mut Self, value: crate::plugin_capnp::cancellation::Client)`
-- `fn has_cancel(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_invocation
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_invocation(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_invocation
 
+```rust
+pub fn has_invocation(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_controller::Owned
+#### Reader::get_input
 
-*Struct*
+```rust
+pub fn get_input(self) -> Result<Client>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_input
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_input(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_output
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_output(self) -> Result<Client>
+```
 
+#### Reader::has_output
 
+```rust
+pub fn has_output(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_controller::Pipeline
+#### Reader::get_progress
 
-*Struct*
+```rust
+pub fn get_progress(self) -> Result<Client>
+```
 
-**Methods:**
+#### Reader::has_progress
 
-- `fn get_invocation(self: &Self) -> crate::plugin_capnp::job_invocation::Pipeline`
-- `fn get_input(self: &Self) -> crate::plugin_capnp::source::Client`
-- `fn get_output(self: &Self) -> crate::plugin_capnp::destination::Client`
-- `fn get_progress(self: &Self) -> crate::plugin_capnp::progress_sink::Client`
-- `fn get_cancel(self: &Self) -> crate::plugin_capnp::cancellation::Client`
+```rust
+pub fn has_progress(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_cancel
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
 
+#### Reader::has_cancel
 
+```rust
+pub fn has_cancel(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_controller::Reader
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Generic Parameters:**
-- 'a
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-**Methods:**
+#### Builder::into_reader
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_invocation(self: Self) -> ::capnp::Result<crate::plugin_capnp::job_invocation::Reader<'a>>`
-- `fn has_invocation(self: &Self) -> bool`
-- `fn get_input(self: Self) -> ::capnp::Result<crate::plugin_capnp::source::Client>`
-- `fn has_input(self: &Self) -> bool`
-- `fn get_output(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn has_output(self: &Self) -> bool`
-- `fn get_progress(self: Self) -> ::capnp::Result<crate::plugin_capnp::progress_sink::Client>`
-- `fn has_progress(self: &Self) -> bool`
-- `fn get_cancel(self: Self) -> ::capnp::Result<crate::plugin_capnp::cancellation::Client>`
-- `fn has_cancel(self: &Self) -> bool`
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_invocation
+
+```rust
+pub fn get_invocation(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_invocation
+
+```rust
+pub fn set_invocation(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_invocation
+
+```rust
+pub fn init_invocation(self) -> Builder<'a>
+```
+
+#### Builder::has_invocation
+
+```rust
+pub fn has_invocation(&self) -> bool
+```
+
+#### Builder::get_input
+
+```rust
+pub fn get_input(self) -> Result<Client>
+```
+
+#### Builder::set_input
+
+```rust
+pub fn set_input(&mut self, value: Client)
+```
+
+#### Builder::has_input
+
+```rust
+pub fn has_input(&self) -> bool
+```
+
+#### Builder::get_output
+
+```rust
+pub fn get_output(self) -> Result<Client>
+```
+
+#### Builder::set_output
+
+```rust
+pub fn set_output(&mut self, value: Client)
+```
+
+#### Builder::has_output
+
+```rust
+pub fn has_output(&self) -> bool
+```
+
+#### Builder::get_progress
+
+```rust
+pub fn get_progress(self) -> Result<Client>
+```
+
+#### Builder::set_progress
+
+```rust
+pub fn set_progress(&mut self, value: Client)
+```
+
+#### Builder::has_progress
+
+```rust
+pub fn has_progress(&self) -> bool
+```
+
+#### Builder::get_cancel
+
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
+
+#### Builder::set_cancel
+
+```rust
+pub fn set_cancel(&mut self, value: Client)
+```
+
+#### Builder::has_cancel
+
+```rust
+pub fn has_cancel(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_invocation
+
+```rust
+pub fn get_invocation(&self) -> Pipeline
+```
+
+#### Pipeline::get_input
+
+```rust
+pub fn get_input(&self) -> Client
+```
+
+#### Pipeline::get_output
+
+```rust
+pub fn get_output(&self) -> Client
+```
+
+#### Pipeline::get_progress
+
+```rust
+pub fn get_progress(&self) -> Client
+```
+
+#### Pipeline::get_cancel
+
+```rust
+pub fn get_cancel(&self) -> Client
+```
+
+Implements: `FromTypelessPipeline`

@@ -1,164 +1,426 @@
-**bookclerk_plugin_abi > plugin_capnp > bindings**
+# bookclerk_plugin_abi::plugin_capnp::bindings
 
-# Module: plugin_capnp::bindings
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::bindings::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_config(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Builder<'a>>`
-- `fn set_config(self: & mut Self, value: crate::plugin_capnp::extensible_config::Reader) -> ::capnp::Result<()>`
-- `fn init_config(self: Self) -> crate::plugin_capnp::extensible_config::Builder<'a>`
-- `fn has_config(self: &Self) -> bool`
-- `fn get_secrets(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Builder<'a>>`
-- `fn set_secrets(self: & mut Self, value: crate::plugin_capnp::extensible_config::Reader) -> ::capnp::Result<()>`
-- `fn init_secrets(self: Self) -> crate::plugin_capnp::extensible_config::Builder<'a>`
-- `fn has_secrets(self: &Self) -> bool`
-- `fn get_adapter(self: Self) -> ::capnp::Result<crate::plugin_capnp::database_adapter_config::Builder<'a>>`
-- `fn set_adapter(self: & mut Self, value: crate::plugin_capnp::database_adapter_config::Reader) -> ::capnp::Result<()>`
-- `fn init_adapter(self: Self) -> crate::plugin_capnp::database_adapter_config::Builder<'a>`
-- `fn has_adapter(self: &Self) -> bool`
-- `fn get_events(self: Self) -> ::capnp::Result<crate::plugin_capnp::event_publisher::Client>`
-- `fn set_events(self: & mut Self, value: crate::plugin_capnp::event_publisher::Client)`
-- `fn has_events(self: &Self) -> bool`
-- `fn get_databases(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_database::Owned>>`
-- `fn set_databases(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::named_database::Owned>) -> ::capnp::Result<()>`
-- `fn init_databases(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_database::Owned>`
-- `fn has_databases(self: &Self) -> bool`
-- `fn get_cancel(self: Self) -> ::capnp::Result<crate::plugin_capnp::cancellation::Client>`
-- `fn set_cancel(self: & mut Self, value: crate::plugin_capnp::cancellation::Client)`
-- `fn has_cancel(self: &Self) -> bool`
-- `fn get_storage(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn set_storage(self: & mut Self, value: crate::plugin_capnp::destination::Client)`
-- `fn has_storage(self: &Self) -> bool`
-- `fn get_queues(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_queue::Owned>>`
-- `fn set_queues(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::named_queue::Owned>) -> ::capnp::Result<()>`
-- `fn init_queues(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_queue::Owned>`
-- `fn has_queues(self: &Self) -> bool`
-- `fn get_kv(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_kv::Owned>>`
-- `fn set_kv(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::named_kv::Owned>) -> ::capnp::Result<()>`
-- `fn init_kv(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_kv::Owned>`
-- `fn has_kv(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_config
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_config(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_config
 
+```rust
+pub fn has_config(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::bindings::Owned
+#### Reader::get_secrets
 
-*Struct*
+```rust
+pub fn get_secrets(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_secrets
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_secrets(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_adapter
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_adapter(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_adapter
 
+```rust
+pub fn has_adapter(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::bindings::Pipeline
+#### Reader::get_events
 
-*Struct*
+```rust
+pub fn get_events(self) -> Result<Client>
+```
 
-**Methods:**
+#### Reader::has_events
 
-- `fn get_config(self: &Self) -> crate::plugin_capnp::extensible_config::Pipeline`
-- `fn get_secrets(self: &Self) -> crate::plugin_capnp::extensible_config::Pipeline`
-- `fn get_adapter(self: &Self) -> crate::plugin_capnp::database_adapter_config::Pipeline`
-- `fn get_events(self: &Self) -> crate::plugin_capnp::event_publisher::Client`
-- `fn get_cancel(self: &Self) -> crate::plugin_capnp::cancellation::Client`
-- `fn get_storage(self: &Self) -> crate::plugin_capnp::destination::Client`
+```rust
+pub fn has_events(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_databases
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_databases(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_databases
 
+```rust
+pub fn has_databases(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::bindings::Reader
+#### Reader::get_cancel
 
-*Struct*
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_cancel
 
-**Methods:**
+```rust
+pub fn has_cancel(&self) -> bool
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_config(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Reader<'a>>`
-- `fn has_config(self: &Self) -> bool`
-- `fn get_secrets(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Reader<'a>>`
-- `fn has_secrets(self: &Self) -> bool`
-- `fn get_adapter(self: Self) -> ::capnp::Result<crate::plugin_capnp::database_adapter_config::Reader<'a>>`
-- `fn has_adapter(self: &Self) -> bool`
-- `fn get_events(self: Self) -> ::capnp::Result<crate::plugin_capnp::event_publisher::Client>`
-- `fn has_events(self: &Self) -> bool`
-- `fn get_databases(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::named_database::Owned>>`
-- `fn has_databases(self: &Self) -> bool`
-- `fn get_cancel(self: Self) -> ::capnp::Result<crate::plugin_capnp::cancellation::Client>`
-- `fn has_cancel(self: &Self) -> bool`
-- `fn get_storage(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn has_storage(self: &Self) -> bool`
-- `fn get_queues(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::named_queue::Owned>>`
-- `fn has_queues(self: &Self) -> bool`
-- `fn get_kv(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::named_kv::Owned>>`
-- `fn has_kv(self: &Self) -> bool`
+#### Reader::get_storage
 
-**Traits:** HasTypeId, Copy
+```rust
+pub fn get_storage(self) -> Result<Client>
+```
 
-**Trait Implementations:**
+#### Reader::has_storage
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+```rust
+pub fn has_storage(&self) -> bool
+```
 
+#### Reader::get_queues
 
+```rust
+pub fn get_queues(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_queues
+
+```rust
+pub fn has_queues(&self) -> bool
+```
+
+#### Reader::get_kv
+
+```rust
+pub fn get_kv(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_kv
+
+```rust
+pub fn has_kv(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_config
+
+```rust
+pub fn get_config(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_config
+
+```rust
+pub fn set_config(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_config
+
+```rust
+pub fn init_config(self) -> Builder<'a>
+```
+
+#### Builder::has_config
+
+```rust
+pub fn has_config(&self) -> bool
+```
+
+#### Builder::get_secrets
+
+```rust
+pub fn get_secrets(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_secrets
+
+```rust
+pub fn set_secrets(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_secrets
+
+```rust
+pub fn init_secrets(self) -> Builder<'a>
+```
+
+#### Builder::has_secrets
+
+```rust
+pub fn has_secrets(&self) -> bool
+```
+
+#### Builder::get_adapter
+
+```rust
+pub fn get_adapter(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_adapter
+
+```rust
+pub fn set_adapter(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_adapter
+
+```rust
+pub fn init_adapter(self) -> Builder<'a>
+```
+
+#### Builder::has_adapter
+
+```rust
+pub fn has_adapter(&self) -> bool
+```
+
+#### Builder::get_events
+
+```rust
+pub fn get_events(self) -> Result<Client>
+```
+
+#### Builder::set_events
+
+```rust
+pub fn set_events(&mut self, value: Client)
+```
+
+#### Builder::has_events
+
+```rust
+pub fn has_events(&self) -> bool
+```
+
+#### Builder::get_databases
+
+```rust
+pub fn get_databases(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_databases
+
+```rust
+pub fn set_databases(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_databases
+
+```rust
+pub fn init_databases(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_databases
+
+```rust
+pub fn has_databases(&self) -> bool
+```
+
+#### Builder::get_cancel
+
+```rust
+pub fn get_cancel(self) -> Result<Client>
+```
+
+#### Builder::set_cancel
+
+```rust
+pub fn set_cancel(&mut self, value: Client)
+```
+
+#### Builder::has_cancel
+
+```rust
+pub fn has_cancel(&self) -> bool
+```
+
+#### Builder::get_storage
+
+```rust
+pub fn get_storage(self) -> Result<Client>
+```
+
+#### Builder::set_storage
+
+```rust
+pub fn set_storage(&mut self, value: Client)
+```
+
+#### Builder::has_storage
+
+```rust
+pub fn has_storage(&self) -> bool
+```
+
+#### Builder::get_queues
+
+```rust
+pub fn get_queues(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_queues
+
+```rust
+pub fn set_queues(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_queues
+
+```rust
+pub fn init_queues(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_queues
+
+```rust
+pub fn has_queues(&self) -> bool
+```
+
+#### Builder::get_kv
+
+```rust
+pub fn get_kv(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_kv
+
+```rust
+pub fn set_kv(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_kv
+
+```rust
+pub fn init_kv(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_kv
+
+```rust
+pub fn has_kv(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_config
+
+```rust
+pub fn get_config(&self) -> Pipeline
+```
+
+#### Pipeline::get_secrets
+
+```rust
+pub fn get_secrets(&self) -> Pipeline
+```
+
+#### Pipeline::get_adapter
+
+```rust
+pub fn get_adapter(&self) -> Pipeline
+```
+
+#### Pipeline::get_events
+
+```rust
+pub fn get_events(&self) -> Client
+```
+
+#### Pipeline::get_cancel
+
+```rust
+pub fn get_cancel(&self) -> Client
+```
+
+#### Pipeline::get_storage
+
+```rust
+pub fn get_storage(&self) -> Client
+```
+
+Implements: `FromTypelessPipeline`

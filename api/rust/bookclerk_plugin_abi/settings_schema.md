@@ -1,245 +1,336 @@
-**bookclerk_plugin_abi > settings_schema**
+# bookclerk_plugin_abi::settings_schema
 
-# Module: settings_schema
+Operator-facing plugin settings schema (`[[settings]]` in `plugin.toml`).
 
-## Contents
+A plugin declares the keys an operator may set on one of its instances,
+their types, and their defaults. The host validates instance documents
+against this schema and renders it in Settings; it hard-codes nothing per
+plugin. The same struct is the `plugin.toml` TOML shape and the JSON body
+pinned in the library database at enrollment.
 
-**Structs**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`SettingValueSpec`](#settingvaluespec) | struct | One selectable value of an `SettingKind::Enum` setting. |
+| [`SettingSpec`](#settingspec) | struct | One `[[settings]]` entry. |
+| [`SettingsSchema`](#settingsschema) | struct | The ordered `[[settings]]` list of one plugin. |
+| [`EffectiveConfig`](#effectiveconfig) | struct | Result of `SettingsSchema::effective_config`. |
+| [`SettingKind`](#settingkind) | enum | Value type of one setting. |
+| [`is_valid_setting_key`](#is_valid_setting_key) | function | Grammar for setting keys and secret names: `^a-z{0,63}$`. |
+| [`SETTINGS_SCHEMA_VERSION`](#settings_schema_version) | constant | Schema revision of `SettingsSchema` as pinned in the database. |
+| [`MAX_SETTINGS`](#max_settings) | constant | Maximum `[[settings]]` entries one manifest may declare. |
+| [`MAX_SETTING_VALUES`](#max_setting_values) | constant | Maximum enum values one setting may declare. |
+| [`MAX_SETTING_STRING_BYTES`](#max_setting_string_bytes) | constant | Maximum UTF-8 size of one string setting value. |
 
-- [`EffectiveConfig`](#effectiveconfig) - Result of `SettingsSchema::effective_config`.
-- [`SettingSpec`](#settingspec) - One `[[settings]]` entry.
-- [`SettingValueSpec`](#settingvaluespec) - One selectable value of an `SettingKind::Enum` setting.
-- [`SettingsSchema`](#settingsschema) - The ordered `[[settings]]` list of one plugin.
+## Structs
 
-**Enums**
+### SettingValueSpec
 
-- [`SettingKind`](#settingkind) - Value type of one setting.
+```rust
+pub struct SettingValueSpec {
+    pub id: String,
+    pub label: String,
+}
+```
 
-**Functions**
+One selectable value of an [`SettingKind::Enum`](#settingkind) setting.
 
-- [`is_valid_setting_key`](#is_valid_setting_key) - Grammar for setting keys and secret names: `^[a-z][a-z0-9_]{0,63}$`.
+**Fields**
 
-**Constants**
+- `id`: Stored value.
+- `label`: Operator-facing label; defaults to `id`.
 
-- [`MAX_SETTINGS`](#max_settings) - Maximum `[[settings]]` entries one manifest may declare.
-- [`MAX_SETTING_STRING_BYTES`](#max_setting_string_bytes) - Maximum UTF-8 size of one string setting value.
-- [`MAX_SETTING_VALUES`](#max_setting_values) - Maximum enum values one setting may declare.
-- [`SETTINGS_SCHEMA_VERSION`](#settings_schema_version) - Schema revision of [`SettingsSchema`](settings_schema.md#bookclerk_plugin_abisettings_schemasettingsschema) as pinned in the database.
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
----
+### SettingSpec
 
-## bookclerk_plugin_abi::settings_schema::EffectiveConfig
-
-*Struct*
-
-Result of `SettingsSchema::effective_config`.
-
-**Fields:**
-- `config: std::collections::BTreeMap<String, serde_json::Value>` - Values delivered as `CONFIG`.
-- `dropped: Vec<String>` - Document keys the schema does not declare.
-- `invalid: Vec<String>` - Declared keys whose stored value does not fit the entry's kind.
-- `missing: Vec<String>` - Required keys with neither a usable value nor a default.
-
-**Traits:** Eq
-
-**Trait Implementations:**
-
-- **PartialEq**
-  - `fn eq(self: &Self, other: &EffectiveConfig) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Default**
-  - `fn default() -> EffectiveConfig`
-- **Clone**
-  - `fn clone(self: &Self) -> EffectiveConfig`
-
-
-
-## bookclerk_plugin_abi::settings_schema::MAX_SETTINGS
-
-*Constant*: `usize`
-
-Maximum `[[settings]]` entries one manifest may declare.
-
-
-
-## bookclerk_plugin_abi::settings_schema::MAX_SETTING_STRING_BYTES
-
-*Constant*: `usize`
-
-Maximum UTF-8 size of one string setting value.
-
-
-
-## bookclerk_plugin_abi::settings_schema::MAX_SETTING_VALUES
-
-*Constant*: `usize`
-
-Maximum enum values one setting may declare.
-
-
-
-## bookclerk_plugin_abi::settings_schema::SETTINGS_SCHEMA_VERSION
-
-*Constant*: `u32`
-
-Schema revision of [`SettingsSchema`](settings_schema.md#bookclerk_plugin_abisettings_schemasettingsschema) as pinned in the database.
-
-
-
-## bookclerk_plugin_abi::settings_schema::SettingKind
-
-*Enum*
-
-Value type of one setting.
-
-**Variants:**
-- `String` - Free-form UTF-8 string (at most [`MAX_SETTING_STRING_BYTES`](settings_schema.md#bookclerk_plugin_abisettings_schemamax_setting_string_bytes)).
-- `Bool` - Boolean.
-- `Integer` - Signed 64-bit integer.
-- `Enum` - One of the declared `SettingSpec::values` ids.
-- `Secret` - Sealed secret: delivered in `SECRETS`, never stored in a document.
-
-**Methods:**
-
-- `fn as_str(self: Self) -> &'static str` - Wire / UI name (`string`, `bool`, `integer`, `enum`, `secret`).
-
-**Traits:** Copy, Eq
-
-**Trait Implementations:**
-
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Clone**
-  - `fn clone(self: &Self) -> SettingKind`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &SettingKind) -> bool`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-
-
-
-## bookclerk_plugin_abi::settings_schema::SettingSpec
-
-*Struct*
+```rust
+pub struct SettingSpec {
+    pub key: String,
+    pub label: String,
+    pub kind: SettingKind,
+    pub values: Vec<SettingValueSpec>,
+    pub default: Option<Value>,
+    pub required: bool,
+    pub description: Option<String>,
+}
+```
 
 One `[[settings]]` entry.
 
-**Fields:**
-- `key: String` - Setting key (`^[a-z][a-z0-9_]{0,63}$`), unique within the plugin.
-- `label: String` - Operator-facing label; defaults to `key`.
-- `kind: SettingKind` - Value type.
-- `values: Vec<SettingValueSpec>` - Allowed values for `SettingKind::Enum`; empty otherwise.
-- `default: Option<serde_json::Value>` - Default applied when the instance document omits the key. Not allowed
-- `required: bool` - When true, a spawn without a value (document or default) fails.
-- `description: Option<String>` - Optional help text.
+**Fields**
 
-**Methods:**
+- `key`: Setting key (`^[a-z][a-z0-9_]{0,63}$`), unique within the plugin.
+- `label`: Operator-facing label; defaults to `key`.
+- `kind`: Value type.
+- `values`: Allowed values for [`SettingKind::Enum`](#settingkind); empty otherwise.
+- `default`: Default applied when the instance document omits the key. Not allowed
+  for secrets.
+- `required`: When true, a spawn without a value (document or default) fails.
+- `description`: Optional help text.
 
-- `fn label_or_key(self: &Self) -> &str` - Label for UI, falling back to the key.
-- `fn is_secret(self: &Self) -> bool` - True for `SettingKind::Secret`.
-- `fn check_value(self: &Self, value: &Value) -> Result<(), String>` - Checks `value` against this entry's kind.
+#### SettingSpec::label_or_key
 
-**Traits:** Eq
+```rust
+pub fn label_or_key(&self) -> &str
+```
 
-**Trait Implementations:**
+Label for UI, falling back to the key.
 
-- **Clone**
-  - `fn clone(self: &Self) -> SettingSpec`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &SettingSpec) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
+#### SettingSpec::is_secret
 
+```rust
+pub fn is_secret(&self) -> bool
+```
 
+True for [`SettingKind::Secret`](#settingkind).
 
-## bookclerk_plugin_abi::settings_schema::SettingValueSpec
+#### SettingSpec::check_value
 
-*Struct*
+```rust
+pub fn check_value(&self, value: &Value) -> Result<(), String>
+```
 
-One selectable value of an `SettingKind::Enum` setting.
+Checks `value` against this entry's kind.
 
-**Fields:**
-- `id: String` - Stored value.
-- `label: String` - Operator-facing label; defaults to `id`.
+##### Errors
 
-**Traits:** Eq
+Returns a message naming the key when the value does not fit.
 
-**Trait Implementations:**
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &SettingValueSpec) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> SettingValueSpec`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
+### SettingsSchema
 
-
-
-## bookclerk_plugin_abi::settings_schema::SettingsSchema
-
-*Struct*
+```rust
+pub struct SettingsSchema {
+    pub settings: Vec<SettingSpec>,
+}
+```
 
 The ordered `[[settings]]` list of one plugin.
 
-**Fields:**
-- `settings: Vec<SettingSpec>` - Entries in declaration order.
+**Fields**
 
-**Methods:**
+- `settings`: Entries in declaration order.
 
-- `fn new(settings: Vec<SettingSpec>) -> Self` - Wraps a declared list without validating it.
-- `fn validate(self: &Self, config_binding: bool, secrets_binding: bool) -> Result<(), String>` - Validates the declaration itself.
-- `fn get(self: &Self, key: &str) -> Option<&SettingSpec>` - Entry for `key`.
-- `fn is_empty(self: &Self) -> bool` - True when no entries are declared.
-- `fn config_entries(self: &Self) -> impl Trait` - Non-secret entries, in order.
-- `fn secret_entries(self: &Self) -> impl Trait` - Secret entries, in order.
-- `fn defaults(self: &Self) -> BTreeMap<String, Value>` - Defaults for non-secret entries that declare one.
-- `fn config_options(self: &Self) -> Vec<ConfigOption>` - `describe().configOptions` projection: every non-secret entry, with
-- `fn check_setting(self: &Self, key: &str, value: &Value) -> Result<(), String>` - Checks one document setting against the schema.
-- `fn check_secret_key(self: &Self, key: &str) -> Result<(), String>` - Checks one secret ref key against the schema.
-- `fn required_secret_keys(self: &Self) -> impl Trait` - Keys of `secret` entries marked `required`.
-- `fn effective_config(self: &Self, settings: &BTreeMap<String, Value>) -> EffectiveConfig` - Merges `settings` over the schema defaults and reports missing
+#### SettingsSchema::new
 
-**Traits:** Eq
+```rust
+pub fn new(settings: Vec<SettingSpec>) -> Self
+```
 
-**Trait Implementations:**
+Wraps a declared list without validating it.
 
-- **Default**
-  - `fn default() -> SettingsSchema`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> SettingsSchema`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &SettingsSchema) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
+#### SettingsSchema::validate
 
+```rust
+pub fn validate(&self, config_binding: bool, secrets_binding: bool) -> Result<(), String>
+```
 
+Validates the declaration itself.
 
-## bookclerk_plugin_abi::settings_schema::is_valid_setting_key
+`config_binding` / `secrets_binding` say whether the manifest declares
+`[vars]` / `[secrets]`; non-secret entries need the former and secret
+entries the latter, because that is how values reach the guest.
 
-*Function*
+##### Errors
+
+Returns a message describing the first failed rule.
+
+#### SettingsSchema::get
+
+```rust
+pub fn get(&self, key: &str) -> Option<&SettingSpec>
+```
+
+Entry for `key`.
+
+#### SettingsSchema::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when no entries are declared.
+
+#### SettingsSchema::config_entries
+
+```rust
+pub fn config_entries(&self) -> impl Iterator<Item = &SettingSpec>
+```
+
+Non-secret entries, in order.
+
+#### SettingsSchema::secret_entries
+
+```rust
+pub fn secret_entries(&self) -> impl Iterator<Item = &SettingSpec>
+```
+
+Secret entries, in order.
+
+#### SettingsSchema::defaults
+
+```rust
+pub fn defaults(&self) -> BTreeMap<String, Value>
+```
+
+Defaults for non-secret entries that declare one.
+
+#### SettingsSchema::config_options
+
+```rust
+pub fn config_options(&self) -> Vec<ConfigOption>
+```
+
+`describe().configOptions` projection: every non-secret entry, with
+enum values listed and other kinds as free-form.
+
+#### SettingsSchema::check_setting
+
+```rust
+pub fn check_setting(&self, key: &str, value: &Value) -> Result<(), String>
+```
+
+Checks one document setting against the schema.
+
+##### Errors
+
+Unknown keys, secrets given as plain values, and type mismatches are
+rejected with a message naming the key.
+
+#### SettingsSchema::check_secret_key
+
+```rust
+pub fn check_secret_key(&self, key: &str) -> Result<(), String>
+```
+
+Checks one secret ref key against the schema.
+
+##### Errors
+
+Returns a message when `key` is not a declared secret.
+
+#### SettingsSchema::required_secret_keys
+
+```rust
+pub fn required_secret_keys(&self) -> impl Iterator<Item = &str>
+```
+
+Keys of `secret` entries marked `required`.
+
+#### SettingsSchema::effective_config
+
+```rust
+pub fn effective_config(&self, settings: &BTreeMap<String, Value>) -> EffectiveConfig
+```
+
+Merges `settings` over the schema defaults and reports missing
+required keys.
+
+Keys the schema does not declare are dropped and returned in
+`dropped`; declared keys whose value no longer fits the entry's kind
+(a type or enum change after an upgrade) are left out of `config` and
+returned in `invalid`, so the default applies instead. A required key
+with neither a usable value nor a default is `missing`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### EffectiveConfig
+
+```rust
+pub struct EffectiveConfig {
+    pub config: BTreeMap<String, Value>,
+    pub dropped: Vec<String>,
+    pub invalid: Vec<String>,
+    pub missing: Vec<String>,
+}
+```
+
+Result of [`SettingsSchema::effective_config`](#settingsschemaeffective_config).
+
+**Fields**
+
+- `config`: Values delivered as `CONFIG`.
+- `dropped`: Document keys the schema does not declare.
+- `invalid`: Declared keys whose stored value does not fit the entry's kind.
+- `missing`: Required keys with neither a usable value nor a default.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+## Enums
+
+### SettingKind
+
+```rust
+pub enum SettingKind {
+    String,
+    Bool,
+    Integer,
+    Enum,
+    Secret,
+}
+```
+
+Value type of one setting.
+
+**Variants**
+
+- `String`: Free-form UTF-8 string (at most [`MAX_SETTING_STRING_BYTES`](#max_setting_string_bytes)).
+- `Bool`: Boolean.
+- `Integer`: Signed 64-bit integer.
+- `Enum`: One of the declared [`SettingSpec::values`](#settingspec) ids.
+- `Secret`: Sealed secret: delivered in `SECRETS`, never stored in a document.
+
+#### SettingKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Wire / UI name (`string`, `bool`, `integer`, `enum`, `secret`).
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+
+## Functions
+
+### is_valid_setting_key
+
+```rust
+pub fn is_valid_setting_key(key: &str) -> bool
+```
 
 Grammar for setting keys and secret names: `^[a-z][a-z0-9_]{0,63}$`.
 
+## Constants
+
+### SETTINGS_SCHEMA_VERSION
+
 ```rust
-fn is_valid_setting_key(key: &str) -> bool
+pub const SETTINGS_SCHEMA_VERSION: u32 = 1;
 ```
 
+Schema revision of [`SettingsSchema`](#settingsschema) as pinned in the database.
 
+### MAX_SETTINGS
 
+```rust
+pub const MAX_SETTINGS: usize = 32;
+```
+
+Maximum `[[settings]]` entries one manifest may declare.
+
+### MAX_SETTING_VALUES
+
+```rust
+pub const MAX_SETTING_VALUES: usize = 64;
+```
+
+Maximum enum values one setting may declare.
+
+### MAX_SETTING_STRING_BYTES
+
+```rust
+pub const MAX_SETTING_STRING_BYTES: usize = 1024;
+```
+
+Maximum UTF-8 size of one string setting value.

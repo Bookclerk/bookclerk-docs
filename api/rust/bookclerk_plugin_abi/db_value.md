@@ -1,125 +1,110 @@
-**bookclerk_plugin_abi > db_value**
+# bookclerk_plugin_abi::db_value
 
-# Module: db_value
+Universal Cap'n database value domain (`DbValue`).
 
-## Contents
+Baseline cells are typed null, bool, int64, finite float64, UTF-8 text, and
+bytes. SeaORM and JSON bridges live in `bookclerk-db-exec` at the adapter edge.
 
-**Enums**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`DbType`](#dbtype) | enum | Expected SQL type for a typed null (Cap'n `DbType`). |
+| [`DbValue`](#dbvalue) | enum | One parameter or cell in the universal database domain. |
+| [`db_type_from_declared`](#db_type_from_declared) | function | Maps a declared SQL column type onto the universal `DbType`. |
+| [`normalize_db_value_for_column`](#normalize_db_value_for_column) | function | Normalizes one result cell against its declared column `DbType`. |
 
-- [`DbType`](#dbtype) - Expected SQL type for a typed null (Cap'n `DbType`).
-- [`DbValue`](#dbvalue) - One parameter or cell in the universal database domain.
+## Enums
 
-**Functions**
+### DbType
 
-- [`db_type_from_declared`](#db_type_from_declared) - Maps a declared SQL column type onto the universal [`DbType`](db_value.md#bookclerk_plugin_abidb_valuedbtype).
-- [`normalize_db_value_for_column`](#normalize_db_value_for_column) - Normalizes one result cell against its declared column [`DbType`](db_value.md#bookclerk_plugin_abidb_valuedbtype).
-
----
-
-## bookclerk_plugin_abi::db_value::DbType
-
-*Enum*
+```rust
+pub enum DbType {
+    Unspecified,
+    Bool,
+    Int64,
+    Float64,
+    Text,
+    Bytes,
+}
+```
 
 Expected SQL type for a typed null (Cap'n `DbType`).
 
-**Variants:**
-- `Unspecified` - Adapter may infer a type (unspecified null).
-- `Bool` - Boolean null.
-- `Int64` - Signed 64-bit integer null.
-- `Float64` - Finite 64-bit float null.
-- `Text` - UTF-8 text null.
-- `Bytes` - Bytea / blob null.
+**Variants**
 
-**Traits:** Eq, Copy
+- `Unspecified`: Adapter may infer a type (unspecified null).
+- `Bool`: Boolean null.
+- `Int64`: Signed 64-bit integer null.
+- `Float64`: Finite 64-bit float null.
+- `Text`: UTF-8 text null.
+- `Bytes`: Bytea / blob null.
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<DbType>`, `PartialEq`, `Serialize`
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbType) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbType`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> DbType`
+### DbValue
 
-
-
-## bookclerk_plugin_abi::db_value::DbValue
-
-*Enum*
+```rust
+pub enum DbValue {
+    Null(DbType),
+    Boolean(bool),
+    Int64(i64),
+    Float64(f64),
+    Text(String),
+    Bytes(Vec<u8>),
+}
+```
 
 One parameter or cell in the universal database domain.
 
-**Variants:**
-- `Null(DbType)` - Typed SQL null.
-- `Boolean(bool)` - Boolean.
-- `Int64(i64)` - Signed 64-bit integer.
-- `Float64(f64)` - Finite 64-bit float. Non-finite values are rejected at the bridge.
-- `Text(String)` - UTF-8 text.
-- `Bytes(Vec<u8>)` - Opaque bytes (not a `b64:` string).
+**Variants**
 
-**Methods:**
+- `Null`: Typed SQL null.
+- `Boolean`: Boolean.
+- `Int64`: Signed 64-bit integer.
+- `Float64`: Finite 64-bit float. Non-finite values are rejected at the bridge.
+- `Text`: UTF-8 text.
+- `Bytes`: Opaque bytes (not a `b64:` string).
 
-- `fn null(ty: DbType) -> Self` - Typed null of `ty`.
+#### DbValue::null
 
-**Trait Implementations:**
+```rust
+pub const fn null(ty: DbType) -> Self
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbValue) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbValue`
+Typed null of `ty`.
 
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
+## Functions
 
-## bookclerk_plugin_abi::db_value::db_type_from_declared
+### db_type_from_declared
 
-*Function*
+```rust
+pub fn db_type_from_declared(decl: &str) -> DbType
+```
 
-Maps a declared SQL column type onto the universal [`DbType`](db_value.md#bookclerk_plugin_abidb_valuedbtype).
+Maps a declared SQL column type onto the universal [`DbType`](#dbtype).
 
 Shared by every adapter so declared-type result normalization is
 identical across engines (SQLite decltype, D1 `pragma_table_info` type,
 PostgreSQL type names). Unknown declarations map to
-`DbType::Unspecified`.
+[`DbType::Unspecified`](#dbtype).
+
+### normalize_db_value_for_column
 
 ```rust
-fn db_type_from_declared(decl: &str) -> DbType
+pub fn normalize_db_value_for_column(value: DbValue, declared: DbType) -> DbValue
 ```
 
-
-
-## bookclerk_plugin_abi::db_value::normalize_db_value_for_column
-
-*Function*
-
-Normalizes one result cell against its declared column [`DbType`](db_value.md#bookclerk_plugin_abidb_valuedbtype).
+Normalizes one result cell against its declared column [`DbType`](#dbtype).
 
 The universal-value contract requires identical observable `DbValue`
 variants across adapters, so declared-type metadata (never engine storage
 affinity) decides the variant:
 
 - every SQL NULL in a declared column becomes `Null(<declared>)`;
-- `0` / `1` integers in a declared `BOOL` column become `DbValue::Boolean`
+- `0` / `1` integers in a declared `BOOL` column become [`DbValue::Boolean`](#dbvalue)
   (SQLite-family engines store booleans as INTEGER);
-- integers in a declared `FLOAT64` column become `DbValue::Float64`
+- integers in a declared `FLOAT64` column become [`DbValue::Float64`](#dbvalue)
   (JSON channels drop the `.0` on whole floats).
 
 Cells in undeclared / computed columns are returned unchanged.
-
-```rust
-fn normalize_db_value_for_column(value: DbValue, declared: DbType) -> DbValue
-```
-
-
-

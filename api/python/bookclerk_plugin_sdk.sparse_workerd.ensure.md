@@ -1,66 +1,76 @@
-# bookclerk\_plugin\_sdk.sparse\_workerd.ensure
+# bookclerk_plugin_sdk.sparse_workerd.ensure
 
-Download / refresh the pinned Cloudflare ``workerd`` binary (mirrors ensure.rs).
+Download / refresh the pinned Cloudflare `workerd` binary (mirrors ensure.rs).
 
-Resolves the platform asset from ``workerd-pin.json``, verifies sha256, and
-caches under the operator-selected directory (``BOOKCLERK_WORKERD_CACHE`` or
-``~/.cache/bookclerk/workerd``).
+Resolves the platform asset from `workerd-pin.json`, verifies sha256, and
+caches under the operator-selected directory (`BOOKCLERK_WORKERD_CACHE` or
+`~/.cache/bookclerk/workerd`).
 
-#### package\_root
+| Name | Kind | Summary |
+| --- | --- | --- |
+| [`package_root`](#package_root) | function | Return the `bookclerk_plugin_sdk` package directory. |
+| [`load_pin`](#load_pin) | function | Load the pinned workerd release metadata. |
+| [`platform_key`](#platform_key) | function | Map OS/arch to a pin asset key such as `linux-x86_64`. |
+| [`binary_name`](#binary_name) | function | Return the on-disk workerd binary filename for this OS. |
+| [`download_url`](#download_url) | function | Build the GitHub release download URL for a workerd artifact. |
+| [`default_cache_dir`](#default_cache_dir) | function | Resolve the workerd binary cache directory. |
+| [`validate_fetch_url`](#validate_fetch_url) | function | Validate a URL before `urlopen` / download (request-forgery guard). |
+| [`validate_spawn_executable`](#validate_spawn_executable) | function | Validate a workerd (or helper) binary path before `subprocess` spawn. |
+| [`ensure_workerd`](#ensure_workerd) | function | Ensure a pinned `workerd` binary is available locally. |
+
+## Functions
+
+### package_root
 
 ```python
 def package_root() -> Path
 ```
 
-Return the ``bookclerk_plugin_sdk`` package directory.
+Return the `bookclerk_plugin_sdk` package directory.
 
-**Returns**:
+**Returns**
 
-  Absolute path containing ``workerd.py``, ``bridge/``, and the pin file.
+Absolute path containing `workerd.py`, `bridge/`, and the pin file.
 
-#### load\_pin
+### load_pin
 
 ```python
-def load_pin(root: Path | None = None) -> dict[str, Any]
+def load_pin(root: Path | None=None) -> dict[str, Any]
 ```
 
 Load the pinned workerd release metadata.
 
-**Arguments**:
+**Args**
 
-- `root` - Package root containing ``workerd-pin.json`` (defaults to this SDK).
-  
+- `root`: Package root containing `workerd-pin.json` (defaults to this SDK).
 
-**Returns**:
+**Returns**
 
-  Parsed pin dictionary (release tag, assets, version stamp).
-  
+Parsed pin dictionary (release tag, assets, version stamp).
 
-**Raises**:
+**Raises**
 
-- `FileNotFoundError` - If the pin file is missing.
-- `json.JSONDecodeError` - If the pin file is not valid JSON.
+- `FileNotFoundError`: If the pin file is missing.
+- `json.JSONDecodeError`: If the pin file is not valid JSON.
 
-#### platform\_key
+### platform_key
 
 ```python
-def platform_key(system: str | None = None,
-                 machine: str | None = None) -> str | None
+def platform_key(system: str | None=None, machine: str | None=None) -> str | None
 ```
 
-Map OS/arch to a pin asset key such as ``linux-x86_64``.
+Map OS/arch to a pin asset key such as `linux-x86_64`.
 
-**Arguments**:
+**Args**
 
-- `system` - OS name override (defaults to ``platform.system()``).
-- `machine` - CPU arch override (defaults to ``platform.machine()``).
-  
+- `system`: OS name override (defaults to `platform.system()`).
+- `machine`: CPU arch override (defaults to `platform.machine()`).
 
-**Returns**:
+**Returns**
 
-  Pin key string, or ``None`` when the platform is unsupported.
+Pin key string, or `None` when the platform is unsupported.
 
-#### binary\_name
+### binary_name
 
 ```python
 def binary_name() -> str
@@ -68,11 +78,11 @@ def binary_name() -> str
 
 Return the on-disk workerd binary filename for this OS.
 
-**Returns**:
+**Returns**
 
-  ``workerd.exe`` on Windows, otherwise ``workerd``.
+`workerd.exe` on Windows, otherwise `workerd`.
 
-#### download\_url
+### download_url
 
 ```python
 def download_url(pin: dict[str, Any], artifact: str) -> str
@@ -80,17 +90,16 @@ def download_url(pin: dict[str, Any], artifact: str) -> str
 
 Build the GitHub release download URL for a workerd artifact.
 
-**Arguments**:
+**Args**
 
-- `pin` - Loaded pin metadata containing ``release_tag``.
-- `artifact` - Asset filename from the pin ``assets`` table.
-  
+- `pin`: Loaded pin metadata containing `release_tag`.
+- `artifact`: Asset filename from the pin `assets` table.
 
-**Returns**:
+**Returns**
 
-  Absolute HTTPS URL to the Cloudflare workerd release asset.
+Absolute HTTPS URL to the Cloudflare workerd release asset.
 
-#### default\_cache\_dir
+### default_cache_dir
 
 ```python
 def default_cache_dir() -> Path
@@ -98,96 +107,88 @@ def default_cache_dir() -> Path
 
 Resolve the workerd binary cache directory.
 
-Honors ``BOOKCLERK_WORKERD_CACHE`` as the selected install root (any
-writable location, including paths outside ``$HOME`` and this package).
-Otherwise uses ``~/.cache/bookclerk/workerd``. Derived files stay under
+Honors `BOOKCLERK_WORKERD_CACHE` as the selected install root (any
+writable location, including paths outside `$HOME` and this package).
+Otherwise uses `~/.cache/bookclerk/workerd`. Derived files stay under
 that root.
 
-**Returns**:
+**Returns**
 
-  Path to the cache directory (may not exist yet).
+Path to the cache directory (may not exist yet).
 
-#### validate\_fetch\_url
+### validate_fetch_url
 
 ```python
 def validate_fetch_url(url: str) -> str
 ```
 
-Validate a URL before ``urlopen`` / download (request-forgery guard).
+Validate a URL before `urlopen` / download (request-forgery guard).
 
-Allows ``https:`` anywhere, or ``http:`` only to loopback hosts.
+Allows `https:` anywhere, or `http:` only to loopback hosts.
 
-**Arguments**:
+**Args**
 
-- `url` - Absolute URL string.
-  
+- `url`: Absolute URL string.
 
-**Returns**:
+**Returns**
 
-  The same URL when it passes scheme/host checks.
-  
+The same URL when it passes scheme/host checks.
 
-**Raises**:
+**Raises**
 
-- `ValueError` - When the URL is invalid or uses a disallowed scheme/host.
+- `ValueError`: When the URL is invalid or uses a disallowed scheme/host.
 
-#### validate\_spawn\_executable
+### validate_spawn_executable
 
 ```python
-def validate_spawn_executable(bin_path: Path | str,
-                              trusted_root: Path | str | None = None) -> Path
+def validate_spawn_executable(
+    bin_path: Path | str,
+    trusted_root: Path | str | None=None,
+) -> Path
 ```
 
-Validate a workerd (or helper) binary path before ``subprocess`` spawn.
+Validate a workerd (or helper) binary path before `subprocess` spawn.
 
-Requires an absolute path with no NUL bytes. When ``trusted_root`` is set,
-requires the binary to stay under that root via :func:`resolve_under`.
+Requires an absolute path with no NUL bytes. When `trusted_root` is set,
+requires the binary to stay under that root via [`resolve_under`](bookclerk_plugin_sdk.path_guard.md#resolve_under).
 
-**Arguments**:
+**Args**
 
-- `bin_path` - Candidate executable path.
-- `trusted_root` - Optional directory the binary must remain under.
-  
+- `bin_path`: Candidate executable path.
+- `trusted_root`: Optional directory the binary must remain under.
 
-**Returns**:
+**Returns**
 
-  Absolute validated :class:`~pathlib.Path`.
-  
+Absolute validated `Path`.
 
-**Raises**:
+**Raises**
 
-- `ValueError` - When the path is relative, contains NUL, or escapes
-  ``trusted_root``.
+- `ValueError`: When the path is relative, contains NUL, or escapes `trusted_root`.
 
-#### ensure\_workerd
+### ensure_workerd
 
 ```python
-def ensure_workerd(cache_dir: Path | None = None,
-                   root: Path | None = None) -> Path
+def ensure_workerd(cache_dir: Path | None=None, root: Path | None=None) -> Path
 ```
 
-Ensure a pinned ``workerd`` binary is available locally.
+Ensure a pinned `workerd` binary is available locally.
 
-Reuses ``BOOKCLERK_WORKERD_BIN`` or a cached binary when that file exists
-and the version stamp or ``--version`` output matches the pin. The selected
+Reuses `BOOKCLERK_WORKERD_BIN` or a cached binary when that file exists
+and the version stamp or `--version` output matches the pin. The selected
 cache directory is the trusted install root (not this package directory).
 A stamp without a binary is a cache miss.
 
-**Arguments**:
+**Args**
 
-- `cache_dir` - Override cache directory (defaults to :func:`default_cache_dir`).
-- `root` - SDK root for loading ``workerd-pin.json``.
-  
+- `cache_dir`: Override cache directory (defaults to [`default_cache_dir`](#default_cache_dir)).
+- `root`: SDK root for loading `workerd-pin.json`.
 
-**Returns**:
+**Returns**
 
-  Path to an executable workerd binary matching the pin.
-  
+Path to an executable workerd binary matching the pin.
 
-**Raises**:
+**Raises**
 
-- `RuntimeError` - If no asset exists for this platform or the download hash
-  mismatches.
-- `OSError` - If the binary cannot be written or executed.
-- `ValueError` - If a resolved binary path fails spawn validation.
-
+- `RuntimeError`: If no asset exists for this platform or the download hash mismatches.
+- `OSError`: If the binary cannot be written or executed.
+- `ValueError`: If a resolved binary path fails spawn validation.

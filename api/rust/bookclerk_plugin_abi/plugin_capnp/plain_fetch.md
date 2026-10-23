@@ -1,134 +1,264 @@
-**bookclerk_plugin_abi > plugin_capnp > plain_fetch**
+# bookclerk_plugin_abi::plugin_capnp::plain_fetch
 
-# Module: plugin_capnp::plain_fetch
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::plain_fetch::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_parts(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::plain_part::Owned>>`
-- `fn set_parts(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::plain_part::Owned>) -> ::capnp::Result<()>`
-- `fn init_parts(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::plain_part::Owned>`
-- `fn has_parts(self: &Self) -> bool`
-- `fn get_m4b_path(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_m4b_path<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_m4b_path(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_m4b_path(self: &Self) -> bool`
-- `fn get_cover_path(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_cover_path<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_cover_path(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_cover_path(self: &Self) -> bool`
-- `fn get_chapters(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::chapter_marker::Owned>>`
-- `fn set_chapters(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::chapter_marker::Owned>) -> ::capnp::Result<()>`
-- `fn init_chapters(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::chapter_marker::Owned>`
-- `fn has_chapters(self: &Self) -> bool`
-- `fn get_pdf_url(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_pdf_url<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_pdf_url(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_pdf_url(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_parts
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_parts(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_parts
 
+```rust
+pub fn has_parts(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plain_fetch::Owned
+#### Reader::get_m4b_path
 
-*Struct*
+```rust
+pub fn get_m4b_path(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_m4b_path
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_m4b_path(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_cover_path
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_cover_path(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_cover_path
 
+```rust
+pub fn has_cover_path(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plain_fetch::Pipeline
+#### Reader::get_chapters
 
-*Struct*
+```rust
+pub fn get_chapters(self) -> Result<Reader<'a, Owned>>
+```
 
-**Trait Implementations:**
+#### Reader::has_chapters
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn has_chapters(&self) -> bool
+```
 
+#### Reader::get_pdf_url
 
+```rust
+pub fn get_pdf_url(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plain_fetch::Reader
+#### Reader::has_pdf_url
 
-*Struct*
+```rust
+pub fn has_pdf_url(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-**Methods:**
+### Builder
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_parts(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::plain_part::Owned>>`
-- `fn has_parts(self: &Self) -> bool`
-- `fn get_m4b_path(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_m4b_path(self: &Self) -> bool`
-- `fn get_cover_path(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_cover_path(self: &Self) -> bool`
-- `fn get_chapters(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::chapter_marker::Owned>>`
-- `fn has_chapters(self: &Self) -> bool`
-- `fn get_pdf_url(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_pdf_url(self: &Self) -> bool`
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_parts
+
+```rust
+pub fn get_parts(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_parts
+
+```rust
+pub fn set_parts(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_parts
+
+```rust
+pub fn init_parts(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_parts
+
+```rust
+pub fn has_parts(&self) -> bool
+```
+
+#### Builder::get_m4b_path
+
+```rust
+pub fn get_m4b_path(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_m4b_path
+
+```rust
+pub fn set_m4b_path(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_m4b_path
+
+```rust
+pub fn init_m4b_path(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_m4b_path
+
+```rust
+pub fn has_m4b_path(&self) -> bool
+```
+
+#### Builder::get_cover_path
+
+```rust
+pub fn get_cover_path(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_cover_path
+
+```rust
+pub fn set_cover_path(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_cover_path
+
+```rust
+pub fn init_cover_path(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_cover_path
+
+```rust
+pub fn has_cover_path(&self) -> bool
+```
+
+#### Builder::get_chapters
+
+```rust
+pub fn get_chapters(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_chapters
+
+```rust
+pub fn set_chapters(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_chapters
+
+```rust
+pub fn init_chapters(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_chapters
+
+```rust
+pub fn has_chapters(&self) -> bool
+```
+
+#### Builder::get_pdf_url
+
+```rust
+pub fn get_pdf_url(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_pdf_url
+
+```rust
+pub fn set_pdf_url(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_pdf_url
+
+```rust
+pub fn init_pdf_url(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_pdf_url
+
+```rust
+pub fn has_pdf_url(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

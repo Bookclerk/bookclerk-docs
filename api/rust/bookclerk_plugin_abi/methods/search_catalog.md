@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > search_catalog**
+# bookclerk_plugin_abi::methods::search_catalog
 
-# Module: methods::search_catalog
+Search a storefront catalog for purchase / discovery UIs.
 
-## Contents
+Params: [`crate::SearchCatalogParams`](../generated.md#searchcatalogparams). Result: list of [`crate::CatalogHit`](../generated.md#cataloghit).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"searchCatalog"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::search_catalog::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "searchCatalog";
+```
 
 Wire method name `"searchCatalog"`.
-
-
-

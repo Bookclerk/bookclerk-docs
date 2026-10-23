@@ -1,53 +1,46 @@
-**bookclerk_plugin_destination_local > plugin**
+# bookclerk_plugin_destination_local::plugin
 
-# Module: plugin
+Destination + job-handler surface for the local filesystem guest.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`LocalDestination`](#localdestination) | struct | Local filesystem destination capability. |
+| [`LocalRoot`](#localroot) | struct | Root capability for the platform local destination guest. |
 
-**Structs**
+## Structs
 
-- [`LocalDestination`](#localdestination) - Local filesystem destination capability.
-- [`LocalRoot`](#localroot) - Root capability for the platform local destination guest.
+### LocalDestination
 
----
-
-## bookclerk_plugin_destination_local::plugin::LocalDestination
-
-*Struct*
+```rust
+pub struct LocalDestination {
+    /* private fields */
+}
+```
 
 Local filesystem destination capability.
 
-**Methods:**
+#### LocalDestination::from_config
 
-- `fn from_config(config: &ExtensibleConfig) -> std::result::Result<Self, bookclerk_plugin_sdk::PluginError>` - Builds a destination from the `open` `Bindings::config` payload
+```rust
+pub fn from_config(config: &ExtensibleConfig) -> Result<Self, PluginError>
+```
 
-**Trait Implementations:**
+Builds a destination from the `open` `Bindings::config` payload
+(an [`OutputLocalContextDto`](../bookclerk_plugin_abi/kind.md#outputlocalcontextdto) as `application/json`; empty means defaults).
 
-- **Destination**
-  - `fn head(self: &'life0 Self, key: &'life1 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn list(self: &'life0 Self, options: ListOptions) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn get(self: &'life0 Self, key: &'life1 str, range: Option<ByteRange>) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn put(self: &'life0 Self, key: &'life1 str, body: Pin<Box<dyn AsyncRead>>, options: WriteOptions) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn copy(self: &'life0 Self, from: &'life1 str, to: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn delete(self: &'life0 Self, key: &'life1 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn commit(self: &'life0 Self, key: &'life1 str, commit_token: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn abort_stage(self: &'life0 Self, key: &'life1 str, commit_token: &'life2 str) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
+##### Errors
 
+Returns `PluginError::invalid_params` when the payload is not a local
+output context, or an internal error when the root cannot be opened.
 
+Implements: `Destination`
 
-## bookclerk_plugin_destination_local::plugin::LocalRoot
+### LocalRoot
 
-*Struct*
+```rust
+pub struct LocalRoot;
+```
 
 Root capability for the platform local destination guest.
 
-**Unit Struct**
-
-**Trait Implementations:**
-
-- **PluginWorker**
-  - `fn describe(self: &'life0 Self) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-  - `fn open(self: &'life0 Self, _invocation: Invocation, bindings: Bindings) -> ::core::pin::Pin<Box<dyn ::core::future::Future>>`
-
-
-
+Implements: `PluginWorker`

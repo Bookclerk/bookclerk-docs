@@ -1,151 +1,348 @@
-**bookclerk_plugin_abi > plugin_capnp > fetch_title_params**
+# bookclerk_plugin_abi::plugin_capnp::fetch_title_params
 
-# Module: plugin_capnp::fetch_title_params
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_title_params::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_plugin_data_dir(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_plugin_data_dir<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_plugin_data_dir(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_plugin_data_dir(self: &Self) -> bool`
-- `fn get_account_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_account_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_account_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_account_id(self: &Self) -> bool`
-- `fn get_title_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_title_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_title_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_title_id(self: &Self) -> bool`
-- `fn get_cache_dir(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_cache_dir<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_cache_dir(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_cache_dir(self: &Self) -> bool`
-- `fn get_credentials(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_credentials(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_credentials(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_credentials(self: &Self) -> bool`
-- `fn get_source_config(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Builder<'a>>`
-- `fn set_source_config(self: & mut Self, value: crate::plugin_capnp::extensible_config::Reader) -> ::capnp::Result<()>`
-- `fn init_source_config(self: Self) -> crate::plugin_capnp::extensible_config::Builder<'a>`
-- `fn has_source_config(self: &Self) -> bool`
-- `fn get_fetch(self: Self) -> ::capnp::Result<crate::plugin_capnp::fetch_options::Builder<'a>>`
-- `fn set_fetch(self: & mut Self, value: crate::plugin_capnp::fetch_options::Reader) -> ::capnp::Result<()>`
-- `fn init_fetch(self: Self) -> crate::plugin_capnp::fetch_options::Builder<'a>`
-- `fn has_fetch(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_plugin_data_dir
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_plugin_data_dir(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_plugin_data_dir
 
+```rust
+pub fn has_plugin_data_dir(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_title_params::Owned
+#### Reader::get_account_id
 
-*Struct*
+```rust
+pub fn get_account_id(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_account_id
 
-**Traits:** Copy, Pipelined, OwnedStruct, Owned
+```rust
+pub fn has_account_id(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_title_id
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_title_id(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_title_id
 
+```rust
+pub fn has_title_id(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_title_params::Pipeline
+#### Reader::get_cache_dir
 
-*Struct*
+```rust
+pub fn get_cache_dir(self) -> Result<Reader<'a>>
+```
 
-**Methods:**
+#### Reader::has_cache_dir
 
-- `fn get_source_config(self: &Self) -> crate::plugin_capnp::extensible_config::Pipeline`
-- `fn get_fetch(self: &Self) -> crate::plugin_capnp::fetch_options::Pipeline`
+```rust
+pub fn has_cache_dir(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_credentials
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_credentials(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_credentials
 
+```rust
+pub fn has_credentials(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::fetch_title_params::Reader
+#### Reader::get_source_config
 
-*Struct*
+```rust
+pub fn get_source_config(self) -> Result<Reader<'a>>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_source_config
 
-**Methods:**
+```rust
+pub fn has_source_config(&self) -> bool
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_plugin_data_dir(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_plugin_data_dir(self: &Self) -> bool`
-- `fn get_account_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_account_id(self: &Self) -> bool`
-- `fn get_title_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_title_id(self: &Self) -> bool`
-- `fn get_cache_dir(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_cache_dir(self: &Self) -> bool`
-- `fn get_credentials(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_credentials(self: &Self) -> bool`
-- `fn get_source_config(self: Self) -> ::capnp::Result<crate::plugin_capnp::extensible_config::Reader<'a>>`
-- `fn has_source_config(self: &Self) -> bool`
-- `fn get_fetch(self: Self) -> ::capnp::Result<crate::plugin_capnp::fetch_options::Reader<'a>>`
-- `fn has_fetch(self: &Self) -> bool`
+#### Reader::get_fetch
 
-**Traits:** HasTypeId, Copy
+```rust
+pub fn get_fetch(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_fetch
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn has_fetch(&self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_plugin_data_dir
+
+```rust
+pub fn get_plugin_data_dir(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_plugin_data_dir
+
+```rust
+pub fn set_plugin_data_dir(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_plugin_data_dir
+
+```rust
+pub fn init_plugin_data_dir(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_plugin_data_dir
+
+```rust
+pub fn has_plugin_data_dir(&self) -> bool
+```
+
+#### Builder::get_account_id
+
+```rust
+pub fn get_account_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_account_id
+
+```rust
+pub fn set_account_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_account_id
+
+```rust
+pub fn init_account_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_account_id
+
+```rust
+pub fn has_account_id(&self) -> bool
+```
+
+#### Builder::get_title_id
+
+```rust
+pub fn get_title_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_title_id
+
+```rust
+pub fn set_title_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_title_id
+
+```rust
+pub fn init_title_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_title_id
+
+```rust
+pub fn has_title_id(&self) -> bool
+```
+
+#### Builder::get_cache_dir
+
+```rust
+pub fn get_cache_dir(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_cache_dir
+
+```rust
+pub fn set_cache_dir(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_cache_dir
+
+```rust
+pub fn init_cache_dir(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_cache_dir
+
+```rust
+pub fn has_cache_dir(&self) -> bool
+```
+
+#### Builder::get_credentials
+
+```rust
+pub fn get_credentials(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_credentials
+
+```rust
+pub fn set_credentials(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_credentials
+
+```rust
+pub fn init_credentials(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_credentials
+
+```rust
+pub fn has_credentials(&self) -> bool
+```
+
+#### Builder::get_source_config
+
+```rust
+pub fn get_source_config(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_source_config
+
+```rust
+pub fn set_source_config(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_source_config
+
+```rust
+pub fn init_source_config(self) -> Builder<'a>
+```
+
+#### Builder::has_source_config
+
+```rust
+pub fn has_source_config(&self) -> bool
+```
+
+#### Builder::get_fetch
+
+```rust
+pub fn get_fetch(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_fetch
+
+```rust
+pub fn set_fetch(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_fetch
+
+```rust
+pub fn init_fetch(self) -> Builder<'a>
+```
+
+#### Builder::has_fetch
+
+```rust
+pub fn has_fetch(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_source_config
+
+```rust
+pub fn get_source_config(&self) -> Pipeline
+```
+
+#### Pipeline::get_fetch
+
+```rust
+pub fn get_fetch(&self) -> Pipeline
+```
+
+Implements: `FromTypelessPipeline`

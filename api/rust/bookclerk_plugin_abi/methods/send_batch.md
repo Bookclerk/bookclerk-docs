@@ -1,20 +1,17 @@
-**bookclerk_plugin_abi > methods > send_batch**
+# bookclerk_plugin_abi::methods::send_batch
 
-# Module: methods::send_batch
+Send a batch of messages into a granted queue (Cap'n Proto
+`QueueProducer.sendBatch`).
 
-## Contents
+Params: a list of [`crate::QueueSendMessage`](../generated.md#queuesendmessage) plus a default delay.
+Result: [`crate::QueueSendOk`](../generated.md#queuesendok).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"sendBatch"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::send_batch::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "sendBatch";
+```
 
 Wire method name `"sendBatch"`.
-
-
-

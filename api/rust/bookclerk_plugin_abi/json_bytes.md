@@ -1,58 +1,41 @@
-**bookclerk_plugin_abi > json_bytes**
+# bookclerk_plugin_abi::json_bytes
 
-# Module: json_bytes
+Serde helpers projecting Cap'n Proto `Data` fields as base64 text in JSON.
 
-## Contents
+The typed ABI travels as Cap'n Proto; JSON projections exist only for
+transport-private bridges (the workerd HTTP bridge), operator
+diagnostics, and tests. Bytes serialize as standard base64 (padded) and
+deserialize from either base64 text or a JSON number array, so hand-written
+fixtures stay readable.
 
-**Modules**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`encode`](#encode) | function | Encodes bytes as standard base64 text (bridge JSON projection). |
+| [`decode_text`](#decode_text) | function | Decodes standard base64 text. |
 
-- [`b64`](#b64) - `Vec<u8>` as base64 text.
-- [`opt_b64`](#opt_b64) - `Option<Vec<u8>>` as base64 text; `null`/absent is `None`.
+## Modules
 
-**Functions**
+- [`b64`](json_bytes/b64.md): `Vec<u8>` as base64 text.
+- [`opt_b64`](json_bytes/opt_b64.md): `Option<Vec<u8>>` as base64 text; `null`/absent is `None`.
 
-- [`decode_text`](#decode_text) - Decodes standard base64 text.
-- [`encode`](#encode) - Encodes bytes as standard base64 text (bridge JSON projection).
+## Functions
 
----
-
-## Module: b64
-
-`Vec<u8>` as base64 text.
-
-
-
-## bookclerk_plugin_abi::json_bytes::decode_text
-
-*Function*
-
-Decodes standard base64 text.
-
-# Errors
-
-Returns when the text is not valid base64.
+### encode
 
 ```rust
-fn decode_text(text: &str) -> Result<Vec<u8>, String>
+pub fn encode(bytes: &[u8]) -> String
 ```
-
-
-
-## bookclerk_plugin_abi::json_bytes::encode
-
-*Function*
 
 Encodes bytes as standard base64 text (bridge JSON projection).
 
+### decode_text
+
 ```rust
-fn encode(bytes: &[u8]) -> String
+pub fn decode_text(text: &str) -> Result<Vec<u8>, String>
 ```
 
+Decodes standard base64 text.
 
+#### Errors
 
-## Module: opt_b64
-
-`Option<Vec<u8>>` as base64 text; `null`/absent is `None`.
-
-
-
+Returns when the text is not valid base64.

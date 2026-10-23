@@ -1,176 +1,145 @@
-**bookclerk_dev > package**
+# bookclerk_dev::package
 
-# Module: package
+Release packaging aligned with `docs/plugin-registry.md` artifact naming.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`host_target_triple`](#host_target_triple) | function | Host rustc target triple for the machine running the packager. |
+| [`bookclerk_target`](#bookclerk_target) | function | Canonical Bookclerk artifact target for the host (e.g. `linux-x64-gnu`). |
+| [`normalize_bookclerk_target`](#normalize_bookclerk_target) | function | Map a Bookclerk target or legacy rustc triple to a Bookclerk target name. |
+| [`uses_zip_archive`](#uses_zip_archive) | function | Whether archives for this Bookclerk target (or rustc triple) use `.zip`. |
+| [`package_plugins`](#package_plugins) | function | Packages discovered plugin guests into the release artifacts directory. |
+| [`package_hosts`](#package_hosts) | function | Packages host binaries (`bookclerk`, `bookclerkd`, helpers) into artifacts. |
+| [`package_platform`](#package_platform) | function | Packages platform-only guests (sqlite / local) into artifacts. |
 
-**Functions**
+## Functions
 
-- [`bookclerk_target`](#bookclerk_target) - Canonical Bookclerk artifact target for the host (e.g. `linux-x64-gnu`).
-- [`host_target_triple`](#host_target_triple) - Host rustc target triple for the machine running the packager.
-- [`normalize_bookclerk_target`](#normalize_bookclerk_target) - Map a Bookclerk target or legacy rustc triple to a Bookclerk target name.
-- [`package_hosts`](#package_hosts) - Packages host binaries (`bookclerk`, `bookclerkd`, helpers) into artifacts.
-- [`package_platform`](#package_platform) - Packages platform-only guests (sqlite / local) into artifacts.
-- [`package_plugins`](#package_plugins) - Packages discovered plugin guests into the release artifacts directory.
-- [`uses_zip_archive`](#uses_zip_archive) - Whether archives for this Bookclerk target (or rustc triple) use `.zip`.
-
----
-
-## bookclerk_dev::package::bookclerk_target
-
-*Function*
-
-Canonical Bookclerk artifact target for the host (e.g. `linux-x64-gnu`).
+### host_target_triple
 
 ```rust
-fn bookclerk_target() -> &'static str
+pub fn host_target_triple() -> &'static str
 ```
-
-
-
-## bookclerk_dev::package::host_target_triple
-
-*Function*
 
 Host rustc target triple for the machine running the packager.
 
-Prefer [`bookclerk_target`](package.md#bookclerk_devpackagebookclerk_target) for new archive filenames. This remains for
-callers that still speak rustc triples; [`normalize_bookclerk_target`](package.md#bookclerk_devpackagenormalize_bookclerk_target) maps
+Prefer [`bookclerk_target`](#bookclerk_target) for new archive filenames. This remains for
+callers that still speak rustc triples; [`normalize_bookclerk_target`](#normalize_bookclerk_target) maps
 either form onto a Bookclerk target name.
 
+### bookclerk_target
+
 ```rust
-fn host_target_triple() -> &'static str
+pub fn bookclerk_target() -> &'static str
 ```
 
+Canonical Bookclerk artifact target for the host (e.g. `linux-x64-gnu`).
 
+### normalize_bookclerk_target
 
-## bookclerk_dev::package::normalize_bookclerk_target
-
-*Function*
+```rust
+pub fn normalize_bookclerk_target(triple_or_target: &str) -> Option<&'static str>
+```
 
 Map a Bookclerk target or legacy rustc triple to a Bookclerk target name.
 
-# Arguments
+#### Arguments
 
 * `triple_or_target` - String `triple_or_target` for this call.
 
-# Returns
+#### Returns
 
 `Some(...)` when found / applicable; otherwise `None`.
 
-```rust
-fn normalize_bookclerk_target(triple_or_target: &str) -> Option<&'static str>
-```
-
-
-
-## bookclerk_dev::package::package_hosts
-
-*Function*
-
-Packages host binaries (`bookclerk`, `bookclerkd`, helpers) into artifacts.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `out_dir` - Filesystem path (`out_dir`).
-* `version` - String `version` for this call.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-# Panics
-
-Panics when an internal invariant does not hold.
+### uses_zip_archive
 
 ```rust
-fn package_hosts(root: &std::path::Path, out_dir: &std::path::Path, version: &str) -> anyhow::Result<()>
+pub fn uses_zip_archive(triple_or_target: &str) -> bool
 ```
-
-
-
-## bookclerk_dev::package::package_platform
-
-*Function*
-
-Packages platform-only guests (sqlite / local) into artifacts.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `out_dir` - Filesystem path (`out_dir`).
-* `version` - String `version` for this call.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-# Panics
-
-Panics when an internal invariant does not hold.
-
-```rust
-fn package_platform(root: &std::path::Path, out_dir: &std::path::Path, version: &str) -> anyhow::Result<()>
-```
-
-
-
-## bookclerk_dev::package::package_plugins
-
-*Function*
-
-Packages discovered plugin guests into the release artifacts directory.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `out_dir` - Filesystem path (`out_dir`).
-* `version` - String `version` for this call.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-# Panics
-
-Panics when an internal invariant does not hold.
-
-```rust
-fn package_plugins(root: &std::path::Path, out_dir: &std::path::Path, version: &str) -> anyhow::Result<()>
-```
-
-
-
-## bookclerk_dev::package::uses_zip_archive
-
-*Function*
 
 Whether archives for this Bookclerk target (or rustc triple) use `.zip`.
 
-# Arguments
+#### Arguments
 
 * `triple_or_target` - String `triple_or_target` for this call.
 
-# Returns
+#### Returns
 
 `true` when the predicate holds.
 
+### package_plugins
+
 ```rust
-fn uses_zip_archive(triple_or_target: &str) -> bool
+pub fn package_plugins(root: &Path, out_dir: &Path, version: &str) -> Result<()>
 ```
 
+Packages discovered plugin guests into the release artifacts directory.
 
+#### Arguments
 
+* `root` - Cargo workspace root directory.
+* `out_dir` - Filesystem path (`out_dir`).
+* `version` - String `version` for this call.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+#### Panics
+
+Panics when an internal invariant does not hold.
+
+### package_hosts
+
+```rust
+pub fn package_hosts(root: &Path, out_dir: &Path, version: &str) -> Result<()>
+```
+
+Packages host binaries (`bookclerk`, `bookclerkd`, helpers) into artifacts.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `out_dir` - Filesystem path (`out_dir`).
+* `version` - String `version` for this call.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+#### Panics
+
+Panics when an internal invariant does not hold.
+
+### package_platform
+
+```rust
+pub fn package_platform(root: &Path, out_dir: &Path, version: &str) -> Result<()>
+```
+
+Packages platform-only guests (sqlite / local) into artifacts.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `out_dir` - Filesystem path (`out_dir`).
+* `version` - String `version` for this call.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+#### Panics
+
+Panics when an internal invariant does not hold.

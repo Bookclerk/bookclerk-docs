@@ -1,114 +1,126 @@
-**bookclerk_plugin_abi > plugin_capnp > text_collate_site**
+# bookclerk_plugin_abi::plugin_capnp::text_collate_site
 
-# Module: plugin_capnp::text_collate_site
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::text_collate_site::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_span(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Builder<'a>>`
-- `fn set_span(self: & mut Self, value: crate::plugin_capnp::sql_span::Reader) -> ::capnp::Result<()>`
-- `fn init_span(self: Self) -> crate::plugin_capnp::sql_span::Builder<'a>`
-- `fn has_span(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_span
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_span(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_span
 
+```rust
+pub fn has_span(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::text_collate_site::Owned
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Tuple Struct**: `()`
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
-## bookclerk_plugin_abi::plugin_capnp::text_collate_site::Pipeline
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-*Struct*
+#### Builder::total_size
 
-**Methods:**
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-- `fn get_span(self: &Self) -> crate::plugin_capnp::sql_span::Pipeline`
+#### Builder::get_span
 
-**Trait Implementations:**
+```rust
+pub fn get_span(self) -> Result<Builder<'a>>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::set_span
 
+```rust
+pub fn set_span(&mut self, value: Reader<'_>) -> Result<()>
+```
 
+#### Builder::init_span
 
-## bookclerk_plugin_abi::plugin_capnp::text_collate_site::Reader
+```rust
+pub fn init_span(self) -> Builder<'a>
+```
 
-*Struct*
+#### Builder::has_span
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn has_span(&self) -> bool
+```
 
-**Methods:**
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_span(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Reader<'a>>`
-- `fn has_span(self: &Self) -> bool`
+### Pipeline
 
-**Traits:** Copy, HasTypeId
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
 
-**Trait Implementations:**
+#### Pipeline::get_span
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+```rust
+pub fn get_span(&self) -> Pipeline
+```
 
-
-
+Implements: `FromTypelessPipeline`

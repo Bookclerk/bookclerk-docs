@@ -1,157 +1,200 @@
-**bookclerk_plugin_abi > plugin_capnp > db_value**
+# bookclerk_plugin_abi::plugin_capnp::db_value
 
-# Module: plugin_capnp::db_value
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
+| [`Which`](#which) | enum |  |
+| [`WhichReader`](#whichreader) | type alias |  |
+| [`WhichBuilder`](#whichbuilder) | type alias |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
-**Enums**
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-- [`Which`](#which)
+### Reader
 
-**Type Aliases**
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-- [`WhichBuilder`](#whichbuilder)
-- [`WhichReader`](#whichreader)
+#### Reader::reborrow
 
----
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::Builder
+#### Reader::total_size
 
-*Struct*
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_text
 
-**Methods:**
+```rust
+pub fn has_text(&self) -> bool
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn set_null(self: & mut Self, value: crate::plugin_capnp::DbType)`
-- `fn set_boolean(self: & mut Self, value: bool)`
-- `fn set_int64(self: & mut Self, value: i64)`
-- `fn set_float64(self: & mut Self, value: f64)`
-- `fn set_text<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_text(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_text(self: &Self) -> bool`
-- `fn set_bytes(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_bytes(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_bytes(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema>`
+#### Reader::has_bytes
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn has_bytes(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::which
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn which(self) -> Result<WhichReader<'a>, NotInSchema>
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::Owned
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Tuple Struct**: `()`
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::Pipeline
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-*Struct*
+#### Builder::set_null
 
-**Trait Implementations:**
+```rust
+pub fn set_null(&mut self, value: DbType)
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::set_boolean
 
+```rust
+pub fn set_boolean(&mut self, value: bool)
+```
 
+#### Builder::set_int64
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::Reader
+```rust
+pub fn set_int64(&mut self, value: i64)
+```
 
-*Struct*
+#### Builder::set_float64
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn set_float64(&mut self, value: f64)
+```
 
-**Methods:**
+#### Builder::set_text
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn has_text(self: &Self) -> bool`
-- `fn has_bytes(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema>`
+```rust
+pub fn set_text(&mut self, value: impl SetterInput<Owned>)
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::init_text
 
-**Trait Implementations:**
+```rust
+pub fn init_text(self, size: u32) -> Builder<'a>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::has_text
 
+```rust
+pub fn has_text(&self) -> bool
+```
 
+#### Builder::set_bytes
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::Which
+```rust
+pub fn set_bytes(&mut self, value: Reader<'_>)
+```
 
-*Enum*
+#### Builder::init_bytes
 
-**Generic Parameters:**
-- A0
-- A1
+```rust
+pub fn init_bytes(self, size: u32) -> Builder<'a>
+```
 
-**Variants:**
-- `Null(::core::result::Result<crate::plugin_capnp::DbType, ::capnp::NotInSchema>)`
-- `Boolean(bool)`
-- `Int64(i64)`
-- `Float64(f64)`
-- `Text(A0)`
-- `Bytes(A1)`
+#### Builder::has_bytes
 
+```rust
+pub fn has_bytes(&self) -> bool
+```
 
+#### Builder::which
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::WhichBuilder
+```rust
+pub fn which(self) -> Result<WhichBuilder<'a>, NotInSchema>
+```
 
-*Type Alias*: `Which<::capnp::Result<::capnp::text::Builder<'a>>, ::capnp::Result<::capnp::data::Builder<'a>>>`
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
+### Pipeline
 
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_value::WhichReader
+Implements: `FromTypelessPipeline`
 
-*Type Alias*: `Which<::capnp::Result<::capnp::text::Reader<'a>>, ::capnp::Result<::capnp::data::Reader<'a>>>`
+## Enums
 
+### Which
 
+```rust
+pub enum Which<A0, A1> {
+    Null(Result<DbType, NotInSchema>),
+    Boolean(bool),
+    Int64(i64),
+    Float64(f64),
+    Text(A0),
+    Bytes(A1),
+}
+```
 
+## Type aliases
+
+### WhichReader
+
+```rust
+pub type WhichReader<'a> = Which<Result<Reader<'a>>, Result<Reader<'a>>>;
+```
+
+### WhichBuilder
+
+```rust
+pub type WhichBuilder<'a> = Which<Result<Builder<'a>>, Result<Builder<'a>>>;
+```

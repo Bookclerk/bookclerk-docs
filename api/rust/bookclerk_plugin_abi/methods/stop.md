@@ -1,20 +1,13 @@
-**bookclerk_plugin_abi > methods > stop**
+# bookclerk_plugin_abi::methods::stop
 
-# Module: methods::stop
+Stop background watchers started by [`start`](start.md) (Cap'n Proto `RemoteLibrary.stop`).
 
-## Contents
+## Constants
 
-**Constants**
+### NAME
 
-- [`NAME`](#name) - Wire method name `"stop"`.
-
----
-
-## bookclerk_plugin_abi::methods::stop::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "stop";
+```
 
 Wire method name `"stop"`.
-
-
-

@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > login**
+# bookclerk_plugin_abi::methods::login
 
-# Module: methods::login
+Password-style source login; host seals returned credentials.
 
-## Contents
+Params: [`crate::LoginParams`](../generated.md#loginparams). Result: [`crate::LoginResult`](../generated.md#loginresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"login"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::login::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "login";
+```
 
 Wire method name `"login"`.
-
-
-

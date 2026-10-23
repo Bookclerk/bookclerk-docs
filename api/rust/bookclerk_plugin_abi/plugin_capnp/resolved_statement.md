@@ -1,156 +1,378 @@
-**bookclerk_plugin_abi > plugin_capnp > resolved_statement**
+# bookclerk_plugin_abi::plugin_capnp::resolved_statement
 
-# Module: plugin_capnp::resolved_statement
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_statement::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_statement_hash(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_statement_hash<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_statement_hash(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_statement_hash(self: &Self) -> bool`
-- `fn get_output_columns(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_sql_type::Owned>>`
-- `fn set_output_columns(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::named_sql_type::Owned>) -> ::capnp::Result<()>`
-- `fn init_output_columns(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::named_sql_type::Owned>`
-- `fn has_output_columns(self: &Self) -> bool`
-- `fn get_physical_accesses(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::physical_access::Owned>>`
-- `fn set_physical_accesses(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::physical_access::Owned>) -> ::capnp::Result<()>`
-- `fn init_physical_accesses(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::physical_access::Owned>`
-- `fn has_physical_accesses(self: &Self) -> bool`
-- `fn get_assignments(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::resolved_assignment::Owned>>`
-- `fn set_assignments(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::resolved_assignment::Owned>) -> ::capnp::Result<()>`
-- `fn init_assignments(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::resolved_assignment::Owned>`
-- `fn has_assignments(self: &Self) -> bool`
-- `fn get_text_collate_sites(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::text_collate_site::Owned>>`
-- `fn set_text_collate_sites(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::text_collate_site::Owned>) -> ::capnp::Result<()>`
-- `fn init_text_collate_sites(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::text_collate_site::Owned>`
-- `fn has_text_collate_sites(self: &Self) -> bool`
-- `fn get_integer_arith_sites(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::integer_arith_site::Owned>>`
-- `fn set_integer_arith_sites(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::integer_arith_site::Owned>) -> ::capnp::Result<()>`
-- `fn init_integer_arith_sites(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::integer_arith_site::Owned>`
-- `fn has_integer_arith_sites(self: &Self) -> bool`
-- `fn get_functions(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_functions<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_functions(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_functions(self: &Self) -> bool`
-- `fn get_schema_action(self: Self) -> ::capnp::Result<crate::plugin_capnp::schema_action::Builder<'a>>`
-- `fn set_schema_action(self: & mut Self, value: crate::plugin_capnp::schema_action::Reader) -> ::capnp::Result<()>`
-- `fn init_schema_action(self: Self) -> crate::plugin_capnp::schema_action::Builder<'a>`
-- `fn has_schema_action(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_statement_hash
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_statement_hash(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_statement_hash
 
+```rust
+pub fn has_statement_hash(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_statement::Owned
+#### Reader::get_output_columns
 
-*Struct*
+```rust
+pub fn get_output_columns(self) -> Result<Reader<'a, Owned>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_output_columns
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_output_columns(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_physical_accesses
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_physical_accesses(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_physical_accesses
 
+```rust
+pub fn has_physical_accesses(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_statement::Pipeline
+#### Reader::get_assignments
 
-*Struct*
+```rust
+pub fn get_assignments(self) -> Result<Reader<'a, Owned>>
+```
 
-**Methods:**
+#### Reader::has_assignments
 
-- `fn get_schema_action(self: &Self) -> crate::plugin_capnp::schema_action::Pipeline`
+```rust
+pub fn has_assignments(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_text_collate_sites
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_text_collate_sites(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_text_collate_sites
 
+```rust
+pub fn has_text_collate_sites(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::resolved_statement::Reader
+#### Reader::get_integer_arith_sites
 
-*Struct*
+```rust
+pub fn get_integer_arith_sites(self) -> Result<Reader<'a, Owned>>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_integer_arith_sites
 
-**Methods:**
+```rust
+pub fn has_integer_arith_sites(&self) -> bool
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_statement_hash(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_statement_hash(self: &Self) -> bool`
-- `fn get_output_columns(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::named_sql_type::Owned>>`
-- `fn has_output_columns(self: &Self) -> bool`
-- `fn get_physical_accesses(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::physical_access::Owned>>`
-- `fn has_physical_accesses(self: &Self) -> bool`
-- `fn get_assignments(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::resolved_assignment::Owned>>`
-- `fn has_assignments(self: &Self) -> bool`
-- `fn get_text_collate_sites(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::text_collate_site::Owned>>`
-- `fn has_text_collate_sites(self: &Self) -> bool`
-- `fn get_integer_arith_sites(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::integer_arith_site::Owned>>`
-- `fn has_integer_arith_sites(self: &Self) -> bool`
-- `fn get_functions(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_functions(self: &Self) -> bool`
-- `fn get_schema_action(self: Self) -> ::capnp::Result<crate::plugin_capnp::schema_action::Reader<'a>>`
-- `fn has_schema_action(self: &Self) -> bool`
+#### Reader::get_functions
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn get_functions(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_functions
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+```rust
+pub fn has_functions(&self) -> bool
+```
 
+#### Reader::get_schema_action
 
+```rust
+pub fn get_schema_action(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_schema_action
+
+```rust
+pub fn has_schema_action(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_statement_hash
+
+```rust
+pub fn get_statement_hash(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_statement_hash
+
+```rust
+pub fn set_statement_hash(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_statement_hash
+
+```rust
+pub fn init_statement_hash(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_statement_hash
+
+```rust
+pub fn has_statement_hash(&self) -> bool
+```
+
+#### Builder::get_output_columns
+
+```rust
+pub fn get_output_columns(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_output_columns
+
+```rust
+pub fn set_output_columns(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_output_columns
+
+```rust
+pub fn init_output_columns(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_output_columns
+
+```rust
+pub fn has_output_columns(&self) -> bool
+```
+
+#### Builder::get_physical_accesses
+
+```rust
+pub fn get_physical_accesses(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_physical_accesses
+
+```rust
+pub fn set_physical_accesses(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_physical_accesses
+
+```rust
+pub fn init_physical_accesses(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_physical_accesses
+
+```rust
+pub fn has_physical_accesses(&self) -> bool
+```
+
+#### Builder::get_assignments
+
+```rust
+pub fn get_assignments(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_assignments
+
+```rust
+pub fn set_assignments(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_assignments
+
+```rust
+pub fn init_assignments(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_assignments
+
+```rust
+pub fn has_assignments(&self) -> bool
+```
+
+#### Builder::get_text_collate_sites
+
+```rust
+pub fn get_text_collate_sites(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_text_collate_sites
+
+```rust
+pub fn set_text_collate_sites(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_text_collate_sites
+
+```rust
+pub fn init_text_collate_sites(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_text_collate_sites
+
+```rust
+pub fn has_text_collate_sites(&self) -> bool
+```
+
+#### Builder::get_integer_arith_sites
+
+```rust
+pub fn get_integer_arith_sites(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_integer_arith_sites
+
+```rust
+pub fn set_integer_arith_sites(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_integer_arith_sites
+
+```rust
+pub fn init_integer_arith_sites(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_integer_arith_sites
+
+```rust
+pub fn has_integer_arith_sites(&self) -> bool
+```
+
+#### Builder::get_functions
+
+```rust
+pub fn get_functions(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_functions
+
+```rust
+pub fn set_functions(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_functions
+
+```rust
+pub fn init_functions(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_functions
+
+```rust
+pub fn has_functions(&self) -> bool
+```
+
+#### Builder::get_schema_action
+
+```rust
+pub fn get_schema_action(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_schema_action
+
+```rust
+pub fn set_schema_action(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_schema_action
+
+```rust
+pub fn init_schema_action(self) -> Builder<'a>
+```
+
+#### Builder::has_schema_action
+
+```rust
+pub fn has_schema_action(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_schema_action
+
+```rust
+pub fn get_schema_action(&self) -> Pipeline
+```
+
+Implements: `FromTypelessPipeline`

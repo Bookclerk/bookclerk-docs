@@ -1,170 +1,480 @@
-**bookclerk_plugin_abi > plugin_capnp > db_capabilities**
+# bookclerk_plugin_abi::plugin_capnp::db_capabilities
 
-# Module: plugin_capnp::db_capabilities
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::db_capabilities::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_sql_contract_version(self: Self) -> u32`
-- `fn set_sql_contract_version(self: & mut Self, value: u32)`
-- `fn get_atomic_batch(self: Self) -> bool`
-- `fn set_atomic_batch(self: & mut Self, value: bool)`
-- `fn get_returning(self: Self) -> bool`
-- `fn set_returning(self: & mut Self, value: bool)`
-- `fn get_affected_rows(self: Self) -> bool`
-- `fn set_affected_rows(self: & mut Self, value: bool)`
-- `fn get_schema_migrations(self: Self) -> bool`
-- `fn set_schema_migrations(self: & mut Self, value: bool)`
-- `fn get_cancellation(self: Self) -> bool`
-- `fn set_cancellation(self: & mut Self, value: bool)`
-- `fn get_timing(self: Self) -> bool`
-- `fn set_timing(self: & mut Self, value: bool)`
-- `fn get_max_binds(self: Self) -> u32`
-- `fn set_max_binds(self: & mut Self, value: u32)`
-- `fn get_max_statements(self: Self) -> u32`
-- `fn set_max_statements(self: & mut Self, value: u32)`
-- `fn get_max_result_rows(self: Self) -> u32`
-- `fn set_max_result_rows(self: & mut Self, value: u32)`
-- `fn get_max_payload_bytes(self: Self) -> u32`
-- `fn set_max_payload_bytes(self: & mut Self, value: u32)`
-- `fn get_max_result_bytes(self: Self) -> u32`
-- `fn set_max_result_bytes(self: & mut Self, value: u32)`
-- `fn get_max_cell_bytes(self: Self) -> u32`
-- `fn set_max_cell_bytes(self: & mut Self, value: u32)`
-- `fn get_max_request_bytes(self: Self) -> u32`
-- `fn set_max_request_bytes(self: & mut Self, value: u32)`
-- `fn get_max_atomic_result_bytes(self: Self) -> u32`
-- `fn set_max_atomic_result_bytes(self: & mut Self, value: u32)`
-- `fn get_plugin_databases(self: Self) -> bool`
-- `fn set_plugin_databases(self: & mut Self, value: bool)`
-- `fn get_max_function_args(self: Self) -> u32`
-- `fn set_max_function_args(self: & mut Self, value: u32)`
-- `fn get_max_schema_columns(self: Self) -> u32`
-- `fn set_max_schema_columns(self: & mut Self, value: u32)`
-- `fn get_max_pattern_bytes(self: Self) -> u32`
-- `fn set_max_pattern_bytes(self: & mut Self, value: u32)`
-- `fn get_max_lowered_statement_bytes(self: Self) -> u32`
-- `fn set_max_lowered_statement_bytes(self: & mut Self, value: u32)`
-- `fn get_consistent_backup_read(self: Self) -> bool`
-- `fn set_consistent_backup_read(self: & mut Self, value: bool)`
-- `fn get_atomic_unit_restore(self: Self) -> bool`
-- `fn set_atomic_unit_restore(self: & mut Self, value: bool)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_sql_contract_version
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_sql_contract_version(self) -> u32
+```
 
+#### Reader::get_atomic_batch
 
+```rust
+pub fn get_atomic_batch(self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_capabilities::Owned
+#### Reader::get_returning
 
-*Struct*
+```rust
+pub fn get_returning(self) -> bool
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_affected_rows
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn get_affected_rows(self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_schema_migrations
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_schema_migrations(self) -> bool
+```
 
+#### Reader::get_cancellation
 
+```rust
+pub fn get_cancellation(self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_capabilities::Pipeline
+#### Reader::get_timing
 
-*Struct*
+```rust
+pub fn get_timing(self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_max_binds
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_max_binds(self) -> u32
+```
 
+#### Reader::get_max_statements
 
+```rust
+pub fn get_max_statements(self) -> u32
+```
 
-## bookclerk_plugin_abi::plugin_capnp::db_capabilities::Reader
+#### Reader::get_max_result_rows
 
-*Struct*
+```rust
+pub fn get_max_result_rows(self) -> u32
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_max_payload_bytes
 
-**Methods:**
+```rust
+pub fn get_max_payload_bytes(self) -> u32
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_sql_contract_version(self: Self) -> u32`
-- `fn get_atomic_batch(self: Self) -> bool`
-- `fn get_returning(self: Self) -> bool`
-- `fn get_affected_rows(self: Self) -> bool`
-- `fn get_schema_migrations(self: Self) -> bool`
-- `fn get_cancellation(self: Self) -> bool`
-- `fn get_timing(self: Self) -> bool`
-- `fn get_max_binds(self: Self) -> u32`
-- `fn get_max_statements(self: Self) -> u32`
-- `fn get_max_result_rows(self: Self) -> u32`
-- `fn get_max_payload_bytes(self: Self) -> u32`
-- `fn get_max_result_bytes(self: Self) -> u32`
-- `fn get_max_cell_bytes(self: Self) -> u32`
-- `fn get_max_request_bytes(self: Self) -> u32`
-- `fn get_max_atomic_result_bytes(self: Self) -> u32`
-- `fn get_plugin_databases(self: Self) -> bool`
-- `fn get_max_function_args(self: Self) -> u32`
-- `fn get_max_schema_columns(self: Self) -> u32`
-- `fn get_max_pattern_bytes(self: Self) -> u32`
-- `fn get_max_lowered_statement_bytes(self: Self) -> u32`
-- `fn get_consistent_backup_read(self: Self) -> bool`
-- `fn get_atomic_unit_restore(self: Self) -> bool`
+#### Reader::get_max_result_bytes
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn get_max_result_bytes(self) -> u32
+```
 
-**Trait Implementations:**
+#### Reader::get_max_cell_bytes
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+```rust
+pub fn get_max_cell_bytes(self) -> u32
+```
 
+#### Reader::get_max_request_bytes
 
+```rust
+pub fn get_max_request_bytes(self) -> u32
+```
 
+#### Reader::get_max_atomic_result_bytes
+
+```rust
+pub fn get_max_atomic_result_bytes(self) -> u32
+```
+
+#### Reader::get_plugin_databases
+
+```rust
+pub fn get_plugin_databases(self) -> bool
+```
+
+#### Reader::get_max_function_args
+
+```rust
+pub fn get_max_function_args(self) -> u32
+```
+
+#### Reader::get_max_schema_columns
+
+```rust
+pub fn get_max_schema_columns(self) -> u32
+```
+
+#### Reader::get_max_pattern_bytes
+
+```rust
+pub fn get_max_pattern_bytes(self) -> u32
+```
+
+#### Reader::get_max_lowered_statement_bytes
+
+```rust
+pub fn get_max_lowered_statement_bytes(self) -> u32
+```
+
+#### Reader::get_consistent_backup_read
+
+```rust
+pub fn get_consistent_backup_read(self) -> bool
+```
+
+#### Reader::get_atomic_unit_restore
+
+```rust
+pub fn get_atomic_unit_restore(self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_sql_contract_version
+
+```rust
+pub fn get_sql_contract_version(self) -> u32
+```
+
+#### Builder::set_sql_contract_version
+
+```rust
+pub fn set_sql_contract_version(&mut self, value: u32)
+```
+
+#### Builder::get_atomic_batch
+
+```rust
+pub fn get_atomic_batch(self) -> bool
+```
+
+#### Builder::set_atomic_batch
+
+```rust
+pub fn set_atomic_batch(&mut self, value: bool)
+```
+
+#### Builder::get_returning
+
+```rust
+pub fn get_returning(self) -> bool
+```
+
+#### Builder::set_returning
+
+```rust
+pub fn set_returning(&mut self, value: bool)
+```
+
+#### Builder::get_affected_rows
+
+```rust
+pub fn get_affected_rows(self) -> bool
+```
+
+#### Builder::set_affected_rows
+
+```rust
+pub fn set_affected_rows(&mut self, value: bool)
+```
+
+#### Builder::get_schema_migrations
+
+```rust
+pub fn get_schema_migrations(self) -> bool
+```
+
+#### Builder::set_schema_migrations
+
+```rust
+pub fn set_schema_migrations(&mut self, value: bool)
+```
+
+#### Builder::get_cancellation
+
+```rust
+pub fn get_cancellation(self) -> bool
+```
+
+#### Builder::set_cancellation
+
+```rust
+pub fn set_cancellation(&mut self, value: bool)
+```
+
+#### Builder::get_timing
+
+```rust
+pub fn get_timing(self) -> bool
+```
+
+#### Builder::set_timing
+
+```rust
+pub fn set_timing(&mut self, value: bool)
+```
+
+#### Builder::get_max_binds
+
+```rust
+pub fn get_max_binds(self) -> u32
+```
+
+#### Builder::set_max_binds
+
+```rust
+pub fn set_max_binds(&mut self, value: u32)
+```
+
+#### Builder::get_max_statements
+
+```rust
+pub fn get_max_statements(self) -> u32
+```
+
+#### Builder::set_max_statements
+
+```rust
+pub fn set_max_statements(&mut self, value: u32)
+```
+
+#### Builder::get_max_result_rows
+
+```rust
+pub fn get_max_result_rows(self) -> u32
+```
+
+#### Builder::set_max_result_rows
+
+```rust
+pub fn set_max_result_rows(&mut self, value: u32)
+```
+
+#### Builder::get_max_payload_bytes
+
+```rust
+pub fn get_max_payload_bytes(self) -> u32
+```
+
+#### Builder::set_max_payload_bytes
+
+```rust
+pub fn set_max_payload_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_result_bytes
+
+```rust
+pub fn get_max_result_bytes(self) -> u32
+```
+
+#### Builder::set_max_result_bytes
+
+```rust
+pub fn set_max_result_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_cell_bytes
+
+```rust
+pub fn get_max_cell_bytes(self) -> u32
+```
+
+#### Builder::set_max_cell_bytes
+
+```rust
+pub fn set_max_cell_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_request_bytes
+
+```rust
+pub fn get_max_request_bytes(self) -> u32
+```
+
+#### Builder::set_max_request_bytes
+
+```rust
+pub fn set_max_request_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_atomic_result_bytes
+
+```rust
+pub fn get_max_atomic_result_bytes(self) -> u32
+```
+
+#### Builder::set_max_atomic_result_bytes
+
+```rust
+pub fn set_max_atomic_result_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_plugin_databases
+
+```rust
+pub fn get_plugin_databases(self) -> bool
+```
+
+#### Builder::set_plugin_databases
+
+```rust
+pub fn set_plugin_databases(&mut self, value: bool)
+```
+
+#### Builder::get_max_function_args
+
+```rust
+pub fn get_max_function_args(self) -> u32
+```
+
+#### Builder::set_max_function_args
+
+```rust
+pub fn set_max_function_args(&mut self, value: u32)
+```
+
+#### Builder::get_max_schema_columns
+
+```rust
+pub fn get_max_schema_columns(self) -> u32
+```
+
+#### Builder::set_max_schema_columns
+
+```rust
+pub fn set_max_schema_columns(&mut self, value: u32)
+```
+
+#### Builder::get_max_pattern_bytes
+
+```rust
+pub fn get_max_pattern_bytes(self) -> u32
+```
+
+#### Builder::set_max_pattern_bytes
+
+```rust
+pub fn set_max_pattern_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_lowered_statement_bytes
+
+```rust
+pub fn get_max_lowered_statement_bytes(self) -> u32
+```
+
+#### Builder::set_max_lowered_statement_bytes
+
+```rust
+pub fn set_max_lowered_statement_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_consistent_backup_read
+
+```rust
+pub fn get_consistent_backup_read(self) -> bool
+```
+
+#### Builder::set_consistent_backup_read
+
+```rust
+pub fn set_consistent_backup_read(&mut self, value: bool)
+```
+
+#### Builder::get_atomic_unit_restore
+
+```rust
+pub fn get_atomic_unit_restore(self) -> bool
+```
+
+#### Builder::set_atomic_unit_restore
+
+```rust
+pub fn set_atomic_unit_restore(&mut self, value: bool)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

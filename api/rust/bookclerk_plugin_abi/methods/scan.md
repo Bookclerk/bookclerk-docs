@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > scan**
+# bookclerk_plugin_abi::methods::scan
 
-# Module: methods::scan
+Scan a source storefront library; host upserts returned [`crate::ScanBook`](../generated.md#scanbook) rows.
 
-## Contents
+Params: [`crate::ScanParams`](../generated.md#scanparams). Result: [`crate::ScanSummary`](../generated.md#scansummary).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"scan"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::scan::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "scan";
+```
 
 Wire method name `"scan"`.
-
-
-

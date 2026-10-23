@@ -1,342 +1,396 @@
-**bookclerk_plugin_abi > plugin_host_capnp > adapter_transaction**
+# bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`ExecuteParams`](#executeparams) | type alias |  |
+| [`ExecuteResults`](#executeresults) | type alias |  |
+| [`CommitParams`](#commitparams) | type alias |  |
+| [`CommitResults`](#commitresults) | type alias |  |
+| [`RollbackParams`](#rollbackparams) | type alias |  |
+| [`RollbackResults`](#rollbackresults) | type alias |  |
+| [`ExportIdentityParams`](#exportidentityparams) | type alias |  |
+| [`ExportIdentityResults`](#exportidentityresults) | type alias |  |
+| [`ImportIdentityParams`](#importidentityparams) | type alias |  |
+| [`ImportIdentityResults`](#importidentityresults) | type alias |  |
+| [`ListUserRelationsParams`](#listuserrelationsparams) | type alias |  |
+| [`ListUserRelationsResults`](#listuserrelationsresults) | type alias |  |
+| [`PrepareUnitRestoreParams`](#prepareunitrestoreparams) | type alias |  |
+| [`PrepareUnitRestoreResults`](#prepareunitrestoreresults) | type alias |  |
+| [`DropUserRelationsParams`](#dropuserrelationsparams) | type alias |  |
+| [`DropUserRelationsResults`](#dropuserrelationsresults) | type alias |  |
+| [`AssertRestoreConstraintsParams`](#assertrestoreconstraintsparams) | type alias |  |
+| [`AssertRestoreConstraintsResults`](#assertrestoreconstraintsresults) | type alias |  |
+
+## Modules
+
+- [`execute_params`](adapter_transaction/execute_params.md)
+- [`execute_results`](adapter_transaction/execute_results.md)
+- [`commit_params`](adapter_transaction/commit_params.md)
+- [`commit_results`](adapter_transaction/commit_results.md)
+- [`rollback_params`](adapter_transaction/rollback_params.md)
+- [`rollback_results`](adapter_transaction/rollback_results.md)
+- [`export_identity_params`](adapter_transaction/export_identity_params.md)
+- [`export_identity_results`](adapter_transaction/export_identity_results.md)
+- [`import_identity_params`](adapter_transaction/import_identity_params.md)
+- [`import_identity_results`](adapter_transaction/import_identity_results.md)
+- [`list_user_relations_params`](adapter_transaction/list_user_relations_params.md)
+- [`list_user_relations_results`](adapter_transaction/list_user_relations_results.md)
+- [`prepare_unit_restore_params`](adapter_transaction/prepare_unit_restore_params.md)
+- [`prepare_unit_restore_results`](adapter_transaction/prepare_unit_restore_results.md)
+- [`drop_user_relations_params`](adapter_transaction/drop_user_relations_params.md)
+- [`drop_user_relations_results`](adapter_transaction/drop_user_relations_results.md)
+- [`assert_restore_constraints_params`](adapter_transaction/assert_restore_constraints_params.md)
+- [`assert_restore_constraints_results`](adapter_transaction/assert_restore_constraints_results.md)
+
+## Traits
+
+### Server
+
+```rust
+pub trait Server: 'static {
+    fn execute(
+        self: Rc<Self>,
+        _: ExecuteParams,
+        _: ExecuteResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn commit(
+        self: Rc<Self>,
+        _: CommitParams,
+        _: CommitResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn rollback(
+        self: Rc<Self>,
+        _: RollbackParams,
+        _: RollbackResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn export_identity(
+        self: Rc<Self>,
+        _: ExportIdentityParams,
+        _: ExportIdentityResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn import_identity(
+        self: Rc<Self>,
+        _: ImportIdentityParams,
+        _: ImportIdentityResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn list_user_relations(
+        self: Rc<Self>,
+        _: ListUserRelationsParams,
+        _: ListUserRelationsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn prepare_unit_restore(
+        self: Rc<Self>,
+        _: PrepareUnitRestoreParams,
+        _: PrepareUnitRestoreResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn drop_user_relations(
+        self: Rc<Self>,
+        _: DropUserRelationsParams,
+        _: DropUserRelationsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn assert_restore_constraints(
+        self: Rc<Self>,
+        _: AssertRestoreConstraintsParams,
+        _: AssertRestoreConstraintsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
+
+#### Server::execute
+
+```rust
+fn execute(
+    self: Rc<Self>,
+    _: ExecuteParams,
+    _: ExecuteResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::commit
+
+```rust
+fn commit(
+    self: Rc<Self>,
+    _: CommitParams,
+    _: CommitResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::rollback
+
+```rust
+fn rollback(
+    self: Rc<Self>,
+    _: RollbackParams,
+    _: RollbackResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::export_identity
+
+```rust
+fn export_identity(
+    self: Rc<Self>,
+    _: ExportIdentityParams,
+    _: ExportIdentityResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::import_identity
+
+```rust
+fn import_identity(
+    self: Rc<Self>,
+    _: ImportIdentityParams,
+    _: ImportIdentityResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-# Module: plugin_host_capnp::adapter_transaction
+#### Server::list_user_relations
 
-## Contents
+```rust
+fn list_user_relations(
+    self: Rc<Self>,
+    _: ListUserRelationsParams,
+    _: ListUserRelationsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Modules**
+#### Server::prepare_unit_restore
 
-- [`assert_restore_constraints_params`](#assert_restore_constraints_params)
-- [`assert_restore_constraints_results`](#assert_restore_constraints_results)
-- [`commit_params`](#commit_params)
-- [`commit_results`](#commit_results)
-- [`drop_user_relations_params`](#drop_user_relations_params)
-- [`drop_user_relations_results`](#drop_user_relations_results)
-- [`execute_params`](#execute_params)
-- [`execute_results`](#execute_results)
-- [`export_identity_params`](#export_identity_params)
-- [`export_identity_results`](#export_identity_results)
-- [`import_identity_params`](#import_identity_params)
-- [`import_identity_results`](#import_identity_results)
-- [`list_user_relations_params`](#list_user_relations_params)
-- [`list_user_relations_results`](#list_user_relations_results)
-- [`prepare_unit_restore_params`](#prepare_unit_restore_params)
-- [`prepare_unit_restore_results`](#prepare_unit_restore_results)
-- [`rollback_params`](#rollback_params)
-- [`rollback_results`](#rollback_results)
+```rust
+fn prepare_unit_restore(
+    self: Rc<Self>,
+    _: PrepareUnitRestoreParams,
+    _: PrepareUnitRestoreResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Structs**
+#### Server::drop_user_relations
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+```rust
+fn drop_user_relations(
+    self: Rc<Self>,
+    _: DropUserRelationsParams,
+    _: DropUserRelationsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Traits**
+#### Server::assert_restore_constraints
 
-- [`Server`](#server)
+```rust
+fn assert_restore_constraints(
+    self: Rc<Self>,
+    _: AssertRestoreConstraintsParams,
+    _: AssertRestoreConstraintsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Type Aliases**
+## Structs
 
-- [`AssertRestoreConstraintsParams`](#assertrestoreconstraintsparams)
-- [`AssertRestoreConstraintsResults`](#assertrestoreconstraintsresults)
-- [`CommitParams`](#commitparams)
-- [`CommitResults`](#commitresults)
-- [`DropUserRelationsParams`](#dropuserrelationsparams)
-- [`DropUserRelationsResults`](#dropuserrelationsresults)
-- [`ExecuteParams`](#executeparams)
-- [`ExecuteResults`](#executeresults)
-- [`ExportIdentityParams`](#exportidentityparams)
-- [`ExportIdentityResults`](#exportidentityresults)
-- [`ImportIdentityParams`](#importidentityparams)
-- [`ImportIdentityResults`](#importidentityresults)
-- [`ListUserRelationsParams`](#listuserrelationsparams)
-- [`ListUserRelationsResults`](#listuserrelationsresults)
-- [`PrepareUnitRestoreParams`](#prepareunitrestoreparams)
-- [`PrepareUnitRestoreResults`](#prepareunitrestoreresults)
-- [`RollbackParams`](#rollbackparams)
-- [`RollbackResults`](#rollbackresults)
+### Client
 
----
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::AssertRestoreConstraintsParams
+#### Client::execute_request
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::assert_restore_constraints_params::Owned>`
+```rust
+pub fn execute_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::commit_request
 
+```rust
+pub fn commit_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::AssertRestoreConstraintsResults
+#### Client::rollback_request
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::assert_restore_constraints_results::Owned>`
+```rust
+pub fn rollback_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::export_identity_request
 
+```rust
+pub fn export_identity_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::Client
+#### Client::import_identity_request
 
-*Struct*
+```rust
+pub fn import_identity_request(&self) -> Request<Owned, Owned>
+```
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+#### Client::list_user_relations_request
 
-**Methods:**
+```rust
+pub fn list_user_relations_request(&self) -> Request<Owned, Owned>
+```
 
-- `fn execute_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::execute_params::Owned, crate::plugin_host_capnp::adapter_transaction::execute_results::Owned>`
-- `fn commit_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::commit_params::Owned, crate::plugin_host_capnp::adapter_transaction::commit_results::Owned>`
-- `fn rollback_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::rollback_params::Owned, crate::plugin_host_capnp::adapter_transaction::rollback_results::Owned>`
-- `fn export_identity_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::export_identity_params::Owned, crate::plugin_host_capnp::adapter_transaction::export_identity_results::Owned>`
-- `fn import_identity_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::import_identity_params::Owned, crate::plugin_host_capnp::adapter_transaction::import_identity_results::Owned>`
-- `fn list_user_relations_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::list_user_relations_params::Owned, crate::plugin_host_capnp::adapter_transaction::list_user_relations_results::Owned>`
-- `fn prepare_unit_restore_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::prepare_unit_restore_params::Owned, crate::plugin_host_capnp::adapter_transaction::prepare_unit_restore_results::Owned>`
-- `fn drop_user_relations_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::drop_user_relations_params::Owned, crate::plugin_host_capnp::adapter_transaction::drop_user_relations_results::Owned>`
-- `fn assert_restore_constraints_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_host_capnp::adapter_transaction::assert_restore_constraints_params::Owned, crate::plugin_host_capnp::adapter_transaction::assert_restore_constraints_results::Owned>`
+#### Client::prepare_unit_restore_request
 
-**Traits:** HasTypeId
+```rust
+pub fn prepare_unit_restore_request(&self) -> Request<Owned, Owned>
+```
 
-**Trait Implementations:**
+#### Client::drop_user_relations_request
 
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn drop_user_relations_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::assert_restore_constraints_request
 
+```rust
+pub fn assert_restore_constraints_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::CommitParams
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::commit_params::Owned>`
+### Owned
 
+```rust
+pub struct Owned(/* private */);
+```
 
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::CommitResults
+### ServerDispatch
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::commit_results::Owned>`
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
+#### ServerDispatch::dispatch_call_internal
 
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::DropUserRelationsParams
+Implements: `Clone`, `Deref`, `Server`
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::drop_user_relations_params::Owned>`
+## Type aliases
 
+### ExecuteParams
 
+```rust
+pub type ExecuteParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::DropUserRelationsResults
+### ExecuteResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::drop_user_relations_results::Owned>`
+```rust
+pub type ExecuteResults = Results<Owned>;
+```
 
+### CommitParams
 
+```rust
+pub type CommitParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ExecuteParams
+### CommitResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::execute_params::Owned>`
+```rust
+pub type CommitResults = Results<Owned>;
+```
 
+### RollbackParams
 
+```rust
+pub type RollbackParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ExecuteResults
+### RollbackResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::execute_results::Owned>`
+```rust
+pub type RollbackResults = Results<Owned>;
+```
 
+### ExportIdentityParams
 
+```rust
+pub type ExportIdentityParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ExportIdentityParams
+### ExportIdentityResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::export_identity_params::Owned>`
+```rust
+pub type ExportIdentityResults = Results<Owned>;
+```
 
+### ImportIdentityParams
 
+```rust
+pub type ImportIdentityParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ExportIdentityResults
+### ImportIdentityResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::export_identity_results::Owned>`
+```rust
+pub type ImportIdentityResults = Results<Owned>;
+```
 
+### ListUserRelationsParams
 
+```rust
+pub type ListUserRelationsParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ImportIdentityParams
+### ListUserRelationsResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::import_identity_params::Owned>`
+```rust
+pub type ListUserRelationsResults = Results<Owned>;
+```
 
+### PrepareUnitRestoreParams
 
+```rust
+pub type PrepareUnitRestoreParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ImportIdentityResults
+### PrepareUnitRestoreResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::import_identity_results::Owned>`
+```rust
+pub type PrepareUnitRestoreResults = Results<Owned>;
+```
 
+### DropUserRelationsParams
 
+```rust
+pub type DropUserRelationsParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ListUserRelationsParams
+### DropUserRelationsResults
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::list_user_relations_params::Owned>`
+```rust
+pub type DropUserRelationsResults = Results<Owned>;
+```
 
+### AssertRestoreConstraintsParams
 
+```rust
+pub type AssertRestoreConstraintsParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ListUserRelationsResults
+### AssertRestoreConstraintsResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::list_user_relations_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Owned, Copy, Pipelined
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::PrepareUnitRestoreParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::prepare_unit_restore_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::PrepareUnitRestoreResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::prepare_unit_restore_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::RollbackParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_host_capnp::adapter_transaction::rollback_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::RollbackResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_host_capnp::adapter_transaction::rollback_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::Server
-
-*Trait*
-
-**Methods:**
-
-- `execute`
-- `commit`
-- `rollback`
-- `export_identity`
-- `import_identity`
-- `list_user_relations`
-- `prepare_unit_restore`
-- `drop_user_relations`
-- `assert_restore_constraints`
-
-
-
-## bookclerk_plugin_abi::plugin_host_capnp::adapter_transaction::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-
-
-
-## Module: assert_restore_constraints_params
-
-
-
-## Module: assert_restore_constraints_results
-
-
-
-## Module: commit_params
-
-
-
-## Module: commit_results
-
-
-
-## Module: drop_user_relations_params
-
-
-
-## Module: drop_user_relations_results
-
-
-
-## Module: execute_params
-
-
-
-## Module: execute_results
-
-
-
-## Module: export_identity_params
-
-
-
-## Module: export_identity_results
-
-
-
-## Module: import_identity_params
-
-
-
-## Module: import_identity_results
-
-
-
-## Module: list_user_relations_params
-
-
-
-## Module: list_user_relations_results
-
-
-
-## Module: prepare_unit_restore_params
-
-
-
-## Module: prepare_unit_restore_results
-
-
-
-## Module: rollback_params
-
-
-
-## Module: rollback_results
-
-
-
+```rust
+pub type AssertRestoreConstraintsResults = Results<Owned>;
+```

@@ -1,125 +1,210 @@
-**bookclerk_plugin_abi > plugin_capnp > execute_request**
+# bookclerk_plugin_abi::plugin_capnp::execute_request
 
-# Module: plugin_capnp::execute_request
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::execute_request::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_operation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_operation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_operation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_operation_id(self: &Self) -> bool`
-- `fn get_request_hash(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_request_hash<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_request_hash(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_request_hash(self: &Self) -> bool`
-- `fn get_statements(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_statement::Owned>>`
-- `fn set_statements(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::db_statement::Owned>) -> ::capnp::Result<()>`
-- `fn init_statements(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_statement::Owned>`
-- `fn has_statements(self: &Self) -> bool`
-- `fn get_deadline_unix_ms(self: Self) -> u64`
-- `fn set_deadline_unix_ms(self: & mut Self, value: u64)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_operation_id
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_operation_id(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_operation_id
 
+```rust
+pub fn has_operation_id(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::execute_request::Owned
+#### Reader::get_request_hash
 
-*Struct*
+```rust
+pub fn get_request_hash(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_request_hash
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_request_hash(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_statements
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_statements(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_statements
 
+```rust
+pub fn has_statements(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::execute_request::Pipeline
+#### Reader::get_deadline_unix_ms
 
-*Struct*
+```rust
+pub fn get_deadline_unix_ms(self) -> u64
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
+#### Builder::into_reader
 
-## bookclerk_plugin_abi::plugin_capnp::execute_request::Reader
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-*Struct*
+#### Builder::reborrow
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-**Methods:**
+#### Builder::reborrow_as_reader
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_operation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_operation_id(self: &Self) -> bool`
-- `fn get_request_hash(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_request_hash(self: &Self) -> bool`
-- `fn get_statements(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::db_statement::Owned>>`
-- `fn has_statements(self: &Self) -> bool`
-- `fn get_deadline_unix_ms(self: Self) -> u64`
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::total_size
 
-**Trait Implementations:**
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+#### Builder::get_operation_id
 
+```rust
+pub fn get_operation_id(self) -> Result<Builder<'a>>
+```
 
+#### Builder::set_operation_id
 
+```rust
+pub fn set_operation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_operation_id
+
+```rust
+pub fn init_operation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_operation_id
+
+```rust
+pub fn has_operation_id(&self) -> bool
+```
+
+#### Builder::get_request_hash
+
+```rust
+pub fn get_request_hash(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_request_hash
+
+```rust
+pub fn set_request_hash(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_request_hash
+
+```rust
+pub fn init_request_hash(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_request_hash
+
+```rust
+pub fn has_request_hash(&self) -> bool
+```
+
+#### Builder::get_statements
+
+```rust
+pub fn get_statements(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_statements
+
+```rust
+pub fn set_statements(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_statements
+
+```rust
+pub fn init_statements(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_statements
+
+```rust
+pub fn has_statements(&self) -> bool
+```
+
+#### Builder::get_deadline_unix_ms
+
+```rust
+pub fn get_deadline_unix_ms(self) -> u64
+```
+
+#### Builder::set_deadline_unix_ms
+
+```rust
+pub fn set_deadline_unix_ms(&mut self, value: u64)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

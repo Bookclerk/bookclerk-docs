@@ -1,167 +1,462 @@
-**bookclerk_plugin_abi > plugin_capnp > job_invocation**
+# bookclerk_plugin_abi::plugin_capnp::job_invocation
 
-# Module: plugin_capnp::job_invocation
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::job_invocation::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_payload_schema_version(self: Self) -> u32`
-- `fn set_payload_schema_version(self: & mut Self, value: u32)`
-- `fn get_invocation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_invocation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_invocation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_invocation_id(self: &Self) -> bool`
-- `fn get_command_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_command_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_command_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_command_type(self: &Self) -> bool`
-- `fn get_payload_json(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_payload_json<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_payload_json(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_payload_json(self: &Self) -> bool`
-- `fn get_idempotency_key(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_idempotency_key<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_idempotency_key(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_idempotency_key(self: &Self) -> bool`
-- `fn get_attempt(self: Self) -> u32`
-- `fn set_attempt(self: & mut Self, value: u32)`
-- `fn get_correlation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_correlation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_correlation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_correlation_id(self: &Self) -> bool`
-- `fn get_causation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_causation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_causation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_causation_id(self: &Self) -> bool`
-- `fn get_deadline_unix_ms(self: Self) -> u64`
-- `fn set_deadline_unix_ms(self: & mut Self, value: u64)`
-- `fn get_checkpoint_json(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_checkpoint_json<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_checkpoint_json(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_checkpoint_json(self: &Self) -> bool`
-- `fn get_checkpoint_schema_version(self: Self) -> u32`
-- `fn set_checkpoint_schema_version(self: & mut Self, value: u32)`
-- `fn get_invocation_sequence(self: Self) -> u32`
-- `fn set_invocation_sequence(self: & mut Self, value: u32)`
-- `fn get_step_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_step_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_step_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_step_id(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_payload_schema_version
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_payload_schema_version(self) -> u32
+```
 
+#### Reader::get_invocation_id
 
+```rust
+pub fn get_invocation_id(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_invocation::Owned
+#### Reader::has_invocation_id
 
-*Struct*
+```rust
+pub fn has_invocation_id(&self) -> bool
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_command_type
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn get_command_type(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_command_type
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn has_command_type(&self) -> bool
+```
 
+#### Reader::get_payload_json
 
+```rust
+pub fn get_payload_json(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_invocation::Pipeline
+#### Reader::has_payload_json
 
-*Struct*
+```rust
+pub fn has_payload_json(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_idempotency_key
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_idempotency_key(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_idempotency_key
 
+```rust
+pub fn has_idempotency_key(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_invocation::Reader
+#### Reader::get_attempt
 
-*Struct*
+```rust
+pub fn get_attempt(self) -> u32
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_correlation_id
 
-**Methods:**
+```rust
+pub fn get_correlation_id(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_payload_schema_version(self: Self) -> u32`
-- `fn get_invocation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_invocation_id(self: &Self) -> bool`
-- `fn get_command_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_command_type(self: &Self) -> bool`
-- `fn get_payload_json(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_payload_json(self: &Self) -> bool`
-- `fn get_idempotency_key(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_idempotency_key(self: &Self) -> bool`
-- `fn get_attempt(self: Self) -> u32`
-- `fn get_correlation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_correlation_id(self: &Self) -> bool`
-- `fn get_causation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_causation_id(self: &Self) -> bool`
-- `fn get_deadline_unix_ms(self: Self) -> u64`
-- `fn get_checkpoint_json(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_checkpoint_json(self: &Self) -> bool`
-- `fn get_checkpoint_schema_version(self: Self) -> u32`
-- `fn get_invocation_sequence(self: Self) -> u32`
-- `fn get_step_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_step_id(self: &Self) -> bool`
+#### Reader::has_correlation_id
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn has_correlation_id(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_causation_id
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_causation_id(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_causation_id
 
+```rust
+pub fn has_causation_id(&self) -> bool
+```
 
+#### Reader::get_deadline_unix_ms
+
+```rust
+pub fn get_deadline_unix_ms(self) -> u64
+```
+
+#### Reader::get_checkpoint_json
+
+```rust
+pub fn get_checkpoint_json(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_checkpoint_json
+
+```rust
+pub fn has_checkpoint_json(&self) -> bool
+```
+
+#### Reader::get_checkpoint_schema_version
+
+```rust
+pub fn get_checkpoint_schema_version(self) -> u32
+```
+
+#### Reader::get_invocation_sequence
+
+```rust
+pub fn get_invocation_sequence(self) -> u32
+```
+
+#### Reader::get_step_id
+
+```rust
+pub fn get_step_id(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_step_id
+
+```rust
+pub fn has_step_id(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_payload_schema_version
+
+```rust
+pub fn get_payload_schema_version(self) -> u32
+```
+
+#### Builder::set_payload_schema_version
+
+```rust
+pub fn set_payload_schema_version(&mut self, value: u32)
+```
+
+#### Builder::get_invocation_id
+
+```rust
+pub fn get_invocation_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_invocation_id
+
+```rust
+pub fn set_invocation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_invocation_id
+
+```rust
+pub fn init_invocation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_invocation_id
+
+```rust
+pub fn has_invocation_id(&self) -> bool
+```
+
+#### Builder::get_command_type
+
+```rust
+pub fn get_command_type(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_command_type
+
+```rust
+pub fn set_command_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_command_type
+
+```rust
+pub fn init_command_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_command_type
+
+```rust
+pub fn has_command_type(&self) -> bool
+```
+
+#### Builder::get_payload_json
+
+```rust
+pub fn get_payload_json(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_payload_json
+
+```rust
+pub fn set_payload_json(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_payload_json
+
+```rust
+pub fn init_payload_json(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_payload_json
+
+```rust
+pub fn has_payload_json(&self) -> bool
+```
+
+#### Builder::get_idempotency_key
+
+```rust
+pub fn get_idempotency_key(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_idempotency_key
+
+```rust
+pub fn set_idempotency_key(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_idempotency_key
+
+```rust
+pub fn init_idempotency_key(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_idempotency_key
+
+```rust
+pub fn has_idempotency_key(&self) -> bool
+```
+
+#### Builder::get_attempt
+
+```rust
+pub fn get_attempt(self) -> u32
+```
+
+#### Builder::set_attempt
+
+```rust
+pub fn set_attempt(&mut self, value: u32)
+```
+
+#### Builder::get_correlation_id
+
+```rust
+pub fn get_correlation_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_correlation_id
+
+```rust
+pub fn set_correlation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_correlation_id
+
+```rust
+pub fn init_correlation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_correlation_id
+
+```rust
+pub fn has_correlation_id(&self) -> bool
+```
+
+#### Builder::get_causation_id
+
+```rust
+pub fn get_causation_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_causation_id
+
+```rust
+pub fn set_causation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_causation_id
+
+```rust
+pub fn init_causation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_causation_id
+
+```rust
+pub fn has_causation_id(&self) -> bool
+```
+
+#### Builder::get_deadline_unix_ms
+
+```rust
+pub fn get_deadline_unix_ms(self) -> u64
+```
+
+#### Builder::set_deadline_unix_ms
+
+```rust
+pub fn set_deadline_unix_ms(&mut self, value: u64)
+```
+
+#### Builder::get_checkpoint_json
+
+```rust
+pub fn get_checkpoint_json(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_checkpoint_json
+
+```rust
+pub fn set_checkpoint_json(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_checkpoint_json
+
+```rust
+pub fn init_checkpoint_json(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_checkpoint_json
+
+```rust
+pub fn has_checkpoint_json(&self) -> bool
+```
+
+#### Builder::get_checkpoint_schema_version
+
+```rust
+pub fn get_checkpoint_schema_version(self) -> u32
+```
+
+#### Builder::set_checkpoint_schema_version
+
+```rust
+pub fn set_checkpoint_schema_version(&mut self, value: u32)
+```
+
+#### Builder::get_invocation_sequence
+
+```rust
+pub fn get_invocation_sequence(self) -> u32
+```
+
+#### Builder::set_invocation_sequence
+
+```rust
+pub fn set_invocation_sequence(&mut self, value: u32)
+```
+
+#### Builder::get_step_id
+
+```rust
+pub fn get_step_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_step_id
+
+```rust
+pub fn set_step_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_step_id
+
+```rust
+pub fn init_step_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_step_id
+
+```rust
+pub fn has_step_id(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

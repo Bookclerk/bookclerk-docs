@@ -1,128 +1,228 @@
-**bookclerk_plugin_abi > plugin_capnp > external_user**
+# bookclerk_plugin_abi::plugin_capnp::external_user
 
-# Module: plugin_capnp::external_user
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::external_user::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_provider(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_provider<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_provider(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_provider(self: &Self) -> bool`
-- `fn get_external_user_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_external_user_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_external_user_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_external_user_id(self: &Self) -> bool`
-- `fn get_display_name(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_display_name<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_display_name(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_display_name(self: &Self) -> bool`
-- `fn get_access_token(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_access_token<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_access_token(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_access_token(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_provider
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_provider(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_provider
 
+```rust
+pub fn has_provider(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::external_user::Owned
+#### Reader::get_external_user_id
 
-*Struct*
+```rust
+pub fn get_external_user_id(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_external_user_id
 
-**Traits:** OwnedStruct, Owned, Pipelined, Copy
+```rust
+pub fn has_external_user_id(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_display_name
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_display_name(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_display_name
 
+```rust
+pub fn has_display_name(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::external_user::Pipeline
+#### Reader::get_access_token
 
-*Struct*
+```rust
+pub fn get_access_token(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_access_token
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn has_access_token(&self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::external_user::Reader
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Methods:**
+#### Builder::reborrow
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_provider(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_provider(self: &Self) -> bool`
-- `fn get_external_user_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_external_user_id(self: &Self) -> bool`
-- `fn get_display_name(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_display_name(self: &Self) -> bool`
-- `fn get_access_token(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_access_token(self: &Self) -> bool`
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::reborrow_as_reader
 
-**Trait Implementations:**
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
+#### Builder::get_provider
 
+```rust
+pub fn get_provider(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_provider
+
+```rust
+pub fn set_provider(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_provider
+
+```rust
+pub fn init_provider(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_provider
+
+```rust
+pub fn has_provider(&self) -> bool
+```
+
+#### Builder::get_external_user_id
+
+```rust
+pub fn get_external_user_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_external_user_id
+
+```rust
+pub fn set_external_user_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_external_user_id
+
+```rust
+pub fn init_external_user_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_external_user_id
+
+```rust
+pub fn has_external_user_id(&self) -> bool
+```
+
+#### Builder::get_display_name
+
+```rust
+pub fn get_display_name(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_display_name
+
+```rust
+pub fn set_display_name(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_display_name
+
+```rust
+pub fn init_display_name(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_display_name
+
+```rust
+pub fn has_display_name(&self) -> bool
+```
+
+#### Builder::get_access_token
+
+```rust
+pub fn get_access_token(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_access_token
+
+```rust
+pub fn set_access_token(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_access_token
+
+```rust
+pub fn init_access_token(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_access_token
+
+```rust
+pub fn has_access_token(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

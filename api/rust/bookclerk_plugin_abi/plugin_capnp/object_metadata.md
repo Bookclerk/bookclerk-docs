@@ -1,131 +1,246 @@
-**bookclerk_plugin_abi > plugin_capnp > object_metadata**
+# bookclerk_plugin_abi::plugin_capnp::object_metadata
 
-# Module: plugin_capnp::object_metadata
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::object_metadata::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_key(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_key<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_key(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_key(self: &Self) -> bool`
-- `fn get_size(self: Self) -> u64`
-- `fn set_size(self: & mut Self, value: u64)`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_content_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_content_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_etag(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_etag<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_etag(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_etag(self: &Self) -> bool`
-- `fn get_sha256(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_sha256(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_sha256(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_sha256(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_key
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_key(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_key
 
+```rust
+pub fn has_key(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::object_metadata::Owned
+#### Reader::get_size
 
-*Struct*
+```rust
+pub fn get_size(self) -> u64
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_content_type
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn get_content_type(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_content_type
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn has_content_type(&self) -> bool
+```
 
+#### Reader::get_etag
 
+```rust
+pub fn get_etag(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::object_metadata::Pipeline
+#### Reader::has_etag
 
-*Struct*
+```rust
+pub fn has_etag(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_sha256
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_sha256(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_sha256
 
+```rust
+pub fn has_sha256(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::object_metadata::Reader
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-*Struct*
+### Builder
 
-**Generic Parameters:**
-- 'a
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-**Methods:**
+#### Builder::into_reader
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_key(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_key(self: &Self) -> bool`
-- `fn get_size(self: Self) -> u64`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_etag(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_etag(self: &Self) -> bool`
-- `fn get_sha256(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_sha256(self: &Self) -> bool`
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_key
+
+```rust
+pub fn get_key(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_key
+
+```rust
+pub fn set_key(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_key
+
+```rust
+pub fn init_key(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_key
+
+```rust
+pub fn has_key(&self) -> bool
+```
+
+#### Builder::get_size
+
+```rust
+pub fn get_size(self) -> u64
+```
+
+#### Builder::set_size
+
+```rust
+pub fn set_size(&mut self, value: u64)
+```
+
+#### Builder::get_content_type
+
+```rust
+pub fn get_content_type(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_content_type
+
+```rust
+pub fn set_content_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_content_type
+
+```rust
+pub fn init_content_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_content_type
+
+```rust
+pub fn has_content_type(&self) -> bool
+```
+
+#### Builder::get_etag
+
+```rust
+pub fn get_etag(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_etag
+
+```rust
+pub fn set_etag(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_etag
+
+```rust
+pub fn init_etag(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_etag
+
+```rust
+pub fn has_etag(&self) -> bool
+```
+
+#### Builder::get_sha256
+
+```rust
+pub fn get_sha256(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_sha256
+
+```rust
+pub fn set_sha256(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_sha256
+
+```rust
+pub fn init_sha256(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_sha256
+
+```rust
+pub fn has_sha256(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

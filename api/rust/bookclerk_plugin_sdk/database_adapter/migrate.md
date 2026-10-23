@@ -1,29 +1,22 @@
-**bookclerk_plugin_sdk > database_adapter > migrate**
+# bookclerk_plugin_sdk::database_adapter::migrate
 
-# Module: database_adapter::migrate
+Generic SQL helpers for database guests.
 
-## Contents
+Guests may run host-provided typed statements. They must not select
+Bookclerk schema versions or import `bookclerk_library::migrations`.
+Schema packs arrive as already-separate statements — do not split on `;`.
 
-**Functions**
+## Functions
 
-- [`typed_null`](#typed_null) - Typed SQL `NULL` for proxy columns so SeaORM `Option<T>` decoding works.
+### typed_null
 
----
-
-## bookclerk_plugin_sdk::database_adapter::migrate::typed_null
-
-*Function*
+```rust
+pub fn typed_null(decl_type: Option<&str>, column: &str) -> Value
+```
 
 Typed SQL `NULL` for proxy columns so SeaORM `Option<T>` decoding works.
 
-# Arguments
+#### Arguments
 
 * `decl_type` - Declared column type when the engine provides one.
 * `column` - Column name used when `decl_type` is missing.
-
-```rust
-fn typed_null(decl_type: Option<&str>, column: &str) -> sea_orm::Value
-```
-
-
-

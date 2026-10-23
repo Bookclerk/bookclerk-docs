@@ -1,131 +1,228 @@
-**bookclerk_plugin_abi > plugin_capnp > integer_arith_site**
+# bookclerk_plugin_abi::plugin_capnp::integer_arith_site
 
-# Module: plugin_capnp::integer_arith_site
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::integer_arith_site::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_full(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Builder<'a>>`
-- `fn set_full(self: & mut Self, value: crate::plugin_capnp::sql_span::Reader) -> ::capnp::Result<()>`
-- `fn init_full(self: Self) -> crate::plugin_capnp::sql_span::Builder<'a>`
-- `fn has_full(self: &Self) -> bool`
-- `fn get_lhs(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Builder<'a>>`
-- `fn set_lhs(self: & mut Self, value: crate::plugin_capnp::sql_span::Reader) -> ::capnp::Result<()>`
-- `fn init_lhs(self: Self) -> crate::plugin_capnp::sql_span::Builder<'a>`
-- `fn has_lhs(self: &Self) -> bool`
-- `fn get_rhs(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Builder<'a>>`
-- `fn set_rhs(self: & mut Self, value: crate::plugin_capnp::sql_span::Reader) -> ::capnp::Result<()>`
-- `fn init_rhs(self: Self) -> crate::plugin_capnp::sql_span::Builder<'a>`
-- `fn has_rhs(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::IntegerArithKind, ::capnp::NotInSchema>`
-- `fn set_kind(self: & mut Self, value: crate::plugin_capnp::IntegerArithKind)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_full
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_full(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_full
 
+```rust
+pub fn has_full(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::integer_arith_site::Owned
+#### Reader::get_lhs
 
-*Struct*
+```rust
+pub fn get_lhs(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_lhs
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_lhs(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_rhs
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_rhs(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_rhs
 
+```rust
+pub fn has_rhs(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::integer_arith_site::Pipeline
+#### Reader::get_kind
 
-*Struct*
+```rust
+pub fn get_kind(self) -> Result<IntegerArithKind, NotInSchema>
+```
 
-**Methods:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- `fn get_full(self: &Self) -> crate::plugin_capnp::sql_span::Pipeline`
-- `fn get_lhs(self: &Self) -> crate::plugin_capnp::sql_span::Pipeline`
-- `fn get_rhs(self: &Self) -> crate::plugin_capnp::sql_span::Pipeline`
+### Builder
 
-**Trait Implementations:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
+#### Builder::reborrow
 
-## bookclerk_plugin_abi::plugin_capnp::integer_arith_site::Reader
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-*Struct*
+#### Builder::reborrow_as_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-**Methods:**
+#### Builder::total_size
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_full(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Reader<'a>>`
-- `fn has_full(self: &Self) -> bool`
-- `fn get_lhs(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Reader<'a>>`
-- `fn has_lhs(self: &Self) -> bool`
-- `fn get_rhs(self: Self) -> ::capnp::Result<crate::plugin_capnp::sql_span::Reader<'a>>`
-- `fn has_rhs(self: &Self) -> bool`
-- `fn get_kind(self: Self) -> ::core::result::Result<crate::plugin_capnp::IntegerArithKind, ::capnp::NotInSchema>`
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::get_full
 
-**Trait Implementations:**
+```rust
+pub fn get_full(self) -> Result<Builder<'a>>
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+#### Builder::set_full
 
+```rust
+pub fn set_full(&mut self, value: Reader<'_>) -> Result<()>
+```
 
+#### Builder::init_full
 
+```rust
+pub fn init_full(self) -> Builder<'a>
+```
+
+#### Builder::has_full
+
+```rust
+pub fn has_full(&self) -> bool
+```
+
+#### Builder::get_lhs
+
+```rust
+pub fn get_lhs(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_lhs
+
+```rust
+pub fn set_lhs(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_lhs
+
+```rust
+pub fn init_lhs(self) -> Builder<'a>
+```
+
+#### Builder::has_lhs
+
+```rust
+pub fn has_lhs(&self) -> bool
+```
+
+#### Builder::get_rhs
+
+```rust
+pub fn get_rhs(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_rhs
+
+```rust
+pub fn set_rhs(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_rhs
+
+```rust
+pub fn init_rhs(self) -> Builder<'a>
+```
+
+#### Builder::has_rhs
+
+```rust
+pub fn has_rhs(&self) -> bool
+```
+
+#### Builder::get_kind
+
+```rust
+pub fn get_kind(self) -> Result<IntegerArithKind, NotInSchema>
+```
+
+#### Builder::set_kind
+
+```rust
+pub fn set_kind(&mut self, value: IntegerArithKind)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_full
+
+```rust
+pub fn get_full(&self) -> Pipeline
+```
+
+#### Pipeline::get_lhs
+
+```rust
+pub fn get_lhs(&self) -> Pipeline
+```
+
+#### Pipeline::get_rhs
+
+```rust
+pub fn get_rhs(&self) -> Pipeline
+```
+
+Implements: `FromTypelessPipeline`

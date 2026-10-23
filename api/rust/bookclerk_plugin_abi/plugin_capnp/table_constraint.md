@@ -1,161 +1,222 @@
-**bookclerk_plugin_abi > plugin_capnp > table_constraint**
+# bookclerk_plugin_abi::plugin_capnp::table_constraint
 
-# Module: plugin_capnp::table_constraint
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
+| [`Which`](#which) | enum |  |
+| [`WhichReader`](#whichreader) | type alias |  |
+| [`WhichBuilder`](#whichbuilder) | type alias |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
-**Enums**
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-- [`Which`](#which)
+### Reader
 
-**Type Aliases**
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-- [`WhichBuilder`](#whichbuilder)
-- [`WhichReader`](#whichreader)
+#### Reader::reborrow
 
----
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::Builder
+#### Reader::total_size
 
-*Struct*
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_primary_key
 
-**Methods:**
+```rust
+pub fn has_primary_key(&self) -> bool
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn set_primary_key<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_primary_key(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_primary_key(self: &Self) -> bool`
-- `fn set_unique<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_unique(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_unique(self: &Self) -> bool`
-- `fn set_check<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_check(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_check(self: &Self) -> bool`
-- `fn set_foreign_key(self: & mut Self, value: crate::plugin_capnp::foreign_key_constraint::Reader) -> ::capnp::Result<()>`
-- `fn init_foreign_key(self: Self) -> crate::plugin_capnp::foreign_key_constraint::Builder<'a>`
-- `fn has_foreign_key(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema>`
+#### Reader::has_unique
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn has_unique(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::has_check
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn has_check(&self) -> bool
+```
 
+#### Reader::has_foreign_key
 
+```rust
+pub fn has_foreign_key(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::Owned
+#### Reader::which
 
-*Struct*
+```rust
+pub fn which(self) -> Result<WhichReader<'a>, NotInSchema>
+```
 
-**Tuple Struct**: `()`
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+### Builder
 
-**Trait Implementations:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
+#### Builder::reborrow
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::Pipeline
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-*Struct*
+#### Builder::reborrow_as_reader
 
-**Trait Implementations:**
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
+#### Builder::set_primary_key
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::Reader
+```rust
+pub fn set_primary_key(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
 
-*Struct*
+#### Builder::init_primary_key
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn init_primary_key(self, size: u32) -> Builder<'a>
+```
 
-**Methods:**
+#### Builder::has_primary_key
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn has_primary_key(self: &Self) -> bool`
-- `fn has_unique(self: &Self) -> bool`
-- `fn has_check(self: &Self) -> bool`
-- `fn has_foreign_key(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema>`
+```rust
+pub fn has_primary_key(&self) -> bool
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::set_unique
 
-**Trait Implementations:**
+```rust
+pub fn set_unique(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+#### Builder::init_unique
 
+```rust
+pub fn init_unique(self, size: u32) -> Builder<'a>
+```
 
+#### Builder::has_unique
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::Which
+```rust
+pub fn has_unique(&self) -> bool
+```
 
-*Enum*
+#### Builder::set_check
 
-**Generic Parameters:**
-- A0
-- A1
-- A2
-- A3
+```rust
+pub fn set_check(&mut self, value: impl SetterInput<Owned>)
+```
 
-**Variants:**
-- `PrimaryKey(A0)`
-- `Unique(A1)`
-- `Check(A2)`
-- `ForeignKey(A3)`
+#### Builder::init_check
 
+```rust
+pub fn init_check(self, size: u32) -> Builder<'a>
+```
 
+#### Builder::has_check
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::WhichBuilder
+```rust
+pub fn has_check(&self) -> bool
+```
 
-*Type Alias*: `Which<::capnp::Result<::capnp::text_list::Builder<'a>>, ::capnp::Result<::capnp::text_list::Builder<'a>>, ::capnp::Result<::capnp::text::Builder<'a>>, ::capnp::Result<crate::plugin_capnp::foreign_key_constraint::Builder<'a>>>`
+#### Builder::set_foreign_key
 
+```rust
+pub fn set_foreign_key(&mut self, value: Reader<'_>) -> Result<()>
+```
 
+#### Builder::init_foreign_key
 
-## bookclerk_plugin_abi::plugin_capnp::table_constraint::WhichReader
+```rust
+pub fn init_foreign_key(self) -> Builder<'a>
+```
 
-*Type Alias*: `Which<::capnp::Result<::capnp::text_list::Reader<'a>>, ::capnp::Result<::capnp::text_list::Reader<'a>>, ::capnp::Result<::capnp::text::Reader<'a>>, ::capnp::Result<crate::plugin_capnp::foreign_key_constraint::Reader<'a>>>`
+#### Builder::has_foreign_key
 
+```rust
+pub fn has_foreign_key(&self) -> bool
+```
 
+#### Builder::which
 
+```rust
+pub fn which(self) -> Result<WhichBuilder<'a>, NotInSchema>
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`
+
+## Enums
+
+### Which
+
+```rust
+pub enum Which<A0, A1, A2, A3> {
+    PrimaryKey(A0),
+    Unique(A1),
+    Check(A2),
+    ForeignKey(A3),
+}
+```
+
+## Type aliases
+
+### WhichReader
+
+```rust
+pub type WhichReader<'a> = Which<Result<Reader<'a>>, Result<Reader<'a>>, Result<Reader<'a>>, Result<Reader<'a>>>;
+```
+
+### WhichBuilder
+
+```rust
+pub type WhichBuilder<'a> = Which<Result<Builder<'a>>, Result<Builder<'a>>, Result<Builder<'a>>, Result<Builder<'a>>>;
+```

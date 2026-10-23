@@ -8,11 +8,14 @@ Cap'n Proto destination / job-handler surface.
 
 ## Modules
 
-### [`bookclerk_plugin_destination_local`](bookclerk_plugin_destination_local.md)
+- [`plugin`](plugin.md): Destination + job-handler surface for the local filesystem guest.
 
-*1 constant, 1 module*
+## Constants
 
-### [`plugin`](plugin.md)
+### ID
 
-*2 structs*
+```rust
+pub const ID: &str = "local";
+```
 
+Plugin id string advertised in describe() and config (`[output.local]`).

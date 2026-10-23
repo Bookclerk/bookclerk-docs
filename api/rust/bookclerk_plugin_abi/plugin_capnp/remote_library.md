@@ -1,290 +1,322 @@
-**bookclerk_plugin_abi > plugin_capnp > remote_library**
+# bookclerk_plugin_abi::plugin_capnp::remote_library
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`HealthParams`](#healthparams) | type alias |  |
+| [`HealthResults`](#healthresults) | type alias |  |
+| [`StartParams`](#startparams) | type alias |  |
+| [`StartResults`](#startresults) | type alias |  |
+| [`StopParams`](#stopparams) | type alias |  |
+| [`StopResults`](#stopresults) | type alias |  |
+| [`DiagnoseParams`](#diagnoseparams) | type alias |  |
+| [`DiagnoseResults`](#diagnoseresults) | type alias |  |
+| [`ScanLibraryParams`](#scanlibraryparams) | type alias |  |
+| [`ScanLibraryResults`](#scanlibraryresults) | type alias |  |
+| [`SyncListeningParams`](#synclisteningparams) | type alias |  |
+| [`SyncListeningResults`](#synclisteningresults) | type alias |  |
+| [`PollEventsParams`](#polleventsparams) | type alias |  |
+| [`PollEventsResults`](#polleventsresults) | type alias |  |
+
+## Modules
+
+- [`health_params`](remote_library/health_params.md)
+- [`health_results`](remote_library/health_results.md)
+- [`start_params`](remote_library/start_params.md)
+- [`start_results`](remote_library/start_results.md)
+- [`stop_params`](remote_library/stop_params.md)
+- [`stop_results`](remote_library/stop_results.md)
+- [`diagnose_params`](remote_library/diagnose_params.md)
+- [`diagnose_results`](remote_library/diagnose_results.md)
+- [`scan_library_params`](remote_library/scan_library_params.md)
+- [`scan_library_results`](remote_library/scan_library_results.md)
+- [`sync_listening_params`](remote_library/sync_listening_params.md)
+- [`sync_listening_results`](remote_library/sync_listening_results.md)
+- [`poll_events_params`](remote_library/poll_events_params.md)
+- [`poll_events_results`](remote_library/poll_events_results.md)
+
+## Traits
+
+### Server
+
+```rust
+pub trait Server: 'static {
+    fn health(
+        self: Rc<Self>,
+        _: HealthParams,
+        _: HealthResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn start(
+        self: Rc<Self>,
+        _: StartParams,
+        _: StartResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn stop(
+        self: Rc<Self>,
+        _: StopParams,
+        _: StopResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn diagnose(
+        self: Rc<Self>,
+        _: DiagnoseParams,
+        _: DiagnoseResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn scan_library(
+        self: Rc<Self>,
+        _: ScanLibraryParams,
+        _: ScanLibraryResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn sync_listening(
+        self: Rc<Self>,
+        _: SyncListeningParams,
+        _: SyncListeningResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn poll_events(
+        self: Rc<Self>,
+        _: PollEventsParams,
+        _: PollEventsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
+
+#### Server::health
+
+```rust
+fn health(
+    self: Rc<Self>,
+    _: HealthParams,
+    _: HealthResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::start
+
+```rust
+fn start(
+    self: Rc<Self>,
+    _: StartParams,
+    _: StartResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-# Module: plugin_capnp::remote_library
+#### Server::stop
 
-## Contents
+```rust
+fn stop(
+    self: Rc<Self>,
+    _: StopParams,
+    _: StopResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Modules**
+#### Server::diagnose
 
-- [`diagnose_params`](#diagnose_params)
-- [`diagnose_results`](#diagnose_results)
-- [`health_params`](#health_params)
-- [`health_results`](#health_results)
-- [`poll_events_params`](#poll_events_params)
-- [`poll_events_results`](#poll_events_results)
-- [`scan_library_params`](#scan_library_params)
-- [`scan_library_results`](#scan_library_results)
-- [`start_params`](#start_params)
-- [`start_results`](#start_results)
-- [`stop_params`](#stop_params)
-- [`stop_results`](#stop_results)
-- [`sync_listening_params`](#sync_listening_params)
-- [`sync_listening_results`](#sync_listening_results)
+```rust
+fn diagnose(
+    self: Rc<Self>,
+    _: DiagnoseParams,
+    _: DiagnoseResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Structs**
+#### Server::scan_library
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+```rust
+fn scan_library(
+    self: Rc<Self>,
+    _: ScanLibraryParams,
+    _: ScanLibraryResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Traits**
+#### Server::sync_listening
 
-- [`Server`](#server)
+```rust
+fn sync_listening(
+    self: Rc<Self>,
+    _: SyncListeningParams,
+    _: SyncListeningResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Type Aliases**
+#### Server::poll_events
 
-- [`DiagnoseParams`](#diagnoseparams)
-- [`DiagnoseResults`](#diagnoseresults)
-- [`HealthParams`](#healthparams)
-- [`HealthResults`](#healthresults)
-- [`PollEventsParams`](#polleventsparams)
-- [`PollEventsResults`](#polleventsresults)
-- [`ScanLibraryParams`](#scanlibraryparams)
-- [`ScanLibraryResults`](#scanlibraryresults)
-- [`StartParams`](#startparams)
-- [`StartResults`](#startresults)
-- [`StopParams`](#stopparams)
-- [`StopResults`](#stopresults)
-- [`SyncListeningParams`](#synclisteningparams)
-- [`SyncListeningResults`](#synclisteningresults)
+```rust
+fn poll_events(
+    self: Rc<Self>,
+    _: PollEventsParams,
+    _: PollEventsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
----
+## Structs
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::Client
+### Client
 
-*Struct*
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+#### Client::health_request
 
-**Methods:**
+```rust
+pub fn health_request(&self) -> Request<Owned, Owned>
+```
 
-- `fn health_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::health_params::Owned, crate::plugin_capnp::remote_library::health_results::Owned>`
-- `fn start_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::start_params::Owned, crate::plugin_capnp::remote_library::start_results::Owned>`
-- `fn stop_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::stop_params::Owned, crate::plugin_capnp::remote_library::stop_results::Owned>`
-- `fn diagnose_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::diagnose_params::Owned, crate::plugin_capnp::remote_library::diagnose_results::Owned>`
-- `fn scan_library_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::scan_library_params::Owned, crate::plugin_capnp::remote_library::scan_library_results::Owned>`
-- `fn sync_listening_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::sync_listening_params::Owned, crate::plugin_capnp::remote_library::sync_listening_results::Owned>`
-- `fn poll_events_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::remote_library::poll_events_params::Owned, crate::plugin_capnp::remote_library::poll_events_results::Owned>`
+#### Client::start_request
 
-**Traits:** HasTypeId
+```rust
+pub fn start_request(&self) -> Request<Owned, Owned>
+```
 
-**Trait Implementations:**
+#### Client::stop_request
 
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
+```rust
+pub fn stop_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::diagnose_request
 
+```rust
+pub fn diagnose_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::DiagnoseParams
+#### Client::scan_library_request
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::diagnose_params::Owned>`
+```rust
+pub fn scan_library_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::sync_listening_request
 
+```rust
+pub fn sync_listening_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::DiagnoseResults
+#### Client::poll_events_request
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::diagnose_results::Owned>`
+```rust
+pub fn poll_events_request(&self) -> Request<Owned, Owned>
+```
 
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
+### Owned
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::HealthParams
+```rust
+pub struct Owned(/* private */);
+```
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::health_params::Owned>`
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
+### ServerDispatch
 
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::HealthResults
+#### ServerDispatch::dispatch_call_internal
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::health_results::Owned>`
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
+Implements: `Clone`, `Deref`, `Server`
 
+## Type aliases
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::Owned
+### HealthParams
 
-*Struct*
+```rust
+pub type HealthParams = Params<Owned>;
+```
 
-**Tuple Struct**: `()`
+### HealthResults
 
-**Traits:** Pipelined, Owned, Copy
+```rust
+pub type HealthResults = Results<Owned>;
+```
 
-**Trait Implementations:**
+### StartParams
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub type StartParams = Params<Owned>;
+```
 
+### StartResults
 
+```rust
+pub type StartResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::PollEventsParams
+### StopParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::poll_events_params::Owned>`
+```rust
+pub type StopParams = Params<Owned>;
+```
 
+### StopResults
 
+```rust
+pub type StopResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::PollEventsResults
+### DiagnoseParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::poll_events_results::Owned>`
+```rust
+pub type DiagnoseParams = Params<Owned>;
+```
 
+### DiagnoseResults
 
+```rust
+pub type DiagnoseResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::ScanLibraryParams
+### ScanLibraryParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::scan_library_params::Owned>`
+```rust
+pub type ScanLibraryParams = Params<Owned>;
+```
 
+### ScanLibraryResults
 
+```rust
+pub type ScanLibraryResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::ScanLibraryResults
+### SyncListeningParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::scan_library_results::Owned>`
+```rust
+pub type SyncListeningParams = Params<Owned>;
+```
 
+### SyncListeningResults
 
+```rust
+pub type SyncListeningResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::remote_library::Server
+### PollEventsParams
 
-*Trait*
+```rust
+pub type PollEventsParams = Params<Owned>;
+```
 
-**Methods:**
+### PollEventsResults
 
-- `health`
-- `start`
-- `stop`
-- `diagnose`
-- `scan_library`
-- `sync_listening`
-- `poll_events`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::StartParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::start_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::StartResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::start_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::StopParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::stop_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::StopResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::stop_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::SyncListeningParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::remote_library::sync_listening_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::remote_library::SyncListeningResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::remote_library::sync_listening_results::Owned>`
-
-
-
-## Module: diagnose_params
-
-
-
-## Module: diagnose_results
-
-
-
-## Module: health_params
-
-
-
-## Module: health_results
-
-
-
-## Module: poll_events_params
-
-
-
-## Module: poll_events_results
-
-
-
-## Module: scan_library_params
-
-
-
-## Module: scan_library_results
-
-
-
-## Module: start_params
-
-
-
-## Module: start_results
-
-
-
-## Module: stop_params
-
-
-
-## Module: stop_results
-
-
-
-## Module: sync_listening_params
-
-
-
-## Module: sync_listening_results
-
-
-
+```rust
+pub type PollEventsResults = Results<Owned>;
+```

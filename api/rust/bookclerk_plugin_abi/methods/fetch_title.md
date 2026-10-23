@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > fetch_title**
+# bookclerk_plugin_abi::methods::fetch_title
 
-# Module: methods::fetch_title
+Download/decrypt one title into the host cache directory.
 
-## Contents
+Params: [`crate::FetchTitleParams`](../generated.md#fetchtitleparams). Result: [`crate::PlainFetch`](../generated.md#plainfetch).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"fetchTitle"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::fetch_title::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "fetchTitle";
+```
 
 Wire method name `"fetchTitle"`.
-
-
-

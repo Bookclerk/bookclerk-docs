@@ -1,152 +1,375 @@
-**bookclerk_plugin_abi > plugin_capnp > plugin_capabilities**
+# bookclerk_plugin_abi::plugin_capnp::plugin_capabilities
 
-# Module: plugin_capnp::plugin_capabilities
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_capabilities::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_entrypoints(self: Self) -> ::capnp::Result<::capnp::enum_list::Builder<'a, crate::plugin_capnp::Entrypoint>>`
-- `fn set_entrypoints<impl ::capnp::traits::SetterInput<::capnp::enum_list::Owned<crate::plugin_capnp::Entrypoint>>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_entrypoints(self: Self, size: u32) -> ::capnp::enum_list::Builder<'a, crate::plugin_capnp::Entrypoint>`
-- `fn has_entrypoints(self: &Self) -> bool`
-- `fn get_consumes(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::event_consumer_spec::Owned>>`
-- `fn set_consumes(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::event_consumer_spec::Owned>) -> ::capnp::Result<()>`
-- `fn init_consumes(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::event_consumer_spec::Owned>`
-- `fn has_consumes(self: &Self) -> bool`
-- `fn get_produces(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_produces<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_produces(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_produces(self: &Self) -> bool`
-- `fn get_jobs(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_jobs<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_jobs(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_jobs(self: &Self) -> bool`
-- `fn get_databases(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_databases<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_databases(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_databases(self: &Self) -> bool`
-- `fn get_bindings(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_bindings<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_bindings(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_bindings(self: &Self) -> bool`
-- `fn get_queue_consumers(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_queue_consumers<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_queue_consumers(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_queue_consumers(self: &Self) -> bool`
-- `fn get_queue_producers(self: Self) -> ::capnp::Result<::capnp::text_list::Builder<'a>>`
-- `fn set_queue_producers<impl ::capnp::traits::SetterInput<::capnp::text_list::Owned>>(self: & mut Self, value: impl Trait) -> ::capnp::Result<()>`
-- `fn init_queue_producers(self: Self, size: u32) -> ::capnp::text_list::Builder<'a>`
-- `fn has_queue_producers(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_entrypoints
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_entrypoints(self) -> Result<Reader<'a, Entrypoint>>
+```
 
+#### Reader::has_entrypoints
 
+```rust
+pub fn has_entrypoints(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_capabilities::Owned
+#### Reader::get_consumes
 
-*Struct*
+```rust
+pub fn get_consumes(self) -> Result<Reader<'a, Owned>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_consumes
 
-**Traits:** Owned, Copy, Pipelined, OwnedStruct
+```rust
+pub fn has_consumes(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_produces
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn get_produces(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_produces
 
+```rust
+pub fn has_produces(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_capabilities::Pipeline
+#### Reader::get_jobs
 
-*Struct*
+```rust
+pub fn get_jobs(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_jobs
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn has_jobs(&self) -> bool
+```
 
+#### Reader::get_databases
 
+```rust
+pub fn get_databases(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_capabilities::Reader
+#### Reader::has_databases
 
-*Struct*
+```rust
+pub fn has_databases(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_bindings
 
-**Methods:**
+```rust
+pub fn get_bindings(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_entrypoints(self: Self) -> ::capnp::Result<::capnp::enum_list::Reader<'a, crate::plugin_capnp::Entrypoint>>`
-- `fn has_entrypoints(self: &Self) -> bool`
-- `fn get_consumes(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::event_consumer_spec::Owned>>`
-- `fn has_consumes(self: &Self) -> bool`
-- `fn get_produces(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_produces(self: &Self) -> bool`
-- `fn get_jobs(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_jobs(self: &Self) -> bool`
-- `fn get_databases(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_databases(self: &Self) -> bool`
-- `fn get_bindings(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_bindings(self: &Self) -> bool`
-- `fn get_queue_consumers(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_queue_consumers(self: &Self) -> bool`
-- `fn get_queue_producers(self: Self) -> ::capnp::Result<::capnp::text_list::Reader<'a>>`
-- `fn has_queue_producers(self: &Self) -> bool`
+#### Reader::has_bindings
 
-**Traits:** HasTypeId, Copy
+```rust
+pub fn has_bindings(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_queue_consumers
 
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_queue_consumers(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_queue_consumers
 
+```rust
+pub fn has_queue_consumers(&self) -> bool
+```
 
+#### Reader::get_queue_producers
+
+```rust
+pub fn get_queue_producers(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_queue_producers
+
+```rust
+pub fn has_queue_producers(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_entrypoints
+
+```rust
+pub fn get_entrypoints(self) -> Result<Builder<'a, Entrypoint>>
+```
+
+#### Builder::set_entrypoints
+
+```rust
+pub fn set_entrypoints(
+    &mut self,
+    value: impl SetterInput<Owned<Entrypoint>>,
+) -> Result<()>
+```
+
+#### Builder::init_entrypoints
+
+```rust
+pub fn init_entrypoints(self, size: u32) -> Builder<'a, Entrypoint>
+```
+
+#### Builder::has_entrypoints
+
+```rust
+pub fn has_entrypoints(&self) -> bool
+```
+
+#### Builder::get_consumes
+
+```rust
+pub fn get_consumes(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_consumes
+
+```rust
+pub fn set_consumes(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_consumes
+
+```rust
+pub fn init_consumes(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_consumes
+
+```rust
+pub fn has_consumes(&self) -> bool
+```
+
+#### Builder::get_produces
+
+```rust
+pub fn get_produces(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_produces
+
+```rust
+pub fn set_produces(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_produces
+
+```rust
+pub fn init_produces(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_produces
+
+```rust
+pub fn has_produces(&self) -> bool
+```
+
+#### Builder::get_jobs
+
+```rust
+pub fn get_jobs(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_jobs
+
+```rust
+pub fn set_jobs(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_jobs
+
+```rust
+pub fn init_jobs(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_jobs
+
+```rust
+pub fn has_jobs(&self) -> bool
+```
+
+#### Builder::get_databases
+
+```rust
+pub fn get_databases(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_databases
+
+```rust
+pub fn set_databases(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_databases
+
+```rust
+pub fn init_databases(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_databases
+
+```rust
+pub fn has_databases(&self) -> bool
+```
+
+#### Builder::get_bindings
+
+```rust
+pub fn get_bindings(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_bindings
+
+```rust
+pub fn set_bindings(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_bindings
+
+```rust
+pub fn init_bindings(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_bindings
+
+```rust
+pub fn has_bindings(&self) -> bool
+```
+
+#### Builder::get_queue_consumers
+
+```rust
+pub fn get_queue_consumers(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_queue_consumers
+
+```rust
+pub fn set_queue_consumers(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_queue_consumers
+
+```rust
+pub fn init_queue_consumers(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_queue_consumers
+
+```rust
+pub fn has_queue_consumers(&self) -> bool
+```
+
+#### Builder::get_queue_producers
+
+```rust
+pub fn get_queue_producers(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_queue_producers
+
+```rust
+pub fn set_queue_producers(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_queue_producers
+
+```rust
+pub fn init_queue_producers(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_queue_producers
+
+```rust
+pub fn has_queue_producers(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

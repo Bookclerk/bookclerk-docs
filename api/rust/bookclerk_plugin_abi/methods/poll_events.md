@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > poll_events**
+# bookclerk_plugin_abi::methods::poll_events
 
-# Module: methods::poll_events
+Poll for plugin-observed external users after [`start`](start.md).
 
-## Contents
+Result: [`crate::EventPollResult`](../generated.md#eventpollresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"pollEvents"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::poll_events::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "pollEvents";
+```
 
 Wire method name `"pollEvents"`.
-
-
-

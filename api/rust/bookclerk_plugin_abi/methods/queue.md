@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > queue**
+# bookclerk_plugin_abi::methods::queue
 
-# Module: methods::queue
+Deliver one ordered batch of queue messages (Cap'n Proto `QueueConsumer.queue`).
 
-## Contents
+Params: [`crate::QueueBatch`](../generated.md#queuebatch). Result: one [`crate::QueueResult`](../generated.md#queueresult) per message.
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"queue"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::queue::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "queue";
+```
 
 Wire method name `"queue"`.
-
-
-

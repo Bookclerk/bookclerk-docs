@@ -1,167 +1,247 @@
-**bookclerk_plugin_abi > plugin_capnp > job_outcome**
+# bookclerk_plugin_abi::plugin_capnp::job_outcome
 
-# Module: plugin_capnp::job_outcome
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
+| [`Which`](#which) | enum |  |
+| [`WhichReader`](#whichreader) | type alias |  |
+| [`WhichBuilder`](#whichbuilder) | type alias |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
-**Enums**
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-- [`Which`](#which)
+### Reader
 
-**Type Aliases**
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-- [`WhichBuilder`](#whichbuilder)
-- [`WhichReader`](#whichreader)
+#### Reader::reborrow
 
----
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::Builder
+#### Reader::total_size
 
-*Struct*
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_completed
 
-**Methods:**
+```rust
+pub fn has_completed(&self) -> bool
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn set_completed(self: & mut Self, value: crate::plugin_capnp::completed_outcome::Reader) -> ::capnp::Result<()>`
-- `fn init_completed(self: Self) -> crate::plugin_capnp::completed_outcome::Builder<'a>`
-- `fn has_completed(self: &Self) -> bool`
-- `fn set_retryable(self: & mut Self, value: crate::plugin_capnp::retryable_outcome::Reader) -> ::capnp::Result<()>`
-- `fn init_retryable(self: Self) -> crate::plugin_capnp::retryable_outcome::Builder<'a>`
-- `fn has_retryable(self: &Self) -> bool`
-- `fn set_rejected(self: & mut Self, value: crate::plugin_capnp::rejected_outcome::Reader) -> ::capnp::Result<()>`
-- `fn init_rejected(self: Self) -> crate::plugin_capnp::rejected_outcome::Builder<'a>`
-- `fn has_rejected(self: &Self) -> bool`
-- `fn set_cancelled(self: & mut Self, value: crate::plugin_capnp::cancelled_outcome::Reader) -> ::capnp::Result<()>`
-- `fn init_cancelled(self: Self) -> crate::plugin_capnp::cancelled_outcome::Builder<'a>`
-- `fn has_cancelled(self: &Self) -> bool`
-- `fn set_suspended(self: & mut Self, value: crate::plugin_capnp::suspended_outcome::Reader) -> ::capnp::Result<()>`
-- `fn init_suspended(self: Self) -> crate::plugin_capnp::suspended_outcome::Builder<'a>`
-- `fn has_suspended(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichBuilder<'a>, ::capnp::NotInSchema>`
+#### Reader::has_retryable
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn has_retryable(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::has_rejected
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn has_rejected(&self) -> bool
+```
 
+#### Reader::has_cancelled
 
+```rust
+pub fn has_cancelled(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::Owned
+#### Reader::has_suspended
 
-*Struct*
+```rust
+pub fn has_suspended(&self) -> bool
+```
 
-**Tuple Struct**: `()`
+#### Reader::which
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn which(self) -> Result<WhichReader<'a>, NotInSchema>
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
+#### Builder::into_reader
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::Pipeline
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-*Struct*
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::Reader
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-*Struct*
+#### Builder::set_completed
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn set_completed(&mut self, value: Reader<'_>) -> Result<()>
+```
 
-**Methods:**
+#### Builder::init_completed
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn has_completed(self: &Self) -> bool`
-- `fn has_retryable(self: &Self) -> bool`
-- `fn has_rejected(self: &Self) -> bool`
-- `fn has_cancelled(self: &Self) -> bool`
-- `fn has_suspended(self: &Self) -> bool`
-- `fn which(self: Self) -> ::core::result::Result<WhichReader<'a>, ::capnp::NotInSchema>`
+```rust
+pub fn init_completed(self) -> Builder<'a>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::has_completed
 
-**Trait Implementations:**
+```rust
+pub fn has_completed(&self) -> bool
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+#### Builder::set_retryable
 
+```rust
+pub fn set_retryable(&mut self, value: Reader<'_>) -> Result<()>
+```
 
+#### Builder::init_retryable
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::Which
+```rust
+pub fn init_retryable(self) -> Builder<'a>
+```
 
-*Enum*
+#### Builder::has_retryable
 
-**Generic Parameters:**
-- A0
-- A1
-- A2
-- A3
-- A4
+```rust
+pub fn has_retryable(&self) -> bool
+```
 
-**Variants:**
-- `Completed(A0)`
-- `Retryable(A1)`
-- `Rejected(A2)`
-- `Cancelled(A3)`
-- `Suspended(A4)`
+#### Builder::set_rejected
 
+```rust
+pub fn set_rejected(&mut self, value: Reader<'_>) -> Result<()>
+```
 
+#### Builder::init_rejected
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::WhichBuilder
+```rust
+pub fn init_rejected(self) -> Builder<'a>
+```
 
-*Type Alias*: `Which<::capnp::Result<crate::plugin_capnp::completed_outcome::Builder<'a>>, ::capnp::Result<crate::plugin_capnp::retryable_outcome::Builder<'a>>, ::capnp::Result<crate::plugin_capnp::rejected_outcome::Builder<'a>>, ::capnp::Result<crate::plugin_capnp::cancelled_outcome::Builder<'a>>, ::capnp::Result<crate::plugin_capnp::suspended_outcome::Builder<'a>>>`
+#### Builder::has_rejected
 
+```rust
+pub fn has_rejected(&self) -> bool
+```
 
+#### Builder::set_cancelled
 
-## bookclerk_plugin_abi::plugin_capnp::job_outcome::WhichReader
+```rust
+pub fn set_cancelled(&mut self, value: Reader<'_>) -> Result<()>
+```
 
-*Type Alias*: `Which<::capnp::Result<crate::plugin_capnp::completed_outcome::Reader<'a>>, ::capnp::Result<crate::plugin_capnp::retryable_outcome::Reader<'a>>, ::capnp::Result<crate::plugin_capnp::rejected_outcome::Reader<'a>>, ::capnp::Result<crate::plugin_capnp::cancelled_outcome::Reader<'a>>, ::capnp::Result<crate::plugin_capnp::suspended_outcome::Reader<'a>>>`
+#### Builder::init_cancelled
 
+```rust
+pub fn init_cancelled(self) -> Builder<'a>
+```
 
+#### Builder::has_cancelled
 
+```rust
+pub fn has_cancelled(&self) -> bool
+```
+
+#### Builder::set_suspended
+
+```rust
+pub fn set_suspended(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_suspended
+
+```rust
+pub fn init_suspended(self) -> Builder<'a>
+```
+
+#### Builder::has_suspended
+
+```rust
+pub fn has_suspended(&self) -> bool
+```
+
+#### Builder::which
+
+```rust
+pub fn which(self) -> Result<WhichBuilder<'a>, NotInSchema>
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`
+
+## Enums
+
+### Which
+
+```rust
+pub enum Which<A0, A1, A2, A3, A4> {
+    Completed(A0),
+    Retryable(A1),
+    Rejected(A2),
+    Cancelled(A3),
+    Suspended(A4),
+}
+```
+
+## Type aliases
+
+### WhichReader
+
+```rust
+pub type WhichReader<'a> = Which<Result<Reader<'a>>, Result<Reader<'a>>, Result<Reader<'a>>, Result<Reader<'a>>, Result<Reader<'a>>>;
+```
+
+### WhichBuilder
+
+```rust
+pub type WhichBuilder<'a> = Which<Result<Builder<'a>>, Result<Builder<'a>>, Result<Builder<'a>>, Result<Builder<'a>>, Result<Builder<'a>>>;
+```

@@ -1,161 +1,408 @@
-**bookclerk_plugin_abi > plugin_capnp > entrypoints**
+# bookclerk_plugin_abi::plugin_capnp::entrypoints
 
-# Module: plugin_capnp::entrypoints
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::entrypoints::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_event_consumer(self: Self) -> ::capnp::Result<crate::plugin_capnp::event_consumer::Client>`
-- `fn set_event_consumer(self: & mut Self, value: crate::plugin_capnp::event_consumer::Client)`
-- `fn has_event_consumer(self: &Self) -> bool`
-- `fn get_job_runner(self: Self) -> ::capnp::Result<crate::plugin_capnp::job_runner::Client>`
-- `fn set_job_runner(self: & mut Self, value: crate::plugin_capnp::job_runner::Client)`
-- `fn has_job_runner(self: &Self) -> bool`
-- `fn get_storefront(self: Self) -> ::capnp::Result<crate::plugin_capnp::content_source::Client>`
-- `fn set_storefront(self: & mut Self, value: crate::plugin_capnp::content_source::Client)`
-- `fn has_storefront(self: &Self) -> bool`
-- `fn get_storage(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn set_storage(self: & mut Self, value: crate::plugin_capnp::destination::Client)`
-- `fn has_storage(self: &Self) -> bool`
-- `fn get_database_adapter(self: Self) -> ::capnp::Result<crate::plugin_capnp::database::Client>`
-- `fn set_database_adapter(self: & mut Self, value: crate::plugin_capnp::database::Client)`
-- `fn has_database_adapter(self: &Self) -> bool`
-- `fn get_remote_library(self: Self) -> ::capnp::Result<crate::plugin_capnp::remote_library::Client>`
-- `fn set_remote_library(self: & mut Self, value: crate::plugin_capnp::remote_library::Client)`
-- `fn has_remote_library(self: &Self) -> bool`
-- `fn get_cli(self: Self) -> ::capnp::Result<crate::plugin_capnp::plugin_cli::Client>`
-- `fn set_cli(self: & mut Self, value: crate::plugin_capnp::plugin_cli::Client)`
-- `fn has_cli(self: &Self) -> bool`
-- `fn get_oidc(self: Self) -> ::capnp::Result<crate::plugin_capnp::oidc::Client>`
-- `fn set_oidc(self: & mut Self, value: crate::plugin_capnp::oidc::Client)`
-- `fn has_oidc(self: &Self) -> bool`
-- `fn get_queue_consumer(self: Self) -> ::capnp::Result<crate::plugin_capnp::queue_consumer::Client>`
-- `fn set_queue_consumer(self: & mut Self, value: crate::plugin_capnp::queue_consumer::Client)`
-- `fn has_queue_consumer(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_event_consumer
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_event_consumer(self) -> Result<Client>
+```
 
+#### Reader::has_event_consumer
 
+```rust
+pub fn has_event_consumer(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::entrypoints::Owned
+#### Reader::get_job_runner
 
-*Struct*
+```rust
+pub fn get_job_runner(self) -> Result<Client>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_job_runner
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn has_job_runner(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_storefront
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_storefront(self) -> Result<Client>
+```
 
+#### Reader::has_storefront
 
+```rust
+pub fn has_storefront(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::entrypoints::Pipeline
+#### Reader::get_storage
 
-*Struct*
+```rust
+pub fn get_storage(self) -> Result<Client>
+```
 
-**Methods:**
+#### Reader::has_storage
 
-- `fn get_event_consumer(self: &Self) -> crate::plugin_capnp::event_consumer::Client`
-- `fn get_job_runner(self: &Self) -> crate::plugin_capnp::job_runner::Client`
-- `fn get_storefront(self: &Self) -> crate::plugin_capnp::content_source::Client`
-- `fn get_storage(self: &Self) -> crate::plugin_capnp::destination::Client`
-- `fn get_database_adapter(self: &Self) -> crate::plugin_capnp::database::Client`
-- `fn get_remote_library(self: &Self) -> crate::plugin_capnp::remote_library::Client`
-- `fn get_cli(self: &Self) -> crate::plugin_capnp::plugin_cli::Client`
-- `fn get_oidc(self: &Self) -> crate::plugin_capnp::oidc::Client`
-- `fn get_queue_consumer(self: &Self) -> crate::plugin_capnp::queue_consumer::Client`
+```rust
+pub fn has_storage(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_database_adapter
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_database_adapter(self) -> Result<Client>
+```
 
+#### Reader::has_database_adapter
 
+```rust
+pub fn has_database_adapter(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::entrypoints::Reader
+#### Reader::get_remote_library
 
-*Struct*
+```rust
+pub fn get_remote_library(self) -> Result<Client>
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::has_remote_library
 
-**Methods:**
+```rust
+pub fn has_remote_library(&self) -> bool
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_event_consumer(self: Self) -> ::capnp::Result<crate::plugin_capnp::event_consumer::Client>`
-- `fn has_event_consumer(self: &Self) -> bool`
-- `fn get_job_runner(self: Self) -> ::capnp::Result<crate::plugin_capnp::job_runner::Client>`
-- `fn has_job_runner(self: &Self) -> bool`
-- `fn get_storefront(self: Self) -> ::capnp::Result<crate::plugin_capnp::content_source::Client>`
-- `fn has_storefront(self: &Self) -> bool`
-- `fn get_storage(self: Self) -> ::capnp::Result<crate::plugin_capnp::destination::Client>`
-- `fn has_storage(self: &Self) -> bool`
-- `fn get_database_adapter(self: Self) -> ::capnp::Result<crate::plugin_capnp::database::Client>`
-- `fn has_database_adapter(self: &Self) -> bool`
-- `fn get_remote_library(self: Self) -> ::capnp::Result<crate::plugin_capnp::remote_library::Client>`
-- `fn has_remote_library(self: &Self) -> bool`
-- `fn get_cli(self: Self) -> ::capnp::Result<crate::plugin_capnp::plugin_cli::Client>`
-- `fn has_cli(self: &Self) -> bool`
-- `fn get_oidc(self: Self) -> ::capnp::Result<crate::plugin_capnp::oidc::Client>`
-- `fn has_oidc(self: &Self) -> bool`
-- `fn get_queue_consumer(self: Self) -> ::capnp::Result<crate::plugin_capnp::queue_consumer::Client>`
-- `fn has_queue_consumer(self: &Self) -> bool`
+#### Reader::get_cli
 
-**Traits:** Copy, HasTypeId
+```rust
+pub fn get_cli(self) -> Result<Client>
+```
 
-**Trait Implementations:**
+#### Reader::has_cli
 
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+```rust
+pub fn has_cli(&self) -> bool
+```
 
+#### Reader::get_oidc
 
+```rust
+pub fn get_oidc(self) -> Result<Client>
+```
 
+#### Reader::has_oidc
+
+```rust
+pub fn has_oidc(&self) -> bool
+```
+
+#### Reader::get_queue_consumer
+
+```rust
+pub fn get_queue_consumer(self) -> Result<Client>
+```
+
+#### Reader::has_queue_consumer
+
+```rust
+pub fn has_queue_consumer(&self) -> bool
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
+
+### Builder
+
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
+
+#### Builder::into_reader
+
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_event_consumer
+
+```rust
+pub fn get_event_consumer(self) -> Result<Client>
+```
+
+#### Builder::set_event_consumer
+
+```rust
+pub fn set_event_consumer(&mut self, value: Client)
+```
+
+#### Builder::has_event_consumer
+
+```rust
+pub fn has_event_consumer(&self) -> bool
+```
+
+#### Builder::get_job_runner
+
+```rust
+pub fn get_job_runner(self) -> Result<Client>
+```
+
+#### Builder::set_job_runner
+
+```rust
+pub fn set_job_runner(&mut self, value: Client)
+```
+
+#### Builder::has_job_runner
+
+```rust
+pub fn has_job_runner(&self) -> bool
+```
+
+#### Builder::get_storefront
+
+```rust
+pub fn get_storefront(self) -> Result<Client>
+```
+
+#### Builder::set_storefront
+
+```rust
+pub fn set_storefront(&mut self, value: Client)
+```
+
+#### Builder::has_storefront
+
+```rust
+pub fn has_storefront(&self) -> bool
+```
+
+#### Builder::get_storage
+
+```rust
+pub fn get_storage(self) -> Result<Client>
+```
+
+#### Builder::set_storage
+
+```rust
+pub fn set_storage(&mut self, value: Client)
+```
+
+#### Builder::has_storage
+
+```rust
+pub fn has_storage(&self) -> bool
+```
+
+#### Builder::get_database_adapter
+
+```rust
+pub fn get_database_adapter(self) -> Result<Client>
+```
+
+#### Builder::set_database_adapter
+
+```rust
+pub fn set_database_adapter(&mut self, value: Client)
+```
+
+#### Builder::has_database_adapter
+
+```rust
+pub fn has_database_adapter(&self) -> bool
+```
+
+#### Builder::get_remote_library
+
+```rust
+pub fn get_remote_library(self) -> Result<Client>
+```
+
+#### Builder::set_remote_library
+
+```rust
+pub fn set_remote_library(&mut self, value: Client)
+```
+
+#### Builder::has_remote_library
+
+```rust
+pub fn has_remote_library(&self) -> bool
+```
+
+#### Builder::get_cli
+
+```rust
+pub fn get_cli(self) -> Result<Client>
+```
+
+#### Builder::set_cli
+
+```rust
+pub fn set_cli(&mut self, value: Client)
+```
+
+#### Builder::has_cli
+
+```rust
+pub fn has_cli(&self) -> bool
+```
+
+#### Builder::get_oidc
+
+```rust
+pub fn get_oidc(self) -> Result<Client>
+```
+
+#### Builder::set_oidc
+
+```rust
+pub fn set_oidc(&mut self, value: Client)
+```
+
+#### Builder::has_oidc
+
+```rust
+pub fn has_oidc(&self) -> bool
+```
+
+#### Builder::get_queue_consumer
+
+```rust
+pub fn get_queue_consumer(self) -> Result<Client>
+```
+
+#### Builder::set_queue_consumer
+
+```rust
+pub fn set_queue_consumer(&mut self, value: Client)
+```
+
+#### Builder::has_queue_consumer
+
+```rust
+pub fn has_queue_consumer(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+#### Pipeline::get_event_consumer
+
+```rust
+pub fn get_event_consumer(&self) -> Client
+```
+
+#### Pipeline::get_job_runner
+
+```rust
+pub fn get_job_runner(&self) -> Client
+```
+
+#### Pipeline::get_storefront
+
+```rust
+pub fn get_storefront(&self) -> Client
+```
+
+#### Pipeline::get_storage
+
+```rust
+pub fn get_storage(&self) -> Client
+```
+
+#### Pipeline::get_database_adapter
+
+```rust
+pub fn get_database_adapter(&self) -> Client
+```
+
+#### Pipeline::get_remote_library
+
+```rust
+pub fn get_remote_library(&self) -> Client
+```
+
+#### Pipeline::get_cli
+
+```rust
+pub fn get_cli(&self) -> Client
+```
+
+#### Pipeline::get_oidc
+
+```rust
+pub fn get_oidc(&self) -> Client
+```
+
+#### Pipeline::get_queue_consumer
+
+```rust
+pub fn get_queue_consumer(&self) -> Client
+```
+
+Implements: `FromTypelessPipeline`

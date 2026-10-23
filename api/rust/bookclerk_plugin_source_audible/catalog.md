@@ -1,54 +1,22 @@
-**bookclerk_plugin_source_audible > catalog**
+# bookclerk_plugin_source_audible::catalog
 
-# Module: catalog
+Public Audible catalog helpers for Discover (`search_catalog` / expand / purchase).
 
-## Contents
+Uses [`bookclerk_enrich`](../bookclerk_enrich/index.md) public catalog HTTP — no account required.
 
-**Functions**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`search_catalog`](#search_catalog) | function | Search the public Audible catalog for Discover typeahead / paged browse. |
+| [`expand_candidates`](#expand_candidates) | function | Expand author / series / narrator / series-ASIN candidates from a taste seed. |
+| [`purchase_hint`](#purchase_hint) | function | Resolve a purchase / catalog URL (optionally with live price). |
 
-- [`expand_candidates`](#expand_candidates) - Expand author / series / narrator / series-ASIN candidates from a taste seed.
-- [`purchase_hint`](#purchase_hint) - Resolve a purchase / catalog URL (optionally with live price).
-- [`search_catalog`](#search_catalog) - Search the public Audible catalog for Discover typeahead / paged browse.
+## Functions
 
----
-
-## bookclerk_plugin_source_audible::catalog::expand_candidates
-
-*Function*
-
-Expand author / series / narrator / series-ASIN candidates from a taste seed.
-
-Soft-fails individual HTTP calls; budgets returned hits by `limit`.
-
-# Errors
-
-Returns an error when the operation fails.
+### search_catalog
 
 ```rust
-fn expand_candidates(seed: &bookclerk_source::ExpandSeed, limit: usize) -> bookclerk_source::Result<Vec<bookclerk_source::CatalogHit>>
+pub async fn search_catalog(opts: &CatalogSearchOpts) -> Result<Vec<CatalogHit>>
 ```
-
-
-
-## bookclerk_plugin_source_audible::catalog::purchase_hint
-
-*Function*
-
-Resolve a purchase / catalog URL (optionally with live price).
-
-# Errors
-
-Returns an error when the operation fails.
-
-```rust
-fn purchase_hint(opts: &bookclerk_source::PurchaseHintOpts) -> bookclerk_source::Result<Option<bookclerk_source::SourcePurchaseHint>>
-```
-
-
-
-## bookclerk_plugin_source_audible::catalog::search_catalog
-
-*Function*
 
 Search the public Audible catalog for Discover typeahead / paged browse.
 
@@ -57,13 +25,32 @@ When `CatalogSearchOpts::field` is set, uses storefront-native filters
 links return the right catalog slice. General queries use `keywords=` only
 and preserve Audible relevance order (host merge soft-prefers language).
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### expand_candidates
+
 ```rust
-fn search_catalog(opts: &bookclerk_source::CatalogSearchOpts) -> bookclerk_source::Result<Vec<bookclerk_source::CatalogHit>>
+pub async fn expand_candidates(seed: &ExpandSeed, limit: usize) -> Result<Vec<CatalogHit>>
 ```
 
+Expand author / series / narrator / series-ASIN candidates from a taste seed.
 
+Soft-fails individual HTTP calls; budgets returned hits by `limit`.
 
+#### Errors
+
+Returns an error when the operation fails.
+
+### purchase_hint
+
+```rust
+pub async fn purchase_hint(opts: &PurchaseHintOpts) -> Result<Option<SourcePurchaseHint>>
+```
+
+Resolve a purchase / catalog URL (optionally with live price).
+
+#### Errors
+
+Returns an error when the operation fails.

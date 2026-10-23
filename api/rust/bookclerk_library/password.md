@@ -1,62 +1,51 @@
-**bookclerk_library > password**
+# bookclerk_library::password
 
-# Module: password
+Argon2id password hashing for first-party local login.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`hash_password`](#hash_password) | function | Hash a plaintext password with Argon2id (PHC string). |
+| [`verify_password`](#verify_password) | function | Verify a plaintext password against a stored PHC hash. |
 
-**Functions**
+## Functions
 
-- [`hash_password`](#hash_password) - Hash a plaintext password with Argon2id (PHC string).
-- [`verify_password`](#verify_password) - Verify a plaintext password against a stored PHC hash.
+### hash_password
 
----
-
-## bookclerk_library::password::hash_password
-
-*Function*
+```rust
+pub fn hash_password(password: &str) -> Result<String>
+```
 
 Hash a plaintext password with Argon2id (PHC string).
 
-# Arguments
+#### Arguments
 
 * `password` - Plaintext password; never logged or stored.
 
-# Returns
+#### Returns
 
 PHC-formatted Argon2id hash string for durable storage.
 
-# Errors
+#### Errors
 
-Returns `LibraryError::Other` when hashing fails.
+Returns [`LibraryError::Other`](index.md#libraryerror) when hashing fails.
+
+### verify_password
 
 ```rust
-fn hash_password(password: &str) -> crate::error::Result<String>
+pub fn verify_password(password: &str, password_hash: &str) -> Result<bool>
 ```
-
-
-
-## bookclerk_library::password::verify_password
-
-*Function*
 
 Verify a plaintext password against a stored PHC hash.
 
-# Arguments
+#### Arguments
 
 * `password` - Candidate plaintext password.
-* `password_hash` - Stored Argon2id PHC string from [`hash_password`](password.md#bookclerk_librarypasswordhash_password).
+* `password_hash` - Stored Argon2id PHC string from [`hash_password`](#hash_password).
 
-# Returns
+#### Returns
 
 `Ok(true)` on match, `Ok(false)` on mismatch.
 
-# Errors
+#### Errors
 
-Returns `LibraryError::Other` when the stored hash cannot be parsed.
-
-```rust
-fn verify_password(password: &str, password_hash: &str) -> crate::error::Result<bool>
-```
-
-
-
+Returns [`LibraryError::Other`](index.md#libraryerror) when the stored hash cannot be parsed.

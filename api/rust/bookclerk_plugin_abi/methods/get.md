@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > get**
+# bookclerk_plugin_abi::methods::get
 
-# Module: methods::get
+Read a small object from an output destination.
 
-## Contents
+Typed Cap'n Proto `Destination.get` ([`crate::Destination::get`](../index.md#destinationget)).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"get"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::get::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "get";
+```
 
 Wire method name `"get"`.
-
-
-

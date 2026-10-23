@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > scan_library**
+# bookclerk_plugin_abi::methods::scan_library
 
-# Module: methods::scan_library
+Trigger an integration library scan against a remote server (e.g. ABS).
 
-## Contents
+Params: [`crate::ScanLibraryParams`](../generated.md#scanlibraryparams).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"scanLibrary"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::scan_library::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "scanLibrary";
+```
 
 Wire method name `"scanLibrary"`.
-
-
-

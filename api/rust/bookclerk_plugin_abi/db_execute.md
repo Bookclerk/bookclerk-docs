@@ -1,275 +1,514 @@
-**bookclerk_plugin_abi > db_execute**
+# bookclerk_plugin_abi::db_execute
 
-# Module: db_execute
+Typed Cap'n database data-plane (`ExecuteRequest` / `ExecuteReply`) and
+control-plane (`DbCapabilities`) mirrors of `plugin.capnp`.
 
-## Contents
+Hosts call `AdapterDatabaseSession.capabilities` and
+`AdapterDatabaseSession.execute`. Granted job SQL uses `GuestDatabase.execute`.
 
-**Structs**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`DbBootstrap`](#dbbootstrap) | struct | Diagnostic engine identity returned by `AdapterDatabaseSession.bootstrap`. |
+| [`DbColumn`](#dbcolumn) | struct | One column in a typed result set. |
+| [`DbRow`](#dbrow) | struct | One positional result row. |
+| [`TypedDbStatement`](#typeddbstatement) | struct | One statement in a typed `ExecuteRequest`. |
+| [`ExecuteRequest`](#executerequest) | struct | Typed atomic batch. Every request is a non-empty ordered statement list. |
+| [`DbIdentityHighWater`](#dbidentityhighwater) | struct | Adapter identity high-water (`sqlite_sequence` / `bookclerk_identity`). |
+| [`StatementResult`](#statementresult) | struct | Result of one statement in `ExecuteReply`. |
+| [`DbTiming`](#dbtiming) | struct | Engine timing on `ExecuteReply`. |
+| [`ExecuteReply`](#executereply) | struct | Typed atomic reply. |
+| [`DbCapabilities`](#dbcapabilities) | struct | Semantic SQL-contract advertisement (`AdapterDatabaseSession.capabilities`). |
+| [`DbPlanStatementKind`](#dbplanstatementkind) | enum | How a guest should run one statement inside an atomic plan. |
+| [`DbResultSelection`](#dbresultselection) | enum | How the guest should return results for one statement. |
+| [`IsolationReq`](#isolationreq) | enum | Transaction isolation the adapter must realize. |
+| [`lowered_statement_upper_bound_len`](#lowered_statement_upper_bound_len) | function | Standardized Bookclerk sqlite-family lowering upper bound for a canonical statement of `canonical_len` bytes: mechanical LIKE / `NULLIF` / `INSERT OR IGNORE`, the query LIMIT wrap, and `unhex(?)` for every advertised sqlite-family bind slot. |
+| [`lowered_statement_preflight_len`](#lowered_statement_preflight_len) | function | Deterministic lowered-statement preflight without a typed proof. |
+| [`lowered_statement_preflight_len_proven`](#lowered_statement_preflight_len_proven) | function | `lowered_statement_preflight_len` after applying sqlite-family INTEGER overflow wraps from `proof` (innermost-first, then mechanical `/` `%` NULLIF / LIKE→GLOB / `INSERT OR IGNORE`). |
+| [`sql_payload_bytes`](#sql_payload_bytes) | function | UTF-8 bytes of SQL text plus JSON binds (ordinary query/execute payload). |
+| [`sql_payload_exceeds`](#sql_payload_exceeds) | function | True when ordinary-path SQL+binds exceed the negotiated payload cap. |
+| [`SQLITE_MAX_BINDS`](#sqlite_max_binds) | constant | SQLite family bind cap advertised by the platform sqlite guest. |
+| [`POSTGRES_MAX_BINDS`](#postgres_max_binds) | constant | PostgreSQL bind cap advertised by the optional postgres guest. |
+| [`D1_MAX_BINDS`](#d1_max_binds) | constant | Cloudflare D1 bound-parameter limit. |
+| [`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes) | constant | Cloudflare D1 physical SQL statement length (bytes) after adapter lowering. |
+| [`D1_MAX_FUNCTION_ARGS`](#d1_max_function_args) | constant | Cloudflare D1 maximum arguments to one physical SQL function. |
+| [`SQLITE_MAX_FUNCTION_ARGS`](#sqlite_max_function_args) | constant | SQLite default `SQLITE_MAX_FUNCTION_ARG`. |
+| [`POSTGRES_MAX_FUNCTION_ARGS`](#postgres_max_function_args) | constant | PostgreSQL maximum function arguments. |
+| [`D1_MAX_SCHEMA_COLUMNS`](#d1_max_schema_columns) | constant | Cloudflare D1 maximum columns per table. |
+| [`SQLITE_MAX_SCHEMA_COLUMNS`](#sqlite_max_schema_columns) | constant | SQLite default `SQLITE_MAX_COLUMN`. |
+| [`POSTGRES_MAX_SCHEMA_COLUMNS`](#postgres_max_schema_columns) | constant | PostgreSQL maximum columns per table. |
+| [`SQLITE_MAX_PATTERN_BYTES`](#sqlite_max_pattern_bytes) | constant | SQLite default `SQLITE_MAX_LIKE_PATTERN_LENGTH`. |
+| [`HOST_MIN_FUNCTION_ARGS`](#host_min_function_args) | constant | Host refuses guests that cannot accept at least this many function args. |
+| [`HOST_MIN_SCHEMA_COLUMNS`](#host_min_schema_columns) | constant | Host refuses guests whose schema-column cap is below the library schema. |
+| [`HOST_MIN_PATTERN_BYTES`](#host_min_pattern_bytes) | constant | Host refuses guests that cannot prove a LIKE pattern of this many bytes. |
+| [`FIRST_PARTY_MAX_STATEMENTS`](#first_party_max_statements) | constant | D1 / first-party batch statement cap (D1 HTTP batch is 100 queries). |
+| [`FIRST_PARTY_MAX_RESULT_ROWS`](#first_party_max_result_rows) | constant | First-party row cap advertised for one query statement. |
+| [`HOST_MIN_BINDS`](#host_min_binds) | constant | Host refuses guests that cannot bind at least this many parameters. |
+| [`HOST_MIN_STATEMENTS`](#host_min_statements) | constant | Host refuses guests that cannot run at least this many statements per batch. |
+| [`HOST_MIN_RESULT_ROWS`](#host_min_result_rows) | constant | Host refuses guests that do not bound result rows (`0` is unspecified). |
+| [`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) | constant | Host refuses guests that do not bound encoded statement payload bytes. |
+| [`D1_MAX_PAYLOAD_BYTES`](#d1_max_payload_bytes) | constant | Canonical SQL+binds cap advertised for D1. |
+| [`HOST_MIN_RESULT_BYTES`](#host_min_result_bytes) | constant | Host refuses guests that do not bound JSON bytes of one statement's rows. |
+| [`HOST_MIN_CELL_BYTES`](#host_min_cell_bytes) | constant | Host refuses guests that do not bound one result cell (`0` is unspecified). |
+| [`FIRST_PARTY_MAX_RESULT_BYTES`](#first_party_max_result_bytes) | constant | First-party JSON-byte budget for one statement's rows and for one atomic request/result scalar. Must stay at or below `crate::MAX_SCALAR_BYTES`. |
+| [`SQL_CONTRACT_VERSION`](#sql_contract_version) | constant | Bookclerk SQL contract version advertised by first-party adapters. |
 
-- [`DbBootstrap`](#dbbootstrap) - Diagnostic engine identity returned by `AdapterDatabaseSession.bootstrap`.
-- [`DbCapabilities`](#dbcapabilities) - Semantic SQL-contract advertisement (`AdapterDatabaseSession.capabilities`).
-- [`DbColumn`](#dbcolumn) - One column in a typed result set.
-- [`DbIdentityHighWater`](#dbidentityhighwater) - Adapter identity high-water (`sqlite_sequence` / `bookclerk_identity`).
-- [`DbRow`](#dbrow) - One positional result row.
-- [`DbTiming`](#dbtiming) - Engine timing on [`ExecuteReply`](db_execute.md#bookclerk_plugin_abidb_executeexecutereply).
-- [`ExecuteReply`](#executereply) - Typed atomic reply.
-- [`ExecuteRequest`](#executerequest) - Typed atomic batch. Every request is a non-empty ordered statement list.
-- [`StatementResult`](#statementresult) - Result of one statement in [`ExecuteReply`](db_execute.md#bookclerk_plugin_abidb_executeexecutereply).
-- [`TypedDbStatement`](#typeddbstatement) - One statement in a typed [`ExecuteRequest`](db_execute.md#bookclerk_plugin_abidb_executeexecuterequest).
+## Structs
 
-**Enums**
+### DbBootstrap
 
-- [`DbPlanStatementKind`](#dbplanstatementkind) - How a guest should run one statement inside an atomic plan.
-- [`DbResultSelection`](#dbresultselection) - How the guest should return results for one statement.
-- [`IsolationReq`](#isolationreq) - Transaction isolation the adapter must realize.
-
-**Functions**
-
-- [`lowered_statement_preflight_len`](#lowered_statement_preflight_len) - Deterministic lowered-statement preflight without a typed proof.
-- [`lowered_statement_preflight_len_proven`](#lowered_statement_preflight_len_proven) - [`lowered_statement_preflight_len`](db_execute.md#bookclerk_plugin_abidb_executelowered_statement_preflight_len) after applying sqlite-family INTEGER
-- [`lowered_statement_upper_bound_len`](#lowered_statement_upper_bound_len) - Standardized Bookclerk sqlite-family lowering upper bound for a canonical
-- [`sql_payload_bytes`](#sql_payload_bytes) - UTF-8 bytes of SQL text plus JSON binds (ordinary query/execute payload).
-- [`sql_payload_exceeds`](#sql_payload_exceeds) - True when ordinary-path SQL+binds exceed the negotiated payload cap.
-
-**Constants**
-
-- [`D1_MAX_BINDS`](#d1_max_binds) - Cloudflare D1 bound-parameter limit.
-- [`D1_MAX_FUNCTION_ARGS`](#d1_max_function_args) - Cloudflare D1 maximum arguments to one physical SQL function.
-- [`D1_MAX_PAYLOAD_BYTES`](#d1_max_payload_bytes) - Canonical SQL+binds cap advertised for D1.
-- [`D1_MAX_SCHEMA_COLUMNS`](#d1_max_schema_columns) - Cloudflare D1 maximum columns per table.
-- [`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes) - Cloudflare D1 physical SQL statement length (bytes) after adapter lowering.
-- [`FIRST_PARTY_MAX_RESULT_BYTES`](#first_party_max_result_bytes) - First-party JSON-byte budget for one statement's rows and for one atomic
-- [`FIRST_PARTY_MAX_RESULT_ROWS`](#first_party_max_result_rows) - First-party row cap advertised for one query statement.
-- [`FIRST_PARTY_MAX_STATEMENTS`](#first_party_max_statements) - D1 / first-party batch statement cap (D1 HTTP batch is 100 queries).
-- [`HOST_MIN_BINDS`](#host_min_binds) - Host refuses guests that cannot bind at least this many parameters.
-- [`HOST_MIN_CELL_BYTES`](#host_min_cell_bytes) - Host refuses guests that do not bound one result cell (`0` is unspecified).
-- [`HOST_MIN_FUNCTION_ARGS`](#host_min_function_args) - Host refuses guests that cannot accept at least this many function args.
-- [`HOST_MIN_PATTERN_BYTES`](#host_min_pattern_bytes) - Host refuses guests that cannot prove a LIKE pattern of this many bytes.
-- [`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) - Host refuses guests that do not bound encoded statement payload bytes.
-- [`HOST_MIN_RESULT_BYTES`](#host_min_result_bytes) - Host refuses guests that do not bound JSON bytes of one statement's rows.
-- [`HOST_MIN_RESULT_ROWS`](#host_min_result_rows) - Host refuses guests that do not bound result rows (`0` is unspecified).
-- [`HOST_MIN_SCHEMA_COLUMNS`](#host_min_schema_columns) - Host refuses guests whose schema-column cap is below the library schema.
-- [`HOST_MIN_STATEMENTS`](#host_min_statements) - Host refuses guests that cannot run at least this many statements per batch.
-- [`POSTGRES_MAX_BINDS`](#postgres_max_binds) - PostgreSQL bind cap advertised by the optional postgres guest.
-- [`POSTGRES_MAX_FUNCTION_ARGS`](#postgres_max_function_args) - PostgreSQL maximum function arguments.
-- [`POSTGRES_MAX_SCHEMA_COLUMNS`](#postgres_max_schema_columns) - PostgreSQL maximum columns per table.
-- [`SQLITE_MAX_BINDS`](#sqlite_max_binds) - SQLite family bind cap advertised by the platform sqlite guest.
-- [`SQLITE_MAX_FUNCTION_ARGS`](#sqlite_max_function_args) - SQLite default `SQLITE_MAX_FUNCTION_ARG`.
-- [`SQLITE_MAX_PATTERN_BYTES`](#sqlite_max_pattern_bytes) - SQLite default `SQLITE_MAX_LIKE_PATTERN_LENGTH`.
-- [`SQLITE_MAX_SCHEMA_COLUMNS`](#sqlite_max_schema_columns) - SQLite default `SQLITE_MAX_COLUMN`.
-- [`SQL_CONTRACT_VERSION`](#sql_contract_version) - Bookclerk SQL contract version advertised by first-party adapters.
-
----
-
-## bookclerk_plugin_abi::db_execute::D1_MAX_BINDS
-
-*Constant*: `u32`
-
-Cloudflare D1 bound-parameter limit.
-
-<https://developers.cloudflare.com/d1/platform/limits/>
-
-
-
-## bookclerk_plugin_abi::db_execute::D1_MAX_FUNCTION_ARGS
-
-*Constant*: `u32`
-
-Cloudflare D1 maximum arguments to one physical SQL function.
-
-Portable SQL-v1 `json_object` uses this same ceiling (16 key/value pairs).
-
-
-
-## bookclerk_plugin_abi::db_execute::D1_MAX_PAYLOAD_BYTES
-
-*Constant*: `u32`
-
-Canonical SQL+binds cap advertised for D1.
-
-Largest `n >= `[`HOST_MIN_PAYLOAD_BYTES`](db_execute.md#bookclerk_plugin_abidb_executehost_min_payload_bytes) such that
-[`lowered_statement_upper_bound_len`](db_execute.md#bookclerk_plugin_abidb_executelowered_statement_upper_bound_len)`(n) <= `[`D1_MAX_SQL_STATEMENT_BYTES`](db_execute.md#bookclerk_plugin_abidb_executed1_max_sql_statement_bytes).
-Host admission uses generic `DbCapabilities::max_payload_bytes` plus
-`DbCapabilities::max_lowered_statement_bytes`; it does not name D1.
-
-
-
-## bookclerk_plugin_abi::db_execute::D1_MAX_SCHEMA_COLUMNS
-
-*Constant*: `u32`
-
-Cloudflare D1 maximum columns per table.
-
-
-
-## bookclerk_plugin_abi::db_execute::D1_MAX_SQL_STATEMENT_BYTES
-
-*Constant*: `u32`
-
-Cloudflare D1 physical SQL statement length (bytes) after adapter lowering.
-
-
-
-## bookclerk_plugin_abi::db_execute::DbBootstrap
-
-*Struct*
+```rust
+pub struct DbBootstrap {
+    pub engine: String,
+}
+```
 
 Diagnostic engine identity returned by `AdapterDatabaseSession.bootstrap`.
 
-Not part of the typed [`DbCapabilities`](db_execute.md#bookclerk_plugin_abidb_executedbcapabilities) plane. The host must not admit,
+Not part of the typed [`DbCapabilities`](#dbcapabilities) plane. The host must not admit,
 reject, or generate SQL from this value. Any string is valid (including
 engines the host has never heard of).
 
-**Fields:**
-- `engine: String` - Diagnostic physical engine name (`sqlite`, `postgres`, `duckdb`, …).
+**Fields**
 
-**Methods:**
+- `engine`: Diagnostic physical engine name (`sqlite`, `postgres`, `duckdb`, …).
 
-- `fn diagnostic<impl Into<String>>(engine: impl Trait) -> Self` - Diagnostic bootstrap for an arbitrary physical engine.
-- `fn sqlite() -> Self` - Bootstrap metadata for a sqlite-family connection (diagnostics only).
-- `fn postgres() -> Self` - Bootstrap metadata for a postgres-family connection (diagnostics only).
+#### DbBootstrap::diagnostic
 
-**Traits:** Eq
+```rust
+pub fn diagnostic(engine: impl Into<String>) -> Self
+```
 
-**Trait Implementations:**
+Diagnostic bootstrap for an arbitrary physical engine.
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbBootstrap) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbBootstrap`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> DbBootstrap`
+#### DbBootstrap::sqlite
 
+```rust
+pub fn sqlite() -> Self
+```
 
+Bootstrap metadata for a sqlite-family connection (diagnostics only).
 
-## bookclerk_plugin_abi::db_execute::DbCapabilities
+#### DbBootstrap::postgres
 
-*Struct*
+```rust
+pub fn postgres() -> Self
+```
 
-Semantic SQL-contract advertisement (`AdapterDatabaseSession.capabilities`).
+Bootstrap metadata for a postgres-family connection (diagnostics only).
 
-Diagnostic engine identity is negotiated separately via [`DbBootstrap`](db_execute.md#bookclerk_plugin_abidb_executedbbootstrap) —
-not on this typed capability plane.
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-**Fields:**
-- `sql_contract_version: u32` - Bookclerk SQL contract version.
-- `atomic_batch: bool` - Guest can run a bounded statement list as one SQL transaction.
-- `returning: bool` - Guest SQL supports `RETURNING`.
-- `affected_rows: bool` - Guest reports `rowsAffected`.
-- `schema_migrations: bool` - Guest versions schema with a `bookclerk_schema_migrations` table.
-- `cancellation: bool` - Guest honors RPC/session cancellation.
-- `timing: bool` - Guest can fill `DbTiming::db_execution_us`. Not a host connect minimum.
-- `max_binds: u32` - Maximum bound parameters per statement.
-- `max_statements: u32` - Maximum statements in one atomic batch.
-- `max_result_rows: u32` - Maximum rows a query statement may return.
-- `max_payload_bytes: u32` - Maximum UTF-8 bytes of SQL plus binds per statement.
-- `max_result_bytes: u32` - Maximum encoded bytes of one statement's result rows.
-- `max_cell_bytes: u32` - Maximum UTF-8 / blob bytes of one result cell.
-- `max_request_bytes: u32` - Maximum encoded bytes of one [`ExecuteRequest`](db_execute.md#bookclerk_plugin_abidb_executeexecuterequest).
-- `max_atomic_result_bytes: u32` - Maximum encoded bytes of one [`ExecuteReply`](db_execute.md#bookclerk_plugin_abidb_executeexecutereply).
-- `plugin_databases: bool` - Adapter can open additional isolated sessions for plugin-owned
-- `max_function_args: u32` - Maximum arguments in one physical function call after adapter hiding.
-- `max_schema_columns: u32` - Maximum columns in one `CREATE TABLE`. `0` is unspecified.
-- `max_pattern_bytes: u32` - Maximum UTF-8 bytes of a BookclerkSQL `LIKE` pattern value.
-- `max_lowered_statement_bytes: u32` - Maximum UTF-8 bytes of sqlite-family lowered SQL for one statement.
-- `consistent_backup_read: bool` - Adapter can expose one stable logical database state while the host
-- `atomic_unit_restore: bool` - Adapter can destructively replace one logical database unit so an
+### DbColumn
 
-**Methods:**
-
-- `fn meets_host_minimums(self: &Self) -> bool` - True when this guest meets the host's compiled minimum SQL contract.
-- `fn capability_failure_reason(self: &Self) -> String` - Operator-facing reason when `Self::meets_host_minimums` is false.
-- `fn supports_consistent_backup_read(self: &Self) -> bool` - True when the adapter can participate in a consistent canonical backup
-- `fn supports_atomic_unit_restore(self: &Self) -> bool` - True when the adapter can replace one logical unit completely
-- `fn advertised_sqlite() -> Self` - First-party SQLite capability advertisement (`bookclerk_schema_migrations` rows).
-- `fn advertised_d1() -> Self` - First-party Cloudflare D1 capability advertisement (`bookclerk_schema_migrations`).
-- `fn advertised_postgres() -> Self` - First-party PostgreSQL capability advertisement (`bookclerk_schema_migrations` rows).
-- `fn admit_statement(self: &Self, sql: &str, parameters: &[crate::DbValue]) -> crate::Result<()>` - Rejects BookclerkSQL that exceeds this advertisement before dispatch.
-- `fn admit_statement_proven(self: &Self, sql: &str, parameters: &[crate::DbValue], proof: Option<&ResolvedStatement>) -> crate::Result<()>` - `Self::admit_statement` using a host-resolved proof when present.
-- `fn admit_proven_execute(self: &Self, req: &ExecuteRequest, proofs: &[ResolvedStatement]) -> crate::Result<()>` - Rejects a resolved batch whose proven lowered size exceeds this advertisement.
-
-**Traits:** Eq
-
-**Trait Implementations:**
-
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbCapabilities) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbCapabilities`
-
-
-
-## bookclerk_plugin_abi::db_execute::DbColumn
-
-*Struct*
+```rust
+pub struct DbColumn {
+    pub name: String,
+    pub db_type: DbType,
+}
+```
 
 One column in a typed result set.
 
-**Fields:**
-- `name: String` - Column name.
-- `db_type: crate::db_value::DbType` - Declared / inferred type.
+**Fields**
 
-**Traits:** Eq
+- `name`: Column name.
+- `db_type`: Declared / inferred type.
 
-**Trait Implementations:**
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-- **Clone**
-  - `fn clone(self: &Self) -> DbColumn`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbColumn) -> bool`
+### DbRow
 
+```rust
+pub struct DbRow {
+    pub values: Vec<DbValue>,
+}
+```
 
+One positional result row.
 
-## bookclerk_plugin_abi::db_execute::DbIdentityHighWater
+**Fields**
 
-*Struct*
+- `values`: Cells in column order.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### TypedDbStatement
+
+```rust
+pub struct TypedDbStatement {
+    pub sql: String,
+    pub parameters: Vec<DbValue>,
+    pub kind: DbPlanStatementKind,
+    pub max_rows: u32,
+    pub result_selection: DbResultSelection,
+}
+```
+
+One statement in a typed [`ExecuteRequest`](#executerequest).
+
+**Fields**
+
+- `sql`: Canonical Bookclerk SQL (`?` placeholders).
+- `parameters`: Ordered typed binds.
+- `kind`: Host-authored kind (adapters must not reparse SQL).
+- `max_rows`: Proven row upper bound (`0` = unproven).
+- `result_selection`: Which result fields the caller needs.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### ExecuteRequest
+
+```rust
+pub struct ExecuteRequest {
+    pub operation_id: String,
+    pub request_hash: String,
+    pub statements: Vec<TypedDbStatement>,
+    pub deadline_unix_ms: u64,
+}
+```
+
+Typed atomic batch. Every request is a non-empty ordered statement list.
+
+**Fields**
+
+- `operation_id`: Caller-chosen idempotency key.
+- `request_hash`: SHA-256 hex of the idempotency-relevant request; empty when omitted.
+- `statements`: Ordered statements (must be non-empty).
+- `deadline_unix_ms`: Guest-visible deadline (unix ms). Zero means omitted.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### DbIdentityHighWater
+
+```rust
+pub struct DbIdentityHighWater {
+    pub table: String,
+    pub last: i64,
+}
+```
 
 Adapter identity high-water (`sqlite_sequence` / `bookclerk_identity`).
 
 The generated column name lives in the canonical backup schema, not here.
 
-**Fields:**
-- `table: String` - Folded table name.
-- `last: i64` - Highest generated or stored value that must not be reused.
+**Fields**
 
-**Traits:** Eq
+- `table`: Folded table name.
+- `last`: Highest generated or stored value that must not be reused.
 
-**Trait Implementations:**
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbIdentityHighWater) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> DbIdentityHighWater`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+### StatementResult
 
+```rust
+pub struct StatementResult {
+    pub rows: Vec<DbRow>,
+    pub columns: Vec<DbColumn>,
+    pub rows_affected: u64,
+}
+```
 
+Result of one statement in [`ExecuteReply`](#executereply).
 
-## bookclerk_plugin_abi::db_execute::DbPlanStatementKind
+**Fields**
 
-*Enum*
+- `rows`: Positional rows (empty when discarded).
+- `columns`: Column metadata matching [`Self::rows`](#statementresult) cell order.
+- `rows_affected`: Engine-reported rows affected.
+
+#### StatementResult::from_rows
+
+```rust
+pub fn from_rows(columns: Vec<DbColumn>, rows: Vec<DbRow>) -> Result<Self, String>
+```
+
+Builds a row-bearing result and rejects width / name errors.
+
+##### Errors
+
+Returns when a row length differs from `columns.len()` or a column name
+is duplicated.
+
+#### StatementResult::from_affected
+
+```rust
+pub fn from_affected(rows_affected: u64) -> Self
+```
+
+Builds an affected-rows-only result.
+
+#### StatementResult::validate_positional
+
+```rust
+pub fn validate_positional(&self) -> Result<(), String>
+```
+
+Rejects duplicate column names and row widths that do not match `columns`.
+
+##### Errors
+
+Returns when a row has the wrong cell count or two columns share a name.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### DbTiming
+
+```rust
+pub struct DbTiming {
+    pub attempt_elapsed_us: u64,
+    pub db_execution_us: u64,
+    pub db_timing_source: String,
+}
+```
+
+Engine timing on [`ExecuteReply`](#executereply).
+
+**Fields**
+
+- `attempt_elapsed_us`: Monotonic duration of this handler attempt.
+- `db_execution_us`: Engine-reported SQL/transaction time when available (`0` = omitted).
+- `db_timing_source`: How `db_execution_us` was measured.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ExecuteReply
+
+```rust
+pub struct ExecuteReply {
+    pub operation_id: String,
+    pub statements: Vec<StatementResult>,
+    pub timing: DbTiming,
+}
+```
+
+Typed atomic reply.
+
+**Fields**
+
+- `operation_id`: Echo of the request `operationId`.
+- `statements`: Per-statement results, in plan order.
+- `timing`: Handler/engine timing.
+
+#### ExecuteReply::validate_positional
+
+```rust
+pub fn validate_positional(&self) -> Result<(), String>
+```
+
+Rejects positional errors on every statement result.
+
+##### Errors
+
+Returns when any statement has a row-width or duplicate-name error.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### DbCapabilities
+
+```rust
+pub struct DbCapabilities {
+    pub sql_contract_version: u32,
+    pub atomic_batch: bool,
+    pub returning: bool,
+    pub affected_rows: bool,
+    pub schema_migrations: bool,
+    pub cancellation: bool,
+    pub timing: bool,
+    pub max_binds: u32,
+    pub max_statements: u32,
+    pub max_result_rows: u32,
+    pub max_payload_bytes: u32,
+    pub max_result_bytes: u32,
+    pub max_cell_bytes: u32,
+    pub max_request_bytes: u32,
+    pub max_atomic_result_bytes: u32,
+    pub plugin_databases: bool,
+    pub max_function_args: u32,
+    pub max_schema_columns: u32,
+    pub max_pattern_bytes: u32,
+    pub max_lowered_statement_bytes: u32,
+    pub consistent_backup_read: bool,
+    pub atomic_unit_restore: bool,
+}
+```
+
+Semantic SQL-contract advertisement (`AdapterDatabaseSession.capabilities`).
+
+Diagnostic engine identity is negotiated separately via [`DbBootstrap`](#dbbootstrap) —
+not on this typed capability plane.
+
+**Fields**
+
+- `sql_contract_version`: Bookclerk SQL contract version.
+- `atomic_batch`: Guest can run a bounded statement list as one SQL transaction.
+- `returning`: Guest SQL supports `RETURNING`.
+- `affected_rows`: Guest reports `rowsAffected`.
+- `schema_migrations`: Guest versions schema with a `bookclerk_schema_migrations` table.
+- `cancellation`: Guest honors RPC/session cancellation.
+- `timing`: Guest can fill [`DbTiming::db_execution_us`](#dbtiming). Not a host connect minimum.
+- `max_binds`: Maximum bound parameters per statement.
+- `max_statements`: Maximum statements in one atomic batch.
+- `max_result_rows`: Maximum rows a query statement may return.
+- `max_payload_bytes`: Maximum UTF-8 bytes of SQL plus binds per statement.
+- `max_result_bytes`: Maximum encoded bytes of one statement's result rows.
+- `max_cell_bytes`: Maximum UTF-8 / blob bytes of one result cell.
+- `max_request_bytes`: Maximum encoded bytes of one [`ExecuteRequest`](#executerequest).
+- `max_atomic_result_bytes`: Maximum encoded bytes of one [`ExecuteReply`](#executereply).
+- `plugin_databases`: Adapter can open additional isolated sessions for plugin-owned
+  database bindings (per-binding file / schema / database).
+- `max_function_args`: Maximum arguments in one physical function call after adapter hiding.
+  `0` is unspecified.
+- `max_schema_columns`: Maximum columns in one `CREATE TABLE`. `0` is unspecified.
+- `max_pattern_bytes`: Maximum UTF-8 bytes of a BookclerkSQL `LIKE` pattern value.
+  `0` is unspecified.
+- `max_lowered_statement_bytes`: Maximum UTF-8 bytes of sqlite-family lowered SQL for one statement.
+  `0` is unspecified (host does not enforce a lowered-size ceiling).
+- `consistent_backup_read`: Adapter can expose one stable logical database state while the host
+  reads schema, rows, and identity.
+- `atomic_unit_restore`: Adapter can destructively replace one logical database unit so an
+  ordinary restore failure does not leave that unit partially replaced.
+
+#### DbCapabilities::meets_host_minimums
+
+```rust
+pub fn meets_host_minimums(&self) -> bool
+```
+
+True when this guest meets the host's compiled minimum SQL contract.
+
+#### DbCapabilities::capability_failure_reason
+
+```rust
+pub fn capability_failure_reason(&self) -> String
+```
+
+Operator-facing reason when [`Self::meets_host_minimums`](#dbcapabilitiesmeets_host_minimums) is false.
+
+#### DbCapabilities::supports_consistent_backup_read
+
+```rust
+pub fn supports_consistent_backup_read(&self) -> bool
+```
+
+True when the adapter can participate in a consistent canonical backup
+capture (`consistentBackupRead`).
+
+#### DbCapabilities::supports_atomic_unit_restore
+
+```rust
+pub fn supports_atomic_unit_restore(&self) -> bool
+```
+
+True when the adapter can replace one logical unit completely
+(`atomicUnitRestore`).
+
+#### DbCapabilities::advertised_sqlite
+
+```rust
+pub fn advertised_sqlite() -> Self
+```
+
+First-party SQLite capability advertisement (`bookclerk_schema_migrations` rows).
+
+#### DbCapabilities::advertised_d1
+
+```rust
+pub fn advertised_d1() -> Self
+```
+
+First-party Cloudflare D1 capability advertisement (`bookclerk_schema_migrations`).
+
+D1 HTTP has no interactive transaction and no complete per-unit
+replacement primitive on sequential REST statements, so it does **not**
+advertise consistent backup read or atomic unit restore.
+
+Numeric limits are the Cloudflare D1 table plus lowering headroom —
+not a copy of the SQLite advertisement. LIKE patterns use
+[`D1_PORTABLE_LIKE_PATTERN_BYTES`](index.md#d1_portable_like_pattern_bytes) so GLOB expansion stays inside the
+50-byte physical cap.
+
+#### DbCapabilities::advertised_postgres
+
+```rust
+pub fn advertised_postgres() -> Self
+```
+
+First-party PostgreSQL capability advertisement (`bookclerk_schema_migrations` rows).
+
+#### DbCapabilities::admit_statement
+
+```rust
+pub fn admit_statement(&self, sql: &str, parameters: &[DbValue]) -> Result<()>
+```
+
+Rejects BookclerkSQL that exceeds this advertisement before dispatch.
+
+Literal INTEGER arithmetic typechecks against an empty catalog so dense
+`1+1+…` contributes overflow wrap cost. Statements that need a real
+catalog must use [`Self::admit_statement_proven`](#dbcapabilitiesadmit_statement_proven) / [`Self::admit_proven_execute`](#dbcapabilitiesadmit_proven_execute)
+after the host has a [`ResolvedStatement`](index.md#resolvedstatement).
+
+Lowered-size admission compares the standardized Bookclerk lowering
+upper bound to [`Self::max_lowered_statement_bytes`](#dbcapabilities) (`0` skips that
+check). Canonical `maxPayloadBytes` is unchanged.
+
+##### Errors
+
+Returns [`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a statement exceeds
+schema-column, LIKE-pattern, TEXT-domain, or lowered-statement limits.
+
+#### DbCapabilities::admit_statement_proven
+
+```rust
+pub fn admit_statement_proven(
+    &self,
+    sql: &str,
+    parameters: &[DbValue],
+    proof: Option<&ResolvedStatement>,
+) -> Result<()>
+```
+
+[`Self::admit_statement`](#dbcapabilitiesadmit_statement) using a host-resolved proof when present.
+
+##### Errors
+
+Returns [`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a statement exceeds
+negotiated limits, or [`crate::PluginError::internal`](error.md#pluginerrorinternal) when overflow
+wrapping fails.
+
+#### DbCapabilities::admit_proven_execute
+
+```rust
+pub fn admit_proven_execute(
+    &self,
+    req: &ExecuteRequest,
+    proofs: &[ResolvedStatement],
+) -> Result<()>
+```
+
+Rejects a resolved batch whose proven lowered size exceeds this advertisement.
+
+Call after the host has 1:1 [`ResolvedStatement`](index.md#resolvedstatement) proofs and before
+adapter dispatch. Does not inspect engine identity.
+
+##### Errors
+
+Returns when `proofs` is the wrong length, a proof does not bind, or a
+statement fails [`Self::admit_statement_proven`](#dbcapabilitiesadmit_statement_proven).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+## Enums
+
+### DbPlanStatementKind
+
+```rust
+pub enum DbPlanStatementKind {
+    Execute,
+    Select,
+    Returning,
+}
+```
 
 How a guest should run one statement inside an atomic plan.
 
@@ -277,366 +516,359 @@ How a guest should run one statement inside an atomic plan.
 decide whether `SELECT * FROM (…)` wrapping is valid. Matches Cap'n
 `DbStatementKind` (`execute` | `select` | `returning`).
 
-**Variants:**
-- `Execute` - Statement is DML; only `rowsAffected` is required.
-- `Select` - Read-only `SELECT` / read-only `WITH` CTE. May be wrapped with `LIMIT`.
-- `Returning` - DML that returns rows (`INSERT`/`UPDATE`/`DELETE … RETURNING`), or
+**Variants**
 
-**Methods:**
+- `Execute`: Statement is DML; only `rowsAffected` is required.
+- `Select`: Read-only `SELECT` / read-only `WITH` CTE. May be wrapped with `LIMIT`.
+- `Returning`: DML that returns rows (`INSERT`/`UPDATE`/`DELETE … RETURNING`), or
+  row-producing introspection (`PRAGMA`, schema reads) that must **not**
+  be rewritten as a subquery.
 
-- `fn collects_rows(self: Self) -> bool` - True when the guest must collect `rows` (not only `rowsAffected`).
-- `fn wrap_select_limit(self: Self) -> bool` - True when the guest may wrap SQL as `SELECT * FROM (sql) LIMIT cap+1`.
+#### DbPlanStatementKind::collects_rows
 
-**Traits:** Eq, Copy
+```rust
+pub const fn collects_rows(self) -> bool
+```
 
-**Trait Implementations:**
+True when the guest must collect `rows` (not only `rowsAffected`).
 
-- **Clone**
-  - `fn clone(self: &Self) -> DbPlanStatementKind`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> DbPlanStatementKind`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbPlanStatementKind) -> bool`
+#### DbPlanStatementKind::wrap_select_limit
 
+```rust
+pub const fn wrap_select_limit(self) -> bool
+```
 
+True when the guest may wrap SQL as `SELECT * FROM (sql) LIMIT cap+1`.
 
-## bookclerk_plugin_abi::db_execute::DbResultSelection
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-*Enum*
+### DbResultSelection
+
+```rust
+pub enum DbResultSelection {
+    Discard,
+    AffectedRows,
+    Rows,
+}
+```
 
 How the guest should return results for one statement.
 
-**Variants:**
-- `Discard` - Drop rows and `rowsAffected`.
-- `AffectedRows` - Return `rowsAffected` only.
-- `Rows` - Return positional rows plus column metadata.
+**Variants**
 
-**Traits:** Eq, Copy
+- `Discard`: Drop rows and `rowsAffected`.
+- `AffectedRows`: Return `rowsAffected` only.
+- `Rows`: Return positional rows plus column metadata.
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> DbResultSelection`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbResultSelection) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbResultSelection`
+### IsolationReq
 
+```rust
+pub enum IsolationReq {
+    AtomicBatch,
+    NestedSavepoint,
+    ConsistentSnapshot,
+}
+```
 
+Transaction isolation the adapter must realize.
 
-## bookclerk_plugin_abi::db_execute::DbRow
+**Variants**
 
-*Struct*
+- `AtomicBatch`: One atomic batch (`BEGIN` / D1 HTTP batch).
+- `NestedSavepoint`: Nested savepoint inside an already-open transaction.
+- `ConsistentSnapshot`: Consistent snapshot for backup capture.
 
-One positional result row.
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-**Fields:**
-- `values: Vec<crate::db_value::DbValue>` - Cells in column order.
+## Functions
 
-**Trait Implementations:**
+### lowered_statement_upper_bound_len
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbRow) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbRow`
+```rust
+pub const fn lowered_statement_upper_bound_len(canonical_len: usize) -> usize
+```
 
+Standardized Bookclerk sqlite-family lowering upper bound for a canonical
+statement of `canonical_len` bytes: mechanical LIKE / `NULLIF` /
+`INSERT OR IGNORE`, the query LIMIT wrap, and `unhex(?)` for every
+advertised sqlite-family bind slot.
 
+This length-only formula does **not** include proof-directed INTEGER
+overflow CASE wraps: a worst-case `1+1+…` payload of
+[`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) already exceeds [`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes)
+after wrapping. Overflow is charged by proven preflight from
+`integer_arith_sites` (or a typecheck of literal-only SQL in
+[`DbCapabilities::admit_statement`](#dbcapabilitiesadmit_statement)). Hosts compare the proven bound to
+[`DbCapabilities::max_lowered_statement_bytes`](#dbcapabilities), not engine identity.
 
-## bookclerk_plugin_abi::db_execute::DbTiming
+### lowered_statement_preflight_len
 
-*Struct*
+```rust
+pub fn lowered_statement_preflight_len(sql: &str, bind_count: usize) -> Result<usize>
+```
 
-Engine timing on [`ExecuteReply`](db_execute.md#bookclerk_plugin_abidb_executeexecutereply).
+Deterministic lowered-statement preflight without a typed proof.
 
-**Fields:**
-- `attempt_elapsed_us: u64` - Monotonic duration of this handler attempt.
-- `db_execution_us: u64` - Engine-reported SQL/transaction time when available (`0` = omitted).
-- `db_timing_source: String` - How `db_execution_us` was measured.
+Mechanical sqlite-family lowering plus the query LIMIT wrap and `unhex(?)`
+for each bind. INTEGER overflow wraps are omitted unless the caller uses
+proven preflight with `integer_arith_sites`.
 
-**Traits:** Eq
+#### Errors
 
-**Trait Implementations:**
+Returns [`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when the pack lexer rejects
+`sql`.
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> DbTiming`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DbTiming) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> DbTiming`
+### lowered_statement_preflight_len_proven
 
+```rust
+pub fn lowered_statement_preflight_len_proven(
+    sql: &str,
+    bind_count: usize,
+    proof: Option<&ResolvedStatement>,
+) -> Result<usize>
+```
 
+[`lowered_statement_preflight_len`](#lowered_statement_preflight_len) after applying sqlite-family INTEGER
+overflow wraps from `proof` (innermost-first, then mechanical `/` `%`
+NULLIF / LIKE→GLOB / `INSERT OR IGNORE`).
 
-## bookclerk_plugin_abi::db_execute::ExecuteReply
+#### Errors
 
-*Struct*
+Returns when `proof` does not validate against `sql`, overflow wrapping
+fails, or the pack lexer rejects the post-overflow SQL.
 
-Typed atomic reply.
+### sql_payload_bytes
 
-**Fields:**
-- `operation_id: String` - Echo of the request `operationId`.
-- `statements: Vec<StatementResult>` - Per-statement results, in plan order.
-- `timing: DbTiming` - Handler/engine timing.
+```rust
+pub fn sql_payload_bytes(sql: &str, values_json: &str) -> usize
+```
 
-**Methods:**
+UTF-8 bytes of SQL text plus JSON binds (ordinary query/execute payload).
 
-- `fn validate_positional(self: &Self) -> Result<(), String>` - Rejects positional errors on every statement result.
+### sql_payload_exceeds
 
-**Trait Implementations:**
+```rust
+pub fn sql_payload_exceeds(sql: &str, values_json: &str, max_payload_bytes: u32) -> bool
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ExecuteReply) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> ExecuteReply`
+True when ordinary-path SQL+binds exceed the negotiated payload cap.
 
+The effective cap is `min(max_payload_bytes, MAX_SCALAR_BYTES)`. A cap of
+`0` fails closed (any non-empty payload exceeds it).
 
+## Constants
 
-## bookclerk_plugin_abi::db_execute::ExecuteRequest
+### SQLITE_MAX_BINDS
 
-*Struct*
+```rust
+pub const SQLITE_MAX_BINDS: u32 = 32_766;
+```
 
-Typed atomic batch. Every request is a non-empty ordered statement list.
+SQLite family bind cap advertised by the platform sqlite guest.
 
-**Fields:**
-- `operation_id: String` - Caller-chosen idempotency key.
-- `request_hash: String` - SHA-256 hex of the idempotency-relevant request; empty when omitted.
-- `statements: Vec<TypedDbStatement>` - Ordered statements (must be non-empty).
-- `deadline_unix_ms: u64` - Guest-visible deadline (unix ms). Zero means omitted.
+### POSTGRES_MAX_BINDS
 
-**Trait Implementations:**
+```rust
+pub const POSTGRES_MAX_BINDS: u32 = 65_535;
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ExecuteRequest) -> bool`
-- **Default**
-  - `fn default() -> ExecuteRequest`
-- **Clone**
-  - `fn clone(self: &Self) -> ExecuteRequest`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
+PostgreSQL bind cap advertised by the optional postgres guest.
 
+### D1_MAX_BINDS
 
+```rust
+pub const D1_MAX_BINDS: u32 = 100;
+```
 
-## bookclerk_plugin_abi::db_execute::FIRST_PARTY_MAX_RESULT_BYTES
+Cloudflare D1 bound-parameter limit.
 
-*Constant*: `u32`
+<https://developers.cloudflare.com/d1/platform/limits/>
 
-First-party JSON-byte budget for one statement's rows and for one atomic
-request/result scalar. Must stay at or below [`crate::MAX_SCALAR_BYTES`](limits.md#bookclerk_plugin_abilimitsmax_scalar_bytes).
+### D1_MAX_SQL_STATEMENT_BYTES
 
+```rust
+pub const D1_MAX_SQL_STATEMENT_BYTES: u32 = 100_000;
+```
 
+Cloudflare D1 physical SQL statement length (bytes) after adapter lowering.
 
-## bookclerk_plugin_abi::db_execute::FIRST_PARTY_MAX_RESULT_ROWS
+### D1_MAX_FUNCTION_ARGS
 
-*Constant*: `u32`
+```rust
+pub const D1_MAX_FUNCTION_ARGS: u32 = 32;
+```
 
-First-party row cap advertised for one query statement.
+Cloudflare D1 maximum arguments to one physical SQL function.
 
+Portable SQL-v1 `json_object` uses this same ceiling (16 key/value pairs).
 
+### SQLITE_MAX_FUNCTION_ARGS
 
-## bookclerk_plugin_abi::db_execute::FIRST_PARTY_MAX_STATEMENTS
+```rust
+pub const SQLITE_MAX_FUNCTION_ARGS: u32 = 127;
+```
 
-*Constant*: `u32`
+SQLite default `SQLITE_MAX_FUNCTION_ARG`.
 
-D1 / first-party batch statement cap (D1 HTTP batch is 100 queries).
+### POSTGRES_MAX_FUNCTION_ARGS
 
+```rust
+pub const POSTGRES_MAX_FUNCTION_ARGS: u32 = 100;
+```
 
+PostgreSQL maximum function arguments.
 
-## bookclerk_plugin_abi::db_execute::HOST_MIN_BINDS
+### D1_MAX_SCHEMA_COLUMNS
 
-*Constant*: `u32`
+```rust
+pub const D1_MAX_SCHEMA_COLUMNS: u32 = 100;
+```
 
-Host refuses guests that cannot bind at least this many parameters.
+Cloudflare D1 maximum columns per table.
 
+### SQLITE_MAX_SCHEMA_COLUMNS
 
+```rust
+pub const SQLITE_MAX_SCHEMA_COLUMNS: u32 = 2_000;
+```
 
-## bookclerk_plugin_abi::db_execute::HOST_MIN_CELL_BYTES
+SQLite default `SQLITE_MAX_COLUMN`.
 
-*Constant*: `u32`
+### POSTGRES_MAX_SCHEMA_COLUMNS
 
-Host refuses guests that do not bound one result cell (`0` is unspecified).
+```rust
+pub const POSTGRES_MAX_SCHEMA_COLUMNS: u32 = 1_600;
+```
 
+PostgreSQL maximum columns per table.
 
+### SQLITE_MAX_PATTERN_BYTES
 
-## bookclerk_plugin_abi::db_execute::HOST_MIN_FUNCTION_ARGS
+```rust
+pub const SQLITE_MAX_PATTERN_BYTES: u32 = 50_000;
+```
 
-*Constant*: `u32`
+SQLite default `SQLITE_MAX_LIKE_PATTERN_LENGTH`.
+
+### HOST_MIN_FUNCTION_ARGS
+
+```rust
+pub const HOST_MIN_FUNCTION_ARGS: u32 = 8;
+```
 
 Host refuses guests that cannot accept at least this many function args.
 
+### HOST_MIN_SCHEMA_COLUMNS
 
-
-## bookclerk_plugin_abi::db_execute::HOST_MIN_PATTERN_BYTES
-
-*Constant*: `u32`
-
-Host refuses guests that cannot prove a LIKE pattern of this many bytes.
-
-
-
-## bookclerk_plugin_abi::db_execute::HOST_MIN_PAYLOAD_BYTES
-
-*Constant*: `u32`
-
-Host refuses guests that do not bound encoded statement payload bytes.
-
-
-
-## bookclerk_plugin_abi::db_execute::HOST_MIN_RESULT_BYTES
-
-*Constant*: `u32`
-
-Host refuses guests that do not bound JSON bytes of one statement's rows.
-
-
-
-## bookclerk_plugin_abi::db_execute::HOST_MIN_RESULT_ROWS
-
-*Constant*: `u32`
-
-Host refuses guests that do not bound result rows (`0` is unspecified).
-
-
-
-## bookclerk_plugin_abi::db_execute::HOST_MIN_SCHEMA_COLUMNS
-
-*Constant*: `u32`
+```rust
+pub const HOST_MIN_SCHEMA_COLUMNS: u32 = 64;
+```
 
 Host refuses guests whose schema-column cap is below the library schema.
 
 The widest host table (`books`) currently has 41 columns.
 
+### HOST_MIN_PATTERN_BYTES
 
+```rust
+pub const HOST_MIN_PATTERN_BYTES: u32 = 8;
+```
 
-## bookclerk_plugin_abi::db_execute::HOST_MIN_STATEMENTS
+Host refuses guests that cannot prove a LIKE pattern of this many bytes.
 
-*Constant*: `u32`
+### FIRST_PARTY_MAX_STATEMENTS
+
+```rust
+pub const FIRST_PARTY_MAX_STATEMENTS: u32 = 100;
+```
+
+D1 / first-party batch statement cap (D1 HTTP batch is 100 queries).
+
+### FIRST_PARTY_MAX_RESULT_ROWS
+
+```rust
+pub const FIRST_PARTY_MAX_RESULT_ROWS: u32 = 1_000;
+```
+
+First-party row cap advertised for one query statement.
+
+### HOST_MIN_BINDS
+
+```rust
+pub const HOST_MIN_BINDS: u32 = 32;
+```
+
+Host refuses guests that cannot bind at least this many parameters.
+
+### HOST_MIN_STATEMENTS
+
+```rust
+pub const HOST_MIN_STATEMENTS: u32 = 40;
+```
 
 Host refuses guests that cannot run at least this many statements per batch.
 
+### HOST_MIN_RESULT_ROWS
 
+```rust
+pub const HOST_MIN_RESULT_ROWS: u32 = 1;
+```
 
-## bookclerk_plugin_abi::db_execute::IsolationReq
+Host refuses guests that do not bound result rows (`0` is unspecified).
 
-*Enum*
+### HOST_MIN_PAYLOAD_BYTES
 
-Transaction isolation the adapter must realize.
+```rust
+pub const HOST_MIN_PAYLOAD_BYTES: u32 = 1024;
+```
 
-**Variants:**
-- `AtomicBatch` - One atomic batch (`BEGIN` / D1 HTTP batch).
-- `NestedSavepoint` - Nested savepoint inside an already-open transaction.
-- `ConsistentSnapshot` - Consistent snapshot for backup capture.
+Host refuses guests that do not bound encoded statement payload bytes.
 
-**Traits:** Eq, Copy
+### D1_MAX_PAYLOAD_BYTES
 
-**Trait Implementations:**
+```rust
+pub const D1_MAX_PAYLOAD_BYTES: u32 = _;
+```
 
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> IsolationReq`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &IsolationReq) -> bool`
-- **Default**
-  - `fn default() -> IsolationReq`
+Canonical SQL+binds cap advertised for D1.
 
+Largest `n >= `[`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) such that
+[`lowered_statement_upper_bound_len`](#lowered_statement_upper_bound_len)`(n) <= `[`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes).
+Host admission uses generic [`DbCapabilities::max_payload_bytes`](#dbcapabilities) plus
+[`DbCapabilities::max_lowered_statement_bytes`](#dbcapabilities); it does not name D1.
 
+### HOST_MIN_RESULT_BYTES
 
-## bookclerk_plugin_abi::db_execute::POSTGRES_MAX_BINDS
+```rust
+pub const HOST_MIN_RESULT_BYTES: u32 = 4_096;
+```
 
-*Constant*: `u32`
+Host refuses guests that do not bound JSON bytes of one statement's rows.
 
-PostgreSQL bind cap advertised by the optional postgres guest.
+### HOST_MIN_CELL_BYTES
 
+```rust
+pub const HOST_MIN_CELL_BYTES: u32 = 1_024;
+```
 
+Host refuses guests that do not bound one result cell (`0` is unspecified).
 
-## bookclerk_plugin_abi::db_execute::POSTGRES_MAX_FUNCTION_ARGS
+### FIRST_PARTY_MAX_RESULT_BYTES
 
-*Constant*: `u32`
+```rust
+pub const FIRST_PARTY_MAX_RESULT_BYTES: u32 = MAX_SCALAR_BYTES;
+```
 
-PostgreSQL maximum function arguments.
+First-party JSON-byte budget for one statement's rows and for one atomic
+request/result scalar. Must stay at or below [`crate::MAX_SCALAR_BYTES`](index.md#max_scalar_bytes).
 
+### SQL_CONTRACT_VERSION
 
-
-## bookclerk_plugin_abi::db_execute::POSTGRES_MAX_SCHEMA_COLUMNS
-
-*Constant*: `u32`
-
-PostgreSQL maximum columns per table.
-
-
-
-## bookclerk_plugin_abi::db_execute::SQLITE_MAX_BINDS
-
-*Constant*: `u32`
-
-SQLite family bind cap advertised by the platform sqlite guest.
-
-
-
-## bookclerk_plugin_abi::db_execute::SQLITE_MAX_FUNCTION_ARGS
-
-*Constant*: `u32`
-
-SQLite default `SQLITE_MAX_FUNCTION_ARG`.
-
-
-
-## bookclerk_plugin_abi::db_execute::SQLITE_MAX_PATTERN_BYTES
-
-*Constant*: `u32`
-
-SQLite default `SQLITE_MAX_LIKE_PATTERN_LENGTH`.
-
-
-
-## bookclerk_plugin_abi::db_execute::SQLITE_MAX_SCHEMA_COLUMNS
-
-*Constant*: `u32`
-
-SQLite default `SQLITE_MAX_COLUMN`.
-
-
-
-## bookclerk_plugin_abi::db_execute::SQL_CONTRACT_VERSION
-
-*Constant*: `u32`
+```rust
+pub const SQL_CONTRACT_VERSION: u32 = 1;
+```
 
 Bookclerk SQL contract version advertised by first-party adapters.
 
@@ -647,158 +879,3 @@ highest version they implement and hosts require
 while each successor is a superset. A non-superset redesign needs a **new
 contract identity** and a plugin ABI break (`apiVersion`), not merely
 incrementing this scalar.
-
-
-
-## bookclerk_plugin_abi::db_execute::StatementResult
-
-*Struct*
-
-Result of one statement in [`ExecuteReply`](db_execute.md#bookclerk_plugin_abidb_executeexecutereply).
-
-**Fields:**
-- `rows: Vec<DbRow>` - Positional rows (empty when discarded).
-- `columns: Vec<DbColumn>` - Column metadata matching `Self::rows` cell order.
-- `rows_affected: u64` - Engine-reported rows affected.
-
-**Methods:**
-
-- `fn from_rows(columns: Vec<DbColumn>, rows: Vec<DbRow>) -> Result<Self, String>` - Builds a row-bearing result and rejects width / name errors.
-- `fn from_affected(rows_affected: u64) -> Self` - Builds an affected-rows-only result.
-- `fn validate_positional(self: &Self) -> Result<(), String>` - Rejects duplicate column names and row widths that do not match `columns`.
-
-**Trait Implementations:**
-
-- **PartialEq**
-  - `fn eq(self: &Self, other: &StatementResult) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> StatementResult`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Default**
-  - `fn default() -> StatementResult`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-
-
-
-## bookclerk_plugin_abi::db_execute::TypedDbStatement
-
-*Struct*
-
-One statement in a typed [`ExecuteRequest`](db_execute.md#bookclerk_plugin_abidb_executeexecuterequest).
-
-**Fields:**
-- `sql: String` - Canonical Bookclerk SQL (`?` placeholders).
-- `parameters: Vec<crate::db_value::DbValue>` - Ordered typed binds.
-- `kind: DbPlanStatementKind` - Host-authored kind (adapters must not reparse SQL).
-- `max_rows: u32` - Proven row upper bound (`0` = unproven).
-- `result_selection: DbResultSelection` - Which result fields the caller needs.
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> TypedDbStatement`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private229::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private229::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &TypedDbStatement) -> bool`
-
-
-
-## bookclerk_plugin_abi::db_execute::lowered_statement_preflight_len
-
-*Function*
-
-Deterministic lowered-statement preflight without a typed proof.
-
-Mechanical sqlite-family lowering plus the query LIMIT wrap and `unhex(?)`
-for each bind. INTEGER overflow wraps are omitted unless the caller uses
-proven preflight with `integer_arith_sites`.
-
-# Errors
-
-Returns `crate::PluginError::invalid_params` when the pack lexer rejects
-`sql`.
-
-```rust
-fn lowered_statement_preflight_len(sql: &str, bind_count: usize) -> crate::Result<usize>
-```
-
-
-
-## bookclerk_plugin_abi::db_execute::lowered_statement_preflight_len_proven
-
-*Function*
-
-[`lowered_statement_preflight_len`](db_execute.md#bookclerk_plugin_abidb_executelowered_statement_preflight_len) after applying sqlite-family INTEGER
-overflow wraps from `proof` (innermost-first, then mechanical `/` `%`
-NULLIF / LIKE→GLOB / `INSERT OR IGNORE`).
-
-# Errors
-
-Returns when `proof` does not validate against `sql`, overflow wrapping
-fails, or the pack lexer rejects the post-overflow SQL.
-
-```rust
-fn lowered_statement_preflight_len_proven(sql: &str, bind_count: usize, proof: Option<&crate::ResolvedStatement>) -> crate::Result<usize>
-```
-
-
-
-## bookclerk_plugin_abi::db_execute::lowered_statement_upper_bound_len
-
-*Function*
-
-Standardized Bookclerk sqlite-family lowering upper bound for a canonical
-statement of `canonical_len` bytes: mechanical LIKE / `NULLIF` /
-`INSERT OR IGNORE`, the query LIMIT wrap, and `unhex(?)` for every
-advertised sqlite-family bind slot.
-
-This length-only formula does **not** include proof-directed INTEGER
-overflow CASE wraps: a worst-case `1+1+…` payload of
-[`HOST_MIN_PAYLOAD_BYTES`](db_execute.md#bookclerk_plugin_abidb_executehost_min_payload_bytes) already exceeds [`D1_MAX_SQL_STATEMENT_BYTES`](db_execute.md#bookclerk_plugin_abidb_executed1_max_sql_statement_bytes)
-after wrapping. Overflow is charged by proven preflight from
-`integer_arith_sites` (or a typecheck of literal-only SQL in
-`DbCapabilities::admit_statement`). Hosts compare the proven bound to
-`DbCapabilities::max_lowered_statement_bytes`, not engine identity.
-
-```rust
-fn lowered_statement_upper_bound_len(canonical_len: usize) -> usize
-```
-
-
-
-## bookclerk_plugin_abi::db_execute::sql_payload_bytes
-
-*Function*
-
-UTF-8 bytes of SQL text plus JSON binds (ordinary query/execute payload).
-
-```rust
-fn sql_payload_bytes(sql: &str, values_json: &str) -> usize
-```
-
-
-
-## bookclerk_plugin_abi::db_execute::sql_payload_exceeds
-
-*Function*
-
-True when ordinary-path SQL+binds exceed the negotiated payload cap.
-
-The effective cap is `min(max_payload_bytes, MAX_SCALAR_BYTES)`. A cap of
-`0` fails closed (any non-empty payload exceeds it).
-
-```rust
-fn sql_payload_exceeds(sql: &str, values_json: &str, max_payload_bytes: u32) -> bool
-```
-
-
-

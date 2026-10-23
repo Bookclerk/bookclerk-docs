@@ -1,39 +1,44 @@
-**bookclerk_workerd > inherited_link**
+# bookclerk_workerd::inherited_link
 
-# Module: inherited_link
+Open a host-inherited sibling link (`fd:<n>` / `handle:<n>`) as a Tokio stream.
 
-## Contents
+## Enums
 
-**Enums**
+### InheritedDuplex
 
-- [`InheritedDuplex`](#inheritedduplex) - Bidirectional end of a host-created RPC or proxy link.
-
----
-
-## bookclerk_workerd::inherited_link::InheritedDuplex
-
-*Enum*
+```rust
+pub enum InheritedDuplex {
+    Unix(UnixStream),
+}
+```
 
 Bidirectional end of a host-created RPC or proxy link.
 
-**Variants:**
-- `Unix(tokio::net::UnixStream)` - Unix `socketpair` end.
+**Variants**
 
-**Methods:**
+- `Unix`: Unix `socketpair` end.
 
-- `fn open(spec: &str) -> Result<Self>` - Open `spec` (`fd:<n>` or `handle:<n>`) as a Tokio duplex.
-- `fn into_split(self: Self) -> (Box<dyn AsyncRead>, Box<dyn AsyncWrite>)` - Split into read and write halves for Cap'n Proto or the mux server.
+#### InheritedDuplex::open
 
-**Trait Implementations:**
+```rust
+pub fn open(spec: &str) -> Result<Self>
+```
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **AsyncWrite**
-  - `fn poll_write(self: std::pin::Pin<& mut Self>, cx: & mut std::task::Context, buf: &[u8]) -> std::task::Poll<std::io::Result<usize>>`
-  - `fn poll_flush(self: std::pin::Pin<& mut Self>, cx: & mut std::task::Context) -> std::task::Poll<std::io::Result<()>>`
-  - `fn poll_shutdown(self: std::pin::Pin<& mut Self>, cx: & mut std::task::Context) -> std::task::Poll<std::io::Result<()>>`
-- **AsyncRead**
-  - `fn poll_read(self: std::pin::Pin<& mut Self>, cx: & mut std::task::Context, buf: & mut tokio::io::ReadBuf) -> std::task::Poll<std::io::Result<()>>`
+Open `spec` (`fd:<n>` or `handle:<n>`) as a Tokio duplex.
 
+##### Errors
 
+Returns an error when the spec is the wrong OS form or the descriptor
+cannot be wrapped.
 
+#### InheritedDuplex::into_split
+
+```rust
+pub fn into_split(
+    self,
+) -> (Box<dyn AsyncRead + Unpin + Send>, Box<dyn AsyncWrite + Unpin + Send>)
+```
+
+Split into read and write halves for Cap'n Proto or the mux server.
+
+Implements: `AsyncRead`, `AsyncWrite`, `Debug`

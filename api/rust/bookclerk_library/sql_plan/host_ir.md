@@ -1,55 +1,46 @@
-**bookclerk_library > sql_plan > host_ir**
+# bookclerk_library::sql_plan::host_ir
 
-# Module: sql_plan::host_ir
+Domain result-selection metadata kept beside a typed [`bookclerk_plugin_abi::ExecuteRequest`](../../bookclerk_plugin_abi/db_execute.md#executerequest).
 
-## Contents
+The planner emits [`bookclerk_plugin_abi::ExecuteRequest`](../../bookclerk_plugin_abi/db_execute.md#executerequest) directly. This
+module holds only the host-side indexes used to interpret
+[`bookclerk_plugin_abi::ExecuteReply`](../../bookclerk_plugin_abi/db_execute.md#executereply) into a named [`crate::DbAtomicResult`](../index.md#dbatomicresult).
 
-**Structs**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`AtomicSelection`](#atomicselection) | struct | Host indexes into a typed atomic batch (not part of the plugin ABI). |
+| [`typed_rows_to_json`](#typed_rows_to_json) | function | Projects typed result rows onto named JSON objects for domain interpretation. |
 
-- [`AtomicSelection`](#atomicselection) - Host indexes into a typed atomic batch (not part of the plugin ABI).
+## Structs
 
-**Functions**
+### AtomicSelection
 
-- [`typed_rows_to_json`](#typed_rows_to_json) - Projects typed result rows onto named JSON objects for domain interpretation.
-
----
-
-## bookclerk_library::sql_plan::host_ir::AtomicSelection
-
-*Struct*
+```rust
+pub struct AtomicSelection {
+    pub outcome_index: u32,
+    pub payload_index: Option<u32>,
+    pub prior_receipt_index: Option<u32>,
+    pub receipt_select_index: Option<u32>,
+}
+```
 
 Host indexes into a typed atomic batch (not part of the plugin ABI).
 
-**Fields:**
-- `outcome_index: u32` - Index of the application-status `SELECT` when receipts are not used.
-- `payload_index: Option<u32>` - Index of a payload `SELECT` when the op returns a JSON record.
-- `prior_receipt_index: Option<u32>` - Index of the receipt `SELECT` immediately after prune (replay detect).
-- `receipt_select_index: Option<u32>` - Index of the final receipt `SELECT`.
+**Fields**
 
-**Traits:** Eq
+- `outcome_index`: Index of the application-status `SELECT` when receipts are not used.
+- `payload_index`: Index of a payload `SELECT` when the op returns a JSON record.
+- `prior_receipt_index`: Index of the receipt `SELECT` immediately after prune (replay detect).
+- `receipt_select_index`: Index of the final receipt `SELECT`.
 
-**Trait Implementations:**
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AtomicSelection) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> AtomicSelection`
-- **Default**
-  - `fn default() -> AtomicSelection`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+## Functions
 
-
-
-## bookclerk_library::sql_plan::host_ir::typed_rows_to_json
-
-*Function*
-
-Projects typed result rows onto named JSON objects for domain interpretation.
+### typed_rows_to_json
 
 ```rust
-fn typed_rows_to_json(columns: &[bookclerk_plugin_abi::DbColumn], rows: &[bookclerk_plugin_abi::DbRow]) -> Vec<serde_json::Value>
+pub fn typed_rows_to_json(columns: &[DbColumn], rows: &[DbRow]) -> Vec<Value>
 ```
 
-
-
+Projects typed result rows onto named JSON objects for domain interpretation.

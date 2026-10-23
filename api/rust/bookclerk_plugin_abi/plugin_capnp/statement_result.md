@@ -1,119 +1,174 @@
-**bookclerk_plugin_abi > plugin_capnp > statement_result**
+# bookclerk_plugin_abi::plugin_capnp::statement_result
 
-# Module: plugin_capnp::statement_result
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::statement_result::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_rows(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_row::Owned>>`
-- `fn set_rows(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::db_row::Owned>) -> ::capnp::Result<()>`
-- `fn init_rows(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_row::Owned>`
-- `fn has_rows(self: &Self) -> bool`
-- `fn get_columns(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_column::Owned>>`
-- `fn set_columns(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::db_column::Owned>) -> ::capnp::Result<()>`
-- `fn init_columns(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::db_column::Owned>`
-- `fn has_columns(self: &Self) -> bool`
-- `fn get_rows_affected(self: Self) -> u64`
-- `fn set_rows_affected(self: & mut Self, value: u64)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_rows
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_rows(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_rows
 
+```rust
+pub fn has_rows(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::statement_result::Owned
+#### Reader::get_columns
 
-*Struct*
+```rust
+pub fn get_columns(self) -> Result<Reader<'a, Owned>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_columns
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn has_columns(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_rows_affected
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_rows_affected(self) -> u64
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::statement_result::Pipeline
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
-## bookclerk_plugin_abi::plugin_capnp::statement_result::Reader
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-*Struct*
+#### Builder::total_size
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Methods:**
+#### Builder::get_rows
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_rows(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::db_row::Owned>>`
-- `fn has_rows(self: &Self) -> bool`
-- `fn get_columns(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::db_column::Owned>>`
-- `fn has_columns(self: &Self) -> bool`
-- `fn get_rows_affected(self: Self) -> u64`
+```rust
+pub fn get_rows(self) -> Result<Builder<'a, Owned>>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::set_rows
 
-**Trait Implementations:**
+```rust
+pub fn set_rows(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+#### Builder::init_rows
 
+```rust
+pub fn init_rows(self, size: u32) -> Builder<'a, Owned>
+```
 
+#### Builder::has_rows
 
+```rust
+pub fn has_rows(&self) -> bool
+```
+
+#### Builder::get_columns
+
+```rust
+pub fn get_columns(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_columns
+
+```rust
+pub fn set_columns(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_columns
+
+```rust
+pub fn init_columns(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_columns
+
+```rust
+pub fn has_columns(&self) -> bool
+```
+
+#### Builder::get_rows_affected
+
+```rust
+pub fn get_rows_affected(self) -> u64
+```
+
+#### Builder::set_rows_affected
+
+```rust
+pub fn set_rows_affected(&mut self, value: u64)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

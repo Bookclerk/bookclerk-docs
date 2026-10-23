@@ -1,140 +1,300 @@
-**bookclerk_plugin_abi > plugin_capnp > plugin_event**
+# bookclerk_plugin_abi::plugin_capnp::plugin_event
 
-# Module: plugin_capnp::plugin_event
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_event::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_event_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_event_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_event_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_event_type(self: &Self) -> bool`
-- `fn get_schema_version(self: Self) -> u32`
-- `fn set_schema_version(self: & mut Self, value: u32)`
-- `fn get_deduplication_key(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_deduplication_key<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_deduplication_key(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_deduplication_key(self: &Self) -> bool`
-- `fn get_payload(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_payload(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_payload(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_payload(self: &Self) -> bool`
-- `fn get_occurred_at_unix_ms(self: Self) -> u64`
-- `fn set_occurred_at_unix_ms(self: & mut Self, value: u64)`
-- `fn get_correlation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_correlation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_correlation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_correlation_id(self: &Self) -> bool`
-- `fn get_causation_id(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_causation_id<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_causation_id(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_causation_id(self: &Self) -> bool`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_event_type
 
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
+```rust
+pub fn get_event_type(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_event_type
 
+```rust
+pub fn has_event_type(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_event::Owned
+#### Reader::get_schema_version
 
-*Struct*
+```rust
+pub fn get_schema_version(self) -> u32
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_deduplication_key
 
-**Traits:** Owned, Copy, Pipelined, OwnedStruct
+```rust
+pub fn get_deduplication_key(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_deduplication_key
 
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
+```rust
+pub fn has_deduplication_key(&self) -> bool
+```
 
+#### Reader::get_payload
 
+```rust
+pub fn get_payload(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_event::Pipeline
+#### Reader::has_payload
 
-*Struct*
+```rust
+pub fn has_payload(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_occurred_at_unix_ms
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_occurred_at_unix_ms(self) -> u64
+```
 
+#### Reader::get_correlation_id
 
+```rust
+pub fn get_correlation_id(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::plugin_event::Reader
+#### Reader::has_correlation_id
 
-*Struct*
+```rust
+pub fn has_correlation_id(&self) -> bool
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::get_causation_id
 
-**Methods:**
+```rust
+pub fn get_causation_id(self) -> Result<Reader<'a>>
+```
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_event_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_event_type(self: &Self) -> bool`
-- `fn get_schema_version(self: Self) -> u32`
-- `fn get_deduplication_key(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_deduplication_key(self: &Self) -> bool`
-- `fn get_payload(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_payload(self: &Self) -> bool`
-- `fn get_occurred_at_unix_ms(self: Self) -> u64`
-- `fn get_correlation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_correlation_id(self: &Self) -> bool`
-- `fn get_causation_id(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_causation_id(self: &Self) -> bool`
+#### Reader::has_causation_id
 
-**Traits:** HasTypeId, Copy
+```rust
+pub fn has_causation_id(&self) -> bool
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
+
+#### Builder::reborrow
+
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
+
+#### Builder::reborrow_as_reader
+
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
+
+#### Builder::total_size
+
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
+
+#### Builder::get_event_type
+
+```rust
+pub fn get_event_type(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_event_type
+
+```rust
+pub fn set_event_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_event_type
+
+```rust
+pub fn init_event_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_event_type
+
+```rust
+pub fn has_event_type(&self) -> bool
+```
+
+#### Builder::get_schema_version
+
+```rust
+pub fn get_schema_version(self) -> u32
+```
+
+#### Builder::set_schema_version
+
+```rust
+pub fn set_schema_version(&mut self, value: u32)
+```
+
+#### Builder::get_deduplication_key
+
+```rust
+pub fn get_deduplication_key(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_deduplication_key
+
+```rust
+pub fn set_deduplication_key(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_deduplication_key
+
+```rust
+pub fn init_deduplication_key(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_deduplication_key
+
+```rust
+pub fn has_deduplication_key(&self) -> bool
+```
+
+#### Builder::get_payload
+
+```rust
+pub fn get_payload(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_payload
+
+```rust
+pub fn set_payload(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_payload
+
+```rust
+pub fn init_payload(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_payload
+
+```rust
+pub fn has_payload(&self) -> bool
+```
+
+#### Builder::get_occurred_at_unix_ms
+
+```rust
+pub fn get_occurred_at_unix_ms(self) -> u64
+```
+
+#### Builder::set_occurred_at_unix_ms
+
+```rust
+pub fn set_occurred_at_unix_ms(&mut self, value: u64)
+```
+
+#### Builder::get_correlation_id
+
+```rust
+pub fn get_correlation_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_correlation_id
+
+```rust
+pub fn set_correlation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_correlation_id
+
+```rust
+pub fn init_correlation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_correlation_id
+
+```rust
+pub fn has_correlation_id(&self) -> bool
+```
+
+#### Builder::get_causation_id
+
+```rust
+pub fn get_causation_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_causation_id
+
+```rust
+pub fn set_causation_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_causation_id
+
+```rust
+pub fn init_causation_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_causation_id
+
+```rust
+pub fn has_causation_id(&self) -> bool
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

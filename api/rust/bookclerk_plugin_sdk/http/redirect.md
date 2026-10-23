@@ -1,43 +1,43 @@
-**bookclerk_plugin_sdk > http > redirect**
+# bookclerk_plugin_sdk::http::redirect
 
-# Module: http::redirect
+Redirect follow policy (reqwest-compatible names).
 
-## Contents
+## Enums
 
-**Enums**
+### Policy
 
-- [`Policy`](#policy) - How many hops to follow after the initial request.
-
----
-
-## bookclerk_plugin_sdk::http::redirect::Policy
-
-*Enum*
+```rust
+pub enum Policy {
+    None,
+    Limited(usize),
+    StopOnQueryContains(&'static str),
+}
+```
 
 How many hops to follow after the initial request.
 
-**Variants:**
-- `None` - Do not follow `Location`.
-- `Limited(usize)` - Follow at most `n` hops.
-- `StopOnQueryContains(&'static str)` - Follow at most 10 hops, but stop when the current URL's query
+**Variants**
 
-**Methods:**
+- `None`: Do not follow `Location`.
+- `Limited`: Follow at most `n` hops.
+- `StopOnQueryContains`: Follow at most 10 hops, but stop when the current URL's query
+  contains `needle` (OAuth `authorization_code` capture — do not
+  follow the post-maplanding hop that would drop the code).
 
-- `fn none() -> Self` - `Policy::None`.
-- `fn limited(max: usize) -> Self` - `Policy::Limited`.
+#### Policy::none
 
-**Traits:** Eq, Copy
+```rust
+pub fn none() -> Self
+```
 
-**Trait Implementations:**
+[`Policy::None`](#policy).
 
-- **Default**
-  - `fn default() -> Self`
-- **Clone**
-  - `fn clone(self: &Self) -> Policy`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &Policy) -> bool`
+#### Policy::limited
 
+```rust
+pub fn limited(max: usize) -> Self
+```
 
+[`Policy::Limited`](#policy).
 
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`

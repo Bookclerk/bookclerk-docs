@@ -1,119 +1,174 @@
-**bookclerk_plugin_abi > plugin_capnp > queue_send_message**
+# bookclerk_plugin_abi::plugin_capnp::queue_send_message
 
-# Module: plugin_capnp::queue_send_message
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::queue_send_message::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_body(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_body(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_body(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_body(self: &Self) -> bool`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_content_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_content_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_delay_seconds(self: Self) -> u32`
-- `fn set_delay_seconds(self: & mut Self, value: u32)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_body
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_body(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_body
 
+```rust
+pub fn has_body(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::queue_send_message::Owned
+#### Reader::get_content_type
 
-*Struct*
+```rust
+pub fn get_content_type(self) -> Result<Reader<'a>>
+```
 
-**Tuple Struct**: `()`
+#### Reader::has_content_type
 
-**Traits:** Owned, Copy, Pipelined, OwnedStruct
+```rust
+pub fn has_content_type(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_delay_seconds
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn get_delay_seconds(self) -> u32
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::queue_send_message::Pipeline
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Trait Implementations:**
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow
 
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
+#### Builder::reborrow_as_reader
 
-## bookclerk_plugin_abi::plugin_capnp::queue_send_message::Reader
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-*Struct*
+#### Builder::total_size
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Methods:**
+#### Builder::get_body
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_body(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_body(self: &Self) -> bool`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_delay_seconds(self: Self) -> u32`
+```rust
+pub fn get_body(self) -> Result<Builder<'a>>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::set_body
 
-**Trait Implementations:**
+```rust
+pub fn set_body(&mut self, value: Reader<'_>)
+```
 
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
+#### Builder::init_body
 
+```rust
+pub fn init_body(self, size: u32) -> Builder<'a>
+```
 
+#### Builder::has_body
 
+```rust
+pub fn has_body(&self) -> bool
+```
+
+#### Builder::get_content_type
+
+```rust
+pub fn get_content_type(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_content_type
+
+```rust
+pub fn set_content_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_content_type
+
+```rust
+pub fn init_content_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_content_type
+
+```rust
+pub fn has_content_type(&self) -> bool
+```
+
+#### Builder::get_delay_seconds
+
+```rust
+pub fn get_delay_seconds(self) -> u32
+```
+
+#### Builder::set_delay_seconds
+
+```rust
+pub fn set_delay_seconds(&mut self, value: u32)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

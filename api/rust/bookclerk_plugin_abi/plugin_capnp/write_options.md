@@ -1,128 +1,228 @@
-**bookclerk_plugin_abi > plugin_capnp > write_options**
+# bookclerk_plugin_abi::plugin_capnp::write_options
 
-# Module: plugin_capnp::write_options
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::write_options::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_content_type<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_content_type(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_content_length(self: Self) -> u64`
-- `fn set_content_length(self: & mut Self, value: u64)`
-- `fn get_sha256(self: Self) -> ::capnp::Result<::capnp::data::Builder<'a>>`
-- `fn set_sha256(self: & mut Self, value: ::capnp::data::Reader)`
-- `fn init_sha256(self: Self, size: u32) -> ::capnp::data::Builder<'a>`
-- `fn has_sha256(self: &Self) -> bool`
-- `fn get_commit_token(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_commit_token<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_commit_token(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_commit_token(self: &Self) -> bool`
-- `fn get_stage_only(self: Self) -> bool`
-- `fn set_stage_only(self: & mut Self, value: bool)`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_content_type
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_content_type(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_content_type
 
+```rust
+pub fn has_content_type(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::write_options::Owned
+#### Reader::get_content_length
 
-*Struct*
+```rust
+pub fn get_content_length(self) -> u64
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_sha256
 
-**Traits:** Owned, Pipelined, Copy, OwnedStruct
+```rust
+pub fn get_sha256(self) -> Result<Reader<'a>>
+```
 
-**Trait Implementations:**
+#### Reader::has_sha256
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+```rust
+pub fn has_sha256(&self) -> bool
+```
 
+#### Reader::get_commit_token
 
+```rust
+pub fn get_commit_token(self) -> Result<Reader<'a>>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::write_options::Pipeline
+#### Reader::has_commit_token
 
-*Struct*
+```rust
+pub fn has_commit_token(&self) -> bool
+```
 
-**Trait Implementations:**
+#### Reader::get_stage_only
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+```rust
+pub fn get_stage_only(self) -> bool
+```
 
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
+### Builder
 
-## bookclerk_plugin_abi::plugin_capnp::write_options::Reader
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-*Struct*
+#### Builder::into_reader
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-**Methods:**
+#### Builder::reborrow
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_content_type(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_content_type(self: &Self) -> bool`
-- `fn get_content_length(self: Self) -> u64`
-- `fn get_sha256(self: Self) -> ::capnp::Result<::capnp::data::Reader<'a>>`
-- `fn has_sha256(self: &Self) -> bool`
-- `fn get_commit_token(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_commit_token(self: &Self) -> bool`
-- `fn get_stage_only(self: Self) -> bool`
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::reborrow_as_reader
 
-**Trait Implementations:**
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
+#### Builder::get_content_type
 
+```rust
+pub fn get_content_type(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_content_type
+
+```rust
+pub fn set_content_type(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_content_type
+
+```rust
+pub fn init_content_type(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_content_type
+
+```rust
+pub fn has_content_type(&self) -> bool
+```
+
+#### Builder::get_content_length
+
+```rust
+pub fn get_content_length(self) -> u64
+```
+
+#### Builder::set_content_length
+
+```rust
+pub fn set_content_length(&mut self, value: u64)
+```
+
+#### Builder::get_sha256
+
+```rust
+pub fn get_sha256(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_sha256
+
+```rust
+pub fn set_sha256(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_sha256
+
+```rust
+pub fn init_sha256(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_sha256
+
+```rust
+pub fn has_sha256(&self) -> bool
+```
+
+#### Builder::get_commit_token
+
+```rust
+pub fn get_commit_token(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_commit_token
+
+```rust
+pub fn set_commit_token(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_commit_token
+
+```rust
+pub fn init_commit_token(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_commit_token
+
+```rust
+pub fn has_commit_token(&self) -> bool
+```
+
+#### Builder::get_stage_only
+
+```rust
+pub fn get_stage_only(self) -> bool
+```
+
+#### Builder::set_stage_only
+
+```rust
+pub fn set_stage_only(&mut self, value: bool)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

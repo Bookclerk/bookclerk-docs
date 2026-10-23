@@ -1,116 +1,156 @@
-**bookclerk_plugin_abi > plugin_capnp > suspended_outcome**
+# bookclerk_plugin_abi::plugin_capnp::suspended_outcome
 
-# Module: plugin_capnp::suspended_outcome
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::suspended_outcome::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_checkpoint_json(self: Self) -> ::capnp::Result<::capnp::text::Builder<'a>>`
-- `fn set_checkpoint_json<impl ::capnp::traits::SetterInput<::capnp::text::Owned>>(self: & mut Self, value: impl Trait)`
-- `fn init_checkpoint_json(self: Self, size: u32) -> ::capnp::text::Builder<'a>`
-- `fn has_checkpoint_json(self: &Self) -> bool`
-- `fn get_checkpoint_schema_version(self: Self) -> u32`
-- `fn set_checkpoint_schema_version(self: & mut Self, value: u32)`
-- `fn get_wake_at_unix_ms(self: Self) -> u64`
-- `fn set_wake_at_unix_ms(self: & mut Self, value: u64)`
+#### Reader::total_size
 
-**Traits:** HasTypeId, HasStructSize
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_checkpoint_json
 
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub fn get_checkpoint_json(self) -> Result<Reader<'a>>
+```
 
+#### Reader::has_checkpoint_json
 
+```rust
+pub fn has_checkpoint_json(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::suspended_outcome::Owned
+#### Reader::get_checkpoint_schema_version
 
-*Struct*
+```rust
+pub fn get_checkpoint_schema_version(self) -> u32
+```
 
-**Tuple Struct**: `()`
+#### Reader::get_wake_at_unix_ms
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+```rust
+pub fn get_wake_at_unix_ms(self) -> u64
+```
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+### Builder
 
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
+#### Builder::into_reader
 
-## bookclerk_plugin_abi::plugin_capnp::suspended_outcome::Pipeline
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
-*Struct*
+#### Builder::reborrow
 
-**Trait Implementations:**
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::reborrow_as_reader
 
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
+#### Builder::total_size
 
-## bookclerk_plugin_abi::plugin_capnp::suspended_outcome::Reader
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-*Struct*
+#### Builder::get_checkpoint_json
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn get_checkpoint_json(self) -> Result<Builder<'a>>
+```
 
-**Methods:**
+#### Builder::set_checkpoint_json
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_checkpoint_json(self: Self) -> ::capnp::Result<::capnp::text::Reader<'a>>`
-- `fn has_checkpoint_json(self: &Self) -> bool`
-- `fn get_checkpoint_schema_version(self: Self) -> u32`
-- `fn get_wake_at_unix_ms(self: Self) -> u64`
+```rust
+pub fn set_checkpoint_json(&mut self, value: impl SetterInput<Owned>)
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::init_checkpoint_json
 
-**Trait Implementations:**
+```rust
+pub fn init_checkpoint_json(self, size: u32) -> Builder<'a>
+```
 
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
+#### Builder::has_checkpoint_json
 
+```rust
+pub fn has_checkpoint_json(&self) -> bool
+```
 
+#### Builder::get_checkpoint_schema_version
 
+```rust
+pub fn get_checkpoint_schema_version(self) -> u32
+```
+
+#### Builder::set_checkpoint_schema_version
+
+```rust
+pub fn set_checkpoint_schema_version(&mut self, value: u32)
+```
+
+#### Builder::get_wake_at_unix_ms
+
+```rust
+pub fn get_wake_at_unix_ms(self) -> u64
+```
+
+#### Builder::set_wake_at_unix_ms
+
+```rust
+pub fn set_wake_at_unix_ms(&mut self, value: u64)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

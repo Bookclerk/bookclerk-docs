@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > login_start**
+# bookclerk_plugin_abi::methods::login_start
 
-# Module: methods::login_start
+Begin interactive OAuth (returns browser URL + session id).
 
-## Contents
+Params: [`crate::LoginParams`](../generated.md#loginparams). Result: [`crate::LoginStartResult`](../generated.md#loginstartresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"loginStart"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::login_start::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "loginStart";
+```
 
 Wire method name `"loginStart"`.
-
-
-

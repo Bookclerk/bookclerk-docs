@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > list**
+# bookclerk_plugin_abi::methods::list
 
-# Module: methods::list
+List object keys under a prefix in an output destination.
 
-## Contents
+Typed Cap'n Proto `Destination.list` ([`crate::Destination::list`](../index.md#destinationlist)).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"list"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::list::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "list";
+```
 
 Wire method name `"list"`.
-
-
-

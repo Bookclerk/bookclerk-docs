@@ -1,233 +1,147 @@
-**bookclerk_dev > plugins**
+# bookclerk_dev::plugins
 
-# Module: plugins
+Directory-driven discovery, build, stage, and platform install for guests.
 
-## Contents
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`BuildSelection`](#buildselection) | struct | Which guest trees (and installer stack) a build/stage should include. |
+| [`DiscoveredGuest`](#discoveredguest) | struct | One discovered guest (platform, optional, or example). |
+| [`packages_for`](#packages_for) | function | Resolve Cargo `-p` names for `BuildSelection`. |
+| [`guests_by_id`](#guests_by_id) | function | Resolves plugin manifest ids to discovered guests across every tier. |
+| [`packages_for_guests`](#packages_for_guests) | function | Cargo `-p` names needed to build `guests` (workerd guests ship `modules/`). |
+| [`guest_plugin_key`](#guest_plugin_key) | function | Canonical PluginKey used when staging/installing `guest`. |
+| [`guest_install_leaf`](#guest_install_leaf) | function | Install-directory leaf (`pk-` + 128-bit digest) for `guest`. |
+| [`build_selection`](#build_selection) | function | Which plugin sets `cargo build-app` / `cargo stage-plugins` should include. |
+| [`stage_plugins`](#stage_plugins) | function | Stage optional and/or example guests into `dest` (catalog layout). |
+| [`install_platform`](#install_platform) | function | Install platform guests into `$FILES_DIR/plugins/{plugin-key-fs-id}/`. |
+| [`stage_platform_for_pack`](#stage_platform_for_pack) | function | Stage platform guests into a temp dir for `package-platform` bundling. |
+| [`stage_optional_for_pack`](#stage_optional_for_pack) | function | Stage optional guests for `package-plugins`. |
+| [`discover_platform`](#discover_platform) | function | Lists platform plugin guests under `crates/bookclerk-plugins/platform`. |
+| [`discover_optional`](#discover_optional) | function | Lists optional storefront / integration guests under `…/optional`. |
+| [`discover_examples`](#discover_examples) | function | Lists reference Echo example guests under `examples/`. |
+| [`build_packages`](#build_packages) | function | Runs `cargo build [-p …]` for the selected packages; inherits stdio and fails on non-zero exit. |
+| [`HELPER_PACKAGES`](#helper_packages) | constant | Helper binaries that ship beside hosts (also listed in workspace `default-members`). |
 
-**Structs**
+## Structs
 
-- [`BuildSelection`](#buildselection) - Which guest trees (and installer stack) a build/stage should include.
-- [`DiscoveredGuest`](#discoveredguest) - One discovered guest (platform, optional, or example).
+### BuildSelection
 
-**Functions**
-
-- [`build_packages`](#build_packages) - Runs `cargo build [-p …]` for the selected packages; inherits stdio and fails on non-zero exit.
-- [`build_selection`](#build_selection) - Which plugin sets `cargo build-app` / `cargo stage-plugins` should include.
-- [`discover_examples`](#discover_examples) - Lists reference Echo example guests under `examples/`.
-- [`discover_optional`](#discover_optional) - Lists optional storefront / integration guests under `…/optional`.
-- [`discover_platform`](#discover_platform) - Lists platform plugin guests under `crates/bookclerk-plugins/platform`.
-- [`guest_install_leaf`](#guest_install_leaf) - Install-directory leaf (`pk-` + 128-bit digest) for `guest`.
-- [`guest_plugin_key`](#guest_plugin_key) - Canonical PluginKey used when staging/installing `guest`.
-- [`guests_by_id`](#guests_by_id) - Resolves plugin manifest ids to discovered guests across every tier.
-- [`install_platform`](#install_platform) - Install platform guests into `$FILES_DIR/plugins/{plugin-key-fs-id}/`.
-- [`packages_for`](#packages_for) - Resolve Cargo `-p` names for [`BuildSelection`](plugins.md#bookclerk_devpluginsbuildselection).
-- [`packages_for_guests`](#packages_for_guests) - Cargo `-p` names needed to build `guests` (workerd guests ship `modules/`).
-- [`stage_optional_for_pack`](#stage_optional_for_pack) - Stage optional guests for `package-plugins`.
-- [`stage_platform_for_pack`](#stage_platform_for_pack) - Stage platform guests into a temp dir for `package-platform` bundling.
-- [`stage_plugins`](#stage_plugins) - Stage optional and/or example guests into `dest` (catalog layout).
-
-**Constants**
-
-- [`HELPER_PACKAGES`](#helper_packages) - Helper binaries that ship beside hosts (also listed in workspace `default-members`).
-
----
-
-## bookclerk_dev::plugins::BuildSelection
-
-*Struct*
+```rust
+pub struct BuildSelection {
+    pub platform: bool,
+    pub optional: bool,
+    pub examples: bool,
+}
+```
 
 Which guest trees (and installer stack) a build/stage should include.
 
-**Fields:**
-- `platform: bool` - Workspace `default-members` + platform guests under `crates/bookclerk-plugins/platform`.
-- `optional: bool` - Guests under `crates/bookclerk-plugins/optional`.
-- `examples: bool` - Guests under `examples`.
+**Fields**
 
-**Traits:** Copy
+- `platform`: Workspace `default-members` + platform guests under `crates/bookclerk-plugins/platform`.
+- `optional`: Guests under `crates/bookclerk-plugins/optional`.
+- `examples`: Guests under `examples`.
 
-**Trait Implementations:**
+Implements: `Clone`, `Copy`, `Debug`, `Default`
 
-- **Clone**
-  - `fn clone(self: &Self) -> BuildSelection`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Default**
-  - `fn default() -> BuildSelection`
+### DiscoveredGuest
 
-
-
-## bookclerk_dev::plugins::DiscoveredGuest
-
-*Struct*
+```rust
+pub struct DiscoveredGuest {
+    pub id: String,
+    pub kind: String,
+    pub dir: PathBuf,
+    pub rel_dir: String,
+    pub package: Option<String>,
+    pub bin_name: Option<String>,
+    pub manifest_name: String,
+    pub runtime: String,
+}
+```
 
 One discovered guest (platform, optional, or example).
 
-**Fields:**
-- `id: String` - Stable identifier for this item.
-- `kind: String` - Discriminant or category for this value.
-- `dir: std::path::PathBuf` - Plugin source or install directory relative to the workspace.
-- `rel_dir: String` - Relative to workspace root (for packaging / logs).
-- `package: Option<String>` - Cargo / npm package name for this plugin guest.
-- `bin_name: Option<String>` - Compiled binary name when the guest is a native executable.
-- `manifest_name: String` - Expected `plugin.toml` package name / id.
-- `runtime: String` - Guest runtime (`native`, `workerd`, `python`, …).
+**Fields**
 
-**Trait Implementations:**
+- `id`: Stable identifier for this item.
+- `kind`: Discriminant or category for this value.
+- `dir`: Plugin source or install directory relative to the workspace.
+- `rel_dir`: Relative to workspace root (for packaging / logs).
+- `package`: Cargo / npm package name for this plugin guest.
+- `bin_name`: Compiled binary name when the guest is a native executable.
+- `manifest_name`: Expected `plugin.toml` package name / id.
+- `runtime`: Guest runtime (`native`, `workerd`, `python`, …).
 
-- **Clone**
-  - `fn clone(self: &Self) -> DiscoveredGuest`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+Implements: `Clone`, `Debug`
 
+## Functions
 
-
-## bookclerk_dev::plugins::HELPER_PACKAGES
-
-*Constant*: `&[&str]`
-
-Helper binaries that ship beside hosts (also listed in workspace `default-members`).
-
-
-
-## bookclerk_dev::plugins::build_packages
-
-*Function*
-
-Runs `cargo build [-p …]` for the selected packages; inherits stdio and fails on non-zero exit.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `release` - Build with `--release` when true.
-* `packages` - Cargo package names passed as `-p`.
-
-# Errors
-
-Returns an error when `cargo` cannot be spawned or exits non-zero.
+### packages_for
 
 ```rust
-fn build_packages(root: &std::path::Path, release: bool, packages: &[String]) -> anyhow::Result<()>
+pub fn packages_for(root: &Path, sel: BuildSelection) -> Result<Vec<String>>
 ```
 
+Resolve Cargo `-p` names for [`BuildSelection`](#buildselection).
 
-
-## bookclerk_dev::plugins::build_selection
-
-*Function*
-
-Which plugin sets `cargo build-app` / `cargo stage-plugins` should include.
-
-# Arguments
+#### Arguments
 
 * `root` - Cargo workspace root directory.
-* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
 * `sel` - `sel` input for this call.
 
-# Returns
+#### Returns
 
-The successful result value for this operation.
+On success, the inner `Vec<String>` value.
 
-# Errors
+#### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
+### guests_by_id
+
 ```rust
-fn build_selection(root: &std::path::Path, release: bool, sel: BuildSelection) -> anyhow::Result<()>
+pub fn guests_by_id(root: &Path, ids: &[String]) -> Result<Vec<DiscoveredGuest>>
 ```
 
+Resolves plugin manifest ids to discovered guests across every tier.
 
+Lets CI and developers build or stage one guest (for example `libro`)
+without the rest of its tier.
 
-## bookclerk_dev::plugins::discover_examples
-
-*Function*
-
-Lists reference Echo example guests under `examples/`.
-
-# Arguments
+#### Arguments
 
 * `root` - Cargo workspace root directory.
+* `ids` - Plugin manifest ids (`plugin.toml` `id`); duplicates are ignored.
 
-# Returns
+#### Returns
 
-On success, the inner `Vec<DiscoveredGuest>` value.
+Guests in the order first requested.
 
-# Errors
+#### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error naming every unknown id, or when discovery fails.
 
-```rust
-fn discover_examples(root: &std::path::Path) -> anyhow::Result<Vec<DiscoveredGuest>>
-```
-
-
-
-## bookclerk_dev::plugins::discover_optional
-
-*Function*
-
-Lists optional storefront / integration guests under `…/optional`.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-
-# Returns
-
-On success, the inner `Vec<DiscoveredGuest>` value.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+### packages_for_guests
 
 ```rust
-fn discover_optional(root: &std::path::Path) -> anyhow::Result<Vec<DiscoveredGuest>>
+pub fn packages_for_guests(guests: &[DiscoveredGuest]) -> Vec<String>
 ```
 
+Cargo `-p` names needed to build `guests` (workerd guests ship `modules/`).
 
+#### Arguments
 
-## bookclerk_dev::plugins::discover_platform
+* `guests` - Guests resolved by [`guests_by_id`](#guests_by_id) or tier discovery.
 
-*Function*
+#### Returns
 
-Lists platform plugin guests under `crates/bookclerk-plugins/platform`.
+Unique native package names in input order.
 
-# Arguments
-
-* `root` - Cargo workspace root directory.
-
-# Returns
-
-On success, the inner `Vec<DiscoveredGuest>` value.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+### guest_plugin_key
 
 ```rust
-fn discover_platform(root: &std::path::Path) -> anyhow::Result<Vec<DiscoveredGuest>>
+pub fn guest_plugin_key(guest: &DiscoveredGuest) -> Result<PluginKey>
 ```
-
-
-
-## bookclerk_dev::plugins::guest_install_leaf
-
-*Function*
-
-Install-directory leaf (`pk-` + 128-bit digest) for `guest`.
-
-# Errors
-
-Returns when [`guest_plugin_key`](plugins.md#bookclerk_devpluginsguest_plugin_key) fails.
-
-```rust
-fn guest_install_leaf(guest: &DiscoveredGuest) -> anyhow::Result<String>
-```
-
-
-
-## bookclerk_dev::plugins::guest_plugin_key
-
-*Function*
 
 Canonical PluginKey used when staging/installing `guest`.
 
@@ -235,175 +149,61 @@ Platform artifacts use `platform:bookclerk/{package}`. Workspace
 Cargo packages use the crates.io `cargo:` form so dest leaves stay stable.
 Other trees use a path key of the source directory.
 
-# Errors
+#### Errors
 
 Returns when the id or coordinate cannot form a PluginKey.
 
-```rust
-fn guest_plugin_key(guest: &DiscoveredGuest) -> anyhow::Result<bookclerk_plugin_catalog::PluginKey>
-```
-
-
-
-## bookclerk_dev::plugins::guests_by_id
-
-*Function*
-
-Resolves plugin manifest ids to discovered guests across every tier.
-
-Lets CI and developers build or stage one guest (for example `libro`)
-without the rest of its tier.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `ids` - Plugin manifest ids (`plugin.toml` `id`); duplicates are ignored.
-
-# Returns
-
-Guests in the order first requested.
-
-# Errors
-
-Returns an error naming every unknown id, or when discovery fails.
+### guest_install_leaf
 
 ```rust
-fn guests_by_id(root: &std::path::Path, ids: &[String]) -> anyhow::Result<Vec<DiscoveredGuest>>
+pub fn guest_install_leaf(guest: &DiscoveredGuest) -> Result<String>
 ```
 
+Install-directory leaf (`pk-` + 128-bit digest) for `guest`.
 
+#### Errors
 
-## bookclerk_dev::plugins::install_platform
+Returns when [`guest_plugin_key`](#guest_plugin_key) fails.
 
-*Function*
+### build_selection
 
-Install platform guests into `$FILES_DIR/plugins/{plugin-key-fs-id}/`.
+```rust
+pub fn build_selection(root: &Path, release: bool, sel: BuildSelection) -> Result<()>
+```
 
-# Arguments
+Which plugin sets `cargo build-app` / `cargo stage-plugins` should include.
+
+#### Arguments
 
 * `root` - Cargo workspace root directory.
-* `files_dir` - Bookclerk files directory to wipe and recreate.
 * `release` - When true, install under `target/release/`; otherwise `target/debug/`.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-```rust
-fn install_platform(root: &std::path::Path, files_dir: &std::path::Path, release: bool) -> anyhow::Result<()>
-```
-
-
-
-## bookclerk_dev::plugins::packages_for
-
-*Function*
-
-Resolve Cargo `-p` names for [`BuildSelection`](plugins.md#bookclerk_devpluginsbuildselection).
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
 * `sel` - `sel` input for this call.
 
-# Returns
-
-On success, the inner `Vec<String>` value.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-```rust
-fn packages_for(root: &std::path::Path, sel: BuildSelection) -> anyhow::Result<Vec<String>>
-```
-
-
-
-## bookclerk_dev::plugins::packages_for_guests
-
-*Function*
-
-Cargo `-p` names needed to build `guests` (workerd guests ship `modules/`).
-
-# Arguments
-
-* `guests` - Guests resolved by [`guests_by_id`](plugins.md#bookclerk_devpluginsguests_by_id) or tier discovery.
-
-# Returns
-
-Unique native package names in input order.
-
-```rust
-fn packages_for_guests(guests: &[DiscoveredGuest]) -> Vec<String>
-```
-
-
-
-## bookclerk_dev::plugins::stage_optional_for_pack
-
-*Function*
-
-Stage optional guests for `package-plugins`.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `dest` - Filesystem path (`dest`).
-* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
-
-# Returns
+#### Returns
 
 The successful result value for this operation.
 
-# Errors
+#### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
-```rust
-fn stage_optional_for_pack(root: &std::path::Path, dest: &std::path::Path, release: bool) -> anyhow::Result<()>
-```
-
-
-
-## bookclerk_dev::plugins::stage_platform_for_pack
-
-*Function*
-
-Stage platform guests into a temp dir for `package-platform` bundling.
-
-# Arguments
-
-* `root` - Cargo workspace root directory.
-* `dest` - Filesystem path (`dest`).
-* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
-* `skip_build` - Boolean flag `skip_build`.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+### stage_plugins
 
 ```rust
-fn stage_platform_for_pack(root: &std::path::Path, dest: &std::path::Path, release: bool, skip_build: bool) -> anyhow::Result<()>
+pub fn stage_plugins(
+    root: &Path,
+    dest: &Path,
+    release: bool,
+    optional: bool,
+    examples: bool,
+    plugin_ids: &[String],
+    skip_build: bool,
+) -> Result<()>
 ```
-
-
-
-## bookclerk_dev::plugins::stage_plugins
-
-*Function*
 
 Stage optional and/or example guests into `dest` (catalog layout).
 
-# Arguments
+#### Arguments
 
 * `root` - Cargo workspace root directory.
 * `dest` - Filesystem path (`dest`).
@@ -413,19 +213,172 @@ Stage optional and/or example guests into `dest` (catalog layout).
 * `plugin_ids` - Additional individual guests by manifest id (`--plugin`).
 * `skip_build` - Boolean flag `skip_build`.
 
-# Returns
+#### Returns
 
 The successful result value for this operation.
 
-# Errors
+#### Errors
 
 Returns an error when nothing is selected, an id is unknown or names a
 platform guest (those are installed by `install-platform`), or the
 underlying I/O, parse, or build operation fails.
 
+### install_platform
+
 ```rust
-fn stage_plugins(root: &std::path::Path, dest: &std::path::Path, release: bool, optional: bool, examples: bool, plugin_ids: &[String], skip_build: bool) -> anyhow::Result<()>
+pub fn install_platform(root: &Path, files_dir: &Path, release: bool) -> Result<()>
 ```
 
+Install platform guests into `$FILES_DIR/plugins/{plugin-key-fs-id}/`.
 
+#### Arguments
 
+* `root` - Cargo workspace root directory.
+* `files_dir` - Bookclerk files directory to wipe and recreate.
+* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### stage_platform_for_pack
+
+```rust
+pub fn stage_platform_for_pack(
+    root: &Path,
+    dest: &Path,
+    release: bool,
+    skip_build: bool,
+) -> Result<()>
+```
+
+Stage platform guests into a temp dir for `package-platform` bundling.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `dest` - Filesystem path (`dest`).
+* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
+* `skip_build` - Boolean flag `skip_build`.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### stage_optional_for_pack
+
+```rust
+pub fn stage_optional_for_pack(root: &Path, dest: &Path, release: bool) -> Result<()>
+```
+
+Stage optional guests for `package-plugins`.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `dest` - Filesystem path (`dest`).
+* `release` - When true, install under `target/release/`; otherwise `target/debug/`.
+
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### discover_platform
+
+```rust
+pub fn discover_platform(root: &Path) -> Result<Vec<DiscoveredGuest>>
+```
+
+Lists platform plugin guests under `crates/bookclerk-plugins/platform`.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+
+#### Returns
+
+On success, the inner `Vec<DiscoveredGuest>` value.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### discover_optional
+
+```rust
+pub fn discover_optional(root: &Path) -> Result<Vec<DiscoveredGuest>>
+```
+
+Lists optional storefront / integration guests under `…/optional`.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+
+#### Returns
+
+On success, the inner `Vec<DiscoveredGuest>` value.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### discover_examples
+
+```rust
+pub fn discover_examples(root: &Path) -> Result<Vec<DiscoveredGuest>>
+```
+
+Lists reference Echo example guests under `examples/`.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+
+#### Returns
+
+On success, the inner `Vec<DiscoveredGuest>` value.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### build_packages
+
+```rust
+pub fn build_packages(root: &Path, release: bool, packages: &[String]) -> Result<()>
+```
+
+Runs `cargo build [-p …]` for the selected packages; inherits stdio and fails on non-zero exit.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `release` - Build with `--release` when true.
+* `packages` - Cargo package names passed as `-p`.
+
+#### Errors
+
+Returns an error when `cargo` cannot be spawned or exits non-zero.
+
+## Constants
+
+### HELPER_PACKAGES
+
+```rust
+pub const HELPER_PACKAGES: &[&str] = _;
+```
+
+Helper binaries that ship beside hosts (also listed in workspace `default-members`).

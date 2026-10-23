@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > sync_listening**
+# bookclerk_plugin_abi::methods::sync_listening
 
-# Module: methods::sync_listening
+Pull listening-progress snapshots; host upserts tagged with the plugin id.
 
-## Contents
+Result: [`crate::SyncListeningResult`](../generated.md#synclisteningresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"syncListening"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::sync_listening::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "syncListening";
+```
 
 Wire method name `"syncListening"`.
-
-
-

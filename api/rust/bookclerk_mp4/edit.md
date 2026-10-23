@@ -1,131 +1,133 @@
-**bookclerk_mp4 > edit**
+# bookclerk_mp4::edit
 
-# Module: edit
+Editing a `moov` that is already in memory: find a box, replace a child, and
+keep every enclosing size field consistent.
 
-## Contents
+Rewriting a sample table means growing or shrinking a box that several
+ancestors declare the size of, so a splice here is never a plain
+`Vec::splice`: [`splice_replace`](#splice_replace) walks back up the tree and patches each
+ancestor's size by the same delta.
 
-**Functions**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`find_box_range`](#find_box_range) | function | Find the first box of `fourcc` anywhere under the well-known containers. |
+| [`find_direct_child`](#find_direct_child) | function | Find an immediate child of the box that starts at `parent_start`. |
+| [`find_child_in_range`](#find_child_in_range) | function | Find a box of `fourcc` among the siblings laid out in `[start, end)`. |
+| [`splice_replace`](#splice_replace) | function | Replace `buf[start..end]` with `replacement`, fixing every ancestor's size. |
 
-- [`find_box_range`](#find_box_range) - Find the first box of `fourcc` anywhere under the well-known containers.
-- [`find_child_in_range`](#find_child_in_range) - Find a box of `fourcc` among the siblings laid out in `[start, end)`.
-- [`find_direct_child`](#find_direct_child) - Find an immediate child of the box that starts at `parent_start`.
-- [`splice_replace`](#splice_replace) - Replace `buf[start..end]` with `replacement`, fixing every ancestor's size.
+## Functions
 
----
+### find_box_range
 
-## bookclerk_mp4::edit::find_box_range
-
-*Function*
+```rust
+pub fn find_box_range(buf: &[u8], fourcc: &[u8; 4]) -> Result<Option<(usize, usize)>>
+```
 
 Find the first box of `fourcc` anywhere under the well-known containers.
 
 Returns the byte range `[start, end)` of the whole box, header included.
 
-# Arguments
+#### Arguments
 
 * `buf` - Destination buffer resized to `size`.
 * `fourcc` - Numeric `fourcc` value for this call.
 
-# Returns
+#### Returns
 
 The successful result value for this operation.
 
-# Errors
+#### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
-# Panics
+#### Panics
 
 Panics when an internal invariant does not hold.
 
-```rust
-fn find_box_range(buf: &[u8], fourcc: &[u8; 4]) -> crate::error::Result<Option<(usize, usize)>>
-```
-
-
-
-## bookclerk_mp4::edit::find_child_in_range
-
-*Function*
-
-Find a box of `fourcc` among the siblings laid out in `[start, end)`.
-
-# Arguments
-
-* `buf` - Destination buffer resized to `size`.
-* `start` - Numeric `start` value for this call.
-* `end` - Numeric `end` value for this call.
-* `fourcc` - `fourcc` input for this call.
-
-# Returns
-
-The successful result value for this operation.
-
-# Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-# Panics
-
-Panics when an internal invariant does not hold.
+### find_direct_child
 
 ```rust
-fn find_child_in_range(buf: &[u8], start: usize, end: usize, fourcc: &[u8; 4]) -> crate::error::Result<Option<(usize, usize)>>
+pub fn find_direct_child(
+    buf: &[u8],
+    parent_start: usize,
+    parent_end: usize,
+    fourcc: &[u8; 4],
+) -> Result<Option<(usize, usize)>>
 ```
-
-
-
-## bookclerk_mp4::edit::find_direct_child
-
-*Function*
 
 Find an immediate child of the box that starts at `parent_start`.
 
-# Arguments
+#### Arguments
 
 * `buf` - Destination buffer resized to `size`.
 * `parent_start` - Numeric `parent_start` value for this call.
 * `parent_end` - Numeric `parent_end` value for this call.
 * `fourcc` - `fourcc` input for this call.
 
-# Returns
+#### Returns
 
 The successful result value for this operation.
 
-# Errors
+#### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
+### find_child_in_range
+
 ```rust
-fn find_direct_child(buf: &[u8], parent_start: usize, parent_end: usize, fourcc: &[u8; 4]) -> crate::error::Result<Option<(usize, usize)>>
+pub fn find_child_in_range(
+    buf: &[u8],
+    start: usize,
+    end: usize,
+    fourcc: &[u8; 4],
+) -> Result<Option<(usize, usize)>>
 ```
 
+Find a box of `fourcc` among the siblings laid out in `[start, end)`.
 
+#### Arguments
 
-## bookclerk_mp4::edit::splice_replace
+* `buf` - Destination buffer resized to `size`.
+* `start` - Numeric `start` value for this call.
+* `end` - Numeric `end` value for this call.
+* `fourcc` - `fourcc` input for this call.
 
-*Function*
+#### Returns
+
+The successful result value for this operation.
+
+#### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+#### Panics
+
+Panics when an internal invariant does not hold.
+
+### splice_replace
+
+```rust
+pub fn splice_replace(
+    buf: &[u8],
+    start: usize,
+    end: usize,
+    replacement: &[u8],
+) -> Result<Vec<u8>>
+```
 
 Replace `buf[start..end]` with `replacement`, fixing every ancestor's size.
 
-# Arguments
+#### Arguments
 
 * `buf` - Destination buffer resized to `size`.
 * `start` - Numeric `start` value for this call.
 * `end` - Numeric `end` value for this call.
 * `replacement` - `replacement` input for this call.
 
-# Returns
+#### Returns
 
 On success, the inner `Vec<u8>` value.
 
-# Errors
+#### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-```rust
-fn splice_replace(buf: &[u8], start: usize, end: usize, replacement: &[u8]) -> crate::error::Result<Vec<u8>>
-```
-
-
-

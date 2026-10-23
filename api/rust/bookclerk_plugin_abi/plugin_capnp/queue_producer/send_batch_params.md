@@ -1,113 +1,138 @@
-**bookclerk_plugin_abi > plugin_capnp > queue_producer > send_batch_params**
+# bookclerk_plugin_abi::plugin_capnp::queue_producer::send_batch_params
 
-# Module: plugin_capnp::queue_producer::send_batch_params
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Owned`](#owned) | struct |  |
+| [`Reader`](#reader) | struct |  |
+| [`Builder`](#builder) | struct |  |
+| [`Pipeline`](#pipeline) | struct |  |
 
-## Contents
+## Structs
 
-**Structs**
+### Owned
 
-- [`Builder`](#builder)
-- [`Owned`](#owned)
-- [`Pipeline`](#pipeline)
-- [`Reader`](#reader)
+```rust
+pub struct Owned(/* private */);
+```
 
----
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `OwnedStruct`, `Pipelined`, `SetterInput<Owned>`
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::send_batch_params::Builder
+### Reader
 
-*Struct*
+```rust
+pub struct Reader<'a> {
+    /* private fields */
+}
+```
 
-**Generic Parameters:**
-- 'a
+#### Reader::reborrow
 
-**Methods:**
+```rust
+pub fn reborrow(&self) -> Reader<'_>
+```
 
-- `fn into_reader(self: Self) -> Reader<'a>`
-- `fn reborrow(self: & mut Self) -> Builder`
-- `fn reborrow_as_reader(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_messages(self: Self) -> ::capnp::Result<::capnp::struct_list::Builder<'a, crate::plugin_capnp::queue_send_message::Owned>>`
-- `fn set_messages(self: & mut Self, value: ::capnp::struct_list::Reader<crate::plugin_capnp::queue_send_message::Owned>) -> ::capnp::Result<()>`
-- `fn init_messages(self: Self, size: u32) -> ::capnp::struct_list::Builder<'a, crate::plugin_capnp::queue_send_message::Owned>`
-- `fn has_messages(self: &Self) -> bool`
-- `fn get_delay_seconds(self: Self) -> u32`
-- `fn set_delay_seconds(self: & mut Self, value: u32)`
+#### Reader::total_size
 
-**Traits:** HasStructSize, HasTypeId
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
-**Trait Implementations:**
+#### Reader::get_messages
 
-- **FromPointerBuilder**
-  - `fn init_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **From**
-  - `fn from(builder: ::capnp::private::layout::StructBuilder<'a>) -> Self`
-- **ImbueMut**
-  - `fn imbue_mut(self: & mut Self, cap_table: &'a  mut ::capnp::private::layout::CapTable)`
+```rust
+pub fn get_messages(self) -> Result<Reader<'a, Owned>>
+```
 
+#### Reader::has_messages
 
+```rust
+pub fn has_messages(&self) -> bool
+```
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::send_batch_params::Owned
+#### Reader::get_delay_seconds
 
-*Struct*
+```rust
+pub fn get_delay_seconds(self) -> u32
+```
 
-**Tuple Struct**: `()`
+Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
-**Traits:** Copy, OwnedStruct, Owned, Pipelined
+### Builder
 
-**Trait Implementations:**
+```rust
+pub struct Builder<'a> {
+    /* private fields */
+}
+```
 
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
+#### Builder::into_reader
 
+```rust
+pub fn into_reader(self) -> Reader<'a>
+```
 
+#### Builder::reborrow
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::send_batch_params::Pipeline
+```rust
+pub fn reborrow(&mut self) -> Builder<'_>
+```
 
-*Struct*
+#### Builder::reborrow_as_reader
 
-**Trait Implementations:**
+```rust
+pub fn reborrow_as_reader(&self) -> Reader<'_>
+```
 
-- **FromTypelessPipeline**
-  - `fn new(typeless: ::capnp::any_pointer::Pipeline) -> Self`
+#### Builder::total_size
 
+```rust
+pub fn total_size(&self) -> Result<MessageSize>
+```
 
+#### Builder::get_messages
 
-## bookclerk_plugin_abi::plugin_capnp::queue_producer::send_batch_params::Reader
+```rust
+pub fn get_messages(self) -> Result<Builder<'a, Owned>>
+```
 
-*Struct*
+#### Builder::set_messages
 
-**Generic Parameters:**
-- 'a
+```rust
+pub fn set_messages(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
 
-**Methods:**
+#### Builder::init_messages
 
-- `fn reborrow(self: &Self) -> Reader`
-- `fn total_size(self: &Self) -> ::capnp::Result<::capnp::MessageSize>`
-- `fn get_messages(self: Self) -> ::capnp::Result<::capnp::struct_list::Reader<'a, crate::plugin_capnp::queue_send_message::Owned>>`
-- `fn has_messages(self: &Self) -> bool`
-- `fn get_delay_seconds(self: Self) -> u32`
+```rust
+pub fn init_messages(self, size: u32) -> Builder<'a, Owned>
+```
 
-**Traits:** Copy, HasTypeId
+#### Builder::has_messages
 
-**Trait Implementations:**
+```rust
+pub fn has_messages(&self) -> bool
+```
 
-- **From**
-  - `fn from(reader: ::capnp::private::layout::StructReader<'a>) -> Self`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, value: Self, canonicalize: bool) -> ::capnp::Result<()>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut ::core::fmt::Formatter) -> ::core::result::Result<(), ::core::fmt::Error>`
-- **Imbue**
-  - `fn imbue(self: & mut Self, cap_table: &'a ::capnp::private::layout::CapTable)`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **IntoInternalStructReader**
-  - `fn into_internal_struct_reader(self: Self) -> ::capnp::private::layout::StructReader<'a>`
+#### Builder::get_delay_seconds
 
+```rust
+pub fn get_delay_seconds(self) -> u32
+```
 
+#### Builder::set_delay_seconds
 
+```rust
+pub fn set_delay_seconds(&mut self, value: u32)
+```
+
+Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
+
+### Pipeline
+
+```rust
+pub struct Pipeline {
+    /* private fields */
+}
+```
+
+Implements: `FromTypelessPipeline`

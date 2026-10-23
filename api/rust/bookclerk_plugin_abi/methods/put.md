@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > put**
+# bookclerk_plugin_abi::methods::put
 
-# Module: methods::put
+Put a small object (cover/sidecar) into an output destination.
 
-## Contents
+Typed Cap'n Proto `Destination.put` ([`crate::Destination::put`](../index.md#destinationput)).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"put"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::put::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "put";
+```
 
 Wire method name `"put"`.
-
-
-

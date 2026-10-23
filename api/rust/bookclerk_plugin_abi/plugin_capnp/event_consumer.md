@@ -1,134 +1,100 @@
-**bookclerk_plugin_abi > plugin_capnp > event_consumer**
+# bookclerk_plugin_abi::plugin_capnp::event_consumer
 
-# Module: plugin_capnp::event_consumer
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`EventParams`](#eventparams) | type alias |  |
+| [`EventResults`](#eventresults) | type alias |  |
 
-## Contents
+## Modules
 
-**Modules**
+- [`event_params`](event_consumer/event_params.md)
+- [`event_results`](event_consumer/event_results.md)
 
-- [`event_params`](#event_params)
-- [`event_results`](#event_results)
+## Traits
 
-**Structs**
+### Server
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+```rust
+pub trait Server: 'static {
+    fn event(
+        self: Rc<Self>,
+        _: EventParams,
+        _: EventResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
 
-**Traits**
+#### Server::event
 
-- [`Server`](#server)
+```rust
+fn event(
+    self: Rc<Self>,
+    _: EventParams,
+    _: EventResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-**Type Aliases**
+## Structs
 
-- [`EventParams`](#eventparams)
-- [`EventResults`](#eventresults)
+### Client
 
----
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::Client
+#### Client::event_request
 
-*Struct*
+```rust
+pub fn event_request(&self) -> Request<Owned, Owned>
+```
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
-**Methods:**
+### Owned
 
-- `fn event_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::event_consumer::event_params::Owned, crate::plugin_capnp::event_consumer::event_results::Owned>`
+```rust
+pub struct Owned(/* private */);
+```
 
-**Traits:** HasTypeId
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
-**Trait Implementations:**
+### ServerDispatch
 
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
+#### ServerDispatch::dispatch_call_internal
 
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::EventParams
+Implements: `Clone`, `Deref`, `Server`
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::event_consumer::event_params::Owned>`
+## Type aliases
 
+### EventParams
 
+```rust
+pub type EventParams = Params<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::EventResults
+### EventResults
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::event_consumer::event_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Pipelined, Owned, Copy
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::Server
-
-*Trait*
-
-**Methods:**
-
-- `event`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::event_consumer::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-
-
-
-## Module: event_params
-
-
-
-## Module: event_results
-
-
-
+```rust
+pub type EventResults = Results<Owned>;
+```

@@ -1,171 +1,158 @@
-**bookclerk_plugin_integration_audiobookshelf > guest**
+# bookclerk_plugin_integration_audiobookshelf::guest
 
-# Module: guest
+Guest-process helpers for the external Audiobookshelf integration plugin.
 
-## Contents
+Opaque config JSON (from `[integrations.audiobookshelf]` / spawn config) drives
+the HTTP client. User-watch queues newly observed users for
+[`guest_event_poll`](#guest_event_poll) — the host owns claim-ticket / portal workflows.
 
-**Structs**
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`AbsGuestState`](#absgueststate) | struct | Shared guest state for the ABS external plugin process. |
+| [`guest_start`](#guest_start) | function | Start ABS guest background work (user watch → queue for `guest_event_poll`). |
+| [`guest_event_poll`](#guest_event_poll) | function | Drains newly observed ABS users queued by the background watch loop. |
+| [`guest_health`](#guest_health) | function | Probes ABS connectivity and returns the typed health reply for the host status strip. |
+| [`guest_diagnose`](#guest_diagnose) | function | Runs connectivity checks and returns human-readable diagnose lines (libraries listed). |
+| [`guest_scan_library`](#guest_scan_library) | function | Asks Audiobookshelf to rescan the configured library (post-acquire hook). |
+| [`guest_sync_listening`](#guest_sync_listening) | function | Collect listening progress as typed ABI rows (host upserts). |
+| [`guest_authenticate_user`](#guest_authenticate_user) | function | Username/password login against ABS (when allowed). |
+| [`guest_on_event`](#guest_on_event) | function | Handle host-forwarded integration events (e.g. book_acquired → scan). |
 
-- [`AbsGuestState`](#absgueststate) - Shared guest state for the ABS external plugin process.
+## Structs
 
-**Functions**
+### AbsGuestState
 
-- [`guest_authenticate_user`](#guest_authenticate_user) - Username/password login against ABS (when allowed).
-- [`guest_diagnose`](#guest_diagnose) - Runs connectivity checks and returns human-readable diagnose lines (libraries listed).
-- [`guest_event_poll`](#guest_event_poll) - Drains newly observed ABS users queued by the background watch loop.
-- [`guest_health`](#guest_health) - Probes ABS connectivity and returns the typed health reply for the host status strip.
-- [`guest_on_event`](#guest_on_event) - Handle host-forwarded integration events (e.g. book_acquired → scan).
-- [`guest_scan_library`](#guest_scan_library) - Asks Audiobookshelf to rescan the configured library (post-acquire hook).
-- [`guest_start`](#guest_start) - Start ABS guest background work (user watch → queue for [`guest_event_poll`](guest.md#bookclerk_plugin_integration_audiobookshelfguestguest_event_poll)).
-- [`guest_sync_listening`](#guest_sync_listening) - Collect listening progress as typed ABI rows (host upserts).
-
----
-
-## bookclerk_plugin_integration_audiobookshelf::guest::AbsGuestState
-
-*Struct*
+```rust
+pub struct AbsGuestState {
+    /* private fields */
+}
+```
 
 Shared guest state for the ABS external plugin process.
 
-**Methods:**
+#### AbsGuestState::from_config_json
 
-- `fn from_config_json(config: &Value) -> Self` - Build guest state from opaque spawn-config / settings JSON.
-- `fn from_config(config: AudiobookshelfConfig) -> Self` - Build guest state from a typed ABS config.
+```rust
+pub fn from_config_json(config: &Value) -> Self
+```
 
+Build guest state from opaque spawn-config / settings JSON.
 
+#### AbsGuestState::from_config
 
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_authenticate_user
+```rust
+pub fn from_config(config: AudiobookshelfConfig) -> Self
+```
 
-*Function*
+Build guest state from a typed ABS config.
 
-Username/password login against ABS (when allowed).
+## Functions
 
-# Errors
+### guest_start
+
+```rust
+pub async fn guest_start(state: Arc<Mutex<AbsGuestState>>) -> Result<()>
+```
+
+Start ABS guest background work (user watch → queue for [`guest_event_poll`](#guest_event_poll)).
+
+#### Errors
 
 Returns an error when the operation fails.
 
-```rust
-fn guest_authenticate_user(state: &tokio::sync::Mutex<AbsGuestState>, username: &str, password: &str) -> bookclerk_integrations::Result<bookclerk_integrations::ExternalUser>
-```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_diagnose
-
-*Function*
-
-Runs connectivity checks and returns human-readable diagnose lines (libraries listed).
-
-# Errors
-
-Returns an error when the operation fails.
+### guest_event_poll
 
 ```rust
-fn guest_diagnose(state: &tokio::sync::Mutex<AbsGuestState>) -> bookclerk_integrations::Result<Vec<String>>
+pub async fn guest_event_poll(state: &Mutex<AbsGuestState>) -> EventPollResult
 ```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_event_poll
-
-*Function*
 
 Drains newly observed ABS users queued by the background watch loop.
 
 Call from the host's event-poll RPC so user create/update notifications can
 be applied without blocking the watch task.
 
+### guest_health
+
 ```rust
-fn guest_event_poll(state: &tokio::sync::Mutex<AbsGuestState>) -> bookclerk_plugin_sdk::EventPollResult
+pub async fn guest_health(state: &Mutex<AbsGuestState>) -> Result<HealthOk>
 ```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_health
-
-*Function*
 
 Probes ABS connectivity and returns the typed health reply for the host status strip.
 
 Misconfiguration (no client) yields `ok: false` with a detail message rather
 than an RPC error so diagnose/health UIs can render it.
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_diagnose
+
 ```rust
-fn guest_health(state: &tokio::sync::Mutex<AbsGuestState>) -> bookclerk_integrations::Result<bookclerk_plugin_sdk::HealthOk>
+pub async fn guest_diagnose(state: &Mutex<AbsGuestState>) -> Result<Vec<String>>
 ```
 
+Runs connectivity checks and returns human-readable diagnose lines (libraries listed).
 
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_on_event
-
-*Function*
-
-Handle host-forwarded integration events (e.g. book_acquired → scan).
-
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_scan_library
+
 ```rust
-fn guest_on_event(state: &tokio::sync::Mutex<AbsGuestState>, params: &serde_json::Value) -> bookclerk_integrations::Result<()>
+pub async fn guest_scan_library(state: &Mutex<AbsGuestState>, force: bool) -> Result<()>
 ```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_scan_library
-
-*Function*
 
 Asks Audiobookshelf to rescan the configured library (post-acquire hook).
 
-# Arguments
+#### Arguments
 
 * `state` - Shared guest state with ABS client + config.
 * `force` - When true, request a forced rescan from ABS.
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
-```rust
-fn guest_scan_library(state: &tokio::sync::Mutex<AbsGuestState>, force: bool) -> bookclerk_integrations::Result<()>
-```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_start
-
-*Function*
-
-Start ABS guest background work (user watch → queue for [`guest_event_poll`](guest.md#bookclerk_plugin_integration_audiobookshelfguestguest_event_poll)).
-
-# Errors
-
-Returns an error when the operation fails.
+### guest_sync_listening
 
 ```rust
-fn guest_start(state: std::sync::Arc<tokio::sync::Mutex<AbsGuestState>>) -> bookclerk_integrations::Result<()>
+pub async fn guest_sync_listening(
+    state: &Mutex<AbsGuestState>,
+) -> Result<Vec<ListeningProgress>>
 ```
-
-
-
-## bookclerk_plugin_integration_audiobookshelf::guest::guest_sync_listening
-
-*Function*
 
 Collect listening progress as typed ABI rows (host upserts).
 
-# Errors
+#### Errors
 
 Returns an error when the operation fails.
 
+### guest_authenticate_user
+
 ```rust
-fn guest_sync_listening(state: &tokio::sync::Mutex<AbsGuestState>) -> bookclerk_integrations::Result<Vec<bookclerk_plugin_sdk::ListeningProgress>>
+pub async fn guest_authenticate_user(
+    state: &Mutex<AbsGuestState>,
+    username: &str,
+    password: &str,
+) -> Result<ExternalUser>
 ```
 
+Username/password login against ABS (when allowed).
 
+#### Errors
 
+Returns an error when the operation fails.
+
+### guest_on_event
+
+```rust
+pub async fn guest_on_event(state: &Mutex<AbsGuestState>, params: &Value) -> Result<()>
+```
+
+Handle host-forwarded integration events (e.g. book_acquired → scan).
+
+#### Errors
+
+Returns an error when the operation fails.

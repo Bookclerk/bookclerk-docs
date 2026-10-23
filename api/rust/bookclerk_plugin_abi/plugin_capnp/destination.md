@@ -1,316 +1,361 @@
-**bookclerk_plugin_abi > plugin_capnp > destination**
+# bookclerk_plugin_abi::plugin_capnp::destination
+
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`Server`](#server) | trait |  |
+| [`Client`](#client) | struct |  |
+| [`Owned`](#owned) | struct |  |
+| [`ServerDispatch`](#serverdispatch) | struct |  |
+| [`HeadParams`](#headparams) | type alias |  |
+| [`HeadResults`](#headresults) | type alias |  |
+| [`ListParams`](#listparams) | type alias |  |
+| [`ListResults`](#listresults) | type alias |  |
+| [`GetParams`](#getparams) | type alias |  |
+| [`GetResults`](#getresults) | type alias |  |
+| [`PutParams`](#putparams) | type alias |  |
+| [`PutResults`](#putresults) | type alias |  |
+| [`CopyParams`](#copyparams) | type alias |  |
+| [`CopyResults`](#copyresults) | type alias |  |
+| [`DeleteParams`](#deleteparams) | type alias |  |
+| [`DeleteResults`](#deleteresults) | type alias |  |
+| [`CommitParams`](#commitparams) | type alias |  |
+| [`CommitResults`](#commitresults) | type alias |  |
+| [`AbortStageParams`](#abortstageparams) | type alias |  |
+| [`AbortStageResults`](#abortstageresults) | type alias |  |
+
+## Modules
+
+- [`head_params`](destination/head_params.md)
+- [`head_results`](destination/head_results.md)
+- [`list_params`](destination/list_params.md)
+- [`list_results`](destination/list_results.md)
+- [`get_params`](destination/get_params.md)
+- [`get_results`](destination/get_results.md)
+- [`put_params`](destination/put_params.md)
+- [`put_results`](destination/put_results.md)
+- [`copy_params`](destination/copy_params.md)
+- [`copy_results`](destination/copy_results.md)
+- [`delete_params`](destination/delete_params.md)
+- [`delete_results`](destination/delete_results.md)
+- [`commit_params`](destination/commit_params.md)
+- [`commit_results`](destination/commit_results.md)
+- [`abort_stage_params`](destination/abort_stage_params.md)
+- [`abort_stage_results`](destination/abort_stage_results.md)
+
+## Traits
+
+### Server
+
+```rust
+pub trait Server: 'static {
+    fn head(
+        self: Rc<Self>,
+        _: HeadParams,
+        _: HeadResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn list(
+        self: Rc<Self>,
+        _: ListParams,
+        _: ListResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn get(
+        self: Rc<Self>,
+        _: GetParams,
+        _: GetResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn put(
+        self: Rc<Self>,
+        _: PutParams,
+        _: PutResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn copy(
+        self: Rc<Self>,
+        _: CopyParams,
+        _: CopyResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn delete(
+        self: Rc<Self>,
+        _: DeleteParams,
+        _: DeleteResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn commit(
+        self: Rc<Self>,
+        _: CommitParams,
+        _: CommitResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn abort_stage(
+        self: Rc<Self>,
+        _: AbortStageParams,
+        _: AbortStageResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+}
+```
+
+#### Server::head
+
+```rust
+fn head(
+    self: Rc<Self>,
+    _: HeadParams,
+    _: HeadResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::list
+
+```rust
+fn list(
+    self: Rc<Self>,
+    _: ListParams,
+    _: ListResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-# Module: plugin_capnp::destination
+#### Server::get
+
+```rust
+fn get(
+    self: Rc<Self>,
+    _: GetParams,
+    _: GetResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-## Contents
+#### Server::put
 
-**Modules**
+```rust
+fn put(
+    self: Rc<Self>,
+    _: PutParams,
+    _: PutResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`abort_stage_params`](#abort_stage_params)
-- [`abort_stage_results`](#abort_stage_results)
-- [`commit_params`](#commit_params)
-- [`commit_results`](#commit_results)
-- [`copy_params`](#copy_params)
-- [`copy_results`](#copy_results)
-- [`delete_params`](#delete_params)
-- [`delete_results`](#delete_results)
-- [`get_params`](#get_params)
-- [`get_results`](#get_results)
-- [`head_params`](#head_params)
-- [`head_results`](#head_results)
-- [`list_params`](#list_params)
-- [`list_results`](#list_results)
-- [`put_params`](#put_params)
-- [`put_results`](#put_results)
+#### Server::copy
 
-**Structs**
+```rust
+fn copy(
+    self: Rc<Self>,
+    _: CopyParams,
+    _: CopyResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`Client`](#client)
-- [`Owned`](#owned)
-- [`ServerDispatch`](#serverdispatch)
+#### Server::delete
 
-**Traits**
+```rust
+fn delete(
+    self: Rc<Self>,
+    _: DeleteParams,
+    _: DeleteResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`Server`](#server)
+#### Server::commit
 
-**Type Aliases**
+```rust
+fn commit(
+    self: Rc<Self>,
+    _: CommitParams,
+    _: CommitResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-- [`AbortStageParams`](#abortstageparams)
-- [`AbortStageResults`](#abortstageresults)
-- [`CommitParams`](#commitparams)
-- [`CommitResults`](#commitresults)
-- [`CopyParams`](#copyparams)
-- [`CopyResults`](#copyresults)
-- [`DeleteParams`](#deleteparams)
-- [`DeleteResults`](#deleteresults)
-- [`GetParams`](#getparams)
-- [`GetResults`](#getresults)
-- [`HeadParams`](#headparams)
-- [`HeadResults`](#headresults)
-- [`ListParams`](#listparams)
-- [`ListResults`](#listresults)
-- [`PutParams`](#putparams)
-- [`PutResults`](#putresults)
+#### Server::abort_stage
 
----
+```rust
+fn abort_stage(
+    self: Rc<Self>,
+    _: AbortStageParams,
+    _: AbortStageResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::AbortStageParams
+Implemented by: `DestinationServer`
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::abort_stage_params::Owned>`
+## Structs
 
+### Client
 
+```rust
+pub struct Client {
+    pub client: Client,
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::AbortStageResults
+#### Client::head_request
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::abort_stage_results::Owned>`
+```rust
+pub fn head_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::list_request
 
+```rust
+pub fn list_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::Client
+#### Client::get_request
 
-*Struct*
+```rust
+pub fn get_request(&self) -> Request<Owned, Owned>
+```
 
-**Fields:**
-- `client: ::capnp::capability::Client`
+#### Client::put_request
 
-**Methods:**
+```rust
+pub fn put_request(&self) -> Request<Owned, Owned>
+```
 
-- `fn head_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::head_params::Owned, crate::plugin_capnp::destination::head_results::Owned>`
-- `fn list_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::list_params::Owned, crate::plugin_capnp::destination::list_results::Owned>`
-- `fn get_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::get_params::Owned, crate::plugin_capnp::destination::get_results::Owned>`
-- `fn put_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::put_params::Owned, crate::plugin_capnp::destination::put_results::Owned>`
-- `fn copy_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::copy_params::Owned, crate::plugin_capnp::destination::copy_results::Owned>`
-- `fn delete_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::delete_params::Owned, crate::plugin_capnp::destination::delete_results::Owned>`
-- `fn commit_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::commit_params::Owned, crate::plugin_capnp::destination::commit_results::Owned>`
-- `fn abort_stage_request(self: &Self) -> ::capnp::capability::Request<crate::plugin_capnp::destination::abort_stage_params::Owned, crate::plugin_capnp::destination::abort_stage_results::Owned>`
+#### Client::copy_request
 
-**Traits:** HasTypeId
+```rust
+pub fn copy_request(&self) -> Request<Owned, Owned>
+```
 
-**Trait Implementations:**
+#### Client::delete_request
 
-- **FromPointerReader**
-  - `fn get_from_pointer(reader: &::capnp::private::layout::PointerReader<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **SetterInput**
-  - `fn set_pointer_builder(pointer: ::capnp::private::layout::PointerBuilder, from: Self, _canonicalize: bool) -> ::capnp::Result<()>`
-- **FromClientHook**
-  - `fn new(hook: Box<::capnp::capability::DynClientHook>) -> Self`
-  - `fn into_client_hook(self: Self) -> Box<::capnp::capability::DynClientHook>`
-  - `fn as_client_hook(self: &Self) -> &::capnp::capability::DynClientHook`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-- **FromPointerBuilder**
-  - `fn init_pointer(_builder: ::capnp::private::layout::PointerBuilder<'a>, _size: u32) -> Self`
-  - `fn get_from_pointer(builder: ::capnp::private::layout::PointerBuilder<'a>, _default: ::core::option::Option<&'a [::capnp::Word]>) -> ::capnp::Result<Self>`
-- **FromServer**
-  - `fn from_server(s: ::capnp::capability::Rc<_S>) -> ServerDispatch<_S>`
+```rust
+pub fn delete_request(&self) -> Request<Owned, Owned>
+```
 
+#### Client::commit_request
 
+```rust
+pub fn commit_request(&self) -> Request<Owned, Owned>
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::CommitParams
+#### Client::abort_stage_request
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::commit_params::Owned>`
+```rust
+pub fn abort_stage_request(&self) -> Request<Owned, Owned>
+```
 
+Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
 
+### Owned
 
-## bookclerk_plugin_abi::plugin_capnp::destination::CommitResults
+```rust
+pub struct Owned(/* private */);
+```
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::commit_results::Owned>`
+Implements: `Clone`, `Copy`, `Introspect`, `Owned`, `Pipelined`, `SetterInput<Owned>`
 
+### ServerDispatch
 
+```rust
+pub struct ServerDispatch<_T> {
+    pub server: Rc<_T>,
+}
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::CopyParams
+#### ServerDispatch::dispatch_call_internal
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::copy_params::Owned>`
+```rust
+pub fn dispatch_call_internal(
+    this: Rc<_T>,
+    method_id: u16,
+    params: Params<Owned>,
+    results: Results<Owned>,
+) -> DispatchCallResult
+```
 
+Implements: `Clone`, `Deref`, `Server`
 
+## Type aliases
 
-## bookclerk_plugin_abi::plugin_capnp::destination::CopyResults
+### HeadParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::copy_results::Owned>`
+```rust
+pub type HeadParams = Params<Owned>;
+```
 
+### HeadResults
 
+```rust
+pub type HeadResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::DeleteParams
+### ListParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::delete_params::Owned>`
+```rust
+pub type ListParams = Params<Owned>;
+```
 
+### ListResults
 
+```rust
+pub type ListResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::DeleteResults
+### GetParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::delete_results::Owned>`
+```rust
+pub type GetParams = Params<Owned>;
+```
 
+### GetResults
 
+```rust
+pub type GetResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::GetParams
+### PutParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::get_params::Owned>`
+```rust
+pub type PutParams = Params<Owned>;
+```
 
+### PutResults
 
+```rust
+pub type PutResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::GetResults
+### CopyParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::get_results::Owned>`
+```rust
+pub type CopyParams = Params<Owned>;
+```
 
+### CopyResults
 
+```rust
+pub type CopyResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::HeadParams
+### DeleteParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::head_params::Owned>`
+```rust
+pub type DeleteParams = Params<Owned>;
+```
 
+### DeleteResults
 
+```rust
+pub type DeleteResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::HeadResults
+### CommitParams
 
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::head_results::Owned>`
+```rust
+pub type CommitParams = Params<Owned>;
+```
 
+### CommitResults
 
+```rust
+pub type CommitResults = Results<Owned>;
+```
 
-## bookclerk_plugin_abi::plugin_capnp::destination::ListParams
+### AbortStageParams
 
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::list_params::Owned>`
+```rust
+pub type AbortStageParams = Params<Owned>;
+```
 
+### AbortStageResults
 
-
-## bookclerk_plugin_abi::plugin_capnp::destination::ListResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::list_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::destination::Owned
-
-*Struct*
-
-**Tuple Struct**: `()`
-
-**Traits:** Pipelined, Owned, Copy
-
-**Trait Implementations:**
-
-- **Introspect**
-  - `fn introspect() -> ::capnp::introspect::Type`
-- **Clone**
-  - `fn clone(self: &Self) -> Owned`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::destination::PutParams
-
-*Type Alias*: `::capnp::capability::Params<crate::plugin_capnp::destination::put_params::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::destination::PutResults
-
-*Type Alias*: `::capnp::capability::Results<crate::plugin_capnp::destination::put_results::Owned>`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::destination::Server
-
-*Trait*
-
-**Methods:**
-
-- `head`
-- `list`
-- `get`
-- `put`
-- `copy`
-- `delete`
-- `commit`
-- `abort_stage`
-
-
-
-## bookclerk_plugin_abi::plugin_capnp::destination::ServerDispatch
-
-*Struct*
-
-**Generic Parameters:**
-- _T
-
-**Fields:**
-- `server: ::capnp::capability::Rc<_T>`
-
-**Methods:**
-
-- `fn dispatch_call_internal(this: ::capnp::capability::Rc<_T>, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-
-**Trait Implementations:**
-
-- **Deref**
-  - `fn deref(self: &Self) -> &_T`
-- **Server**
-  - `fn dispatch_call(self: Self, interface_id: u64, method_id: u16, params: ::capnp::capability::Params<::capnp::any_pointer::Owned>, results: ::capnp::capability::Results<::capnp::any_pointer::Owned>) -> ::capnp::capability::DispatchCallResult`
-  - `fn as_ptr(self: &Self) -> usize`
-- **Clone**
-  - `fn clone(self: &Self) -> Self`
-
-
-
-## Module: abort_stage_params
-
-
-
-## Module: abort_stage_results
-
-
-
-## Module: commit_params
-
-
-
-## Module: commit_results
-
-
-
-## Module: copy_params
-
-
-
-## Module: copy_results
-
-
-
-## Module: delete_params
-
-
-
-## Module: delete_results
-
-
-
-## Module: get_params
-
-
-
-## Module: get_results
-
-
-
-## Module: head_params
-
-
-
-## Module: head_results
-
-
-
-## Module: list_params
-
-
-
-## Module: list_results
-
-
-
-## Module: put_params
-
-
-
-## Module: put_results
-
-
-
+```rust
+pub type AbortStageResults = Results<Owned>;
+```

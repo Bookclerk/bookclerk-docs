@@ -1,20 +1,15 @@
-**bookclerk_plugin_abi > methods > diagnose**
+# bookclerk_plugin_abi::methods::diagnose
 
-# Module: methods::diagnose
+Human-readable diagnostic lines for `bookclerk plugins diagnose`.
 
-## Contents
+Result: [`crate::DiagnoseResult`](../generated.md#diagnoseresult).
 
-**Constants**
+## Constants
 
-- [`NAME`](#name) - Wire method name `"diagnose"`.
+### NAME
 
----
-
-## bookclerk_plugin_abi::methods::diagnose::NAME
-
-*Constant*: `&str`
+```rust
+pub const NAME: &str = "diagnose";
+```
 
 Wire method name `"diagnose"`.
-
-
-
