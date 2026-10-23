@@ -1,0 +1,551 @@
+# bookclerk\_plugin\_sdk.tools
+
+check / fmt / types / package / sync-embed — mirrors Rust/TS author tools.
+
+Validates ``plugin.toml``, formats manifests, generates the ``Env`` typing stub,
+vendors workerd embeds, and packs release archives. Workerd authors:
+
+- ``from bookclerk_plugin_sdk.workerd import BookclerkEntrypoint, js``
+(``bookclerk-workerd`` injects that module — no relative filepath embed)
+
+See ``docs/plugins.md`` for manifest fields and runtime requirements.
+
+#### PYTHON\_WORKERD\_FLAGS
+
+Compatibility flags required for Python Workers under bookclerk-workerd.
+
+#### WORKERD\_PIN\_COMPAT\_DATE
+
+Newest ``compatibility_date`` the pinned workerd binary honors.
+
+## AppliedCompatibilityDate
+
+```python
+class AppliedCompatibilityDate(NamedTuple)
+```
+
+Date passed to workerd, and a fallback warning when the author date is newer.
+
+Host surfaces (events, jobs, and later bindings) must follow ``applied``.
+That is the date workerd actually runs.
+
+#### validate\_author\_compatibility\_date
+
+```python
+def validate_author_compatibility_date(date: str) -> None
+```
+
+Reject a compatibility date that is not a real ``YYYY-MM-DD``.
+
+A date newer than the pin is still valid. Load falls back and warns; see
+:func:`apply_author_compatibility_date`.
+
+**Arguments**:
+
+- `date` - ``workerd.compatibility_date``.
+  
+
+**Raises**:
+
+- `ValueError` - When the date is not a calendar day.
+
+#### apply\_author\_compatibility\_date
+
+```python
+def apply_author_compatibility_date(date: str) -> AppliedCompatibilityDate
+```
+
+Resolve an author compatibility date against this Bookclerk release.
+
+workerd enables flags whose default-on date is on or before the date it is
+given, and refuses a date newer than the one baked into the binary.
+Wrangler warns and starts at the newest date that binary supports.
+
+**Arguments**:
+
+- `date` - ``workerd.compatibility_date``.
+  
+
+**Returns**:
+
+  The date to pass to workerd, and a warning when it was clamped.
+  
+
+**Raises**:
+
+- `ValueError` - When the date is not a calendar day.
+
+#### validate\_author\_compatibility\_flags
+
+```python
+def validate_author_compatibility_flags(flags: list[Any],
+                                        python: bool) -> None
+```
+
+Enforce the Python flag pair. Does not insert missing flags.
+
+**Arguments**:
+
+- `flags` - Author ``compatibility_flags``.
+- `python` - True when the manifest declares a Python module. A disk-only
+  ``.py`` file is not enough.
+  
+
+**Raises**:
+
+- `ValueError` - When a flag is outside the allowlist or the pair is wrong.
+
+#### declares\_python
+
+```python
+def declares_python(m: dict[str, Any]) -> bool
+```
+
+True when the manifest declares Python. Flags are not evidence.
+
+An explicit ``path`` is the load-set key. ``name`` is that key only when
+``path`` is omitted.
+
+**Arguments**:
+
+- `m` - Manifest dictionary.
+  
+
+**Returns**:
+
+  Whether Python flags and Pyodide consent hosts apply.
+
+#### unimplemented\_surface
+
+```python
+def unimplemented_surface(m: dict[str, Any]) -> str | None
+```
+
+Spawn/load refusal for a declared-but-unbuilt surface.
+
+Every manifest surface is implemented today (``[[kv_namespaces]]`` and
+``[queues]`` included); the hook stays so a future table can refuse load
+with "not implemented yet" without touching the callers.
+
+**Arguments**:
+
+- `m` - Manifest dictionary.
+  
+
+**Returns**:
+
+  The refusal, or ``None`` when load may continue.
+
+#### MAX\_QUEUE\_NAME\_LEN
+
+Longest queue name.
+
+#### RESERVED\_QUEUE\_PREFIXES
+
+Queue-name prefixes only the host may use.
+
+#### is\_valid\_queue\_name
+
+```python
+def is_valid_queue_name(name: str) -> bool
+```
+
+True when ``name`` is ``[a-z0-9][a-z0-9._-]*`` and at most 63 chars.
+
+**Arguments**:
+
+- `name` - Candidate queue name.
+  
+
+**Returns**:
+
+  Whether the grammar accepts it.
+
+#### HOST\_EVENT\_TYPES
+
+Domain event types only the host emits; plugins consume them but cannot produce them.
+
+#### MAX\_KV\_NAMESPACE\_VALUE\_BYTES
+
+Largest ``max_value_bytes`` a ``[[kv_namespaces]]`` row may declare (1 MiB).
+
+#### MAX\_KV\_NAMESPACE\_KEYS
+
+Largest ``max_keys`` a ``[[kv_namespaces]]`` row may declare.
+
+#### validate\_module\_declarations
+
+```python
+def validate_module_declarations(main_module: str, modules: list[Any]) -> None
+```
+
+Check main and ``[[modules]]`` extensions.
+
+**Arguments**:
+
+- `main_module` - ``[workerd].main_module``.
+- `modules` - ``[[modules]]`` rows.
+  
+
+**Raises**:
+
+- `ValueError` - When a file would not be embedded or its type disagrees.
+
+#### module\_load\_key
+
+```python
+def module_load_key(modules_dir: str, raw: str) -> str
+```
+
+Relative key a modules-directory walk uses for a ``[[modules]]`` path.
+
+``.`` segments are dropped, then a leading modules-dir prefix is removed,
+so ``./modules/index.js`` and ``modules/pkg/./echo.wasm`` match walk keys.
+``..`` segments are left in place.
+
+**Arguments**:
+
+- `modules_dir` - ``[workerd].modules_dir``.
+- `raw` - Author path or name.
+  
+
+**Returns**:
+
+  Slash-separated key with a leading modules-dir prefix removed.
+
+#### workerd\_module\_is\_embedded
+
+```python
+def workerd_module_is_embedded(path: str) -> bool
+```
+
+True when the walk embeds this filename.
+
+**Arguments**:
+
+- `path` - Module path or filename.
+  
+
+**Returns**:
+
+  Whether the extension is ``.js``, ``.mjs``, ``.py``, ``.wasm``, or ``.json``.
+
+#### LOGO\_EXTENSIONS
+
+Allowed file extensions for embedded ``plugin.toml`` logo paths.
+
+#### validate\_logo
+
+```python
+def validate_logo(raw: str) -> tuple[str, str]
+```
+
+Classify and validate a ``plugin.toml`` logo value.
+
+Mirrors Rust ``validate_logo``. Accepts absolute ``http``/``https`` URLs or
+relative image paths under the plugin root.
+
+**Arguments**:
+
+- `raw` - Raw ``logo`` string from the manifest.
+  
+
+**Returns**:
+
+  A ``(\"remote\"|\"embedded\", value)`` pair with the validated URL or
+  normalized relative path.
+  
+
+**Raises**:
+
+- `ValueError` - If the logo is empty, uses a bad scheme, includes userinfo,
+  or is an unsafe / non-image embedded path.
+
+#### validate\_plugin\_id
+
+```python
+def validate_plugin_id(id: str) -> None
+```
+
+Validate a plugin id against the strict ``[a-z0-9_]{2,32}`` grammar.
+
+Mirrors Rust ``validate_plugin_id``. Ids are globally unique across plugins.
+Invalid characters are rejected — never rewritten — so ``a/b`` and ``a_b``
+cannot collide. Leading/trailing whitespace is rejected (non-lossy), not
+stripped.
+
+**Arguments**:
+
+- `id` - Candidate plugin id from ``plugin.toml``.
+  
+
+**Raises**:
+
+- `ValueError` - If the id fails length, charset, or underscore rules.
+
+#### validate\_manifest
+
+```python
+def validate_manifest(m: dict[str, Any]) -> None
+```
+
+Validate a parsed ``plugin.toml`` mapping.
+
+**Arguments**:
+
+- `m` - Manifest dictionary (typically from ``tomllib.loads``).
+  
+
+**Raises**:
+
+- `ValueError` - If required fields, runtime tables, or network capabilities
+  are missing or inconsistent.
+
+#### ENTRYPOINT\_NAMES
+
+Entrypoint wire names accepted in ``entrypoints``.
+
+#### ENTRYPOINT\_EXPORT\_CLASSES
+
+Exported class name the launcher binds for each ``entrypoints`` wire name.
+
+#### check\_main\_module\_source
+
+```python
+def check_main_module_source(main_name: str, src: str, entrypoints: list[str],
+                             language: str) -> None
+```
+
+Check a workerd main module against the v3 author model.
+
+Requires the SDK import and a ``BookclerkEntrypoint`` default class, rejects
+the removed ``BookclerkPlugin`` base, and requires a class per manifest
+entrypoint (``class Storage(StorageEntrypoint)`` for Python,
+``export class Storage`` for JavaScript).
+
+**Arguments**:
+
+- `main_name` - Main module filename (for messages).
+- `src` - Main module source text.
+- `entrypoints` - Manifest ``entrypoints`` wire names.
+- `language` - ``"python"`` or ``"js"``.
+  
+
+**Raises**:
+
+- `ValueError` - When the module does not follow the author model.
+
+#### check\_plugin
+
+```python
+def check_plugin(plugin_dir: Path) -> str
+```
+
+Validate a plugin directory and its ``plugin.toml``.
+
+**Arguments**:
+
+- `plugin_dir` - Path to the plugin root containing ``plugin.toml``.
+  
+
+**Returns**:
+
+  A short ``ok id=... entrypoints=... runtime=...`` status string.
+  
+
+**Raises**:
+
+- `ValueError` - If the manifest or Python workerd sources are invalid.
+- `FileNotFoundError` - If required logo, modules, or native binaries are missing.
+- `OSError` - If ``plugin.toml`` cannot be read.
+  
+
+**Examples**:
+
+  >>> # print(check_plugin(Path("./my-plugin")))
+  >>> # ok id=echo entrypoints=storefront runtime=workerd
+
+#### sync\_embed
+
+```python
+def sync_embed(plugin_dir: Path) -> str
+```
+
+Vendor SDK sources under ``modules/`` for offline workerd archives.
+
+Prefer package imports — ``bookclerk-workerd`` injects
+``bookclerk_plugin_sdk.workerd`` at runtime. This writes the same files so a
+staged tree is self-contained without host injection. It does not insert
+compatibility flags; the host and ``check`` require the author to write them.
+
+**Arguments**:
+
+- `plugin_dir` - Path to a workerd Python plugin root.
+  
+
+**Returns**:
+
+  Status string describing the synced path (and flag updates, if any).
+  
+
+**Raises**:
+
+- `ValueError` - If the plugin is not a Python workerd guest.
+- `OSError` - If files cannot be read or written.
+  
+
+**Examples**:
+
+  >>> # print(sync_embed(Path("./my-python-workerd-plugin")))
+
+#### format\_manifest
+
+```python
+def format_manifest(m: dict[str, Any]) -> str
+```
+
+Emit canonical TOML matching Rust ``format_manifest`` gold fixtures.
+
+Flags are emitted as written. This function does not insert the Python pair.
+
+**Arguments**:
+
+- `m` - Validated manifest dictionary.
+  
+
+**Returns**:
+
+  Canonical ``plugin.toml`` text ending with a newline.
+
+#### fmt\_plugin\_toml
+
+```python
+def fmt_plugin_toml(path: Path, *, check_only: bool) -> str
+```
+
+Format ``plugin.toml`` in place, or check that it is already canonical.
+
+**Arguments**:
+
+- `path` - Path to ``plugin.toml``.
+- `check_only` - When ``True``, raise if reformatting would change the file.
+  
+
+**Returns**:
+
+  Status string (``ok …`` or ``wrote …``).
+  
+
+**Raises**:
+
+- `ValueError` - If validation fails or ``check_only`` finds a drift.
+- `OSError` - If the file cannot be read or written.
+
+#### package\_plugin
+
+```python
+def package_plugin(plugin_dir: Path, out_dir: Path) -> Path
+```
+
+Pack a plugin into a ``.tar.gz`` archive and update ``SHA256SUMS``.
+
+**Arguments**:
+
+- `plugin_dir` - Path to the plugin root.
+- `out_dir` - Destination directory for the archive and checksums file.
+  
+
+**Returns**:
+
+  Path to the created ``.tar.gz`` archive.
+  
+
+**Raises**:
+
+- `ValueError` - If the manifest is invalid.
+- `FileNotFoundError` - If a required native binary, modules tree, or logo is missing.
+- `subprocess.CalledProcessError` - If ``tar`` fails.
+  
+
+**Examples**:
+
+  >>> # archive = package_plugin(Path("./my-plugin"), Path("./dist"))
+  >>> # print(f"packed {archive}")
+
+#### TYPES\_OUTPUT\_FILE
+
+Default ``types`` output filename next to ``plugin.toml``.
+
+#### env\_properties\_for
+
+```python
+def env_properties_for(m: dict[str, Any]) -> list[tuple[str, str, str]]
+```
+
+Compute the ``Env`` protocol members for a validated manifest.
+
+**Arguments**:
+
+- `m` - Validated manifest dict.
+  
+
+**Returns**:
+
+  ``(binding, python_type, doc)`` tuples in stable emission order.
+  
+
+**Raises**:
+
+- `ValueError` - When a ``[[databases]]`` binding collides with a reserved name
+  or a binding is declared twice.
+
+#### render\_env\_types
+
+```python
+def render_env_types(m: dict[str, Any]) -> str
+```
+
+Render the ``bookclerk_configuration.py`` typing stub for a validated manifest.
+
+The stub declares an ``Env`` :class:`typing.Protocol` naming every binding
+the manifest grants so editors and type checkers can follow
+``self.env.<BINDING>`` inside ``BookclerkEntrypoint`` subclasses.
+
+**Arguments**:
+
+- `m` - Validated manifest dict.
+  
+
+**Returns**:
+
+  Python source text (ends with a newline).
+  
+
+**Raises**:
+
+- `ValueError` - When binding names collide.
+
+#### generate\_types
+
+```python
+def generate_types(plugin_dir: Path, out_file: Path | None = None) -> str
+```
+
+Write ``bookclerk_configuration.py`` beside a plugin's ``plugin.toml``.
+
+**Arguments**:
+
+- `plugin_dir` - Plugin root containing ``plugin.toml``.
+- `out_file` - Optional output path (default ``<plugin_dir>/bookclerk_configuration.py``).
+  
+
+**Returns**:
+
+  Status string naming the written file.
+  
+
+**Raises**:
+
+- `ValueError` - When the manifest is invalid or bindings collide.
+- `OSError` - If files cannot be read or written.
+
