@@ -144,6 +144,7 @@ module-level docs.
 - [`protocol::PurchaseHint`](../bookclerk_plugin_abi/generated.md#purchasehint)
 - [`protocol::PurchaseHintParams`](../bookclerk_plugin_abi/generated.md#purchasehintparams)
 - [`protocol::PurchaseHintResult`](../bookclerk_plugin_abi/generated.md#purchasehintresult)
+- [`protocol::RevokeAccountParams`](../bookclerk_plugin_abi/generated.md#revokeaccountparams)
 - [`protocol::S3CredentialsDto`](../bookclerk_plugin_abi/kind.md#s3credentialsdto)
 - [`protocol::ScanBook`](../bookclerk_plugin_abi/generated.md#scanbook)
 - [`protocol::ScanLibraryParams`](../bookclerk_plugin_abi/generated.md#scanlibraryparams)

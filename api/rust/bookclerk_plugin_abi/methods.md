@@ -42,6 +42,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](methods/names.md).
 - [`list_deals`](methods/list_deals.md): List current storefront deals / promotions.
 - [`list_accounts`](methods/list_accounts.md): List source accounts known to the guest (host usually prefers DB rows).
 - [`catalog_detail`](methods/catalog_detail.md): Fetch rich catalog detail for one product id.
+- [`revoke_account`](methods/revoke_account.md): Undo store-side state for one account before the host deletes its stored credentials (for example, deregister the login device).
 - [`put`](methods/put.md): Put a small object (cover/sidecar) into an output destination.
 - [`get`](methods/get.md): Read a small object from an output destination.
 - [`exists`](methods/exists.md): Test whether an object key exists in an output destination.

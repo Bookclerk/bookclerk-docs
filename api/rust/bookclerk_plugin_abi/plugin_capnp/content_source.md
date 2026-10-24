@@ -32,6 +32,8 @@
 | [`DiagnoseResults`](#diagnoseresults) | type alias |  |
 | [`CatalogDetailParams`](#catalogdetailparams) | type alias |  |
 | [`CatalogDetailResults`](#catalogdetailresults) | type alias |  |
+| [`RevokeAccountParams`](#revokeaccountparams) | type alias |  |
+| [`RevokeAccountResults`](#revokeaccountresults) | type alias |  |
 
 ## Modules
 
@@ -61,6 +63,8 @@
 - [`diagnose_results`](content_source/diagnose_results.md)
 - [`catalog_detail_params`](content_source/catalog_detail_params.md)
 - [`catalog_detail_results`](content_source/catalog_detail_results.md)
+- [`revoke_account_params`](content_source/revoke_account_params.md)
+- [`revoke_account_results`](content_source/revoke_account_results.md)
 
 ## Traits
 
@@ -132,6 +136,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: CatalogDetailParams,
         _: CatalogDetailResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn revoke_account(
+        self: Rc<Self>,
+        _: RevokeAccountParams,
+        _: RevokeAccountResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -266,6 +275,16 @@ fn catalog_detail(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::revoke_account
+
+```rust
+fn revoke_account(
+    self: Rc<Self>,
+    _: RevokeAccountParams,
+    _: RevokeAccountResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -352,6 +371,12 @@ pub fn diagnose_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn catalog_detail_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::revoke_account_request
+
+```rust
+pub fn revoke_account_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -541,4 +566,16 @@ pub type CatalogDetailParams = Params<Owned>;
 
 ```rust
 pub type CatalogDetailResults = Results<Owned>;
+```
+
+### RevokeAccountParams
+
+```rust
+pub type RevokeAccountParams = Params<Owned>;
+```
+
+### RevokeAccountResults
+
+```rust
+pub type RevokeAccountResults = Results<Owned>;
 ```

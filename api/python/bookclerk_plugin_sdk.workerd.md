@@ -1244,6 +1244,17 @@ async def catalogDetail(self, _params: abi.CatalogDetailParams)
 
 Full catalog record (`CatalogDetailParams` → `CatalogHit`).
 
+#### StorefrontEntrypoint.revokeAccount
+
+```python
+async def revokeAccount(self, _params: abi.RevokeAccountParams) -> None
+```
+
+Sign the account out at the store before the host deletes its credentials.
+
+Best effort: the host revokes the account whatever this returns. The
+default does nothing (`RevokeAccountParams` → `None`).
+
 #### StorefrontEntrypoint.health
 
 ```python

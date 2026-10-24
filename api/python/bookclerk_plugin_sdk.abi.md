@@ -156,6 +156,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PurchaseHintParams`](#purchasehintparams) | class | Params of `ContentSource.purchaseHint`. At least one identity field (`productId` / `asin` / `isbn` / title+authors) should be set; guests may return `invalid_params` when none are usable. |
 | [`ListDealsParams`](#listdealsparams) | class | Params of `ContentSource.listDeals`. |
 | [`CatalogDetailParams`](#catalogdetailparams) | class | Params of `ContentSource.catalogDetail`. |
+| [`RevokeAccountParams`](#revokeaccountparams) | class | Params of `ContentSource.revokeAccount`. The host sends the credentials it is about to delete so the guest can sign the device out at the store. |
 | [`CatalogHit`](#cataloghit) | class | One catalog / candidate hit returned by `searchCatalog`, `expandCandidates`, `listDeals`, and `catalogDetail`. |
 | [`CatalogHits`](#cataloghits) | class | Success payload of the catalog list methods. |
 | [`CatalogHitsReplyOk`](#cataloghitsreplyok) | class | `CatalogHitsReply` member `ok`. |
@@ -2225,6 +2226,24 @@ Full catalog record for one product.
 
 `CatalogDetailReply`
 
+#### ContentSource.revoke_account
+
+```python
+async def revoke_account(self, params: RevokeAccountParams) -> EmptyReply
+```
+
+Undo store-side state for one account before the host deletes its
+stored credentials (for example, deregister the device registered at
+login). Best effort: the host revokes the account whatever this returns.
+
+**Args**
+
+- `params`: Account id and its stored credentials.
+
+**Returns**
+
+`EmptyReply`
+
 ### RemoteLibrary
 
 ```python
@@ -3177,6 +3196,20 @@ Params of `ContentSource.catalogDetail`.
 
 - `productId`: Store product id (Libro ISBN or ISBN-slug).
 - `isbn`: ISBN when it differs from `productId`. Omitted when absent (wire zero value).
+
+### RevokeAccountParams
+
+```python
+class RevokeAccountParams(TypedDict)
+```
+
+Params of `ContentSource.revokeAccount`. The host sends the credentials it
+is about to delete so the guest can sign the device out at the store.
+
+**Attributes**
+
+- `accountId`: Account being revoked.
+- `credentials`: Decrypted credential blob for this account, exactly as login returned it; never log it. Empty when none is stored. Omitted when absent (wire zero value).
 
 ### CatalogHit
 

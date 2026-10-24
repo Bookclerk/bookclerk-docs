@@ -382,6 +382,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::PurchaseHintParams`](generated.md#purchasehintparams)
 - [`generated::ListDealsParams`](generated.md#listdealsparams)
 - [`generated::CatalogDetailParams`](generated.md#catalogdetailparams)
+- [`generated::RevokeAccountParams`](generated.md#revokeaccountparams)
 - [`generated::CatalogHit`](generated.md#cataloghit)
 - [`generated::CatalogHits`](generated.md#cataloghits)
 - [`generated::CatalogDetail`](generated.md#catalogdetail)
@@ -492,6 +493,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_list_deals_params`](generated.md#read_list_deals_params)
 - [`generated::write_catalog_detail_params`](generated.md#write_catalog_detail_params)
 - [`generated::read_catalog_detail_params`](generated.md#read_catalog_detail_params)
+- [`generated::write_revoke_account_params`](generated.md#write_revoke_account_params)
+- [`generated::read_revoke_account_params`](generated.md#read_revoke_account_params)
 - [`generated::write_catalog_hit`](generated.md#write_catalog_hit)
 - [`generated::read_catalog_hit`](generated.md#read_catalog_hit)
 - [`generated::write_catalog_hits`](generated.md#write_catalog_hits)
@@ -1172,6 +1175,13 @@ pub trait ContentSource {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn revoke_account<'life0, 'async_trait>(
+        &'life0 self,
+        _params: RevokeAccountParams,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn health<'life0, 'async_trait>(
         &'life0 self,
     ) -> Pin<Box<dyn Future<Output = Result<HealthOk>> + 'async_trait>>
@@ -1346,6 +1356,30 @@ where
 ```
 
 Full catalog record for one product; `Ok(None)` when unknown.
+
+#### ContentSource::revoke_account
+
+```rust
+fn revoke_account<'life0, 'async_trait>(
+    &'life0 self,
+    _params: RevokeAccountParams,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Undo store-side state for one account before the host deletes its
+stored credentials, such as deregistering the device registered at
+login.
+
+The default does nothing, which is right for stores that keep no
+per-login state.
+
+##### Errors
+
+Returns an error when the store rejects the sign-out. The host logs it
+and revokes the account anyway.
 
 #### ContentSource::health
 

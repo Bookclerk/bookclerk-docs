@@ -42,9 +42,11 @@ keeps stable naming. All credentials live in the `encrypted_secrets` DB table.
 | [`request_content_license`](#request_content_license) | function | Request an Adrm/Mpeg download license for `asin`. |
 | [`summarize_license`](#summarize_license) | function | Summarize a license without exposing voucher / URL query secrets. |
 | [`credentials_json_from_auth`](#credentials_json_from_auth) | function | Build credential JSON from an authenticator (optional Widevine CDM bytes). |
+| [`deregister_device`](#deregister_device) | function | Deregister the device behind `client`, leaving the account's other devices registered. |
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download + decrypt one title; return plain paths (never encrypted on the wire). |
 | [`guest_login_complete`](#guest_login_complete) | function | Await a pending OAuth session and return account + opaque credential bytes. |
 | [`guest_login_start`](#guest_login_start) | function | Start LoginServer OAuth; return `(session_id, browser_url)`. |
+| [`guest_revoke_account`](#guest_revoke_account) | function | Deregister the Audible device that login registered for these credentials. |
 | [`guest_scan`](#guest_scan) | function | Scan libraries for host-injected credential blobs. |
 | [`render_login_qr`](#render_login_qr) | function | Render `url` as a terminal QR code string (plus the raw URL). |
 | [`resolve_auth_password`](#resolve_auth_password) | function | Resolve the auth encryption passphrase from `BOOKCLERK_AUTH_PASSWORD`, if set. |
@@ -845,6 +847,27 @@ Build credential JSON from an authenticator (optional Widevine CDM bytes).
 
 Returns an error when the operation fails.
 
+### deregister_device
+
+```rust
+pub async fn deregister_device(client: &Client) -> Result<Option<String>>
+```
+
+Deregister the device behind `client`, leaving the account's other
+devices registered.
+
+Exposed for wiremock CI tests (inject a [`Client`](https://docs.rs/audible_rs/latest/audible_rs/api/client/struct.Client.html) with
+`auth_base_override`).
+
+#### Returns
+
+The device name Amazon assigned at registration, when known.
+
+#### Errors
+
+Returns an error when the token refresh fails or Amazon rejects the
+deregistration.
+
 ### guest_fetch_title
 
 ```rust
@@ -896,6 +919,32 @@ on forwarded streams (required under Windows AppContainer).
 #### Errors
 
 Returns an error when the operation fails.
+
+### guest_revoke_account
+
+```rust
+pub async fn guest_revoke_account(credentials: &Value) -> Result<Option<String>>
+```
+
+Deregister the Audible device that login registered for these credentials.
+
+Only this device is removed (`deregister_all = false`); the account's other
+devices stay. Amazon invalidates the tokens on success, so the host deletes
+the credentials afterwards either way.
+
+#### Arguments
+
+* `credentials` - Credential JSON exactly as login returned it.
+
+#### Returns
+
+The device name Amazon assigned at registration, when the credentials
+record one.
+
+#### Errors
+
+Returns an error when the credentials do not parse, the token refresh
+fails, or Amazon rejects the deregistration.
 
 ### guest_scan
 

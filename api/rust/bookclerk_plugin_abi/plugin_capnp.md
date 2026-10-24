@@ -154,6 +154,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`purchase_hint_params`](plugin_capnp/purchase_hint_params.md)
 - [`list_deals_params`](plugin_capnp/list_deals_params.md)
 - [`catalog_detail_params`](plugin_capnp/catalog_detail_params.md)
+- [`revoke_account_params`](plugin_capnp/revoke_account_params.md)
 - [`catalog_hit`](plugin_capnp/catalog_hit.md)
 - [`catalog_hits`](plugin_capnp/catalog_hits.md)
 - [`catalog_hits_reply`](plugin_capnp/catalog_hits_reply.md)

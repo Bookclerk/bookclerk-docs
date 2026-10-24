@@ -63,6 +63,7 @@ Prefer product docs under `docs/plugins.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::PurchaseHint`](../bookclerk_plugin_abi/generated.md#purchasehint)
 - [`bookclerk_plugin_abi::PurchaseHintParams`](../bookclerk_plugin_abi/generated.md#purchasehintparams)
 - [`bookclerk_plugin_abi::PurchaseHintResult`](../bookclerk_plugin_abi/generated.md#purchasehintresult)
+- [`bookclerk_plugin_abi::RevokeAccountParams`](../bookclerk_plugin_abi/generated.md#revokeaccountparams)
 - [`bookclerk_plugin_abi::S3CredentialsDto`](../bookclerk_plugin_abi/kind.md#s3credentialsdto)
 - [`bookclerk_plugin_abi::ScanBook`](../bookclerk_plugin_abi/generated.md#scanbook)
 - [`bookclerk_plugin_abi::ScanLibraryParams`](../bookclerk_plugin_abi/generated.md#scanlibraryparams)

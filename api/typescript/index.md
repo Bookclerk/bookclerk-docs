@@ -3417,6 +3417,29 @@ Purchase link / price hint; `null` when the title is unknown.
 
 Hint or `null`.
 
+##### revokeAccount()
+
+```ts
+revokeAccount(_params): Promise<void>;
+```
+
+Undo store-side state for one account before the host deletes its
+credentials, such as deregistering the device registered at login.
+Best effort: the host revokes the account whatever this returns. The
+default does nothing.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`RevokeAccountParams`](#revokeaccountparams) | Account id and its stored credentials. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the store sign-out finished.
+
 ##### scan()
 
 ```ts
@@ -4926,6 +4949,28 @@ Purchase link / price hint for one title.
 `Promise`\<[`PurchaseHintReply`](#purchasehintreply)\>
 
 [PurchaseHintReply](#purchasehintreply)
+
+##### revokeAccount()
+
+```ts
+revokeAccount(params): Promise<EmptyReply>;
+```
+
+Undo store-side state for one account before the host deletes its
+stored credentials (for example, deregister the device registered at
+login). Best effort: the host revokes the account whatever this returns.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`RevokeAccountParams`](#revokeaccountparams) | Account id and its stored credentials. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
 
 ##### scan()
 
@@ -10482,6 +10527,33 @@ requestHash: string;
 ```
 
 Canonical Cap'n request hash stamped by the host.
+
+***
+
+### RevokeAccountParams
+
+Params of `ContentSource.revokeAccount`. The host sends the credentials it
+is about to delete so the guest can sign the device out at the store.
+
+#### Properties
+
+##### accountId
+
+```ts
+accountId: string;
+```
+
+Account being revoked.
+
+##### credentials?
+
+```ts
+optional credentials?: Uint8Array<ArrayBufferLike>;
+```
+
+Decrypted credential blob for this account, exactly as login returned
+it; never log it. Empty when none is stored.
+Omitted when absent (wire zero value).
 
 ***
 

@@ -43,6 +43,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`PurchaseHintParams`](#purchasehintparams) | struct | Params of `ContentSource.purchaseHint`. At least one identity field (`productId` / `asin` / `isbn` / title+authors) should be set; guests may return `invalid_params` when none are usable. |
 | [`ListDealsParams`](#listdealsparams) | struct | Params of `ContentSource.listDeals`. |
 | [`CatalogDetailParams`](#catalogdetailparams) | struct | Params of `ContentSource.catalogDetail`. |
+| [`RevokeAccountParams`](#revokeaccountparams) | struct | Params of `ContentSource.revokeAccount`. The host sends the credentials it is about to delete so the guest can sign the device out at the store. |
 | [`CatalogHit`](#cataloghit) | struct | One catalog / candidate hit returned by `searchCatalog`, `expandCandidates`, `listDeals`, and `catalogDetail`. |
 | [`CatalogHits`](#cataloghits) | struct | Success payload of the catalog list methods. |
 | [`CatalogDetail`](#catalogdetail) | struct | Success payload of `ContentSource.catalogDetail`. |
@@ -160,6 +161,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_list_deals_params`](#read_list_deals_params) | function | Decode a `ListDealsParams` from a Cap'n Proto reader. |
 | [`write_catalog_detail_params`](#write_catalog_detail_params) | function | Encode a `CatalogDetailParams` onto a Cap'n Proto builder. |
 | [`read_catalog_detail_params`](#read_catalog_detail_params) | function | Decode a `CatalogDetailParams` from a Cap'n Proto reader. |
+| [`write_revoke_account_params`](#write_revoke_account_params) | function | Encode a `RevokeAccountParams` onto a Cap'n Proto builder. |
+| [`read_revoke_account_params`](#read_revoke_account_params) | function | Decode a `RevokeAccountParams` from a Cap'n Proto reader. |
 | [`write_catalog_hit`](#write_catalog_hit) | function | Encode a `CatalogHit` onto a Cap'n Proto builder. |
 | [`read_catalog_hit`](#read_catalog_hit) | function | Decode a `CatalogHit` from a Cap'n Proto reader. |
 | [`write_catalog_hits`](#write_catalog_hits) | function | Encode a `CatalogHits` onto a Cap'n Proto builder. |
@@ -1109,6 +1112,27 @@ Params of `ContentSource.catalogDetail`.
 
 - `product_id`: Store product id (Libro ISBN or ISBN-slug).
 - `isbn`: ISBN when it differs from `productId`.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### RevokeAccountParams
+
+```rust
+pub struct RevokeAccountParams {
+    pub account_id: String,
+    pub credentials: Option<Vec<u8>>,
+}
+```
+
+Params of `ContentSource.revokeAccount`. The host sends the credentials it
+is about to delete so the guest can sign the device out at the store.
+
+**Fields**
+
+- `account_id`: Account being revoked.
+- `credentials`: Decrypted credential blob for this account, exactly as login returned
+  it; never log it. Empty when none is stored.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -3058,6 +3082,30 @@ Decode a [`CatalogDetailParams`](#catalogdetailparams) from a Cap'n Proto reader
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_revoke_account_params
+
+```rust
+pub fn write_revoke_account_params(b: Builder<'_>, v: &RevokeAccountParams) -> Result<()>
+```
+
+Encode a [`RevokeAccountParams`](#revokeaccountparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_revoke_account_params
+
+```rust
+pub fn read_revoke_account_params(r: Reader<'_>) -> Result<RevokeAccountParams>
+```
+
+Decode a [`RevokeAccountParams`](#revokeaccountparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### write_catalog_hit
 
 ```rust
@@ -4140,7 +4188,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 82;
+pub const READ_ANY_COUNT: u8 = 83;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

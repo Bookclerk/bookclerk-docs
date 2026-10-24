@@ -209,6 +209,9 @@ Unlinks a store account from this identity and deletes secrets when no other ide
 The account is addressed by `(source, account_id)`: the same store id may
 exist under two plugins. `source` is the alias or plugin key of the link.
 
+When the last link goes, the plugin first signs the account out at the
+store (for example, Audible deregisters its device), best effort.
+
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
 **Credentials:** `portalSession`
