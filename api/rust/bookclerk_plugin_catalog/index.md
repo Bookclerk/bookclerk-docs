@@ -13,6 +13,7 @@ See `docs/plugin-registry.md`.
 | [`StaticAdapter`](#staticadapter) | struct | Adapter over an in-memory or remote static index. |
 | [`StaticIndex`](#staticindex) | struct | Top-level static index document. |
 | [`StaticPackage`](#staticpackage) | struct | One package entry in a static registry index. |
+| [`BundledSync`](#bundledsync) | struct | Outcome of `sync_bundled_platform` for one bundled platform artifact. |
 | [`CatalogHit`](#cataloghit) | struct | One discovery hit from any registry adapter. |
 | [`SearchQuery`](#searchquery) | struct | Search query passed to adapters. |
 | [`PackageCoordinate`](#packagecoordinate) | struct | Exact package coordinate: source + name + version. |
@@ -35,6 +36,7 @@ See `docs/plugin-registry.md`.
 | [`InstallReceipt`](#installreceipt) | struct | Record written after a successful install / update. |
 | [`TrustPolicy`](#trustpolicy) | struct | Trust policy for plugin installation (digest-required artifacts). |
 | [`Version`](#version) | struct | Parsed `major.minor.patch` with optional pre-release / build metadata. |
+| [`BundledSyncAction`](#bundledsyncaction) | enum | What `sync_bundled_platform` did for one platform artifact. |
 | [`RegistrySource`](#registrysource) | enum | Where a package was discovered / will be fetched from. |
 | [`CatalogError`](#catalogerror) | enum | Failures from discovery, manifest validation, download, or installation. |
 | [`PluginProvenance`](#pluginprovenance) | enum | How Bookclerk established (or lost) trust in an installed tree. |
@@ -42,6 +44,8 @@ See `docs/plugin-registry.md`.
 | [`PluginKind`](#pluginkind) | enum | Which Bookclerk surface a plugin implements. |
 | [`ArchiveFormat`](#archiveformat) | enum | Archive format for a target. |
 | [`load_static_index`](#load_static_index) | function | Load a static index from a file path or `file://` URL. |
+| [`bundled_plugins_dir_beside`](#bundled_plugins_dir_beside) | function | Bundled plugin directory for the host executable at `exe`, when it exists. |
+| [`sync_bundled_platform`](#sync_bundled_platform) | function | Installs bundled platform plugins from `bundle` into `files_dir`. |
 | [`evaluate_install`](#evaluate_install) | function | Evaluate identity + provenance for an install directory. |
 | [`evaluate_install_in`](#evaluate_install_in) | function | Evaluate identity + provenance, consulting the host install ledger under `files_dir` when provided. |
 | [`stamp_platform_receipt`](#stamp_platform_receipt) | function | Build a host-owned platform-bundled receipt **and** ledger row. |
@@ -78,6 +82,7 @@ See `docs/plugin-registry.md`.
 | [`list_versions_for_coordinate`](#list_versions_for_coordinate) | function | List published versions for a coordinate's package name. |
 | [`resolve_newer_version`](#resolve_newer_version) | function | Resolve the newest version newer than `coord.version`, if any. |
 | [`Result`](#result) | type alias | Result alias for `CatalogError`. |
+| [`BUNDLED_PLUGINS_DIR`](#bundled_plugins_dir) | constant | Directory beside the host executable that holds bundled platform plugins. |
 | [`CATALOG_DTO_SCHEMA_VERSION`](#catalog_dto_schema_version) | constant | Schema version for CLI JSON catalog output. |
 | [`MAX_ARCHIVE_BYTES`](#max_archive_bytes) | constant | Hard cap on archive file size before extraction. |
 | [`MAX_EXTRACTED_BYTES`](#max_extracted_bytes) | constant | Hard cap on total extracted archive bytes. |
@@ -283,6 +288,24 @@ One package entry in a static registry index.
 - `versions`: Known versions and manifests for this static package.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### BundledSync
+
+```rust
+pub struct BundledSync {
+    pub artifact: &'static PlatformArtifact,
+    pub action: BundledSyncAction,
+}
+```
+
+Outcome of [`sync_bundled_platform`](#sync_bundled_platform) for one bundled platform artifact.
+
+**Fields**
+
+- `artifact`: The platform package this row is about.
+- `action`: What was done.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### CatalogHit
 
@@ -1531,6 +1554,32 @@ Implements: `Clone`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
 
 ## Enums
 
+### BundledSyncAction
+
+```rust
+pub enum BundledSyncAction {
+    Installed,
+    Updated,
+    Current,
+    AliasOccupied { path: PathBuf },
+    Failed { reason: String },
+}
+```
+
+What [`sync_bundled_platform`](#sync_bundled_platform) did for one platform artifact.
+
+**Variants**
+
+- `Installed`: The files directory had no tree for this PluginKey; the bundled copy was installed.
+- `Updated`: An untrusted or different tree was replaced by the bundled copy.
+- `Current`: The installed tree is trusted and byte-identical to the bundled copy.
+- `AliasOccupied`: Another directory under `$FILES_DIR/plugins` claims this alias; nothing was touched.
+  - `path`: The occupying directory.
+- `Failed`: This artifact could not be checked or installed; the others were still synced.
+  - `reason`: Operator-facing reason.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### RegistrySource
 
 ```rust
@@ -1781,6 +1830,54 @@ Load a static index from a file path or `file://` URL.
 #### Errors
 
 Returns an error when the operation fails.
+
+### bundled_plugins_dir_beside
+
+```rust
+pub fn bundled_plugins_dir_beside(exe: &Path) -> Option<PathBuf>
+```
+
+Bundled plugin directory for the host executable at `exe`, when it exists.
+
+#### Arguments
+
+* `exe` - Path of the running host binary (`std::env::current_exe()`).
+
+#### Returns
+
+`<dir of exe>/plugins` when that is a real directory (not a symlink);
+`None` otherwise, which is the normal case for development builds.
+
+### sync_bundled_platform
+
+```rust
+pub fn sync_bundled_platform(bundle: &Path, files_dir: &Path) -> Result<Vec<BundledSync>>
+```
+
+Installs bundled platform plugins from `bundle` into `files_dir`.
+
+Artifacts the bundle does not carry get no row. When `bundle` is
+`files_dir/plugins` itself (a release bundle used directly as the files
+directory) there is nothing to copy and the result is empty. A failure for
+one artifact is reported in its row and does not stop the others.
+
+When an install is needed this blocks on the files directory's
+[`PluginMutationLock`](#pluginmutationlock), so it must not be called while this process holds
+that lock.
+
+#### Arguments
+
+* `bundle` - Directory holding `<PluginKey fs-id>/plugin.toml` trees.
+* `files_dir` - Host `$BOOKCLERK_FILES_DIR` that owns `install-ledger.json`.
+
+#### Returns
+
+One [`BundledSync`](#bundledsync) per platform artifact found in `bundle`.
+
+#### Errors
+
+Returns an error only when the bundle or `files_dir/plugins` cannot be
+resolved, or the mutation lock cannot be taken.
 
 ### evaluate_install
 
@@ -2315,6 +2412,14 @@ pub type Result<T> = Result<T, CatalogError>;
 Result alias for [`CatalogError`](#catalogerror).
 
 ## Constants
+
+### BUNDLED_PLUGINS_DIR
+
+```rust
+pub const BUNDLED_PLUGINS_DIR: &str = "plugins";
+```
+
+Directory beside the host executable that holds bundled platform plugins.
 
 ### CATALOG_DTO_SCHEMA_VERSION
 

@@ -99,6 +99,7 @@ See `docs/plugins.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`spawn_grant_watcher`](#spawn_grant_watcher) | function | Spawn the daemon grant watcher (fire-and-forget). |
 | [`unregister_session`](#unregister_session) | function | Drops a previously registered cancel flag from the live set. |
 | [`watch_grants_loop`](#watch_grants_loop) | function | Watch `plugin-grants.json` until the process exits. |
+| [`install_bundled_platform_plugins`](#install_bundled_platform_plugins) | function | Installs bundled platform plugins from beside the running executable into `files_dir`. |
 | [`active_processes_for`](#active_processes_for) | function | Absolute Spec `active_processes` from runtime overhead + extra budget. |
 | [`canonical_event_filter`](#canonical_event_filter) | function | Minified JSON for an event filter; `null` / missing → `None`. |
 | [`consent_request`](#consent_request) | function | Build the consent request surface from a manifest and its PluginKey. |
@@ -4061,6 +4062,28 @@ Watch `plugin-grants.json` until the process exits.
 In-process [`notify_grants_changed`](#notify_grants_changed) wakes immediately; CLI writes in
 another process are picked up within [`GRANT_WATCH_INTERVAL`](#grant_watch_interval).
 
+### install_bundled_platform_plugins
+
+```rust
+pub async fn install_bundled_platform_plugins(files_dir: &Path)
+```
+
+Installs bundled platform plugins from beside the running executable into `files_dir`.
+
+A no-op when no `plugins/` directory sits beside the executable (development
+builds) or this process already tried `files_dir`. The hashing and copying
+run on the blocking pool. Failures are logged and do not stop startup:
+discovery then reports the missing or untrusted plugin the same way it
+would without a bundle.
+
+When something has to be installed the sync takes the files directory's
+[`bookclerk_plugin_catalog::PluginMutationLock`](../bookclerk_plugin_catalog/index.md#pluginmutationlock), so the first call for a
+files directory must not run while this process holds that lock.
+
+#### Arguments
+
+* `files_dir` - Host `$BOOKCLERK_FILES_DIR` that owns `plugins/` and the install ledger.
+
 ### active_processes_for
 
 ```rust
@@ -5087,6 +5110,9 @@ pub async fn load_external_database(config: &Config) -> Result<DatabaseRegistry>
 ```
 
 Discover and spawn the external database plugin matching `[database].plugin`.
+
+Platform plugins bundled beside the host executable are installed into the
+files directory first ([`crate::install_bundled_platform_plugins`](#install_bundled_platform_plugins)).
 
 Guests are required: when the matching database plugin is missing or fails to
 start, [`open_library_store`](#open_library_store) returns an error (no in-process engine).
