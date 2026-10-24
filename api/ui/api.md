@@ -5676,15 +5676,15 @@ Approves network consent for a plugin.
 | `grant?` | \{ `addressCidrs?`: `string`[]; `allowUndeclaredPublicRedirects?`: `boolean`; `bindings`: `string`[]; `compatibilityFlags`: `string`[]; `cpuCores?`: `number`; `cpuMs?`: `number`; `diskMib?`: `number`; `domains`: `string`[]; `extraProcesses?`: `number`; `memoryMib?`: `number`; `networkMode`: `string`; `subrequests?`: `number`; `tcp?`: `object`[]; \} | Operator-approved grant overlay; omitted fields keep defaults. |
 | `grant.addressCidrs?` | `string`[] | - |
 | `grant.allowUndeclaredPublicRedirects?` | `boolean` | - |
-| `grant.bindings?` | `string`[] | - |
-| `grant.compatibilityFlags?` | `string`[] | - |
+| `grant.bindings` | `string`[] | - |
+| `grant.compatibilityFlags` | `string`[] | - |
 | `grant.cpuCores?` | `number` | - |
 | `grant.cpuMs?` | `number` | - |
 | `grant.diskMib?` | `number` | - |
-| `grant.domains?` | `string`[] | - |
+| `grant.domains` | `string`[] | - |
 | `grant.extraProcesses?` | `number` | - |
 | `grant.memoryMib?` | `number` | - |
-| `grant.networkMode?` | `string` | - |
+| `grant.networkMode` | `string` | - |
 | `grant.subrequests?` | `number` | - |
 | `grant.tcp?` | `object`[] | - |
 | `pluginKey?` | `string` | Provenance-qualified PluginKey when the alias is ambiguous. |
@@ -6127,7 +6127,7 @@ Loads Discover recommendation shelves.
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `limit` | `number` | `36` | Max items per shelf (default 36). Seed URLs only; live prices load later. |
+| `limit?` | `number` | `36` | Max items per shelf (default 36). Seed URLs only; live prices load later. |
 
 #### Returns
 

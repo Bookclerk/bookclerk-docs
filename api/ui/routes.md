@@ -217,7 +217,7 @@ True when this document is the magic-link invite route.
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `pathname` | `string` | `window.location.pathname` | Document pathname. |
+| `pathname?` | `string` | `window.location.pathname` | Document pathname. |
 
 #### Returns
 
@@ -239,7 +239,7 @@ Which Join a library page this document is, if any.
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `pathname` | `string` | `window.location.pathname` | Document pathname. |
+| `pathname?` | `string` | `window.location.pathname` | Document pathname. |
 
 #### Returns
 
@@ -374,7 +374,7 @@ Drops `ticket` and `sso_error` so a claimed invite URL is not kept on
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
 | `view` | [`AppView`](api.md#appview) | `undefined` | View to reflect in the path. |
-| `mode` | `"replace"` \| `"push"` | `"push"` | History `push` (default) or `replace`. |
+| `mode?` | `"replace"` \| `"push"` | `"push"` | History `push` (default) or `replace`. |
 
 #### Returns
 

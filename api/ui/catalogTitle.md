@@ -496,7 +496,7 @@ Soft language rank for ordering search hits.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `hitLanguage` | `string` \| `null` \| `undefined` | Language on the hit. |
-| `preferred` | `string` | Preferred language (default: browser). |
+| `preferred?` | `string` | Preferred language (default: browser). |
 
 #### Returns
 
@@ -545,7 +545,7 @@ Options for the language `<select>`, ensuring the browser default appears.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `preferred` | `string` | Preferred BCP-47 primary tag (default: browser language). |
+| `preferred?` | `string` | Preferred BCP-47 primary tag (default: browser language). |
 
 #### Returns
 
@@ -884,14 +884,14 @@ Stable soft-sort: preferred language first, then unknown, then other.
 
 | Type Parameter |
 | ------ |
-| `T` *extends* `object` |
+| <a id="type-parameter-t"></a> `T` *extends* `object` |
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `items` | `T`[] | Rows with optional `language`. |
-| `preferred` | `string` | Preferred language code. |
+| `preferred?` | `string` | Preferred language code. |
 
 #### Returns
 
@@ -1096,7 +1096,7 @@ Where-to-buy does not depend on which surface fetched title-meta first.
 
 | Type Parameter |
 | ------ |
-| `T` *extends* `object` |
+| <a id="type-parameter-t-1"></a> `T` *extends* `object` |
 
 #### Parameters
 
