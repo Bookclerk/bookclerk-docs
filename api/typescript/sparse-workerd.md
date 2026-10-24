@@ -391,8 +391,8 @@ install root; children stay under it.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `cacheDir` | `string` | Directory that will hold the binary (default [defaultCacheDir](#defaultcachedir)). |
-| `root` | `string` | Package root for loading the pin (default [packageRoot](#packageroot)). |
+| `cacheDir?` | `string` | Directory that will hold the binary (default [defaultCacheDir](#defaultcachedir)). |
+| `root?` | `string` | Package root for loading the pin (default [packageRoot](#packageroot)). |
 
 #### Returns
 
@@ -418,7 +418,7 @@ Loads and parses `workerd-pin.json` from the package root.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `root` | `string` | Package root override (defaults to [packageRoot](#packageroot)). |
+| `root?` | `string` | Package root override (defaults to [packageRoot](#packageroot)). |
 
 #### Returns
 
@@ -497,8 +497,8 @@ Maps Node `process.platform` / `process.arch` to a pin asset key.
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `platform` | `Platform` | `process.platform` | Node platform string (default `process.platform`). |
-| `arch` | `Architecture` | `process.arch` | Node arch string (default `process.arch`). |
+| `platform?` | `Platform` | `process.platform` | Node platform string (default `process.platform`). |
+| `arch?` | `Architecture` | `process.arch` | Node arch string (default `process.arch`). |
 
 #### Returns
 

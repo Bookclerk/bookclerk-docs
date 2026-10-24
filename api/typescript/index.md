@@ -224,7 +224,7 @@ export default class MyPlugin extends BookclerkEntrypoint<Env> {
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -555,7 +555,7 @@ Releases guest resources.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-1"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -600,7 +600,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -738,7 +738,7 @@ the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-2"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -783,7 +783,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -1407,7 +1407,7 @@ Decode [EventMessage.body](#body) as JSON.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-t"></a> `T` | [`JsonObject`](#jsonobject) |
 
 ###### Returns
 
@@ -1674,7 +1674,7 @@ Decode [JobController.payloadJson](#payloadjson).
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-t-1"></a> `T` | [`JsonObject`](#jsonobject) |
 
 ###### Returns
 
@@ -1764,7 +1764,7 @@ which installs the granted bindings on `env` before dispatching.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -1898,7 +1898,7 @@ verification. Export it as `export class Oidc extends OidcEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -1943,7 +1943,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -2414,7 +2414,7 @@ Decode [QueueMessage.body](#body-1) as JSON.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | `unknown` |
+| <a id="type-parameter-t-2"></a> `T` | `unknown` |
 
 ###### Returns
 
@@ -2471,7 +2471,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2516,7 +2516,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -2770,7 +2770,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2815,7 +2815,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -3085,7 +3085,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -3130,7 +3130,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-7)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
 
 ##### invocation
 
@@ -5161,7 +5161,7 @@ projection for plugin guests. Errors throw; successful calls always set `success
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | `Record`\<`string`, [`DbValue`](#dbvalue)\> |
+| <a id="type-parameter-t-3"></a> `T` | `Record`\<`string`, [`DbValue`](#dbvalue)\> |
 
 #### Properties
 
@@ -8009,7 +8009,7 @@ Read one key and parse it as JSON.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | `unknown` |
+| <a id="type-parameter-t-4"></a> `T` | `unknown` |
 
 ###### Parameters
 
@@ -8080,7 +8080,7 @@ Read one key as JSON with its metadata.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `T` | `unknown` |
+| <a id="type-parameter-t-5"></a> `T` | `unknown` |
 
 ###### Parameters
 
@@ -8251,7 +8251,7 @@ Value plus metadata from [KvNamespaceBinding.getWithMetadata](#getwithmetadata).
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t-6"></a> `T` |
 
 #### Properties
 
@@ -11040,7 +11040,7 @@ Stream an object (optionally a byte range).
 | `options?` | \{ `range?`: \{ `length?`: `number`; `offset`: `number`; \}; \} | Optional byte range. |
 | `options.range?` | \{ `length?`: `number`; `offset`: `number`; \} | - |
 | `options.range.length?` | `number` | - |
-| `options.range.offset?` | `number` | - |
+| `options.range.offset` | `number` | - |
 
 ###### Returns
 
@@ -12857,7 +12857,7 @@ Builds a host-mediated [DatabaseBinding](#databasebinding) over an `execute` tra
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `transport` | [`AtomicTransport`](#atomictransport) | Host session projection. |
-| `options` | [`DatabaseBindingOptions`](#databasebindingoptions) | Request-budget and idempotency knobs. |
+| `options?` | [`DatabaseBindingOptions`](#databasebindingoptions) | Request-budget and idempotency knobs. |
 
 #### Returns
 
