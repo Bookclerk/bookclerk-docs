@@ -40,6 +40,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_config`](bookclerk_config/index.md) | Bookclerk settings, paths, and naming template config |
 | [`bookclerk_db_exec`](bookclerk_db_exec/index.md) | Neutral SQL executor and transaction injects for database guests |
 | [`bookclerk_db_guest`](bookclerk_db_guest/index.md) | First-party database guest session workers (SeaORM proxy, host IR envelopes) |
+| [`bookclerk_demo_seed`](bookclerk_demo_seed/index.md) | Fills a fresh hosted-demo library with a second member, their books, wishlist and offline branch |
 | [`bookclerk_discover`](bookclerk_discover/index.md) | Recommendations, embeddings, listening sync, and title request helpers |
 | [`bookclerk_enrich`](bookclerk_enrich/index.md) | Source-agnostic Audible metadata enrichment (catalog + Audnexus + confidence scoring) |
 | [`bookclerk_integrations`](bookclerk_integrations/index.md) | Outbound integration framework (traits, registry, portal, claim tickets) |
