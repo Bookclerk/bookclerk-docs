@@ -7,28 +7,52 @@ library shows little of what Bookclerk does with more than one person, so
 before bookclerkd starts, the demo image runs this crate's binary once to
 add a second library user, Sam, who:
 
-- has a Libro.fm account linked, with public-domain titles already in the
-  library;
+- has an account at each storefront the image ships (Audible, Libro.fm,
+  Chirp and GraphicAudio), with well-known audiobooks from each already in
+  the library;
 - keeps a wishlist;
 - owns a branch, "sams-nas", that shared part of its catalog and then
   went offline (its last heartbeat is days old).
 
+The titles, authors and narrators are real so the library looks like one
+a person would keep; product ids are made up (prefixed `demo-`) so none
+claims to be a particular storefront listing.
+
 Everything is written through the library store and the branch catalog
 code the daemon uses, never raw SQL, so the seed follows the schema of
 the commit it is built from. Nothing here signs in: Sam has no password
-and no claim ticket, and the branch's credential keys are placeholders
-that never verify a signature.
+and no claim ticket, the store accounts hold no tokens, and the branch's
+credential keys are placeholders that never verify a signature.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`Storefront`](#storefront) | struct | A storefront the demo image ships, by its plugin id (`plugin.toml` `id`). |
 | [`SeedReport`](#seedreport) | struct | What `seed` wrote, for the log and for tests. |
 | [`Seeded`](#seeded) | enum | Outcome of `seed`. |
 | [`seed`](#seed) | function | Adds the sample library user, their books, wishlist and offline branch. |
 | [`SAMPLE_LOGIN`](#sample_login) | constant | Login name of the sample library user; its presence marks a seeded library. |
-| [`SAMPLE_STORE`](#sample_store) | constant | Plugin id (`plugin.toml` `id`) of the storefront Sam's books come from. |
+| [`STOREFRONTS`](#storefronts) | constant | Every storefront Sam has an account at, in the order the accounts are added. |
 | [`SAMPLE_BRANCH`](#sample_branch) | constant | Node id of Sam's offline branch. |
 
 ## Structs
+
+### Storefront
+
+```rust
+pub struct Storefront {
+    pub id: &'static str,
+    pub label: &'static str,
+}
+```
+
+A storefront the demo image ships, by its plugin id (`plugin.toml` `id`).
+
+**Fields**
+
+- `id`: Plugin id the host enrolls the storefront under (its alias).
+- `label`: Name shown on Sam's account for it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
 
 ### SeedReport
 
@@ -46,7 +70,7 @@ What [`seed`](#seed) wrote, for the log and for tests.
 **Fields**
 
 - `user_id`: Library user id of Sam.
-- `books`: Books added from Sam's Libro.fm account.
+- `books`: Books added from Sam's store accounts.
 - `branch_titles`: Titles Sam's branch shared.
 - `wishlist`: Wishlist items added for Sam.
 
@@ -80,7 +104,8 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 pub async fn seed(
     store: &LibraryStore,
     cluster_id: &str,
-    store_plugin_key: &str,
+    plugin_keys: &BTreeMap<&str, String>,
+    when: DateTime<Utc>,
 ) -> Result<Seeded>
 ```
 
@@ -94,8 +119,11 @@ changes nothing.
 
 * `store` - The open library.
 * `cluster_id` - The library's cluster id, recorded on the branch's node row.
-* `store_plugin_key` - PluginKey of the enrolled [`SAMPLE_STORE`](#sample_store) plugin,
-  which owns Sam's account and books.
+* `plugin_keys` - PluginKey of each enrolled storefront, by plugin id
+  ([`Storefront::id`](#storefront)). A storefront missing from it gets no account and
+  its titles are left out, so an image without one still gets the rest.
+* `when` - The time the library was seeded; purchase dates and the
+  branch's last heartbeat count back from it.
 
 #### Returns
 
@@ -116,13 +144,13 @@ pub const SAMPLE_LOGIN: &str = "sam";
 
 Login name of the sample library user; its presence marks a seeded library.
 
-### SAMPLE_STORE
+### STOREFRONTS
 
 ```rust
-pub const SAMPLE_STORE: &str = "libro";
+pub const STOREFRONTS: [Storefront; 4] = _;
 ```
 
-Plugin id (`plugin.toml` `id`) of the storefront Sam's books come from.
+Every storefront Sam has an account at, in the order the accounts are added.
 
 ### SAMPLE_BRANCH
 
