@@ -7,7 +7,7 @@ Library surface for the pinned Cloudflare `workerd` helper and egress policy.
 The `bookclerk-workerd` launcher binary and host packaging (`cargo ensure-workerd`).
 Guest authors do not link this crate; they run inside the isolate it configures.
 
-See `docs/plugins.md` for jail / workerd isolation requirements.
+See `docs/plugins/README.md` for jail / workerd isolation requirements.
 
 ## Re-exports
 

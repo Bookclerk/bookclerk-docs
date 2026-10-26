@@ -14,7 +14,7 @@ Dev workflow helpers for building and staging first-party plugin guests.
 
 ## Modules
 
-- [`package`](package.md): Release packaging aligned with `docs/plugin-registry.md` artifact naming.
+- [`package`](package.md): Release packaging aligned with `docs/plugins/registry.md` artifact naming.
 - [`plugins`](plugins.md): Directory-driven discovery, build, stage, and platform install for guests.
 
 ## Functions

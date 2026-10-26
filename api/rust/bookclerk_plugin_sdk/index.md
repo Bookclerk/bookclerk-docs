@@ -43,8 +43,8 @@ cargo plugin -- smoke .
 
 Generated rustdoc for this crate is part of the workspace API reference
 (`./scripts/generate-api-docs.sh` → `docs/api/rust/`). Style guide:
-`docs/code-documentation.md`. Product narrative: `docs/plugins.md`,
-`docs/plugin-registry.md`.
+`docs/contributing/code-documentation.md`. Product narrative: `docs/plugins/README.md`,
+`docs/plugins/registry.md`.
 
 ## Re-exports
 

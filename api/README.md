@@ -1,7 +1,7 @@
 # API reference
 
 Generated from the source at the same version as these docs.
-Writing a plugin? Start with the SDK for its language; [Plugins](../plugins.md) explains the model.
+Writing a plugin? Start with the SDK for its language; [Plugins](../plugins/README.md) explains the model.
 
 ## Plugin SDKs
 

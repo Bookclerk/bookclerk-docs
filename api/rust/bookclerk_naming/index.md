@@ -16,7 +16,7 @@ Current Libation templates use `<tag->…<-tag>` conditionals. Older Libation
 forms are still accepted for compatibility: `<if series>…<end if>`,
 `%asin%`, and bare `<asin>` tags.
 
-Style: `docs/code-documentation.md`.
+Style: `docs/contributing/code-documentation.md`.
 
 [NamingTemplate]: https://github.com/rmcrackan/Libation/tree/master/Source/FileManager/NamingTemplate
 

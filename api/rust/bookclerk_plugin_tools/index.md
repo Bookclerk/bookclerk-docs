@@ -13,7 +13,7 @@ plugins never link `bookclerk-workerd` or the packaging stack.
 | [`sync_embed`](#sync_embed) | Optional workerd JS vendor |
 | [`run_tools_cli`](#run_tools_cli) / [`smoke_plugin`](#smoke_plugin) | CLI entry + live workerd smoke |
 
-See `docs/plugins.md` and the crate README.
+See `docs/plugins/README.md` and the crate README.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

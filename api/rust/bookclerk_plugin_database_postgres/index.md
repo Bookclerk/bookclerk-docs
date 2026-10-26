@@ -3,7 +3,7 @@
 Optional PostgreSQL library database plugin.
 
 Alternate `[database]` backend for a networked Postgres instance. Hosts call
-[`open`](postgres.md#open) with the configured connection URL; see `docs/database.md`.
+[`open`](postgres.md#open) with the configured connection URL; see `docs/server/database.md`.
 
 ## Re-exports
 

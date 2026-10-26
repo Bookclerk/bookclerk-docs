@@ -13,7 +13,7 @@ its side of that trait, inside its own plugin process.
 That split is why two very similar remuxers used to exist: the host needed
 one for clear media and the Audible plugin needed one that could decrypt
 mid-copy, and neither could take on the other's dependencies. The transform
-hook removes the copy without moving the boundary — see `docs/media.md` for
+hook removes the copy without moving the boundary — see `docs/server/media.md` for
 why the boundary is where it is.
 
 | Item | Kind | Summary |

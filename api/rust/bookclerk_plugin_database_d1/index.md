@@ -3,7 +3,7 @@
 Optional Cloudflare D1 library database plugin.
 
 Alternate `[database]` backend for remote D1. Hosts call [`open`](d1.md#open) after
-operator config supplies account/database credentials; see `docs/database.md`.
+operator config supplies account/database credentials; see `docs/server/database.md`.
 Atomic library writes use [`D1Proxy::run_typed_atomic`](d1.md#d1proxyrun_typed_atomic) rather than
 interactive `BEGIN`.
 

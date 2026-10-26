@@ -7,7 +7,7 @@ Tantivy search index with classic Libation field names and query normalization.
 Host library / GUI code that builds and queries the on-disk search index.
 Guest plugins do not depend on this crate.
 
-Style: `docs/code-documentation.md`.
+Style: `docs/contributing/code-documentation.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

@@ -5,7 +5,7 @@
 These structs are the serde projection of the install descriptor. Unknown
 keys are rejected (`deny_unknown_fields`) so typos fail at parse time.
 Semantic rules that cannot be expressed in serde alone live in
-[`PluginManifest::validate`](#pluginmanifestvalidate). Product narrative: `docs/plugins.md`.
+[`PluginManifest::validate`](#pluginmanifestvalidate). Product narrative: `docs/plugins/README.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -1216,7 +1216,7 @@ pub enum NetworkMode {
 
 Network mode declared in `[capabilities.network]`.
 
-Defaults to [`NetworkMode::Deny`](#networkmode). See `docs/plugins.md` for native vs
+Defaults to [`NetworkMode::Deny`](#networkmode). See `docs/plugins/README.md` for native vs
 workerd semantics.
 
 **Variants**

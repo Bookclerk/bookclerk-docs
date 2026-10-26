@@ -9,7 +9,7 @@ authors implementing [`ContentSource`](#contentsource). Native guests and the pl
 map these types onto the typed Cap'n Proto ABI through [`abi`](abi.md); workerd
 guests use the generated TypeScript / Python SDK types instead.
 
-Product narrative: `docs/plugins.md`. Style: `docs/code-documentation.md`.
+Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-documentation.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

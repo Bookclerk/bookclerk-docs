@@ -8,8 +8,8 @@ Host binaries (`bookclerk`, `bookclerkd`) and in-process host crates — not
 guest plugins. Parses `config.toml`, applies env overrides, resolves
 `BOOKCLERK_FILES_DIR`, and installs tracing / diagnostics.
 
-Product narrative: `docs/configuration.md`, `docs/diagnostics.md`. Style:
-`docs/code-documentation.md`.
+Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`. Style:
+`docs/contributing/code-documentation.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

@@ -7,8 +7,8 @@ Storage backends for acquired audiobooks, covers, and PDFs.
 Host acquire / library code that writes through [`StorageBackend`](#storagebackend). Guest
 plugins do not depend on this crate.
 
-Product narrative: destination sections in `docs/configuration.md`. Style:
-`docs/code-documentation.md`.
+Product narrative: destination sections in `docs/server/configuration.md`. Style:
+`docs/contributing/code-documentation.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -479,7 +479,7 @@ One page of keys under `prefix`.
 stale, or non-advancing cursor returns [`StorageError::InvalidCursor`](#storageerror)
 and does not restart at the first page. `limit` is clamped to
 [`crate::bounded::MAX_LIST_PAGE`](#max_list_page). Ordering and mutation behavior are
-backend-specific; see `docs/storage-bounds.md`.
+backend-specific; see `docs/internals/storage-bounds.md`.
 
 ##### Errors
 

@@ -7,7 +7,7 @@ Canonical Bookclerk library database.
 the database plugin (`bookclerk-plugin-database-sqlite` (and optional d1/postgres guests)); hosts open the store via
 the external guest RPC. This crate owns the greenfield schema
 ([`migrations`](migrations.md)), typed [`entities`](entities.md), and the store API. See
-`docs/database.md`.
+`docs/server/database.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

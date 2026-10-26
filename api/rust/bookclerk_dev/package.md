@@ -1,6 +1,6 @@
 # bookclerk_dev::package
 
-Release packaging aligned with `docs/plugin-registry.md` artifact naming.
+Release packaging aligned with `docs/plugins/registry.md` artifact naming.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

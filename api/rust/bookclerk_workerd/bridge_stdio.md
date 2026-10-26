@@ -11,7 +11,7 @@ clients from `bookclerk-plugin-abi` (`ContentSourceClient`,
 unchanged over the [`InvokeClient`](invoke.md#invokeclient) hook. Object bodies stream over the
 dedicated `/destination/get` / `/destination/put` routes. The exported
 [`Entrypoints`](../bookclerk_plugin_abi/index.md#entrypoints) follow the verified `plugin.toml` capabilities (the host
-allowlist), never a guest-declared widening. See `docs/workerd-bridge.md`.
+allowlist), never a guest-declared widening. See `docs/internals/workerd-bridge.md`.
 
 With a [`Backend::Native`](#backend) guest the isolate stays the control plane
 (`describe` merge, `open` policy, `shutdown`) while every entrypoint

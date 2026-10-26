@@ -21,7 +21,7 @@ transferred byte streams). The guest root is [`PluginWorker`]:
   crates.
 
 Product narrative (jail, consent, install layout) lives in
-[`docs/plugins.md`](https://github.com/bookclerk/bookclerk/blob/main/docs/plugins.md).
+[`docs/plugins/README.md`](https://github.com/bookclerk/bookclerk/blob/main/docs/plugins/README.md).
 This crate is the typed wire contract only.
 
 ## Schema
