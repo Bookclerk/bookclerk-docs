@@ -535,7 +535,7 @@ Compatibility flags required for Python Workers under bookclerk-workerd.
 ### WORKERD_PIN_COMPAT_DATE
 
 ```python
-WORKERD_PIN_COMPAT_DATE = '2026-10-18'
+WORKERD_PIN_COMPAT_DATE = '2026-10-19'
 ```
 
 Newest `compatibility_date` the pinned workerd binary honors.
