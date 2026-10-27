@@ -4,6 +4,17 @@ The HTTP API of `bookclerkd`, the Bookclerk daemon: the web interface, the CLI a
 
 The daemon serves this reference as an OpenAPI 3.1 document at `GET /api/openapi.json` (API version `0.1.0`). Load it into an OpenAPI viewer such as Scalar or Swagger UI, or a client generator. Tools that only read OpenAPI 3.0, such as Cloudflare API Shield's schema validation, can use the same API restated as OpenAPI 3.0.3 at `GET /api/openapi-3.0.json`.
 
+## Quick start
+
+The daemon listens on `http://127.0.0.1:8787` unless `daemon.listen` says otherwise. This request calls `GET /api/status` with the `operatorToken` credential; [Authentication](#authentication) says where to get it.
+
+```console
+$ curl 'http://127.0.0.1:8787/api/status' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+[`GET /api/status`](status.md#get-apistatus) describes the response.
+
 ## Authentication
 
 Each route lists the credentials it accepts and who may call it. The credentials are:
