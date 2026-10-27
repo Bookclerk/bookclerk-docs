@@ -38,6 +38,23 @@ pub fn from_config_json(config: &Value) -> Self
 
 Build guest state from opaque spawn-config / settings JSON.
 
+#### AbsGuestState::from_bindings_json
+
+```rust
+pub fn from_bindings_json(config: &Value, secrets: &Value) -> Self
+```
+
+Build guest state from the `open` bindings: `CONFIG` plus `SECRETS`.
+
+The host keeps secret settings out of `CONFIG`: an `api_key` set with
+`bookclerk plugins config set audiobookshelf api_key --secret` arrives
+only in `SECRETS`, so it fills `api_key` when `CONFIG` has none.
+
+##### Arguments
+
+* `config` - The `CONFIG` binding's JSON (instance settings).
+* `secrets` - The `SECRETS` binding's JSON (unsealed secret settings).
+
 #### AbsGuestState::from_config
 
 ```rust
