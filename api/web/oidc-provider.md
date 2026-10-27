@@ -18,6 +18,47 @@ Serves the OIDC discovery document for registered clients.
 | --- | --- | --- |
 | 200 | The OIDC discovery document. | [`DiscoveryDocument`](schemas.md#discoverydocument) (`application/json`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/.well-known/openid-configuration'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "issuer": "string",
+  "authorization_endpoint": "string",
+  "token_endpoint": "string",
+  "userinfo_endpoint": "string",
+  "revocation_endpoint": "string",
+  "response_types_supported": [
+    "string"
+  ],
+  "grant_types_supported": [
+    "string"
+  ],
+  "code_challenge_methods_supported": [
+    "string"
+  ],
+  "scopes_supported": [
+    "string"
+  ],
+  "subject_types_supported": [
+    "string"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "string"
+  ],
+  "token_endpoint_auth_methods_supported": [
+    "string"
+  ]
+}
+```
+
 ## `GET /oidc/authorize`
 
 Starts the authorization-code flow; unauthenticated users are sent to SPA login.
@@ -45,6 +86,12 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 | 302 | Redirects to sign-in, the consent page, or the client. |  |
 | 400 | The request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+```
+
 ## `POST /oidc/authorize`
 
 Completes consent: deny redirects with `access_denied`, grant issues a code.
@@ -57,6 +104,17 @@ Completes consent: deny redirects with `access_denied`, grant issues a code.
 
 `application/x-www-form-urlencoded`: [`ConsentBody`](schemas.md#consentbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `client_id` | string | yes | Registered OIDC client id (must exist in the library store). |
+| `redirect_uri` | string | yes | Redirect URI; must match a URI registered for the client. |
+| `response_type` | string | yes | OAuth `response_type`; only `code` is accepted. |
+| `scope` | string or null | no | Space-separated scopes; defaults to `openid profile` when omitted. |
+| `state` | string or null | no | Opaque CSRF value echoed back on the redirect. |
+| `code_challenge` | string | yes | PKCE S256 challenge (base64url SHA-256 of the verifier). |
+| `code_challenge_method` | string or null | no | PKCE method; omitted is treated as `plain` and then rejected. |
+| `consent` | string or null | no | `deny` aborts with `access_denied`; any other value proceeds to issue a code. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -65,6 +123,16 @@ Completes consent: deny redirects with `access_denied`, grant issues a code.
 | 400 | The request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | An operator token was sent, or the user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/oidc/authorize' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -d 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+```
 
 ## `POST /oidc/token`
 
@@ -78,6 +146,16 @@ Dispatches token grants; unknown `grant_type` values return 400.
 
 `application/x-www-form-urlencoded`: [`TokenForm`](schemas.md#tokenform)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `grant_type` | string | yes | Grant: `authorization_code` or `refresh_token`; anything else is 400. |
+| `code` | string or null | no | Authorization code from the redirect (`authorization_code` grant). |
+| `redirect_uri` | string or null | no | Must match the URI bound to the consumed authorization code. |
+| `client_id` | string or null | no | Client id; required for code exchange, optional (but checked) on refresh. |
+| `client_secret` | string or null | no | Client secret for confidential clients (`client_secret_post`). |
+| `code_verifier` | string or null | no | PKCE verifier; SHA-256 must match the stored challenge. |
+| `refresh_token` | string or null | no | Refresh token to rotate (`refresh_token` grant). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -85,6 +163,29 @@ Dispatches token grants; unknown `grant_type` values return 400.
 | 200 | Tokens. | [`TokenResponse`](schemas.md#tokenresponse) (`application/json`) |
 | 400 | The grant is invalid or unsupported. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 401 | The client failed to authenticate. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/oidc/token' \
+    -X POST \
+    -d 'grant_type=string'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "access_token": "string",
+  "token_type": "string",
+  "expires_in": 0,
+  "refresh_token": "string",
+  "id_token": "string",
+  "scope": "string"
+}
+```
 
 ## `GET /oidc/userinfo`
 
@@ -103,6 +204,13 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 | 403 | The token's user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The user could not be read. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/oidc/userinfo' \
+    -H 'Authorization: Bearer <oidcAccessToken>'
+```
+
 ## `POST /oidc/revoke`
 
 Best-effort refresh-token revoke; always returns 200 per RFC 7009.
@@ -115,11 +223,24 @@ Best-effort refresh-token revoke; always returns 200 per RFC 7009.
 
 `application/x-www-form-urlencoded`: [`RevokeForm`](schemas.md#revokeform)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `token` | string | yes | Token to revoke; treated as a refresh token (hashed before lookup). |
+| `token_type_hint` | string or null | no | Optional hint ignored; this server only stores refresh tokens. |
+
 ### Responses
 
 | Status | Description | Body |
 | --- | --- | --- |
 | 200 | Always 200 (RFC 7009). |  |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/oidc/revoke' \
+    -X POST \
+    -d 'token=string'
+```
 
 ## `GET /api/auth/oidc/clients`
 
@@ -140,6 +261,13 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/auth/oidc/clients`
 
 Create a client; confidential clients return the generated secret once.
@@ -152,6 +280,17 @@ Create a client; confidential clients return the generated secret once.
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
+| `name` | string or null | no | Operator-facing display name. |
+| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
+| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
+| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
+| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
+| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
+| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -163,6 +302,16 @@ Create a client; confidential clients return the generated secret once.
 | 409 | A client with this id already exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `PUT /api/auth/oidc/clients/{client_id}`
 
@@ -182,6 +331,17 @@ Update redirects, name, scopes, and public/confidential mode (no secret echo unl
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
+| `name` | string or null | no | Operator-facing display name. |
+| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
+| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
+| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
+| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
+| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
+| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -193,6 +353,16 @@ Update redirects, name, scopes, and public/confidential mode (no secret echo unl
 | 404 | No such client. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `DELETE /api/auth/oidc/clients/{client_id}`
 
@@ -214,6 +384,17 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite) or null
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
+| `name` | string or null | no | Operator-facing display name. |
+| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
+| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
+| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
+| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
+| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
+| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -226,6 +407,16 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 | 409 | The client is provided by a plugin; disable it instead. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/auth/oidc/clients/{client_id}/rotate-secret`
 
@@ -247,6 +438,10 @@ Optional.
 
 `application/json`: [`RotateSecretBody`](schemas.md#rotatesecretbody) or null
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -258,3 +453,13 @@ Optional.
 | 404 | No such client. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```

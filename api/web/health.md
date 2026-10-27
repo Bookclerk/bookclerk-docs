@@ -17,3 +17,19 @@ Serves `GET /health` with a static `ok` payload for liveness probes.
 | Status | Description | Body |
 | --- | --- | --- |
 | 200 | The daemon is serving HTTP. | [`HealthResponse`](schemas.md#healthresponse) (`application/json`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/health'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "status": "string"
+}
+```

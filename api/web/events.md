@@ -22,6 +22,35 @@ Returns recent domain-event outbox rows, newest first.
 | 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+[
+  {
+    "id": "string",
+    "eventType": "string",
+    "schemaVersion": 0,
+    "dispatchState": "string",
+    "accountId": "string",
+    "dedupKey": "string",
+    "createdAt": "string",
+    "queueName": "string",
+    "contentType": "string",
+    "source": "string",
+    "deliverAfter": "string"
+  }
+]
+```
+
 ## `GET /api/events/deliveries`
 
 Returns event deliveries, optionally filtered by `state`.
@@ -46,6 +75,40 @@ Returns event deliveries, optionally filtered by `state`.
 | 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events/deliveries' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+[
+  {
+    "id": "string",
+    "eventId": "string",
+    "pluginId": "string",
+    "state": "string",
+    "attemptCount": 0,
+    "leaseGeneration": 0,
+    "invocationSequence": 0,
+    "outcome": "string",
+    "errorMessage": "string",
+    "runAfter": "string",
+    "updatedAt": "string",
+    "cancelRequested": true,
+    "resourceClass": "string",
+    "resumePending": true,
+    "hasCheckpoint": true,
+    "queueName": "string"
+  }
+]
+```
+
 ## `GET /api/queues`
 
 Returns every queue the outbox or the live catalog knows about, with
@@ -64,6 +127,33 @@ delivery counters and the consumers subscribed to it.
 | 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/queues' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+[
+  {
+    "name": "string",
+    "core": true,
+    "pending": 0,
+    "running": 0,
+    "acked": 0,
+    "deadLetter": 0,
+    "consumers": [
+      "string"
+    ]
+  }
+]
+```
 
 ## `GET /api/queues/{name}`
 
@@ -90,6 +180,66 @@ Returns one queue's counters, consumers, recent messages, and deliveries.
 | 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/queues/<name>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "name": "string",
+  "core": true,
+  "pending": 0,
+  "running": 0,
+  "acked": 0,
+  "deadLetter": 0,
+  "consumers": [
+    "string"
+  ],
+  "messages": [
+    {
+      "id": "string",
+      "eventType": "string",
+      "schemaVersion": 0,
+      "dispatchState": "string",
+      "accountId": "string",
+      "dedupKey": "string",
+      "createdAt": "string",
+      "queueName": "string",
+      "contentType": "string",
+      "source": "string",
+      "deliverAfter": "string"
+    }
+  ],
+  "deliveries": [
+    {
+      "id": "string",
+      "eventId": "string",
+      "pluginId": "string",
+      "state": "string",
+      "attemptCount": 0,
+      "leaseGeneration": 0,
+      "invocationSequence": 0,
+      "outcome": "string",
+      "errorMessage": "string",
+      "runAfter": "string",
+      "updatedAt": "string",
+      "cancelRequested": true,
+      "resourceClass": "string",
+      "resumePending": true,
+      "hasCheckpoint": true,
+      "queueName": "string"
+    }
+  ]
+}
+```
+
 ## `POST /api/events/deliveries/{id}/retry`
 
 Re-queue a dead-lettered delivery.
@@ -114,6 +264,27 @@ Re-queue a dead-lettered delivery.
 | 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/retry' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
 
 ## `POST /api/events/deliveries/{id}/acknowledge`
 
@@ -140,6 +311,27 @@ Acknowledge a dead-lettered delivery (no further retry).
 | 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/acknowledge' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
 ## `POST /api/events/deliveries/{id}/cancel`
 
 Cancel a pending delivery or request cooperative stop of a running one.
@@ -165,6 +357,27 @@ Cancel a pending delivery or request cooperative stop of a running one.
 | 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/cancel' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
 ## `POST /api/events/deliveries/{id}/resume`
 
 Resume a suspended delivery (wake now, next claim uses resume_pending).
@@ -189,3 +402,24 @@ Resume a suspended delivery (wake now, next claim uses resume_pending).
 | 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/resume' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```

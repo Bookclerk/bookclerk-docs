@@ -19,6 +19,14 @@ does not redeem.
 
 `application/json`: [`EnrollBody`](schemas.md#enrollbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `link_id` | string | yes | Link id from the token. |
+| `secret` | string | yes | Link secret from the token. |
+| `sign_pk` | string | yes | Ed25519 public signing key. |
+| `box_pk` | string | yes | X25519 public box key. |
+| `software_version` | string | no | Host's Bookclerk version. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -29,6 +37,15 @@ does not redeem.
 | 403 | The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/enroll' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
+```
 
 ## `GET /api/node/v1/info`
 
@@ -47,6 +64,12 @@ does not redeem.
 | 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/info'
+```
+
 ## `POST /api/node/v1/enroll/oauth`
 
 `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in.
@@ -63,6 +86,17 @@ redirect URI, enrollment off, or the user no longer active).
 
 `application/json`: [`OAuthEnrollRequest`](schemas.md#oauthenrollrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | string | yes | The authorization code from the callback. |
+| `code_verifier` | string | yes | The PKCE verifier. |
+| `redirect_uri` | string | yes | The redirect URI the authorization was requested with. |
+| `sign_pk` | string | yes | Ed25519 public signing key. |
+| `box_pk` | string | yes | X25519 public box key. |
+| `branch_name` | string | no | The name this branch joins as (the node's label). |
+| `software_version` | string | no | The joining install's Bookclerk version. |
+| `connection` | [`ConnectionType`](schemas.md#connectiontype) | no | The connection type the code was approved for. It must match the one bound to the code at consent; left out for a branch. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -74,6 +108,15 @@ redirect URI, enrollment off, or the user no longer active).
 | 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 503 | The enrollment could not be recorded; try again (`enrollment_unavailable`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
+```
 
 ## `GET /api/node/v1/connect`
 
@@ -95,6 +138,12 @@ transport check. 403 `transport_insecure` for a refused connection,
 | 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 503 | Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/connect'
+```
 
 ## `GET /api/node/v1/artifacts/{sha256}`
 
@@ -118,6 +167,13 @@ transport check. 403 `transport_insecure` for a refused connection,
 | 401 | The node signature is missing or wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | No such archive, or the node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>' \
+    -H 'Authorization: Bookclerk-Node <node_id> <issued_at> <signature>'
+```
 
 ## `PUT /api/node/v1/uploads/{upload_id}/files/{index}`
 
@@ -151,6 +207,28 @@ transport check. 403 `transport_insecure` for a refused connection,
 | 422 | The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
 | 503 | Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>' \
+    -X PUT \
+    -H 'Authorization: Bookclerk-Upload <token>' \
+    -H 'Content-Type: application/octet-stream' \
+    --data-binary @file
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
 ## `POST /api/node/v1/uploads/{upload_id}/commit`
 
 `POST /api/node/v1/uploads/{upload_id}/commit`.
@@ -169,6 +247,11 @@ transport check. 403 `transport_insecure` for a refused connection,
 
 `application/json`: [`UploadCommitRequest`](schemas.md#uploadcommitrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `finish` | boolean | no | Complete the job with this commit (the job's closing upload). |
+| `detail` | string or null | no | Outcome text recorded as the job's progress when `finish` is set. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -182,3 +265,25 @@ transport check. 403 `transport_insecure` for a refused connection,
 | 422 | The commit was refused (`refused`): an invalid body, missing files, or the destinations changed. | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
 | 503 | Storage or the upload record is unavailable; retry (`unavailable`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit' \
+    -X POST \
+    -H 'Authorization: Bookclerk-Upload <token>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```

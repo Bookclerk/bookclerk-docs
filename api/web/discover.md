@@ -26,6 +26,27 @@ Enqueues a listening-progress sync; 400 when no capable integrations are loaded.
 | 503 | Job admission is paused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/sync-listening' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
 ## `GET /api/discover/recommendations`
 
 Builds the Discover recommendation feed, skipping embed work on an empty library.
@@ -55,6 +76,44 @@ Builds the Discover recommendation feed, skipping embed work on an empty library
 | 503 | Discover is shutting down; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/recommendations' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "shelves": [
+    {
+      "id": "string",
+      "title": "string",
+      "subtitle": "string",
+      "items": [
+        {
+          "title": "string",
+          "score": 0,
+          "reasons": [],
+          "purchase_hints": [],
+          "from_request": true
+        }
+      ]
+    }
+  ],
+  "shelf_kinds": [
+    {
+      "id": "string",
+      "label": "string"
+    }
+  ]
+}
+```
+
 ## `POST /api/discover/purchase-hints`
 
 Resolves storefront price/availability for one title, forcing server-side preferred stores.
@@ -67,6 +126,18 @@ Resolves storefront price/availability for one title, forcing server-side prefer
 
 `application/json`: [`PurchaseHintsQuery`](schemas.md#purchasehintsquery)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `title` | string | yes | Display title as shown on the storefront or library card. |
+| `authors` | string or null | no | Comma-separated author names when the storefront provides them. |
+| `asin` | string or null | no | Audible / Amazon ASIN when this edition is sold on Audible. |
+| `isbn` | string or null | no | Canonical ISBN-13 (or ISBN-10 normalized) when published. |
+| `candidate_source` | string or null | no | Storefront id of the edition that produced this card. |
+| `candidate_product_id` | string or null | no | Storefront product id of the edition that produced this card. |
+| `store_editions` | array of [`StoreEdition`](schemas.md#storeedition) | no | Known storefront editions already on the recommendation card. |
+| `region` | string or null | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
+| `preferred_sources` | array of string | no | Storefronts the caller has linked accounts for. Treated as **member** pricing when picking `best`; other stores are compared at list / non-member price. Every catalog match is still returned in `hints`. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -77,6 +148,53 @@ Resolves storefront price/availability for one title, forcing server-side prefer
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/purchase-hints' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"title": "string"}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "hints": [
+    {
+      "source": "string",
+      "product_id": "string",
+      "title": "string",
+      "url": "string",
+      "price_cents": 0,
+      "currency": "string",
+      "price_label": "string",
+      "list_price_cents": 0,
+      "list_price_label": "string",
+      "member_price_cents": 0,
+      "member_price_label": "string"
+    }
+  ],
+  "best": {
+    "source": "string",
+    "product_id": "string",
+    "title": "string",
+    "url": "string",
+    "price_cents": 0,
+    "currency": "string",
+    "price_label": "string",
+    "list_price_cents": 0,
+    "list_price_label": "string",
+    "member_price_cents": 0,
+    "member_price_label": "string"
+  }
+}
+```
 
 ## `POST /api/discover/purchase-hints/batch`
 
@@ -90,6 +208,10 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
 
 `application/json`: [`PurchaseHintsBatchBody`](schemas.md#purchasehintsbatchbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `queries` | array of [`PurchaseHintsQuery`](schemas.md#purchasehintsquery) | no | Per-title purchase-hint queries in this batch. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -100,6 +222,48 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/purchase-hints/batch' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "results": [
+    {
+      "hints": [
+        {
+          "source": "string",
+          "product_id": "string"
+        }
+      ],
+      "best": {
+        "source": "string",
+        "product_id": "string",
+        "title": "string",
+        "url": "string",
+        "price_cents": 0,
+        "currency": "string",
+        "price_label": "string",
+        "list_price_cents": 0,
+        "list_price_label": "string",
+        "member_price_cents": 0,
+        "member_price_label": "string"
+      }
+    }
+  ]
+}
+```
 
 ## `GET /api/discover/search`
 
@@ -145,6 +309,66 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/search' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "items": [
+    {
+      "work_key": "string",
+      "title": "string",
+      "authors": "string",
+      "narrators": "string",
+      "series": "string",
+      "series_index": "string",
+      "asin": "string",
+      "isbn": "string",
+      "cover_url": "string",
+      "store_editions": [
+        {
+          "source": "string",
+          "product_id": "string"
+        }
+      ],
+      "sources": [
+        "string"
+      ],
+      "subtitle": "string",
+      "description": "string",
+      "publisher": "string",
+      "length_minutes": 0,
+      "published_at": "string",
+      "genres": "string",
+      "language": "string",
+      "is_abridged": true,
+      "rating_overall": 0,
+      "rating_count": 0,
+      "price_cents": 0,
+      "purchase_hints": [
+        {
+          "source": "string",
+          "product_id": "string"
+        }
+      ]
+    }
+  ],
+  "page_size": 0,
+  "has_more": true,
+  "next_cursor": "string",
+  "sort": "string",
+  "sort_dir": "string"
+}
+```
+
 ## `POST /api/discover/title-meta`
 
 Resolves Audnexus-style title metadata for one query.
@@ -157,6 +381,16 @@ Resolves Audnexus-style title metadata for one query.
 
 `application/json`: [`TitleMetaQuery`](schemas.md#titlemetaquery)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `title` | string | no | Display title as shown on the storefront or library card. |
+| `authors` | string or null | no | Comma-separated author names when the storefront provides them. |
+| `asin` | string or null | no | Audible / Amazon ASIN when this edition is sold on Audible. |
+| `isbn` | string or null | no | Canonical ISBN-13 (or ISBN-10 normalized) when published. |
+| `narrators` | string or null | no | Comma-separated narrator names when known. |
+| `length_minutes` | integer (int64) or null (int64) | no | Audiobook runtime in whole minutes when known. |
+| `region` | string | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -167,6 +401,58 @@ Resolves Audnexus-style title metadata for one query.
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/title-meta' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "asin": "string",
+  "title": "string",
+  "subtitle": "string",
+  "authors": "string",
+  "narrators": "string",
+  "series": "string",
+  "series_index": "string",
+  "isbn": "string",
+  "cover_url": "string",
+  "description": "string",
+  "publisher": "string",
+  "length_minutes": 0,
+  "published_at": "string",
+  "categories": "string",
+  "language": "string",
+  "is_abridged": true,
+  "rating_overall": 0,
+  "rating_performance": 0,
+  "rating_story": 0,
+  "rating_count": 0,
+  "review_count": 0,
+  "reviews": [
+    {
+      "id": "string",
+      "title": "string",
+      "body": "string",
+      "author_name": "string",
+      "overall_rating": 0,
+      "performance_rating": 0,
+      "story_rating": 0,
+      "submitted_at": "string"
+    }
+  ]
+}
+```
 
 ## `POST /api/discover/title-meta/batch`
 
@@ -180,6 +466,10 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
 
 `application/json`: [`TitleMetaBatchBody`](schemas.md#titlemetabatchbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `queries` | array of [`TitleMetaQuery`](schemas.md#titlemetaquery) | no | Per-title metadata queries in this batch. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -190,6 +480,55 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/title-meta/batch' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "results": [
+    {
+      "asin": "string",
+      "title": "string",
+      "subtitle": "string",
+      "authors": "string",
+      "narrators": "string",
+      "series": "string",
+      "series_index": "string",
+      "isbn": "string",
+      "cover_url": "string",
+      "description": "string",
+      "publisher": "string",
+      "length_minutes": 0,
+      "published_at": "string",
+      "categories": "string",
+      "language": "string",
+      "is_abridged": true,
+      "rating_overall": 0,
+      "rating_performance": 0,
+      "rating_story": 0,
+      "rating_count": 0,
+      "review_count": 0,
+      "reviews": [
+        {
+          "body": "string"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## `POST /api/discover/title-reviews`
 
@@ -203,6 +542,14 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
 
 `application/json`: [`TitleReviewsQuery`](schemas.md#titlereviewsquery)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `asin` | string | yes | Audible / Amazon ASIN when this edition is sold on Audible. |
+| `region` | string | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
+| `page` | integer (int32) | no | 1-based page index. At least 0. |
+| `page_size` | integer (int32) | no | Page size (clamped server-side to 1..=20). At least 0. |
+| `sort_by` | string | no | `MostHelpful` (default) or `MostRecent`. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -213,3 +560,39 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The lookup failed. | string (`text/plain`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/title-reviews' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"asin": "string"}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "asin": "string",
+  "page": 0,
+  "page_size": 0,
+  "has_more": true,
+  "sort_by": "string",
+  "reviews": [
+    {
+      "id": "string",
+      "title": "string",
+      "body": "string",
+      "author_name": "string",
+      "overall_rating": 0,
+      "performance_rating": 0,
+      "story_rating": 0,
+      "submitted_at": "string"
+    }
+  ]
+}
+```

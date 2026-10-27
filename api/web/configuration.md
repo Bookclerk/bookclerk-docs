@@ -22,6 +22,27 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 | 500 | The reload failed; the old configuration stays live. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/reload' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
 ## `GET /api/config/domains/core.events`
 
 `GET /api/config/domains/core.events`.
@@ -41,6 +62,13 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/domains/core.events' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/domains/core.events`
 
 `PUT /api/config/domains/core.events`.
@@ -53,6 +81,13 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 
 `application/json`: [`PutEventsDomainRequest`](schemas.md#puteventsdomainrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `expected_revision` | integer (int64) | yes | Revision the caller read. A mismatch is a conflict. |
+| `retention_days` | integer (int64) | yes | Replacement `[events]` document. At least 0. |
+| `dead_letter_retention_days` | integer (int64) | yes | Replacement dead-letter retention. At least 0. |
+| `concurrency` | integer (int32) | yes | Replacement concurrency cap. At least 0. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -63,6 +98,16 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 | 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/domains/core.events' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0}'
+```
 
 ## `GET /api/config/domains/core.output`
 
@@ -83,6 +128,13 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/domains/core.output' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/domains/core.output`
 
 `PUT /api/config/domains/core.output`.
@@ -95,6 +147,11 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 
 `application/json`: [`PutOutputDomainRequest`](schemas.md#putoutputdomainrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `expected_revision` | integer (int64) | yes | Revision the caller read. A mismatch is a conflict. |
+| `document` | object | yes | Complete replacement document (schema version 1). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -105,3 +162,13 @@ Reloads `config.toml` and republishes daemon runtime without a process restart.
 | 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/domains/core.output' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"expected_revision": 0, "document": {}}'
+```

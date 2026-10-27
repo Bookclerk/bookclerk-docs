@@ -25,6 +25,13 @@ listening within the last 30 minutes, and linked storefront accounts.
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/users`
 
 Owner/admin or operator creates a user and optional invite magic link.
@@ -37,6 +44,15 @@ Owner/admin or operator creates a user and optional invite magic link.
 
 `application/json`: [`CreateUserRequest`](schemas.md#createuserrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `role` | string or null | no | Role to assign when permitted (`member` when omitted). |
+| `display_name` | string or null | no | Optional display name for the new user. |
+| `login_name` | string or null | no | Optional local login name for the new user. |
+| `email` | string or null | no | Optional email for the new user. |
+| `password` | string or null | no | Optional password; hashed before persist. Empty or omitted leaves the user passwordless. |
+| `mint_invite` | boolean | no | When true (default), also mint an invite/claim ticket. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -47,6 +63,16 @@ Owner/admin or operator creates a user and optional invite magic link.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | The login is taken. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `DELETE /api/users/{id}`
 
@@ -76,6 +102,14 @@ only their own account (self-service).
 | 409 | The user is the last Owner or Administrator. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PATCH /api/users/{id}`
 
 Patch role/status/display/login for a first-party user (provisioner).
@@ -94,6 +128,14 @@ Patch role/status/display/login for a first-party user (provisioner).
 
 `application/json`: [`PatchUserRequest`](schemas.md#patchuserrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `role` | string or null | no | Replacement role (`owner` / `administrator` / `member`) when present. |
+| `status` | string or null | no | Replacement status (`active` / `disabled`) when present. |
+| `display_name` | string or null | no | Replacement display name when present. |
+| `login_name` | string or null | no | Replacement local login name when present. |
+| `email` | string or null | no | Replacement email when present. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -105,6 +147,16 @@ Patch role/status/display/login for a first-party user (provisioner).
 | 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | The login name or email is taken by another user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>' \
+    -X PATCH \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/users/{id}/claim-ticket`
 
@@ -130,6 +182,14 @@ Mint a fresh local claim ticket for an active first-party user.
 | 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/claim-ticket' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/users/{id}/reset-password`
 
 Invalidate a user's password, revoke sessions, and mint a claim ticket for reset.
@@ -154,6 +214,14 @@ Invalidate a user's password, revoke sessions, and mint a claim ticket for reset
 | 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/reset-password' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/users/{id}/avatar`
 
 Serves a stored avatar JPEG for any authenticated household member.
@@ -176,3 +244,10 @@ Serves a stored avatar JPEG for any authenticated household member.
 | 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | The user has no avatar. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/avatar' \
+    -H 'Authorization: Bearer <operatorToken>'
+```

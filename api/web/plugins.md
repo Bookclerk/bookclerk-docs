@@ -23,6 +23,13 @@ Back to the [web API reference](README.md).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/config/plugin-instances`
 
 `POST /api/config/plugin-instances`: a second (non-default) instance of
@@ -37,6 +44,12 @@ a plugin, with an empty document so schema defaults apply. With
 
 `application/json`: [`CreatePluginInstance`](schemas.md#createplugininstance)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `plugin_key` | string | yes | Canonical plugin key; the plugin must have a pinned schema. |
+| `display_name` | string | no | Operator-facing name. |
+| `node_id` | string or null | no | Make the instance local to this node (H-2): it deploys only there and is never placed by the scheduler. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -49,6 +62,16 @@ a plugin, with an empty document so schema defaults apply. With
 | 409 | The instance id is taken. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"plugin_key": "string"}'
+```
 
 ## `DELETE /api/config/plugin-instances/{id}`
 
@@ -78,6 +101,14 @@ no deployment left.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/config/plugin-instances/{id}/config`
 
 `GET /api/config/plugin-instances/{id}/config`.
@@ -104,6 +135,13 @@ no deployment left.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/config' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/plugin-instances/{id}/config`
 
 `PUT /api/config/plugin-instances/{id}/config`.
@@ -126,6 +164,13 @@ node does not need the guest installed.
 
 `application/json`: [`PutPluginInstanceConfig`](schemas.md#putplugininstanceconfig)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `expected_revision` | integer (int64) | yes | Revision the caller last observed. |
+| `settings` | object | no | Scalar settings. Secret values are not accepted here. |
+| `secret_refs` | array of object | no | Secret refs to keep. Omitted refs are dropped from the document; the ciphertext stays sealed until the secret is overwritten. |
+| `secrets` | map of string to string | no | Secret values to seal, keyed by the declared `secret` setting. Each is sealed into `encrypted_secrets` and referenced from the document; the plaintext is never stored in the document or echoed back. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -137,6 +182,16 @@ node does not need the guest installed.
 | 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/config' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"expected_revision": 0}'
+```
 
 ## `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`
 
@@ -158,6 +213,11 @@ Deployed switch. Creates the row when the node has none.
 
 `application/json`: [`PutPluginDeployment`](schemas.md#putplugindeployment)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `desired` | [`DesiredState`](schemas.md#desiredstate) | yes | What the node should do: `present` or `absent` (the scheduler's `placed` / `unplaced` are accepted too). |
+| `expected_revision` | integer (int64) or null (int64) | no | Revision the caller last observed; required when the row exists and the caller wants compare-and-swap. Omitted means "replace whatever is current". |
+
 ### Responses
 
 | Status | Description | Body |
@@ -170,6 +230,16 @@ Deployed switch. Creates the row when the node has none.
 | 409 | The instance is placed by the scheduler. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/deployments/<node_id>' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"desired": "present"}'
+```
 
 ## `PUT /api/config/plugin-instances/{id}/placement`
 
@@ -190,6 +260,12 @@ deployments to the scheduler with a replica count and constraints.
 
 `application/json`: [`PutPluginPlacement`](schemas.md#putpluginplacement)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `replicas` | integer or `all` | yes | A replica count (0 stops every replica) or `"all"`. |
+| `constraints` | array of string | no | Label constraints (`name`, `name=value`, `!name`). |
+| `expected_revision` | integer (int64) or null (int64) | no | Current revision to replace; omit (or 0) to create. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -201,6 +277,16 @@ deployments to the scheduler with a replica count and constraints.
 | 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/placement' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"replicas": 0}'
+```
 
 ## `DELETE /api/config/plugin-instances/{id}/placement`
 
@@ -230,6 +316,14 @@ are.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/placement' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/config/plugins`
 
 `GET /api/config/plugins`: every installed plugin.
@@ -249,6 +343,13 @@ are.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/config/plugins`
 
 `POST /api/config/plugins`: install (and maybe activate) a version.
@@ -260,6 +361,14 @@ are.
 ### Request body
 
 `application/json`: [`PostPluginInstall`](schemas.md#postplugininstall)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `coordinate` | string or null | no | Registry coordinate (`cargo:…@v`, `registry:…#name@v`). |
+| `package` | string or null | no | Operator-placed package directory under `plugin-packages/`. |
+| `activate` | boolean | no | Make the new version active even when another is. |
+| `approve` | boolean | no | Record the requested consent as approved. |
+| `allow_unverified_publisher` | boolean | no | Accept a publisher without independent authenticity. |
 
 ### Responses
 
@@ -274,6 +383,16 @@ are.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 502 | The package catalog could not be reached or answered badly. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `GET /api/config/plugins/{key}`
 
@@ -302,6 +421,13 @@ settings schema.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins/<key>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `DELETE /api/config/plugins/{key}`
 
 `DELETE /api/config/plugins/{key}`: uninstall the plugin (active version
@@ -329,6 +455,14 @@ cleared, placements dropped, every deployment `absent`).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins/<key>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/plugins/{key}/active`
 
 `PUT /api/config/plugins/{key}/active`: activate, update, or roll back.
@@ -347,6 +481,10 @@ cleared, placements dropped, every deployment `absent`).
 
 `application/json`: [`PutActiveVersion`](schemas.md#putactiveversion)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `version` | string | yes | Installed version to activate. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -358,6 +496,16 @@ cleared, placements dropped, every deployment `absent`).
 | 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins/<key>/active' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"version": "string"}'
+```
 
 ## `POST /api/config/plugins/{key}/versions/{version}/approve`
 
@@ -387,6 +535,14 @@ version's requested consent as approved for every node.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugins/<key>/versions/<version>/approve' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/plugins/{id}/consent`
 
 Loads the consent dialog for one plugin, including coverage against the stored grant.
@@ -413,6 +569,199 @@ Loads the consent dialog for one plugin, including coverage against the stored g
 | 500 | The grant could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/plugins/<id>/consent' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "plugin_id": "string",
+  "plugin_key": "string",
+  "provenance": "string",
+  "runtime": "string",
+  "request": {
+    "pluginKey": "string",
+    "pluginId": "string",
+    "entrypoints": [
+      "string"
+    ],
+    "producers": [
+      "string"
+    ],
+    "consumers": [
+      {}
+    ],
+    "jobs": [
+      "string"
+    ],
+    "networkMode": "string",
+    "domains": [
+      "string"
+    ],
+    "manifestDomains": [
+      "string"
+    ],
+    "operatorAddedDomains": [
+      "string"
+    ],
+    "operatorDeniedDomains": [
+      "string"
+    ],
+    "tcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorAddedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorDeniedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "addressCidrs": [
+      "string"
+    ],
+    "operatorAddedCidrs": [
+      "string"
+    ],
+    "operatorDeniedCidrs": [
+      "string"
+    ],
+    "allowUndeclaredPublicRedirects": true,
+    "grantRevision": "string",
+    "authorityRevision": "string",
+    "bindings": [
+      "string"
+    ],
+    "compatibilityFlags": [
+      "string"
+    ],
+    "approvedAt": "string",
+    "cpuMs": 0,
+    "subrequests": 0,
+    "diskMib": 0,
+    "memoryMib": 0,
+    "cpuCores": 0,
+    "extraProcesses": 0
+  },
+  "covered": true,
+  "summary": [
+    "string"
+  ],
+  "existing": {
+    "pluginKey": "string",
+    "pluginId": "string",
+    "entrypoints": [
+      "string"
+    ],
+    "producers": [
+      "string"
+    ],
+    "consumers": [
+      {}
+    ],
+    "jobs": [
+      "string"
+    ],
+    "networkMode": "string",
+    "domains": [
+      "string"
+    ],
+    "manifestDomains": [
+      "string"
+    ],
+    "operatorAddedDomains": [
+      "string"
+    ],
+    "operatorDeniedDomains": [
+      "string"
+    ],
+    "tcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorAddedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorDeniedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "addressCidrs": [
+      "string"
+    ],
+    "operatorAddedCidrs": [
+      "string"
+    ],
+    "operatorDeniedCidrs": [
+      "string"
+    ],
+    "allowUndeclaredPublicRedirects": true,
+    "grantRevision": "string",
+    "authorityRevision": "string",
+    "bindings": [
+      "string"
+    ],
+    "compatibilityFlags": [
+      "string"
+    ],
+    "approvedAt": "string",
+    "cpuMs": 0,
+    "subrequests": 0,
+    "diskMib": 0,
+    "memoryMib": 0,
+    "cpuCores": 0,
+    "extraProcesses": 0
+  },
+  "brand": {
+    "name": "string",
+    "bg": "string",
+    "fg": "string",
+    "accent": "string",
+    "logo": "string"
+  },
+  "limits": {
+    "cpu_ms": 0,
+    "subrequests": 0,
+    "max_cpu_ms": 0,
+    "max_subrequests": 0,
+    "disk_mib": 0,
+    "max_disk_mib": 0,
+    "memory_mib": 0,
+    "max_memory_mib": 0,
+    "cpu_cores": 0,
+    "max_cpu_cores": 0,
+    "jail_cpu_cores": 0,
+    "extra_processes": 0,
+    "max_extra_processes": 0,
+    "known_bindings": [
+      "string"
+    ]
+  }
+}
+```
+
 ## `POST /api/plugins/{id}/consent`
 
 Persists an approved plugin grant after validating operator overrides.
@@ -432,6 +781,11 @@ Persists an approved plugin grant after validating operator overrides.
 
 `application/json`: [`PluginConsentApproveRequest`](schemas.md#pluginconsentapproverequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `approve` | boolean | yes | Must be true; a false value is rejected with 400. |
+| `grant` | [`PluginGrantOverride`](schemas.md#plugingrantoverride) or null | no | Optional operator overrides applied on top of the manifest request. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -443,6 +797,202 @@ Persists an approved plugin grant after validating operator overrides.
 | 404 | No such plugin. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 500 | The grant could not be stored. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/plugins/<id>/consent' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"approve": true}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "plugin_id": "string",
+  "plugin_key": "string",
+  "provenance": "string",
+  "runtime": "string",
+  "request": {
+    "pluginKey": "string",
+    "pluginId": "string",
+    "entrypoints": [
+      "string"
+    ],
+    "producers": [
+      "string"
+    ],
+    "consumers": [
+      {}
+    ],
+    "jobs": [
+      "string"
+    ],
+    "networkMode": "string",
+    "domains": [
+      "string"
+    ],
+    "manifestDomains": [
+      "string"
+    ],
+    "operatorAddedDomains": [
+      "string"
+    ],
+    "operatorDeniedDomains": [
+      "string"
+    ],
+    "tcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorAddedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorDeniedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "addressCidrs": [
+      "string"
+    ],
+    "operatorAddedCidrs": [
+      "string"
+    ],
+    "operatorDeniedCidrs": [
+      "string"
+    ],
+    "allowUndeclaredPublicRedirects": true,
+    "grantRevision": "string",
+    "authorityRevision": "string",
+    "bindings": [
+      "string"
+    ],
+    "compatibilityFlags": [
+      "string"
+    ],
+    "approvedAt": "string",
+    "cpuMs": 0,
+    "subrequests": 0,
+    "diskMib": 0,
+    "memoryMib": 0,
+    "cpuCores": 0,
+    "extraProcesses": 0
+  },
+  "covered": true,
+  "summary": [
+    "string"
+  ],
+  "existing": {
+    "pluginKey": "string",
+    "pluginId": "string",
+    "entrypoints": [
+      "string"
+    ],
+    "producers": [
+      "string"
+    ],
+    "consumers": [
+      {}
+    ],
+    "jobs": [
+      "string"
+    ],
+    "networkMode": "string",
+    "domains": [
+      "string"
+    ],
+    "manifestDomains": [
+      "string"
+    ],
+    "operatorAddedDomains": [
+      "string"
+    ],
+    "operatorDeniedDomains": [
+      "string"
+    ],
+    "tcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorAddedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "operatorDeniedTcp": [
+      {
+        "host": "string",
+        "ports": []
+      }
+    ],
+    "addressCidrs": [
+      "string"
+    ],
+    "operatorAddedCidrs": [
+      "string"
+    ],
+    "operatorDeniedCidrs": [
+      "string"
+    ],
+    "allowUndeclaredPublicRedirects": true,
+    "grantRevision": "string",
+    "authorityRevision": "string",
+    "bindings": [
+      "string"
+    ],
+    "compatibilityFlags": [
+      "string"
+    ],
+    "approvedAt": "string",
+    "cpuMs": 0,
+    "subrequests": 0,
+    "diskMib": 0,
+    "memoryMib": 0,
+    "cpuCores": 0,
+    "extraProcesses": 0
+  },
+  "brand": {
+    "name": "string",
+    "bg": "string",
+    "fg": "string",
+    "accent": "string",
+    "logo": "string"
+  },
+  "limits": {
+    "cpu_ms": 0,
+    "subrequests": 0,
+    "max_cpu_ms": 0,
+    "max_subrequests": 0,
+    "disk_mib": 0,
+    "max_disk_mib": 0,
+    "memory_mib": 0,
+    "max_memory_mib": 0,
+    "cpu_cores": 0,
+    "max_cpu_cores": 0,
+    "jail_cpu_cores": 0,
+    "extra_processes": 0,
+    "max_extra_processes": 0,
+    "known_bindings": [
+      "string"
+    ]
+  }
+}
+```
 
 ## `GET /api/plugins/{kind}/{id}/logo`
 
@@ -468,3 +1018,10 @@ Serve an embedded `plugin.toml` `logo` file from under the plugin install root.
 | 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | The plugin has no logo. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/plugins/<kind>/<id>/logo' \
+    -H 'Authorization: Bearer <operatorToken>'
+```

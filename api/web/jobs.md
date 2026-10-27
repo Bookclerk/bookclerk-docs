@@ -22,6 +22,34 @@ Returns durable scan/acquire/listen_sync jobs, newest first.
 | 500 | The job table could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/jobs' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+[
+  {
+    "id": "string",
+    "kind": "scan",
+    "status": "pending",
+    "detail": "string",
+    "progress": "string",
+    "attempt_count": 0,
+    "max_attempts": 0,
+    "error_kind": "string",
+    "created_at": "string",
+    "finished_at": "string"
+  }
+]
+```
+
 ## `POST /api/jobs/{id}/cancel`
 
 Cancel a pending job or request cooperative stop of a running job.
@@ -46,3 +74,24 @@ Cancel a pending job or request cooperative stop of a running job.
 | 404 | No such job. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 500 | The job could not be updated. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/jobs/<id>/cancel' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```

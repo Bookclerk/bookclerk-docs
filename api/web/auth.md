@@ -16,6 +16,10 @@ Validates the operator token (throttled, constant-time) and issues a hashed sess
 
 `application/json`: [`LoginRequest`](schemas.md#loginrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `token` | string | yes | Operator token from the client; compared in constant time and never persisted. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -26,11 +30,20 @@ Validates the operator token (throttled, constant-time) and issues a hashed sess
 | 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/login' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"token": "string"}'
+```
+
 ## `GET /api/auth/signin`
 
 Public sign-in picker: operator-token availability, SSO IdPs, integration logins.
 
-# Errors
+### Errors
 
 Returns 500 when the owner-count query fails.
 
@@ -45,6 +58,12 @@ Returns 500 when the owner-count query fails.
 | 200 | The sign-in methods this library offers. | any JSON (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/signin'
+```
+
 ## `POST /api/auth/tray-handoff/prepare`
 
 Mint a single-use tray Open Bookclerk ticket (Bearer, direct loopback only).
@@ -55,7 +74,7 @@ ticket. The code is registered for log redaction (including percent-encoded
 form). Lifetime comes from live `[daemon.auth] tray_handoff_ttl_secs`
 (default 180, clamped to 30..=900).
 
-# Errors
+### Errors
 
 Returns 403 when the request is not a direct loopback call, 401 when Bearer
 does not match, or 429 when this client is locked out.
@@ -75,6 +94,14 @@ does not match, or 429 when this client is locked out.
 | 429 | Too many failed attempts from this client; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/tray-handoff/prepare' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/auth/tray-handoff`
 
 Consume the pending tray ticket and set a localhost operator session cookie.
@@ -83,7 +110,7 @@ Direct loopback only (TCP peer, localhost `Host`, no forwarded headers).
 Requires the one-time `code` from prepare; `?token=` is ignored and cannot
 mint a session. Wrong or missing codes do not consume the slot.
 
-# Errors
+### Errors
 
 Returns 403 when the request is not a direct loopback call or the code does
 not match a still-valid ticket.
@@ -106,6 +133,12 @@ not match a still-valid ticket.
 | 403 | The ticket is missing, used or not from loopback. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/tray-handoff'
+```
+
 ## `GET /api/auth/me`
 
 Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
@@ -122,6 +155,13 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/me' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/auth/elevate`
 
 Owner portal session + password re-auth → short-lived elevated operator cookie.
@@ -134,6 +174,10 @@ Owner portal session + password re-auth → short-lived elevated operator cookie
 
 `application/json`: [`ElevateRequest`](schemas.md#elevaterequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `password` | string | yes | Owner account password (re-authentication). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -144,6 +188,16 @@ Owner portal session + password re-auth → short-lived elevated operator cookie
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | The caller is already an operator. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/elevate' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"password": "string"}'
+```
 
 ## `DELETE /api/auth/elevate`
 
@@ -163,6 +217,15 @@ End elevation by revoking the elevated operator session cookie.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/elevate' \
+    -X DELETE \
+    -b 'bookclerk_operator_session=<operatorSession>' \
+    -H 'Origin: http://127.0.0.1:8787'
+```
+
 ## `POST /api/auth/bootstrap`
 
 Operator-only bootstrap of the first Owner when none exist.
@@ -175,6 +238,13 @@ Operator-only bootstrap of the first Owner when none exist.
 
 `application/json`: [`BootstrapRequest`](schemas.md#bootstraprequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `display_name` | string or null | no | Optional display name; falls back to login or email. |
+| `login_name` | string or null | no | Optional local login name. |
+| `email` | string or null | no | Optional email. |
+| `password` | string or null | no | Optional password; hashed before persist and never stored in plaintext. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -185,6 +255,16 @@ Operator-only bootstrap of the first Owner when none exist.
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | An Owner already exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/bootstrap' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `PUT /api/auth/password`
 
@@ -198,6 +278,12 @@ Set password for self (portal) or target user (operator/admin); revokes sessions
 
 `application/json`: [`SetPasswordRequest`](schemas.md#setpasswordrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `password` | string | yes | New password; hashed before persist. Empty is rejected. |
+| `current_password` | string or null | no | Required when the caller already has a password (not first-time invite setup). |
+| `user_id` | integer (int64) or null (int64) | no | Target `users.id` when a provisioner sets another user's password. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -208,6 +294,16 @@ Set password for self (portal) or target user (operator/admin); revokes sessions
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"password": "string"}'
+```
 
 ## `POST /api/auth/password`
 
@@ -221,6 +317,11 @@ Local password login → portal session cookie, or a TOTP challenge when enabled
 
 `application/json`: [`PasswordLoginRequest`](schemas.md#passwordloginrequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `login` | string | yes | Login name or email. |
+| `password` | string | yes | Password verified against the stored hash; mismatch fails closed and counts toward lockout. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -230,6 +331,15 @@ Local password login → portal session cookie, or a TOTP challenge when enabled
 | 403 | The account is disabled (`account_disabled`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/password' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"login": "string", "password": "string"}'
+```
 
 ## `POST /api/auth/impersonate`
 
@@ -243,6 +353,10 @@ Operator (or elevated) session starts impersonating a User.
 
 `application/json`: [`ImpersonateRequest`](schemas.md#impersonaterequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `user_id` | integer (int64) | yes | Target `users.id` to impersonate. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -253,6 +367,16 @@ Operator (or elevated) session starts impersonating a User.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"user_id": 0}'
+```
 
 ## `DELETE /api/auth/impersonate`
 
@@ -270,6 +394,15 @@ Clear impersonation on the current operator session.
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
+    -X DELETE \
+    -b 'bookclerk_operator_session=<operatorSession>' \
+    -H 'Origin: http://127.0.0.1:8787'
+```
 
 ## `GET /api/auth/branch-consent`
 
@@ -306,6 +439,13 @@ shows the problem and never redirects).
 | 503 | The library could not be read; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
 ## `POST /api/auth/branch-consent`
 
 `POST /api/auth/branch-consent`: approve or deny. Answers `{redirect}`,
@@ -321,6 +461,12 @@ enrollment on, and a connection the transport policy allows.
 
 `application/json`: [`BranchConsentBody`](schemas.md#branchconsentbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `approve` | boolean | yes | True to let the branch join; false to deny. |
+| `connection` | string or null | no | `branch` (default) or `clerk`. |
+| `step_up` | [`StepUp`](schemas.md#stepup) or null | no | The fresh second factor a clerk needs. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -333,6 +479,17 @@ enrollment on, and a connection the transport policy allows.
 | 429 | Too many wrong step-up codes; wait a few minutes (`step_up_locked`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 503 | The library could not be read; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/branch-consent' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
+```
 
 ## `POST /api/auth/branch-consent/step-up`
 
@@ -355,6 +512,15 @@ options with a `challenge_id` to send back in the consent's `step_up`.
 | 503 | The library could not be read, or the passkey check could not start. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/branch-consent/step-up' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787'
+```
+
 ## `POST /api/auth/logout`
 
 Revokes hashed operator and portal sessions and clears both cookies.
@@ -371,6 +537,14 @@ Revokes hashed operator and portal sessions and clears both cookies.
 | 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/logout' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
 
 ## `GET /api/auth/sessions`
 
@@ -389,6 +563,13 @@ List sessions for the current principal only (not every operator session).
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | The user has no sign-in identity. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/sessions' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
 
 ## `DELETE /api/auth/sessions/{id}`
 
@@ -415,6 +596,14 @@ portal users may only revoke their own.
 | 404 | No such session. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/sessions/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PATCH /api/auth/profile`
 
 Updates the caller's display name and/or email.
@@ -427,6 +616,12 @@ Updates the caller's display name and/or email.
 
 `application/json`: [`PatchProfileRequest`](schemas.md#patchprofilerequest)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `display_name` | string or null | no | Replacement display name; empty or whitespace clears the field. |
+| `email` | string or null | no | Replacement email; empty or whitespace clears the field. |
+| `avatar_source` | string or null | no | Picture choice (`auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -438,6 +633,16 @@ Updates the caller's display name and/or email.
 | 404 | The caller's user no longer exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | The email is used by another account (`email_in_use`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile' \
+    -X PATCH \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `PUT /api/auth/profile/avatar`
 
@@ -462,6 +667,16 @@ Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
 | 413 | The image is too large. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: image/*' \
+    --data-binary @file
+```
+
 ## `DELETE /api/auth/profile/avatar`
 
 Removes the caller's stored avatar, if any.
@@ -479,6 +694,14 @@ Removes the caller's stored avatar, if any.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/auth/oidc/providers`
 
 Lists enabled IdPs for the login picker (id and display name only).
@@ -493,6 +716,12 @@ Lists enabled IdPs for the login picker (id and display name only).
 | --- | --- | --- |
 | 200 | Enabled identity providers (id and name). | any JSON (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/providers'
+```
 
 ## `GET /api/auth/oidc/identities`
 
@@ -510,6 +739,13 @@ Lists OIDC portal identities for the cookie-authenticated caller.
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/identities' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
 
 ## `GET /api/auth/oidc/login`
 
@@ -533,6 +769,12 @@ Starts an OIDC login authorize redirect, honoring login throttle.
 | 400 | The provider is unknown or disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/login'
+```
 
 ## `GET /api/auth/oidc/elevate`
 
@@ -559,6 +801,13 @@ Starts an Owner re-auth elevate flow against a linked IdP (`prompt=login`).
 | 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/elevate' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
 ## `GET /api/auth/oidc/callback`
 
 GET callback (most IdPs); finishes the code exchange.
@@ -584,6 +833,12 @@ GET callback (most IdPs); finishes the code exchange.
 | 400 | The state or code is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/callback'
+```
+
 ## `POST /api/auth/oidc/callback`
 
 POST callback (Apple `form_post`); finishes the code exchange.
@@ -596,6 +851,13 @@ POST callback (Apple `form_post`); finishes the code exchange.
 
 `application/x-www-form-urlencoded`: [`CallbackParams`](schemas.md#callbackparams)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | string or null | no | Authorization code to exchange; required unless `error` is set. |
+| `state` | string or null | no | CSRF `state` that must match the `bookclerk_oidc_tx` cookie. |
+| `error` | string or null | no | IdP-reported deny/error; redirects the browser to `/?sso_error=denied`. |
+| `user` | string or null | no | Apple first-login name/email JSON (form_post only). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -603,6 +865,13 @@ POST callback (Apple `form_post`); finishes the code exchange.
 | 302 | Redirects into the app, signed in. |  |
 | 400 | The state or code is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/callback' \
+    -X POST
+```
 
 ## `GET /api/auth/oidc/config`
 
@@ -621,6 +890,68 @@ Operator GET: broker settings plus secret-presence flags (never plaintext).
 | 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "enabled": true,
+  "allowed_email_domains": [
+    "string"
+  ],
+  "public_origin": "string",
+  "issuer_url": "string",
+  "detected_origin": "string",
+  "discovery_url": "string",
+  "authorization_endpoint": "string",
+  "token_endpoint": "string",
+  "userinfo_endpoint": "string",
+  "revocation_endpoint": "string",
+  "callback_url": "string",
+  "providers": [
+    {
+      "id": "string",
+      "name": "string",
+      "preset": "string",
+      "issuer": "string",
+      "client_id": "string",
+      "scopes": [
+        "string"
+      ],
+      "provision": "string",
+      "default_role": "string",
+      "role_claim": "string",
+      "role_map": {
+        "key": "string"
+      },
+      "link_by_email": true,
+      "allowed_email_domains": [
+        "string"
+      ],
+      "allowed_emails": [
+        "string"
+      ],
+      "allowed_subjects": [
+        "string"
+      ],
+      "apple_team_id": "string",
+      "apple_key_id": "string",
+      "has_client_secret": true,
+      "has_apple_private_key": true,
+      "secret_source": "string"
+    }
+  ]
+}
+```
+
 ## `PUT /api/auth/oidc/config`
 
 Operator PUT: writes next-generation sealed secrets, then publishes config.toml.
@@ -633,6 +964,14 @@ Operator PUT: writes next-generation sealed secrets, then publishes config.toml.
 
 `application/json`: [`OidcConfigPut`](schemas.md#oidcconfigput)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `enabled` | boolean | yes | Whether the broker should accept authorize starts after this write. |
+| `allowed_email_domains` | array of string | no | Replacement broker-wide email domain allowlist. |
+| `providers` | array of [`OidcProviderPut`](schemas.md#oidcproviderput) | no | Full replacement list of IdPs (omitted secrets keep the previous generation). |
+| `public_origin` | string or null | no | `integrations.public_origin`. Omit to leave unchanged; empty string clears. |
+| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -643,6 +982,71 @@ Operator PUT: writes next-generation sealed secrets, then publishes config.toml.
 | 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"enabled": true}'
+```
+
+### Example response
+
+Status `200`:
+
+```json
+{
+  "enabled": true,
+  "allowed_email_domains": [
+    "string"
+  ],
+  "public_origin": "string",
+  "issuer_url": "string",
+  "detected_origin": "string",
+  "discovery_url": "string",
+  "authorization_endpoint": "string",
+  "token_endpoint": "string",
+  "userinfo_endpoint": "string",
+  "revocation_endpoint": "string",
+  "callback_url": "string",
+  "providers": [
+    {
+      "id": "string",
+      "name": "string",
+      "preset": "string",
+      "issuer": "string",
+      "client_id": "string",
+      "scopes": [
+        "string"
+      ],
+      "provision": "string",
+      "default_role": "string",
+      "role_claim": "string",
+      "role_map": {
+        "key": "string"
+      },
+      "link_by_email": true,
+      "allowed_email_domains": [
+        "string"
+      ],
+      "allowed_emails": [
+        "string"
+      ],
+      "allowed_subjects": [
+        "string"
+      ],
+      "apple_team_id": "string",
+      "apple_key_id": "string",
+      "has_client_secret": true,
+      "has_apple_private_key": true,
+      "secret_source": "string"
+    }
+  ]
+}
+```
 
 ## `GET /api/auth/passkeys`
 
@@ -661,6 +1065,13 @@ Lists this user's stored passkeys as `{ id, credential_id }` rows.
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
 ## `POST /api/auth/passkeys/register/begin`
 
 Starts passkey registration (skips reauth only for first local-only setup).
@@ -673,6 +1084,10 @@ Starts passkey registration (skips reauth only for first local-only setup).
 
 `application/json`: [`PasskeyReauthBody`](schemas.md#passkeyreauthbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -681,6 +1096,17 @@ Starts passkey registration (skips reauth only for first local-only setup).
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/begin' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/auth/passkeys/register/finish`
 
@@ -694,6 +1120,12 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
+| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
+| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -704,6 +1136,17 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | The passkey is already registered. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/finish' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{"challenge_id": "string"}'
+```
 
 ## `DELETE /api/auth/passkeys/{id}`
 
@@ -723,6 +1166,10 @@ Deletes one passkey after recent reauth; 404 when the id is not this user's.
 
 `application/json`: [`PasskeyReauthBody`](schemas.md#passkeyreauthbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -732,6 +1179,17 @@ Deletes one passkey after recent reauth; 404 when the id is not this user's.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 404 | No such passkey for this user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/<id>' \
+    -X DELETE \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/auth/passkeys/login/begin`
 
@@ -745,6 +1203,10 @@ Rate-limits and starts passkey login; records a failure on any error.
 
 `application/json`: [`LoginBegin`](schemas.md#loginbegin)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `login` | string | yes | Login name or email looked up before issuing an authentication challenge. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -756,6 +1218,15 @@ Rate-limits and starts passkey login; records a failure on any error.
 | 404 | The user has no usable passkeys. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 429 | Too many attempts; try later. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"login": "string"}'
+```
 
 ## `POST /api/auth/passkeys/login/finish`
 
@@ -769,6 +1240,12 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
+| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
+| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -778,6 +1255,15 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 | 401 | The assertion is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"challenge_id": "string"}'
+```
 
 ## `POST /api/auth/passkeys/elevate/begin`
 
@@ -797,6 +1283,15 @@ Starts Owner elevation; 403 unless the signed-in user is an Owner with passkeys.
 | 404 | The caller has no passkeys. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/begin' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787'
+```
+
 ## `POST /api/auth/passkeys/elevate/finish`
 
 Completes Owner elevation only when the assertion is user-verified.
@@ -809,6 +1304,12 @@ Completes Owner elevation only when the assertion is user-verified.
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
+| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
+| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -818,6 +1319,17 @@ Completes Owner elevation only when the assertion is user-verified.
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{"challenge_id": "string"}'
+```
 
 ## `POST /api/auth/totp/login`
 
@@ -831,6 +1343,11 @@ Completes password+TOTP login and issues a portal session cookie.
 
 `application/json`: [`LoginVerify`](schemas.md#loginverify)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `challenge_id` | string | yes | Server-issued challenge id (5-minute TTL, single use). |
+| `code` | string | yes | Six-digit authenticator code. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -839,6 +1356,15 @@ Completes password+TOTP login and issues a portal session cookie.
 | 401 | The challenge or code is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 429 | Too many attempts; try later. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/totp/login' \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"challenge_id": "string", "code": "string"}'
+```
 
 ## `POST /api/auth/totp/enroll/begin`
 
@@ -852,6 +1378,10 @@ Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG.
 
 `application/json`: [`TotpReauthBody`](schemas.md#totpreauthbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -861,6 +1391,17 @@ Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | TOTP is already on. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/begin' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/auth/totp/enroll/finish`
 
@@ -874,6 +1415,10 @@ Confirms the pending secret with a valid code and sets `users.totp_enabled`.
 
 `application/json`: [`EnrollFinish`](schemas.md#enrollfinish)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | string | yes | Six-digit code from the authenticator app. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -884,6 +1429,17 @@ Confirms the pending secret with a valid code and sets `users.totp_enabled`.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 409 | TOTP is already on. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{"code": "string"}'
+```
 
 ## `GET /api/auth/totp`
 
@@ -902,6 +1458,13 @@ GET `/api/auth/totp` — whether TOTP is confirmed for this user.
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/totp' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
 ## `DELETE /api/auth/totp`
 
 Disables TOTP after recent reauth and deletes sealed secrets.
@@ -914,6 +1477,10 @@ Disables TOTP after recent reauth and deletes sealed secrets.
 
 `application/json`: [`TotpReauthBody`](schemas.md#totpreauthbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -922,6 +1489,17 @@ Disables TOTP after recent reauth and deletes sealed secrets.
 | 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/totp' \
+    -X DELETE \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `GET /api/auth/mfa-policy`
 
@@ -940,6 +1518,13 @@ Current MFA policy (`require_second_factor`).
 | 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/auth/mfa-policy`
 
 Persists `daemon.auth.require_second_factor` to `config.toml`.
@@ -952,6 +1537,11 @@ Persists `daemon.auth.require_second_factor` to `config.toml`.
 
 `application/json`: [`MfaPolicyPut`](schemas.md#mfapolicyput)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `require_second_factor` | boolean | yes | When true, password login requires TOTP or the user must use a passkey. |
+| `current_password` | string or null | no | Current password for Owner step-up (operators omit this). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -962,3 +1552,13 @@ Persists `daemon.auth.require_second_factor` to `config.toml`.
 | 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"require_second_factor": true}'
+```

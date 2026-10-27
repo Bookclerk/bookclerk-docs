@@ -23,6 +23,10 @@ labels. The scheduler re-plans on the wakeup this publishes.
 
 `application/json`: [`PutNodeLabels`](schemas.md#putnodelabels)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `labels` | array of string | yes | The node's complete operator label set. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -34,6 +38,16 @@ labels. The scheduler re-plans on the wakeup this publishes.
 | 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/labels' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"labels": ["string"]}'
+```
 
 ## `PUT /api/config/nodes/{node_id}/owner`
 
@@ -55,6 +69,10 @@ authority.
 
 `application/json`: [`PutNodeOwner`](schemas.md#putnodeowner)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `user_id` | integer (int64) or null (int64) | no | User who owns the node, or `null` to clear. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -66,6 +84,16 @@ authority.
 | 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/owner' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `GET /api/config/cluster-consents`
 
@@ -85,6 +113,13 @@ authority.
 | 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/cluster-consents' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
 
 ## `POST /api/config/clusters/{cluster_id}/scan`
 
@@ -108,6 +143,11 @@ Optional.
 
 `application/json`: [`ClusterScanBody`](schemas.md#clusterscanbody) or null
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `account` | string or null | no | Scan only this store account of the owner cluster. |
+| `plugin_instance_id` | string or null | no | Pin every planned job to this owner plugin instance. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -120,6 +160,16 @@ Optional.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 502 | The owner cluster could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/scan' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/config/clusters/{cluster_id}/jobs`
 
@@ -140,6 +190,10 @@ this node may see (those it would be trusted to claim).
 
 `application/json`: [`ClusterJobsBody`](schemas.md#clusterjobsbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `job_ids` | array of string | yes | Job ids on the owner cluster. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -153,6 +207,16 @@ this node may see (those it would be trusted to claim).
 | 502 | The owner cluster could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"job_ids": ["string"]}'
+```
+
 ## `POST /api/config/cluster-consents/approve`
 
 `POST /api/config/cluster-consents/approve`.
@@ -164,6 +228,15 @@ this node may see (those it would be trusted to claim).
 ### Request body
 
 `application/json`: [`ApproveBody`](schemas.md#approvebody)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `cluster_id` | string | yes | Owner cluster id. |
+| `plugin_key` | string | yes | Canonical plugin key. |
+| `request_digest` | string | yes | The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one). |
+| `deny_domains` | array of string | no | Domains to take out of the request. No duplicates. |
+| `deny_bindings` | array of string | no | Bindings to take out of the request. No duplicates. |
+| `deny_network` | boolean | no | Deny all network access. |
 
 ### Responses
 
@@ -177,6 +250,16 @@ this node may see (those it would be trusted to claim).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/cluster-consents/approve' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}'
+```
+
 ## `POST /api/config/cluster-consents/revoke`
 
 `POST /api/config/cluster-consents/revoke`.
@@ -189,6 +272,11 @@ this node may see (those it would be trusted to claim).
 
 `application/json`: [`RevokeBody`](schemas.md#revokebody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `cluster_id` | string | yes | Owner cluster id. |
+| `plugin_key` | string | yes | Canonical plugin key. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -200,6 +288,16 @@ this node may see (those it would be trusted to claim).
 | 404 | No such consent. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/cluster-consents/revoke' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "string", "plugin_key": "string"}'
+```
 
 ## `GET /api/config/join`
 
@@ -220,6 +318,13 @@ this node may see (those it would be trusted to claim).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/config/join/inspect`
 
 `POST /api/config/join/inspect`.
@@ -231,6 +336,10 @@ this node may see (those it would be trusted to claim).
 ### Request body
 
 `application/json`: [`InspectBody`](schemas.md#inspectbody)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | yes | The library's address (`https://owner.example`, `owner.lan:8443`). |
 
 ### Responses
 
@@ -244,6 +353,16 @@ this node may see (those it would be trusted to claim).
 | 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/inspect' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"address": "string"}'
+```
+
 ## `POST /api/config/join/start`
 
 `POST /api/config/join/start`.
@@ -255,6 +374,13 @@ this node may see (those it would be trusted to claim).
 ### Request body
 
 `application/json`: [`StartBody`](schemas.md#startbody)
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `address` | string | yes | The library's address. |
+| `fingerprint` | string or null | no | The fingerprint the operator confirmed (self-signed libraries). |
+| `branch_name` | string or null | no | The name to join as (default: this machine's name). |
+| `clerk` | boolean | no | Offer to join as a clerk (an owner node that shares the library's database): only an empty install may, and its data is replaced. |
 
 ### Responses
 
@@ -268,6 +394,16 @@ this node may see (those it would be trusted to claim).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/start' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"address": "string"}'
+```
 
 ## `POST /api/config/join/callback`
 
@@ -285,6 +421,13 @@ on success, refusal, or anything else.
 
 `application/json`: [`CallbackBody`](schemas.md#callbackbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | string | no | The code from the library. |
+| `state` | string | no | The `state` it came back with. |
+| `error` | string or null | no | The library's `error` (`access_denied`), when it sent one. |
+| `connection` | string or null | no | The connection type the library's user chose (`clerk`; a branch when left out). The code is bound to it, so a changed value only fails the redeem. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -297,6 +440,16 @@ on success, refusal, or anything else.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/callback' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `POST /api/config/join/invite`
 
@@ -313,6 +466,10 @@ while the join carries on and starts its client when it lands.
 
 `application/json`: [`InviteBody`](schemas.md#invitebody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `link` | string | yes | The whole branch invite (`https://<library>/enroll#bcn1...`). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -324,6 +481,16 @@ while the join carries on and starts its client when it lands.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The library is slow to answer; the join goes on in the background (`join_pending`). Poll the join state instead of retrying. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/invite' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"link": "string"}'
+```
 
 ## `POST /api/config/join/leave`
 
@@ -339,6 +506,10 @@ still records it once the library has been told.
 
 `application/json`: [`LeaveBody`](schemas.md#leavebody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `cluster_id` | string | yes | The library (owner cluster id) to leave. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -351,6 +522,16 @@ still records it once the library has been told.
 | 409 | This install has not joined a library. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/leave' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "string"}'
+```
 
 ## `GET /api/config/nodes`
 
@@ -371,6 +552,13 @@ nodes for a node owner.
 | 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/nodes' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
 
 ## `DELETE /api/config/nodes/{node_id}`
 
@@ -402,6 +590,14 @@ refused (a branch is revoked instead).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/config/clerks`
 
 `GET /api/config/clerks`: the owner nodes (this one and its clerks) for
@@ -425,6 +621,13 @@ listing already shows them. Branches are not listed.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/clerks' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/nodes/{node_id}/runtime`
 
 `PUT /api/config/nodes/{node_id}/runtime`: edit a node's label, budgets,
@@ -445,6 +648,13 @@ edit only the nodes it owns.
 
 `application/json`: [`PutNodeRuntime`](schemas.md#putnoderuntime)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `label` | string or null | no | Operator label. |
+| `cpu_budget_percent` | integer (int32) or null (int32) | no | Share of detected CPU the scheduler may commit (1..=100). At least 0. |
+| `memory_budget_percent` | integer (int32) or null (int32) | no | Share of detected memory the scheduler may commit (1..=100). At least 0. |
+| `schedulable` | boolean or null | no | False drains the node. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -456,6 +666,16 @@ edit only the nodes it owns.
 | 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/runtime' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `GET /api/config/node-invites`
 
@@ -483,22 +703,29 @@ Owner; the caller's own links for anyone else, and with `?mine=true`.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/node-invites' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/config/node-invites`
 
 `POST /api/config/node-invites`: mint an enrollment link. Any user may
 mint one for themselves while host enrollment is on; the operator or an
 Owner may mint for any active user.
 
-# Arguments
+### Arguments
 
 * `caller` - Who is asking; decides whose links they may mint.
 * `body` - Owner, lifetime, and label of the new link.
 
-# Returns
+### Returns
 
 `{link, url}`; the secret appears once, in `url`.
 
-# Errors
+### Errors
 
 Returns 503 `node_api_pin_unavailable` in `self_signed` mode while the
 certificate's SPKI pin cannot be read (nothing is minted), and an error
@@ -512,6 +739,12 @@ response when the library refuses the mint.
 
 `application/json`: [`PostNodeInvite`](schemas.md#postnodeinvite)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `user_id` | integer (int64) or null (int64) | no | User who will own the node. Defaults to the caller; the operator must name one. |
+| `ttl_secs` | integer (int64) or null (int64) | no | Link lifetime in seconds (default 24 h, 5 min to 7 days). At least 0. |
+| `label` | string | no | Label shown in listings. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -524,6 +757,16 @@ response when the library refuses the mint.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 503 | The node API's certificate pin is not available yet (`node_api_pin_unavailable`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/node-invites' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `DELETE /api/config/node-invites/{id}`
 
@@ -551,6 +794,14 @@ response when the library refuses the mint.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/node-invites/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/config/branches`
 
 `GET /api/config/branches`: this library's join settings: whether new
@@ -572,6 +823,13 @@ joining operator confirms in `self_signed` mode.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branches' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/branches`
 
 `PUT /api/config/branches`: turn "Let new branches join" on or off.
@@ -584,6 +842,10 @@ joining operator confirms in `self_signed` mode.
 
 `application/json`: [`PutBranches`](schemas.md#putbranches)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `enrollment` | boolean | yes | "Let new branches join" (`core.host_enrollment.enabled`). |
+
 ### Responses
 
 | Status | Description | Body |
@@ -594,6 +856,16 @@ joining operator confirms in `self_signed` mode.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branches' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"enrollment": true}'
+```
 
 ## `POST /api/config/branches/titles/remove`
 
@@ -608,6 +880,10 @@ titles from a branch that stopped sharing or left. Delivered files stay.
 
 `application/json`: [`RemoveBranchTitles`](schemas.md#removebranchtitles)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `node_id` | string or null | no | Only this branch's entries; every branch's when absent. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -618,6 +894,16 @@ titles from a branch that stopped sharing or left. Delivered files stay.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branches/titles/remove' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ## `GET /api/config/join/sharing`
 
@@ -640,6 +926,13 @@ sharing settings (`{clusters: [...]}`).
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/sharing' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `POST /api/config/join/sharing`
 
 `POST /api/config/join/sharing`: Settings → Library's two sharing
@@ -654,6 +947,12 @@ an Owner (verified from the stored role); anyone else gets 403.
 
 `application/json`: [`SharingBody`](schemas.md#sharingbody)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `cluster_id` | string | yes | The library (owner cluster id). |
+| `share_books` | boolean | yes | "Share this branch's books with *library*". |
+| `include_branches` | boolean | yes | "Include books from my own branches". |
+
 ### Responses
 
 | Status | Description | Body |
@@ -666,23 +965,33 @@ an Owner (verified from the stored role); anyone else gets 403.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/sharing' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "string", "share_books": true, "include_branches": true}'
+```
+
 ## `DELETE /api/config/node-credentials/{node_id}`
 
 `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled
 host's credential so it can no longer connect.
 
-# Arguments
+### Arguments
 
 * `caller` - Who is asking; the operator or an Owner may revoke any host,
   any other active user only the hosts they own.
 * `node_id` - The host node to revoke.
 
-# Returns
+### Returns
 
 `{credential}` with `revoked_at` set; revoking twice keeps the first
 time.
 
-# Errors
+### Errors
 
 Returns 404 when the node is unknown or not the caller's, 400 when the
 node has no host credential, 403 for a disabled user, and an error
@@ -710,16 +1019,24 @@ response when the write fails.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/node-credentials/<node_id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `GET /api/config/host-enrollment`
 
 `GET /api/config/host-enrollment`: whether host nodes may enroll.
 
-# Returns
+### Returns
 
 `{enabled, revision}`; `revision` is `null` while the default (enabled)
 applies.
 
-# Errors
+### Errors
 
 Returns an error response when the switch cannot be read.
 
@@ -738,22 +1055,29 @@ Returns an error response when the switch cannot be read.
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
 
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
 ## `PUT /api/config/host-enrollment`
 
 `PUT /api/config/host-enrollment`: turn host enrollment on or off. The
 operator may always; a user only while the stored role is an active
 Owner.
 
-# Arguments
+### Arguments
 
 * `caller` - Who is asking; a user's role is read from the database.
 * `body` - The new switch value.
 
-# Returns
+### Returns
 
 `{enabled, revision}` as stored.
 
-# Errors
+### Errors
 
 Returns 403 when the caller is neither the operator nor an active Owner,
 and an error response when the switch cannot be written.
@@ -766,6 +1090,10 @@ and an error response when the switch cannot be written.
 
 `application/json`: [`PutHostEnrollment`](schemas.md#puthostenrollment)
 
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `enabled` | boolean | yes | Whether host nodes may enroll into this cluster. |
+
 ### Responses
 
 | Status | Description | Body |
@@ -776,3 +1104,13 @@ and an error response when the switch cannot be written.
 | 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
 | 504 | The request ran past the API's time budget. | string (`text/plain`) |
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"enabled": true}'
+```
