@@ -382,6 +382,20 @@ Body for copying library rows between database plugins.
 | `force` | boolean | no | When true, overwrite a destination that is not empty. |
 | `apply` | boolean | no | Update `[database].plugin` in config.toml after a successful copy. |
 
+## DesiredState
+
+What a deployment row asks its node to do, and who decided it.
+
+Operators write [`DesiredState::Present`] and [`DesiredState::Absent`]
+(`plugins deploy|undeploy`, the Settings switch). The placement scheduler
+writes [`DesiredState::Placed`] and [`DesiredState::Unplaced`] for an
+instance it owns. A node runs the instance for `present` and `placed`
+and retires it for `absent` and `unplaced`; the split only records whose
+decision the row carries, so "the operator turned this off" never reads
+like "the scheduler put the replica elsewhere".
+
+Type: one of `present`, `absent`, `placed`, `unplaced`
+
 ## DiscoverFeed
 
 Full Discover page payload: ordered shelves of personalized candidates.
@@ -575,8 +589,8 @@ Snapshot of one queued or running control-plane job.
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `id` | string | yes | Opaque job id returned to the client when the job is accepted. |
-| `kind` | string | yes | Job type (`scan`, `acquire`, `listen_sync`). |
-| `status` | string | yes | Lifecycle string (`pending`, `running`, `succeeded`, `failed`, `cancelled`). |
+| `kind` | [`JobKind`](#jobkind) | yes | What the job does. |
+| `status` | [`JobState`](#jobstate) | yes | Where the job is in its lifecycle. |
 | `detail` | string or null | no | Optional operator-facing progress or error text. |
 | `progress` | string or null | no | Human-readable progress string while the job is running. |
 | `attempt_count` | integer (int64) | no | Number of times a worker has claimed this row. |
@@ -584,6 +598,18 @@ Snapshot of one queued or running control-plane job.
 | `error_kind` | string or null | no | Structured error kind when failed or cancelled. |
 | `created_at` | string or null | no | RFC 3339 timestamp when the row was inserted. |
 | `finished_at` | string or null | no | RFC 3339 timestamp when the row reached a terminal state. |
+
+## JobKind
+
+Kind of durable daemon work stored in the `jobs` table.
+
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `invalid`
+
+## JobState
+
+Lifecycle state of a durable job row.
+
+Type: one of `pending`, `running`, `succeeded`, `failed`, `cancelled`
 
 ## LeaveBody
 
@@ -903,7 +929,7 @@ This node's view of one deployment row, with its latest observation.
 | --- | --- | --- | --- |
 | `deployment_id` | string | yes | Deployment row id. |
 | `node_id` | string | yes | Node the row targets. |
-| `desired` | string | yes | `present` or `absent`. |
+| `desired` | [`DesiredState`](#desiredstate) | yes | What the row asks the node to do: `present` / `absent` from an operator, `placed` / `unplaced` from the scheduler. |
 | `revision` | integer (int64) | yes | Compare-and-swap revision of the desired row. |
 | `status` | string or null | no | Latest observation status from that node, when it reported one. |
 | `detail` | string or null | no | Observation detail (error text, redacted). |
@@ -1191,7 +1217,7 @@ JSON body for `PUT /api/config/domains/core.output`.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `desired` | string | yes | `present` or `absent`. |
+| `desired` | [`DesiredState`](#desiredstate) | yes | What the node should do: `present` or `absent` (the scheduler's `placed` / `unplaced` are accepted too). |
 | `expected_revision` | integer (int64) or null (int64) | no | Revision the caller last observed; required when the row exists and the caller wants compare-and-swap. Omitted means "replace whatever is current". |
 
 ## PutPluginInstanceConfig

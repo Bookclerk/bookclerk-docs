@@ -9343,7 +9343,7 @@ pub fn dedup_key(self, payload: &JobPayload) -> String
 
 Idempotency key unique among pending/running jobs of the same work.
 
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### JobResourceClass
 
@@ -9445,7 +9445,7 @@ pub fn is_terminal(self) -> bool
 
 True when the job will not run again.
 
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### JobTrigger
 

@@ -2,7 +2,7 @@
 
 The HTTP API of `bookclerkd`, the Bookclerk daemon: the web interface, the CLI and other nodes use it. Request bodies are JSON (`Content-Type: application/json`; send `{}` for defaults) unless a route says otherwise. Error responses are JSON objects with an `error` slug (`ApiError`); bare statuses get `{"error", "message", "status"}` (`ErrorJson`).
 
-The daemon serves this reference as an OpenAPI document at `GET /api/openapi.json` (API version `0.1.0`).
+The daemon serves this reference as an OpenAPI 3.1 document at `GET /api/openapi.json` (API version `0.1.0`). Load it into an OpenAPI viewer such as Scalar or Swagger UI, or a client generator. Tools that only read OpenAPI 3.0, such as Cloudflare API Shield's schema validation, can use the same API restated as OpenAPI 3.0.3 at `GET /api/openapi-3.0.json`.
 
 ## Authentication
 
@@ -34,6 +34,7 @@ This document.
 | Route | Summary |
 | --- | --- |
 | [`GET /api/openapi.json`](spec.md#get-apiopenapijson) | Serves the OpenAPI document. |
+| [`GET /api/openapi-3.0.json`](spec.md#get-apiopenapi-30json) | Serves the OpenAPI document restated as OpenAPI 3.0.3. |
 
 ### [Auth](auth.md)
 

@@ -3540,7 +3540,7 @@ The operator state that keeps what this row does today: `placed`
 becomes `present` and `unplaced` becomes `absent` when an instance
 is handed back from the scheduler.
 
-Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
 ### ConfigActor
 
