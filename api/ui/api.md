@@ -39,16 +39,14 @@ new ApiError(
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 #### Properties
 
 ##### code?
 
 ```ts
-optional code?: string;
+code?: string;
 ```
 
 Machine slug from JSON error bodies when present.
@@ -56,7 +54,7 @@ Machine slug from JSON error bodies when present.
 ##### pluginId?
 
 ```ts
-optional pluginId?: string;
+pluginId?: string;
 ```
 
 ##### status
@@ -68,7 +66,7 @@ status: number;
 ##### summary?
 
 ```ts
-optional summary?: string[];
+summary?: string[];
 ```
 
 ## Interfaces
@@ -82,7 +80,7 @@ Ack payload for scan / acquire job triggers.
 ##### error?
 
 ```ts
-optional error?: string | null;
+error?: string | null;
 ```
 
 ##### job\_id
@@ -134,7 +132,7 @@ Signed-in administrator or member profile from `/api/auth/me`.
 ##### avatar\_source?
 
 ```ts
-optional avatar_source?: string | null;
+avatar_source?: string | null;
 ```
 
 `auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`.
@@ -148,13 +146,13 @@ display_name: string | null;
 ##### email?
 
 ```ts
-optional email?: string | null;
+email?: string | null;
 ```
 
 ##### gravatar\_hash?
 
 ```ts
-optional gravatar_hash?: string | null;
+gravatar_hash?: string | null;
 ```
 
 SHA-256 hex of the contact email for Gravatar.
@@ -162,7 +160,7 @@ SHA-256 hex of the contact email for Gravatar.
 ##### has\_avatar?
 
 ```ts
-optional has_avatar?: boolean;
+has_avatar?: boolean;
 ```
 
 True when a profile picture file is stored for this user.
@@ -170,7 +168,7 @@ True when a profile picture file is stored for this user.
 ##### has\_password?
 
 ```ts
-optional has_password?: boolean;
+has_password?: boolean;
 ```
 
 ##### id
@@ -182,7 +180,7 @@ id: number;
 ##### login\_name?
 
 ```ts
-optional login_name?: string | null;
+login_name?: string | null;
 ```
 
 ##### role
@@ -194,7 +192,7 @@ role: string;
 ##### sso\_pictures?
 
 ```ts
-optional sso_pictures?: object[];
+sso_pictures?: object[];
 ```
 
 IdP-supplied pictures the user can pick.
@@ -208,7 +206,7 @@ identity_id: number;
 ###### last\_used\_at?
 
 ```ts
-optional last_used_at?: string | null;
+last_used_at?: string | null;
 ```
 
 ###### picture\_url
@@ -226,7 +224,7 @@ provider: string;
 ##### status?
 
 ```ts
-optional status?: string;
+status?: string;
 ```
 
 ***
@@ -290,37 +288,37 @@ default_view: AppView;
 ##### elevated?
 
 ```ts
-optional elevated?: boolean;
+elevated?: boolean;
 ```
 
 ##### impersonating?
 
 ```ts
-optional impersonating?: AuthMeImpersonating;
+impersonating?: AuthMeImpersonating;
 ```
 
 ##### portal?
 
 ```ts
-optional portal?: PortalInfo;
+portal?: PortalInfo;
 ```
 
 ##### role?
 
 ```ts
-optional role?: AuthRole;
+role?: AuthRole;
 ```
 
 ##### second\_factor?
 
 ```ts
-optional second_factor?: AuthSecondFactor;
+second_factor?: AuthSecondFactor;
 ```
 
 ##### user?
 
 ```ts
-optional user?: AuthMeUser;
+user?: AuthMeUser;
 ```
 
 ***
@@ -717,7 +715,7 @@ has_password: boolean;
 ##### invite\_url?
 
 ```ts
-optional invite_url?: string | null;
+invite_url?: string | null;
 ```
 
 ##### login\_name
@@ -761,25 +759,25 @@ authors: string | null;
 ##### cover\_url?
 
 ```ts
-optional cover_url?: string | null;
+cover_url?: string | null;
 ```
 
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### genres?
 
 ```ts
-optional genres?: string | null;
+genres?: string | null;
 ```
 
 ##### is\_abridged?
 
 ```ts
-optional is_abridged?: boolean | null;
+is_abridged?: boolean | null;
 ```
 
 ##### isbn
@@ -791,13 +789,13 @@ isbn: string | null;
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators
@@ -809,37 +807,37 @@ narrators: string | null;
 ##### price\_cents?
 
 ```ts
-optional price_cents?: number | null;
+price_cents?: number | null;
 ```
 
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### purchase\_hints?
 
 ```ts
-optional purchase_hints?: PurchaseHint[];
+purchase_hints?: PurchaseHint[];
 ```
 
 ##### rating\_count?
 
 ```ts
-optional rating_count?: number | null;
+rating_count?: number | null;
 ```
 
 ##### rating\_overall?
 
 ```ts
-optional rating_overall?: number | null;
+rating_overall?: number | null;
 ```
 
 ##### series
@@ -851,7 +849,7 @@ series: string | null;
 ##### series\_index?
 
 ```ts
-optional series_index?: string | null;
+series_index?: string | null;
 ```
 
 ##### sources
@@ -869,7 +867,7 @@ store_editions: StoreEdition[];
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### title
@@ -907,7 +905,7 @@ items: CatalogSearchHit[];
 ##### next\_cursor?
 
 ```ts
-optional next_cursor?: string | null;
+next_cursor?: string | null;
 ```
 
 ##### page\_size
@@ -925,7 +923,7 @@ sort: string;
 ##### sort\_dir?
 
 ```ts
-optional sort_dir?: string;
+sort_dir?: string;
 ```
 
 ***
@@ -979,7 +977,7 @@ RFC 3339 time of the latest enrollment (a re-enrollment resets it).
 ##### include\_branches?
 
 ```ts
-optional include_branches?: boolean;
+include_branches?: boolean;
 ```
 
 "Include books from my own branches" (on by default).
@@ -1011,7 +1009,7 @@ True when the link pins the owner's self-signed certificate.
 ##### share\_books?
 
 ```ts
-optional share_books?: boolean;
+share_books?: boolean;
 ```
 
 "Share this branch's books with <library>" (on by default).
@@ -1239,7 +1237,7 @@ runtime: NodeRuntimeView;
 ##### software\_version?
 
 ```ts
-optional software_version?: string;
+software_version?: string;
 ```
 
 ##### status
@@ -1275,7 +1273,7 @@ Discover recommendations feed payload.
 ##### shelf\_kinds?
 
 ```ts
-optional shelf_kinds?: ShelfKindInfo[];
+shelf_kinds?: ShelfKindInfo[];
 ```
 
 ##### shelves
@@ -1437,19 +1435,19 @@ dead_letter: number;
 ##### dead\_letters\_total?
 
 ```ts
-optional dead_letters_total?: number;
+dead_letters_total?: number;
 ```
 
 ##### dispatch\_latency\_ms\_avg?
 
 ```ts
-optional dispatch_latency_ms_avg?: number | null;
+dispatch_latency_ms_avg?: number | null;
 ```
 
 ##### handler\_latency\_ms\_avg?
 
 ```ts
-optional handler_latency_ms_avg?: number | null;
+handler_latency_ms_avg?: number | null;
 ```
 
 ##### oldest\_pending\_age\_secs
@@ -1467,7 +1465,7 @@ pending: number;
 ##### retries\_total?
 
 ```ts
-optional retries_total?: number;
+retries_total?: number;
 ```
 
 ##### running
@@ -1485,7 +1483,7 @@ suspended: number;
 ##### suspensions\_total?
 
 ```ts
-optional suspensions_total?: number;
+suspensions_total?: number;
 ```
 
 ***
@@ -1511,13 +1509,13 @@ authors: string | null;
 ##### cover\_url?
 
 ```ts
-optional cover_url?: string | null;
+cover_url?: string | null;
 ```
 
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### first\_requested\_at
@@ -1529,7 +1527,7 @@ first_requested_at: string;
 ##### genres?
 
 ```ts
-optional genres?: string | null;
+genres?: string | null;
 ```
 
 ##### isbn
@@ -1541,7 +1539,7 @@ isbn: string | null;
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### last\_requested\_at
@@ -1553,37 +1551,37 @@ last_requested_at: string;
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string | null;
+narrators?: string | null;
 ```
 
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### purchase\_hints?
 
 ```ts
-optional purchase_hints?: PurchaseHint[];
+purchase_hints?: PurchaseHint[];
 ```
 
 ##### reasons?
 
 ```ts
-optional reasons?: string[];
+reasons?: string[];
 ```
 
 ##### sample\_uuids
@@ -1595,7 +1593,7 @@ sample_uuids: string[];
 ##### score?
 
 ```ts
-optional score?: number;
+score?: number;
 ```
 
 Final rank (`taste_score + wish_count` boost).
@@ -1603,31 +1601,31 @@ Final rank (`taste_score + wish_count` boost).
 ##### series?
 
 ```ts
-optional series?: string | null;
+series?: string | null;
 ```
 
 ##### series\_index?
 
 ```ts
-optional series_index?: string | null;
+series_index?: string | null;
 ```
 
 ##### store\_editions?
 
 ```ts
-optional store_editions?: StoreEdition[];
+store_editions?: StoreEdition[];
 ```
 
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### taste\_score?
 
 ```ts
-optional taste_score?: number;
+taste_score?: number;
 ```
 
 ##### title
@@ -1645,7 +1643,7 @@ wish_count: number;
 ##### wishers?
 
 ```ts
-optional wishers?: QueueWisher[];
+wishers?: QueueWisher[];
 ```
 
 Distinct people who have this title on an open wishlist.
@@ -1667,13 +1665,13 @@ Background job row from `/api/jobs`.
 ##### attempt\_count?
 
 ```ts
-optional attempt_count?: number;
+attempt_count?: number;
 ```
 
 ##### created\_at?
 
 ```ts
-optional created_at?: string | null;
+created_at?: string | null;
 ```
 
 ##### detail
@@ -1685,13 +1683,13 @@ detail: string | null;
 ##### error\_kind?
 
 ```ts
-optional error_kind?: string | null;
+error_kind?: string | null;
 ```
 
 ##### finished\_at?
 
 ```ts
-optional finished_at?: string | null;
+finished_at?: string | null;
 ```
 
 ##### id
@@ -1709,13 +1707,13 @@ kind: string;
 ##### max\_attempts?
 
 ```ts
-optional max_attempts?: number;
+max_attempts?: number;
 ```
 
 ##### progress?
 
 ```ts
-optional progress?: string | null;
+progress?: string | null;
 ```
 
 ##### status
@@ -1773,7 +1771,7 @@ id: number;
 ##### name?
 
 ```ts
-optional name?: string | null;
+name?: string | null;
 ```
 
 ***
@@ -1787,7 +1785,7 @@ Active auth session row visible to the current principal.
 ##### client\_label?
 
 ```ts
-optional client_label?: string | null;
+client_label?: string | null;
 ```
 
 ##### created\_at
@@ -1799,13 +1797,13 @@ created_at: string;
 ##### device\_type?
 
 ```ts
-optional device_type?: string | null;
+device_type?: string | null;
 ```
 
 ##### elevated?
 
 ```ts
-optional elevated?: boolean;
+elevated?: boolean;
 ```
 
 ##### expires\_at
@@ -1823,13 +1821,13 @@ id: number;
 ##### impersonating\_user\_id?
 
 ```ts
-optional impersonating_user_id?: number | null;
+impersonating_user_id?: number | null;
 ```
 
 ##### is\_current?
 
 ```ts
-optional is_current?: boolean;
+is_current?: boolean;
 ```
 
 ##### kind
@@ -1841,13 +1839,13 @@ kind: string;
 ##### last\_used\_at?
 
 ```ts
-optional last_used_at?: string | null;
+last_used_at?: string | null;
 ```
 
 ##### user\_agent?
 
 ```ts
-optional user_agent?: string | null;
+user_agent?: string | null;
 ```
 
 ***
@@ -1861,7 +1859,7 @@ User row from `GET /api/users` (administrator settings).
 ##### avatar\_source?
 
 ```ts
-optional avatar_source?: string | null;
+avatar_source?: string | null;
 ```
 
 `auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`.
@@ -1875,13 +1873,13 @@ display_name: string | null;
 ##### email?
 
 ```ts
-optional email?: string | null;
+email?: string | null;
 ```
 
 ##### gravatar\_hash?
 
 ```ts
-optional gravatar_hash?: string | null;
+gravatar_hash?: string | null;
 ```
 
 SHA-256 hex of the contact email for Gravatar.
@@ -1889,7 +1887,7 @@ SHA-256 hex of the contact email for Gravatar.
 ##### has\_avatar?
 
 ```ts
-optional has_avatar?: boolean;
+has_avatar?: boolean;
 ```
 
 True when a profile picture file is stored for this user.
@@ -1909,7 +1907,7 @@ id: number;
 ##### identities?
 
 ```ts
-optional identities?: object[];
+identities?: object[];
 ```
 
 Linked login identities (local + OIDC).
@@ -1935,7 +1933,7 @@ provider: string;
 ##### integrations?
 
 ```ts
-optional integrations?: object[];
+integrations?: object[];
 ```
 
 Linked storefront / integration accounts.
@@ -1961,7 +1959,7 @@ source: string;
 ##### last\_active\_at?
 
 ```ts
-optional last_active_at?: string | null;
+last_active_at?: string | null;
 ```
 
 Most recent unexpired portal session activity (RFC 3339). Active vs idle is ~5 minutes.
@@ -1969,7 +1967,7 @@ Most recent unexpired portal session activity (RFC 3339). Active vs idle is ~5 m
 ##### last\_seen\_at?
 
 ```ts
-optional last_seen_at?: string | null;
+last_seen_at?: string | null;
 ```
 
 Durable last portal use (RFC 3339); survives logout. Null means never signed in.
@@ -1977,7 +1975,7 @@ Durable last portal use (RFC 3339); survives logout. Null means never signed in.
 ##### listening?
 
 ```ts
-optional listening?: 
+listening?: 
   | {
   last_listened_at: string;
   provider: string;
@@ -1997,7 +1995,7 @@ login_name: string | null;
 ##### online?
 
 ```ts
-optional online?: boolean;
+online?: boolean;
 ```
 
 Non-expired portal session present (`true` even when idle).
@@ -2011,7 +2009,7 @@ role: string;
 ##### sso\_pictures?
 
 ```ts
-optional sso_pictures?: object[];
+sso_pictures?: object[];
 ```
 
 IdP-supplied pictures the user can pick.
@@ -2025,7 +2023,7 @@ identity_id: number;
 ###### last\_used\_at?
 
 ```ts
-optional last_used_at?: string | null;
+last_used_at?: string | null;
 ```
 
 ###### picture\_url
@@ -2288,7 +2286,7 @@ client_id: string;
 ##### client\_secret?
 
 ```ts
-optional client_secret?: string | null;
+client_secret?: string | null;
 ```
 
 Plaintext secret, returned only on create or rotate.
@@ -2320,13 +2318,13 @@ issue_refresh_token: boolean;
 ##### name?
 
 ```ts
-optional name?: string | null;
+name?: string | null;
 ```
 
 ##### plugin\_id?
 
 ```ts
-optional plugin_id?: string | null;
+plugin_id?: string | null;
 ```
 
 Set when a plugin owns this client (redirects are read-only).
@@ -2354,7 +2352,7 @@ allowed_scopes: string[];
 ##### client\_id?
 
 ```ts
-optional client_id?: string;
+client_id?: string;
 ```
 
 ##### confidential
@@ -2366,7 +2364,7 @@ confidential: boolean;
 ##### current\_password?
 
 ```ts
-optional current_password?: string;
+current_password?: string;
 ```
 
 ##### enabled
@@ -2384,7 +2382,7 @@ issue_refresh_token: boolean;
 ##### name?
 
 ```ts
-optional name?: string | null;
+name?: string | null;
 ```
 
 ##### redirect\_uris
@@ -2410,7 +2408,7 @@ allowed_email_domains: string[];
 ##### current\_password?
 
 ```ts
-optional current_password?: string;
+current_password?: string;
 ```
 
 ##### enabled
@@ -2428,7 +2426,7 @@ providers: OidcProviderConfigUpdate[];
 ##### public\_origin?
 
 ```ts
-optional public_origin?: string | null;
+public_origin?: string | null;
 ```
 
 Omit to leave unchanged; empty string clears `integrations.public_origin`.
@@ -2450,19 +2448,19 @@ allowed_email_domains: string[];
 ##### authorization\_endpoint?
 
 ```ts
-optional authorization_endpoint?: string;
+authorization_endpoint?: string;
 ```
 
 ##### callback\_url?
 
 ```ts
-optional callback_url?: string | null;
+callback_url?: string | null;
 ```
 
 ##### detected\_origin?
 
 ```ts
-optional detected_origin?: string;
+detected_origin?: string;
 ```
 
 Origin detected from this request when it is a bound loopback listen address.
@@ -2470,7 +2468,7 @@ Origin detected from this request when it is a bound loopback listen address.
 ##### discovery\_url?
 
 ```ts
-optional discovery_url?: string;
+discovery_url?: string;
 ```
 
 Absolute OpenID discovery URL.
@@ -2484,7 +2482,7 @@ enabled: boolean;
 ##### issuer\_url?
 
 ```ts
-optional issuer_url?: string;
+issuer_url?: string;
 ```
 
 Effective issuer origin (`public_origin`, else bound loopback, else localhost).
@@ -2498,7 +2496,7 @@ providers: OidcProviderConfigView[];
 ##### public\_origin?
 
 ```ts
-optional public_origin?: string | null;
+public_origin?: string | null;
 ```
 
 Configured `integrations.public_origin` (issuer / callback / invite base).
@@ -2506,19 +2504,19 @@ Configured `integrations.public_origin` (issuer / callback / invite base).
 ##### revocation\_endpoint?
 
 ```ts
-optional revocation_endpoint?: string;
+revocation_endpoint?: string;
 ```
 
 ##### token\_endpoint?
 
 ```ts
-optional token_endpoint?: string;
+token_endpoint?: string;
 ```
 
 ##### userinfo\_endpoint?
 
 ```ts
-optional userinfo_endpoint?: string;
+userinfo_endpoint?: string;
 ```
 
 ***
@@ -2544,7 +2542,7 @@ name: string;
 ##### preset?
 
 ```ts
-optional preset?: string | null;
+preset?: string | null;
 ```
 
 Built-in social preset (`google`, `github`, `apple`, `discord`) when set.
@@ -2578,19 +2576,19 @@ allowed_subjects: string[];
 ##### apple\_key\_id?
 
 ```ts
-optional apple_key_id?: string | null;
+apple_key_id?: string | null;
 ```
 
 ##### apple\_private\_key?
 
 ```ts
-optional apple_private_key?: string;
+apple_private_key?: string;
 ```
 
 ##### apple\_team\_id?
 
 ```ts
-optional apple_team_id?: string | null;
+apple_team_id?: string | null;
 ```
 
 ##### client\_id
@@ -2602,7 +2600,7 @@ client_id: string;
 ##### client\_secret?
 
 ```ts
-optional client_secret?: string;
+client_secret?: string;
 ```
 
 Omit to keep; empty string to clear; non-empty to store.
@@ -2622,7 +2620,7 @@ id: string;
 ##### issuer?
 
 ```ts
-optional issuer?: string | null;
+issuer?: string | null;
 ```
 
 ##### link\_by\_email
@@ -2640,7 +2638,7 @@ name: string;
 ##### preset?
 
 ```ts
-optional preset?: string | null;
+preset?: string | null;
 ```
 
 ##### provision
@@ -2696,13 +2694,13 @@ allowed_subjects: string[];
 ##### apple\_key\_id?
 
 ```ts
-optional apple_key_id?: string | null;
+apple_key_id?: string | null;
 ```
 
 ##### apple\_team\_id?
 
 ```ts
-optional apple_team_id?: string | null;
+apple_team_id?: string | null;
 ```
 
 ##### client\_id
@@ -2720,7 +2718,7 @@ default_role: string;
 ##### has\_apple\_private\_key?
 
 ```ts
-optional has_apple_private_key?: boolean;
+has_apple_private_key?: boolean;
 ```
 
 ##### has\_client\_secret
@@ -2738,7 +2736,7 @@ id: string;
 ##### issuer?
 
 ```ts
-optional issuer?: string | null;
+issuer?: string | null;
 ```
 
 ##### link\_by\_email
@@ -2756,7 +2754,7 @@ name: string;
 ##### preset?
 
 ```ts
-optional preset?: string | null;
+preset?: string | null;
 ```
 
 ##### provision
@@ -2800,25 +2798,25 @@ Branded display metadata for a plugin consent dialog.
 ##### accent?
 
 ```ts
-optional accent?: string | null;
+accent?: string | null;
 ```
 
 ##### bg?
 
 ```ts
-optional bg?: string | null;
+bg?: string | null;
 ```
 
 ##### fg?
 
 ```ts
-optional fg?: string | null;
+fg?: string | null;
 ```
 
 ##### logo?
 
 ```ts
-optional logo?: string | null;
+logo?: string | null;
 ```
 
 ##### name
@@ -2868,7 +2866,7 @@ Default extra process/thread budget (native).
 ##### jail\_cpu\_cores?
 
 ```ts
-optional jail_cpu_cores?: number | null;
+jail_cpu_cores?: number | null;
 ```
 
 Optional Settings global jail CPU ceiling in cores.
@@ -2942,7 +2940,7 @@ Network/capability consent status for a plugin.
 ##### brand?
 
 ```ts
-optional brand?: PluginConsentBrand;
+brand?: PluginConsentBrand;
 ```
 
 ##### covered
@@ -2954,7 +2952,7 @@ covered: boolean;
 ##### existing?
 
 ```ts
-optional existing?: PluginGrant;
+existing?: PluginGrant;
 ```
 
 ##### limits
@@ -2972,13 +2970,13 @@ plugin_id: string;
 ##### plugin\_key?
 
 ```ts
-optional plugin_key?: string;
+plugin_key?: string;
 ```
 
 ##### provenance?
 
 ```ts
-optional provenance?: string;
+provenance?: string;
 ```
 
 ##### request
@@ -3012,7 +3010,7 @@ This node's deployment of a plugin instance, with its latest observation.
 ##### applied\_config\_revision?
 
 ```ts
-optional applied_config_revision?: number;
+applied_config_revision?: number;
 ```
 
 ##### deployment\_id
@@ -3034,7 +3032,7 @@ host runs it for `present` and `placed`.
 ##### detail?
 
 ```ts
-optional detail?: string;
+detail?: string;
 ```
 
 ##### node\_id
@@ -3046,7 +3044,7 @@ node_id: string;
 ##### observed\_at?
 
 ```ts
-optional observed_at?: string;
+observed_at?: string;
 ```
 
 ##### revision
@@ -3058,7 +3056,7 @@ revision: number;
 ##### status?
 
 ```ts
-optional status?: string;
+status?: string;
 ```
 
 `materialized`, `running`, `healthy`, `error`, or `retired` when observed.
@@ -3074,13 +3072,13 @@ Plugin consent grant shape serialized by the daemon.
 ##### addressCidrs?
 
 ```ts
-optional addressCidrs?: string[];
+addressCidrs?: string[];
 ```
 
 ##### allowUndeclaredPublicRedirects?
 
 ```ts
-optional allowUndeclaredPublicRedirects?: boolean;
+allowUndeclaredPublicRedirects?: boolean;
 ```
 
 ##### approvedAt
@@ -3092,7 +3090,7 @@ approvedAt: string;
 ##### authorityRevision?
 
 ```ts
-optional authorityRevision?: string;
+authorityRevision?: string;
 ```
 
 ##### bindings
@@ -3110,7 +3108,7 @@ compatibilityFlags: string[];
 ##### consumers?
 
 ```ts
-optional consumers?: object[];
+consumers?: object[];
 ```
 
 Approved event-consumer subscriptions (type + schemas + suspend + filter).
@@ -3124,7 +3122,7 @@ eventType: string;
 ###### filter?
 
 ```ts
-optional filter?: string | null;
+filter?: string | null;
 ```
 
 ###### schemaVersions
@@ -3142,7 +3140,7 @@ supportsSuspend: boolean;
 ##### cpuCores?
 
 ```ts
-optional cpuCores?: number;
+cpuCores?: number;
 ```
 
 Jail CPU in cores (2 d.p.) from the daemon.
@@ -3150,13 +3148,13 @@ Jail CPU in cores (2 d.p.) from the daemon.
 ##### cpuMs?
 
 ```ts
-optional cpuMs?: number;
+cpuMs?: number;
 ```
 
 ##### diskMib?
 
 ```ts
-optional diskMib?: number;
+diskMib?: number;
 ```
 
 ##### domains
@@ -3176,7 +3174,7 @@ Exported entrypoints the operator approved (`storefront`, `cli`, …).
 ##### extraProcesses?
 
 ```ts
-optional extraProcesses?: number;
+extraProcesses?: number;
 ```
 
 Extra process/thread budget beyond launcher overhead (native).
@@ -3184,7 +3182,7 @@ Extra process/thread budget beyond launcher overhead (native).
 ##### jobs?
 
 ```ts
-optional jobs?: string[];
+jobs?: string[];
 ```
 
 Approved `[triggers].jobs` types.
@@ -3192,13 +3190,13 @@ Approved `[triggers].jobs` types.
 ##### manifestDomains?
 
 ```ts
-optional manifestDomains?: string[];
+manifestDomains?: string[];
 ```
 
 ##### memoryMib?
 
 ```ts
-optional memoryMib?: number;
+memoryMib?: number;
 ```
 
 ##### networkMode
@@ -3210,19 +3208,19 @@ networkMode: string;
 ##### operatorAddedCidrs?
 
 ```ts
-optional operatorAddedCidrs?: string[];
+operatorAddedCidrs?: string[];
 ```
 
 ##### operatorAddedDomains?
 
 ```ts
-optional operatorAddedDomains?: string[];
+operatorAddedDomains?: string[];
 ```
 
 ##### operatorAddedTcp?
 
 ```ts
-optional operatorAddedTcp?: object[];
+operatorAddedTcp?: object[];
 ```
 
 ###### host
@@ -3240,19 +3238,19 @@ ports: number[];
 ##### operatorDeniedCidrs?
 
 ```ts
-optional operatorDeniedCidrs?: string[];
+operatorDeniedCidrs?: string[];
 ```
 
 ##### operatorDeniedDomains?
 
 ```ts
-optional operatorDeniedDomains?: string[];
+operatorDeniedDomains?: string[];
 ```
 
 ##### operatorDeniedTcp?
 
 ```ts
-optional operatorDeniedTcp?: object[];
+operatorDeniedTcp?: object[];
 ```
 
 ###### host
@@ -3276,7 +3274,7 @@ pluginId: string;
 ##### pluginKey?
 
 ```ts
-optional pluginKey?: string;
+pluginKey?: string;
 ```
 
 ##### producers
@@ -3290,13 +3288,13 @@ Event types the operator approved the plugin to publish.
 ##### subrequests?
 
 ```ts
-optional subrequests?: number;
+subrequests?: number;
 ```
 
 ##### tcp?
 
 ```ts
-optional tcp?: object[];
+tcp?: object[];
 ```
 
 ###### host
@@ -3408,7 +3406,7 @@ name: string;
 ##### secrets?
 
 ```ts
-optional secrets?: Record<string, string>;
+secrets?: Record<string, string>;
 ```
 
 Secret values to seal; never echoed back.
@@ -3516,7 +3514,7 @@ default). A `secret` option never carries its value.
 ##### choices?
 
 ```ts
-optional choices?: PluginSettingChoice[];
+choices?: PluginSettingChoice[];
 ```
 
 ##### key
@@ -3534,7 +3532,7 @@ label: string;
 ##### secret?
 
 ```ts
-optional secret?: boolean;
+secret?: boolean;
 ```
 
 True for a `secret` setting; `value` is always empty.
@@ -3542,7 +3540,7 @@ True for a `secret` setting; `value` is always empty.
 ##### secret\_set?
 
 ```ts
-optional secret_set?: boolean;
+secret_set?: boolean;
 ```
 
 For a secret setting, whether a sealed value is stored for the instance.
@@ -3570,7 +3568,7 @@ Settings group for one plugin instance, or for a bootstrap database adapter.
 ##### config\_revision?
 
 ```ts
-optional config_revision?: number;
+config_revision?: number;
 ```
 
 Instance document revision for compare-and-swap writes.
@@ -3578,7 +3576,7 @@ Instance document revision for compare-and-swap writes.
 ##### deployment?
 
 ```ts
-optional deployment?: PluginDeploymentView;
+deployment?: PluginDeploymentView;
 ```
 
 This node's deployment of the instance, when one exists.
@@ -3586,7 +3584,7 @@ This node's deployment of the instance, when one exists.
 ##### display\_name?
 
 ```ts
-optional display_name?: string;
+display_name?: string;
 ```
 
 Operator-facing instance name, when set.
@@ -3608,7 +3606,7 @@ id: string;
 ##### is\_default?
 
 ```ts
-optional is_default?: boolean;
+is_default?: boolean;
 ```
 
 True when a bare plugin key or alias routes to this instance.
@@ -3616,7 +3614,7 @@ True when a bare plugin key or alias routes to this instance.
 ##### logo?
 
 ```ts
-optional logo?: string;
+logo?: string;
 ```
 
 Google favicon (or portal brand) URL for Settings list rows.
@@ -3624,7 +3622,7 @@ Google favicon (or portal brand) URL for Settings list rows.
 ##### placement?
 
 ```ts
-optional placement?: PluginPlacementView;
+placement?: PluginPlacementView;
 ```
 
 Scheduler placement; absent when the instance is managed by hand.
@@ -3632,7 +3630,7 @@ Scheduler placement; absent when the instance is managed by hand.
 ##### plugin\_instance\_id?
 
 ```ts
-optional plugin_instance_id?: string;
+plugin_instance_id?: string;
 ```
 
 Instance this group edits; absent for a `config.toml`-backed database adapter.
@@ -3640,7 +3638,7 @@ Instance this group edits; absent for a `config.toml`-backed database adapter.
 ##### plugin\_key?
 
 ```ts
-optional plugin_key?: string;
+plugin_key?: string;
 ```
 
 Provenance-qualified PluginKey when this row came from a discovered install.
@@ -3648,7 +3646,7 @@ Provenance-qualified PluginKey when this row came from a discovered install.
 ##### present\_on?
 
 ```ts
-optional present_on?: string[];
+present_on?: string[];
 ```
 
 Nodes whose deployment of the instance is `present`.
@@ -3656,7 +3654,7 @@ Nodes whose deployment of the instance is `present`.
 ##### provenance?
 
 ```ts
-optional provenance?: string;
+provenance?: string;
 ```
 
 Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …).
@@ -3716,7 +3714,7 @@ account_id: string;
 ##### brand?
 
 ```ts
-optional brand?: PortalBrand;
+brand?: PortalBrand;
 ```
 
 ##### connection\_status
@@ -3852,43 +3850,43 @@ Live or seeded storefront price / buy URL for a title.
 ##### currency?
 
 ```ts
-optional currency?: string | null;
+currency?: string | null;
 ```
 
 ##### list\_price\_cents?
 
 ```ts
-optional list_price_cents?: number | null;
+list_price_cents?: number | null;
 ```
 
 ##### list\_price\_label?
 
 ```ts
-optional list_price_label?: string | null;
+list_price_label?: string | null;
 ```
 
 ##### member\_price\_cents?
 
 ```ts
-optional member_price_cents?: number | null;
+member_price_cents?: number | null;
 ```
 
 ##### member\_price\_label?
 
 ```ts
-optional member_price_label?: string | null;
+member_price_label?: string | null;
 ```
 
 ##### price\_cents?
 
 ```ts
-optional price_cents?: number | null;
+price_cents?: number | null;
 ```
 
 ##### price\_label?
 
 ```ts
-optional price_label?: string | null;
+price_label?: string | null;
 ```
 
 ##### product\_id
@@ -3926,43 +3924,43 @@ Query used to resolve purchase hints for a title.
 ##### asin?
 
 ```ts
-optional asin?: string | null;
+asin?: string | null;
 ```
 
 ##### authors?
 
 ```ts
-optional authors?: string | null;
+authors?: string | null;
 ```
 
 ##### candidate\_product\_id?
 
 ```ts
-optional candidate_product_id?: string | null;
+candidate_product_id?: string | null;
 ```
 
 ##### candidate\_source?
 
 ```ts
-optional candidate_source?: string | null;
+candidate_source?: string | null;
 ```
 
 ##### isbn?
 
 ```ts
-optional isbn?: string | null;
+isbn?: string | null;
 ```
 
 ##### region?
 
 ```ts
-optional region?: string;
+region?: string;
 ```
 
 ##### store\_editions?
 
 ```ts
-optional store_editions?: StoreEdition[];
+store_editions?: StoreEdition[];
 ```
 
 ##### title
@@ -4002,7 +4000,7 @@ Person who has a title on an open wishlist (global queue avatars).
 ##### avatar\_source?
 
 ```ts
-optional avatar_source?: string | null;
+avatar_source?: string | null;
 ```
 
 Explicit picture choice (`auto` / `monogram` / `gravatar` / `upload` / `sso:{id}`).
@@ -4010,7 +4008,7 @@ Explicit picture choice (`auto` / `monogram` / `gravatar` / `upload` / `sso:{id}
 ##### display\_name?
 
 ```ts
-optional display_name?: string | null;
+display_name?: string | null;
 ```
 
 Display name, identity label, or Operator.
@@ -4018,7 +4016,7 @@ Display name, identity label, or Operator.
 ##### gravatar\_hash?
 
 ```ts
-optional gravatar_hash?: string | null;
+gravatar_hash?: string | null;
 ```
 
 SHA-256 hex of the contact email for Gravatar.
@@ -4026,7 +4024,7 @@ SHA-256 hex of the contact email for Gravatar.
 ##### has\_avatar?
 
 ```ts
-optional has_avatar?: boolean;
+has_avatar?: boolean;
 ```
 
 True when an uploaded avatar file exists.
@@ -4034,7 +4032,7 @@ True when an uploaded avatar file exists.
 ##### identity\_id?
 
 ```ts
-optional identity_id?: number | null;
+identity_id?: number | null;
 ```
 
 Portal identity that created the wish.
@@ -4042,7 +4040,7 @@ Portal identity that created the wish.
 ##### login\_name?
 
 ```ts
-optional login_name?: string | null;
+login_name?: string | null;
 ```
 
 Local login name when set.
@@ -4050,7 +4048,7 @@ Local login name when set.
 ##### operator?
 
 ```ts
-optional operator?: boolean;
+operator?: boolean;
 ```
 
 True when the wish came from the operator token.
@@ -4058,7 +4056,7 @@ True when the wish came from the operator token.
 ##### picture\_url?
 
 ```ts
-optional picture_url?: string | null;
+picture_url?: string | null;
 ```
 
 HTTPS picture from the wishing identity, when any.
@@ -4066,7 +4064,7 @@ HTTPS picture from the wishing identity, when any.
 ##### user\_id?
 
 ```ts
-optional user_id?: number | null;
+user_id?: number | null;
 ```
 
 First-party user id when the portal identity is linked.
@@ -4106,7 +4104,7 @@ candidate_source: string | null;
 ##### categories?
 
 ```ts
-optional categories?: string[];
+categories?: string[];
 ```
 
 Stable shelf-kind tags (`finish_series`, `author`, `requests`, …).
@@ -4114,13 +4112,13 @@ Stable shelf-kind tags (`finish_series`, `author`, `requests`, …).
 ##### cover\_url?
 
 ```ts
-optional cover_url?: string | null;
+cover_url?: string | null;
 ```
 
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### from\_request
@@ -4132,7 +4130,7 @@ from_request: boolean;
 ##### genres?
 
 ```ts
-optional genres?: string | null;
+genres?: string | null;
 ```
 
 ##### isbn
@@ -4144,13 +4142,13 @@ isbn: string | null;
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators
@@ -4162,13 +4160,13 @@ narrators: string | null;
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### purchase\_hints
@@ -4198,7 +4196,7 @@ score: number;
 ##### seed\_categories?
 
 ```ts
-optional seed_categories?: string | null;
+seed_categories?: string | null;
 ```
 
 ##### series
@@ -4216,13 +4214,13 @@ series_index: string | null;
 ##### store\_editions?
 
 ```ts
-optional store_editions?: StoreEdition[];
+store_editions?: StoreEdition[];
 ```
 
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### title
@@ -4234,7 +4232,7 @@ title: string;
 ##### wish\_count?
 
 ```ts
-optional wish_count?: number;
+wish_count?: number;
 ```
 
 Distinct wisher count (may exceed `wishers.length`).
@@ -4242,7 +4240,7 @@ Distinct wisher count (may exceed `wishers.length`).
 ##### wishers?
 
 ```ts
-optional wishers?: QueueWisher[];
+wishers?: QueueWisher[];
 ```
 
 People who have this title on an open wishlist.
@@ -4256,7 +4254,7 @@ work_id: string | null;
 ##### work\_key?
 
 ```ts
-optional work_key?: string;
+work_key?: string;
 ```
 
 Stable bibliographic key (`isbn:` / `asin:` / `soft:`…).
@@ -4281,7 +4279,7 @@ Owner cluster of the request.
 ##### deny\_bindings?
 
 ```ts
-optional deny_bindings?: string[];
+deny_bindings?: string[];
 ```
 
 Host bindings to remove (`secrets`, `oauth`, `kv`, …).
@@ -4289,7 +4287,7 @@ Host bindings to remove (`secrets`, `oauth`, `kv`, …).
 ##### deny\_domains?
 
 ```ts
-optional deny_domains?: string[];
+deny_domains?: string[];
 ```
 
 Outbound domain patterns to remove from the grant.
@@ -4297,7 +4295,7 @@ Outbound domain patterns to remove from the grant.
 ##### deny\_network?
 
 ```ts
-optional deny_network?: boolean;
+deny_network?: boolean;
 ```
 
 True turns outbound network off altogether (no domains, TCP or CIDRs).
@@ -4385,7 +4383,7 @@ Digest of the whole request (version, grant, archive); approve by it.
 ##### requested\_artifact?
 
 ```ts
-optional requested_artifact?: object;
+requested_artifact?: object;
 ```
 
 The archive this host would fetch for that version (hex SHA-256 digests).
@@ -4433,7 +4431,7 @@ Version the owner now asks to run.
 ##### revoked\_at?
 
 ```ts
-optional revoked_at?: string | null;
+revoked_at?: string | null;
 ```
 
 RFC 3339 time this host's operator revoked it; a revoke holds until approved again.
@@ -4449,7 +4447,7 @@ Whether the guest may run here now, or what it waits on.
 ##### updated\_at?
 
 ```ts
-optional updated_at?: string;
+updated_at?: string;
 ```
 
 RFC 3339 time the row last changed.
@@ -4468,7 +4466,7 @@ that limit to the version's manifest.
 ##### addressCidrs?
 
 ```ts
-optional addressCidrs?: string[];
+addressCidrs?: string[];
 ```
 
 CIDR ranges beyond the public Internet (private or local addresses).
@@ -4476,7 +4474,7 @@ CIDR ranges beyond the public Internet (private or local addresses).
 ##### allowUndeclaredPublicRedirects?
 
 ```ts
-optional allowUndeclaredPublicRedirects?: boolean;
+allowUndeclaredPublicRedirects?: boolean;
 ```
 
 Follow a redirect to a public host it did not declare.
@@ -4484,7 +4482,7 @@ Follow a redirect to a public host it did not declare.
 ##### bindings?
 
 ```ts
-optional bindings?: string[];
+bindings?: string[];
 ```
 
 Host bindings (`config`, `secrets`, `kv`, …).
@@ -4492,7 +4490,7 @@ Host bindings (`config`, `secrets`, `kv`, …).
 ##### compatibilityFlags?
 
 ```ts
-optional compatibilityFlags?: string[];
+compatibilityFlags?: string[];
 ```
 
 workerd compatibility flags the isolate runs with.
@@ -4500,7 +4498,7 @@ workerd compatibility flags the isolate runs with.
 ##### consumers?
 
 ```ts
-optional consumers?: unknown[];
+consumers?: unknown[];
 ```
 
 Events and queues it consumes (shape owned by the host).
@@ -4508,7 +4506,7 @@ Events and queues it consumes (shape owned by the host).
 ##### cpuMs?
 
 ```ts
-optional cpuMs?: number | null;
+cpuMs?: number | null;
 ```
 
 workerd CPU budget per request, in milliseconds.
@@ -4516,7 +4514,7 @@ workerd CPU budget per request, in milliseconds.
 ##### cpuRatePercent?
 
 ```ts
-optional cpuRatePercent?: number | null;
+cpuRatePercent?: number | null;
 ```
 
 CPU rate as a percent of one logical CPU (above 100 asks for more than one core).
@@ -4524,7 +4522,7 @@ CPU rate as a percent of one logical CPU (above 100 asks for more than one core)
 ##### diskMib?
 
 ```ts
-optional diskMib?: number | null;
+diskMib?: number | null;
 ```
 
 Disk budget in MiB for each of its `data/` and `tmp/` directories.
@@ -4532,7 +4530,7 @@ Disk budget in MiB for each of its `data/` and `tmp/` directories.
 ##### domains?
 
 ```ts
-optional domains?: string[];
+domains?: string[];
 ```
 
 Outbound domain patterns the guest may dial first (redirect hops aside).
@@ -4540,7 +4538,7 @@ Outbound domain patterns the guest may dial first (redirect hops aside).
 ##### entrypoints?
 
 ```ts
-optional entrypoints?: string[];
+entrypoints?: string[];
 ```
 
 Named entrypoints it exports (`storefront`, `storage`, `cli`, …).
@@ -4548,7 +4546,7 @@ Named entrypoints it exports (`storefront`, `storage`, `cli`, …).
 ##### extraProcesses?
 
 ```ts
-optional extraProcesses?: number | null;
+extraProcesses?: number | null;
 ```
 
 Processes or threads allowed beyond the launcher's own (native guests).
@@ -4556,7 +4554,7 @@ Processes or threads allowed beyond the launcher's own (native guests).
 ##### jobs?
 
 ```ts
-optional jobs?: string[];
+jobs?: string[];
 ```
 
 `[triggers].jobs` types it may handle.
@@ -4564,7 +4562,7 @@ optional jobs?: string[];
 ##### memoryMib?
 
 ```ts
-optional memoryMib?: number | null;
+memoryMib?: number | null;
 ```
 
 Memory ceiling in MiB.
@@ -4572,7 +4570,7 @@ Memory ceiling in MiB.
 ##### networkMode?
 
 ```ts
-optional networkMode?: string;
+networkMode?: string;
 ```
 
 `deny` (no egress) or `outbound`; anything else is treated as `deny`.
@@ -4580,7 +4578,7 @@ optional networkMode?: string;
 ##### pluginId?
 
 ```ts
-optional pluginId?: string;
+pluginId?: string;
 ```
 
 Display alias from `plugin.toml` (not security authoritative).
@@ -4588,7 +4586,7 @@ Display alias from `plugin.toml` (not security authoritative).
 ##### producers?
 
 ```ts
-optional producers?: string[];
+producers?: string[];
 ```
 
 Event types it may publish and queue bindings it may send to.
@@ -4596,7 +4594,7 @@ Event types it may publish and queue bindings it may send to.
 ##### subrequests?
 
 ```ts
-optional subrequests?: number | null;
+subrequests?: number | null;
 ```
 
 workerd outbound fetch (subrequest) budget per request.
@@ -4604,7 +4602,7 @@ workerd outbound fetch (subrequest) budget per request.
 ##### tcp?
 
 ```ts
-optional tcp?: object[];
+tcp?: object[];
 ```
 
 Raw TCP destinations: a host and the ports allowed on it.
@@ -4632,13 +4630,13 @@ Flat config map plus per-plugin setting groups.
 ##### effective?
 
 ```ts
-optional effective?: Record<string, string>;
+effective?: Record<string, string>;
 ```
 
 ##### host\_cpu\_cores\_max?
 
 ```ts
-optional host_cpu_cores_max?: number;
+host_cpu_cores_max?: number;
 ```
 
 Host max jail CPU in cores (2 d.p.; equals logical CPU count).
@@ -4646,7 +4644,7 @@ Host max jail CPU in cores (2 d.p.; equals logical CPU count).
 ##### jail\_cpu\_cores?
 
 ```ts
-optional jail_cpu_cores?: number | null;
+jail_cpu_cores?: number | null;
 ```
 
 Optional global per-jail CPU ceiling in cores.
@@ -4654,7 +4652,7 @@ Optional global per-jail CPU ceiling in cores.
 ##### output\_revision?
 
 ```ts
-optional output_revision?: number;
+output_revision?: number;
 ```
 
 `core.output` document revision the `output.*` values were read from; send it
@@ -4750,7 +4748,7 @@ error: number;
 ##### events?
 
 ```ts
-optional events?: EventQueueStatus;
+events?: EventQueueStatus;
 ```
 
 ##### in\_progress
@@ -4808,37 +4806,37 @@ Public Audnexus / Audible catalog fields for detail dialogs.
 ##### asin?
 
 ```ts
-optional asin?: string | null;
+asin?: string | null;
 ```
 
 ##### authors?
 
 ```ts
-optional authors?: string | null;
+authors?: string | null;
 ```
 
 ##### categories?
 
 ```ts
-optional categories?: string | null;
+categories?: string | null;
 ```
 
 ##### cover\_url?
 
 ```ts
-optional cover_url?: string | null;
+cover_url?: string | null;
 ```
 
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### is\_abridged?
 
 ```ts
-optional is_abridged?: boolean | null;
+is_abridged?: boolean | null;
 ```
 
 `true` abridged / `false` unabridged when the storefront said so.
@@ -4846,49 +4844,49 @@ optional is_abridged?: boolean | null;
 ##### isbn?
 
 ```ts
-optional isbn?: string | null;
+isbn?: string | null;
 ```
 
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string | null;
+narrators?: string | null;
 ```
 
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### rating\_count?
 
 ```ts
-optional rating_count?: number | null;
+rating_count?: number | null;
 ```
 
 ##### rating\_overall?
 
 ```ts
-optional rating_overall?: number | null;
+rating_overall?: number | null;
 ```
 
 Audible community ratings (detail fetch only).
@@ -4896,25 +4894,25 @@ Audible community ratings (detail fetch only).
 ##### rating\_performance?
 
 ```ts
-optional rating_performance?: number | null;
+rating_performance?: number | null;
 ```
 
 ##### rating\_story?
 
 ```ts
-optional rating_story?: number | null;
+rating_story?: number | null;
 ```
 
 ##### review\_count?
 
 ```ts
-optional review_count?: number | null;
+review_count?: number | null;
 ```
 
 ##### ~~reviews?~~
 
 ```ts
-optional reviews?: TitleReview[];
+reviews?: TitleReview[];
 ```
 
 ###### Deprecated
@@ -4924,25 +4922,25 @@ Prefer [`fetchTitleReviews`]. Title-meta no longer embeds reviews.
 ##### series?
 
 ```ts
-optional series?: string | null;
+series?: string | null;
 ```
 
 ##### series\_index?
 
 ```ts
-optional series_index?: string | null;
+series_index?: string | null;
 ```
 
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### title?
 
 ```ts
-optional title?: string | null;
+title?: string | null;
 ```
 
 ***
@@ -4971,7 +4969,7 @@ authors: string | null;
 ##### cover\_url?
 
 ```ts
-optional cover_url?: string | null;
+cover_url?: string | null;
 ```
 
 ##### created\_at
@@ -4983,13 +4981,13 @@ created_at: string;
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### genres?
 
 ```ts
-optional genres?: string | null;
+genres?: string | null;
 ```
 
 ##### id
@@ -5013,19 +5011,19 @@ isbn: string | null;
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string | null;
+narrators?: string | null;
 ```
 
 ##### notes
@@ -5037,19 +5035,19 @@ notes: string | null;
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### purchase\_hints?
 
 ```ts
-optional purchase_hints?: PurchaseHint[];
+purchase_hints?: PurchaseHint[];
 ```
 
 ##### resolved\_book\_uuid
@@ -5061,13 +5059,13 @@ resolved_book_uuid: string | null;
 ##### series?
 
 ```ts
-optional series?: string | null;
+series?: string | null;
 ```
 
 ##### series\_index?
 
 ```ts
-optional series_index?: string | null;
+series_index?: string | null;
 ```
 
 ##### status
@@ -5079,13 +5077,13 @@ status: string;
 ##### store\_editions?
 
 ```ts
-optional store_editions?: StoreEdition[];
+store_editions?: StoreEdition[];
 ```
 
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### title
@@ -5129,7 +5127,7 @@ One Audible customer review for title detail.
 ##### author\_name?
 
 ```ts
-optional author_name?: string | null;
+author_name?: string | null;
 ```
 
 ##### body
@@ -5141,37 +5139,37 @@ body: string;
 ##### id?
 
 ```ts
-optional id?: string | null;
+id?: string | null;
 ```
 
 ##### overall\_rating?
 
 ```ts
-optional overall_rating?: number | null;
+overall_rating?: number | null;
 ```
 
 ##### performance\_rating?
 
 ```ts
-optional performance_rating?: number | null;
+performance_rating?: number | null;
 ```
 
 ##### story\_rating?
 
 ```ts
-optional story_rating?: number | null;
+story_rating?: number | null;
 ```
 
 ##### submitted\_at?
 
 ```ts
-optional submitted_at?: string | null;
+submitted_at?: string | null;
 ```
 
 ##### title?
 
 ```ts
-optional title?: string | null;
+title?: string | null;
 ```
 
 ***
@@ -5185,13 +5183,13 @@ Created / patched user response from RBAC provisioning APIs.
 ##### claim\_ticket?
 
 ```ts
-optional claim_ticket?: string | null;
+claim_ticket?: string | null;
 ```
 
 ##### invite\_url?
 
 ```ts
-optional invite_url?: string | null;
+invite_url?: string | null;
 ```
 
 Magic-link URL for `/invite?ticket=…` when an invite was minted.
@@ -5309,67 +5307,67 @@ Server-side include/exclude filters for catalog search.
 ##### authors?
 
 ```ts
-optional authors?: string[];
+authors?: string[];
 ```
 
 ##### exclude\_narrators?
 
 ```ts
-optional exclude_narrators?: string[];
+exclude_narrators?: string[];
 ```
 
 ##### exclude\_sources?
 
 ```ts
-optional exclude_sources?: string[];
+exclude_sources?: string[];
 ```
 
 ##### genres?
 
 ```ts
-optional genres?: string[];
+genres?: string[];
 ```
 
 ##### languages?
 
 ```ts
-optional languages?: string[];
+languages?: string[];
 ```
 
 ##### max\_length\_minutes?
 
 ```ts
-optional max_length_minutes?: number;
+max_length_minutes?: number;
 ```
 
 ##### min\_length\_minutes?
 
 ```ts
-optional min_length_minutes?: number;
+min_length_minutes?: number;
 ```
 
 ##### min\_rating?
 
 ```ts
-optional min_rating?: number;
+min_rating?: number;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string[];
+narrators?: string[];
 ```
 
 ##### series?
 
 ```ts
-optional series?: string[];
+series?: string[];
 ```
 
 ##### sources?
 
 ```ts
-optional sources?: string[];
+sources?: string[];
 ```
 
 ***
@@ -5448,37 +5446,37 @@ Query for public title metadata enrichment.
 ##### asin?
 
 ```ts
-optional asin?: string | null;
+asin?: string | null;
 ```
 
 ##### authors?
 
 ```ts
-optional authors?: string | null;
+authors?: string | null;
 ```
 
 ##### isbn?
 
 ```ts
-optional isbn?: string | null;
+isbn?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string | null;
+narrators?: string | null;
 ```
 
 ##### region?
 
 ```ts
-optional region?: string;
+region?: string;
 ```
 
 ##### title
@@ -5532,7 +5530,7 @@ reviews: TitleReview[];
 ##### sort\_by?
 
 ```ts
-optional sort_by?: string;
+sort_by?: string;
 ```
 
 ***
@@ -5556,25 +5554,25 @@ asin: string;
 ##### page?
 
 ```ts
-optional page?: number;
+page?: number;
 ```
 
 ##### page\_size?
 
 ```ts
-optional page_size?: number;
+page_size?: number;
 ```
 
 ##### region?
 
 ```ts
-optional region?: string;
+region?: string;
 ```
 
 ##### sort\_by?
 
 ```ts
-optional sort_by?: TitleReviewsSort;
+sort_by?: TitleReviewsSort;
 ```
 
 ***

@@ -69,7 +69,7 @@ Required — generate once per smoke/isolate and send on every bridge request.
 ##### configName?
 
 ```ts
-optional configName?: string;
+configName?: string;
 ```
 
 Cap'n Proto output filename under the session dir (default `workerd-config.capnp`).
@@ -85,7 +85,7 @@ Loopback listen port for the HTTP bridge socket (`127.0.0.1:<port>`).
 ##### sdkRoot?
 
 ```ts
-optional sdkRoot?: string;
+sdkRoot?: string;
 ```
 
 Absolute path to the `@bookclerk/plugin-sdk` package root when it differs from
@@ -94,7 +94,7 @@ the default (used by unit tests that vendor a fixture package tree).
 ##### stateDir?
 
 ```ts
-optional stateDir?: string;
+stateDir?: string;
 ```
 
 Existing session directory for generated embeds (default: allocate under

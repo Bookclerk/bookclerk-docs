@@ -15,7 +15,7 @@ Optional post-search filter/sort applied after a Discover catalog query.
 ##### authors?
 
 ```ts
-optional authors?: string[];
+authors?: string[];
 ```
 
 Seed include filters (server-applied).
@@ -23,13 +23,13 @@ Seed include filters (server-applied).
 ##### excludeSources?
 
 ```ts
-optional excludeSources?: string[];
+excludeSources?: string[];
 ```
 
 ##### field?
 
 ```ts
-optional field?: "author" | "narrator" | "series" | "genre";
+field?: "author" | "narrator" | "series" | "genre";
 ```
 
 Storefront-scoped search (`author` / `narrator` / `series` / `genre`).
@@ -37,7 +37,7 @@ Storefront-scoped search (`author` / `narrator` / `series` / `genre`).
 ##### ~~filterKind?~~
 
 ```ts
-optional filterKind?: "all" | "authors" | "series" | "narrators" | "genres" | "sources";
+filterKind?: "all" | "authors" | "series" | "narrators" | "genres" | "sources";
 ```
 
 ###### Deprecated
@@ -47,7 +47,7 @@ legacy single-dimension filter
 ##### ~~filterValue?~~
 
 ```ts
-optional filterValue?: string;
+filterValue?: string;
 ```
 
 ###### Deprecated
@@ -55,13 +55,13 @@ optional filterValue?: string;
 ##### genres?
 
 ```ts
-optional genres?: string[];
+genres?: string[];
 ```
 
 ##### hideVirtualVoice?
 
 ```ts
-optional hideVirtualVoice?: boolean;
+hideVirtualVoice?: boolean;
 ```
 
 When false, do not exclude Virtual Voice (default hide is on).
@@ -69,7 +69,7 @@ When false, do not exclude Virtual Voice (default hide is on).
 ##### language?
 
 ```ts
-optional language?: string;
+language?: string;
 ```
 
 Hard language include (`en`, `zh`, …) or `__all__` for no hard filter.
@@ -78,13 +78,13 @@ Omit to use the browser language default.
 ##### minRating?
 
 ```ts
-optional minRating?: number;
+minRating?: number;
 ```
 
 ##### narrators?
 
 ```ts
-optional narrators?: string[];
+narrators?: string[];
 ```
 
 ##### q
@@ -96,19 +96,19 @@ q: string;
 ##### runtimeBucket?
 
 ```ts
-optional runtimeBucket?: "any" | "under6" | "6to12" | "12to20" | "over20";
+runtimeBucket?: "any" | "under6" | "6to12" | "12to20" | "over20";
 ```
 
 ##### series?
 
 ```ts
-optional series?: string[];
+series?: string[];
 ```
 
 ##### sort?
 
 ```ts
-optional sort?: 
+sort?: 
   | "relevance"
   | "popularity"
   | "rating"
@@ -121,13 +121,13 @@ optional sort?:
 ##### sortDir?
 
 ```ts
-optional sortDir?: "asc" | "desc";
+sortDir?: "asc" | "desc";
 ```
 
 ##### ~~sortKey?~~
 
 ```ts
-optional sortKey?: 
+sortKey?: 
   | "title"
   | "author"
   | "series"
@@ -143,7 +143,7 @@ optional sortKey?:
 ##### sources?
 
 ```ts
-optional sources?: string[];
+sources?: string[];
 ```
 
 ## Variables

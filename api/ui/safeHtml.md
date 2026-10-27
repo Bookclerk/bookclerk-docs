@@ -21,7 +21,7 @@ answer: string;
 ##### question?
 
 ```ts
-optional question?: string;
+question?: string;
 ```
 
 ##### type

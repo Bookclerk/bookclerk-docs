@@ -24,9 +24,7 @@ new AdapterDatabaseSession(): AdapterDatabaseSession;
 
 ###### Inherited from
 
-```ts
-RpcTarget.constructor
-```
+`RpcTarget.constructor`
 
 #### Methods
 
@@ -247,9 +245,7 @@ new BookclerkEntrypoint<Env>(ctx, env): BookclerkEntrypoint<Env>;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint<Env>.constructor
-```
+`WorkerEntrypoint<Env>.constructor`
 
 #### Properties
 
@@ -261,9 +257,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint.ctx
-```
+`WorkerEntrypoint.ctx`
 
 ##### env
 
@@ -273,9 +267,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint.env
-```
+`WorkerEntrypoint.env`
 
 #### Methods
 
@@ -410,7 +402,7 @@ Resolves when the author hook has run.
 ##### databaseMigrations()?
 
 ```ts
-optional databaseMigrations(binding): 
+databaseMigrations?(binding): 
   | PluginMigration[]
 | Promise<PluginMigration[]>;
 ```
@@ -432,7 +424,7 @@ The host calls this at binding initialization, before ordinary execute.
 ##### describe()?
 
 ```ts
-optional describe(): 
+describe?(): 
   | Partial<PluginDescribe>
 | Promise<Partial<PluginDescribe>>;
 ```
@@ -447,7 +439,7 @@ Optional identity refinement merged over the manifest projection.
 ##### event()?
 
 ```ts
-optional event(batch): void | Promise<void>;
+event?(batch): void | Promise<void>;
 ```
 
 `[[events.consumers]]` trigger: handle one delivered batch. Record an
@@ -486,7 +478,7 @@ Always a 404 empty response.
 ##### job()?
 
 ```ts
-optional job(job): 
+job?(job): 
   | void
   | JobCompletion
 | Promise<void | JobCompletion>;
@@ -510,7 +502,7 @@ throw to reject, or call `job.suspend()` / `job.retryLater()`.
 ##### queue()?
 
 ```ts
-optional queue(batch): void | Promise<void>;
+queue?(batch): void | Promise<void>;
 ```
 
 `[[queues.consumers]]` trigger: handle one delivered batch from one
@@ -530,7 +522,7 @@ and retry on throw.
 ##### shutdown()?
 
 ```ts
-optional shutdown(): void | Promise<void>;
+shutdown?(): void | Promise<void>;
 ```
 
 Releases guest resources.
@@ -927,9 +919,7 @@ new Destination(): Destination;
 
 ###### Inherited from
 
-```ts
-RpcTarget.constructor
-```
+`RpcTarget.constructor`
 
 #### Methods
 
@@ -1787,9 +1777,7 @@ new NamedEntrypoint<Env>(ctx, env): NamedEntrypoint<Env>;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint<Env>.constructor
-```
+`WorkerEntrypoint<Env>.constructor`
 
 #### Properties
 
@@ -1801,9 +1789,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint.ctx
-```
+`WorkerEntrypoint.ctx`
 
 ##### env
 
@@ -1813,9 +1799,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-```ts
-WorkerEntrypoint.env
-```
+`WorkerEntrypoint.env`
 
 ##### invocation
 
@@ -2097,9 +2081,7 @@ new PluginError(code, message): PluginError;
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 #### Properties
 
@@ -2169,9 +2151,7 @@ new ProgressSink(): ProgressSink;
 
 ###### Inherited from
 
-```ts
-RpcTarget.constructor
-```
+`RpcTarget.constructor`
 
 #### Methods
 
@@ -2728,9 +2708,7 @@ new Source(): Source;
 
 ###### Inherited from
 
-```ts
-RpcTarget.constructor
-```
+`RpcTarget.constructor`
 
 #### Methods
 
@@ -3515,7 +3493,7 @@ Trusted adapter env. Authors never see this type on their class.
 ##### BRIDGE\_TOKEN?
 
 ```ts
-optional BRIDGE_TOKEN?: string;
+BRIDGE_TOKEN?: string;
 ```
 
 Isolate-to-host bridge bearer.
@@ -3523,7 +3501,7 @@ Isolate-to-host bridge bearer.
 ##### GRANTED?
 
 ```ts
-optional GRANTED?: GrantedFetcher;
+GRANTED?: GrantedFetcher;
 ```
 
 Per-invocation grant reverse channel.
@@ -3531,7 +3509,7 @@ Per-invocation grant reverse channel.
 ##### PLUGIN?
 
 ```ts
-optional PLUGIN?: AuthorStub;
+PLUGIN?: AuthorStub;
 ```
 
 Author default entrypoint.
@@ -3539,19 +3517,19 @@ Author default entrypoint.
 ##### PLUGIN\_CLI?
 
 ```ts
-optional PLUGIN_CLI?: NamedStub;
+PLUGIN_CLI?: NamedStub;
 ```
 
 ##### PLUGIN\_DATABASE\_ADAPTER?
 
 ```ts
-optional PLUGIN_DATABASE_ADAPTER?: NamedStub;
+PLUGIN_DATABASE_ADAPTER?: NamedStub;
 ```
 
 ##### PLUGIN\_DESCRIBE?
 
 ```ts
-optional PLUGIN_DESCRIBE?: string | PluginDescribe;
+PLUGIN_DESCRIBE?: string | PluginDescribe;
 ```
 
 Manifest `PluginDescribe` projection (JSON binding).
@@ -3559,25 +3537,25 @@ Manifest `PluginDescribe` projection (JSON binding).
 ##### PLUGIN\_OIDC?
 
 ```ts
-optional PLUGIN_OIDC?: NamedStub;
+PLUGIN_OIDC?: NamedStub;
 ```
 
 ##### PLUGIN\_REMOTE\_LIBRARY?
 
 ```ts
-optional PLUGIN_REMOTE_LIBRARY?: NamedStub;
+PLUGIN_REMOTE_LIBRARY?: NamedStub;
 ```
 
 ##### PLUGIN\_STORAGE?
 
 ```ts
-optional PLUGIN_STORAGE?: NamedStub;
+PLUGIN_STORAGE?: NamedStub;
 ```
 
 ##### PLUGIN\_STOREFRONT?
 
 ```ts
-optional PLUGIN_STOREFRONT?: NamedStub;
+PLUGIN_STOREFRONT?: NamedStub;
 ```
 
 Named author entrypoints (`PLUGIN_STOREFRONT`, `PLUGIN_STORAGE`, …).
@@ -3798,7 +3776,7 @@ third-party adapters receive this typed bootstrap (and an empty `config`).
 ##### cancel?
 
 ```ts
-optional cancel?: Cancellation | null;
+cancel?: Cancellation | null;
 ```
 
 Host cancellation for the whole invocation (fence / lease loss).
@@ -3826,7 +3804,7 @@ library and from every other plugin. Empty when the manifest declares none.
 ##### events?
 
 ```ts
-optional events?: EventPublisher | null;
+events?: EventPublisher | null;
 ```
 
 `EVENTS`: outbox publisher; null unless `[[events.producers]]` is granted.
@@ -3863,7 +3841,7 @@ when the manifest declares no `[secrets]`.
 ##### storage?
 
 ```ts
-optional storage?: Destination | null;
+storage?: Destination | null;
 ```
 
 `WORK_FS`: host-granted object storage for durable plugin files (work
@@ -3896,7 +3874,7 @@ renamed `binding = "..."` entries.
 ##### CONFIG?
 
 ```ts
-optional CONFIG?: JsonObject;
+CONFIG?: JsonObject;
 ```
 
 `[vars]` plus operator settings, decoded from the granted `CONFIG` payload.
@@ -3904,7 +3882,7 @@ optional CONFIG?: JsonObject;
 ##### EVENTS?
 
 ```ts
-optional EVENTS?: EventPublisherBinding;
+EVENTS?: EventPublisherBinding;
 ```
 
 `[[events.producers]]` outbox publisher.
@@ -3912,7 +3890,7 @@ optional EVENTS?: EventPublisherBinding;
 ##### KV?
 
 ```ts
-optional KV?: KvNamespaceBinding;
+KV?: KvNamespaceBinding;
 ```
 
 `[[kv_namespaces]]` durable KV binding (default name).
@@ -3920,7 +3898,7 @@ optional KV?: KvNamespaceBinding;
 ##### OAUTH?
 
 ```ts
-optional OAUTH?: unknown;
+OAUTH?: unknown;
 ```
 
 `[oauth]` loopback helper; surface reserved.
@@ -3928,7 +3906,7 @@ optional OAUTH?: unknown;
 ##### SECRETS?
 
 ```ts
-optional SECRETS?: JsonObject;
+SECRETS?: JsonObject;
 ```
 
 `[secrets]` values, decoded from the granted `SECRETS` payload.
@@ -3936,7 +3914,7 @@ optional SECRETS?: JsonObject;
 ##### WORK\_FS?
 
 ```ts
-optional WORK_FS?: StorageBinding;
+WORK_FS?: StorageBinding;
 ```
 
 `[work_fs]` object storage.
@@ -3977,7 +3955,7 @@ Foreground CSS color for text on `bg`.
 ##### iconUrl?
 
 ```ts
-optional iconUrl?: string;
+iconUrl?: string;
 ```
 
 Icon URL or data URI for the portal.
@@ -4147,7 +4125,7 @@ Params of `ContentSource.catalogDetail`.
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 ISBN when it differs from `productId`.
@@ -4181,7 +4159,7 @@ Whether the edition is abridged when the storefront says so.
 ##### asin?
 
 ```ts
-optional asin?: string;
+asin?: string;
 ```
 
 Amazon ASIN when known.
@@ -4190,7 +4168,7 @@ Omitted when absent (wire zero value).
 ##### authors?
 
 ```ts
-optional authors?: string;
+authors?: string;
 ```
 
 Authors string when known.
@@ -4199,7 +4177,7 @@ Omitted when absent (wire zero value).
 ##### categories?
 
 ```ts
-optional categories?: string;
+categories?: string;
 ```
 
 Category / genre labels as a single string when known.
@@ -4208,7 +4186,7 @@ Omitted when absent (wire zero value).
 ##### coverUrl?
 
 ```ts
-optional coverUrl?: string;
+coverUrl?: string;
 ```
 
 Cover image URL.
@@ -4217,7 +4195,7 @@ Omitted when absent (wire zero value).
 ##### currency?
 
 ```ts
-optional currency?: string;
+currency?: string;
 ```
 
 ISO currency code for `priceCents`.
@@ -4226,7 +4204,7 @@ Omitted when absent (wire zero value).
 ##### description?
 
 ```ts
-optional description?: string;
+description?: string;
 ```
 
 Long description / blurb when fetched.
@@ -4235,7 +4213,7 @@ Omitted when absent (wire zero value).
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 ISBN when known.
@@ -4244,7 +4222,7 @@ Omitted when absent (wire zero value).
 ##### language?
 
 ```ts
-optional language?: string;
+language?: string;
 ```
 
 Content language code when known.
@@ -4253,7 +4231,7 @@ Omitted when absent (wire zero value).
 ##### lengthMinutes?
 
 ```ts
-optional lengthMinutes?: bigint;
+lengthMinutes?: bigint;
 ```
 
 Runtime in whole minutes.
@@ -4262,7 +4240,7 @@ Omitted when absent (wire zero value).
 ##### narrators?
 
 ```ts
-optional narrators?: string;
+narrators?: string;
 ```
 
 Narrators string when known.
@@ -4279,7 +4257,7 @@ Hit origin label (plugin id or storefront name).
 ##### priceCents?
 
 ```ts
-optional priceCents?: bigint;
+priceCents?: bigint;
 ```
 
 Current price in minor units (cents).
@@ -4288,7 +4266,7 @@ Omitted when absent (wire zero value).
 ##### priceLabel?
 
 ```ts
-optional priceLabel?: string;
+priceLabel?: string;
 ```
 
 Pre-formatted price for display.
@@ -4305,7 +4283,7 @@ Storefront product / SKU id.
 ##### publishedAt?
 
 ```ts
-optional publishedAt?: string;
+publishedAt?: string;
 ```
 
 Publication date string as provided by the storefront.
@@ -4314,7 +4292,7 @@ Omitted when absent (wire zero value).
 ##### publisher?
 
 ```ts
-optional publisher?: string;
+publisher?: string;
 ```
 
 Publisher name when known.
@@ -4323,7 +4301,7 @@ Omitted when absent (wire zero value).
 ##### ratingCount?
 
 ```ts
-optional ratingCount?: bigint;
+ratingCount?: bigint;
 ```
 
 Number of ratings when known.
@@ -4332,7 +4310,7 @@ Omitted when absent (wire zero value).
 ##### ratingOverall?
 
 ```ts
-optional ratingOverall?: number;
+ratingOverall?: number;
 ```
 
 Aggregate rating when known.
@@ -4341,7 +4319,7 @@ Omitted when absent (wire zero value).
 ##### series?
 
 ```ts
-optional series?: string;
+series?: string;
 ```
 
 Series name when applicable.
@@ -4350,7 +4328,7 @@ Omitted when absent (wire zero value).
 ##### seriesIndex?
 
 ```ts
-optional seriesIndex?: string;
+seriesIndex?: string;
 ```
 
 Series index / sequence label.
@@ -4359,7 +4337,7 @@ Omitted when absent (wire zero value).
 ##### subtitle?
 
 ```ts
-optional subtitle?: string;
+subtitle?: string;
 ```
 
 Subtitle when distinct from `title`.
@@ -4376,7 +4354,7 @@ Primary title.
 ##### url?
 
 ```ts
-optional url?: string;
+url?: string;
 ```
 
 Storefront product page URL.
@@ -4457,7 +4435,7 @@ One CLI argument or flag under a `CliCommandSpec`.
 ##### about?
 
 ```ts
-optional about?: string;
+about?: string;
 ```
 
 Help text for this arg.
@@ -4466,7 +4444,7 @@ Omitted when absent (wire zero value).
 ##### default?
 
 ```ts
-optional default?: string;
+default?: string;
 ```
 
 Default string form when the operator omits the arg.
@@ -4483,7 +4461,7 @@ Parsed value kind.
 ##### long?
 
 ```ts
-optional long?: string;
+long?: string;
 ```
 
 Long flag without leading dashes (e.g. "message" -> `--message`).
@@ -4516,7 +4494,7 @@ When true, the host rejects invoke if the arg is missing.
 ##### short?
 
 ```ts
-optional short?: string;
+short?: string;
 ```
 
 Short flag character (e.g. "m" -> `-m`).
@@ -4533,7 +4511,7 @@ One plugin CLI command under `CliSchema`.
 ##### about?
 
 ```ts
-optional about?: string;
+about?: string;
 ```
 
 Short help text for `--help`.
@@ -5287,7 +5265,7 @@ host-private connect params in `DatabaseContext.config` instead.
 ##### binding?
 
 ```ts
-optional binding?: string;
+binding?: string;
 ```
 
 Named plugin database binding this open serves; empty for the primary
@@ -5298,7 +5276,7 @@ Omitted when absent (wire zero value).
 ##### instanceId?
 
 ```ts
-optional instanceId?: string;
+instanceId?: string;
 ```
 
 Host-issued opaque instance id for this (owner plugin, binding) pair.
@@ -5438,7 +5416,7 @@ Options for [createDatabaseBinding](#createdatabasebinding).
 ##### deadlineUnixMs?
 
 ```ts
-optional deadlineUnixMs?: number;
+deadlineUnixMs?: number;
 ```
 
 Guest-visible deadline (unix ms).
@@ -5446,7 +5424,7 @@ Guest-visible deadline (unix ms).
 ##### maxRequestBytes?
 
 ```ts
-optional maxRequestBytes?: number;
+maxRequestBytes?: number;
 ```
 
 Negotiated `maxRequestBytes` (`0` = unlimited).
@@ -5454,7 +5432,7 @@ Negotiated `maxRequestBytes` (`0` = unlimited).
 ##### maxResultRows?
 
 ```ts
-optional maxResultRows?: number;
+maxResultRows?: number;
 ```
 
 Default `maxRows` for `all()` (`0` = host adapter cap).
@@ -5462,7 +5440,7 @@ Default `maxRows` for `all()` (`0` = host adapter cap).
 ##### operationId?
 
 ```ts
-optional operationId?: string;
+operationId?: string;
 ```
 
 Idempotency key; generated when omitted.
@@ -5470,7 +5448,7 @@ Idempotency key; generated when omitted.
 ##### requestHash?
 
 ```ts
-optional requestHash?: string;
+requestHash?: string;
 ```
 
 SHA-256 hex of the request; empty when omitted.
@@ -5478,7 +5456,7 @@ SHA-256 hex of the request; empty when omitted.
 ##### retry?
 
 ```ts
-optional retry?: RetryToken;
+retry?: RetryToken;
 ```
 
 Default retry token; omitted calls mint a UUID and leave the hash empty.
@@ -5999,7 +5977,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 ##### cli?
 
 ```ts
-optional cli?: PluginCli | null;
+cli?: PluginCli | null;
 ```
 
 `cli` entrypoint.
@@ -6008,7 +5986,7 @@ Null when the guest does not export this capability.
 ##### databaseAdapter?
 
 ```ts
-optional databaseAdapter?: Database | null;
+databaseAdapter?: Database | null;
 ```
 
 `databaseAdapter` entrypoint.
@@ -6017,7 +5995,7 @@ Null when the guest does not export this capability.
 ##### eventConsumer?
 
 ```ts
-optional eventConsumer?: EventConsumer | null;
+eventConsumer?: EventConsumer | null;
 ```
 
 `[[events.consumers]]` trigger: `event(batch)` handler.
@@ -6026,7 +6004,7 @@ Null when the guest does not export this capability.
 ##### jobRunner?
 
 ```ts
-optional jobRunner?: JobRunner | null;
+jobRunner?: JobRunner | null;
 ```
 
 `[triggers] jobs` trigger: `job(controller)` handler.
@@ -6035,7 +6013,7 @@ Null when the guest does not export this capability.
 ##### oidc?
 
 ```ts
-optional oidc?: Oidc | null;
+oidc?: Oidc | null;
 ```
 
 `oidc` entrypoint.
@@ -6044,7 +6022,7 @@ Null when the guest does not export this capability.
 ##### queueConsumer?
 
 ```ts
-optional queueConsumer?: QueueConsumer | null;
+queueConsumer?: QueueConsumer | null;
 ```
 
 `[[queues.consumers]]` trigger: `queue(batch)` handler.
@@ -6053,7 +6031,7 @@ Null when the guest does not export this capability.
 ##### remoteLibrary?
 
 ```ts
-optional remoteLibrary?: RemoteLibrary | null;
+remoteLibrary?: RemoteLibrary | null;
 ```
 
 `remoteLibrary` entrypoint.
@@ -6062,7 +6040,7 @@ Null when the guest does not export this capability.
 ##### storage?
 
 ```ts
-optional storage?: Destination | null;
+storage?: Destination | null;
 ```
 
 `storage` entrypoint.
@@ -6071,7 +6049,7 @@ Null when the guest does not export this capability.
 ##### storefront?
 
 ```ts
-optional storefront?: ContentSource | null;
+storefront?: ContentSource | null;
 ```
 
 `storefront` entrypoint.
@@ -6347,7 +6325,7 @@ Options for [EventMessage.suspend](#suspend).
 ##### checkpoint?
 
 ```ts
-optional checkpoint?: Checkpoint;
+checkpoint?: Checkpoint;
 ```
 
 Bounded checkpoint replayed on resume (at most `maxCheckpointBytes`).
@@ -6355,7 +6333,7 @@ Bounded checkpoint replayed on resume (at most `maxCheckpointBytes`).
 ##### checkpointSchemaVersion?
 
 ```ts
-optional checkpointSchemaVersion?: number;
+checkpointSchemaVersion?: number;
 ```
 
 Schema version of `checkpoint` (default `1`).
@@ -6363,7 +6341,7 @@ Schema version of `checkpoint` (default `1`).
 ##### wakeAt?
 
 ```ts
-optional wakeAt?: Instant;
+wakeAt?: Instant;
 ```
 
 Earliest resume instant.
@@ -6371,7 +6349,7 @@ Earliest resume instant.
 ##### wakeOnEventType?
 
 ```ts
-optional wakeOnEventType?: string;
+wakeOnEventType?: string;
 ```
 
 Also wake when an event of this type arrives.
@@ -6379,7 +6357,7 @@ Also wake when an event of this type arrives.
 ##### wakeOnFilter?
 
 ```ts
-optional wakeOnFilter?: string | JsonObject;
+wakeOnFilter?: string | JsonObject;
 ```
 
 Host-owned payload filter for wake events (object or JSON text).
@@ -6468,7 +6446,7 @@ title; the guest returns related catalog hits.
 ##### asin?
 
 ```ts
-optional asin?: string;
+asin?: string;
 ```
 
 Seed Amazon ASIN.
@@ -6477,7 +6455,7 @@ Omitted when absent (wire zero value).
 ##### authors?
 
 ```ts
-optional authors?: string;
+authors?: string;
 ```
 
 Seed authors string.
@@ -6486,7 +6464,7 @@ Omitted when absent (wire zero value).
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 Seed ISBN.
@@ -6503,7 +6481,7 @@ Maximum candidates to return; the host always sends an explicit value.
 ##### narrators?
 
 ```ts
-optional narrators?: string;
+narrators?: string;
 ```
 
 Seed narrators string.
@@ -6528,7 +6506,7 @@ Storefront region / marketplace code.
 ##### series?
 
 ```ts
-optional series?: string;
+series?: string;
 ```
 
 Seed series name.
@@ -6537,7 +6515,7 @@ Omitted when absent (wire zero value).
 ##### seriesAsin?
 
 ```ts
-optional seriesAsin?: string;
+seriesAsin?: string;
 ```
 
 Seed series ASIN when known.
@@ -6603,7 +6581,7 @@ tickets without exposing portal details to the guest.
 ##### accessToken?
 
 ```ts
-optional accessToken?: string;
+accessToken?: string;
 ```
 
 Ephemeral remote token (e.g. ABS JWT). Guest-to-host only; never
@@ -6613,7 +6591,7 @@ Omitted when absent (wire zero value).
 ##### displayName?
 
 ```ts
-optional displayName?: string;
+displayName?: string;
 ```
 
 Display name for UI.
@@ -6727,7 +6705,7 @@ Prefer Widevine/CENC download when the store offers it.
 ##### widevineCdmPath?
 
 ```ts
-optional widevineCdmPath?: string;
+widevineCdmPath?: string;
 ```
 
 Local Widevine `.wvd` path granted to the guest.
@@ -6736,7 +6714,7 @@ Omitted when absent (wire zero value).
 ##### widevineCdmProvider?
 
 ```ts
-optional widevineCdmProvider?: string;
+widevineCdmProvider?: string;
 ```
 
 Remote L3 CDM provider URL; empty means the classic default, `off`
@@ -6780,7 +6758,7 @@ Absolute path the guest should write media into (jail-granted TMPDIR).
 ##### credentials?
 
 ```ts
-optional credentials?: Uint8Array<ArrayBufferLike>;
+credentials?: Uint8Array<ArrayBufferLike>;
 ```
 
 Host-loaded credential blob for this account; empty when unavailable.
@@ -6861,7 +6839,7 @@ Success payload of `Destination.get`.
 ##### body?
 
 ```ts
-optional body?: ByteSource | null;
+body?: ByteSource | null;
 ```
 
 Streamed object bytes.
@@ -6893,7 +6871,7 @@ author's `env` before dispatching; authors never receive it directly.
 ##### config?
 
 ```ts
-optional config?: ExtensibleConfig;
+config?: ExtensibleConfig;
 ```
 
 Operator settings for this plugin as `application/json`.
@@ -6901,7 +6879,7 @@ Operator settings for this plugin as `application/json`.
 ##### databases?
 
 ```ts
-optional databases?: NamedDatabase[];
+databases?: NamedDatabase[];
 ```
 
 Named `[[databases]]` bindings.
@@ -6909,7 +6887,7 @@ Named `[[databases]]` bindings.
 ##### events?
 
 ```ts
-optional events?: EventPublisherBinding;
+events?: EventPublisherBinding;
 ```
 
 `EVENTS` publisher, when `[[events.producers]]` is granted.
@@ -6917,7 +6895,7 @@ optional events?: EventPublisherBinding;
 ##### invocation?
 
 ```ts
-optional invocation?: Partial<Invocation>;
+invocation?: Partial<Invocation>;
 ```
 
 Invocation identity (`Invocation` struct).
@@ -6925,7 +6903,7 @@ Invocation identity (`Invocation` struct).
 ##### kv?
 
 ```ts
-optional kv?: NamedKv[];
+kv?: NamedKv[];
 ```
 
 `[[kv_namespaces]]` bindings, when granted.
@@ -6933,7 +6911,7 @@ optional kv?: NamedKv[];
 ##### queues?
 
 ```ts
-optional queues?: NamedQueue[];
+queues?: NamedQueue[];
 ```
 
 `[[queues.producers]]` bindings, when granted.
@@ -6941,7 +6919,7 @@ optional queues?: NamedQueue[];
 ##### secrets?
 
 ```ts
-optional secrets?: ExtensibleConfig;
+secrets?: ExtensibleConfig;
 ```
 
 Granted secret values as `application/json`.
@@ -6949,7 +6927,7 @@ Granted secret values as `application/json`.
 ##### storage?
 
 ```ts
-optional storage?: Destination;
+storage?: Destination;
 ```
 
 `WORK_FS` object store, when granted.
@@ -7054,25 +7032,25 @@ Granted capabilities for one `job()` invocation (adapter-internal).
 ##### cancel?
 
 ```ts
-optional cancel?: CancelWatchLike | null;
+cancel?: CancelWatchLike | null;
 ```
 
 ##### input?
 
 ```ts
-optional input?: Source | null;
+input?: Source | null;
 ```
 
 ##### output?
 
 ```ts
-optional output?: Destination | null;
+output?: Destination | null;
 ```
 
 ##### progress?
 
 ```ts
-optional progress?: ProgressSink | null;
+progress?: ProgressSink | null;
 ```
 
 ***
@@ -7314,7 +7292,7 @@ Value a `job()` handler may return to annotate a `completed` outcome.
 ##### bytesCopied?
 
 ```ts
-optional bytesCopied?: number;
+bytesCopied?: number;
 ```
 
 Bytes copied by the job, when meaningful.
@@ -7322,7 +7300,7 @@ Bytes copied by the job, when meaningful.
 ##### message?
 
 ```ts
-optional message?: string;
+message?: string;
 ```
 
 Operator-facing summary.
@@ -7455,7 +7433,7 @@ Options for [JobController.retryLater](#retrylater).
 ##### reason?
 
 ```ts
-optional reason?: string;
+reason?: string;
 ```
 
 Short operator-facing reason.
@@ -7463,7 +7441,7 @@ Short operator-facing reason.
 ##### retryAt?
 
 ```ts
-optional retryAt?: Instant;
+retryAt?: Instant;
 ```
 
 Earliest retry instant; omitted lets the host choose.
@@ -7512,7 +7490,7 @@ Job-runner bridge context: the durable job id plus [GrantedContext](#grantedcont
 ##### config?
 
 ```ts
-optional config?: ExtensibleConfig;
+config?: ExtensibleConfig;
 ```
 
 Operator settings for this plugin as `application/json`.
@@ -7524,7 +7502,7 @@ Operator settings for this plugin as `application/json`.
 ##### databases?
 
 ```ts
-optional databases?: NamedDatabase[];
+databases?: NamedDatabase[];
 ```
 
 Named `[[databases]]` bindings.
@@ -7536,7 +7514,7 @@ Named `[[databases]]` bindings.
 ##### events?
 
 ```ts
-optional events?: EventPublisherBinding;
+events?: EventPublisherBinding;
 ```
 
 `EVENTS` publisher, when `[[events.producers]]` is granted.
@@ -7548,7 +7526,7 @@ optional events?: EventPublisherBinding;
 ##### invocation?
 
 ```ts
-optional invocation?: Partial<Invocation>;
+invocation?: Partial<Invocation>;
 ```
 
 Invocation identity (`Invocation` struct).
@@ -7560,7 +7538,7 @@ Invocation identity (`Invocation` struct).
 ##### jobId?
 
 ```ts
-optional jobId?: string;
+jobId?: string;
 ```
 
 Durable job id (`Invocation.id` of the job open).
@@ -7568,7 +7546,7 @@ Durable job id (`Invocation.id` of the job open).
 ##### kv?
 
 ```ts
-optional kv?: NamedKv[];
+kv?: NamedKv[];
 ```
 
 `[[kv_namespaces]]` bindings, when granted.
@@ -7580,7 +7558,7 @@ optional kv?: NamedKv[];
 ##### queues?
 
 ```ts
-optional queues?: NamedQueue[];
+queues?: NamedQueue[];
 ```
 
 `[[queues.producers]]` bindings, when granted.
@@ -7592,7 +7570,7 @@ optional queues?: NamedQueue[];
 ##### secrets?
 
 ```ts
-optional secrets?: ExtensibleConfig;
+secrets?: ExtensibleConfig;
 ```
 
 Granted secret values as `application/json`.
@@ -7604,7 +7582,7 @@ Granted secret values as `application/json`.
 ##### storage?
 
 ```ts
-optional storage?: Destination;
+storage?: Destination;
 ```
 
 `WORK_FS` object store, when granted.
@@ -7624,7 +7602,7 @@ Options for [JobController.suspend](#suspend-1).
 ##### checkpoint?
 
 ```ts
-optional checkpoint?: Checkpoint;
+checkpoint?: Checkpoint;
 ```
 
 Bounded checkpoint replayed on resume (at most `maxCheckpointBytes`).
@@ -7632,7 +7610,7 @@ Bounded checkpoint replayed on resume (at most `maxCheckpointBytes`).
 ##### checkpointSchemaVersion?
 
 ```ts
-optional checkpointSchemaVersion?: number;
+checkpointSchemaVersion?: number;
 ```
 
 Schema version of `checkpoint` (default `1`).
@@ -7640,7 +7618,7 @@ Schema version of `checkpoint` (default `1`).
 ##### wakeAt?
 
 ```ts
-optional wakeAt?: Instant;
+wakeAt?: Instant;
 ```
 
 Earliest resume instant.
@@ -7744,7 +7722,7 @@ One key on a [KvNamespaceBinding.list](#list-3) page.
 ##### expiration?
 
 ```ts
-optional expiration?: number;
+expiration?: number;
 ```
 
 Absolute expiry in seconds since the Unix epoch, when set.
@@ -7752,7 +7730,7 @@ Absolute expiry in seconds since the Unix epoch, when set.
 ##### metadata?
 
 ```ts
-optional metadata?: unknown;
+metadata?: unknown;
 ```
 
 Stored metadata, when set.
@@ -7840,7 +7818,7 @@ Page request for [KvNamespaceBinding.list](#list-3).
 ##### cursor?
 
 ```ts
-optional cursor?: string;
+cursor?: string;
 ```
 
 Cursor from a previous page.
@@ -7848,7 +7826,7 @@ Cursor from a previous page.
 ##### limit?
 
 ```ts
-optional limit?: number;
+limit?: number;
 ```
 
 Most keys to return (host default when omitted, at most `maxListPage`).
@@ -7856,7 +7834,7 @@ Most keys to return (host default when omitted, at most `maxListPage`).
 ##### prefix?
 
 ```ts
-optional prefix?: string;
+prefix?: string;
 ```
 
 Only keys starting with this prefix.
@@ -7872,7 +7850,7 @@ One page of [KvNamespaceBinding.list](#list-3).
 ##### cursor?
 
 ```ts
-optional cursor?: string;
+cursor?: string;
 ```
 
 Cursor for the next page; absent when `list_complete`.
@@ -8265,7 +8243,7 @@ Options for [KvNamespaceBinding.put](#put-3) (Workers KV names).
 ##### expiration?
 
 ```ts
-optional expiration?: number;
+expiration?: number;
 ```
 
 Absolute expiry in seconds since the Unix epoch.
@@ -8273,7 +8251,7 @@ Absolute expiry in seconds since the Unix epoch.
 ##### expirationTtl?
 
 ```ts
-optional expirationTtl?: number;
+expirationTtl?: number;
 ```
 
 Relative expiry in seconds from the write; ignored when `expiration` is set.
@@ -8281,7 +8259,7 @@ Relative expiry in seconds from the write; ignored when `expiration` is set.
 ##### metadata?
 
 ```ts
-optional metadata?: unknown;
+metadata?: unknown;
 ```
 
 JSON-serializable metadata, at most `maxKvMetadataBytes` once encoded.
@@ -8327,7 +8305,7 @@ Params of `ContentSource.listDeals`.
 ##### limit?
 
 ```ts
-optional limit?: number;
+limit?: number;
 ```
 
 Maximum number of deals to return; guest default when 0.
@@ -8345,7 +8323,7 @@ tagged with the plugin id; plugins never open the library DB.
 ##### asin?
 
 ```ts
-optional asin?: string;
+asin?: string;
 ```
 
 Amazon ASIN when known.
@@ -8354,7 +8332,7 @@ Omitted when absent (wire zero value).
 ##### authors?
 
 ```ts
-optional authors?: string;
+authors?: string;
 ```
 
 Authors string when known.
@@ -8363,7 +8341,7 @@ Omitted when absent (wire zero value).
 ##### currentTimeSeconds?
 
 ```ts
-optional currentTimeSeconds?: number;
+currentTimeSeconds?: number;
 ```
 
 Current playback position in seconds.
@@ -8372,7 +8350,7 @@ Omitted when absent (wire zero value).
 ##### durationSeconds?
 
 ```ts
-optional durationSeconds?: number;
+durationSeconds?: number;
 ```
 
 Total duration in seconds when known.
@@ -8397,7 +8375,7 @@ Provider-scoped user id.
 ##### identityId?
 
 ```ts
-optional identityId?: bigint;
+identityId?: bigint;
 ```
 
 Bookclerk identity row id when already linked.
@@ -8406,7 +8384,7 @@ Omitted when absent (wire zero value).
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 ISBN when known.
@@ -8423,7 +8401,7 @@ When true, the provider marks the item finished.
 ##### lastListenedAtUnixMs?
 
 ```ts
-optional lastListenedAtUnixMs?: number;
+lastListenedAtUnixMs?: number;
 ```
 
 Last listen timestamp as unix milliseconds (UTC).
@@ -8432,7 +8410,7 @@ Omitted when absent (wire zero value).
 ##### progress?
 
 ```ts
-optional progress?: number;
+progress?: number;
 ```
 
 Fractional progress in `0.0..=1.0` when the provider reports it.
@@ -8441,7 +8419,7 @@ Omitted when absent (wire zero value).
 ##### title?
 
 ```ts
-optional title?: string;
+title?: string;
 ```
 
 Title text when known.
@@ -8458,19 +8436,19 @@ Paginated list request.
 ##### cursor?
 
 ```ts
-optional cursor?: string;
+cursor?: string;
 ```
 
 ##### limit?
 
 ```ts
-optional limit?: number;
+limit?: number;
 ```
 
 ##### prefix?
 
 ```ts
-optional prefix?: string;
+prefix?: string;
 ```
 
 ***
@@ -8484,7 +8462,7 @@ One page of keys.
 ##### nextCursor?
 
 ```ts
-optional nextCursor?: string;
+nextCursor?: string;
 ```
 
 ##### objects
@@ -8522,7 +8500,7 @@ There is no files-dir root or library DB path -- only `pluginDataDir`.
 ##### callbackBind?
 
 ```ts
-optional callbackBind?: string;
+callbackBind?: string;
 ```
 
 Bind address for OAuth callback servers (`host:port`). Ignored when
@@ -8532,7 +8510,7 @@ Omitted when absent (wire zero value).
 ##### callbackIpc?
 
 ```ts
-optional callbackIpc?: string;
+callbackIpc?: string;
 ```
 
 Host-owned callback IPC endpoint the guest must connect to. When set
@@ -8542,7 +8520,7 @@ Omitted when absent (wire zero value).
 ##### callbackPublicBase?
 
 ```ts
-optional callbackPublicBase?: string;
+callbackPublicBase?: string;
 ```
 
 Public base URL for the host TCP listener, e.g. `http://127.0.0.1:12345`.
@@ -8551,7 +8529,7 @@ Omitted when absent (wire zero value).
 ##### email?
 
 ```ts
-optional email?: string;
+email?: string;
 ```
 
 Account email / username for password logins; empty for pure OAuth.
@@ -8585,7 +8563,7 @@ When true, overwrite an existing sealed credential for this account.
 ##### label?
 
 ```ts
-optional label?: string;
+label?: string;
 ```
 
 Operator label stored on the account row.
@@ -8602,7 +8580,7 @@ Marketplace / locale for the storefront; empty means the guest default.
 ##### password?
 
 ```ts
-optional password?: string;
+password?: string;
 ```
 
 Account password for password logins; never logged; empty for OAuth.
@@ -8619,7 +8597,7 @@ Scoped writable directory for this plugin only (`.../plugins/<id>/data`).
 ##### responseUrl?
 
 ```ts
-optional responseUrl?: string;
+responseUrl?: string;
 ```
 
 Pre-supplied OAuth redirect URL (paste flow).
@@ -8636,7 +8614,7 @@ Prefer QR output when the guest supports it.
 ##### timeoutSecs?
 
 ```ts
-optional timeoutSecs?: number;
+timeoutSecs?: number;
 ```
 
 Seconds to wait for OAuth callback capture; guest default when 0.
@@ -8663,7 +8641,7 @@ Account row fields for the host to upsert.
 ##### credentials?
 
 ```ts
-optional credentials?: Uint8Array<ArrayBufferLike>;
+credentials?: Uint8Array<ArrayBufferLike>;
 ```
 
 Opaque credential blob the host seals; empty when login only refreshed
@@ -8708,7 +8686,7 @@ in-isolate [DatabaseBinding](#databasebinding) or the adapter's granted-channel
 ##### database?
 
 ```ts
-optional database?: DatabaseBinding;
+database?: DatabaseBinding;
 ```
 
 Ready binding (same isolate).
@@ -8724,7 +8702,7 @@ Binding name (`env.<name>`).
 ##### transport?
 
 ```ts
-optional transport?: GrantedDatabaseTransport;
+transport?: GrantedDatabaseTransport;
 ```
 
 Granted transport (crosses the adapter → author RPC boundary).
@@ -8832,13 +8810,13 @@ Metadata without a body.
 ##### contentType?
 
 ```ts
-optional contentType?: string;
+contentType?: string;
 ```
 
 ##### etag?
 
 ```ts
-optional etag?: string;
+etag?: string;
 ```
 
 ##### key
@@ -8850,7 +8828,7 @@ key: string;
 ##### sha256?
 
 ```ts
-optional sha256?: Uint8Array<ArrayBufferLike>;
+sha256?: Uint8Array<ArrayBufferLike>;
 ```
 
 ##### size
@@ -8995,7 +8973,7 @@ Success payload of `Source.open`.
 ##### body?
 
 ```ts
-optional body?: ByteSource | null;
+body?: ByteSource | null;
 ```
 
 Streamed object bytes.
@@ -9053,7 +9031,7 @@ Chapter markers; empty when unknown.
 ##### coverPath?
 
 ```ts
-optional coverPath?: string;
+coverPath?: string;
 ```
 
 Cover image path under the cache directory.
@@ -9062,7 +9040,7 @@ Omitted when absent (wire zero value).
 ##### m4bPath?
 
 ```ts
-optional m4bPath?: string;
+m4bPath?: string;
 ```
 
 Single M4B path when the guest assembled one.
@@ -9079,7 +9057,7 @@ Ordered audio part files written under the cache directory.
 ##### pdfUrl?
 
 ```ts
-optional pdfUrl?: string;
+pdfUrl?: string;
 ```
 
 Companion PDF download URL when the store exposes one.
@@ -9096,7 +9074,7 @@ One plain audio part written under the cache directory.
 ##### durationMs?
 
 ```ts
-optional durationMs?: number;
+durationMs?: number;
 ```
 
 Duration of this part in milliseconds when known.
@@ -9113,7 +9091,7 @@ Absolute path to the part file under `cacheDir`.
 ##### title?
 
 ```ts
-optional title?: string;
+title?: string;
 ```
 
 Part title (disc / chapter label).
@@ -9639,7 +9617,7 @@ Purchase hint for SPA / CLI purchase deep-links.
 ##### currency?
 
 ```ts
-optional currency?: string;
+currency?: string;
 ```
 
 ISO currency code for price fields.
@@ -9648,7 +9626,7 @@ Omitted when absent (wire zero value).
 ##### listPriceCents?
 
 ```ts
-optional listPriceCents?: bigint;
+listPriceCents?: bigint;
 ```
 
 List / MSRP price in minor units.
@@ -9657,7 +9635,7 @@ Omitted when absent (wire zero value).
 ##### listPriceLabel?
 
 ```ts
-optional listPriceLabel?: string;
+listPriceLabel?: string;
 ```
 
 Pre-formatted list price.
@@ -9666,7 +9644,7 @@ Omitted when absent (wire zero value).
 ##### memberPriceCents?
 
 ```ts
-optional memberPriceCents?: bigint;
+memberPriceCents?: bigint;
 ```
 
 Member / Plus price in minor units.
@@ -9675,7 +9653,7 @@ Omitted when absent (wire zero value).
 ##### memberPriceLabel?
 
 ```ts
-optional memberPriceLabel?: string;
+memberPriceLabel?: string;
 ```
 
 Pre-formatted member price.
@@ -9684,7 +9662,7 @@ Omitted when absent (wire zero value).
 ##### priceCents?
 
 ```ts
-optional priceCents?: bigint;
+priceCents?: bigint;
 ```
 
 Current price in minor units.
@@ -9693,7 +9671,7 @@ Omitted when absent (wire zero value).
 ##### priceLabel?
 
 ```ts
-optional priceLabel?: string;
+priceLabel?: string;
 ```
 
 Pre-formatted current price.
@@ -9710,7 +9688,7 @@ Storefront product id.
 ##### title?
 
 ```ts
-optional title?: string;
+title?: string;
 ```
 
 Title when resolved.
@@ -9719,7 +9697,7 @@ Omitted when absent (wire zero value).
 ##### url?
 
 ```ts
-optional url?: string;
+url?: string;
 ```
 
 Purchase or product-page URL.
@@ -9738,7 +9716,7 @@ return `invalid_params` when none are usable.
 ##### asin?
 
 ```ts
-optional asin?: string;
+asin?: string;
 ```
 
 Amazon ASIN when known.
@@ -9747,7 +9725,7 @@ Omitted when absent (wire zero value).
 ##### authors?
 
 ```ts
-optional authors?: string;
+authors?: string;
 ```
 
 Authors string for fuzzy lookup.
@@ -9756,7 +9734,7 @@ Omitted when absent (wire zero value).
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 ISBN when known.
@@ -9765,7 +9743,7 @@ Omitted when absent (wire zero value).
 ##### productId?
 
 ```ts
-optional productId?: string;
+productId?: string;
 ```
 
 Storefront product id when known.
@@ -9782,7 +9760,7 @@ Storefront region / marketplace code.
 ##### title?
 
 ```ts
-optional title?: string;
+title?: string;
 ```
 
 Title text for fuzzy lookup.
@@ -9837,7 +9815,7 @@ bytesWritten: number;
 ##### etag?
 
 ```ts
-optional etag?: string;
+etag?: string;
 ```
 
 ##### key
@@ -9849,7 +9827,7 @@ key: string;
 ##### sha256?
 
 ```ts
-optional sha256?: Uint8Array<ArrayBufferLike>;
+sha256?: Uint8Array<ArrayBufferLike>;
 ```
 
 ***
@@ -10037,7 +10015,7 @@ Options for [QueueMessage.retry](#retry-1).
 ##### delaySeconds?
 
 ```ts
-optional delaySeconds?: number;
+delaySeconds?: number;
 ```
 
 Seconds before redelivery; `0` applies the consumer's `retry_delay`.
@@ -10045,7 +10023,7 @@ Seconds before redelivery; `0` applies the consumer's `retry_delay`.
 ##### reason?
 
 ```ts
-optional reason?: string;
+reason?: string;
 ```
 
 Short operator-facing reason.
@@ -10073,7 +10051,7 @@ Message body (JSON value, string, or bytes per `contentType`).
 ##### contentType?
 
 ```ts
-optional contentType?: "text" | "bytes" | "json";
+contentType?: "text" | "bytes" | "json";
 ```
 
 Body encoding: `json` (default; the body is JSON-encoded), `text`
@@ -10086,7 +10064,7 @@ Body encoding: `json` (default; the body is JSON-encoded), `text`
 ##### delaySeconds?
 
 ```ts
-optional delaySeconds?: number;
+delaySeconds?: number;
 ```
 
 Seconds before the message may be delivered; `0` means now.
@@ -10158,7 +10136,7 @@ Per-send options for a [QueueBinding](#queuebinding).
 ##### contentType?
 
 ```ts
-optional contentType?: "text" | "bytes" | "json";
+contentType?: "text" | "bytes" | "json";
 ```
 
 Body encoding: `json` (default; the body is JSON-encoded), `text`
@@ -10167,7 +10145,7 @@ Body encoding: `json` (default; the body is JSON-encoded), `text`
 ##### delaySeconds?
 
 ```ts
-optional delaySeconds?: number;
+delaySeconds?: number;
 ```
 
 Seconds before the message may be delivered; `0` means now.
@@ -10183,7 +10161,7 @@ Read options for [StorageEntrypoint.get](#get-1).
 ##### range?
 
 ```ts
-optional range?: ByteRange;
+range?: ByteRange;
 ```
 
 ***
@@ -10483,7 +10461,7 @@ Options for [EventMessage.retry](#retry).
 ##### delaySeconds?
 
 ```ts
-optional delaySeconds?: number;
+delaySeconds?: number;
 ```
 
 Delay from now, in seconds; ignored when `retryAt` is set.
@@ -10491,7 +10469,7 @@ Delay from now, in seconds; ignored when `retryAt` is set.
 ##### reason?
 
 ```ts
-optional reason?: string;
+reason?: string;
 ```
 
 Short operator-facing reason.
@@ -10499,7 +10477,7 @@ Short operator-facing reason.
 ##### retryAt?
 
 ```ts
-optional retryAt?: Instant;
+retryAt?: Instant;
 ```
 
 Explicit earliest redelivery instant.
@@ -10548,7 +10526,7 @@ Account being revoked.
 ##### credentials?
 
 ```ts
-optional credentials?: Uint8Array<ArrayBufferLike>;
+credentials?: Uint8Array<ArrayBufferLike>;
 ```
 
 Decrypted credential blob for this account, exactly as login returned
@@ -10607,7 +10585,7 @@ Account that owns this library entry.
 ##### asin?
 
 ```ts
-optional asin?: string;
+asin?: string;
 ```
 
 Amazon ASIN when the storefront exposes one.
@@ -10616,7 +10594,7 @@ Omitted when absent (wire zero value).
 ##### authors?
 
 ```ts
-optional authors?: string;
+authors?: string;
 ```
 
 Comma- or guest-formatted author list.
@@ -10625,7 +10603,7 @@ Omitted when absent (wire zero value).
 ##### contentKind?
 
 ```ts
-optional contentKind?: string;
+contentKind?: string;
 ```
 
 Content classification (e.g. `book` vs `episode`).
@@ -10634,7 +10612,7 @@ Omitted when absent (wire zero value).
 ##### isbn?
 
 ```ts
-optional isbn?: string;
+isbn?: string;
 ```
 
 ISBN when the storefront exposes one.
@@ -10643,7 +10621,7 @@ Omitted when absent (wire zero value).
 ##### lengthMinutes?
 
 ```ts
-optional lengthMinutes?: bigint;
+lengthMinutes?: bigint;
 ```
 
 Runtime in whole minutes when known.
@@ -10652,7 +10630,7 @@ Omitted when absent (wire zero value).
 ##### marketplace?
 
 ```ts
-optional marketplace?: string;
+marketplace?: string;
 ```
 
 Marketplace / region when known.
@@ -10661,7 +10639,7 @@ Omitted when absent (wire zero value).
 ##### narrators?
 
 ```ts
-optional narrators?: string;
+narrators?: string;
 ```
 
 Comma- or guest-formatted narrator list.
@@ -10678,7 +10656,7 @@ Storefront product / SKU id.
 ##### publisher?
 
 ```ts
-optional publisher?: string;
+publisher?: string;
 ```
 
 Publisher name when known.
@@ -10687,7 +10665,7 @@ Omitted when absent (wire zero value).
 ##### series?
 
 ```ts
-optional series?: string;
+series?: string;
 ```
 
 Series name when applicable.
@@ -10696,7 +10674,7 @@ Omitted when absent (wire zero value).
 ##### seriesIndex?
 
 ```ts
-optional seriesIndex?: string;
+seriesIndex?: string;
 ```
 
 Series index / sequence label.
@@ -10705,7 +10683,7 @@ Omitted when absent (wire zero value).
 ##### subtitle?
 
 ```ts
-optional subtitle?: string;
+subtitle?: string;
 ```
 
 Subtitle when distinct from `title`.
@@ -10893,7 +10871,7 @@ Facet restriction.
 ##### language?
 
 ```ts
-optional language?: string;
+language?: string;
 ```
 
 Preferred content language (soft-prioritize; e.g. `en`).
@@ -10958,7 +10936,7 @@ Stable account id within this source plugin.
 ##### label?
 
 ```ts
-optional label?: string;
+label?: string;
 ```
 
 Operator-facing label.
@@ -11380,31 +11358,31 @@ Write options for [StorageEntrypoint.put](#put-1).
 ##### commitToken?
 
 ```ts
-optional commitToken?: string;
+commitToken?: string;
 ```
 
 ##### contentLength?
 
 ```ts
-optional contentLength?: number;
+contentLength?: number;
 ```
 
 ##### contentType?
 
 ```ts
-optional contentType?: string;
+contentType?: string;
 ```
 
 ##### sha256?
 
 ```ts
-optional sha256?: Uint8Array<ArrayBufferLike>;
+sha256?: Uint8Array<ArrayBufferLike>;
 ```
 
 ##### stageOnly?
 
 ```ts
-optional stageOnly?: boolean;
+stageOnly?: boolean;
 ```
 
 ## Type Aliases

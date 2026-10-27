@@ -63,19 +63,19 @@ cover_url: string | null;
 ##### description?
 
 ```ts
-optional description?: string | null;
+description?: string | null;
 ```
 
 ##### genres?
 
 ```ts
-optional genres?: string | null;
+genres?: string | null;
 ```
 
 ##### is\_abridged?
 
 ```ts
-optional is_abridged?: boolean | null;
+is_abridged?: boolean | null;
 ```
 
 `true` abridged / `false` unabridged when known.
@@ -89,13 +89,13 @@ isbn: string | null;
 ##### language?
 
 ```ts
-optional language?: string | null;
+language?: string | null;
 ```
 
 ##### length\_minutes?
 
 ```ts
-optional length_minutes?: number | null;
+length_minutes?: number | null;
 ```
 
 ##### narrators
@@ -107,31 +107,31 @@ narrators: string | null;
 ##### notes?
 
 ```ts
-optional notes?: string | null;
+notes?: string | null;
 ```
 
 ##### published\_at?
 
 ```ts
-optional published_at?: string | null;
+published_at?: string | null;
 ```
 
 ##### publisher?
 
 ```ts
-optional publisher?: string | null;
+publisher?: string | null;
 ```
 
 ##### purchase\_hints?
 
 ```ts
-optional purchase_hints?: PurchaseHint[];
+purchase_hints?: PurchaseHint[];
 ```
 
 ##### rating\_overall?
 
 ```ts
-optional rating_overall?: number | null;
+rating_overall?: number | null;
 ```
 
 Audible community overall rating (0–5), when known.
@@ -139,7 +139,7 @@ Audible community overall rating (0–5), when known.
 ##### reasons?
 
 ```ts
-optional reasons?: string[];
+reasons?: string[];
 ```
 
 ##### series
@@ -151,7 +151,7 @@ series: string | null;
 ##### series\_index?
 
 ```ts
-optional series_index?: string | null;
+series_index?: string | null;
 ```
 
 ##### sources
@@ -169,7 +169,7 @@ store_editions: StoreEdition[];
 ##### subtitle?
 
 ```ts
-optional subtitle?: string | null;
+subtitle?: string | null;
 ```
 
 ##### title
@@ -181,7 +181,7 @@ title: string;
 ##### wish\_count?
 
 ```ts
-optional wish_count?: number;
+wish_count?: number;
 ```
 
 Distinct wisher count (may exceed `wishers.length`).
@@ -189,7 +189,7 @@ Distinct wisher count (may exceed `wishers.length`).
 ##### wishers?
 
 ```ts
-optional wishers?: QueueWisher[];
+wishers?: QueueWisher[];
 ```
 
 People who have this title on an open wishlist.
@@ -197,7 +197,7 @@ People who have this title on an open wishlist.
 ##### wishlist\_uuid?
 
 ```ts
-optional wishlist_uuid?: string | null;
+wishlist_uuid?: string | null;
 ```
 
 Present when the title is already on the current user’s wishlist.

@@ -120,7 +120,7 @@ described by entry `i`.
 ##### binding?
 
 ```ts
-optional binding?: string;
+binding?: string;
 ```
 
 Binding name for `guestDatabase`.
@@ -128,7 +128,7 @@ Binding name for `guestDatabase`.
 ##### id?
 
 ```ts
-optional id?: string;
+id?: string;
 ```
 
 Isolate object id for `adapterSession`.
@@ -144,7 +144,7 @@ kind: string;
 ##### token?
 
 ```ts
-optional token?: string;
+token?: string;
 ```
 
 Grant token for host-served kinds.
