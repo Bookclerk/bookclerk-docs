@@ -83,6 +83,24 @@ Status `400`: The ticket is invalid, used or expired.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/portal/login/integration`
@@ -164,6 +182,24 @@ Status `400`: The request is invalid, or the integration refused the login.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/portal/logout`
@@ -226,6 +262,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -301,11 +363,59 @@ Status `200`: The signed-in identity.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /me`.",
+  "required": [
+    "provider",
+    "external_user_id"
+  ],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "description": "Identity provider id (`local` or an integration plugin id)."
+    },
+    "external_user_id": {
+      "type": "string",
+      "description": "Provider-scoped user id stored on the portal identity row."
+    },
+    "label": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional display label from the identity row."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in.
 
 ```json
 {
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
 }
 ```
 
@@ -379,6 +489,121 @@ Status `200`: Deployed content sources.
       }
     }
   ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /sources`.",
+  "required": [
+    "sources"
+  ],
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One enabled storefront as shown on the portal Accounts page.",
+        "required": [
+          "id",
+          "name",
+          "auth",
+          "brand"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Source plugin id (`audible`, `libro`, …)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Operator-facing storefront name."
+          },
+          "auth": {
+            "type": "string",
+            "description": "Portal auth mode (`password` or `oauth`)."
+          },
+          "config_options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One storefront config option (key, label, allowed values).",
+              "required": [
+                "key",
+                "label",
+                "values"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Config table key (for example `container`)."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Operator-facing option name."
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One allowed value for a storefront config option.",
+                    "required": [
+                      "id",
+                      "label"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Stored option value (for example `m4b`)."
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Operator-facing value label."
+                      }
+                    }
+                  },
+                  "description": "Allowed values the SPA may offer for this option."
+                }
+              }
+            },
+            "description": "Store-specific knobs the SPA can present (omitted when empty)."
+          },
+          "brand": {
+            "type": "object",
+            "description": "Storefront colors and logo href for the Accounts UI.",
+            "required": [
+              "bg",
+              "fg",
+              "accent",
+              "logo"
+            ],
+            "properties": {
+              "bg": {
+                "type": "string",
+                "description": "Background color (`#RRGGBB`)."
+              },
+              "fg": {
+                "type": "string",
+                "description": "Foreground / text color (`#RRGGBB`)."
+              },
+              "accent": {
+                "type": "string",
+                "description": "Accent color (`#RRGGBB`)."
+              },
+              "logo": {
+                "type": "string",
+                "description": "Logo image href (often a favicon URL)."
+              }
+            }
+          }
+        }
+      },
+      "description": "Enabled storefronts the SPA may offer for connect / login."
+    }
+  }
 }
 ```
 
@@ -477,11 +702,47 @@ Status `400`: The login failed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in.
 
 ```json
 {
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
 }
 ```
 
@@ -492,6 +753,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -576,11 +863,47 @@ Status `400`: The source does not use OAuth.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in.
 
 ```json
 {
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
 }
 ```
 
@@ -591,6 +914,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -686,6 +1035,24 @@ Status `401`: The caller is not signed in.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -693,6 +1060,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -774,6 +1167,24 @@ Status `401`: The caller is not signed in.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -781,6 +1192,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -867,11 +1304,122 @@ Status `200`: Store accounts linked to the caller.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /connections`.",
+  "required": [
+    "connections"
+  ],
+  "properties": {
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One linked store account on the portal Accounts page.",
+        "required": [
+          "account_id",
+          "source",
+          "plugin_key",
+          "connection_status",
+          "source_enabled"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "Store account id (unique within its source)."
+          },
+          "source": {
+            "type": "string",
+            "description": "Source plugin id that owns this account."
+          },
+          "plugin_key": {
+            "type": "string",
+            "description": "Provenance-qualified PluginKey that owns the account."
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator-facing account label when the store provided one."
+          },
+          "connection_status": {
+            "type": "string",
+            "description": "Connection state (`active`, revoked, …); defaults to `active` if the account row is missing."
+          },
+          "source_enabled": {
+            "type": "boolean",
+            "description": "Whether `[sources.<id>] enabled` is currently true (new connects blocked when false)."
+          },
+          "brand": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Storefront or integration brand when a plugin or fallback palette is available.",
+                "required": [
+                  "bg",
+                  "fg",
+                  "accent",
+                  "logo"
+                ],
+                "properties": {
+                  "bg": {
+                    "type": "string",
+                    "description": "Background color (`#RRGGBB`)."
+                  },
+                  "fg": {
+                    "type": "string",
+                    "description": "Foreground / text color (`#RRGGBB`)."
+                  },
+                  "accent": {
+                    "type": "string",
+                    "description": "Accent color (`#RRGGBB`)."
+                  },
+                  "logo": {
+                    "type": "string",
+                    "description": "Logo image href (often a favicon URL)."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Linked store accounts the SPA may show or revoke."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in.
 
 ```json
 {
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
 }
 ```
 
@@ -963,11 +1511,47 @@ Status `400`: The account is not linked to this identity.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in.
 
 ```json
 {
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code)."
+    }
+  }
 }
 ```
 
@@ -978,6 +1562,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 

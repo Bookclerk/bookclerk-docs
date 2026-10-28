@@ -74,6 +74,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -81,6 +107,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -94,6 +146,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -101,6 +179,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -198,6 +302,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -205,6 +335,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -218,6 +374,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -225,6 +407,32 @@ Status `404`: No such plugin.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -238,6 +446,32 @@ Status `409`: The instance id is taken.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -245,6 +479,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -330,6 +590,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -337,6 +623,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -350,6 +662,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -357,6 +695,32 @@ Status `404`: No such instance.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -370,6 +734,32 @@ Status `409`: The instance is a default or still deployed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -377,6 +767,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -457,6 +873,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -464,6 +906,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -477,6 +945,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -487,6 +981,32 @@ Status `404`: No such instance.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -494,6 +1014,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -597,6 +1143,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -604,6 +1176,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -617,6 +1215,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -627,6 +1251,32 @@ Status `404`: No such instance.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -634,6 +1284,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -734,6 +1410,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -741,6 +1443,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -754,6 +1482,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -761,6 +1515,32 @@ Status `404`: No such instance.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -774,6 +1554,32 @@ Status `409`: The instance is placed by the scheduler.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -781,6 +1587,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -880,6 +1712,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -887,6 +1745,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -900,6 +1784,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -910,6 +1820,32 @@ Status `404`: No such instance.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -917,6 +1853,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1002,6 +1964,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1009,6 +1997,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1022,6 +2036,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such instance.
 
 ```json
@@ -1032,6 +2072,32 @@ Status `404`: No such instance.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1039,6 +2105,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1114,6 +2206,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1121,6 +2239,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1134,6 +2278,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1141,6 +2311,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1239,6 +2435,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1246,6 +2468,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1259,6 +2507,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: A local package is missing its `package.json` or `archive.tar.gz`.
 
 ```json
@@ -1266,6 +2540,32 @@ Status `404`: A local package is missing its `package.json` or `archive.tar.gz`.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1279,6 +2579,32 @@ Status `409`: The version is already installed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1289,6 +2615,32 @@ Status `500`: The configuration could not be read or written.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `502`: The package catalog could not be reached or answered badly.
 
 ```json
@@ -1296,6 +2648,32 @@ Status `502`: The package catalog could not be reached or answered badly.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1377,6 +2755,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1384,6 +2788,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1397,6 +2827,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -1407,6 +2863,32 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1414,6 +2896,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1498,6 +3006,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1505,6 +3039,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1518,6 +3078,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -1528,6 +3114,32 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1535,6 +3147,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1631,6 +3269,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1638,6 +3302,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1651,6 +3341,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -1661,6 +3377,32 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1668,6 +3410,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1753,6 +3521,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -1760,6 +3554,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1773,6 +3593,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -1783,6 +3629,32 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The configuration could not be read or written.
 
 ```json
@@ -1790,6 +3662,32 @@ Status `500`: The configuration could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -2052,6 +3950,783 @@ Status `200`: What the plugin asks for and what is granted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Consent dialog payload for one plugin.",
+  "required": [
+    "plugin_id",
+    "plugin_key",
+    "provenance",
+    "runtime",
+    "request",
+    "covered",
+    "summary",
+    "limits"
+  ],
+  "properties": {
+    "plugin_id": {
+      "type": "string",
+      "description": "Plugin id whose grant is being reviewed."
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical PluginKey for this install (empty when unknown)."
+    },
+    "provenance": {
+      "type": "string",
+      "description": "Host-evaluated provenance label."
+    },
+    "runtime": {
+      "type": "string",
+      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable."
+    },
+    "request": {
+      "type": "object",
+      "description": "Manifest-derived grant the plugin is asking for.",
+      "required": [
+        "pluginKey",
+        "pluginId",
+        "entrypoints",
+        "producers",
+        "consumers",
+        "jobs",
+        "networkMode",
+        "domains",
+        "manifestDomains",
+        "operatorAddedDomains",
+        "operatorDeniedDomains",
+        "tcp",
+        "operatorAddedTcp",
+        "operatorDeniedTcp",
+        "addressCidrs",
+        "operatorAddedCidrs",
+        "operatorDeniedCidrs",
+        "allowUndeclaredPublicRedirects",
+        "grantRevision",
+        "authorityRevision",
+        "bindings",
+        "compatibilityFlags",
+        "approvedAt"
+      ],
+      "properties": {
+        "pluginKey": {
+          "type": "string",
+          "description": "Canonical provenance-qualified PluginKey."
+        },
+        "pluginId": {
+          "type": "string",
+          "description": "Plugin id this grant applies to."
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+        },
+        "producers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Event types the operator approved the plugin to publish."
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Approved event-consumer subscriptions."
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Approved job trigger types."
+        },
+        "networkMode": {
+          "type": "string",
+          "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Hostnames the operator approved for egress."
+        },
+        "manifestDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Destinations requested by the current manifest."
+        },
+        "operatorAddedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-added destinations beyond the manifest."
+        },
+        "operatorDeniedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-denied destinations still listed by the manifest."
+        },
+        "tcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Effective raw TCP grants."
+        },
+        "operatorAddedTcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Operator-added TCP grants."
+        },
+        "operatorDeniedTcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Operator-denied TCP grants still listed by the manifest."
+        },
+        "addressCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Effective address-space CIDRs."
+        },
+        "operatorAddedCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-added CIDRs."
+        },
+        "operatorDeniedCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-denied CIDRs still listed by the manifest."
+        },
+        "allowUndeclaredPublicRedirects": {
+          "type": "boolean",
+          "description": "Undeclared public redirect permission."
+        },
+        "grantRevision": {
+          "type": "string",
+          "description": "SHA-256 of persisted operator consent (no host overlays)."
+        },
+        "authorityRevision": {
+          "type": "string",
+          "description": "SHA-256 of the canonical effective authority."
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Host bindings the operator approved."
+        },
+        "compatibilityFlags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra compatibility flags stored on the grant."
+        },
+        "approvedAt": {
+          "type": "string",
+          "description": "RFC 3339 timestamp when the grant was last approved."
+        },
+        "cpuMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional workerd CPU budget in milliseconds.",
+          "minimum": 0
+        },
+        "subrequests": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional workerd subrequest budget.",
+          "minimum": 0
+        },
+        "diskMib": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional plugin state disk budget in mebibytes.",
+          "minimum": 0
+        },
+        "memoryMib": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "cpuCores": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+        },
+        "extraProcesses": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Extra process/thread budget beyond launcher overhead; native only.",
+          "minimum": 0
+        }
+      }
+    },
+    "covered": {
+      "type": "boolean",
+      "description": "True when an existing on-disk grant already satisfies the request."
+    },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Operator-facing bullet list of requested capabilities."
+    },
+    "existing": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Previously approved grant, when one is stored.",
+          "required": [
+            "pluginKey",
+            "pluginId",
+            "entrypoints",
+            "producers",
+            "consumers",
+            "jobs",
+            "networkMode",
+            "domains",
+            "manifestDomains",
+            "operatorAddedDomains",
+            "operatorDeniedDomains",
+            "tcp",
+            "operatorAddedTcp",
+            "operatorDeniedTcp",
+            "addressCidrs",
+            "operatorAddedCidrs",
+            "operatorDeniedCidrs",
+            "allowUndeclaredPublicRedirects",
+            "grantRevision",
+            "authorityRevision",
+            "bindings",
+            "compatibilityFlags",
+            "approvedAt"
+          ],
+          "properties": {
+            "pluginKey": {
+              "type": "string",
+              "description": "Canonical provenance-qualified PluginKey."
+            },
+            "pluginId": {
+              "type": "string",
+              "description": "Plugin id this grant applies to."
+            },
+            "entrypoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+            },
+            "producers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Event types the operator approved the plugin to publish."
+            },
+            "consumers": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Approved event-consumer subscriptions."
+            },
+            "jobs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Approved job trigger types."
+            },
+            "networkMode": {
+              "type": "string",
+              "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+            },
+            "domains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Hostnames the operator approved for egress."
+            },
+            "manifestDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Destinations requested by the current manifest."
+            },
+            "operatorAddedDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-added destinations beyond the manifest."
+            },
+            "operatorDeniedDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-denied destinations still listed by the manifest."
+            },
+            "tcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Effective raw TCP grants."
+            },
+            "operatorAddedTcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Operator-added TCP grants."
+            },
+            "operatorDeniedTcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Operator-denied TCP grants still listed by the manifest."
+            },
+            "addressCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Effective address-space CIDRs."
+            },
+            "operatorAddedCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-added CIDRs."
+            },
+            "operatorDeniedCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-denied CIDRs still listed by the manifest."
+            },
+            "allowUndeclaredPublicRedirects": {
+              "type": "boolean",
+              "description": "Undeclared public redirect permission."
+            },
+            "grantRevision": {
+              "type": "string",
+              "description": "SHA-256 of persisted operator consent (no host overlays)."
+            },
+            "authorityRevision": {
+              "type": "string",
+              "description": "SHA-256 of the canonical effective authority."
+            },
+            "bindings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Host bindings the operator approved."
+            },
+            "compatibilityFlags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra compatibility flags stored on the grant."
+            },
+            "approvedAt": {
+              "type": "string",
+              "description": "RFC 3339 timestamp when the grant was last approved."
+            },
+            "cpuMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional workerd CPU budget in milliseconds.",
+              "minimum": 0
+            },
+            "subrequests": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional workerd subrequest budget.",
+              "minimum": 0
+            },
+            "diskMib": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional plugin state disk budget in mebibytes.",
+              "minimum": 0
+            },
+            "memoryMib": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional jail memory in mebibytes.",
+              "minimum": 0
+            },
+            "cpuCores": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+            },
+            "extraProcesses": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Extra process/thread budget beyond launcher overhead; native only.",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "brand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Optional portal or manifest branding for the dialog.",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Display name from the portal brand or plugin manifest."
+            },
+            "bg": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Background CSS color from the portal brand, when known."
+            },
+            "fg": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Foreground CSS color from the portal brand, when known."
+            },
+            "accent": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Accent CSS color from the portal brand, when known."
+            },
+            "logo": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Logo URL or host-served embed path."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "description": "Host-capped resource defaults (workerd budgets + shared disk). Always set.",
+      "required": [
+        "cpu_ms",
+        "subrequests",
+        "max_cpu_ms",
+        "max_subrequests",
+        "disk_mib",
+        "max_disk_mib",
+        "memory_mib",
+        "max_memory_mib",
+        "cpu_cores",
+        "max_cpu_cores",
+        "extra_processes",
+        "max_extra_processes",
+        "known_bindings"
+      ],
+      "properties": {
+        "cpu_ms": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Requested workerd CPU budget in milliseconds.",
+          "minimum": 0
+        },
+        "subrequests": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Requested workerd subrequest budget.",
+          "minimum": 0
+        },
+        "max_cpu_ms": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for workerd CPU milliseconds.",
+          "minimum": 0
+        },
+        "max_subrequests": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for workerd subrequests.",
+          "minimum": 0
+        },
+        "disk_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default plugin state disk budget in mebibytes.",
+          "minimum": 0
+        },
+        "max_disk_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for plugin state disk in mebibytes.",
+          "minimum": 0
+        },
+        "memory_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "max_memory_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "cpu_cores": {
+          "type": "number",
+          "format": "double",
+          "description": "Manifest / default jail CPU in cores (2 d.p.)."
+        },
+        "max_cpu_cores": {
+          "type": "number",
+          "format": "double",
+          "description": "Host max jail CPU in cores (2 d.p.)."
+        },
+        "jail_cpu_cores": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Optional `[plugins.jail]` ceiling in cores."
+        },
+        "extra_processes": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default extra process/thread budget (native consent).",
+          "minimum": 0
+        },
+        "max_extra_processes": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for extra process budget.",
+          "minimum": 0
+        },
+        "known_bindings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Suggested / default host bindings operators may grant."
+        }
+      }
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -2059,6 +4734,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -2072,6 +4773,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such plugin.
 
 ```json
@@ -2082,6 +4809,36 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The grant could not be read.
 
 ```json
@@ -2089,6 +4846,36 @@ Status `500`: The grant could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -2369,6 +5156,783 @@ Status `200`: The grant was stored.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Consent dialog payload for one plugin.",
+  "required": [
+    "plugin_id",
+    "plugin_key",
+    "provenance",
+    "runtime",
+    "request",
+    "covered",
+    "summary",
+    "limits"
+  ],
+  "properties": {
+    "plugin_id": {
+      "type": "string",
+      "description": "Plugin id whose grant is being reviewed."
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical PluginKey for this install (empty when unknown)."
+    },
+    "provenance": {
+      "type": "string",
+      "description": "Host-evaluated provenance label."
+    },
+    "runtime": {
+      "type": "string",
+      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable."
+    },
+    "request": {
+      "type": "object",
+      "description": "Manifest-derived grant the plugin is asking for.",
+      "required": [
+        "pluginKey",
+        "pluginId",
+        "entrypoints",
+        "producers",
+        "consumers",
+        "jobs",
+        "networkMode",
+        "domains",
+        "manifestDomains",
+        "operatorAddedDomains",
+        "operatorDeniedDomains",
+        "tcp",
+        "operatorAddedTcp",
+        "operatorDeniedTcp",
+        "addressCidrs",
+        "operatorAddedCidrs",
+        "operatorDeniedCidrs",
+        "allowUndeclaredPublicRedirects",
+        "grantRevision",
+        "authorityRevision",
+        "bindings",
+        "compatibilityFlags",
+        "approvedAt"
+      ],
+      "properties": {
+        "pluginKey": {
+          "type": "string",
+          "description": "Canonical provenance-qualified PluginKey."
+        },
+        "pluginId": {
+          "type": "string",
+          "description": "Plugin id this grant applies to."
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+        },
+        "producers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Event types the operator approved the plugin to publish."
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Approved event-consumer subscriptions."
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Approved job trigger types."
+        },
+        "networkMode": {
+          "type": "string",
+          "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Hostnames the operator approved for egress."
+        },
+        "manifestDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Destinations requested by the current manifest."
+        },
+        "operatorAddedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-added destinations beyond the manifest."
+        },
+        "operatorDeniedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-denied destinations still listed by the manifest."
+        },
+        "tcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Effective raw TCP grants."
+        },
+        "operatorAddedTcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Operator-added TCP grants."
+        },
+        "operatorDeniedTcp": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator-facing TCP grant (`host` + `ports`).",
+            "required": [
+              "host",
+              "ports"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "description": "Hostname or `*.` wildcard."
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0
+                },
+                "description": "Destination ports."
+              }
+            }
+          },
+          "description": "Operator-denied TCP grants still listed by the manifest."
+        },
+        "addressCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Effective address-space CIDRs."
+        },
+        "operatorAddedCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-added CIDRs."
+        },
+        "operatorDeniedCidrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Operator-denied CIDRs still listed by the manifest."
+        },
+        "allowUndeclaredPublicRedirects": {
+          "type": "boolean",
+          "description": "Undeclared public redirect permission."
+        },
+        "grantRevision": {
+          "type": "string",
+          "description": "SHA-256 of persisted operator consent (no host overlays)."
+        },
+        "authorityRevision": {
+          "type": "string",
+          "description": "SHA-256 of the canonical effective authority."
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Host bindings the operator approved."
+        },
+        "compatibilityFlags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra compatibility flags stored on the grant."
+        },
+        "approvedAt": {
+          "type": "string",
+          "description": "RFC 3339 timestamp when the grant was last approved."
+        },
+        "cpuMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional workerd CPU budget in milliseconds.",
+          "minimum": 0
+        },
+        "subrequests": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional workerd subrequest budget.",
+          "minimum": 0
+        },
+        "diskMib": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional plugin state disk budget in mebibytes.",
+          "minimum": 0
+        },
+        "memoryMib": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Optional jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "cpuCores": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+        },
+        "extraProcesses": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32",
+          "description": "Extra process/thread budget beyond launcher overhead; native only.",
+          "minimum": 0
+        }
+      }
+    },
+    "covered": {
+      "type": "boolean",
+      "description": "True when an existing on-disk grant already satisfies the request."
+    },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Operator-facing bullet list of requested capabilities."
+    },
+    "existing": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Previously approved grant, when one is stored.",
+          "required": [
+            "pluginKey",
+            "pluginId",
+            "entrypoints",
+            "producers",
+            "consumers",
+            "jobs",
+            "networkMode",
+            "domains",
+            "manifestDomains",
+            "operatorAddedDomains",
+            "operatorDeniedDomains",
+            "tcp",
+            "operatorAddedTcp",
+            "operatorDeniedTcp",
+            "addressCidrs",
+            "operatorAddedCidrs",
+            "operatorDeniedCidrs",
+            "allowUndeclaredPublicRedirects",
+            "grantRevision",
+            "authorityRevision",
+            "bindings",
+            "compatibilityFlags",
+            "approvedAt"
+          ],
+          "properties": {
+            "pluginKey": {
+              "type": "string",
+              "description": "Canonical provenance-qualified PluginKey."
+            },
+            "pluginId": {
+              "type": "string",
+              "description": "Plugin id this grant applies to."
+            },
+            "entrypoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+            },
+            "producers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Event types the operator approved the plugin to publish."
+            },
+            "consumers": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Approved event-consumer subscriptions."
+            },
+            "jobs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Approved job trigger types."
+            },
+            "networkMode": {
+              "type": "string",
+              "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+            },
+            "domains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Hostnames the operator approved for egress."
+            },
+            "manifestDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Destinations requested by the current manifest."
+            },
+            "operatorAddedDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-added destinations beyond the manifest."
+            },
+            "operatorDeniedDomains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-denied destinations still listed by the manifest."
+            },
+            "tcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Effective raw TCP grants."
+            },
+            "operatorAddedTcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Operator-added TCP grants."
+            },
+            "operatorDeniedTcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard."
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports."
+                  }
+                }
+              },
+              "description": "Operator-denied TCP grants still listed by the manifest."
+            },
+            "addressCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Effective address-space CIDRs."
+            },
+            "operatorAddedCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-added CIDRs."
+            },
+            "operatorDeniedCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-denied CIDRs still listed by the manifest."
+            },
+            "allowUndeclaredPublicRedirects": {
+              "type": "boolean",
+              "description": "Undeclared public redirect permission."
+            },
+            "grantRevision": {
+              "type": "string",
+              "description": "SHA-256 of persisted operator consent (no host overlays)."
+            },
+            "authorityRevision": {
+              "type": "string",
+              "description": "SHA-256 of the canonical effective authority."
+            },
+            "bindings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Host bindings the operator approved."
+            },
+            "compatibilityFlags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra compatibility flags stored on the grant."
+            },
+            "approvedAt": {
+              "type": "string",
+              "description": "RFC 3339 timestamp when the grant was last approved."
+            },
+            "cpuMs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional workerd CPU budget in milliseconds.",
+              "minimum": 0
+            },
+            "subrequests": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional workerd subrequest budget.",
+              "minimum": 0
+            },
+            "diskMib": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional plugin state disk budget in mebibytes.",
+              "minimum": 0
+            },
+            "memoryMib": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Optional jail memory in mebibytes.",
+              "minimum": 0
+            },
+            "cpuCores": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+            },
+            "extraProcesses": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "description": "Extra process/thread budget beyond launcher overhead; native only.",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "brand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Optional portal or manifest branding for the dialog.",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Display name from the portal brand or plugin manifest."
+            },
+            "bg": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Background CSS color from the portal brand, when known."
+            },
+            "fg": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Foreground CSS color from the portal brand, when known."
+            },
+            "accent": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Accent CSS color from the portal brand, when known."
+            },
+            "logo": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Logo URL or host-served embed path."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "description": "Host-capped resource defaults (workerd budgets + shared disk). Always set.",
+      "required": [
+        "cpu_ms",
+        "subrequests",
+        "max_cpu_ms",
+        "max_subrequests",
+        "disk_mib",
+        "max_disk_mib",
+        "memory_mib",
+        "max_memory_mib",
+        "cpu_cores",
+        "max_cpu_cores",
+        "extra_processes",
+        "max_extra_processes",
+        "known_bindings"
+      ],
+      "properties": {
+        "cpu_ms": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Requested workerd CPU budget in milliseconds.",
+          "minimum": 0
+        },
+        "subrequests": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Requested workerd subrequest budget.",
+          "minimum": 0
+        },
+        "max_cpu_ms": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for workerd CPU milliseconds.",
+          "minimum": 0
+        },
+        "max_subrequests": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for workerd subrequests.",
+          "minimum": 0
+        },
+        "disk_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default plugin state disk budget in mebibytes.",
+          "minimum": 0
+        },
+        "max_disk_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for plugin state disk in mebibytes.",
+          "minimum": 0
+        },
+        "memory_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "max_memory_mib": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for jail memory in mebibytes.",
+          "minimum": 0
+        },
+        "cpu_cores": {
+          "type": "number",
+          "format": "double",
+          "description": "Manifest / default jail CPU in cores (2 d.p.)."
+        },
+        "max_cpu_cores": {
+          "type": "number",
+          "format": "double",
+          "description": "Host max jail CPU in cores (2 d.p.)."
+        },
+        "jail_cpu_cores": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Optional `[plugins.jail]` ceiling in cores."
+        },
+        "extra_processes": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Default extra process/thread budget (native consent).",
+          "minimum": 0
+        },
+        "max_extra_processes": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Host hard cap for extra process budget.",
+          "minimum": 0
+        },
+        "known_bindings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Suggested / default host bindings operators may grant."
+        }
+      }
+    }
+  }
+}
+```
+
 Status `400`: An override is not allowed.
 
 ```json
@@ -2376,6 +5940,36 @@ Status `400`: An override is not allowed.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -2389,6 +5983,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -2396,6 +6016,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -2409,6 +6055,36 @@ Status `404`: No such plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The grant could not be stored.
 
 ```json
@@ -2416,6 +6092,36 @@ Status `500`: The grant could not be stored.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -2495,6 +6201,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route.
 
 ```json
@@ -2505,6 +6237,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: The plugin has no logo.
 
 ```json
@@ -2512,6 +6270,36 @@ Status `404`: The plugin has no logo.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 

@@ -92,6 +92,80 @@ Status `200`: Recent domain events, newest first.
 ]
 ```
 
+Schema:
+
+```json
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "description": "Operator JSON for one `domain_events` row.",
+    "required": [
+      "id",
+      "eventType",
+      "schemaVersion",
+      "dispatchState",
+      "accountId",
+      "dedupKey",
+      "createdAt",
+      "queueName",
+      "contentType",
+      "source"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Event id."
+      },
+      "eventType": {
+        "type": "string",
+        "description": "Event type (`book_acquired`)."
+      },
+      "schemaVersion": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Payload schema version."
+      },
+      "dispatchState": {
+        "type": "string",
+        "description": "`pending` or `dispatched`."
+      },
+      "accountId": {
+        "type": "string",
+        "description": "Tenant / account id."
+      },
+      "dedupKey": {
+        "type": "string",
+        "description": "Producer idempotency key."
+      },
+      "createdAt": {
+        "type": "string",
+        "description": "RFC 3339 insert time."
+      },
+      "queueName": {
+        "type": "string",
+        "description": "Queue the row belongs to (`core.events` for domain events)."
+      },
+      "contentType": {
+        "type": "string",
+        "description": "Body encoding (`json`, `text`, `bytes`)."
+      },
+      "source": {
+        "type": "string",
+        "description": "Producer plugin id; empty when the host published it."
+      },
+      "deliverAfter": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "RFC 3339 earliest delivery time for delayed queue messages."
+      }
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -99,6 +173,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -112,6 +212,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read.
 
 ```json
@@ -119,6 +245,36 @@ Status `500`: The outbox could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -226,6 +382,109 @@ Status `200`: Deliveries, newest first.
 ]
 ```
 
+Schema:
+
+```json
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "description": "Operator JSON for one `event_deliveries` row.",
+    "required": [
+      "id",
+      "eventId",
+      "pluginId",
+      "state",
+      "attemptCount",
+      "leaseGeneration",
+      "invocationSequence",
+      "runAfter",
+      "updatedAt",
+      "cancelRequested",
+      "resourceClass",
+      "resumePending",
+      "hasCheckpoint",
+      "queueName"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Delivery id (`{event_id}:{plugin_id}`)."
+      },
+      "eventId": {
+        "type": "string",
+        "description": "Parent event id."
+      },
+      "pluginId": {
+        "type": "string",
+        "description": "Subscriber plugin id."
+      },
+      "state": {
+        "type": "string",
+        "description": "Lifecycle state."
+      },
+      "attemptCount": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Claim count (not incremented on resume)."
+      },
+      "leaseGeneration": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Fence generation."
+      },
+      "invocationSequence": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Resume ordinal."
+      },
+      "outcome": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Terminal outcome when set."
+      },
+      "errorMessage": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Operator-facing error."
+      },
+      "runAfter": {
+        "type": "string",
+        "description": "RFC 3339 earliest claim time."
+      },
+      "updatedAt": {
+        "type": "string",
+        "description": "RFC 3339 last update."
+      },
+      "cancelRequested": {
+        "type": "boolean",
+        "description": "Cooperative cancel flag."
+      },
+      "resourceClass": {
+        "type": "string",
+        "description": "Concurrency class (`network` today)."
+      },
+      "resumePending": {
+        "type": "boolean",
+        "description": "Next claim should resume rather than increment attempt."
+      },
+      "hasCheckpoint": {
+        "type": "boolean",
+        "description": "True when a suspend checkpoint is stored."
+      },
+      "queueName": {
+        "type": "string",
+        "description": "Queue of the parent event."
+      }
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -233,6 +492,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -246,6 +531,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read.
 
 ```json
@@ -253,6 +564,36 @@ Status `500`: The outbox could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -341,6 +682,64 @@ Status `200`: Every known queue.
 ]
 ```
 
+Schema:
+
+```json
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "description": "Operator JSON for one queue on `GET /api/queues`.",
+    "required": [
+      "name",
+      "core",
+      "pending",
+      "running",
+      "acked",
+      "deadLetter",
+      "consumers"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Queue name."
+      },
+      "core": {
+        "type": "boolean",
+        "description": "True for the domain-event bus (`core.events`)."
+      },
+      "pending": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Deliveries waiting to be claimed (including suspended rows)."
+      },
+      "running": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Deliveries currently claimed by a worker."
+      },
+      "acked": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Deliveries acked."
+      },
+      "deadLetter": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Deliveries parked for operator review."
+      },
+      "consumers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Live catalog consumers (plugin keys or instance ids) of this queue."
+      }
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -348,6 +747,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -361,6 +786,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read.
 
 ```json
@@ -368,6 +819,36 @@ Status `500`: The outbox could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -488,6 +969,244 @@ Status `200`: The queue.
 }
 ```
 
+Schema:
+
+```json
+{
+  "allOf": [
+    {
+      "type": "object",
+      "description": "Queue summary.",
+      "required": [
+        "name",
+        "core",
+        "pending",
+        "running",
+        "acked",
+        "deadLetter",
+        "consumers"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Queue name."
+        },
+        "core": {
+          "type": "boolean",
+          "description": "True for the domain-event bus (`core.events`)."
+        },
+        "pending": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Deliveries waiting to be claimed (including suspended rows)."
+        },
+        "running": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Deliveries currently claimed by a worker."
+        },
+        "acked": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Deliveries acked."
+        },
+        "deadLetter": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Deliveries parked for operator review."
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Live catalog consumers (plugin keys or instance ids) of this queue."
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "messages",
+        "deliveries"
+      ],
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator JSON for one `domain_events` row.",
+            "required": [
+              "id",
+              "eventType",
+              "schemaVersion",
+              "dispatchState",
+              "accountId",
+              "dedupKey",
+              "createdAt",
+              "queueName",
+              "contentType",
+              "source"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Event id."
+              },
+              "eventType": {
+                "type": "string",
+                "description": "Event type (`book_acquired`)."
+              },
+              "schemaVersion": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Payload schema version."
+              },
+              "dispatchState": {
+                "type": "string",
+                "description": "`pending` or `dispatched`."
+              },
+              "accountId": {
+                "type": "string",
+                "description": "Tenant / account id."
+              },
+              "dedupKey": {
+                "type": "string",
+                "description": "Producer idempotency key."
+              },
+              "createdAt": {
+                "type": "string",
+                "description": "RFC 3339 insert time."
+              },
+              "queueName": {
+                "type": "string",
+                "description": "Queue the row belongs to (`core.events` for domain events)."
+              },
+              "contentType": {
+                "type": "string",
+                "description": "Body encoding (`json`, `text`, `bytes`)."
+              },
+              "source": {
+                "type": "string",
+                "description": "Producer plugin id; empty when the host published it."
+              },
+              "deliverAfter": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "RFC 3339 earliest delivery time for delayed queue messages."
+              }
+            }
+          },
+          "description": "Recent messages on the queue, newest first."
+        },
+        "deliveries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "Operator JSON for one `event_deliveries` row.",
+            "required": [
+              "id",
+              "eventId",
+              "pluginId",
+              "state",
+              "attemptCount",
+              "leaseGeneration",
+              "invocationSequence",
+              "runAfter",
+              "updatedAt",
+              "cancelRequested",
+              "resourceClass",
+              "resumePending",
+              "hasCheckpoint",
+              "queueName"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Delivery id (`{event_id}:{plugin_id}`)."
+              },
+              "eventId": {
+                "type": "string",
+                "description": "Parent event id."
+              },
+              "pluginId": {
+                "type": "string",
+                "description": "Subscriber plugin id."
+              },
+              "state": {
+                "type": "string",
+                "description": "Lifecycle state."
+              },
+              "attemptCount": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Claim count (not incremented on resume)."
+              },
+              "leaseGeneration": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Fence generation."
+              },
+              "invocationSequence": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Resume ordinal."
+              },
+              "outcome": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Terminal outcome when set."
+              },
+              "errorMessage": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Operator-facing error."
+              },
+              "runAfter": {
+                "type": "string",
+                "description": "RFC 3339 earliest claim time."
+              },
+              "updatedAt": {
+                "type": "string",
+                "description": "RFC 3339 last update."
+              },
+              "cancelRequested": {
+                "type": "boolean",
+                "description": "Cooperative cancel flag."
+              },
+              "resourceClass": {
+                "type": "string",
+                "description": "Concurrency class (`network` today)."
+              },
+              "resumePending": {
+                "type": "boolean",
+                "description": "Next claim should resume rather than increment attempt."
+              },
+              "hasCheckpoint": {
+                "type": "boolean",
+                "description": "True when a suspend checkpoint is stored."
+              },
+              "queueName": {
+                "type": "string",
+                "description": "Queue of the parent event."
+              }
+            }
+          },
+          "description": "Recent deliveries on the queue, newest first."
+        }
+      }
+    }
+  ],
+  "description": "Operator JSON for `GET /api/queues/{name}`."
+}
+```
+
 Status `400`: The queue name is invalid.
 
 ```json
@@ -495,6 +1214,36 @@ Status `400`: The queue name is invalid.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -508,6 +1257,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route.
 
 ```json
@@ -518,6 +1293,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read.
 
 ```json
@@ -525,6 +1326,36 @@ Status `500`: The outbox could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -610,6 +1441,41 @@ Status `200`: The delivery was queued again.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -617,6 +1483,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -630,6 +1522,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such delivery, or it is not in a state this applies to.
 
 ```json
@@ -640,6 +1558,36 @@ Status `404`: No such delivery, or it is not in a state this applies to.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read or written.
 
 ```json
@@ -647,6 +1595,36 @@ Status `500`: The outbox could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -732,6 +1710,41 @@ Status `200`: The delivery was acknowledged.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -739,6 +1752,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -752,6 +1791,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such delivery, or it is not in a state this applies to.
 
 ```json
@@ -762,6 +1827,36 @@ Status `404`: No such delivery, or it is not in a state this applies to.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read or written.
 
 ```json
@@ -769,6 +1864,36 @@ Status `500`: The outbox could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -854,6 +1979,41 @@ Status `200`: The delivery was cancelled or asked to stop.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -861,6 +2021,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -874,6 +2060,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such delivery, or it is not in a state this applies to.
 
 ```json
@@ -884,6 +2096,36 @@ Status `404`: No such delivery, or it is not in a state this applies to.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read or written.
 
 ```json
@@ -891,6 +2133,36 @@ Status `500`: The outbox could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -976,6 +2248,41 @@ Status `200`: The delivery was resumed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -983,6 +2290,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -996,6 +2329,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such delivery, or it is not in a state this applies to.
 
 ```json
@@ -1006,6 +2365,36 @@ Status `404`: No such delivery, or it is not in a state this applies to.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The outbox could not be read or written.
 
 ```json
@@ -1013,6 +2402,36 @@ Status `500`: The outbox could not be read or written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 

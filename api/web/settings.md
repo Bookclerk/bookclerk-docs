@@ -126,6 +126,347 @@ Status `200`: The settings.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Settings page payload: file values, effective runtime, and plugin groups.",
+  "required": [
+    "settings",
+    "effective",
+    "plugins",
+    "host_cpu_cores_max"
+  ],
+  "properties": {
+    "settings": {
+      "type": "object",
+      "description": "Values as written in config.toml (and env overlays), plus `output.*`\nfrom the `core.output` database document.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      }
+    },
+    "effective": {
+      "type": "object",
+      "description": "Runtime-effective values after the last successful reload (auth, plugins).",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Settings UI group for one discovered or loaded plugin.",
+        "required": [
+          "id",
+          "family",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Plugin id (`audible`, `sqlite`, and similar)."
+          },
+          "family": {
+            "type": "string",
+            "description": "Handler family wire label (`source`, `integration`, `output`, `database`)."
+          },
+          "plugin_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Provenance-qualified PluginKey when this row came from a discovered install."
+          },
+          "provenance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …)."
+          },
+          "logo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Google favicon (or portal brand) URL for Settings list rows."
+          },
+          "settings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One editable setting shown in the Settings UI.",
+              "required": [
+                "key",
+                "label",
+                "value",
+                "value_type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Dotted `config.toml` key for this option."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Operator-facing field caption."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Current string form of the setting."
+                },
+                "value_type": {
+                  "type": "string",
+                  "description": "UI widget hint (`boolean`, `string`, or `number`)."
+                },
+                "choices": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "description": "One selectable value for a Settings dropdown.",
+                    "required": [
+                      "value",
+                      "label"
+                    ],
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "description": "Stored config value; empty string means use the plugin default."
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Operator-facing choice caption."
+                      }
+                    }
+                  },
+                  "description": "Optional dropdown values; omitted for free-form fields."
+                },
+                "secret": {
+                  "type": "boolean",
+                  "description": "True for a `secret` setting: `value` is never the stored value."
+                },
+                "secret_set": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "For a secret setting, whether the instance document names a sealed value."
+                }
+              }
+            },
+            "description": "Editable options for this plugin, including `.enabled`."
+          },
+          "plugin_instance_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plugin instance this group edits; absent for a bootstrap database adapter."
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator-facing instance name, when the operator set one."
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "True when a bare plugin key or alias routes to this instance."
+          },
+          "config_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Instance document revision for compare-and-swap writes."
+          },
+          "deployment": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "This node's deployment of the instance, when one exists.",
+                "required": [
+                  "deployment_id",
+                  "node_id",
+                  "desired",
+                  "revision"
+                ],
+                "properties": {
+                  "deployment_id": {
+                    "type": "string",
+                    "description": "Deployment row id."
+                  },
+                  "node_id": {
+                    "type": "string",
+                    "description": "Node the row targets."
+                  },
+                  "desired": {
+                    "type": "string",
+                    "description": "What the row asks the node to do: `present` / `absent` from an\noperator, `placed` / `unplaced` from the scheduler.",
+                    "enum": [
+                      "present",
+                      "absent",
+                      "placed",
+                      "unplaced"
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision of the desired row."
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Latest observation status from that node, when it reported one."
+                  },
+                  "detail": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Observation detail (error text, redacted)."
+                  },
+                  "applied_config_revision": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Document revision the running guest applied."
+                  },
+                  "observed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time of the observation."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "placement": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Scheduler placement; absent when the instance is hand-managed (the\nEnabled switch applies only then).",
+                "required": [
+                  "replicas",
+                  "constraints",
+                  "revision",
+                  "placed",
+                  "detail",
+                  "scheduled_at",
+                  "updated_at"
+                ],
+                "properties": {
+                  "replicas": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "all"
+                        ]
+                      }
+                    ],
+                    "description": "A replica count (0 stops every replica) or `\"all\"`."
+                  },
+                  "constraints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Label constraints every chosen node must satisfy."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision of the intent."
+                  },
+                  "placed": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Replicas the last scheduler pass placed.",
+                    "minimum": 0
+                  },
+                  "detail": {
+                    "type": "string",
+                    "description": "Why fewer than requested are placed; empty when satisfied."
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time the scheduler last changed the status."
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time of the last intent write."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "present_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Nodes whose deployment of the instance is `present`."
+          }
+        }
+      },
+      "description": "Per-plugin setting groups rendered by the Settings UI."
+    },
+    "host_cpu_cores_max": {
+      "type": "number",
+      "format": "double",
+      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count)."
+    },
+    "jail_cpu_cores": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double",
+      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`)."
+    },
+    "output_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -133,6 +474,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -146,6 +513,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The settings could not be read.
 
 ```json
@@ -153,6 +546,36 @@ Status `500`: The settings could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -299,6 +722,347 @@ Status `200`: The settings after the change.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Settings page payload: file values, effective runtime, and plugin groups.",
+  "required": [
+    "settings",
+    "effective",
+    "plugins",
+    "host_cpu_cores_max"
+  ],
+  "properties": {
+    "settings": {
+      "type": "object",
+      "description": "Values as written in config.toml (and env overlays), plus `output.*`\nfrom the `core.output` database document.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      }
+    },
+    "effective": {
+      "type": "object",
+      "description": "Runtime-effective values after the last successful reload (auth, plugins).",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Settings UI group for one discovered or loaded plugin.",
+        "required": [
+          "id",
+          "family",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Plugin id (`audible`, `sqlite`, and similar)."
+          },
+          "family": {
+            "type": "string",
+            "description": "Handler family wire label (`source`, `integration`, `output`, `database`)."
+          },
+          "plugin_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Provenance-qualified PluginKey when this row came from a discovered install."
+          },
+          "provenance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …)."
+          },
+          "logo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Google favicon (or portal brand) URL for Settings list rows."
+          },
+          "settings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One editable setting shown in the Settings UI.",
+              "required": [
+                "key",
+                "label",
+                "value",
+                "value_type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Dotted `config.toml` key for this option."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Operator-facing field caption."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Current string form of the setting."
+                },
+                "value_type": {
+                  "type": "string",
+                  "description": "UI widget hint (`boolean`, `string`, or `number`)."
+                },
+                "choices": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "description": "One selectable value for a Settings dropdown.",
+                    "required": [
+                      "value",
+                      "label"
+                    ],
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "description": "Stored config value; empty string means use the plugin default."
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Operator-facing choice caption."
+                      }
+                    }
+                  },
+                  "description": "Optional dropdown values; omitted for free-form fields."
+                },
+                "secret": {
+                  "type": "boolean",
+                  "description": "True for a `secret` setting: `value` is never the stored value."
+                },
+                "secret_set": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "For a secret setting, whether the instance document names a sealed value."
+                }
+              }
+            },
+            "description": "Editable options for this plugin, including `.enabled`."
+          },
+          "plugin_instance_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plugin instance this group edits; absent for a bootstrap database adapter."
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator-facing instance name, when the operator set one."
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "True when a bare plugin key or alias routes to this instance."
+          },
+          "config_revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Instance document revision for compare-and-swap writes."
+          },
+          "deployment": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "This node's deployment of the instance, when one exists.",
+                "required": [
+                  "deployment_id",
+                  "node_id",
+                  "desired",
+                  "revision"
+                ],
+                "properties": {
+                  "deployment_id": {
+                    "type": "string",
+                    "description": "Deployment row id."
+                  },
+                  "node_id": {
+                    "type": "string",
+                    "description": "Node the row targets."
+                  },
+                  "desired": {
+                    "type": "string",
+                    "description": "What the row asks the node to do: `present` / `absent` from an\noperator, `placed` / `unplaced` from the scheduler.",
+                    "enum": [
+                      "present",
+                      "absent",
+                      "placed",
+                      "unplaced"
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision of the desired row."
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Latest observation status from that node, when it reported one."
+                  },
+                  "detail": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Observation detail (error text, redacted)."
+                  },
+                  "applied_config_revision": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Document revision the running guest applied."
+                  },
+                  "observed_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time of the observation."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "placement": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Scheduler placement; absent when the instance is hand-managed (the\nEnabled switch applies only then).",
+                "required": [
+                  "replicas",
+                  "constraints",
+                  "revision",
+                  "placed",
+                  "detail",
+                  "scheduled_at",
+                  "updated_at"
+                ],
+                "properties": {
+                  "replicas": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "all"
+                        ]
+                      }
+                    ],
+                    "description": "A replica count (0 stops every replica) or `\"all\"`."
+                  },
+                  "constraints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Label constraints every chosen node must satisfy."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision of the intent."
+                  },
+                  "placed": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Replicas the last scheduler pass placed.",
+                    "minimum": 0
+                  },
+                  "detail": {
+                    "type": "string",
+                    "description": "Why fewer than requested are placed; empty when satisfied."
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time the scheduler last changed the status."
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time of the last intent write."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "present_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Nodes whose deployment of the instance is `present`."
+          }
+        }
+      },
+      "description": "Per-plugin setting groups rendered by the Settings UI."
+    },
+    "host_cpu_cores_max": {
+      "type": "number",
+      "format": "double",
+      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count)."
+    },
+    "jail_cpu_cores": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double",
+      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`)."
+    },
+    "output_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup."
+    }
+  }
+}
+```
+
 Status `400`: A key is unknown or a value is invalid.
 
 ```json
@@ -306,6 +1070,36 @@ Status `400`: A key is unknown or a value is invalid.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -319,6 +1113,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -326,6 +1146,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -339,6 +1185,32 @@ Status `409`: `output.*` keys were sent with a stale `expected_output_revision`,
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The settings could not be written.
 
 ```json
@@ -346,6 +1218,36 @@ Status `500`: The settings could not be written.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -445,6 +1347,41 @@ Status `200`: The rows were copied.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `400`: The target is invalid.
 
 ```json
@@ -452,6 +1389,36 @@ Status `400`: The target is invalid.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -465,6 +1432,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -472,6 +1465,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -485,6 +1504,32 @@ Status `409`: The migration target matches more than one database plugin.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The copy failed.
 
 ```json
@@ -492,6 +1537,36 @@ Status `500`: The copy failed.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -575,6 +1650,62 @@ Status `200`: The caller's preferences.
     "string"
   ],
   "theme": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Normalized Discover/library preferences for the authenticated subject.",
+  "required": [
+    "default_view",
+    "disabled_shelves",
+    "discover_sort",
+    "discover_sort_dir",
+    "discover_excluded_sources",
+    "theme"
+  ],
+  "properties": {
+    "default_view": {
+      "type": "string",
+      "description": "Landing view id (`library`, `discover`, …) after normalization."
+    },
+    "disabled_shelves": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lowercased Discover shelf ids the user has hidden."
+    },
+    "discover_sort": {
+      "type": "string",
+      "description": "Discover sort key (`relevance`, `popularity`, …)."
+    },
+    "discover_sort_dir": {
+      "type": "string",
+      "description": "Discover sort direction (`asc` or `desc`)."
+    },
+    "discover_language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`null` = use browser language on the client."
+    },
+    "discover_excluded_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lowercased store ids hidden from Discover results."
+    },
+    "theme": {
+      "type": "string",
+      "description": "Appearance preference (`system`, `light`, or `dark`)."
+    }
+  }
 }
 ```
 
@@ -689,6 +1820,62 @@ Status `200`: The preferences after the change.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Normalized Discover/library preferences for the authenticated subject.",
+  "required": [
+    "default_view",
+    "disabled_shelves",
+    "discover_sort",
+    "discover_sort_dir",
+    "discover_excluded_sources",
+    "theme"
+  ],
+  "properties": {
+    "default_view": {
+      "type": "string",
+      "description": "Landing view id (`library`, `discover`, …) after normalization."
+    },
+    "disabled_shelves": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lowercased Discover shelf ids the user has hidden."
+    },
+    "discover_sort": {
+      "type": "string",
+      "description": "Discover sort key (`relevance`, `popularity`, …)."
+    },
+    "discover_sort_dir": {
+      "type": "string",
+      "description": "Discover sort direction (`asc` or `desc`)."
+    },
+    "discover_language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`null` = use browser language on the client."
+    },
+    "discover_excluded_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lowercased store ids hidden from Discover results."
+    },
+    "theme": {
+      "type": "string",
+      "description": "Appearance preference (`system`, `light`, or `dark`)."
+    }
+  }
+}
+```
+
 Status `400`: A value is invalid. The body is `text/plain`.
 
 Status `401`: No signed-in caller. The body is `text/plain`.
@@ -700,6 +1887,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 

@@ -90,6 +90,97 @@ Status `200`: Jobs, newest first.
 ]
 ```
 
+Schema:
+
+```json
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "description": "Snapshot of one queued or running control-plane job.",
+    "required": [
+      "id",
+      "kind",
+      "status"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Opaque job id returned to the client when the job is accepted."
+      },
+      "kind": {
+        "type": "string",
+        "description": "What the job does.",
+        "enum": [
+          "scan",
+          "acquire",
+          "listen_sync",
+          "integration_scan",
+          "plugin_copy",
+          "invalid"
+        ]
+      },
+      "status": {
+        "type": "string",
+        "description": "Where the job is in its lifecycle.",
+        "enum": [
+          "pending",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "detail": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional operator-facing progress or error text."
+      },
+      "progress": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Human-readable progress string while the job is running."
+      },
+      "attempt_count": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Number of times a worker has claimed this row."
+      },
+      "max_attempts": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Maximum claims before a failure is terminal."
+      },
+      "error_kind": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Structured error kind when failed or cancelled."
+      },
+      "created_at": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "RFC 3339 timestamp when the row was inserted."
+      },
+      "finished_at": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "RFC 3339 timestamp when the row reached a terminal state."
+      }
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -97,6 +188,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -110,6 +227,32 @@ Status `403`: The caller's role does not allow this route.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The job table could not be read.
 
 ```json
@@ -117,6 +260,36 @@ Status `500`: The job table could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -202,6 +375,41 @@ Status `200`: The job was cancelled or asked to stop.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -209,6 +417,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -222,6 +456,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such job.
 
 ```json
@@ -232,6 +492,36 @@ Status `404`: No such job.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The job could not be updated.
 
 ```json
@@ -239,6 +529,36 @@ Status `500`: The job could not be updated.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 

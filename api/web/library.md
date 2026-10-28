@@ -107,6 +107,49 @@ Status `200`: The scan jobs were accepted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+    }
+  }
+}
+```
+
 Status `400`: The body names no valid target.
 
 ```json
@@ -115,6 +158,41 @@ Status `400`: The body names no valid target.
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -128,6 +206,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller may not scan these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -136,6 +240,41 @@ Status `403`: The caller may not scan these accounts. A write sent with a sessio
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -153,6 +292,49 @@ Status `409`: A scan is already pending or running.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+    }
+  }
+}
+```
+
 Status `422`: No account matched.
 
 ```json
@@ -167,6 +349,49 @@ Status `422`: No account matched.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+    }
+  }
+}
+```
+
 Status `429`: The job queue is full.
 
 ```json
@@ -178,6 +403,49 @@ Status `429`: The job queue is full.
     "string"
   ],
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id",
+    "job_ids"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when at least one job was accepted."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+    }
+  }
 }
 ```
 
@@ -290,6 +558,41 @@ Status `200`: The acquire jobs were accepted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `400`: The body names no valid title.
 
 ```json
@@ -301,6 +604,41 @@ Status `400`: The body names no valid title.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -308,6 +646,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -322,6 +686,41 @@ Status `403`: The caller may not acquire for these accounts. A write sent with a
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `409`: The same acquire is already pending or running, or no node can run it.
 
 ```json
@@ -330,6 +729,41 @@ Status `409`: The same acquire is already pending or running, or no node can run
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -344,6 +778,41 @@ Status `429`: The job queue is full.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `500`: The jobs could not be queued.
 
 ```json
@@ -355,6 +824,41 @@ Status `500`: The jobs could not be queued.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `503`: Job admission is paused.
 
 ```json
@@ -363,6 +867,41 @@ Status `503`: Job admission is paused.
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -493,6 +1032,339 @@ Status `200`: A page of titles.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Paginated library listing.",
+  "required": [
+    "books",
+    "total",
+    "limit",
+    "offset"
+  ],
+  "properties": {
+    "books": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Book / library item (one ownership row per store product per account).",
+        "required": [
+          "id",
+          "uuid",
+          "plugin_key",
+          "source",
+          "account_id",
+          "product_id",
+          "marketplace",
+          "title",
+          "acquire_status",
+          "is_finished",
+          "pdf_status",
+          "is_abridged",
+          "content_kind",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Surrogate primary key assigned by the database."
+          },
+          "uuid": {
+            "type": "string",
+            "description": "Stable UUID for this row (API / foreign-key identity)."
+          },
+          "plugin_key": {
+            "type": "string",
+            "description": "Provenance-qualified PluginKey that owns the account."
+          },
+          "source": {
+            "type": "string",
+            "description": "Display alias of the owning plugin (`audible`, `libro`, …)."
+          },
+          "account_id": {
+            "type": "string",
+            "description": "Store or operator account id this row belongs to."
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Storefront product id (ASIN, ISBN, UUID, …)."
+          },
+          "asin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Audible ASIN when known (`None` for Libro-only rows without enrichment)."
+          },
+          "isbn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISBN-13 when known (Libro always; Audible when the API provides it)."
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "Store marketplace / locale code (for example `us`, `uk`)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title of the work or edition."
+          },
+          "authors": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Comma-separated or JSON author list from the storefront."
+          },
+          "narrators": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Comma-separated or JSON narrator list when present."
+          },
+          "series": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Series name when the title belongs to a series."
+          },
+          "series_index": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Position within the series (storefront string form)."
+          },
+          "series_asin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Audible series / podcast-parent ASIN (`Series.AudibleSeriesId`)."
+          },
+          "acquire_status": {
+            "type": "string",
+            "description": "Download/acquire pipeline state (`not_acquired`, `queued`, …).",
+            "enum": [
+              "not_acquired",
+              "queued",
+              "downloading",
+              "acquired",
+              "error"
+            ]
+          },
+          "storage_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Object-storage key for the primary audio artifact, if acquired."
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Last acquire/convert failure message for operators."
+          },
+          "purchased_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "RFC 3339 purchase time from the storefront, when known."
+          },
+          "tags": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator or storefront tags (serialized string)."
+          },
+          "rating_overall": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float",
+            "description": "Overall user rating from the storefront, if any."
+          },
+          "rating_performance": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float",
+            "description": "Narration/performance rating from the storefront, if any."
+          },
+          "rating_story": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float",
+            "description": "Story rating from the storefront, if any."
+          },
+          "is_finished": {
+            "type": "boolean",
+            "description": "Whether the listener marked the title finished (0/1 or bool)."
+          },
+          "pdf_status": {
+            "type": "string",
+            "description": "Companion PDF acquire state (`not_acquired`, `acquired`, …).",
+            "enum": [
+              "not_acquired",
+              "queued",
+              "downloading",
+              "acquired",
+              "error"
+            ]
+          },
+          "pdf_storage_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Object-storage key for the companion PDF, if present."
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Publisher name from metadata enrichment or the storefront."
+          },
+          "length_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Runtime in whole minutes when the storefront reports it."
+          },
+          "is_abridged": {
+            "type": "boolean",
+            "description": "Whether the edition is abridged (0/1 or bool)."
+          },
+          "content_kind": {
+            "type": "string",
+            "description": "Title kind: `book`, `episode`, `podcast`, …."
+          },
+          "categories": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Storefront category / genre path list (serialized)."
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional subtitle from bibliographic metadata."
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Publication date string from the storefront or enrichment."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Blurb / synopsis text (may contain HTML)."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "BCP-47 or storefront language code when known."
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HTTPS URL for cover art when known."
+          },
+          "subjects": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Subject / topic tags (often from Open Library; `;`- or `,`-separated)."
+          },
+          "enrich_source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plugin or catalog that last enriched bibliographic fields."
+          },
+          "enrich_confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "0–1 confidence score for the last enrichment pass."
+          },
+          "enrich_updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "RFC 3339 time of the last enrichment write."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp when the row was inserted."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "RFC 3339 timestamp when the row was last modified."
+          }
+        }
+      },
+      "description": "Current page of title records."
+    },
+    "total": {
+      "type": "integer",
+      "description": "Match count before pagination.",
+      "minimum": 0
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Applied page size.",
+      "minimum": 0
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Applied skip count.",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `400`: A filter is invalid. The body is JSON the schemas do not describe yet.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -502,6 +1374,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -661,6 +1559,308 @@ Status `200`: The title.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Book / library item (one ownership row per store product per account).",
+  "required": [
+    "id",
+    "uuid",
+    "plugin_key",
+    "source",
+    "account_id",
+    "product_id",
+    "marketplace",
+    "title",
+    "acquire_status",
+    "is_finished",
+    "pdf_status",
+    "is_abridged",
+    "content_kind",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Surrogate primary key assigned by the database."
+    },
+    "uuid": {
+      "type": "string",
+      "description": "Stable UUID for this row (API / foreign-key identity)."
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "Provenance-qualified PluginKey that owns the account."
+    },
+    "source": {
+      "type": "string",
+      "description": "Display alias of the owning plugin (`audible`, `libro`, …)."
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Store or operator account id this row belongs to."
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Storefront product id (ASIN, ISBN, UUID, …)."
+    },
+    "asin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Audible ASIN when known (`None` for Libro-only rows without enrichment)."
+    },
+    "isbn": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISBN-13 when known (Libro always; Audible when the API provides it)."
+    },
+    "marketplace": {
+      "type": "string",
+      "description": "Store marketplace / locale code (for example `us`, `uk`)."
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title of the work or edition."
+    },
+    "authors": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Comma-separated or JSON author list from the storefront."
+    },
+    "narrators": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Comma-separated or JSON narrator list when present."
+    },
+    "series": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Series name when the title belongs to a series."
+    },
+    "series_index": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Position within the series (storefront string form)."
+    },
+    "series_asin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Audible series / podcast-parent ASIN (`Series.AudibleSeriesId`)."
+    },
+    "acquire_status": {
+      "type": "string",
+      "description": "Download/acquire pipeline state (`not_acquired`, `queued`, …).",
+      "enum": [
+        "not_acquired",
+        "queued",
+        "downloading",
+        "acquired",
+        "error"
+      ]
+    },
+    "storage_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Object-storage key for the primary audio artifact, if acquired."
+    },
+    "error_message": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Last acquire/convert failure message for operators."
+    },
+    "purchased_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "RFC 3339 purchase time from the storefront, when known."
+    },
+    "tags": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Operator or storefront tags (serialized string)."
+    },
+    "rating_overall": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "float",
+      "description": "Overall user rating from the storefront, if any."
+    },
+    "rating_performance": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "float",
+      "description": "Narration/performance rating from the storefront, if any."
+    },
+    "rating_story": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "float",
+      "description": "Story rating from the storefront, if any."
+    },
+    "is_finished": {
+      "type": "boolean",
+      "description": "Whether the listener marked the title finished (0/1 or bool)."
+    },
+    "pdf_status": {
+      "type": "string",
+      "description": "Companion PDF acquire state (`not_acquired`, `acquired`, …).",
+      "enum": [
+        "not_acquired",
+        "queued",
+        "downloading",
+        "acquired",
+        "error"
+      ]
+    },
+    "pdf_storage_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Object-storage key for the companion PDF, if present."
+    },
+    "publisher": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Publisher name from metadata enrichment or the storefront."
+    },
+    "length_minutes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Runtime in whole minutes when the storefront reports it."
+    },
+    "is_abridged": {
+      "type": "boolean",
+      "description": "Whether the edition is abridged (0/1 or bool)."
+    },
+    "content_kind": {
+      "type": "string",
+      "description": "Title kind: `book`, `episode`, `podcast`, …."
+    },
+    "categories": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Storefront category / genre path list (serialized)."
+    },
+    "subtitle": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional subtitle from bibliographic metadata."
+    },
+    "published_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Publication date string from the storefront or enrichment."
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Blurb / synopsis text (may contain HTML)."
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "BCP-47 or storefront language code when known."
+    },
+    "cover_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "HTTPS URL for cover art when known."
+    },
+    "subjects": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Subject / topic tags (often from Open Library; `;`- or `,`-separated)."
+    },
+    "enrich_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Plugin or catalog that last enriched bibliographic fields."
+    },
+    "enrich_confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double",
+      "description": "0–1 confidence score for the last enrichment pass."
+    },
+    "enrich_updated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "RFC 3339 time of the last enrichment write."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp when the row was inserted."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp when the row was last modified."
+    }
+  }
+}
+```
+
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
@@ -668,6 +1868,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -681,6 +1907,36 @@ Status `404`: No such title.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The library could not be read.
 
 ```json
@@ -688,6 +1944,36 @@ Status `500`: The library could not be read.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 
@@ -766,6 +2052,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such title, or it has no cover.
 
 ```json
@@ -773,6 +2085,36 @@ Status `404`: No such title, or it has no cover.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`])."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "minimum": 0
+    }
+  }
 }
 ```
 

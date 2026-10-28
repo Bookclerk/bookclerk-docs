@@ -83,6 +83,41 @@ Status `200`: The job was accepted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `400`: No listening-capable integration is enabled. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -95,6 +130,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -102,6 +163,32 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -116,6 +203,41 @@ Status `409`: The same job is already pending or running, or no node can run it.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `429`: The job queue is full.
 
 ```json
@@ -124,6 +246,41 @@ Status `429`: The job queue is full.
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -138,6 +295,41 @@ Status `500`: The job could not be queued.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `503`: Job admission is paused.
 
 ```json
@@ -146,6 +338,41 @@ Status `503`: Job admission is paused.
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
 }
 ```
 
@@ -248,6 +475,438 @@ Status `200`: The Discover feed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Full Discover page payload: ordered shelves of personalized candidates.",
+  "required": [
+    "shelves"
+  ],
+  "properties": {
+    "shelves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One horizontal Discover row (series to finish, more by author, …).",
+        "required": [
+          "id",
+          "title",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable identifier for this item."
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title as shown on the storefront or library card."
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional subtitle when the catalog distinguishes it from the title."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One ranked recommendation (typically an unowned storefront title).",
+              "required": [
+                "title",
+                "score",
+                "reasons",
+                "purchase_hints",
+                "from_request"
+              ],
+              "properties": {
+                "work_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Library `works.id` UUID when the recommendation is tied to an owned work."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Display title as shown on the storefront or library card."
+                },
+                "authors": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Comma-separated author names when the storefront provides them."
+                },
+                "narrators": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Comma-separated narrator names when known."
+                },
+                "series": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Series name when the title belongs to a named series."
+                },
+                "series_index": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Position within the series (e.g. `1`, `1.5`) when known."
+                },
+                "asin": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+                },
+                "isbn": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published."
+                },
+                "score": {
+                  "type": "number",
+                  "format": "double",
+                  "description": "Ranking score (higher is better); units are algorithm-specific."
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Short human-readable explanations for why this item was ranked here."
+                },
+                "purchase_hints": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "A purchase / catalog availability hint (optionally priced at view time).",
+                    "required": [
+                      "source",
+                      "product_id"
+                    ],
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                      },
+                      "product_id": {
+                        "type": "string",
+                        "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                      },
+                      "title": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Display title as shown on the storefront or library card."
+                      },
+                      "url": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Absolute HTTPS URL."
+                      },
+                      "price_cents": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "int64",
+                        "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+                      },
+                      "currency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+                      },
+                      "price_label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Display string from the store (`$2.99`, `FREE`, …)."
+                      },
+                      "list_price_cents": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "int64",
+                        "description": "Non-member / list price in integer cents when known."
+                      },
+                      "list_price_label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Human-readable list price from the storefront."
+                      },
+                      "member_price_cents": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "int64",
+                        "description": "Member / credit price in integer cents when known."
+                      },
+                      "member_price_label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Human-readable member price from the storefront."
+                      }
+                    }
+                  },
+                  "description": "Buy / open-in-store links with optional member vs list pricing."
+                },
+                "from_request": {
+                  "type": "boolean",
+                  "description": "True when sourced from an open title request rather than storefront discovery."
+                },
+                "request_uuid": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Wishlist / title-request UUID when this card came from a request."
+                },
+                "candidate_source": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Storefront that proposed this title (`audible`, `libro`, …)."
+                },
+                "candidate_product_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Storefront product id of the edition that produced this card."
+                },
+                "store_editions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One storefront edition of a work (for multi-store purchase links).",
+                    "required": [
+                      "source",
+                      "product_id"
+                    ],
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                      },
+                      "product_id": {
+                        "type": "string",
+                        "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                      }
+                    }
+                  },
+                  "description": "All known storefront editions (for multi-store purchase links)."
+                },
+                "seed_categories": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Categories/subjects copied from the taste seed that produced this hit."
+                },
+                "categories": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Stable shelf-kind tags for prefs (`finish_series`, `author`, `chirp_deals`, …).\nDynamic shelf titles stay in `build_discover_feed`; membership uses these."
+                },
+                "work_key": {
+                  "type": "string",
+                  "description": "Stable bibliographic key for wishlist / merge (`isbn:` / `asin:` / `soft:`…)."
+                },
+                "cover_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Cover art URL when known from a storefront catalog hit or wishlist row."
+                },
+                "subtitle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Optional bibliographic extras from storefront catalog / Audnexus."
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Publisher or storefront synopsis; may be truncated for embeddings."
+                },
+                "publisher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Publisher imprint as reported by the catalog."
+                },
+                "length_minutes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Audiobook runtime in whole minutes when known."
+                },
+                "published_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Publication date string from the catalog (ISO or storefront format)."
+                },
+                "genres": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Candidate genres (not taste-seed `seed_categories`)."
+                },
+                "language": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "BCP-47 / storefront language code (`en`, `de`, …) when known."
+                },
+                "wishers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "Compact wisher shown on the global queue (avatar + label).",
+                    "properties": {
+                      "user_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "int64",
+                        "description": "First-party `users.id` when the portal identity is linked."
+                      },
+                      "identity_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "format": "int64",
+                        "description": "Portal identity that created the wish (dedupe for unlinked identities)."
+                      },
+                      "display_name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Display name, identity label, or `\"Operator\"`."
+                      },
+                      "login_name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Local login name when the first-party user has one."
+                      },
+                      "operator": {
+                        "type": "boolean",
+                        "description": "True when the wish came from the operator token (no portal user)."
+                      },
+                      "has_avatar": {
+                        "type": "boolean",
+                        "description": "True when an uploaded avatar file exists (filled by the daemon)."
+                      },
+                      "avatar_source": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Explicit picture choice when the user has set one."
+                      },
+                      "gravatar_hash": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "SHA-256 hex of the contact email for Gravatar."
+                      },
+                      "picture_url": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "HTTPS picture from the wishing identity, when any."
+                      }
+                    }
+                  },
+                  "description": "Distinct people who have this title on an open wishlist."
+                },
+                "wish_count": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Number of distinct users who wishlisted this title (may exceed `wishers.len()`)."
+                }
+              }
+            },
+            "description": "Ordered collection of child entries for this response."
+          }
+        }
+      },
+      "description": "Ordered horizontal shelves that make up the Discover page."
+    },
+    "shelf_kinds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A shelf kind the operator can ignore (all offered by default).",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable kind id (`finish_series`, `author`, `genre`, `from_store`, …)."
+          },
+          "label": {
+            "type": "string",
+            "description": "Operator-visible label for this account or item."
+          }
+        }
+      },
+      "description": "Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on)."
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -260,6 +919,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `500`: The lookup failed. The body is `text/plain`.
 
 Status `503`: Discover is shutting down; try again.
@@ -269,6 +954,32 @@ Status `503`: Discover is shutting down; try again.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -393,6 +1104,199 @@ Status `200`: Prices and availability.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Priced catalog matches for one title, sorted best-first.",
+  "required": [
+    "hints"
+  ],
+  "properties": {
+    "hints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A purchase / catalog availability hint (optionally priced at view time).",
+        "required": [
+          "source",
+          "product_id"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display title as shown on the storefront or library card."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absolute HTTPS URL."
+          },
+          "price_cents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+          },
+          "price_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display string from the store (`$2.99`, `FREE`, …)."
+          },
+          "list_price_cents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Non-member / list price in integer cents when known."
+          },
+          "list_price_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable list price from the storefront."
+          },
+          "member_price_cents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Member / credit price in integer cents when known."
+          },
+          "member_price_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable member price from the storefront."
+          }
+        }
+      },
+      "description": "Resolved purchase hints for this query."
+    },
+    "best": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Lowest-priced hint (or first catalog hit when no prices resolved).",
+          "required": [
+            "source",
+            "product_id"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+            },
+            "product_id": {
+              "type": "string",
+              "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Display title as shown on the storefront or library card."
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Absolute HTTPS URL."
+            },
+            "price_cents": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+            },
+            "currency": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+            },
+            "price_label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Display string from the store (`$2.99`, `FREE`, …)."
+            },
+            "list_price_cents": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Non-member / list price in integer cents when known."
+            },
+            "list_price_label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Human-readable list price from the storefront."
+            },
+            "member_price_cents": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Member / credit price in integer cents when known."
+            },
+            "member_price_label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Human-readable member price from the storefront."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -405,6 +1309,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -412,6 +1342,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -524,6 +1480,212 @@ Status `200`: One result per query, in order.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Parallel purchase-hint results aligned with the request queries.",
+  "required": [
+    "results"
+  ],
+  "properties": {
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "Priced catalog matches for one title, sorted best-first.",
+        "required": [
+          "hints"
+        ],
+        "properties": {
+          "hints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A purchase / catalog availability hint (optionally priced at view time).",
+              "required": [
+                "source",
+                "product_id"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Display title as shown on the storefront or library card."
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Absolute HTTPS URL."
+                },
+                "price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+                },
+                "currency": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+                },
+                "price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Display string from the store (`$2.99`, `FREE`, …)."
+                },
+                "list_price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Non-member / list price in integer cents when known."
+                },
+                "list_price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Human-readable list price from the storefront."
+                },
+                "member_price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Member / credit price in integer cents when known."
+                },
+                "member_price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Human-readable member price from the storefront."
+                }
+              }
+            },
+            "description": "Resolved purchase hints for this query."
+          },
+          "best": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Lowest-priced hint (or first catalog hit when no prices resolved).",
+                "required": [
+                  "source",
+                  "product_id"
+                ],
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                  },
+                  "product_id": {
+                    "type": "string",
+                    "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Display title as shown on the storefront or library card."
+                  },
+                  "url": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Absolute HTTPS URL."
+                  },
+                  "price_cents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+                  },
+                  "currency": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+                  },
+                  "price_label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Display string from the store (`$2.99`, `FREE`, …)."
+                  },
+                  "list_price_cents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Non-member / list price in integer cents when known."
+                  },
+                  "list_price_label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Human-readable list price from the storefront."
+                  },
+                  "member_price_cents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Member / credit price in integer cents when known."
+                  },
+                  "member_price_label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Human-readable member price from the storefront."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "One purchase-hint response per query, in request order."
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -536,6 +1698,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -543,6 +1731,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -688,6 +1902,318 @@ Status `200`: A page of catalog results.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Paged catalog-search response.",
+  "required": [
+    "items",
+    "page_size",
+    "has_more",
+    "sort"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One autocomplete / results-page hit (possibly spanning multiple storefronts).",
+        "required": [
+          "work_key",
+          "title",
+          "store_editions",
+          "sources"
+        ],
+        "properties": {
+          "work_key": {
+            "type": "string",
+            "description": "Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title as shown on the storefront or library card."
+          },
+          "authors": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Comma-separated author names when the storefront provides them."
+          },
+          "narrators": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Comma-separated narrator names when known."
+          },
+          "series": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Series name when the title belongs to a named series."
+          },
+          "series_index": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Position within the series (e.g. `1`, `1.5`) when known."
+          },
+          "asin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+          },
+          "isbn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published."
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HTTPS URL for cover art when the catalog exposes one."
+          },
+          "store_editions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One storefront edition of a work (for multi-store purchase links).",
+              "required": [
+                "source",
+                "product_id"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                }
+              }
+            },
+            "description": "Per-storefront edition ids that collapsed into this work card."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Storefronts that matched (deduped source ids)."
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional subtitle when the catalog distinguishes it from the title."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Publisher or storefront synopsis; may be truncated for embeddings."
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Publisher imprint as reported by the catalog."
+          },
+          "length_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Audiobook runtime in whole minutes when known."
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Publication date string from the catalog (ISO or storefront format)."
+          },
+          "genres": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Genre labels from the catalog (comma-separated when multiple)."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "BCP-47 / storefront language code (`en`, `de`, …) when known."
+          },
+          "is_abridged": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When `Some(true)`, the edition is marked abridged by the storefront."
+          },
+          "rating_overall": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Aggregate listener rating on the storefront's scale when known."
+          },
+          "rating_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Number of ratings backing [`Self::rating_overall`] when known."
+          },
+          "price_cents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Catalog list/deal price in cents when the storefront provided it."
+          },
+          "purchase_hints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A purchase / catalog availability hint (optionally priced at view time).",
+              "required": [
+                "source",
+                "product_id"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …)."
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "Storefront-native product id (ASIN, ISBN, UUID, …)."
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Display title as shown on the storefront or library card."
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Absolute HTTPS URL."
+                },
+                "price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Primary / best known sell price in minor units (prefer member when dual).\n`0` = free."
+                },
+                "currency": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ISO 4217 currency code for price fields (`USD`, `EUR`, …)."
+                },
+                "price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Display string from the store (`$2.99`, `FREE`, …)."
+                },
+                "list_price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Non-member / list price in integer cents when known."
+                },
+                "list_price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Human-readable list price from the storefront."
+                },
+                "member_price_cents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Member / credit price in integer cents when known."
+                },
+                "member_price_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Human-readable member price from the storefront."
+                }
+              }
+            },
+            "description": "Buy / open-in-store links with optional member vs list pricing."
+          }
+        }
+      },
+      "description": "Ordered collection of child entries for this response."
+    },
+    "page_size": {
+      "type": "integer",
+      "description": "Maximum number of items returned in this page.",
+      "minimum": 0
+    },
+    "has_more": {
+      "type": "boolean",
+      "description": "When true, another page is available via [`Self::next_cursor`]."
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Opaque cursor for the next page; omit or `None` when exhausted."
+    },
+    "sort": {
+      "type": "string",
+      "description": "Sort field applied to the merged result set."
+    },
+    "sort_dir": {
+      "type": "string",
+      "description": "Ascending or descending order for [`Self::sort`]."
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -697,6 +2223,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -846,6 +2398,246 @@ Status `200`: The metadata, or null when nothing matched.
 }
 ```
 
+Schema:
+
+```json
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "Bibliographic fields suitable for an Audible-style detail panel.",
+      "properties": {
+        "asin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display title as shown on the storefront or library card."
+        },
+        "subtitle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional subtitle when the catalog distinguishes it from the title."
+        },
+        "authors": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Comma-separated author names when the storefront provides them."
+        },
+        "narrators": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Comma-separated narrator names when known."
+        },
+        "series": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Series name when the title belongs to a named series."
+        },
+        "series_index": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Position within the series (e.g. `1`, `1.5`) when known."
+        },
+        "isbn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published."
+        },
+        "cover_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "HTTPS URL for cover art when the catalog exposes one."
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Publisher or storefront synopsis; may be truncated for embeddings."
+        },
+        "publisher": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Publisher imprint as reported by the catalog."
+        },
+        "length_minutes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Audiobook runtime in whole minutes when known."
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Publication date string from the catalog (ISO or storefront format)."
+        },
+        "categories": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Genre / subject tags as a single delimited string when known."
+        },
+        "language": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "BCP-47 / storefront language code (`en`, `de`, …) when known."
+        },
+        "is_abridged": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "`Some(true)` abridged / `Some(false)` unabridged when the storefront said so."
+        },
+        "rating_overall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Audible community overall rating (0–5)."
+        },
+        "rating_performance": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Narration / performance sub-score when the storefront splits ratings."
+        },
+        "rating_story": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Story / content sub-score when the storefront splits ratings."
+        },
+        "rating_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Count of star ratings (Audible `num_ratings`)."
+        },
+        "review_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Count of written reviews (Audible `num_reviews`)."
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One Audible customer review for the title detail panel.",
+            "required": [
+              "body"
+            ],
+            "properties": {
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Stable identifier for this item."
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Display title as shown on the storefront or library card."
+              },
+              "body": {
+                "type": "string",
+                "description": "Full review text from the storefront."
+              },
+              "author_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Display name of the review author on the storefront."
+              },
+              "overall_rating": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Overall star rating for this review when present."
+              },
+              "performance_rating": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Narration sub-rating for this review when present."
+              },
+              "story_rating": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Story sub-rating for this review when present."
+              },
+              "submitted_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "When the review was submitted (storefront timestamp string)."
+              }
+            }
+          },
+          "description": "Deprecated: reviews load via `/api/discover/title-reviews`. Kept empty\nfor older clients; prefer the paginated reviews endpoint."
+        }
+      }
+    },
+    {
+      "type": "null"
+    }
+  ]
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -858,6 +2650,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -865,6 +2683,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -984,6 +2828,259 @@ Status `200`: One result per query, in order.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Title-metadata results aligned with the request; failed items are `null`.",
+  "required": [
+    "results"
+  ],
+  "properties": {
+    "results": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Bibliographic fields suitable for an Audible-style detail panel.",
+            "properties": {
+              "asin": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Display title as shown on the storefront or library card."
+              },
+              "subtitle": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional subtitle when the catalog distinguishes it from the title."
+              },
+              "authors": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Comma-separated author names when the storefront provides them."
+              },
+              "narrators": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Comma-separated narrator names when known."
+              },
+              "series": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Series name when the title belongs to a named series."
+              },
+              "series_index": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Position within the series (e.g. `1`, `1.5`) when known."
+              },
+              "isbn": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published."
+              },
+              "cover_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "HTTPS URL for cover art when the catalog exposes one."
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Publisher or storefront synopsis; may be truncated for embeddings."
+              },
+              "publisher": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Publisher imprint as reported by the catalog."
+              },
+              "length_minutes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Audiobook runtime in whole minutes when known."
+              },
+              "published_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Publication date string from the catalog (ISO or storefront format)."
+              },
+              "categories": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Genre / subject tags as a single delimited string when known."
+              },
+              "language": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "BCP-47 / storefront language code (`en`, `de`, …) when known."
+              },
+              "is_abridged": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "`Some(true)` abridged / `Some(false)` unabridged when the storefront said so."
+              },
+              "rating_overall": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double",
+                "description": "Audible community overall rating (0–5)."
+              },
+              "rating_performance": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double",
+                "description": "Narration / performance sub-score when the storefront splits ratings."
+              },
+              "rating_story": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double",
+                "description": "Story / content sub-score when the storefront splits ratings."
+              },
+              "rating_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Count of star ratings (Audible `num_ratings`)."
+              },
+              "review_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Count of written reviews (Audible `num_reviews`)."
+              },
+              "reviews": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "One Audible customer review for the title detail panel.",
+                  "required": [
+                    "body"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Stable identifier for this item."
+                    },
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Display title as shown on the storefront or library card."
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Full review text from the storefront."
+                    },
+                    "author_name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Display name of the review author on the storefront."
+                    },
+                    "overall_rating": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "format": "int64",
+                      "description": "Overall star rating for this review when present."
+                    },
+                    "performance_rating": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "format": "int64",
+                      "description": "Narration sub-rating for this review when present."
+                    },
+                    "story_rating": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "format": "int64",
+                      "description": "Story sub-rating for this review when present."
+                    },
+                    "submitted_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "When the review was submitted (storefront timestamp string)."
+                    }
+                  }
+                },
+                "description": "Deprecated: reviews load via `/api/discover/title-reviews`. Kept empty\nfor older clients; prefer the paginated reviews endpoint."
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "description": "One optional metadata payload per query; enrichment errors become `None`."
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -996,6 +3093,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -1003,6 +3126,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -1118,6 +3267,118 @@ Status `200`: A page of reviews.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "One page of title reviews for infinite scroll.",
+  "required": [
+    "asin",
+    "page",
+    "page_size",
+    "has_more",
+    "sort_by",
+    "reviews"
+  ],
+  "properties": {
+    "asin": {
+      "type": "string",
+      "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+    },
+    "page": {
+      "type": "integer",
+      "format": "int32",
+      "description": "1-based page index for this reviews / list request.",
+      "minimum": 0
+    },
+    "page_size": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Maximum number of items returned in this page.",
+      "minimum": 0
+    },
+    "has_more": {
+      "type": "boolean",
+      "description": "When true, another page is available by incrementing [`Self::page`]."
+    },
+    "sort_by": {
+      "type": "string",
+      "description": "Remote sort key for reviews (`most_helpful`, `most_recent`, …)."
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One Audible customer review for the title detail panel.",
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable identifier for this item."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display title as shown on the storefront or library card."
+          },
+          "body": {
+            "type": "string",
+            "description": "Full review text from the storefront."
+          },
+          "author_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name of the review author on the storefront."
+          },
+          "overall_rating": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Overall star rating for this review when present."
+          },
+          "performance_rating": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Narration sub-rating for this review when present."
+          },
+          "story_rating": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Story sub-rating for this review when present."
+          },
+          "submitted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the review was submitted (storefront timestamp string)."
+          }
+        }
+      },
+      "description": "Review rows on this page."
+    }
+  }
+}
+```
+
 Status `400`: The query is malformed or too large. The body is `text/plain`.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
@@ -1130,6 +3391,32 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
@@ -1137,6 +3424,32 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 

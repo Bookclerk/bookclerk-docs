@@ -93,6 +93,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The link is unknown, used or expired.
 
 ```json
@@ -100,6 +126,32 @@ Status `401`: The link is unknown, used or expired.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -113,6 +165,32 @@ Status `403`: The transport is not allowed. A write sent with a session cookie b
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: The node API is not mounted.
 
 ```json
@@ -120,6 +198,32 @@ Status `404`: The node API is not mounted.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -181,6 +285,32 @@ Status `403`: The transport is not allowed.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: The node API is not mounted.
 
 ```json
@@ -188,6 +318,32 @@ Status `404`: The node API is not mounted.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -287,6 +443,32 @@ Status `400`: The body is invalid.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `401`: The code or verifier is wrong.
 
 ```json
@@ -294,6 +476,32 @@ Status `401`: The code or verifier is wrong.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -307,6 +515,32 @@ Status `403`: The transport is not allowed. A write sent with a session cookie b
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: The node API is not mounted.
 
 ```json
@@ -317,6 +551,32 @@ Status `404`: The node API is not mounted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `503`: The enrollment could not be recorded; try again (`enrollment_unavailable`).
 
 ```json
@@ -324,6 +584,32 @@ Status `503`: The enrollment could not be recorded; try again (`enrollment_unava
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -389,6 +675,32 @@ Status `400`: The request does not offer the node subprotocol (`subprotocol_requ
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `403`: The transport is not allowed.
 
 ```json
@@ -396,6 +708,32 @@ Status `403`: The transport is not allowed.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -409,6 +747,32 @@ Status `404`: The node API is not mounted.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `503`: Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds.
 
 ```json
@@ -416,6 +780,32 @@ Status `503`: Too many handshakes are in flight (`handshakes_busy`); retry after
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -493,6 +883,32 @@ Status `401`: The node signature is missing or wrong.
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such archive, or the node API is not mounted.
 
 ```json
@@ -500,6 +916,32 @@ Status `404`: No such archive, or the node API is not mounted.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -600,6 +1042,35 @@ Status `200`: The file was stored (`received`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `401`: The upload token is missing or wrong (`unauthorized`).
 
 ```json
@@ -607,6 +1078,35 @@ Status `401`: The upload token is missing or wrong (`unauthorized`).
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 
@@ -620,6 +1120,32 @@ Status `403`: The connection's transport is refused (`transport_insecure`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such upload, or the node API is not mounted.
 
 ```json
@@ -627,6 +1153,32 @@ Status `404`: No such upload, or the node API is not mounted.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -640,6 +1192,35 @@ Status `409`: The upload lost its fence to a newer one (`lost`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `421`: This node is not the upload's receiving node (`misdirected`).
 
 ```json
@@ -647,6 +1228,35 @@ Status `421`: This node is not the upload's receiving node (`misdirected`).
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 
@@ -660,6 +1270,35 @@ Status `422`: The file was refused (`refused`): not in the upload (`unknown_file
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `503`: Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`).
 
 ```json
@@ -667,6 +1306,35 @@ Status `503`: Storage or the upload record is unavailable, or the file lock time
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 
@@ -765,6 +1433,35 @@ Status `200`: The upload was committed to the destinations (`committed`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `401`: The upload token is missing or wrong (`unauthorized`).
 
 ```json
@@ -772,6 +1469,35 @@ Status `401`: The upload token is missing or wrong (`unauthorized`).
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 
@@ -785,6 +1511,32 @@ Status `403`: The connection's transport is refused (`transport_insecure`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `404`: No such upload, or the node API is not mounted.
 
 ```json
@@ -792,6 +1544,32 @@ Status `404`: No such upload, or the node API is not mounted.
   "error": "string",
   "message": "string",
   "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
 }
 ```
 
@@ -805,6 +1583,35 @@ Status `409`: The upload lost its fence to a newer one (`lost`).
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `421`: This node is not the upload's receiving node (`misdirected`).
 
 ```json
@@ -812,6 +1619,35 @@ Status `421`: This node is not the upload's receiving node (`misdirected`).
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 
@@ -825,6 +1661,35 @@ Status `422`: The commit was refused (`refused`): an invalid body, missing files
 }
 ```
 
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
+}
+```
+
 Status `503`: Storage or the upload record is unavailable; retry (`unavailable`).
 
 ```json
@@ -832,6 +1697,35 @@ Status `503`: Storage or the upload record is unavailable; retry (`unavailable`)
   "status": "string",
   "reason": "string",
   "job_completed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Answer of the upload endpoint (every status carries one).",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why, for `refused`."
+    },
+    "job_completed": {
+      "type": "boolean",
+      "description": "For `committed`: the job is finished."
+    }
+  }
 }
 ```
 

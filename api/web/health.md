@@ -53,3 +53,21 @@ Status `200`: The daemon is serving HTTP.
   "status": "string"
 }
 ```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Liveness payload for unauthenticated `GET /health`.",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Always `ok` when the process can serve HTTP."
+    }
+  }
+}
+```
