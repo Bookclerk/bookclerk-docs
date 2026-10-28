@@ -16,19 +16,15 @@ Validates the operator token (throttled, constant-time) and issues a hashed sess
 
 `application/json`: [`LoginRequest`](schemas.md#loginrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `token` | string | yes | Operator token from the client; compared in constant time and never persisted. |
+- `token` *string*, **required** — Operator token from the client; compared in constant time and never persisted.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in; the response sets the operator session cookie. | any JSON (`application/json`) |
-| 401 | The token is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | An Owner exists, so operator sign-in is off (`operator_login_disabled`); sign in as a user. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in; the response sets the operator session cookie. Body: any JSON (`application/json`)
+- `401` — The token is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — An Owner exists, so operator sign-in is off (`operator_login_disabled`); sign in as a user. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -125,10 +121,8 @@ Returns 500 when the owner-count query fails.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The sign-in methods this library offers. | any JSON (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The sign-in methods this library offers. Body: any JSON (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -178,14 +172,12 @@ does not match, or 429 when this client is locked out.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | A single-use tray ticket. | any JSON (`application/json`) |
-| 204 | Operator authentication is off, so no ticket is needed. |  |
-| 401 | The Bearer token is missing or wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The request did not come straight from loopback. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many failed attempts from this client; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — A single-use tray ticket. Body: any JSON (`application/json`)
+- `204` — Operator authentication is off, so no ticket is needed. No body.
+- `401` — The Bearer token is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The request did not come straight from loopback. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -286,17 +278,13 @@ not match a still-valid ticket.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `code` | query | string | no | Presented handoff code; missing or empty fails closed without consuming the slot. |
+- `code` (query) *string* — Presented handoff code; missing or empty fails closed without consuming the slot.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 307 | Redirects into the app with a localhost operator session. |  |
-| 403 | The ticket is missing, used or not from loopback. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `307` — Redirects into the app with a localhost operator session. No body.
+- `403` — The ticket is missing, used or not from loopback. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -351,11 +339,9 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Who the caller is (operator, portal user, or impersonation). | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Who the caller is (operator, portal user, or impersonation). Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -424,20 +410,16 @@ Owner portal session + password re-auth → short-lived elevated operator cookie
 
 `application/json`: [`ElevateRequest`](schemas.md#elevaterequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `password` | string | yes | Owner account password (re-authentication). |
+- `password` *string*, **required** — Owner account password (re-authentication).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Elevated; the response sets a short-lived operator cookie. | any JSON (`application/json`) |
-| 400 | Operator auth is off, or the password is empty. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The caller is already an operator. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Elevated; the response sets a short-lived operator cookie. Body: any JSON (`application/json`)
+- `400` — Operator auth is off, or the password is empty. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The caller is already an operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -544,13 +526,11 @@ End elevation by revoking the elevated operator session cookie.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Elevation ended. | any JSON (`application/json`) |
-| 400 | The session is not an elevated one. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Elevation ended. Body: any JSON (`application/json`)
+- `400` — The session is not an elevated one. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -647,23 +627,19 @@ Operator-only bootstrap of the first Owner when none exist.
 
 `application/json`: [`BootstrapRequest`](schemas.md#bootstraprequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `display_name` | string or null | no | Optional display name; falls back to login or email. |
-| `login_name` | string or null | no | Optional local login name. |
-| `email` | string or null | no | Optional email. |
-| `password` | string or null | no | Optional password; hashed before persist and never stored in plaintext. |
+- `display_name` *string or null* — Optional display name; falls back to login or email.
+- `login_name` *string or null* — Optional local login name.
+- `email` *string or null* — Optional email.
+- `password` *string or null* — Optional password; hashed before persist and never stored in plaintext.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The first Owner was created. | any JSON (`application/json`) |
-| 400 | The email is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | An Owner already exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The first Owner was created. Body: any JSON (`application/json`)
+- `400` — The email is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — An Owner already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -772,22 +748,18 @@ Set password for self (portal) or target user (operator/admin); revokes sessions
 
 `application/json`: [`SetPasswordRequest`](schemas.md#setpasswordrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `password` | string | yes | New password; hashed before persist. Empty is rejected. |
-| `current_password` | string or null | no | Required when the caller already has a password (not first-time invite setup). |
-| `user_id` | integer (int64) or null (int64) | no | Target `users.id` when a provisioner sets another user's password. |
+- `password` *string*, **required** — New password; hashed before persist. Empty is rejected.
+- `current_password` *string or null* — Required when the caller already has a password (not first-time invite setup).
+- `user_id` *integer (int64) or null* — Target `users.id` when a provisioner sets another user's password.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The password was set and other sessions revoked. | any JSON (`application/json`) |
-| 400 | The password is too weak or the request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The password was set and other sessions revoked. Body: any JSON (`application/json`)
+- `400` — The password is too weak or the request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -896,20 +868,16 @@ Local password login → portal session cookie, or a TOTP challenge when enabled
 
 `application/json`: [`PasswordLoginRequest`](schemas.md#passwordloginrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `login` | string | yes | Login name or email. |
-| `password` | string | yes | Password verified against the stored hash; mismatch fails closed and counts toward lockout. |
+- `login` *string*, **required** — Login name or email.
+- `password` *string*, **required** — Password verified against the stored hash; mismatch fails closed and counts toward lockout.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in (portal session cookie), or a TOTP challenge. | any JSON (`application/json`) |
-| 401 | The login or password is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The account is disabled (`account_disabled`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in (portal session cookie), or a TOTP challenge. Body: any JSON (`application/json`)
+- `401` — The login or password is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The account is disabled (`account_disabled`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1004,20 +972,16 @@ Operator (or elevated) session starts impersonating a User.
 
 `application/json`: [`ImpersonateRequest`](schemas.md#impersonaterequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `user_id` | integer (int64) | yes | Target `users.id` to impersonate. |
+- `user_id` *integer (int64)*, **required** — Target `users.id` to impersonate.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The session now acts as the user. | any JSON (`application/json`) |
-| 400 | Operator auth is off. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The session now acts as the user. Body: any JSON (`application/json`)
+- `400` — Operator auth is off. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1124,12 +1088,10 @@ Clear impersonation on the current operator session.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Impersonation ended. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Impersonation ended. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1216,28 +1178,24 @@ shows the problem and never redirects).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `client_id` | query | string | yes | Must be [`BRANCH_CLIENT_ID`]. |
-| `redirect_uri` | query | string | yes | Where the code goes: loopback or https. |
-| `response_type` | query | string | yes | Must be `code`. |
-| `scope` | query | string | no | Must be [`BRANCH_SCOPE`]. |
-| `state` | query | string | no | Echoed on the redirect. |
-| `code_challenge` | query | string | yes | PKCE S256 challenge. |
-| `code_challenge_method` | query | string | no | Must be `S256`. |
-| `branch_name` | query | string | no | The name the branch asks to join as. |
-| `clerk_offer` | query | string | no | `1` when the joining install offers to join as a clerk ([`bookclerk_node_proto::CLERK_OFFER_PARAM`]). |
+- `client_id` (query) *string*, **required** — Must be [`BRANCH_CLIENT_ID`].
+- `redirect_uri` (query) *string*, **required** — Where the code goes: loopback or https.
+- `response_type` (query) *string*, **required** — Must be `code`.
+- `scope` (query) *string* — Must be [`BRANCH_SCOPE`].
+- `state` (query) *string* — Echoed on the redirect.
+- `code_challenge` (query) *string*, **required** — PKCE S256 challenge.
+- `code_challenge_method` (query) *string* — Must be `S256`.
+- `branch_name` (query) *string* — The name the branch asks to join as.
+- `clerk_offer` (query) *string* — `1` when the joining install offers to join as a clerk ([`bookclerk_node_proto::CLERK_OFFER_PARAM`]).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | What the consent page shows. | any JSON (`application/json`) |
-| 400 | The authorize parameters are invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller is not a library user (`user_required`; an operator session counts only while impersonating) or the account is inactive. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | The library could not be read; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — What the consent page shows. Body: any JSON (`application/json`)
+- `400` — The authorize parameters are invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not a library user (`user_required`; an operator session counts only while impersonating) or the account is inactive. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — The library could not be read; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1341,24 +1299,20 @@ enrollment on, and a connection the transport policy allows.
 
 `application/json`: [`BranchConsentBody`](schemas.md#branchconsentbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `approve` | boolean | yes | True to let the branch join; false to deny. |
-| `connection` | string or null | no | `branch` (default) or `clerk`. |
-| `step_up` | [`StepUp`](schemas.md#stepup) or null | no | The fresh second factor a clerk needs. |
+- `approve` *boolean*, **required** — True to let the branch join; false to deny.
+- `connection` *string or null* — `branch` (default) or `clerk`.
+- `step_up` *[`StepUp`](schemas.md#stepup) or null* — The fresh second factor a clerk needs.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | `{redirect}` back to the branch. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller is not an active library user, or a clerk join lacks the Owner role or a passed step-up (`step_up_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | This library's database cannot be shared with a clerk (`database_not_shareable`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many wrong step-up codes; wait a few minutes (`step_up_locked`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | The library could not be read; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — `{redirect}` back to the branch. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not an active library user, or a clerk join lacks the Owner role or a passed step-up (`step_up_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — This library's database cannot be shared with a clerk (`database_not_shareable`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many wrong step-up codes; wait a few minutes (`step_up_locked`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — The library could not be read; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1492,14 +1446,12 @@ options with a `challenge_id` to send back in the consent's `step_up`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Passkey request options. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller is not an active library user, or not an Owner (`owner_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The account has no passkey (`no_passkey`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | The library could not be read, or the passkey check could not start. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Passkey request options. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not an active library user, or not an Owner (`owner_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The account has no passkey (`no_passkey`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — The library could not be read, or the passkey check could not start. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1604,12 +1556,10 @@ Revokes hashed operator and portal sessions and clears both cookies.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed out; both session cookies are cleared. | any JSON (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed out; both session cookies are cleared. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1689,13 +1639,11 @@ List sessions for the current principal only (not every operator session).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The caller's sessions. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The user has no sign-in identity. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The caller's sessions. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The user has no sign-in identity. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1783,19 +1731,15 @@ portal users may only revoke their own.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | integer (int64) | yes | Session id. |
+- `id` (path) *integer (int64)*, **required** — Session id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The session was revoked. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such session. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The session was revoked. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such session. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1887,23 +1831,19 @@ Updates the caller's display name and/or email.
 
 `application/json`: [`PatchProfileRequest`](schemas.md#patchprofilerequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `display_name` | string or null | no | Replacement display name; empty or whitespace clears the field. |
-| `email` | string or null | no | Replacement email; empty or whitespace clears the field. |
-| `avatar_source` | string or null | no | Picture choice (`auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`). |
+- `display_name` *string or null* — Replacement display name; empty or whitespace clears the field.
+- `email` *string or null* — Replacement email; empty or whitespace clears the field.
+- `avatar_source` *string or null* — Picture choice (`auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The profile after the change. | any JSON (`application/json`) |
-| 400 | A value is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The caller's user no longer exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The email is used by another account (`email_in_use`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The profile after the change. Body: any JSON (`application/json`)
+- `400` — A value is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The caller's user no longer exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The email is used by another account (`email_in_use`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2024,14 +1964,12 @@ Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The avatar was stored. | any JSON (`application/json`) |
-| 400 | The image is not JPEG, PNG or WebP. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 413 | The image is too large. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The avatar was stored. Body: any JSON (`application/json`)
+- `400` — The image is not JPEG, PNG or WebP. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `413` — The image is too large. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2141,12 +2079,10 @@ Removes the caller's stored avatar, if any.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The avatar was removed. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The avatar was removed. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2226,10 +2162,8 @@ Lists enabled IdPs for the login picker (id and display name only).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Enabled identity providers (id and name). | any JSON (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Enabled identity providers (id and name). Body: any JSON (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2268,12 +2202,10 @@ Lists OIDC portal identities for the cookie-authenticated caller.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The caller's linked identities. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The caller's linked identities. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2352,18 +2284,14 @@ Starts an OIDC login authorize redirect, honoring login throttle.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `provider` | query | string | no | IdP id to start; omitted when the caller has only one enabled provider. |
+- `provider` (query) *string* — IdP id to start; omitted when the caller has only one enabled provider.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects to the identity provider. |  |
-| 400 | The provider is unknown or disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `302` — Redirects to the identity provider. No body.
+- `400` — The provider is unknown or disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2428,20 +2356,16 @@ Starts an Owner re-auth elevate flow against a linked IdP (`prompt=login`).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `provider` | query | string | no | IdP id to start; omitted when the caller has only one enabled provider. |
+- `provider` (query) *string* — IdP id to start; omitted when the caller has only one enabled provider.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects to the identity provider for re-authentication. |  |
-| 400 | The provider is unknown or disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many attempts; retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `302` — Redirects to the identity provider for re-authentication. No body.
+- `400` — The provider is unknown or disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2540,20 +2464,16 @@ GET callback (most IdPs); finishes the code exchange.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `code` | query | string | no | Authorization code to exchange; required unless `error` is set. |
-| `state` | query | string | no | CSRF `state` that must match the `bookclerk_oidc_tx` cookie. |
-| `error` | query | string | no | IdP-reported deny/error; redirects the browser to `/?sso_error=denied`. |
-| `user` | query | string | no | Apple first-login name/email JSON (form_post only). |
+- `code` (query) *string* — Authorization code to exchange; required unless `error` is set.
+- `state` (query) *string* — CSRF `state` that must match the `bookclerk_oidc_tx` cookie.
+- `error` (query) *string* — IdP-reported deny/error; redirects the browser to `/?sso_error=denied`.
+- `user` (query) *string* — Apple first-login name/email JSON (form_post only).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects into the app, signed in. |  |
-| 400 | The state or code is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `302` — Redirects into the app, signed in. No body.
+- `400` — The state or code is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2610,20 +2530,16 @@ POST callback (Apple `form_post`); finishes the code exchange.
 
 `application/x-www-form-urlencoded`: [`CallbackParams`](schemas.md#callbackparams)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | string or null | no | Authorization code to exchange; required unless `error` is set. |
-| `state` | string or null | no | CSRF `state` that must match the `bookclerk_oidc_tx` cookie. |
-| `error` | string or null | no | IdP-reported deny/error; redirects the browser to `/?sso_error=denied`. |
-| `user` | string or null | no | Apple first-login name/email JSON (form_post only). |
+- `code` *string or null* — Authorization code to exchange; required unless `error` is set.
+- `state` *string or null* — CSRF `state` that must match the `bookclerk_oidc_tx` cookie.
+- `error` *string or null* — IdP-reported deny/error; redirects the browser to `/?sso_error=denied`.
+- `user` *string or null* — Apple first-login name/email JSON (form_post only).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects into the app, signed in. |  |
-| 400 | The state or code is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `302` — Redirects into the app, signed in. No body.
+- `400` — The state or code is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2686,12 +2602,22 @@ Operator GET: broker settings plus secret-presence flags (never plaintext).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Broker settings, with secrets as presence flags. | [`OidcConfigResponse`](schemas.md#oidcconfigresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Broker settings, with secrets as presence flags. Body: [`OidcConfigResponse`](schemas.md#oidcconfigresponse) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether the broker accepts new authorize starts.
+  - `allowed_email_domains` *array of string*, **required** — Broker-wide email domain allowlist applied before per-provider rules.
+  - `public_origin` *string or null* — Configured `integrations.public_origin` (issuer / callback / invite base).
+  - `issuer_url` *string*, **required** — Effective issuer origin (`public_origin`, else this request, else localhost).
+  - `detected_origin` *string*, **required** — Origin detected from this request (loopback IPs rewritten to `localhost`).
+  - `discovery_url` *string*, **required** — Absolute OpenID discovery URL (`/.well-known/openid-configuration`).
+  - `authorization_endpoint` *string*, **required** — Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP.
+  - `token_endpoint` *string*, **required** — Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP.
+  - `userinfo_endpoint` *string*, **required** — Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP.
+  - `revocation_endpoint` *string*, **required** — Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP.
+  - `callback_url` *string*, **required** — Absolute `/api/auth/oidc/callback` derived from the effective issuer origin.
+  - `providers` *array of [`OidcProviderView`](schemas.md#oidcproviderview)*, **required** — Configured IdPs with presence flags instead of secret material.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2821,24 +2747,32 @@ Operator PUT: writes next-generation sealed secrets, then publishes config.toml.
 
 `application/json`: [`OidcConfigPut`](schemas.md#oidcconfigput)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `enabled` | boolean | yes | Whether the broker should accept authorize starts after this write. |
-| `allowed_email_domains` | array of string | no | Replacement broker-wide email domain allowlist. |
-| `providers` | array of [`OidcProviderPut`](schemas.md#oidcproviderput) | no | Full replacement list of IdPs (omitted secrets keep the previous generation). |
-| `public_origin` | string or null | no | `integrations.public_origin`. Omit to leave unchanged; empty string clears. |
-| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+- `enabled` *boolean*, **required** — Whether the broker should accept authorize starts after this write.
+- `allowed_email_domains` *array of string* — Replacement broker-wide email domain allowlist.
+- `providers` *array of [`OidcProviderPut`](schemas.md#oidcproviderput)* — Full replacement list of IdPs (omitted secrets keep the previous generation).
+- `public_origin` *string or null* — `integrations.public_origin`. Omit to leave unchanged; empty string clears.
+- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The settings after the change. | [`OidcConfigResponse`](schemas.md#oidcconfigresponse) (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The settings after the change. Body: [`OidcConfigResponse`](schemas.md#oidcconfigresponse) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether the broker accepts new authorize starts.
+  - `allowed_email_domains` *array of string*, **required** — Broker-wide email domain allowlist applied before per-provider rules.
+  - `public_origin` *string or null* — Configured `integrations.public_origin` (issuer / callback / invite base).
+  - `issuer_url` *string*, **required** — Effective issuer origin (`public_origin`, else this request, else localhost).
+  - `detected_origin` *string*, **required** — Origin detected from this request (loopback IPs rewritten to `localhost`).
+  - `discovery_url` *string*, **required** — Absolute OpenID discovery URL (`/.well-known/openid-configuration`).
+  - `authorization_endpoint` *string*, **required** — Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP.
+  - `token_endpoint` *string*, **required** — Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP.
+  - `userinfo_endpoint` *string*, **required** — Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP.
+  - `revocation_endpoint` *string*, **required** — Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP.
+  - `callback_url` *string*, **required** — Absolute `/api/auth/oidc/callback` derived from the effective issuer origin.
+  - `providers` *array of [`OidcProviderView`](schemas.md#oidcproviderview)*, **required** — Configured IdPs with presence flags instead of secret material.
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2996,12 +2930,10 @@ Lists this user's stored passkeys as `{ id, credential_id }` rows.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The caller's passkeys. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The caller's passkeys. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3082,18 +3014,14 @@ Starts passkey registration (skips reauth only for first local-only setup).
 
 `application/json`: [`PasskeyReauthBody`](schemas.md#passkeyreauthbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+- `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | WebAuthn creation options. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — WebAuthn creation options. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3187,22 +3115,18 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
-| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
-| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
+- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The passkey was stored. | any JSON (`application/json`) |
-| 400 | The attestation is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The passkey is already registered. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The passkey was stored. Body: any JSON (`application/json`)
+- `400` — The attestation is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The passkey is already registered. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3314,27 +3238,21 @@ Deletes one passkey after recent reauth; 404 when the id is not this user's.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | integer (int64) | yes | Passkey id. |
+- `id` (path) *integer (int64)*, **required** — Passkey id.
 
 ### Request body
 
 `application/json`: [`PasskeyReauthBody`](schemas.md#passkeyreauthbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+- `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The passkey was deleted. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such passkey for this user. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The passkey was deleted. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such passkey for this user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3438,21 +3356,17 @@ Rate-limits and starts passkey login; records a failure on any error.
 
 `application/json`: [`LoginBegin`](schemas.md#loginbegin)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `login` | string | yes | Login name or email looked up before issuing an authentication challenge. |
+- `login` *string*, **required** — Login name or email looked up before issuing an authentication challenge.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | WebAuthn request options. | any JSON (`application/json`) |
-| 400 | The request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | No user has this login name or email. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The user has no usable passkeys. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many attempts; try later. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — WebAuthn request options. Body: any JSON (`application/json`)
+- `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — No user has this login name or email. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The user has no usable passkeys. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3567,21 +3481,17 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
-| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
-| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
+- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in; the response sets the portal session cookie. | any JSON (`application/json`) |
-| 400 | The challenge is unknown or expired, or the credential is malformed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The assertion is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
+- `400` — The challenge is unknown or expired, or the credential is malformed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The assertion is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3674,13 +3584,11 @@ Starts Owner elevation; 403 unless the signed-in user is an Owner with passkeys.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | WebAuthn request options. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The caller has no passkeys. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — WebAuthn request options. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The caller has no passkeys. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3777,21 +3685,17 @@ Completes Owner elevation only when the assertion is user-verified.
 
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `challenge_id` | string | yes | Server-issued challenge id (consumed once; 5-minute TTL). |
-| `credential` | any JSON | yes | Browser `PublicKeyCredential` JSON for `finish_*`. |
-| `name` | string or null | no | Label stored with the credential (`Passkey` when empty). |
+- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
+- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Elevated; the response sets a short-lived operator cookie. | any JSON (`application/json`) |
-| 400 | The challenge is unknown or expired, or the credential is malformed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Elevated; the response sets a short-lived operator cookie. Body: any JSON (`application/json`)
+- `400` — The challenge is unknown or expired, or the credential is malformed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3895,19 +3799,15 @@ Completes password+TOTP login and issues a portal session cookie.
 
 `application/json`: [`LoginVerify`](schemas.md#loginverify)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `challenge_id` | string | yes | Server-issued challenge id (5-minute TTL, single use). |
-| `code` | string | yes | Six-digit authenticator code. |
+- `challenge_id` *string*, **required** — Server-issued challenge id (5-minute TTL, single use).
+- `code` *string*, **required** — Six-digit authenticator code.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in; the response sets the portal session cookie. | any JSON (`application/json`) |
-| 401 | The challenge or code is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 429 | Too many attempts; try later. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
+- `401` — The challenge or code is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3992,19 +3892,15 @@ Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG.
 
 `application/json`: [`TotpReauthBody`](schemas.md#totpreauthbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+- `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | A pending secret, its otpauth URL and a QR code SVG. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | TOTP is already on. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — A pending secret, its otpauth URL and a QR code SVG. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — TOTP is already on. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -4108,20 +4004,16 @@ Confirms the pending secret with a valid code and sets `users.totp_enabled`.
 
 `application/json`: [`EnrollFinish`](schemas.md#enrollfinish)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | string | yes | Six-digit code from the authenticator app. |
+- `code` *string*, **required** — Six-digit code from the authenticator app.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | TOTP is on. | any JSON (`application/json`) |
-| 400 | No enrollment is pending; start one first. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the code is wrong (`invalid_code`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | TOTP is already on. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — TOTP is on. Body: any JSON (`application/json`)
+- `400` — No enrollment is pending; start one first. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the code is wrong (`invalid_code`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — TOTP is already on. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -4233,12 +4125,10 @@ GET `/api/auth/totp` — whether TOTP is confirmed for this user.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Whether TOTP is on for the caller. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Whether TOTP is on for the caller. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -4319,18 +4209,14 @@ Disables TOTP after recent reauth and deletes sealed secrets.
 
 `application/json`: [`TotpReauthBody`](schemas.md#totpreauthbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `current_password` | string or null | no | Password used for recent-reauth when the user already has a credential. |
+- `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | TOTP is off. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — TOTP is off. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -4422,12 +4308,10 @@ Current MFA policy (`require_second_factor`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Whether a second factor is required. | any JSON (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Whether a second factor is required. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -4506,21 +4390,17 @@ Persists `daemon.auth.require_second_factor` to `config.toml`.
 
 `application/json`: [`MfaPolicyPut`](schemas.md#mfapolicyput)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `require_second_factor` | boolean | yes | When true, password login requires TOTP or the user must use a passkey. |
-| `current_password` | string or null | no | Current password for Owner step-up (operators omit this). |
+- `require_second_factor` *boolean*, **required** — When true, password login requires TOTP or the user must use a passkey.
+- `current_password` *string or null* — Current password for Owner step-up (operators omit this).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The policy after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The policy after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

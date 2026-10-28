@@ -14,12 +14,10 @@ Back to the [web API reference](README.md).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 101 | Switching to the live-updates WebSocket. |  |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The Origin is not allowed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `101` — Switching to the live-updates WebSocket. No body.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The Origin is not allowed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

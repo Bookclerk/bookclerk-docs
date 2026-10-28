@@ -14,17 +14,19 @@ Enqueues a listening-progress sync; 400 when no capable integrations are loaded.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The job was accepted. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 400 | No listening-capable integration is enabled. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The same job is already pending or running, or no node can run it. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 429 | The job queue is full. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 500 | The job could not be queued. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 503 | Job admission is paused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The job was accepted. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `400` — No listening-capable integration is enabled. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The same job is already pending or running, or no node can run it. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `429` — The job queue is full. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `500` — The job could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `503` — Job admission is paused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -159,24 +161,22 @@ Builds the Discover recommendation feed, skipping embed work on an empty library
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `limit` | query | integer | no | Maximum recommendations to return. |
-| `user` | query | string | no | Optional external user id used to bias the feed. |
-| `no_purchase_hints` | query | boolean | no | When true, skip storefront price/availability enrichment. |
-| `no_listening` | query | boolean | no | When true, ignore listening_progress (owned-library taste only). |
-| `listening_providers` | query | string | no | Comma-separated integration ids; empty = all listening providers. |
+- `limit` (query) *integer* — Maximum recommendations to return.
+- `user` (query) *string* — Optional external user id used to bias the feed.
+- `no_purchase_hints` (query) *boolean* — When true, skip storefront price/availability enrichment.
+- `no_listening` (query) *boolean* — When true, ignore listening_progress (owned-library taste only).
+- `listening_providers` (query) *string* — Comma-separated integration ids; empty = all listening providers.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The Discover feed. | [`DiscoverFeed`](schemas.md#discoverfeed) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 503 | Discover is shutting down; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The Discover feed. Body: [`DiscoverFeed`](schemas.md#discoverfeed) (`application/json`)
+  - `shelves` *array of [`DiscoverShelf`](schemas.md#discovershelf)*, **required** — Ordered horizontal shelves that make up the Discover page.
+  - `shelf_kinds` *array of [`ShelfKindInfo`](schemas.md#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -286,28 +286,26 @@ Resolves storefront price/availability for one title, forcing server-side prefer
 
 `application/json`: [`PurchaseHintsQuery`](schemas.md#purchasehintsquery)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `title` | string | yes | Display title as shown on the storefront or library card. |
-| `authors` | string or null | no | Comma-separated author names when the storefront provides them. |
-| `asin` | string or null | no | Audible / Amazon ASIN when this edition is sold on Audible. |
-| `isbn` | string or null | no | Canonical ISBN-13 (or ISBN-10 normalized) when published. |
-| `candidate_source` | string or null | no | Storefront id of the edition that produced this card. |
-| `candidate_product_id` | string or null | no | Storefront product id of the edition that produced this card. |
-| `store_editions` | array of [`StoreEdition`](schemas.md#storeedition) | no | Known storefront editions already on the recommendation card. |
-| `region` | string or null | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
-| `preferred_sources` | array of string | no | Storefronts the caller has linked accounts for. Treated as **member** pricing when picking `best`; other stores are compared at list / non-member price. Every catalog match is still returned in `hints`. |
+- `title` *string*, **required** — Display title as shown on the storefront or library card.
+- `authors` *string or null* — Comma-separated author names when the storefront provides them.
+- `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
+- `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
+- `candidate_source` *string or null* — Storefront id of the edition that produced this card.
+- `candidate_product_id` *string or null* — Storefront product id of the edition that produced this card.
+- `store_editions` *array of [`StoreEdition`](schemas.md#storeedition)* — Known storefront editions already on the recommendation card.
+- `region` *string or null* — Marketplace / region code (`us`, `uk`, …) for catalog lookups.
+- `preferred_sources` *array of string* — Storefronts the caller has linked accounts for. Treated as **member** pricing when picking `best`; other stores are compared at list / non-member price. Every catalog match is still returned in `hints`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Prices and availability. | [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Prices and availability. Body: [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse) (`application/json`)
+  - `hints` *array of [`PurchaseHint`](schemas.md#purchasehint)*, **required** — Resolved purchase hints for this query.
+  - `best` *[`PurchaseHint`](schemas.md#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -433,20 +431,17 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
 
 `application/json`: [`PurchaseHintsBatchBody`](schemas.md#purchasehintsbatchbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `queries` | array of [`PurchaseHintsQuery`](schemas.md#purchasehintsquery) | no | Per-title purchase-hint queries in this batch. |
+- `queries` *array of [`PurchaseHintsQuery`](schemas.md#purchasehintsquery)* — Per-title purchase-hint queries in this batch.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | One result per query, in order. | [`PurchaseHintsBatchResponse`](schemas.md#purchasehintsbatchresponse) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — One result per query, in order. Body: [`PurchaseHintsBatchResponse`](schemas.md#purchasehintsbatchresponse) (`application/json`)
+  - `results` *array of [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse)*, **required** — One purchase-hint response per query, in request order.
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -565,39 +560,41 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `q` | query | string | no | Search text; queries shorter than two characters return an empty page. Rejected above 256 UTF-8 bytes as a downstream catalog-search limit (the HTTP query extractor has already materialized `q`). |
-| `limit` | query | integer | no | Alias for [`Self::page_size`] (typeahead / legacy). |
-| `page_size` | query | integer | no | Page size (1–48); falls back to `limit` then 24. |
-| `cursor` | query | string | no | Opaque cursor from a previous [`bookclerk_discover::CatalogSearchPage`]. |
-| `sort` | query | string | no | `relevance` / `popularity` / `rating` / `title` / `author` / `price` / `length`. |
-| `sort_dir` | query | string | no | `asc` / `desc` (defaults per sort when omitted). |
-| `region` | query | string | no | Storefront region code (default `us`). |
-| `field` | query | string | no | Optional facet scope: `author` / `narrator` / `series` / `genre`. |
-| `lang` | query | string | no | Preferred / default content language (BCP-47 primary). When `language` is omitted and `all_languages` is not set, applied as a hard include. |
-| `language` | query | string | no | Comma-separated language codes to include (`en`, `zh`, …). |
-| `all_languages` | query | boolean | no | When true, do not hard-filter by language (soft prefer via `lang` only). |
-| `author` | query | string | no | Comma-separated include filters (OR within a kind). |
-| `narrator` | query | string | no | Comma-separated narrator include filters. |
-| `series` | query | string | no | Comma-separated series include filters. |
-| `genre` | query | string | no | Comma-separated genre include filters. |
-| `source` | query | string | no | Comma-separated store ids to include. |
-| `exclude_source` | query | string | no | Comma-separated store ids to exclude. |
-| `exclude_narrator` | query | string | no | Comma-separated narrator substrings to exclude (e.g. `Virtual Voice`). |
-| `min_rating` | query | number (double) | no | Minimum overall rating (0–5); missing ratings still pass. |
-| `min_length_minutes` | query | integer (int64) | no | Minimum runtime in minutes; values ≤ 0 are ignored. |
-| `max_length_minutes` | query | integer (int64) | no | Maximum runtime in minutes; values ≤ 0 are ignored. |
+- `q` (query) *string* — Search text; queries shorter than two characters return an empty page. Rejected above 256 UTF-8 bytes as a downstream catalog-search limit (the HTTP query extractor has already materialized `q`).
+- `limit` (query) *integer* — Alias for [`Self::page_size`] (typeahead / legacy).
+- `page_size` (query) *integer* — Page size (1–48); falls back to `limit` then 24.
+- `cursor` (query) *string* — Opaque cursor from a previous [`bookclerk_discover::CatalogSearchPage`].
+- `sort` (query) *string* — `relevance` / `popularity` / `rating` / `title` / `author` / `price` / `length`.
+- `sort_dir` (query) *string* — `asc` / `desc` (defaults per sort when omitted).
+- `region` (query) *string* — Storefront region code (default `us`).
+- `field` (query) *string* — Optional facet scope: `author` / `narrator` / `series` / `genre`.
+- `lang` (query) *string* — Preferred / default content language (BCP-47 primary). When `language` is omitted and `all_languages` is not set, applied as a hard include.
+- `language` (query) *string* — Comma-separated language codes to include (`en`, `zh`, …).
+- `all_languages` (query) *boolean* — When true, do not hard-filter by language (soft prefer via `lang` only).
+- `author` (query) *string* — Comma-separated include filters (OR within a kind).
+- `narrator` (query) *string* — Comma-separated narrator include filters.
+- `series` (query) *string* — Comma-separated series include filters.
+- `genre` (query) *string* — Comma-separated genre include filters.
+- `source` (query) *string* — Comma-separated store ids to include.
+- `exclude_source` (query) *string* — Comma-separated store ids to exclude.
+- `exclude_narrator` (query) *string* — Comma-separated narrator substrings to exclude (e.g. `Virtual Voice`).
+- `min_rating` (query) *number (double)* — Minimum overall rating (0–5); missing ratings still pass.
+- `min_length_minutes` (query) *integer (int64)* — Minimum runtime in minutes; values ≤ 0 are ignored.
+- `max_length_minutes` (query) *integer (int64)* — Maximum runtime in minutes; values ≤ 0 are ignored.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | A page of catalog results. | [`CatalogSearchPage`](schemas.md#catalogsearchpage) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — A page of catalog results. Body: [`CatalogSearchPage`](schemas.md#catalogsearchpage) (`application/json`)
+  - `items` *array of [`CatalogSearchHit`](schemas.md#catalogsearchhit)*, **required** — Ordered collection of child entries for this response.
+  - `page_size` *integer*, **required** — Maximum number of items returned in this page. At least 0.
+  - `has_more` *boolean*, **required** — When true, another page is available via [`Self::next_cursor`].
+  - `next_cursor` *string or null* — Opaque cursor for the next page; omit or `None` when exhausted.
+  - `sort` *string*, **required** — Sort field applied to the merged result set.
+  - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -719,26 +716,44 @@ Resolves Audnexus-style title metadata for one query.
 
 `application/json`: [`TitleMetaQuery`](schemas.md#titlemetaquery)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `title` | string | no | Display title as shown on the storefront or library card. |
-| `authors` | string or null | no | Comma-separated author names when the storefront provides them. |
-| `asin` | string or null | no | Audible / Amazon ASIN when this edition is sold on Audible. |
-| `isbn` | string or null | no | Canonical ISBN-13 (or ISBN-10 normalized) when published. |
-| `narrators` | string or null | no | Comma-separated narrator names when known. |
-| `length_minutes` | integer (int64) or null (int64) | no | Audiobook runtime in whole minutes when known. |
-| `region` | string | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
+- `title` *string* — Display title as shown on the storefront or library card.
+- `authors` *string or null* — Comma-separated author names when the storefront provides them.
+- `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
+- `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
+- `narrators` *string or null* — Comma-separated narrator names when known.
+- `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
+- `region` *string* — Marketplace / region code (`us`, `uk`, …) for catalog lookups.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The metadata, or null when nothing matched. | [`TitleMeta`](schemas.md#titlemeta) or null (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The metadata, or null when nothing matched. Body: [`TitleMeta`](schemas.md#titlemeta) or null (`application/json`)
+  - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
+  - `title` *string or null* — Display title as shown on the storefront or library card.
+  - `subtitle` *string or null* — Optional subtitle when the catalog distinguishes it from the title.
+  - `authors` *string or null* — Comma-separated author names when the storefront provides them.
+  - `narrators` *string or null* — Comma-separated narrator names when known.
+  - `series` *string or null* — Series name when the title belongs to a named series.
+  - `series_index` *string or null* — Position within the series (e.g. `1`, `1.5`) when known.
+  - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
+  - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+  - `description` *string or null* — Publisher or storefront synopsis; may be truncated for embeddings.
+  - `publisher` *string or null* — Publisher imprint as reported by the catalog.
+  - `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
+  - `published_at` *string or null* — Publication date string from the catalog (ISO or storefront format).
+  - `categories` *string or null* — Genre / subject tags as a single delimited string when known.
+  - `language` *string or null* — BCP-47 / storefront language code (`en`, `de`, …) when known.
+  - `is_abridged` *boolean or null* — `Some(true)` abridged / `Some(false)` unabridged when the storefront said so.
+  - `rating_overall` *number (double) or null* — Audible community overall rating (0–5).
+  - `rating_performance` *number (double) or null* — Narration / performance sub-score when the storefront splits ratings.
+  - `rating_story` *number (double) or null* — Story / content sub-score when the storefront splits ratings.
+  - `rating_count` *integer (int64) or null* — Count of star ratings (Audible `num_ratings`).
+  - `review_count` *integer (int64) or null* — Count of written reviews (Audible `num_reviews`).
+  - `reviews` *array of [`TitleReview`](schemas.md#titlereview)* — Deprecated: reviews load via `/api/discover/title-reviews`. Kept empty for older clients; prefer the paginated reviews endpoint.
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -869,20 +884,17 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
 
 `application/json`: [`TitleMetaBatchBody`](schemas.md#titlemetabatchbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `queries` | array of [`TitleMetaQuery`](schemas.md#titlemetaquery) | no | Per-title metadata queries in this batch. |
+- `queries` *array of [`TitleMetaQuery`](schemas.md#titlemetaquery)* — Per-title metadata queries in this batch.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | One result per query, in order. | [`TitleMetaBatchResponse`](schemas.md#titlemetabatchresponse) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — One result per query, in order. Body: [`TitleMetaBatchResponse`](schemas.md#titlemetabatchresponse) (`application/json`)
+  - `results` *array of [`TitleMeta`](schemas.md#titlemeta) or null*, **required** — One optional metadata payload per query; enrichment errors become `None`.
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1010,24 +1022,26 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
 
 `application/json`: [`TitleReviewsQuery`](schemas.md#titlereviewsquery)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `asin` | string | yes | Audible / Amazon ASIN when this edition is sold on Audible. |
-| `region` | string | no | Marketplace / region code (`us`, `uk`, …) for catalog lookups. |
-| `page` | integer (int32) | no | 1-based page index. At least 0. |
-| `page_size` | integer (int32) | no | Page size (clamped server-side to 1..=20). At least 0. |
-| `sort_by` | string | no | `MostHelpful` (default) or `MostRecent`. |
+- `asin` *string*, **required** — Audible / Amazon ASIN when this edition is sold on Audible.
+- `region` *string* — Marketplace / region code (`us`, `uk`, …) for catalog lookups.
+- `page` *integer (int32)* — 1-based page index. At least 0.
+- `page_size` *integer (int32)* — Page size (clamped server-side to 1..=20). At least 0.
+- `sort_by` *string* — `MostHelpful` (default) or `MostRecent`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | A page of reviews. | [`TitleReviewsPage`](schemas.md#titlereviewspage) (`application/json`) |
-| 400 | The query is malformed or too large. | string (`text/plain`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The lookup failed. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — A page of reviews. Body: [`TitleReviewsPage`](schemas.md#titlereviewspage) (`application/json`)
+  - `asin` *string*, **required** — Audible / Amazon ASIN when this edition is sold on Audible.
+  - `page` *integer (int32)*, **required** — 1-based page index for this reviews / list request. At least 0.
+  - `page_size` *integer (int32)*, **required** — Maximum number of items returned in this page. At least 0.
+  - `has_more` *boolean*, **required** — When true, another page is available by incrementing [`Self::page`].
+  - `sort_by` *string*, **required** — Remote sort key for reviews (`most_helpful`, `most_recent`, …).
+  - `reviews` *array of [`TitleReview`](schemas.md#titlereview)*, **required** — Review rows on this page.
+- `400` — The query is malformed or too large. Body: string (`text/plain`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The lookup failed. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

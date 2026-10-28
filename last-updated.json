@@ -639,7 +639,7 @@
   "api/web/node-protocol": "2026-10-28",
   "api/web/oidc-provider": "2026-10-28",
   "api/web/plugins": "2026-10-28",
-  "api/web/schemas": "2026-10-27",
+  "api/web/schemas": "2026-10-28",
   "api/web/settings": "2026-10-28",
   "api/web/spec": "2026-10-28",
   "api/web/status": "2026-10-28",

@@ -14,14 +14,12 @@ Back to the [web API reference](README.md).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Every plugin instance with its deployments. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Every plugin instance with its deployments. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -122,24 +120,20 @@ a plugin, with an empty document so schema defaults apply. With
 
 `application/json`: [`CreatePluginInstance`](schemas.md#createplugininstance)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `plugin_key` | string | yes | Canonical plugin key; the plugin must have a pinned schema. |
-| `display_name` | string | no | Operator-facing name. |
-| `node_id` | string or null | no | Make the instance local to this node (H-2): it deploys only there and is never placed by the scheduler. |
+- `plugin_key` *string*, **required** — Canonical plugin key; the plugin must have a pinned schema.
+- `display_name` *string* — Operator-facing name.
+- `node_id` *string or null* — Make the instance local to this node (H-2): it deploys only there and is never placed by the scheduler.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The new instance. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The instance id is taken. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The new instance. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The instance id is taken. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -267,22 +261,18 @@ no deployment left.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
+- `id` (path) *string*, **required** — Plugin instance id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The instance was removed. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The instance is a default or still deployed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The instance was removed. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The instance is a default or still deployed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -402,21 +392,17 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
+- `id` (path) *string*, **required** — Plugin instance id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The instance's settings document (secrets as presence flags). | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The instance's settings document (secrets as presence flags). Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -527,32 +513,26 @@ node does not need the guest installed.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
+- `id` (path) *string*, **required** — Plugin instance id.
 
 ### Request body
 
 `application/json`: [`PutPluginInstanceConfig`](schemas.md#putplugininstanceconfig)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `expected_revision` | integer (int64) | yes | Revision the caller last observed. |
-| `settings` | object | no | Scalar settings. Secret values are not accepted here. |
-| `secret_refs` | array of object | no | Secret refs to keep. Omitted refs are dropped from the document; the ciphertext stays sealed until the secret is overwritten. |
-| `secrets` | map of string to string | no | Secret values to seal, keyed by the declared `secret` setting. Each is sealed into `encrypted_secrets` and referenced from the document; the plaintext is never stored in the document or echoed back. |
+- `expected_revision` *integer (int64)*, **required** — Revision the caller last observed.
+- `settings` *object* — Scalar settings. Secret values are not accepted here.
+- `secret_refs` *array of object* — Secret refs to keep. Omitted refs are dropped from the document; the ciphertext stays sealed until the secret is overwritten.
+- `secrets` *map of string to string* — Secret values to seal, keyed by the declared `secret` setting. Each is sealed into `encrypted_secrets` and referenced from the document; the plaintext is never stored in the document or echoed back.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The document after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The document after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -670,32 +650,26 @@ Deployed switch. Creates the row when the node has none.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
-| `node_id` | path | string | yes | Node id. |
+- `id` (path) *string*, **required** — Plugin instance id.
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Request body
 
 `application/json`: [`PutPluginDeployment`](schemas.md#putplugindeployment)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `desired` | [`DesiredState`](schemas.md#desiredstate) | yes | What the node should do: `present` or `absent` (the scheduler's `placed` / `unplaced` are accepted too). |
-| `expected_revision` | integer (int64) or null (int64) | no | Revision the caller last observed; required when the row exists and the caller wants compare-and-swap. Omitted means "replace whatever is current". |
+- `desired` *[`DesiredState`](schemas.md#desiredstate)*, **required** — What the node should do: `present` or `absent` (the scheduler's `placed` / `unplaced` are accepted too).
+- `expected_revision` *integer (int64) or null* — Revision the caller last observed; required when the row exists and the caller wants compare-and-swap. Omitted means "replace whatever is current".
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The deployment after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The instance is placed by the scheduler. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The deployment after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The instance is placed by the scheduler. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -823,31 +797,25 @@ deployments to the scheduler with a replica count and constraints.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
+- `id` (path) *string*, **required** — Plugin instance id.
 
 ### Request body
 
 `application/json`: [`PutPluginPlacement`](schemas.md#putpluginplacement)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `replicas` | integer or `all` | yes | A replica count (0 stops every replica) or `"all"`. |
-| `constraints` | array of string | no | Label constraints (`name`, `name=value`, `!name`). |
-| `expected_revision` | integer (int64) or null (int64) | no | Current revision to replace; omit (or 0) to create. |
+- `replicas` *integer or `all`*, **required** — A replica count (0 stops every replica) or `"all"`.
+- `constraints` *array of string* — Label constraints (`name`, `name=value`, `!name`).
+- `expected_revision` *integer (int64) or null* — Current revision to replace; omit (or 0) to create.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The scheduler now places the instance. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The scheduler now places the instance. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -966,21 +934,17 @@ are.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin instance id. |
+- `id` (path) *string*, **required** — Plugin instance id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The instance is back to manual deployment. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such instance. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The instance is back to manual deployment. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1090,14 +1054,12 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Every installed plugin. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Every installed plugin. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1196,27 +1158,23 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`PostPluginInstall`](schemas.md#postplugininstall)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `coordinate` | string or null | no | Registry coordinate (`cargo:…@v`, `registry:…#name@v`). |
-| `package` | string or null | no | Operator-placed package directory under `plugin-packages/`. |
-| `activate` | boolean | no | Make the new version active even when another is. |
-| `approve` | boolean | no | Record the requested consent as approved. |
-| `allow_unverified_publisher` | boolean | no | Accept a publisher without independent authenticity. |
+- `coordinate` *string or null* — Registry coordinate (`cargo:…@v`, `registry:…#name@v`).
+- `package` *string or null* — Operator-placed package directory under `plugin-packages/`.
+- `activate` *boolean* — Make the new version active even when another is.
+- `approve` *boolean* — Record the requested consent as approved.
+- `allow_unverified_publisher` *boolean* — Accept a publisher without independent authenticity.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The installed version. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | A local package is missing its `package.json` or `archive.tar.gz`. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The version is already installed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The package catalog could not be reached or answered badly. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The installed version. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — A local package is missing its `package.json` or `archive.tar.gz`. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The version is already installed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The package catalog could not be reached or answered badly. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1354,21 +1312,17 @@ settings schema.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `key` | path | string | yes | Plugin key. |
+- `key` (path) *string*, **required** — Plugin key.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The plugin with its pinned versions. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The plugin with its pinned versions. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1476,21 +1430,17 @@ cleared, placements dropped, every deployment `absent`).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `key` | path | string | yes | Plugin key. |
+- `key` (path) *string*, **required** — Plugin key.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The plugin was uninstalled. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The plugin was uninstalled. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1600,29 +1550,23 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `key` | path | string | yes | Plugin key. |
+- `key` (path) *string*, **required** — Plugin key.
 
 ### Request body
 
 `application/json`: [`PutActiveVersion`](schemas.md#putactiveversion)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `version` | string | yes | Installed version to activate. |
+- `version` *string*, **required** — Installed version to activate.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The active version after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The active version after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1740,22 +1684,18 @@ version's requested consent as approved for every node.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `key` | path | string | yes | Plugin key. |
-| `version` | path | string | yes | Semver version. |
+- `key` (path) *string*, **required** — Plugin key.
+- `version` (path) *string*, **required** — Semver version.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The version's grant was approved. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The version's grant was approved. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1865,21 +1805,27 @@ Loads the consent dialog for one plugin, including coverage against the stored g
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin id. |
-| `plugin_key` | query | string | no | Canonical PluginKey; when set, wins over the path alias. |
+- `id` (path) *string*, **required** — Plugin id.
+- `plugin_key` (query) *string* — Canonical PluginKey; when set, wins over the path alias.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | What the plugin asks for and what is granted. | [`PluginConsentResponse`](schemas.md#pluginconsentresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The grant could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — What the plugin asks for and what is granted. Body: [`PluginConsentResponse`](schemas.md#pluginconsentresponse) (`application/json`)
+  - `plugin_id` *string*, **required** — Plugin id whose grant is being reviewed.
+  - `plugin_key` *string*, **required** — Canonical PluginKey for this install (empty when unknown).
+  - `provenance` *string*, **required** — Host-evaluated provenance label.
+  - `runtime` *string*, **required** — Guest runtime (`native` or `workerd`) — drives which controls are enforceable.
+  - `request` *[`PluginGrantView`](schemas.md#plugingrantview)*, **required** — Manifest-derived grant the plugin is asking for.
+  - `covered` *boolean*, **required** — True when an existing on-disk grant already satisfies the request.
+  - `summary` *array of string*, **required** — Operator-facing bullet list of requested capabilities.
+  - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
+  - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
+  - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The grant could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2158,31 +2104,35 @@ Persists an approved plugin grant after validating operator overrides.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Plugin id. |
-| `plugin_key` | query | string | no | Canonical PluginKey; when set, wins over the path alias. |
+- `id` (path) *string*, **required** — Plugin id.
+- `plugin_key` (query) *string* — Canonical PluginKey; when set, wins over the path alias.
 
 ### Request body
 
 `application/json`: [`PluginConsentApproveRequest`](schemas.md#pluginconsentapproverequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `approve` | boolean | yes | Must be true; a false value is rejected with 400. |
-| `grant` | [`PluginGrantOverride`](schemas.md#plugingrantoverride) or null | no | Optional operator overrides applied on top of the manifest request. |
+- `approve` *boolean*, **required** — Must be true; a false value is rejected with 400.
+- `grant` *[`PluginGrantOverride`](schemas.md#plugingrantoverride) or null* — Optional operator overrides applied on top of the manifest request.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The grant was stored. | [`PluginConsentResponse`](schemas.md#pluginconsentresponse) (`application/json`) |
-| 400 | An override is not allowed. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such plugin. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The grant could not be stored. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The grant was stored. Body: [`PluginConsentResponse`](schemas.md#pluginconsentresponse) (`application/json`)
+  - `plugin_id` *string*, **required** — Plugin id whose grant is being reviewed.
+  - `plugin_key` *string*, **required** — Canonical PluginKey for this install (empty when unknown).
+  - `provenance` *string*, **required** — Host-evaluated provenance label.
+  - `runtime` *string*, **required** — Guest runtime (`native` or `workerd`) — drives which controls are enforceable.
+  - `request` *[`PluginGrantView`](schemas.md#plugingrantview)*, **required** — Manifest-derived grant the plugin is asking for.
+  - `covered` *boolean*, **required** — True when an existing on-disk grant already satisfies the request.
+  - `summary` *array of string*, **required** — Operator-facing bullet list of requested capabilities.
+  - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
+  - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
+  - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+- `400` — An override is not allowed. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such plugin. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The grant could not be stored. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2481,20 +2431,16 @@ Serve an embedded `plugin.toml` `logo` file from under the plugin install root.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `kind` | path | string | yes | Plugin kind (`source`, `destination`, `integration`, …). |
-| `id` | path | string | yes | Plugin id. |
+- `kind` (path) *string*, **required** — Plugin kind (`source`, `destination`, `integration`, …).
+- `id` (path) *string*, **required** — Plugin id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The logo (PNG, or SVG served with a restrictive CSP). | [`BinaryBody`](schemas.md#binarybody) (`image/png`); [`BinaryBody`](schemas.md#binarybody) (`image/svg+xml`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The plugin has no logo. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The logo (PNG, or SVG served with a restrictive CSP). Body: [`BinaryBody`](schemas.md#binarybody) (`image/png`); [`BinaryBody`](schemas.md#binarybody) (`image/svg+xml`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The plugin has no logo. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

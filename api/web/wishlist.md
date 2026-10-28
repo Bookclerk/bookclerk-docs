@@ -14,12 +14,38 @@ Lists open wishlist rows for the caller (portal identity or operator-owned).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The caller's open requests. | array of [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`) |
-| 401 | No signed-in caller. | string (`text/plain`) |
-| 500 | The request could not be read or written. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The caller's open requests. Body: array of [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`)
+  - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
+  - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
+  - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
+  - `title` *string*, **required** — Display title of the work or edition.
+  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
+  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
+  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `notes` *string or null* — Free-form operator or requester notes.
+  - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
+  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
+  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
+  - `description` *string or null* — Blurb / synopsis text (may contain HTML).
+  - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
+  - `narrators` *string or null* — Comma-separated or JSON narrator list when present.
+  - `series` *string or null* — Series name when the title belongs to a series.
+  - `series_index` *string or null* — Position within the series (storefront string form).
+  - `publisher` *string or null* — Publisher name from metadata enrichment or the storefront.
+  - `length_minutes` *integer (int64) or null* — Runtime in whole minutes when the storefront reports it.
+  - `published_at` *string or null* — Publication date string from the storefront or enrichment.
+  - `genres` *string or null* — Merged genre / category list for display.
+  - `language` *string or null* — BCP-47 or storefront language code when known.
+  - `store_editions` *array of [`WishlistStoreEdition`](schemas.md#wishliststoreedition)* — Distinct storefront editions contributing to this wishlist item.
+  - `purchase_hints` *array of [`WishlistPurchaseHint`](schemas.md#wishlistpurchasehint)* — Purchase URLs and prices observed per storefront.
+  - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
+  - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
+- `401` — No signed-in caller. Body: string (`text/plain`)
+- `500` — The request could not be read or written. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -169,38 +195,62 @@ Creates a wishlist / title-request row for the authenticated caller.
 
 `application/json`: [`CreateRequestBody`](schemas.md#createrequestbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `title` | string | yes | Required title text; empty values are rejected with 400. |
-| `authors` | string or null | no | Optional author list as a single display string. |
-| `asin` | string or null | no | Optional Audible ASIN used for work-key identity. |
-| `isbn` | string or null | no | Optional ISBN used for work-key identity. |
-| `notes` | string or null | no | Optional operator or member note stored on the request. |
-| `store_editions` | array of [`StoreEdition`](schemas.md#storeedition) | no | Known storefront editions to persist as `title_request_sources`. |
-| `purchase_hints` | array of [`PurchaseHint`](schemas.md#purchasehint) | no | Optional priced storefront links snapshotted at wishlist time. |
-| `work_key` | string or null | no | Optional stable work key; when omitted one is derived from bib fields. |
-| `cover_url` | string or null | no | Optional cover image URL snapshotted onto the request. |
-| `description` | string or null | no | Optional plot/summary text persisted with the request. |
-| `subtitle` | string or null | no | Optional subtitle stored on the request and source rows. |
-| `narrators` | string or null | no | Optional narrator list as a single display string. |
-| `series` | string or null | no | Optional series name. |
-| `series_index` | string or null | no | Optional series position as a display string. |
-| `publisher` | string or null | no | Optional publisher name. |
-| `length_minutes` | integer (int64) or null (int64) | no | Optional runtime in minutes. |
-| `published_at` | string or null | no | Optional publication date as a display string. |
-| `genres` | string or null | no | Optional genre list as a single display string. |
-| `language` | string or null | no | Optional content language code. |
+- `title` *string*, **required** — Required title text; empty values are rejected with 400.
+- `authors` *string or null* — Optional author list as a single display string.
+- `asin` *string or null* — Optional Audible ASIN used for work-key identity.
+- `isbn` *string or null* — Optional ISBN used for work-key identity.
+- `notes` *string or null* — Optional operator or member note stored on the request.
+- `store_editions` *array of [`StoreEdition`](schemas.md#storeedition)* — Known storefront editions to persist as `title_request_sources`.
+- `purchase_hints` *array of [`PurchaseHint`](schemas.md#purchasehint)* — Optional priced storefront links snapshotted at wishlist time.
+- `work_key` *string or null* — Optional stable work key; when omitted one is derived from bib fields.
+- `cover_url` *string or null* — Optional cover image URL snapshotted onto the request.
+- `description` *string or null* — Optional plot/summary text persisted with the request.
+- `subtitle` *string or null* — Optional subtitle stored on the request and source rows.
+- `narrators` *string or null* — Optional narrator list as a single display string.
+- `series` *string or null* — Optional series name.
+- `series_index` *string or null* — Optional series position as a display string.
+- `publisher` *string or null* — Optional publisher name.
+- `length_minutes` *integer (int64) or null* — Optional runtime in minutes.
+- `published_at` *string or null* — Optional publication date as a display string.
+- `genres` *string or null* — Optional genre list as a single display string.
+- `language` *string or null* — Optional content language code.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The new request. | [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`) |
-| 400 | The title is missing or invalid. | string (`text/plain`) |
-| 401 | No signed-in caller. | string (`text/plain`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The request could not be read or written. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The new request. Body: [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`)
+  - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
+  - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
+  - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
+  - `title` *string*, **required** — Display title of the work or edition.
+  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
+  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
+  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `notes` *string or null* — Free-form operator or requester notes.
+  - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
+  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
+  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
+  - `description` *string or null* — Blurb / synopsis text (may contain HTML).
+  - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
+  - `narrators` *string or null* — Comma-separated or JSON narrator list when present.
+  - `series` *string or null* — Series name when the title belongs to a series.
+  - `series_index` *string or null* — Position within the series (storefront string form).
+  - `publisher` *string or null* — Publisher name from metadata enrichment or the storefront.
+  - `length_minutes` *integer (int64) or null* — Runtime in whole minutes when the storefront reports it.
+  - `published_at` *string or null* — Publication date string from the storefront or enrichment.
+  - `genres` *string or null* — Merged genre / category list for display.
+  - `language` *string or null* — BCP-47 or storefront language code when known.
+  - `store_editions` *array of [`WishlistStoreEdition`](schemas.md#wishliststoreedition)* — Distinct storefront editions contributing to this wishlist item.
+  - `purchase_hints` *array of [`WishlistPurchaseHint`](schemas.md#wishlistpurchasehint)* — Purchase URLs and prices observed per storefront.
+  - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
+  - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
+- `400` — The title is missing or invalid. Body: string (`text/plain`)
+- `401` — No signed-in caller. Body: string (`text/plain`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The request could not be read or written. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -368,21 +418,45 @@ Cancels an open wishlist item the caller owns; others get 403.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `uuid` | path | string | yes | Request UUID. |
+- `uuid` (path) *string*, **required** — Request UUID.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The cancelled request. | [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`) |
-| 400 | Only open wishlist items can be removed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | No signed-in caller. | string (`text/plain`) |
-| 403 | The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | string (`text/plain`) |
-| 404 | No such request. | string (`text/plain`) |
-| 500 | The request could not be read or written. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The cancelled request. Body: [`TitleRequestRecord`](schemas.md#titlerequestrecord) (`application/json`)
+  - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
+  - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
+  - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
+  - `title` *string*, **required** — Display title of the work or edition.
+  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
+  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
+  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `notes` *string or null* — Free-form operator or requester notes.
+  - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
+  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
+  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
+  - `description` *string or null* — Blurb / synopsis text (may contain HTML).
+  - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
+  - `narrators` *string or null* — Comma-separated or JSON narrator list when present.
+  - `series` *string or null* — Series name when the title belongs to a series.
+  - `series_index` *string or null* — Position within the series (storefront string form).
+  - `publisher` *string or null* — Publisher name from metadata enrichment or the storefront.
+  - `length_minutes` *integer (int64) or null* — Runtime in whole minutes when the storefront reports it.
+  - `published_at` *string or null* — Publication date string from the storefront or enrichment.
+  - `genres` *string or null* — Merged genre / category list for display.
+  - `language` *string or null* — BCP-47 or storefront language code when known.
+  - `store_editions` *array of [`WishlistStoreEdition`](schemas.md#wishliststoreedition)* — Distinct storefront editions contributing to this wishlist item.
+  - `purchase_hints` *array of [`WishlistPurchaseHint`](schemas.md#wishlistpurchasehint)* — Purchase URLs and prices observed per storefront.
+  - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
+  - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
+- `400` — Only open wishlist items can be removed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — No signed-in caller. Body: string (`text/plain`)
+- `403` — The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: string (`text/plain`)
+- `404` — No such request. Body: string (`text/plain`)
+- `500` — The request could not be read or written. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -545,13 +619,25 @@ Ranks the shared open-request queue without warming ONNX embeddings.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Open requests, ranked. | array of [`RankedQueueEntry`](schemas.md#rankedqueueentry) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The queue could not be ranked. | string (`text/plain`) |
-| 503 | Discover is shutting down; try again. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Open requests, ranked. Body: array of [`RankedQueueEntry`](schemas.md#rankedqueueentry) (`application/json`)
+  - `work_key` *string*, **required** — Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
+  - `title` *string*, **required** — Display title as shown on the storefront or library card.
+  - `authors` *string or null* — Comma-separated author names when the storefront provides them.
+  - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
+  - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
+  - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+  - `wish_count` *integer (int64)*, **required** — Number of distinct users who wishlisted this title.
+  - `wishers` *array of [`QueueWisher`](schemas.md#queuewisher)* — Distinct people who have this title on an open wishlist.
+  - `sample_uuids` *array of string*, **required** — Sample Bookclerk user UUIDs who requested this title (privacy-capped).
+  - `first_requested_at` *string (date-time)*, **required** — UTC timestamp of the earliest wishlist request for this work.
+  - `last_requested_at` *string (date-time)*, **required** — UTC timestamp of the latest wishlist request for this work.
+  - `score` *number (double)*, **required** — Final rank score (`taste_score + wish_count * `[`WISH_COUNT_WEIGHT`]).
+  - `taste_score` *number (double)*, **required** — Local taste / embedding component before the wish-count boost.
+  - `reasons` *array of string*, **required** — Short human-readable explanations for why this item was ranked here.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The queue could not be ranked. Body: string (`text/plain`)
+- `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

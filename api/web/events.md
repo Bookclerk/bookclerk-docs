@@ -14,13 +14,22 @@ Returns recent domain-event outbox rows, newest first.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Recent domain events, newest first. | array of [`DomainEventInfo`](schemas.md#domaineventinfo) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Recent domain events, newest first. Body: array of [`DomainEventInfo`](schemas.md#domaineventinfo) (`application/json`)
+  - `id` *string*, **required** — Event id.
+  - `eventType` *string*, **required** — Event type (`book_acquired`).
+  - `schemaVersion` *integer (int64)*, **required** — Payload schema version.
+  - `dispatchState` *string*, **required** — `pending` or `dispatched`.
+  - `accountId` *string*, **required** — Tenant / account id.
+  - `dedupKey` *string*, **required** — Producer idempotency key.
+  - `createdAt` *string*, **required** — RFC 3339 insert time.
+  - `queueName` *string*, **required** — Queue the row belongs to (`core.events` for domain events).
+  - `contentType` *string*, **required** — Body encoding (`json`, `text`, `bytes`).
+  - `source` *string*, **required** — Producer plugin id; empty when the host published it.
+  - `deliverAfter` *string or null* — RFC 3339 earliest delivery time for delayed queue messages.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The outbox could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -125,19 +134,31 @@ Returns event deliveries, optionally filtered by `state`.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `state` | query | string | no | Delivery state (`dead_letter`, `pending`, …). |
+- `state` (query) *string* — Delivery state (`dead_letter`, `pending`, …).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Deliveries, newest first. | array of [`EventDeliveryInfo`](schemas.md#eventdeliveryinfo) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Deliveries, newest first. Body: array of [`EventDeliveryInfo`](schemas.md#eventdeliveryinfo) (`application/json`)
+  - `id` *string*, **required** — Delivery id (`{event_id}:{plugin_id}`).
+  - `eventId` *string*, **required** — Parent event id.
+  - `pluginId` *string*, **required** — Subscriber plugin id.
+  - `state` *string*, **required** — Lifecycle state.
+  - `attemptCount` *integer (int64)*, **required** — Claim count (not incremented on resume).
+  - `leaseGeneration` *integer (int64)*, **required** — Fence generation.
+  - `invocationSequence` *integer (int64)*, **required** — Resume ordinal.
+  - `outcome` *string or null* — Terminal outcome when set.
+  - `errorMessage` *string or null* — Operator-facing error.
+  - `runAfter` *string*, **required** — RFC 3339 earliest claim time.
+  - `updatedAt` *string*, **required** — RFC 3339 last update.
+  - `cancelRequested` *boolean*, **required** — Cooperative cancel flag.
+  - `resourceClass` *string*, **required** — Concurrency class (`network` today).
+  - `resumePending` *boolean*, **required** — Next claim should resume rather than increment attempt.
+  - `hasCheckpoint` *boolean*, **required** — True when a suspend checkpoint is stored.
+  - `queueName` *string*, **required** — Queue of the parent event.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The outbox could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -248,13 +269,18 @@ delivery counters and the consumers subscribed to it.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Every known queue. | array of [`QueueInfo`](schemas.md#queueinfo) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Every known queue. Body: array of [`QueueInfo`](schemas.md#queueinfo) (`application/json`)
+  - `name` *string*, **required** — Queue name.
+  - `core` *boolean*, **required** — True for the domain-event bus (`core.events`).
+  - `pending` *integer (int64)*, **required** — Deliveries waiting to be claimed (including suspended rows).
+  - `running` *integer (int64)*, **required** — Deliveries currently claimed by a worker.
+  - `acked` *integer (int64)*, **required** — Deliveries acked.
+  - `deadLetter` *integer (int64)*, **required** — Deliveries parked for operator review.
+  - `consumers` *array of string*, **required** — Live catalog consumers (plugin keys or instance ids) of this queue.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The outbox could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -357,20 +383,18 @@ Returns one queue's counters, consumers, recent messages, and deliveries.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `name` | path | string | yes | Queue name. |
+- `name` (path) *string*, **required** — Queue name.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The queue. | [`QueueDetail`](schemas.md#queuedetail) (`application/json`) |
-| 400 | The queue name is invalid. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The outbox could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The queue. Body: [`QueueDetail`](schemas.md#queuedetail) (`application/json`)
+  - `messages` *array of [`DomainEventInfo`](schemas.md#domaineventinfo)*, **required** — Recent messages on the queue, newest first.
+  - `deliveries` *array of [`EventDeliveryInfo`](schemas.md#eventdeliveryinfo)*, **required** — Recent deliveries on the queue, newest first.
+- `400` — The queue name is invalid. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The outbox could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -516,20 +540,20 @@ Re-queue a dead-lettered delivery.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Delivery id. |
+- `id` (path) *string*, **required** — Delivery id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The delivery was queued again. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The delivery was queued again. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such delivery, or it is not in a state this applies to. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The outbox could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -638,20 +662,20 @@ Acknowledge a dead-lettered delivery (no further retry).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Delivery id. |
+- `id` (path) *string*, **required** — Delivery id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The delivery was acknowledged. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The delivery was acknowledged. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such delivery, or it is not in a state this applies to. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The outbox could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -760,20 +784,20 @@ Cancel a pending delivery or request cooperative stop of a running one.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Delivery id. |
+- `id` (path) *string*, **required** — Delivery id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The delivery was cancelled or asked to stop. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The delivery was cancelled or asked to stop. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such delivery, or it is not in a state this applies to. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The outbox could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -882,20 +906,20 @@ Resume a suspended delivery (wake now, next claim uses resume_pending).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Delivery id. |
+- `id` (path) *string*, **required** — Delivery id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The delivery was resumed. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such delivery, or it is not in a state this applies to. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The outbox could not be read or written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The delivery was resumed. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such delivery, or it is not in a state this applies to. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The outbox could not be read or written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

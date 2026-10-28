@@ -14,13 +14,21 @@ Returns library counts, listen addresses, storage backends, and whether operator
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Library counts and daemon state. | [`StatusResponse`](schemas.md#statusresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The library could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Library counts and daemon state. Body: [`StatusResponse`](schemas.md#statusresponse) (`application/json`)
+  - `accounts` *integer*, **required** — Count of configured store accounts. At least 0.
+  - `books` *integer*, **required** — Total title rows in the library. At least 0.
+  - `acquired` *integer (int64)*, **required** — Titles whose `acquire_status` is `acquired`.
+  - `pending` *integer (int64)*, **required** — Titles still needing acquire (`not_acquired`).
+  - `error` *integer (int64)*, **required** — Titles stuck in `error` after a failed acquire.
+  - `in_progress` *integer (int64)*, **required** — Titles currently `queued` or `downloading`.
+  - `listen` *string*, **required** — Comma-joined `daemon.listen` addresses from live config.
+  - `storage_backend` *string*, **required** — Comma-joined enabled destination plugin ids, or `none`.
+  - `auth_enabled` *boolean*, **required** — Whether the live auth middleware requires operator credentials.
+  - `events` *[`EventQueueStatus`](schemas.md#eventqueuestatus)*, **required** — Durable domain-event delivery-queue counters.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -136,14 +144,12 @@ plus detail for the nodes the caller may see.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Cluster-wide node health. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Cluster-wide node health. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

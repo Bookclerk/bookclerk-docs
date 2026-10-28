@@ -14,13 +14,17 @@ Returns file-backed and runtime-effective Settings plus per-plugin groups.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The settings. | [`SettingsResponse`](schemas.md#settingsresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The settings could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The settings. Body: [`SettingsResponse`](schemas.md#settingsresponse) (`application/json`)
+  - `settings` *map of string to string*, **required** — Values as written in config.toml (and env overlays), plus `output.*` from the `core.output` database document.
+  - `effective` *map of string to string*, **required** — Runtime-effective values after the last successful reload (auth, plugins).
+  - `plugins` *array of [`PluginSettingsGroup`](schemas.md#pluginsettingsgroup)*, **required** — Per-plugin setting groups rendered by the Settings UI.
+  - `host_cpu_cores_max` *number (double)*, **required** — Host max jail CPU in cores (2 d.p.; equals logical CPU count).
+  - `jail_cpu_cores` *number (double) or null* — Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).
+  - `output_revision` *integer (int64) or null* — Revision of the `core.output` document the `output.*` values in `settings` were read from; send it back as `expected_output_revision`. `effective["output.revision"]` is the revision this host has applied, which lags the document until the host's next wakeup.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The settings could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -166,22 +170,24 @@ Validates, writes, and reloads allowlisted Settings keys under `reload_lock`.
 
 `application/json`: [`PatchSettingsRequest`](schemas.md#patchsettingsrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `settings` | array of [`SettingsUpdate`](schemas.md#settingsupdate) | yes | Key/value pairs to validate, persist, and reload. |
-| `expected_output_revision` | integer (int64) or null (int64) | no | `core.output` document revision the client read (`output_revision` in `GET /api/settings`). When set and stale, an `output.*` update is rejected with 409. |
+- `settings` *array of [`SettingsUpdate`](schemas.md#settingsupdate)*, **required** — Key/value pairs to validate, persist, and reload.
+- `expected_output_revision` *integer (int64) or null* — `core.output` document revision the client read (`output_revision` in `GET /api/settings`). When set and stale, an `output.*` update is rejected with 409.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The settings after the change. | [`SettingsResponse`](schemas.md#settingsresponse) (`application/json`) |
-| 400 | A key is unknown or a value is invalid. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | `output.*` keys were sent with a stale `expected_output_revision`, or another write won; the body's `current_revision` is the revision to retry against (`revision_conflict`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The settings could not be written. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The settings after the change. Body: [`SettingsResponse`](schemas.md#settingsresponse) (`application/json`)
+  - `settings` *map of string to string*, **required** — Values as written in config.toml (and env overlays), plus `output.*` from the `core.output` database document.
+  - `effective` *map of string to string*, **required** — Runtime-effective values after the last successful reload (auth, plugins).
+  - `plugins` *array of [`PluginSettingsGroup`](schemas.md#pluginsettingsgroup)*, **required** — Per-plugin setting groups rendered by the Settings UI.
+  - `host_cpu_cores_max` *number (double)*, **required** — Host max jail CPU in cores (2 d.p.; equals logical CPU count).
+  - `jail_cpu_cores` *number (double) or null* — Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).
+  - `output_revision` *integer (int64) or null* — Revision of the `core.output` document the `output.*` values in `settings` were read from; send it back as `expected_output_revision`. `effective["output.revision"]` is the revision this host has applied, which lags the document until the host's next wakeup.
+- `400` — A key is unknown or a value is invalid. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — `output.*` keys were sent with a stale `expected_output_revision`, or another write won; the body's `current_revision` is the revision to retry against (`revision_conflict`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The settings could not be written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -357,25 +363,25 @@ Copies library rows between database plugins and optionally switches `[database]
 
 `application/json`: [`DatabaseMigrateRequest`](schemas.md#databasemigraterequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `from` | string or null | no | Source plugin id. Defaults to the active `[database].plugin` before reload. |
-| `to` | string | yes | Destination database plugin id to copy into. |
-| `dry_run` | boolean | no | When true, count rows without writing. |
-| `force` | boolean | no | When true, overwrite a destination that is not empty. |
-| `apply` | boolean | no | Update `[database].plugin` in config.toml after a successful copy. |
+- `from` *string or null* — Source plugin id. Defaults to the active `[database].plugin` before reload.
+- `to` *string*, **required** — Destination database plugin id to copy into.
+- `dry_run` *boolean* — When true, count rows without writing.
+- `force` *boolean* — When true, overwrite a destination that is not empty.
+- `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The rows were copied. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 400 | The target is invalid. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The migration target matches more than one database plugin. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The copy failed. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The rows were copied. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `400` — The target is invalid. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The migration target matches more than one database plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The copy failed. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -501,12 +507,17 @@ Loads preferences for the caller with a 3s timeout, creating defaults when missi
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The caller's preferences. | [`PreferencesResponse`](schemas.md#preferencesresponse) (`application/json`) |
-| 401 | No signed-in caller. | string (`text/plain`) |
-| 500 | The request could not be read or written. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The caller's preferences. Body: [`PreferencesResponse`](schemas.md#preferencesresponse) (`application/json`)
+  - `default_view` *string*, **required** — Landing view id (`library`, `discover`, …) after normalization.
+  - `disabled_shelves` *array of string*, **required** — Lowercased Discover shelf ids the user has hidden.
+  - `discover_sort` *string*, **required** — Discover sort key (`relevance`, `popularity`, …).
+  - `discover_sort_dir` *string*, **required** — Discover sort direction (`asc` or `desc`).
+  - `discover_language` *string or null* — `null` = use browser language on the client.
+  - `discover_excluded_sources` *array of string*, **required** — Lowercased store ids hidden from Discover results.
+  - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
+- `401` — No signed-in caller. Body: string (`text/plain`)
+- `500` — The request could not be read or written. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -585,26 +596,29 @@ Merges a preferences PATCH onto the caller’s stored row and writes it back.
 
 `application/json`: [`PatchPreferencesBody`](schemas.md#patchpreferencesbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `default_view` | string or null | no | Replacement landing view when set. |
-| `disabled_shelves` | array of string or null | no | Replacement hidden-shelf list when set. |
-| `discover_sort` | string or null | no | Replacement Discover sort key when set. |
-| `discover_sort_dir` | string or null | no | Replacement Discover sort direction when set. |
-| `discover_language` | string or null | no | Present + value sets language; present + `null` clears to browser default; omitted leaves unchanged. |
-| `discover_excluded_sources` | array of string or null | no | Replacement excluded-store list when set. |
-| `theme` | string or null | no | Replacement appearance preference when set (`system`, `light`, `dark`). |
+- `default_view` *string or null* — Replacement landing view when set.
+- `disabled_shelves` *array of string or null* — Replacement hidden-shelf list when set.
+- `discover_sort` *string or null* — Replacement Discover sort key when set.
+- `discover_sort_dir` *string or null* — Replacement Discover sort direction when set.
+- `discover_language` *string or null* — Present + value sets language; present + `null` clears to browser default; omitted leaves unchanged.
+- `discover_excluded_sources` *array of string or null* — Replacement excluded-store list when set.
+- `theme` *string or null* — Replacement appearance preference when set (`system`, `light`, `dark`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The preferences after the change. | [`PreferencesResponse`](schemas.md#preferencesresponse) (`application/json`) |
-| 400 | A value is invalid. | string (`text/plain`) |
-| 401 | No signed-in caller. | string (`text/plain`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The request could not be read or written. | string (`text/plain`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The preferences after the change. Body: [`PreferencesResponse`](schemas.md#preferencesresponse) (`application/json`)
+  - `default_view` *string*, **required** — Landing view id (`library`, `discover`, …) after normalization.
+  - `disabled_shelves` *array of string*, **required** — Lowercased Discover shelf ids the user has hidden.
+  - `discover_sort` *string*, **required** — Discover sort key (`relevance`, `popularity`, …).
+  - `discover_sort_dir` *string*, **required** — Discover sort direction (`asc` or `desc`).
+  - `discover_language` *string or null* — `null` = use browser language on the client.
+  - `discover_excluded_sources` *array of string*, **required** — Lowercased store ids hidden from Discover results.
+  - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
+- `400` — A value is invalid. Body: string (`text/plain`)
+- `401` — No signed-in caller. Body: string (`text/plain`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The request could not be read or written. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

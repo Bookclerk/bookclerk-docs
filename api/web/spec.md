@@ -14,10 +14,8 @@ Serves the OpenAPI document.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The OpenAPI 3.1 document for this daemon's version. | any JSON (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The OpenAPI 3.1 document for this daemon's version. Body: any JSON (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -58,11 +56,9 @@ The same API as `GET /api/openapi.json`, restated in OpenAPI 3.0.3 form for tool
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The OpenAPI 3.0.3 document for this daemon's version. | any JSON (`application/json`) |
-| 500 | The document could not be restated; this is a bug. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The OpenAPI 3.0.3 document for this daemon's version. Body: any JSON (`application/json`)
+- `500` — The document could not be restated; this is a bug. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

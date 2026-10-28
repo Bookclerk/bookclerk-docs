@@ -14,9 +14,8 @@ Serves `GET /health` with a static `ok` payload for liveness probes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The daemon is serving HTTP. | [`HealthResponse`](schemas.md#healthresponse) (`application/json`) |
+- `200` — The daemon is serving HTTP. Body: [`HealthResponse`](schemas.md#healthresponse) (`application/json`)
+  - `status` *string*, **required** — Always `ok` when the process can serve HTTP.
 
 ### Example request
 

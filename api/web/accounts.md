@@ -16,19 +16,15 @@ Redeems a claim ticket, optionally setting a first password, and sets the sessio
 
 `application/json`: [`RedeemBody`](schemas.md#redeembody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `ticket` | string | yes | Raw claim-ticket token to redeem into a portal session. |
-| `nonce` | string | yes | Browser-generated one-time nonce persisted across HTTP retries. |
-| `password` | string or null | no | Required when the linked local user has no password (invite / reset). |
+- `ticket` *string*, **required** — Raw claim-ticket token to redeem into a portal session.
+- `nonce` *string*, **required** — Browser-generated one-time nonce persisted across HTTP retries.
+- `password` *string or null* — Required when the linked local user has no password (invite / reset).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in; the response sets the portal session cookie. | any JSON (`application/json`) |
-| 400 | The ticket is invalid, used or expired. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
+- `400` — The ticket is invalid, used or expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -101,19 +97,15 @@ Authenticates against an enabled integration and mints a portal session.
 
 `application/json`: [`IntegrationLoginBody`](schemas.md#integrationloginbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `provider` | string | yes | Integration plugin id (must be enabled in config). |
-| `username` | string | yes | Provider login name forwarded to `authenticate_user`. |
-| `password` | string | yes | Provider password; never logged. |
+- `provider` *string*, **required** — Integration plugin id (must be enabled in config).
+- `username` *string*, **required** — Provider login name forwarded to `authenticate_user`.
+- `password` *string*, **required** — Provider password; never logged.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed in through the integration. | any JSON (`application/json`) |
-| 400 | The request is invalid, or the integration refused the login. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed in through the integration. Body: any JSON (`application/json`)
+- `400` — The request is invalid, or the integration refused the login. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -184,11 +176,9 @@ Revokes the portal session row and clears the session cookie.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Signed out (`{"ok": true}`); the cookie is cleared. | any JSON (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Signed out (`{"ok": true}`); the cookie is cleared. Body: any JSON (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -251,11 +241,12 @@ Returns the signed-in portal identity, or 401 when the cookie is missing or expi
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The signed-in identity. | [`MeResponse`](schemas.md#meresponse) (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The signed-in identity. Body: [`MeResponse`](schemas.md#meresponse) (`application/json`)
+  - `provider` *string*, **required** — Identity provider id (`local` or an integration plugin id).
+  - `external_user_id` *string*, **required** — Provider-scoped user id stored on the portal identity row.
+  - `label` *string or null* — Optional display label from the identity row.
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -331,10 +322,9 @@ instance) with portal auth mode, config options, and brand colors.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Deployed content sources. | [`SourcesResponse`](schemas.md#sourcesresponse) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Deployed content sources. Body: [`SourcesResponse`](schemas.md#sourcesresponse) (`application/json`)
+  - `sources` *array of [`SourceInfo`](schemas.md#sourceinfo)*, **required** — Enabled storefronts the SPA may offer for connect / login.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -404,28 +394,22 @@ Connects a password storefront, upserts the account, and links it to the signed-
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Source plugin id. |
+- `id` (path) *string*, **required** — Source plugin id.
 
 ### Request body
 
 `application/json`: [`PasswordLoginBody`](schemas.md#passwordloginbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `email` | string | yes | Store account email / username. |
-| `password` | string | yes | Store account password; never logged. |
+- `email` *string*, **required** — Store account email / username.
+- `password` *string*, **required** — Store account password; never logged.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The account was connected. | any JSON (`application/json`) |
-| 400 | The login failed. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The account was connected. Body: any JSON (`application/json`)
+- `400` — The login failed. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -523,19 +507,15 @@ Starts interactive OAuth for an OAuth storefront and returns the browser login U
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Source plugin id. |
+- `id` (path) *string*, **required** — Source plugin id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The browser login URL. | any JSON (`application/json`) |
-| 400 | The source does not use OAuth. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The browser login URL. Body: any JSON (`application/json`)
+- `400` — The source does not use OAuth. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -630,19 +610,15 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
 
 `application/json`: [`PasswordLoginBody`](schemas.md#passwordloginbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `email` | string | yes | Store account email / username. |
-| `password` | string | yes | Store account password; never logged. |
+- `email` *string*, **required** — Store account email / username.
+- `password` *string*, **required** — Store account password; never logged.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The account was connected. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The account was connected. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -734,12 +710,10 @@ Legacy `POST /audible/start` alias that forwards to Audible OAuth start.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The browser login URL. | any JSON (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The browser login URL. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -822,11 +796,10 @@ Lists store accounts linked to the signed-in identity, including disabled source
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Store accounts linked to the caller. | [`ConnectionsResponse`](schemas.md#connectionsresponse) (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Store accounts linked to the caller. Body: [`ConnectionsResponse`](schemas.md#connectionsresponse) (`application/json`)
+  - `connections` *array of [`ConnectionInfo`](schemas.md#connectioninfo)*, **required** — Linked store accounts the SPA may show or revoke.
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -920,20 +893,16 @@ store (for example, Audible deregisters its device), best effort.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `source` | path | string | yes | Source plugin id. |
-| `account_id` | path | string | yes | Store account id. |
+- `source` (path) *string*, **required** — Source plugin id.
+- `account_id` (path) *string*, **required** — Store account id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The account was unlinked. | any JSON (`application/json`) |
-| 400 | The account is not linked to this identity. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 401 | The caller is not signed in. | [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`) |
-| 403 | A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The account was unlinked. Body: any JSON (`application/json`)
+- `400` — The account is not linked to this identity. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

@@ -14,9 +14,19 @@ Serves the OIDC discovery document for registered clients.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The OIDC discovery document. | [`DiscoveryDocument`](schemas.md#discoverydocument) (`application/json`) |
+- `200` — The OIDC discovery document. Body: [`DiscoveryDocument`](schemas.md#discoverydocument) (`application/json`)
+  - `issuer` *string*, **required** — Issuer origin used as `iss` in minted JWTs (`public_origin` or loopback).
+  - `authorization_endpoint` *string*, **required** — Absolute URL of the authorization endpoint (`/oidc/authorize`).
+  - `token_endpoint` *string*, **required** — Absolute URL of the token endpoint (`/oidc/token`).
+  - `userinfo_endpoint` *string*, **required** — Absolute URL of the userinfo endpoint (`/oidc/userinfo`).
+  - `revocation_endpoint` *string*, **required** — Absolute URL of the refresh-token revocation endpoint (`/oidc/revoke`).
+  - `response_types_supported` *array of string*, **required** — Supported `response_type` values; this server only issues `code`.
+  - `grant_types_supported` *array of string*, **required** — Supported token grants: `authorization_code` and `refresh_token`.
+  - `code_challenge_methods_supported` *array of string*, **required** — PKCE methods; only S256 is accepted (`plain` is rejected).
+  - `scopes_supported` *array of string*, **required** — Scopes advertised to clients (`openid`, `profile`, and `email`).
+  - `subject_types_supported` *array of string*, **required** — Subject identifier types; only public (stable user id) is used.
+  - `id_token_signing_alg_values_supported` *array of string*, **required** — ID-token signing algorithms; tokens are HS256 with a derived key.
+  - `token_endpoint_auth_methods_supported` *array of string*, **required** — Client auth methods: public PKCE (`none`) or `client_secret_post`.
 
 ### Example request
 
@@ -90,22 +100,18 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `client_id` | query | string | yes | Registered OIDC client id (must exist in the library store). |
-| `redirect_uri` | query | string | yes | Redirect URI; must match a URI registered for the client. |
-| `response_type` | query | string | yes | OAuth `response_type`; only `code` is accepted. |
-| `scope` | query | string | no | Space-separated scopes; defaults to `openid profile` when omitted. |
-| `state` | query | string | no | Opaque CSRF value echoed back on the redirect. |
-| `code_challenge` | query | string | yes | PKCE S256 challenge (base64url SHA-256 of the verifier). |
-| `code_challenge_method` | query | string | no | PKCE method; omitted is treated as `plain` and then rejected. |
+- `client_id` (query) *string*, **required** — Registered OIDC client id (must exist in the library store).
+- `redirect_uri` (query) *string*, **required** — Redirect URI; must match a URI registered for the client.
+- `response_type` (query) *string*, **required** — OAuth `response_type`; only `code` is accepted.
+- `scope` (query) *string* — Space-separated scopes; defaults to `openid profile` when omitted.
+- `state` (query) *string* — Opaque CSRF value echoed back on the redirect.
+- `code_challenge` (query) *string*, **required** — PKCE S256 challenge (base64url SHA-256 of the verifier).
+- `code_challenge_method` (query) *string* — PKCE method; omitted is treated as `plain` and then rejected.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects to sign-in, the consent page, or the client. |  |
-| 400 | The request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `302` — Redirects to sign-in, the consent page, or the client. No body.
+- `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -160,25 +166,21 @@ Completes consent: deny redirects with `access_denied`, grant issues a code.
 
 `application/x-www-form-urlencoded`: [`ConsentBody`](schemas.md#consentbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `client_id` | string | yes | Registered OIDC client id (must exist in the library store). |
-| `redirect_uri` | string | yes | Redirect URI; must match a URI registered for the client. |
-| `response_type` | string | yes | OAuth `response_type`; only `code` is accepted. |
-| `scope` | string or null | no | Space-separated scopes; defaults to `openid profile` when omitted. |
-| `state` | string or null | no | Opaque CSRF value echoed back on the redirect. |
-| `code_challenge` | string | yes | PKCE S256 challenge (base64url SHA-256 of the verifier). |
-| `code_challenge_method` | string or null | no | PKCE method; omitted is treated as `plain` and then rejected. |
-| `consent` | string or null | no | `deny` aborts with `access_denied`; any other value proceeds to issue a code. |
+- `client_id` *string*, **required** — Registered OIDC client id (must exist in the library store).
+- `redirect_uri` *string*, **required** — Redirect URI; must match a URI registered for the client.
+- `response_type` *string*, **required** — OAuth `response_type`; only `code` is accepted.
+- `scope` *string or null* — Space-separated scopes; defaults to `openid profile` when omitted.
+- `state` *string or null* — Opaque CSRF value echoed back on the redirect.
+- `code_challenge` *string*, **required** — PKCE S256 challenge (base64url SHA-256 of the verifier).
+- `code_challenge_method` *string or null* — PKCE method; omitted is treated as `plain` and then rejected.
+- `consent` *string or null* — `deny` aborts with `access_denied`; any other value proceeds to issue a code.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 302 | Redirects to the client with a code or `access_denied`. |  |
-| 400 | The request is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | An operator token was sent, or the user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `302` — Redirects to the client with a code or `access_denied`. No body.
+- `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — An operator token was sent, or the user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -279,23 +281,25 @@ Dispatches token grants; unknown `grant_type` values return 400.
 
 `application/x-www-form-urlencoded`: [`TokenForm`](schemas.md#tokenform)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `grant_type` | string | yes | Grant: `authorization_code` or `refresh_token`; anything else is 400. |
-| `code` | string or null | no | Authorization code from the redirect (`authorization_code` grant). |
-| `redirect_uri` | string or null | no | Must match the URI bound to the consumed authorization code. |
-| `client_id` | string or null | no | Client id; required for code exchange, optional (but checked) on refresh. |
-| `client_secret` | string or null | no | Client secret for confidential clients (`client_secret_post`). |
-| `code_verifier` | string or null | no | PKCE verifier; SHA-256 must match the stored challenge. |
-| `refresh_token` | string or null | no | Refresh token to rotate (`refresh_token` grant). |
+- `grant_type` *string*, **required** — Grant: `authorization_code` or `refresh_token`; anything else is 400.
+- `code` *string or null* — Authorization code from the redirect (`authorization_code` grant).
+- `redirect_uri` *string or null* — Must match the URI bound to the consumed authorization code.
+- `client_id` *string or null* — Client id; required for code exchange, optional (but checked) on refresh.
+- `client_secret` *string or null* — Client secret for confidential clients (`client_secret_post`).
+- `code_verifier` *string or null* — PKCE verifier; SHA-256 must match the stored challenge.
+- `refresh_token` *string or null* — Refresh token to rotate (`refresh_token` grant).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Tokens. | [`TokenResponse`](schemas.md#tokenresponse) (`application/json`) |
-| 400 | The grant is invalid or unsupported. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The client failed to authenticate. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `200` — Tokens. Body: [`TokenResponse`](schemas.md#tokenresponse) (`application/json`)
+  - `access_token` *string*, **required** — HS256 JWT access token bound to the User (`token_use=access`).
+  - `token_type` *string*, **required** — Always `Bearer` for this server.
+  - `expires_in` *integer (int64)*, **required** — Access-token lifetime in seconds (same as [`ACCESS_TTL_SECS`]).
+  - `refresh_token` *string or null* — Opaque refresh token when the client is allowed to receive one.
+  - `id_token` *string*, **required** — HS256 ID token; profile/email claims follow the granted scope.
+  - `scope` *string*, **required** — Space-separated scopes granted to this token pair.
+- `400` — The grant is invalid or unsupported. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The client failed to authenticate. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -385,12 +389,10 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Claims for the token's user. | any JSON (`application/json`) |
-| 401 | The access token is missing or invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The token's user is disabled. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The user could not be read. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `200` — Claims for the token's user. Body: any JSON (`application/json`)
+- `401` — The access token is missing or invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The token's user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The user could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -477,16 +479,12 @@ Best-effort refresh-token revoke; always returns 200 per RFC 7009.
 
 `application/x-www-form-urlencoded`: [`RevokeForm`](schemas.md#revokeform)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `token` | string | yes | Token to revoke; treated as a refresh token (hashed before lookup). |
-| `token_type_hint` | string or null | no | Optional hint ignored; this server only stores refresh tokens. |
+- `token` *string*, **required** — Token to revoke; treated as a refresh token (hashed before lookup).
+- `token_type_hint` *string or null* — Optional hint ignored; this server only stores refresh tokens.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Always 200 (RFC 7009). |  |
+- `200` — Always 200 (RFC 7009). No body.
 
 ### Example request
 
@@ -541,14 +539,12 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Registered clients (no secrets). | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Registered clients (no secrets). Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -647,28 +643,24 @@ Create a client; confidential clients return the generated secret once.
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
-| `name` | string or null | no | Operator-facing display name. |
-| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
-| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
-| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
-| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
-| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
-| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+- `client_id` *string or null* — Public client_id (create only; path wins on update).
+- `name` *string or null* — Operator-facing display name.
+- `redirect_uris` *array of string* — Allowed OAuth redirect URIs.
+- `confidential` *boolean* — When true, mint a client secret (confidential). When false, public PKCE.
+- `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
+- `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
+- `enabled` *boolean* — When true, authorize and token endpoints accept this client.
+- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The client; a confidential client's secret appears once. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | A client with this id already exists. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The client; a confidential client's secret appears once. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — A client with this id already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -785,36 +777,30 @@ Update redirects, name, scopes, and public/confidential mode (no secret echo unl
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `client_id` | path | string | yes | Client id. |
+- `client_id` (path) *string*, **required** — Client id.
 
 ### Request body
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
-| `name` | string or null | no | Operator-facing display name. |
-| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
-| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
-| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
-| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
-| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
-| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+- `client_id` *string or null* — Public client_id (create only; path wins on update).
+- `name` *string or null* — Operator-facing display name.
+- `redirect_uris` *array of string* — Allowed OAuth redirect URIs.
+- `confidential` *boolean* — When true, mint a client secret (confidential). When false, public PKCE.
+- `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
+- `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
+- `enabled` *boolean* — When true, authorize and token endpoints accept this client.
+- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The client after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such client. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The client after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -931,9 +917,7 @@ Delete a registered client.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `client_id` | path | string | yes | Client id. |
+- `client_id` (path) *string*, **required** — Client id.
 
 ### Request body
 
@@ -941,29 +925,25 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 
 `application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `client_id` | string or null | no | Public client_id (create only; path wins on update). |
-| `name` | string or null | no | Operator-facing display name. |
-| `redirect_uris` | array of string | no | Allowed OAuth redirect URIs. |
-| `confidential` | boolean | no | When true, mint a client secret (confidential). When false, public PKCE. |
-| `issue_refresh_token` | boolean | no | When true, token responses include a refresh token. |
-| `allowed_scopes` | array of string | no | Scopes this client may request (`openid`, `profile`, `email`). |
-| `enabled` | boolean | no | When true, authorize and token endpoints accept this client. |
-| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+- `client_id` *string or null* — Public client_id (create only; path wins on update).
+- `name` *string or null* — Operator-facing display name.
+- `redirect_uris` *array of string* — Allowed OAuth redirect URIs.
+- `confidential` *boolean* — When true, mint a client secret (confidential). When false, public PKCE.
+- `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
+- `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
+- `enabled` *boolean* — When true, authorize and token endpoints accept this client.
+- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 204 | The client was deleted. |  |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such client. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The client is provided by a plugin; disable it instead. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `204` — The client was deleted. No body.
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The client is provided by a plugin; disable it instead. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1090,9 +1070,7 @@ Mint a new secret for a confidential client; plaintext is returned once.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `client_id` | path | string | yes | Client id. |
+- `client_id` (path) *string*, **required** — Client id.
 
 ### Request body
 
@@ -1100,21 +1078,17 @@ Optional.
 
 `application/json`: [`RotateSecretBody`](schemas.md#rotatesecretbody) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `current_password` | string or null | no | Required for a non-elevated Owner whose portal session is older than 15 minutes. |
+- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The new secret (shown once). | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such client. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The new secret (shown once). Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

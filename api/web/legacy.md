@@ -16,12 +16,20 @@ Deprecated alias of `GET /api/status`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Library counts and daemon state. | [`StatusResponse`](schemas.md#statusresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The library could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
+- `200` — Library counts and daemon state. Body: [`StatusResponse`](schemas.md#statusresponse) (`application/json`)
+  - `accounts` *integer*, **required** — Count of configured store accounts. At least 0.
+  - `books` *integer*, **required** — Total title rows in the library. At least 0.
+  - `acquired` *integer (int64)*, **required** — Titles whose `acquire_status` is `acquired`.
+  - `pending` *integer (int64)*, **required** — Titles still needing acquire (`not_acquired`).
+  - `error` *integer (int64)*, **required** — Titles stuck in `error` after a failed acquire.
+  - `in_progress` *integer (int64)*, **required** — Titles currently `queued` or `downloading`.
+  - `listen` *string*, **required** — Comma-joined `daemon.listen` addresses from live config.
+  - `storage_backend` *string*, **required** — Comma-joined enabled destination plugin ids, or `none`.
+  - `auth_enabled` *boolean*, **required** — Whether the live auth middleware requires operator credentials.
+  - `events` *[`EventQueueStatus`](schemas.md#eventqueuestatus)*, **required** — Durable domain-event delivery-queue counters.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 
 ### Example request
 
@@ -139,18 +147,19 @@ Optional.
 
 `application/json`: [`ScanRequest`](schemas.md#scanrequest) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `account` | string or null | no | When set, scan this account even if `scan_enabled` is false. |
-| `plugin_instance_id` | string or null | no | When set, scan only this deployed plugin instance. |
+- `account` *string or null* — When set, scan this account even if `scan_enabled` is false.
+- `plugin_instance_id` *string or null* — When set, scan only this deployed plugin instance.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The scan jobs were accepted; see `POST /api/library/scan` for the other answers. | [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `200` — The scan jobs were accepted; see `POST /api/library/scan` for the other answers. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -253,25 +262,25 @@ Optional.
 
 `application/json`: [`AcquireRequestBody`](schemas.md#acquirerequestbody) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `asin` | string or null | no | Audible ASIN filter; first of uuid/asin/isbn/product_id wins. |
-| `uuid` | string or null | no | Library title UUID filter. |
-| `isbn` | string or null | no | ISBN filter for non-Audible stores. |
-| `product_id` | string or null | no | Store product id filter. |
-| `account` | string or null | no | Restrict acquire to this store account. |
-| `plugin_instance_id` | string or null | no | When set, fetch through this deployed plugin instance. |
-| `titles` | array of string | no | More title ids; each (with the single filter above) becomes its own job. |
-| `force` | boolean | no | Re-download titles already acquired. |
-| `pdf_only` | boolean | no | Fetch only each title's companion PDF. |
+- `asin` *string or null* — Audible ASIN filter; first of uuid/asin/isbn/product_id wins.
+- `uuid` *string or null* — Library title UUID filter.
+- `isbn` *string or null* — ISBN filter for non-Audible stores.
+- `product_id` *string or null* — Store product id filter.
+- `account` *string or null* — Restrict acquire to this store account.
+- `plugin_instance_id` *string or null* — When set, fetch through this deployed plugin instance.
+- `titles` *array of string* — More title ids; each (with the single filter above) becomes its own job.
+- `force` *boolean* — Re-download titles already acquired.
+- `pdf_only` *boolean* — Fetch only each title's companion PDF.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The acquire jobs were accepted; see `POST /api/library/acquire` for the other answers. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `200` — The acquire jobs were accepted; see `POST /api/library/acquire` for the other answers. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -367,12 +376,20 @@ Deprecated alias of `GET /api/jobs`.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Jobs, newest first. | array of [`JobInfo`](schemas.md#jobinfo) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The job table could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
+- `200` — Jobs, newest first. Body: array of [`JobInfo`](schemas.md#jobinfo) (`application/json`)
+  - `id` *string*, **required** — Opaque job id returned to the client when the job is accepted.
+  - `kind` *[`JobKind`](schemas.md#jobkind)*, **required** — What the job does.
+  - `status` *[`JobState`](schemas.md#jobstate)*, **required** — Where the job is in its lifecycle.
+  - `detail` *string or null* — Optional operator-facing progress or error text.
+  - `progress` *string or null* — Human-readable progress string while the job is running.
+  - `attempt_count` *integer (int64)* — Number of times a worker has claimed this row.
+  - `max_attempts` *integer (int64)* — Maximum claims before a failure is terminal.
+  - `error_kind` *string or null* — Structured error kind when failed or cancelled.
+  - `created_at` *string or null* — RFC 3339 timestamp when the row was inserted.
+  - `finished_at` *string or null* — RFC 3339 timestamp when the row reached a terminal state.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The job table could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 
 ### Example request
 
@@ -476,18 +493,18 @@ Deprecated alias of `POST /api/jobs/{id}/cancel`.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Job id. |
+- `id` (path) *string*, **required** — Job id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The job was cancelled or asked to stop. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such job. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
+- `200` — The job was cancelled or asked to stop. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such job. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 
 ### Example request
 
@@ -584,9 +601,7 @@ Enqueues a remote integration library scan; 404 if missing, 400 if unsupported.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Integration instance id. |
+- `id` (path) *string*, **required** — Integration instance id.
 
 ### Request body
 
@@ -594,23 +609,23 @@ Optional.
 
 `application/json`: [`IntegrationScanRequest`](schemas.md#integrationscanrequest) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `force` | boolean or null | no | When true, the integration rescans even if it considers itself current. |
+- `force` *boolean or null* — When true, the integration rescans even if it considers itself current.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The job was accepted. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 400 | The integration cannot scan a library. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No integration with this id. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 409 | The same job is already pending or running, or no node can run it. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 429 | The job queue is full. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 500 | The job could not be queued. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 503 | Job admission is paused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
+- `200` — The job was accepted. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `400` — The integration cannot scan a library. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No integration with this id. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `409` — The same job is already pending or running, or no node can run it. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `429` — The job queue is full. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `500` — The job could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `503` — Job admission is paused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
 
 ### Example request
 

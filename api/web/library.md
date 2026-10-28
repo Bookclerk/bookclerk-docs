@@ -23,23 +23,24 @@ Optional.
 
 `application/json`: [`ScanRequest`](schemas.md#scanrequest) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `account` | string or null | no | When set, scan this account even if `scan_enabled` is false. |
-| `plugin_instance_id` | string or null | no | When set, scan only this deployed plugin instance. |
+- `account` *string or null* — When set, scan this account even if `scan_enabled` is false.
+- `plugin_instance_id` *string or null* — When set, scan only this deployed plugin instance.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The scan jobs were accepted. | [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`) |
-| 400 | The body names no valid target. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not scan these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 409 | A scan is already pending or running. | [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`) |
-| 422 | No account matched. | [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`) |
-| 429 | The job queue is full. | [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The scan jobs were accepted. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `400` — The body names no valid target. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not scan these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `409` — A scan is already pending or running. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+- `422` — No account matched. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+- `429` — The job queue is full. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -201,31 +202,31 @@ Optional.
 
 `application/json`: [`AcquireRequestBody`](schemas.md#acquirerequestbody) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `asin` | string or null | no | Audible ASIN filter; first of uuid/asin/isbn/product_id wins. |
-| `uuid` | string or null | no | Library title UUID filter. |
-| `isbn` | string or null | no | ISBN filter for non-Audible stores. |
-| `product_id` | string or null | no | Store product id filter. |
-| `account` | string or null | no | Restrict acquire to this store account. |
-| `plugin_instance_id` | string or null | no | When set, fetch through this deployed plugin instance. |
-| `titles` | array of string | no | More title ids; each (with the single filter above) becomes its own job. |
-| `force` | boolean | no | Re-download titles already acquired. |
-| `pdf_only` | boolean | no | Fetch only each title's companion PDF. |
+- `asin` *string or null* — Audible ASIN filter; first of uuid/asin/isbn/product_id wins.
+- `uuid` *string or null* — Library title UUID filter.
+- `isbn` *string or null* — ISBN filter for non-Audible stores.
+- `product_id` *string or null* — Store product id filter.
+- `account` *string or null* — Restrict acquire to this store account.
+- `plugin_instance_id` *string or null* — When set, fetch through this deployed plugin instance.
+- `titles` *array of string* — More title ids; each (with the single filter above) becomes its own job.
+- `force` *boolean* — Re-download titles already acquired.
+- `pdf_only` *boolean* — Fetch only each title's companion PDF.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The acquire jobs were accepted. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 400 | The body names no valid title. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not acquire for these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 409 | The same acquire is already pending or running, or no node can run it. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 429 | The job queue is full. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 500 | The jobs could not be queued. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 503 | Job admission is paused. | [`ActionResponse`](schemas.md#actionresponse) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The acquire jobs were accepted. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `400` — The body names no valid title. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not acquire for these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `409` — The same acquire is already pending or running, or no node can run it. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `429` — The job queue is full. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `500` — The jobs could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `503` — Job admission is paused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -377,23 +378,23 @@ Lists or searches library titles with optional account/status filters and pagina
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `account` | query | string | no | Restrict results to this store account id. |
-| `status` | query | string | no | Optional `AcquireStatus` wire-string filter. |
-| `q` | query | string | no | Full-text search query; empty skips the search index. |
-| `limit` | query | integer | no | Page size, clamped to 1–500 (default 40). |
-| `offset` | query | integer | no | Number of matching titles to skip. |
+- `account` (query) *string* — Restrict results to this store account id.
+- `status` (query) *string* — Optional `AcquireStatus` wire-string filter.
+- `q` (query) *string* — Full-text search query; empty skips the search index.
+- `limit` (query) *integer* — Page size, clamped to 1–500 (default 40).
+- `offset` (query) *integer* — Number of matching titles to skip.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | A page of titles. | [`BooksResponse`](schemas.md#booksresponse) (`application/json`) |
-| 400 | A filter is invalid. | any JSON (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The library could not be read. | any JSON (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — A page of titles. Body: [`BooksResponse`](schemas.md#booksresponse) (`application/json`)
+  - `books` *array of [`BookRecord`](schemas.md#bookrecord)*, **required** — Current page of title records.
+  - `total` *integer*, **required** — Match count before pagination. At least 0.
+  - `limit` *integer*, **required** — Applied page size. At least 0.
+  - `offset` *integer*, **required** — Applied skip count. At least 0.
+- `400` — A filter is invalid. Body: any JSON (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The library could not be read. Body: any JSON (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -518,19 +519,57 @@ Returns one title by UUID, or 404 when it is absent.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `uuid` | path | string | yes | Title UUID. |
+- `uuid` (path) *string*, **required** — Title UUID.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The title. | [`BookRecord`](schemas.md#bookrecord) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such title. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 500 | The library could not be read. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The title. Body: [`BookRecord`](schemas.md#bookrecord) (`application/json`)
+  - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
+  - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
+  - `plugin_key` *string*, **required** — Provenance-qualified PluginKey that owns the account.
+  - `source` *string*, **required** — Display alias of the owning plugin (`audible`, `libro`, …).
+  - `account_id` *string*, **required** — Store or operator account id this row belongs to.
+  - `product_id` *string*, **required** — Storefront product id (ASIN, ISBN, UUID, …).
+  - `asin` *string or null* — Audible ASIN when known (`None` for Libro-only rows without enrichment).
+  - `isbn` *string or null* — ISBN-13 when known (Libro always; Audible when the API provides it).
+  - `marketplace` *string*, **required** — Store marketplace / locale code (for example `us`, `uk`).
+  - `title` *string*, **required** — Display title of the work or edition.
+  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
+  - `narrators` *string or null* — Comma-separated or JSON narrator list when present.
+  - `series` *string or null* — Series name when the title belongs to a series.
+  - `series_index` *string or null* — Position within the series (storefront string form).
+  - `series_asin` *string or null* — Audible series / podcast-parent ASIN (`Series.AudibleSeriesId`).
+  - `acquire_status` *[`AcquireStatus`](schemas.md#acquirestatus)*, **required** — Download/acquire pipeline state (`not_acquired`, `queued`, …).
+  - `storage_key` *string or null* — Object-storage key for the primary audio artifact, if acquired.
+  - `error_message` *string or null* — Last acquire/convert failure message for operators.
+  - `purchased_at` *string (date-time) or null* — RFC 3339 purchase time from the storefront, when known.
+  - `tags` *string or null* — Operator or storefront tags (serialized string).
+  - `rating_overall` *number (float) or null* — Overall user rating from the storefront, if any.
+  - `rating_performance` *number (float) or null* — Narration/performance rating from the storefront, if any.
+  - `rating_story` *number (float) or null* — Story rating from the storefront, if any.
+  - `is_finished` *boolean*, **required** — Whether the listener marked the title finished (0/1 or bool).
+  - `pdf_status` *[`AcquireStatus`](schemas.md#acquirestatus)*, **required** — Companion PDF acquire state (`not_acquired`, `acquired`, …).
+  - `pdf_storage_key` *string or null* — Object-storage key for the companion PDF, if present.
+  - `publisher` *string or null* — Publisher name from metadata enrichment or the storefront.
+  - `length_minutes` *integer (int64) or null* — Runtime in whole minutes when the storefront reports it.
+  - `is_abridged` *boolean*, **required** — Whether the edition is abridged (0/1 or bool).
+  - `content_kind` *string*, **required** — Title kind: `book`, `episode`, `podcast`, ….
+  - `categories` *string or null* — Storefront category / genre path list (serialized).
+  - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
+  - `published_at` *string (date-time) or null* — Publication date string from the storefront or enrichment.
+  - `description` *string or null* — Blurb / synopsis text (may contain HTML).
+  - `language` *string or null* — BCP-47 or storefront language code when known.
+  - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `subjects` *string or null* — Subject / topic tags (often from Open Library; `;`- or `,`-separated).
+  - `enrich_source` *string or null* — Plugin or catalog that last enriched bibliographic fields.
+  - `enrich_confidence` *number (double) or null* — 0–1 confidence score for the last enrichment pass.
+  - `enrich_updated_at` *string (date-time) or null* — RFC 3339 time of the last enrichment write.
+  - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
+  - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such title. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -665,18 +704,14 @@ when no local destination runs on this node.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `uuid` | path | string | yes | Title UUID. |
+- `uuid` (path) *string*, **required** — Title UUID.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The cover. | binary (`image/jpeg`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such title, or it has no cover. | [`ErrorJson`](schemas.md#errorjson) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The cover. Body: binary (`image/jpeg`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such title, or it has no cover. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

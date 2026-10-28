@@ -15,29 +15,23 @@ labels. The scheduler re-plans on the wakeup this publishes.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `node_id` | path | string | yes | Node id. |
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Request body
 
 `application/json`: [`PutNodeLabels`](schemas.md#putnodelabels)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `labels` | array of string | yes | The node's complete operator label set. |
+- `labels` *array of string*, **required** — The node's complete operator label set.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The node's labels after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The node's labels after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -156,29 +150,23 @@ authority.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `node_id` | path | string | yes | Node id. |
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Request body
 
 `application/json`: [`PutNodeOwner`](schemas.md#putnodeowner)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `user_id` | integer (int64) or null (int64) | no | User who owns the node, or `null` to clear. |
+- `user_id` *integer (int64) or null* — User who owns the node, or `null` to clear.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The node's owner after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The node's owner after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -295,14 +283,12 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Pending and granted cluster consents. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Pending and granted cluster consents. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -401,9 +387,7 @@ what that user may scan; the answer lists the queued job ids.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `cluster_id` | path | string | yes | Owner cluster id. |
+- `cluster_id` (path) *string*, **required** — Owner cluster id.
 
 ### Request body
 
@@ -411,23 +395,19 @@ Optional.
 
 `application/json`: [`ClusterScanBody`](schemas.md#clusterscanbody) or null
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `account` | string or null | no | Scan only this store account of the owner cluster. |
-| `plugin_instance_id` | string or null | no | Pin every planned job to this owner plugin instance. |
+- `account` *string or null* — Scan only this store account of the owner cluster.
+- `plugin_instance_id` *string or null* — Pin every planned job to this owner plugin instance.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The owner cluster accepted the scan. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such cluster. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The owner cluster could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The owner cluster accepted the scan. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such cluster. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The owner cluster could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -555,30 +535,24 @@ this node may see (those it would be trusted to claim).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `cluster_id` | path | string | yes | Owner cluster id. |
+- `cluster_id` (path) *string*, **required** — Owner cluster id.
 
 ### Request body
 
 `application/json`: [`ClusterJobsBody`](schemas.md#clusterjobsbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `job_ids` | array of string | yes | Job ids on the owner cluster. |
+- `job_ids` *array of string*, **required** — Job ids on the owner cluster.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The owner's jobs for these accounts. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such cluster. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The owner cluster could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The owner's jobs for these accounts. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such cluster. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The owner cluster could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -707,26 +681,22 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`ApproveBody`](schemas.md#approvebody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `cluster_id` | string | yes | Owner cluster id. |
-| `plugin_key` | string | yes | Canonical plugin key. |
-| `request_digest` | string | yes | The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one). |
-| `deny_domains` | array of string | no | Domains to take out of the request. No duplicates. |
-| `deny_bindings` | array of string | no | Bindings to take out of the request. No duplicates. |
-| `deny_network` | boolean | no | Deny all network access. |
+- `cluster_id` *string*, **required** — Owner cluster id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `request_digest` *string*, **required** — The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one).
+- `deny_domains` *array of string* — Domains to take out of the request. No duplicates.
+- `deny_bindings` *array of string* — Bindings to take out of the request. No duplicates.
+- `deny_network` *boolean* — Deny all network access.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The consent was granted. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such consent. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The consent was granted. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such consent. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -845,22 +815,18 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`RevokeBody`](schemas.md#revokebody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `cluster_id` | string | yes | Owner cluster id. |
-| `plugin_key` | string | yes | Canonical plugin key. |
+- `cluster_id` *string*, **required** — Owner cluster id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The consent was revoked. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such consent. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The consent was revoked. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such consent. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -977,14 +943,12 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Whether this install has joined a library, and its state. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Whether this install has joined a library, and its state. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1083,21 +1047,17 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`InspectBody`](schemas.md#inspectbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `address` | string | yes | The library's address (`https://owner.example`, `owner.lan:8443`). |
+- `address` *string*, **required** — The library's address (`https://owner.example`, `owner.lan:8443`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | What the library says about itself. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — What the library says about itself. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The library could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1216,25 +1176,21 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`StartBody`](schemas.md#startbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `address` | string | yes | The library's address. |
-| `fingerprint` | string or null | no | The fingerprint the operator confirmed (self-signed libraries). |
-| `branch_name` | string or null | no | The name to join as (default: this machine's name). |
-| `clerk` | boolean | no | Offer to join as a clerk (an owner node that shares the library's database): only an empty install may, and its data is replaced. |
+- `address` *string*, **required** — The library's address.
+- `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
+- `branch_name` *string or null* — The name to join as (default: this machine's name).
+- `clerk` *boolean* — Offer to join as a clerk (an owner node that shares the library's database): only an empty install may, and its data is replaced.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The library's sign-in URL to open. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | A join is already in progress or done. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The library's sign-in URL to open. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — A join is already in progress or done. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The library could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1367,25 +1323,21 @@ on success, refusal, or anything else.
 
 `application/json`: [`CallbackBody`](schemas.md#callbackbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | string | no | The code from the library. |
-| `state` | string | no | The `state` it came back with. |
-| `error` | string or null | no | The library's `error` (`access_denied`), when it sent one. |
-| `connection` | string or null | no | The connection type the library's user chose (`clerk`; a branch when left out). The code is bound to it, so a changed value only fails the redeem. |
+- `code` *string* — The code from the library.
+- `state` *string* — The `state` it came back with.
+- `error` *string or null* — The library's `error` (`access_denied`), when it sent one.
+- `connection` *string or null* — The connection type the library's user chose (`clerk`; a branch when left out). The code is bound to it, so a changed value only fails the redeem.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The join completed. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route, or the library refused the sign-in (`denied`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 410 | The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The join completed. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route, or the library refused the sign-in (`denied`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `410` — The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The library could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1517,21 +1469,17 @@ while the join carries on and starts its client when it lands.
 
 `application/json`: [`InviteBody`](schemas.md#invitebody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `link` | string | yes | The whole branch invite (`https://<library>/enroll#bcn1...`). |
+- `link` *string*, **required** — The whole branch invite (`https://<library>/enroll#bcn1...`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The join completed. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 502 | The library could not be reached. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The library is slow to answer; the join goes on in the background (`join_pending`). Poll the join state instead of retrying. | [`ApiError`](schemas.md#apierror) (`application/json`) |
+- `200` — The join completed. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `502` — The library could not be reached. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The library is slow to answer; the join goes on in the background (`join_pending`). Poll the join state instead of retrying. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
 
 ### Example request
 
@@ -1660,22 +1608,18 @@ still records it once the library has been told.
 
 `application/json`: [`LeaveBody`](schemas.md#leavebody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `cluster_id` | string | yes | The library (owner cluster id) to leave. |
+- `cluster_id` *string*, **required** — The library (owner cluster id) to leave.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Leaving started. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | This install is not a branch of that library (`not_found`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | This install has not joined a library. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Leaving started. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — This install is not a branch of that library (`not_found`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — This install has not joined a library. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1803,14 +1747,12 @@ nodes for a node owner.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The nodes the caller administers. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The nodes the caller administers. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1911,21 +1853,17 @@ refused (a branch is revoked instead).
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `node_id` | path | string | yes | Node id. |
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The owner node was removed. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The owner node was removed. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2039,14 +1977,12 @@ listing already shows them. Branches are not listed.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | This node and its clerks. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — This node and its clerks. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2145,32 +2081,26 @@ edit only the nodes it owns.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `node_id` | path | string | yes | Node id. |
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Request body
 
 `application/json`: [`PutNodeRuntime`](schemas.md#putnoderuntime)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `label` | string or null | no | Operator label. |
-| `cpu_budget_percent` | integer (int32) or null (int32) | no | Share of detected CPU the scheduler may commit (1..=100). At least 0. |
-| `memory_budget_percent` | integer (int32) or null (int32) | no | Share of detected memory the scheduler may commit (1..=100). At least 0. |
-| `schedulable` | boolean or null | no | False drains the node. |
+- `label` *string or null* — Operator label.
+- `cpu_budget_percent` *integer (int32) or null* — Share of detected CPU the scheduler may commit (1..=100). At least 0.
+- `memory_budget_percent` *integer (int32) or null* — Share of detected memory the scheduler may commit (1..=100). At least 0.
+- `schedulable` *boolean or null* — False drains the node.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The node's runtime settings after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such node, or not one the caller administers. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The node's runtime settings after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2288,20 +2218,16 @@ Owner; the caller's own links for anyone else, and with `?mine=true`.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `mine` | query | boolean | no | Only the links for the calling user's own branches (an Owner's "Add a branch" dialog), even when the caller may see everyone's. |
+- `mine` (query) *boolean* — Only the links for the calling user's own branches (an Owner's "Add a branch" dialog), even when the caller may see everyone's.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Enrollment links the caller may see. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Enrollment links the caller may see. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2417,24 +2343,20 @@ response when the library refuses the mint.
 
 `application/json`: [`PostNodeInvite`](schemas.md#postnodeinvite)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `user_id` | integer (int64) or null (int64) | no | User who will own the node. Defaults to the caller; the operator must name one. |
-| `ttl_secs` | integer (int64) or null (int64) | no | Link lifetime in seconds (default 24 h, 5 min to 7 days). At least 0. |
-| `label` | string | no | Label shown in listings. |
+- `user_id` *integer (int64) or null* — User who will own the node. Defaults to the caller; the operator must name one.
+- `ttl_secs` *integer (int64) or null* — Link lifetime in seconds (default 24 h, 5 min to 7 days). At least 0.
+- `label` *string* — Label shown in listings.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The new link (shown once). | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | Host enrollment is off. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | The node API's certificate pin is not available yet (`node_api_pin_unavailable`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The new link (shown once). Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — Host enrollment is off. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — The node API's certificate pin is not available yet (`node_api_pin_unavailable`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2561,21 +2483,17 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `id` | path | string | yes | Link id. |
+- `id` (path) *string*, **required** — Link id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The link was revoked. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such link. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The link was revoked. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such link. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2687,14 +2605,12 @@ joining operator confirms in `self_signed` mode.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The library's join settings and branches. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The library's join settings and branches. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2793,20 +2709,16 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 `application/json`: [`PutBranches`](schemas.md#putbranches)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `enrollment` | boolean | yes | "Let new branches join" (`core.host_enrollment.enabled`). |
+- `enrollment` *boolean*, **required** — "Let new branches join" (`core.host_enrollment.enabled`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The settings after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The settings after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2916,20 +2828,16 @@ titles from a branch that stopped sharing or left. Delivered files stay.
 
 `application/json`: [`RemoveBranchTitles`](schemas.md#removebranchtitles)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `node_id` | string or null | no | Only this branch's entries; every branch's when absent. |
+- `node_id` *string or null* — Only this branch's entries; every branch's when absent.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The branch's titles were removed. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The branch's titles were removed. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3038,14 +2946,12 @@ sharing settings (`{clusters: [...]}`).
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The branch's sharing settings. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The branch's sharing settings. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3146,23 +3052,19 @@ an Owner (verified from the stored role); anyone else gets 403.
 
 `application/json`: [`SharingBody`](schemas.md#sharingbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `cluster_id` | string | yes | The library (owner cluster id). |
-| `share_books` | boolean | yes | "Share this branch's books with *library*". |
-| `include_branches` | boolean | yes | "Include books from my own branches". |
+- `cluster_id` *string*, **required** — The library (owner cluster id).
+- `share_books` *boolean*, **required** — "Share this branch's books with *library*".
+- `include_branches` *boolean*, **required** — "Include books from my own branches".
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The sharing settings after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | This install is not a branch of that library (`not_found`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The sharing settings after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — This install is not a branch of that library (`not_found`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3297,21 +3199,17 @@ response when the write fails.
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `node_id` | path | string | yes | Node id. |
+- `node_id` (path) *string*, **required** — Node id.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The host's credential was revoked. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such host. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The host's credential was revoked. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such host. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3430,14 +3328,12 @@ Returns an error response when the switch cannot be read.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | Whether host nodes may enroll. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in, or the credential is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller's role does not allow this route. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — Whether host nodes may enroll. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -3552,20 +3448,16 @@ and an error response when the switch cannot be written.
 
 `application/json`: [`PutHostEnrollment`](schemas.md#puthostenrollment)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `enabled` | boolean | yes | Whether host nodes may enroll into this cluster. |
+- `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The switch after the change. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The caller is not signed in. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 500 | The configuration could not be read or written. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The switch after the change. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 

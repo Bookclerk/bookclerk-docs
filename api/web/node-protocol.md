@@ -19,24 +19,20 @@ does not redeem.
 
 `application/json`: [`EnrollBody`](schemas.md#enrollbody)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `link_id` | string | yes | Link id from the token. |
-| `secret` | string | yes | Link secret from the token. |
-| `sign_pk` | string | yes | Ed25519 public signing key. |
-| `box_pk` | string | yes | X25519 public box key. |
-| `software_version` | string | no | Host's Bookclerk version. |
+- `link_id` *string*, **required** — Link id from the token.
+- `secret` *string*, **required** — Link secret from the token.
+- `sign_pk` *string*, **required** — Ed25519 public signing key.
+- `box_pk` *string*, **required** — X25519 public box key.
+- `software_version` *string* — Host's Bookclerk version.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The host is enrolled; its node credential. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The link is unknown, used or expired. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The host is enrolled; its node credential. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The link is unknown, used or expired. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -139,12 +135,10 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | What this library says about itself to a joining install. | any JSON (`application/json`) |
-| 403 | The transport is not allowed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — What this library says about itself to a joining install. Body: any JSON (`application/json`)
+- `403` — The transport is not allowed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -215,28 +209,24 @@ redirect URI, enrollment off, or the user no longer active).
 
 `application/json`: [`OAuthEnrollRequest`](schemas.md#oauthenrollrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | string | yes | The authorization code from the callback. |
-| `code_verifier` | string | yes | The PKCE verifier. |
-| `redirect_uri` | string | yes | The redirect URI the authorization was requested with. |
-| `sign_pk` | string | yes | Ed25519 public signing key. |
-| `box_pk` | string | yes | X25519 public box key. |
-| `branch_name` | string | no | The name this branch joins as (the node's label). |
-| `software_version` | string | no | The joining install's Bookclerk version. |
-| `connection` | [`ConnectionType`](schemas.md#connectiontype) | no | The connection type the code was approved for. It must match the one bound to the code at consent; left out for a branch. |
+- `code` *string*, **required** — The authorization code from the callback.
+- `code_verifier` *string*, **required** — The PKCE verifier.
+- `redirect_uri` *string*, **required** — The redirect URI the authorization was requested with.
+- `sign_pk` *string*, **required** — Ed25519 public signing key.
+- `box_pk` *string*, **required** — X25519 public box key.
+- `branch_name` *string* — The name this branch joins as (the node's label).
+- `software_version` *string* — The joining install's Bookclerk version.
+- `connection` *[`ConnectionType`](schemas.md#connectiontype)* — The connection type the code was approved for. It must match the one bound to the code at consent; left out for a branch.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The branch is enrolled; its node credential. | any JSON (`application/json`) |
-| 400 | The body is invalid. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 401 | The code or verifier is wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | The enrollment could not be recorded; try again (`enrollment_unavailable`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The branch is enrolled; its node credential. Body: any JSON (`application/json`)
+- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The code or verifier is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — The enrollment could not be recorded; try again (`enrollment_unavailable`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -351,14 +341,12 @@ transport check. 403 `transport_insecure` for a refused connection,
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 101 | Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. |  |
-| 400 | The request does not offer the node subprotocol (`subprotocol_required`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 403 | The transport is not allowed. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | The node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 503 | Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `101` — Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
+- `400` — The request does not offer the node subprotocol (`subprotocol_required`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The transport is not allowed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `503` — Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -443,18 +431,14 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `sha256` | path | string | yes | Archive digest, lowercase hex. |
+- `sha256` (path) *string*, **required** — Archive digest, lowercase hex.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The plugin archive. | [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`) |
-| 401 | The node signature is missing or wrong. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such archive, or the node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The plugin archive. Body: [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`)
+- `401` — The node signature is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such archive, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -531,10 +515,8 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `upload_id` | path | string | yes | Upload id. |
-| `index` | path | integer (int32) | yes | File index in the upload. |
+- `upload_id` (path) *string*, **required** — Upload id.
+- `index` (path) *integer (int32)*, **required** — File index in the upload.
 
 ### Request body
 
@@ -542,16 +524,17 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The file was stored (`received`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 401 | The upload token is missing or wrong (`unauthorized`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 403 | The connection's transport is refused (`transport_insecure`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such upload, or the node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The upload lost its fence to a newer one (`lost`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 421 | This node is not the upload's receiving node (`misdirected`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 422 | The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 503 | Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
+- `200` — The file was stored (`received`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
+- `401` — The upload token is missing or wrong (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `403` — The connection's transport is refused (`transport_insecure`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such upload, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `503` — Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
 
 ### Example request
 
@@ -697,32 +680,29 @@ Status `503`: Storage or the upload record is unavailable, or the file lock time
 
 ### Parameters
 
-| Name | In | Type | Required | Description |
-| --- | --- | --- | --- | --- |
-| `upload_id` | path | string | yes | Upload id. |
+- `upload_id` (path) *string*, **required** — Upload id.
 
 ### Request body
 
 `application/json`: [`UploadCommitRequest`](schemas.md#uploadcommitrequest)
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `finish` | boolean | no | Complete the job with this commit (the job's closing upload). |
-| `detail` | string or null | no | Outcome text recorded as the job's progress when `finish` is set. |
+- `finish` *boolean* — Complete the job with this commit (the job's closing upload).
+- `detail` *string or null* — Outcome text recorded as the job's progress when `finish` is set.
 
 ### Responses
 
-| Status | Description | Body |
-| --- | --- | --- |
-| 200 | The upload was committed to the destinations (`committed`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 401 | The upload token is missing or wrong (`unauthorized`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 403 | The connection's transport is refused (`transport_insecure`). | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 404 | No such upload, or the node API is not mounted. | [`ApiError`](schemas.md#apierror) (`application/json`) |
-| 409 | The upload lost its fence to a newer one (`lost`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 421 | This node is not the upload's receiving node (`misdirected`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 422 | The commit was refused (`refused`): an invalid body, missing files, or the destinations changed. | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 503 | Storage or the upload record is unavailable; retry (`unavailable`). | [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`) |
-| 504 | The request ran past the API's time budget. | string (`text/plain`) |
+- `200` — The upload was committed to the destinations (`committed`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
+- `401` — The upload token is missing or wrong (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `403` — The connection's transport is refused (`transport_insecure`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such upload, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `422` — The commit was refused (`refused`): an invalid body, missing files, or the destinations changed. Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `503` — Storage or the upload record is unavailable; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
 
