@@ -691,11 +691,47 @@ Schema:
 }
 ```
 
-Status `401`: No signed-in caller. The body is `text/plain`.
+Status `401`: No signed-in caller.
 
-Status `500`: The request could not be read or written. The body is `text/plain`.
+```text
+string
+```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `500`: The request could not be read or written.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/wishlist`
 
@@ -763,6 +799,9 @@ Creates a wishlist / title-request row for the authenticated caller.
 - `400` — The title is missing or invalid. Body: string (`text/plain`)
 - `401` — No signed-in caller. Body: string (`text/plain`)
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The request could not be read or written. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1415,9 +1454,33 @@ Schema:
 }
 ```
 
-Status `400`: The title is missing or invalid. The body is `text/plain`.
+Status `400`: The title is missing or invalid.
 
-Status `401`: No signed-in caller. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `401`: No signed-in caller.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
@@ -1455,9 +1518,33 @@ Schema:
 }
 ```
 
-Status `500`: The request could not be read or written. The body is `text/plain`.
+Status `500`: The request could not be read or written.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `DELETE /api/wishlist/{uuid}`
 
@@ -1503,6 +1590,9 @@ Cancels an open wishlist item the caller owns; others get 403.
   - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
   - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
 - `400` — Only open wishlist items can be removed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — No signed-in caller. Body: string (`text/plain`)
 - `403` — The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: string (`text/plain`)
 - `404` — No such request. Body: string (`text/plain`)
@@ -2187,15 +2277,75 @@ Schema:
 }
 ```
 
-Status `401`: No signed-in caller. The body is `text/plain`.
+Status `401`: No signed-in caller.
 
-Status `403`: The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. The body is `text/plain`.
+```text
+string
+```
 
-Status `404`: No such request. The body is `text/plain`.
+Schema:
 
-Status `500`: The request could not be read or written. The body is `text/plain`.
+```json
+{
+  "type": "string"
+}
+```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `403`: The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `404`: No such request.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `500`: The request could not be read or written.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/request-queue`
 
@@ -2223,8 +2373,14 @@ Ranks the shared open-request queue without warming ONNX embeddings.
   - `taste_score` *number (double)*, **required** — Local taste / embedding component before the wish-count boost.
   - `reasons` *array of string*, **required** — Short human-readable explanations for why this item was ranked here.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The queue could not be ranked. Body: string (`text/plain`)
 - `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2512,7 +2668,19 @@ Schema:
 }
 ```
 
-Status `500`: The queue could not be ranked. The body is `text/plain`.
+Status `500`: The queue could not be ranked.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `503`: Discover is shutting down; try again.
 
@@ -2550,4 +2718,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

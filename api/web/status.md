@@ -26,8 +26,17 @@ Returns library counts, listen addresses, storage backends, and whether operator
   - `auth_enabled` *boolean*, **required** — Whether the live auth middleware requires operator credentials.
   - `events` *[`EventQueueStatus`](schemas.md#eventqueuestatus)*, **required** — Durable domain-event delivery-queue counters.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -357,7 +366,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/cluster/status`
 
@@ -373,9 +394,21 @@ plus detail for the nodes the caller may see.
 
 - `200` — Cluster-wide node health. Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -565,4 +598,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

@@ -22,8 +22,17 @@ Returns file-backed and runtime-effective Settings plus per-plugin groups.
   - `jail_cpu_cores` *number (double) or null* — Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).
   - `output_revision` *integer (int64) or null* — Revision of the `core.output` document the `output.*` values in `settings` were read from; send it back as `expected_output_revision`. `effective["output.revision"]` is the revision this host has applied, which lags the document until the host's next wakeup.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The settings could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -579,7 +588,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `PATCH /api/settings`
 
@@ -606,10 +627,25 @@ Validates, writes, and reloads allowlisted Settings keys under `reload_lock`.
   - `jail_cpu_cores` *number (double) or null* — Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).
   - `output_revision` *integer (int64) or null* — Revision of the `core.output` document the `output.*` values in `settings` were read from; send it back as `expected_output_revision`. `effective["output.revision"]` is the revision this host has applied, which lags the document until the host's next wakeup.
 - `400` — A key is unknown or a value is invalid. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — `output.*` keys were sent with a stale `expected_output_revision`, or another write won; the body's `current_revision` is the revision to retry against (`revision_conflict`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The settings could not be written. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1251,7 +1287,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/database/migrate`
 
@@ -1279,10 +1327,25 @@ Copies library rows between database plugins and optionally switches `[database]
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `400` — The target is invalid. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — The migration target matches more than one database plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The copy failed. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1570,7 +1633,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/preferences`
 
@@ -1709,11 +1784,47 @@ Schema:
 }
 ```
 
-Status `401`: No signed-in caller. The body is `text/plain`.
+Status `401`: No signed-in caller.
 
-Status `500`: The request could not be read or written. The body is `text/plain`.
+```text
+string
+```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `500`: The request could not be read or written.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `PATCH /api/preferences`
 
@@ -1748,6 +1859,9 @@ Merges a preferences PATCH onto the caller’s stored row and writes it back.
 - `400` — A value is invalid. Body: string (`text/plain`)
 - `401` — No signed-in caller. Body: string (`text/plain`)
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The request could not be read or written. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1876,9 +1990,33 @@ Schema:
 }
 ```
 
-Status `400`: A value is invalid. The body is `text/plain`.
+Status `400`: A value is invalid.
 
-Status `401`: No signed-in caller. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `401`: No signed-in caller.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
@@ -1916,6 +2054,30 @@ Schema:
 }
 ```
 
-Status `500`: The request could not be read or written. The body is `text/plain`.
+Status `500`: The request could not be read or written.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

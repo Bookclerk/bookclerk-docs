@@ -206,6 +206,9 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 
 - `302` — Redirects to sign-in, the consent page, or the client. No body.
 - `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 
 ### Example request
 
@@ -299,8 +302,17 @@ Completes consent: deny redirects with `access_denied`, grant issues a code.
 
 - `302` — Redirects to the client with a code or `access_denied`. No body.
 - `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — An operator token was sent, or the user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 
 ### Example request
 
@@ -497,7 +509,13 @@ Dispatches token grants; unknown `grant_type` values return 400.
   - `id_token` *string*, **required** — HS256 ID token; profile/email claims follow the granted scope.
   - `scope` *string*, **required** — Space-separated scopes granted to this token pair.
 - `400` — The grant is invalid or unsupported. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The client failed to authenticate. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 
 ### Example request
 
@@ -687,8 +705,17 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 
 - `200` — Claims for the token's user. Body: any JSON (`application/json`)
 - `401` — The access token is missing or invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The token's user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The user could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 
 ### Example request
 
@@ -915,9 +942,21 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
 
 - `200` — Registered clients (no secrets). Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1107,7 +1146,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/auth/oidc/clients`
 
@@ -1134,10 +1185,25 @@ Create a client; confidential clients return the generated secret once.
 
 - `200` — The client; a confidential client's secret appears once. Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — A client with this id already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1373,7 +1439,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `PUT /api/auth/oidc/clients/{client_id}`
 
@@ -1404,10 +1482,25 @@ Update redirects, name, scopes, and public/confidential mode (no secret echo unl
 
 - `200` — The client after the change. Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1643,7 +1736,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `DELETE /api/auth/oidc/clients/{client_id}`
 
@@ -1676,11 +1781,29 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 
 - `204` — The client was deleted. No body.
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — The client is provided by a plugin; disable it instead. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1952,7 +2075,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/auth/oidc/clients/{client_id}/rotate-secret`
 
@@ -1978,10 +2113,25 @@ Optional.
 
 - `200` — The new secret (shown once). Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2217,4 +2367,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

@@ -24,6 +24,7 @@ Redeems a claim ticket, optionally setting a first password, and sets the sessio
 
 - `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
 - `400` — The ticket is invalid, used or expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -101,7 +102,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/login/integration`
 
@@ -123,6 +136,7 @@ Authenticates against an enabled integration and mints a portal session.
 
 - `200` — Signed in through the integration. Body: any JSON (`application/json`)
 - `400` — The request is invalid, or the integration refused the login. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -200,7 +214,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/logout`
 
@@ -214,6 +240,9 @@ Revokes the portal session row and clears the session cookie.
 
 - `200` — Signed out (`{"ok": true}`); the cookie is cleared. Body: any JSON (`application/json`)
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -291,7 +320,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/portal/me`
 
@@ -308,6 +349,7 @@ Returns the signed-in portal identity, or 401 when the cookie is missing or expi
   - `external_user_id` *string*, **required** — Provider-scoped user id stored on the portal identity row.
   - `label` *string or null* — Optional display label from the identity row.
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -419,7 +461,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/portal/sources`
 
@@ -607,7 +661,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/sources/{id}/login`
 
@@ -632,8 +698,13 @@ Connects a password storefront, upserts the account, and links it to the signed-
 
 - `200` — The account was connected. Body: any JSON (`application/json`)
 - `400` — The login failed. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -782,7 +853,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/sources/{id}/oauth/start`
 
@@ -800,8 +883,13 @@ Starts interactive OAuth for an OAuth storefront and returns the browser login U
 
 - `200` — The browser login URL. Body: any JSON (`application/json`)
 - `400` — The source does not use OAuth. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -943,7 +1031,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/libro/login`
 
@@ -966,7 +1066,11 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
 
 - `200` — The account was connected. Body: any JSON (`application/json`)
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1089,7 +1193,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/audible/start`
 
@@ -1105,7 +1221,11 @@ Legacy `POST /audible/start` alias that forwards to Audible OAuth start.
 
 - `200` — The browser login URL. Body: any JSON (`application/json`)
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1221,7 +1341,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/portal/connections`
 
@@ -1236,6 +1368,7 @@ Lists store accounts linked to the signed-in identity, including disabled source
 - `200` — Store accounts linked to the caller. Body: [`ConnectionsResponse`](schemas.md#connectionsresponse) (`application/json`)
   - `connections` *array of [`ConnectionInfo`](schemas.md#connectioninfo)*, **required** — Linked store accounts the SPA may show or revoke.
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1423,7 +1556,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/portal/sources/{source}/connections/{account_id}/revoke`
 
@@ -1448,8 +1593,13 @@ store (for example, Audible deregisters its device), best effort.
 
 - `200` — The account was unlinked. Body: any JSON (`application/json`)
 - `400` — The account is not linked to this identity. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1591,4 +1741,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

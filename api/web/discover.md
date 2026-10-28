@@ -21,11 +21,33 @@ Enqueues a listening-progress sync; 400 when no capable integrations are loaded.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `400` — No listening-capable integration is enabled. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — The same job is already pending or running, or no node can run it. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `429` — The job queue is full. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `500` — The job could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `503` — Job admission is paused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -118,7 +140,19 @@ Schema:
 }
 ```
 
-Status `400`: No listening-capable integration is enabled. The body is `text/plain`.
+Status `400`: No listening-capable integration is enabled.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -376,7 +410,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/discover/recommendations`
 
@@ -401,8 +447,14 @@ Builds the Discover recommendation feed, skipping embed work on an empty library
   - `shelf_kinds` *array of [`ShelfKindInfo`](schemas.md#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -907,7 +959,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -945,7 +1009,19 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `503`: Discover is shutting down; try again.
 
@@ -983,7 +1059,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/discover/purchase-hints`
 
@@ -1014,7 +1102,13 @@ Resolves storefront price/availability for one title, forcing server-side prefer
   - `best` *[`PurchaseHint`](schemas.md#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1297,7 +1391,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1371,9 +1477,33 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/discover/purchase-hints/batch`
 
@@ -1395,7 +1525,13 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
   - `results` *array of [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse)*, **required** — One purchase-hint response per query, in request order.
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1686,7 +1822,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1760,9 +1908,33 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/discover/search`
 
@@ -1807,6 +1979,9 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
   - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -2214,7 +2389,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2252,9 +2439,33 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/discover/title-meta`
 
@@ -2303,7 +2514,13 @@ Resolves Audnexus-style title metadata for one query.
   - `reviews` *array of [`TitleReview`](schemas.md#titlereview)* — Deprecated: reviews load via `/api/discover/title-reviews`. Kept empty for older clients; prefer the paginated reviews endpoint.
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -2638,7 +2855,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2712,9 +2941,33 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/discover/title-meta/batch`
 
@@ -2736,7 +2989,13 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
   - `results` *array of [`TitleMeta`](schemas.md#titlemeta) or null*, **required** — One optional metadata payload per query; enrichment errors become `None`.
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -3081,7 +3340,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -3155,9 +3426,33 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/discover/title-reviews`
 
@@ -3188,7 +3483,13 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
   - `reviews` *array of [`TitleReview`](schemas.md#titlereview)*, **required** — Review rows on this page.
 - `400` — The query is malformed or too large. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -3379,7 +3680,19 @@ Schema:
 }
 ```
 
-Status `400`: The query is malformed or too large. The body is `text/plain`.
+Status `400`: The query is malformed or too large.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -3453,6 +3766,30 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed. The body is `text/plain`.
+Status `500`: The lookup failed.
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

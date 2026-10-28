@@ -44,6 +44,24 @@ let response = reqwest::get("http://127.0.0.1:8787/api/openapi.json").await?;
 println!("{} {}", response.status(), response.text().await?);
 ```
 
+### Example response
+
+Status `200`: The OpenAPI 3.1 document for this daemon's version. The body is JSON the schemas do not describe yet.
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
+
 ## `GET /api/openapi-3.0.json`
 
 Serves the OpenAPI document restated as OpenAPI 3.0.3.
@@ -58,6 +76,9 @@ The same API as `GET /api/openapi.json`, restated in OpenAPI 3.0.3 form for tool
 
 - `200` — The OpenAPI 3.0.3 document for this daemon's version. Body: any JSON (`application/json`)
 - `500` — The document could not be restated; this is a bug. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -127,4 +148,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```

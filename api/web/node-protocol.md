@@ -29,9 +29,21 @@ does not redeem.
 
 - `200` — The host is enrolled; its node credential. Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The link is unknown, used or expired. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -227,7 +239,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/node/v1/info`
 
@@ -241,7 +265,13 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 - `200` — What this library says about itself to a joining install. Body: any JSON (`application/json`)
 - `403` — The transport is not allowed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -347,7 +377,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `POST /api/node/v1/enroll/oauth`
 
@@ -378,10 +420,25 @@ redirect URI, enrollment off, or the user no longer active).
 
 - `200` — The branch is enrolled; its node credential. Body: any JSON (`application/json`)
 - `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The code or verifier is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `503` — The enrollment could not be recorded; try again (`enrollment_unavailable`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -613,7 +670,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/node/v1/connect`
 
@@ -629,9 +698,21 @@ transport check. 403 `transport_insecure` for a refused connection,
 
 - `101` — Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
 - `400` — The request does not offer the node subprotocol (`subprotocol_required`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — The transport is not allowed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — The node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `503` — Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -809,7 +890,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `GET /api/node/v1/artifacts/{sha256}`
 
@@ -827,7 +920,13 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 - `200` — The plugin archive. Body: [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`)
 - `401` — The node signature is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such archive, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -871,7 +970,17 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The plugin archive. The body is `application/octet-stream`.
+Status `200`: The plugin archive. The body is binary (`application/octet-stream`).
+
+Schema:
+
+```json
+{
+  "type": "string",
+  "format": "binary",
+  "description": "A request body of raw bytes (a file upload), documented as\n`type: string, format: binary` so generated clients send the bytes\nrather than a JSON array."
+}
+```
 
 Status `401`: The node signature is missing or wrong.
 
@@ -945,7 +1054,19 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
 
 ## `PUT /api/node/v1/uploads/{upload_id}/files/{index}`
 
@@ -971,12 +1092,33 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
   - `reason` *string or null* — Why, for `refused`.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `401` — The upload token is missing or wrong (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `403` — The connection's transport is refused (`transport_insecure`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such upload, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `503` — Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 
 ### Example request
 
@@ -1364,12 +1506,33 @@ Schema:
   - `reason` *string or null* — Why, for `refused`.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `401` — The upload token is missing or wrong (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `403` — The connection's transport is refused (`transport_insecure`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such upload, or the node API is not mounted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `422` — The commit was refused (`refused`): an invalid body, missing files, or the destinations changed. Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `503` — Storage or the upload record is unavailable; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`.
+  - `job_completed` *boolean* — For `committed`: the job is finished.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1729,4 +1892,16 @@ Schema:
 }
 ```
 
-Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+Status `504`: The request ran past the API's time budget.
+
+```text
+string
+```
+
+Schema:
+
+```json
+{
+  "type": "string"
+}
+```
