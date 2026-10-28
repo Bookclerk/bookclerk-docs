@@ -39,6 +39,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/login' \
     -d '{"token": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/login' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"token": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/login",
+    json={"token": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"token": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/login")
+    .json(&serde_json::json!({"token": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Signed in; the response sets the operator session cookie. The body is JSON the schemas do not describe yet.
@@ -100,6 +136,27 @@ Returns 500 when the owner-count query fails.
 $ curl 'http://127.0.0.1:8787/api/auth/signin'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/signin'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/signin")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/signin");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/signin").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ## `POST /api/auth/tray-handoff/prepare`
 
 Mint a single-use tray Open Bookclerk ticket (Bearer, direct loopback only).
@@ -136,6 +193,40 @@ does not match, or 429 when this client is locked out.
 $ curl 'http://127.0.0.1:8787/api/auth/tray-handoff/prepare' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/tray-handoff/prepare' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/tray-handoff/prepare",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/tray-handoff/prepare", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/tray-handoff/prepare")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -213,6 +304,27 @@ not match a still-valid ticket.
 $ curl 'http://127.0.0.1:8787/api/auth/tray-handoff'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/tray-handoff'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/tray-handoff")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/tray-handoff");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/tray-handoff").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `307`: Redirects into the app with a localhost operator session. No body.
@@ -250,6 +362,38 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/me' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/me' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/me",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/me", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/me")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -303,6 +447,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/elevate' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"password": "string"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/elevate' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"password": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/elevate",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"password": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/elevate", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"password": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/elevate")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"password": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -376,6 +559,44 @@ $ curl 'http://127.0.0.1:8787/api/auth/elevate' \
     -X DELETE \
     -b 'bookclerk_operator_session=<operatorSession>' \
     -H 'Origin: http://127.0.0.1:8787'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_operator_session', '<operatorSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/elevate' `
+    -Method Delete `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/elevate",
+    headers={"Cookie": "bookclerk_operator_session=<operatorSession>", "Origin": "http://127.0.0.1:8787"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/elevate", {
+  method: "DELETE",
+  headers: { Cookie: "bookclerk_operator_session=<operatorSession>", Origin: "http://127.0.0.1:8787" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/elevate")
+    .header("Cookie", "bookclerk_operator_session=<operatorSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -452,6 +673,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/bootstrap' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/bootstrap' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/bootstrap",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/bootstrap", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/bootstrap")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -539,6 +799,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -d '{"password": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"password": "string"}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/password",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"password": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"password": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/password")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"password": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The password was set and other sessions revoked. The body is JSON the schemas do not describe yet.
@@ -621,6 +920,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -d '{"login": "string", "password": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"login": "string", "password": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/password",
+    json={"login": "string", "password": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/password", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"login": "string", "password": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/password")
+    .json(&serde_json::json!({"login": "string", "password": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Signed in (portal session cookie), or a TOTP challenge. The body is JSON the schemas do not describe yet.
@@ -692,6 +1027,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"user_id": 0}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/impersonate' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"user_id": 0}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/impersonate",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"user_id": 0},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/impersonate", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"user_id": 0}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/impersonate")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"user_id": 0}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -766,6 +1140,44 @@ $ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_operator_session', '<operatorSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/impersonate' `
+    -Method Delete `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/impersonate",
+    headers={"Cookie": "bookclerk_operator_session=<operatorSession>", "Origin": "http://127.0.0.1:8787"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/impersonate", {
+  method: "DELETE",
+  headers: { Cookie: "bookclerk_operator_session=<operatorSession>", Origin: "http://127.0.0.1:8787" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/impersonate")
+    .header("Cookie", "bookclerk_operator_session=<operatorSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Impersonation ended. The body is JSON the schemas do not describe yet.
@@ -832,6 +1244,40 @@ shows the problem and never redirects).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' \
     -b 'bookclerk_portal_session=<portalSession>'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -923,6 +1369,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/branch-consent' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
     -d '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/branch-consent' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/branch-consent",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/branch-consent", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/branch-consent")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1021,6 +1510,44 @@ $ curl 'http://127.0.0.1:8787/api/auth/branch-consent/step-up' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/branch-consent/step-up' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/branch-consent/step-up",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/branch-consent/step-up", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/branch-consent/step-up")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Passkey request options. The body is JSON the schemas do not describe yet.
@@ -1092,6 +1619,40 @@ $ curl 'http://127.0.0.1:8787/api/auth/logout' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/logout' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/logout",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/logout", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/logout")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Signed out; both session cookies are cleared. The body is JSON the schemas do not describe yet.
@@ -1141,6 +1702,38 @@ List sessions for the current principal only (not every operator session).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/sessions' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/sessions' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/sessions",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/sessions", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/sessions")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1210,6 +1803,40 @@ portal users may only revoke their own.
 $ curl 'http://127.0.0.1:8787/api/auth/sessions/<id>' \
     -X DELETE \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/sessions/<id>' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/sessions/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/sessions/<id>", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/sessions/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1286,6 +1913,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile' `
+    -Method Patch `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.patch(
+    "http://127.0.0.1:8787/api/auth/profile",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile", {
+  method: "PATCH",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .patch("http://127.0.0.1:8787/api/auth/profile")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1377,6 +2043,48 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
     --data-binary @file
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile/avatar' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'image/*' `
+    -InFile 'file'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/profile/avatar",
+    headers={"Authorization": "Bearer <operatorToken>", "Content-Type": "image/*"},
+    data=open("file", "rb"),
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+import { readFile } from "node:fs/promises";
+
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile/avatar", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "image/*" },
+  body: await readFile("file"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/profile/avatar")
+    .header("Authorization", "Bearer <operatorToken>")
+    .header("Content-Type", "image/*")
+    .body(std::fs::read("file")?)
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The avatar was stored. The body is JSON the schemas do not describe yet.
@@ -1448,6 +2156,40 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile/avatar' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/profile/avatar",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile/avatar", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/profile/avatar")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The avatar was removed. The body is JSON the schemas do not describe yet.
@@ -1495,6 +2237,27 @@ Lists enabled IdPs for the login picker (id and display name only).
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/providers'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/providers'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/oidc/providers")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/providers");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/oidc/providers").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ## `GET /api/auth/oidc/identities`
 
 Lists OIDC portal identities for the cookie-authenticated caller.
@@ -1517,6 +2280,40 @@ Lists OIDC portal identities for the cookie-authenticated caller.
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/identities' \
     -b 'bookclerk_portal_session=<portalSession>'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/identities' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/oidc/identities",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/identities", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/oidc/identities")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1572,6 +2369,27 @@ Starts an OIDC login authorize redirect, honoring login throttle.
 
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/login'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/login'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/oidc/login")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/login");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/oidc/login").await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1630,6 +2448,40 @@ Starts an Owner re-auth elevate flow against a linked IdP (`prompt=login`).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/elevate' \
     -b 'bookclerk_portal_session=<portalSession>'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/elevate' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/oidc/elevate",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/elevate", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/oidc/elevate")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1709,6 +2561,27 @@ GET callback (most IdPs); finishes the code exchange.
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/callback'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/callback'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/auth/oidc/callback")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/callback");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/auth/oidc/callback").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `302`: Redirects into the app, signed in. No body.
@@ -1759,6 +2632,34 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/callback' \
     -X POST
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/callback' `
+    -Method Post
+```
+
+```python
+import requests
+
+response = requests.post("http://127.0.0.1:8787/api/auth/oidc/callback")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/callback", {
+  method: "POST",
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/oidc/callback")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `302`: Redirects into the app, signed in. No body.
@@ -1797,6 +2698,38 @@ Operator GET: broker settings plus secret-presence flags (never plaintext).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/config' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/oidc/config",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/config", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/oidc/config")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -1915,6 +2848,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"enabled": true}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/config' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"enabled": true}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/oidc/config",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"enabled": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/config", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"enabled": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/oidc/config")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"enabled": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2038,6 +3010,40 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/passkeys",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/passkeys")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The caller's passkeys. The body is JSON the schemas do not describe yet.
@@ -2098,6 +3104,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/begin' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/register/begin' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/register/begin",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/register/begin", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/register/begin")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2164,6 +3213,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/finish' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
     -d '{"challenge_id": "string"}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/register/finish' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{"challenge_id": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/register/finish",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={"challenge_id": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/register/finish", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({"challenge_id": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/register/finish")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({"challenge_id": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2255,6 +3347,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/<id>' \
     -d '{}'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/<id>' `
+    -Method Delete `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/passkeys/<id>",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/<id>", {
+  method: "DELETE",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/passkeys/<id>")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The passkey was deleted. The body is JSON the schemas do not describe yet.
@@ -2326,6 +3461,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' \
     -X POST \
     -H 'Content-Type: application/json' \
     -d '{"login": "string"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"login": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/login/begin",
+    json={"login": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/login/begin", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"login": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/login/begin")
+    .json(&serde_json::json!({"login": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2421,6 +3592,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' \
     -d '{"challenge_id": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"challenge_id": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/login/finish",
+    json={"challenge_id": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/login/finish", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"challenge_id": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/login/finish")
+    .json(&serde_json::json!({"challenge_id": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
@@ -2482,6 +3689,44 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/begin' \
     -X POST \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/elevate/begin' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/elevate/begin",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/elevate/begin", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/elevate/begin")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2559,6 +3804,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' \
     -d '{"challenge_id": "string"}'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{"challenge_id": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/passkeys/elevate/finish",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={"challenge_id": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/elevate/finish", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({"challenge_id": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/passkeys/elevate/finish")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({"challenge_id": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Elevated; the response sets a short-lived operator cookie. The body is JSON the schemas do not describe yet.
@@ -2630,6 +3918,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/login' \
     -d '{"challenge_id": "string", "code": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp/login' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"challenge_id": "string", "code": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/totp/login",
+    json={"challenge_id": "string", "code": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/totp/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"challenge_id": "string", "code": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/totp/login")
+    .json(&serde_json::json!({"challenge_id": "string", "code": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
@@ -2691,6 +4015,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/begin' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp/enroll/begin' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/totp/enroll/begin",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/totp/enroll/begin", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/totp/enroll/begin")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -2767,6 +4134,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' \
     -d '{"code": "string"}'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{"code": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/totp/enroll/finish",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={"code": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/totp/enroll/finish", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({"code": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/totp/enroll/finish")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({"code": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: TOTP is on. The body is JSON the schemas do not describe yet.
@@ -2837,6 +4247,40 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/totp",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/totp", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/totp")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Whether TOTP is on for the caller. The body is JSON the schemas do not describe yet.
@@ -2899,6 +4343,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp' \
     -d '{}'
 ```
 
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp' `
+    -Method Delete `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/totp",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/totp", {
+  method: "DELETE",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/totp")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: TOTP is off. The body is JSON the schemas do not describe yet.
@@ -2947,6 +4434,38 @@ Current MFA policy (`require_second_factor`).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/mfa-policy' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/mfa-policy",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/mfa-policy", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/mfa-policy")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -3011,6 +4530,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"require_second_factor": true}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/mfa-policy' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"require_second_factor": true}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/mfa-policy",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"require_second_factor": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/mfa-policy", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"require_second_factor": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/mfa-policy")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"require_second_factor": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response

@@ -30,6 +30,40 @@ $ curl 'http://127.0.0.1:8787/api/config/reload' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/reload' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/reload",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/reload", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/reload")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The configuration was reloaded.
@@ -99,6 +133,38 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 ```console
 $ curl 'http://127.0.0.1:8787/api/config/domains/core.events' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/domains/core.events' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/domains/core.events",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/domains/core.events", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/domains/core.events")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -187,6 +253,45 @@ $ curl 'http://127.0.0.1:8787/api/config/domains/core.events' \
     -d '{"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/domains/core.events' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/domains/core.events",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/domains/core.events", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/domains/core.events")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"expected_revision": 0, "retention_days": 0, "dead_letter_retention_days": 0, "concurrency": 0}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The settings after the change. The body is JSON the schemas do not describe yet.
@@ -257,6 +362,38 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 ```console
 $ curl 'http://127.0.0.1:8787/api/config/domains/core.output' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/domains/core.output' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/domains/core.output",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/domains/core.output", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/domains/core.output")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -341,6 +478,45 @@ $ curl 'http://127.0.0.1:8787/api/config/domains/core.output' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"expected_revision": 0, "document": {}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/domains/core.output' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"expected_revision": 0, "document": {}}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/domains/core.output",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"expected_revision": 0, "document": {}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/domains/core.output", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"expected_revision": 0, "document": {}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/domains/core.output")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"expected_revision": 0, "document": {}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response

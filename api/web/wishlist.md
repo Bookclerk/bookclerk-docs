@@ -28,6 +28,38 @@ $ curl 'http://127.0.0.1:8787/api/wishlist' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/wishlist' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/wishlist",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/wishlist", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/wishlist")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The caller's open requests.
@@ -180,6 +212,45 @@ $ curl 'http://127.0.0.1:8787/api/wishlist' \
     -d '{"title": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/wishlist' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"title": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/wishlist",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"title": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/wishlist", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"title": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/wishlist")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"title": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The new request.
@@ -321,6 +392,40 @@ $ curl 'http://127.0.0.1:8787/api/wishlist/<uuid>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/wishlist/<uuid>' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/wishlist/<uuid>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/wishlist/<uuid>", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/wishlist/<uuid>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The cancelled request.
@@ -453,6 +558,38 @@ Ranks the shared open-request queue without warming ONNX embeddings.
 ```console
 $ curl 'http://127.0.0.1:8787/api/request-queue' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/request-queue' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/request-queue",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/request-queue", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/request-queue")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response

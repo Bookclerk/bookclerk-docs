@@ -47,6 +47,42 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/enroll' \
     -d '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/enroll' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/node/v1/enroll",
+    json={"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/enroll", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/node/v1/enroll")
+    .json(&serde_json::json!({"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The host is enrolled; its node credential. The body is JSON the schemas do not describe yet.
@@ -114,6 +150,27 @@ Status `504`: The request ran past the API's time budget. The body is `text/plai
 
 ```console
 $ curl 'http://127.0.0.1:8787/api/node/v1/info'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/info'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/node/v1/info")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/info");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/node/v1/info").await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -188,6 +245,42 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' \
     -X POST \
     -H 'Content-Type: application/json' \
     -d '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' `
+    -Method Post `
+    -ContentType 'application/json' `
+    -Body '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/node/v1/enroll/oauth",
+    json={"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/enroll/oauth", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/node/v1/enroll/oauth")
+    .json(&serde_json::json!({"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -273,6 +366,27 @@ transport check. 403 `transport_insecure` for a refused connection,
 $ curl 'http://127.0.0.1:8787/api/node/v1/connect'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/connect'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/node/v1/connect")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/connect");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/node/v1/connect").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `101`: Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
@@ -349,6 +463,38 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>' \
     -H 'Authorization: Bookclerk-Node <node_id> <issued_at> <signature>'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>' `
+    -Headers @{ Authorization = 'Bookclerk-Node <node_id> <issued_at> <signature>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>",
+    headers={"Authorization": "Bookclerk-Node <node_id> <issued_at> <signature>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>", {
+  headers: { Authorization: "Bookclerk-Node <node_id> <issued_at> <signature>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>")
+    .header("Authorization", "Bookclerk-Node <node_id> <issued_at> <signature>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The plugin archive. The body is `application/octet-stream`.
@@ -415,6 +561,48 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>' \
     -H 'Authorization: Bookclerk-Upload <token>' \
     -H 'Content-Type: application/octet-stream' \
     --data-binary @file
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bookclerk-Upload <token>' } `
+    -ContentType 'application/octet-stream' `
+    -InFile 'file'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>",
+    headers={"Authorization": "Bookclerk-Upload <token>", "Content-Type": "application/octet-stream"},
+    data=open("file", "rb"),
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+import { readFile } from "node:fs/promises";
+
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>", {
+  method: "PUT",
+  headers: { Authorization: "Bookclerk-Upload <token>", "Content-Type": "application/octet-stream" },
+  body: await readFile("file"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>")
+    .header("Authorization", "Bookclerk-Upload <token>")
+    .header("Content-Type", "application/octet-stream")
+    .body(std::fs::read("file")?)
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -544,6 +732,45 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit' \
     -H 'Authorization: Bookclerk-Upload <token>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bookclerk-Upload <token>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit",
+    headers={"Authorization": "Bookclerk-Upload <token>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit", {
+  method: "POST",
+  headers: { Authorization: "Bookclerk-Upload <token>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit")
+    .header("Authorization", "Bookclerk-Upload <token>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response

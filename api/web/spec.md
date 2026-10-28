@@ -25,6 +25,27 @@ Serves the OpenAPI document.
 $ curl 'http://127.0.0.1:8787/api/openapi.json'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/openapi.json'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/openapi.json")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/openapi.json");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/openapi.json").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ## `GET /api/openapi-3.0.json`
 
 Serves the OpenAPI document restated as OpenAPI 3.0.3.
@@ -47,6 +68,27 @@ The same API as `GET /api/openapi.json`, restated in OpenAPI 3.0.3 form for tool
 
 ```console
 $ curl 'http://127.0.0.1:8787/api/openapi-3.0.json'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/openapi-3.0.json'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/api/openapi-3.0.json")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/openapi-3.0.json");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/api/openapi-3.0.json").await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response

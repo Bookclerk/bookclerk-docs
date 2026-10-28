@@ -24,6 +24,27 @@ Serves the OIDC discovery document for registered clients.
 $ curl 'http://127.0.0.1:8787/.well-known/openid-configuration'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/.well-known/openid-configuration'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/.well-known/openid-configuration")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/.well-known/openid-configuration");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/.well-known/openid-configuration").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: The OIDC discovery document.
@@ -92,6 +113,27 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 $ curl 'http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+```
+
+```python
+import requests
+
+response = requests.get("http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string")
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string");
+console.log(response.status, await response.text());
+```
+
+```rust
+let response = reqwest::get("http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string").await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `302`: Redirects to sign-in, the consent page, or the client. No body.
@@ -146,6 +188,49 @@ $ curl 'http://127.0.0.1:8787/oidc/authorize' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -d 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/authorize' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/x-www-form-urlencoded' `
+    -Body 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/oidc/authorize",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    data={"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/oidc/authorize", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787" },
+  body: new URLSearchParams("client_id=string&redirect_uri=string&response_type=string&code_challenge=string"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/oidc/authorize")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .form(&[("client_id", "string"), ("redirect_uri", "string"), ("response_type", "string"), ("code_challenge", "string")])
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -220,6 +305,41 @@ $ curl 'http://127.0.0.1:8787/oidc/token' \
     -d 'grant_type=string'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/token' `
+    -Method Post `
+    -ContentType 'application/x-www-form-urlencoded' `
+    -Body 'grant_type=string'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/oidc/token",
+    data={"grant_type": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/oidc/token", {
+  method: "POST",
+  body: new URLSearchParams("grant_type=string"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/oidc/token")
+    .form(&[("grant_type", "string")])
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `200`: Tokens.
@@ -277,6 +397,38 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 ```console
 $ curl 'http://127.0.0.1:8787/oidc/userinfo' \
     -H 'Authorization: Bearer <oidcAccessToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/userinfo' `
+    -Headers @{ Authorization = 'Bearer <oidcAccessToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/oidc/userinfo",
+    headers={"Authorization": "Bearer <oidcAccessToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/oidc/userinfo", {
+  headers: { Authorization: "Bearer <oidcAccessToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/oidc/userinfo")
+    .header("Authorization", "Bearer <oidcAccessToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -344,6 +496,41 @@ $ curl 'http://127.0.0.1:8787/oidc/revoke' \
     -d 'token=string'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/revoke' `
+    -Method Post `
+    -ContentType 'application/x-www-form-urlencoded' `
+    -Body 'token=string'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/oidc/revoke",
+    data={"token": "string"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/oidc/revoke", {
+  method: "POST",
+  body: new URLSearchParams("token=string"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/oidc/revoke")
+    .form(&[("token", "string")])
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ## `GET /api/auth/oidc/clients`
 
 Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
@@ -368,6 +555,38 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
     -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/oidc/clients",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/oidc/clients")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -459,6 +678,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/oidc/clients",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/oidc/clients")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -566,6 +824,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
@@ -678,6 +975,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
     -d '{}'
 ```
 
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
 ### Example response
 
 Status `204`: The client was deleted. No body.
@@ -788,6 +1124,45 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
 ```
 
 ### Example response
