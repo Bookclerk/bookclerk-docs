@@ -177,7 +177,7 @@ True when `path` ends in an extension the modules walk embeds.
 ### WORKERD_PIN_COMPAT_DATE
 
 ```rust
-pub const WORKERD_PIN_COMPAT_DATE: &str = "2026-10-19";
+pub const WORKERD_PIN_COMPAT_DATE: &str = "2026-10-21";
 ```
 
 Newest `compatibility_date` this pin's `workerd` binary can honor.
