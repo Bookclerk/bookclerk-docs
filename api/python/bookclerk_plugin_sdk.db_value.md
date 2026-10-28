@@ -620,7 +620,7 @@ I64_MAX = 2 ** 63 - 1
 ### DbValue
 
 ```python
-DbValue = Union[NullValue, BoolValue, Int64Value, Float64Value, TextValue, BytesValue]
+DbValue = NullValue | BoolValue | Int64Value | Float64Value | TextValue | BytesValue
 ```
 
 ### DbStatementKind
