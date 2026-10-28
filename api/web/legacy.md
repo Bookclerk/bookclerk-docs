@@ -32,7 +32,7 @@ $ curl 'http://127.0.0.1:8787/status' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Library counts and daemon state.
 
 ```json
 {
@@ -58,6 +58,36 @@ Status `200`:
     "dispatch_latency_ms_avg": 0,
     "handler_latency_ms_avg": 0
   }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
 }
 ```
 
@@ -102,7 +132,7 @@ $ curl 'http://127.0.0.1:8787/scan' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The scan jobs were accepted; see `POST /api/library/scan` for the other answers.
 
 ```json
 {
@@ -113,6 +143,26 @@ Status `200`:
     "string"
   ],
   "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
 }
 ```
 
@@ -164,7 +214,7 @@ $ curl 'http://127.0.0.1:8787/acquire' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The acquire jobs were accepted; see `POST /api/library/acquire` for the other answers.
 
 ```json
 {
@@ -172,6 +222,26 @@ Status `200`:
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
 }
 ```
 
@@ -203,7 +273,7 @@ $ curl 'http://127.0.0.1:8787/jobs' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Jobs, newest first.
 
 ```json
 [
@@ -220,6 +290,36 @@ Status `200`:
     "finished_at": "string"
   }
 ]
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The job table could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
 ```
 
 ## `POST /jobs/{id}/cancel`
@@ -257,7 +357,7 @@ $ curl 'http://127.0.0.1:8787/jobs/<id>/cancel' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The job was cancelled or asked to stop.
 
 ```json
 {
@@ -265,6 +365,36 @@ Status `200`:
   "message": "string",
   "job_id": "string",
   "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such job.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
 }
 ```
 
@@ -318,7 +448,91 @@ $ curl 'http://127.0.0.1:8787/integrations/<id>/scan' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The job was accepted.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `400`: The integration cannot scan a library.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No integration with this id.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The same job is already pending or running, or no node can run it.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `429`: The job queue is full.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `500`: The job could not be queued.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `503`: Job admission is paused.
 
 ```json
 {

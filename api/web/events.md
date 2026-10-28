@@ -31,7 +31,7 @@ $ curl 'http://127.0.0.1:8787/api/events' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Recent domain events, newest first.
 
 ```json
 [
@@ -50,6 +50,38 @@ Status `200`:
   }
 ]
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/events/deliveries`
 
@@ -84,7 +116,7 @@ $ curl 'http://127.0.0.1:8787/api/events/deliveries' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Deliveries, newest first.
 
 ```json
 [
@@ -108,6 +140,38 @@ Status `200`:
   }
 ]
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/queues`
 
@@ -137,7 +201,7 @@ $ curl 'http://127.0.0.1:8787/api/queues' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Every known queue.
 
 ```json
 [
@@ -154,6 +218,38 @@ Status `200`:
   }
 ]
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/queues/{name}`
 
@@ -189,7 +285,7 @@ $ curl 'http://127.0.0.1:8787/api/queues/<name>' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The queue.
 
 ```json
 {
@@ -240,6 +336,48 @@ Status `200`:
 }
 ```
 
+Status `400`: The queue name is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/events/deliveries/{id}/retry`
 
 Re-queue a dead-lettered delivery.
@@ -275,7 +413,7 @@ $ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/retry' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The delivery was queued again.
 
 ```json
 {
@@ -285,6 +423,48 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such delivery, or it is not in a state this applies to.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/events/deliveries/{id}/acknowledge`
 
@@ -321,7 +501,7 @@ $ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/acknowledge' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The delivery was acknowledged.
 
 ```json
 {
@@ -331,6 +511,48 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such delivery, or it is not in a state this applies to.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/events/deliveries/{id}/cancel`
 
@@ -367,7 +589,7 @@ $ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/cancel' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The delivery was cancelled or asked to stop.
 
 ```json
 {
@@ -377,6 +599,48 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such delivery, or it is not in a state this applies to.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/events/deliveries/{id}/resume`
 
@@ -413,7 +677,7 @@ $ curl 'http://127.0.0.1:8787/api/events/deliveries/<id>/resume' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The delivery was resumed.
 
 ```json
 {
@@ -423,3 +687,45 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such delivery, or it is not in a state this applies to.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The outbox could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

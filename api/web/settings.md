@@ -31,7 +31,7 @@ $ curl 'http://127.0.0.1:8787/api/settings' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The settings.
 
 ```json
 {
@@ -89,6 +89,38 @@ Status `200`:
   "output_revision": 0
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The settings could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PATCH /api/settings`
 
@@ -131,7 +163,7 @@ $ curl 'http://127.0.0.1:8787/api/settings' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The settings after the change.
 
 ```json
 {
@@ -189,6 +221,58 @@ Status `200`:
   "output_revision": 0
 }
 ```
+
+Status `400`: A key is unknown or a value is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: `output.*` keys were sent with a stale `expected_output_revision`, or another write won; the body's `current_revision` is the revision to retry against (`revision_conflict`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The settings could not be written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/database/migrate`
 
@@ -234,7 +318,7 @@ $ curl 'http://127.0.0.1:8787/api/database/migrate' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The rows were copied.
 
 ```json
 {
@@ -244,6 +328,58 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `400`: The target is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The migration target matches more than one database plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The copy failed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/preferences`
 
@@ -271,7 +407,7 @@ $ curl 'http://127.0.0.1:8787/api/preferences' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The caller's preferences.
 
 ```json
 {
@@ -288,6 +424,12 @@ Status `200`:
   "theme": "string"
 }
 ```
+
+Status `401`: No signed-in caller. The body is `text/plain`.
+
+Status `500`: The request could not be read or written. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PATCH /api/preferences`
 
@@ -334,7 +476,7 @@ $ curl 'http://127.0.0.1:8787/api/preferences' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The preferences after the change.
 
 ```json
 {
@@ -351,3 +493,21 @@ Status `200`:
   "theme": "string"
 }
 ```
+
+Status `400`: A value is invalid. The body is `text/plain`.
+
+Status `401`: No signed-in caller. The body is `text/plain`.
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The request could not be read or written. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

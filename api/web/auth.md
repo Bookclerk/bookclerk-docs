@@ -39,6 +39,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/login' \
     -d '{"token": "string"}'
 ```
 
+### Example response
+
+Status `200`: Signed in; the response sets the operator session cookie. The body is JSON the schemas do not describe yet.
+
+Status `401`: The token is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: An Owner exists, so operator sign-in is off (`operator_login_disabled`); sign in as a user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/signin`
 
 Public sign-in picker: operator-token availability, SSO IdPs, integration logins.
@@ -102,6 +138,44 @@ $ curl 'http://127.0.0.1:8787/api/auth/tray-handoff/prepare' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: A single-use tray ticket. The body is JSON the schemas do not describe yet.
+
+Status `204`: Operator authentication is off, so no ticket is needed. No body.
+
+Status `401`: The Bearer token is missing or wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The request did not come straight from loopback.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many failed attempts from this client; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/tray-handoff`
 
 Consume the pending tray ticket and set a localhost operator session cookie.
@@ -139,6 +213,22 @@ not match a still-valid ticket.
 $ curl 'http://127.0.0.1:8787/api/auth/tray-handoff'
 ```
 
+### Example response
+
+Status `307`: Redirects into the app with a localhost operator session. No body.
+
+Status `403`: The ticket is missing, used or not from loopback.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/me`
 
 Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
@@ -161,6 +251,22 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 $ curl 'http://127.0.0.1:8787/api/auth/me' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Who the caller is (operator, portal user, or impersonation). The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/elevate`
 
@@ -199,6 +305,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/elevate' \
     -d '{"password": "string"}'
 ```
 
+### Example response
+
+Status `200`: Elevated; the response sets a short-lived operator cookie. The body is JSON the schemas do not describe yet.
+
+Status `400`: Operator auth is off, or the password is empty.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The caller is already an operator.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/auth/elevate`
 
 End elevation by revoking the elevated operator session cookie.
@@ -225,6 +377,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/elevate' \
     -b 'bookclerk_operator_session=<operatorSession>' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
+
+### Example response
+
+Status `200`: Elevation ended. The body is JSON the schemas do not describe yet.
+
+Status `400`: The session is not an elevated one.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/bootstrap`
 
@@ -266,6 +454,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/bootstrap' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The first Owner was created. The body is JSON the schemas do not describe yet.
+
+Status `400`: The email is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: An Owner already exists.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `PUT /api/auth/password`
 
 Set password for self (portal) or target user (operator/admin); revokes sessions.
@@ -305,6 +539,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -d '{"password": "string"}'
 ```
 
+### Example response
+
+Status `200`: The password was set and other sessions revoked. The body is JSON the schemas do not describe yet.
+
+Status `400`: The password is too weak or the request is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/password`
 
 Local password login → portal session cookie, or a TOTP challenge when enabled.
@@ -340,6 +620,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -H 'Content-Type: application/json' \
     -d '{"login": "string", "password": "string"}'
 ```
+
+### Example response
+
+Status `200`: Signed in (portal session cookie), or a TOTP challenge. The body is JSON the schemas do not describe yet.
+
+Status `401`: The login or password is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The account is disabled (`account_disabled`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/impersonate`
 
@@ -378,6 +694,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
     -d '{"user_id": 0}'
 ```
 
+### Example response
+
+Status `200`: The session now acts as the user. The body is JSON the schemas do not describe yet.
+
+Status `400`: Operator auth is off.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/auth/impersonate`
 
 Clear impersonation on the current operator session.
@@ -403,6 +765,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
     -b 'bookclerk_operator_session=<operatorSession>' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
+
+### Example response
+
+Status `200`: Impersonation ended. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/auth/branch-consent`
 
@@ -445,6 +833,52 @@ shows the problem and never redirects).
 $ curl 'http://127.0.0.1:8787/api/auth/branch-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
+
+### Example response
+
+Status `200`: What the consent page shows. The body is JSON the schemas do not describe yet.
+
+Status `400`: The authorize parameters are invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller is not a library user (`user_required`; an operator session counts only while impersonating) or the account is inactive.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: The library could not be read; try again.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/branch-consent`
 
@@ -491,6 +925,72 @@ $ curl 'http://127.0.0.1:8787/api/auth/branch-consent' \
     -d '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
 ```
 
+### Example response
+
+Status `200`: `{redirect}` back to the branch. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller is not an active library user, or a clerk join lacks the Owner role or a passed step-up (`step_up_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: This library's database cannot be shared with a clerk (`database_not_shareable`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many wrong step-up codes; wait a few minutes (`step_up_locked`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: The library could not be read; try again.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/branch-consent/step-up`
 
 `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a
@@ -521,6 +1021,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/branch-consent/step-up' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
 
+### Example response
+
+Status `200`: Passkey request options. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller is not an active library user, or not an Owner (`owner_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The account has no passkey (`no_passkey`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: The library could not be read, or the passkey check could not start.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/logout`
 
 Revokes hashed operator and portal sessions and clears both cookies.
@@ -546,6 +1092,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/logout' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: Signed out; both session cookies are cleared. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/sessions`
 
 List sessions for the current principal only (not every operator session).
@@ -570,6 +1142,42 @@ List sessions for the current principal only (not every operator session).
 $ curl 'http://127.0.0.1:8787/api/auth/sessions' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The caller's sessions. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The user has no sign-in identity.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/auth/sessions/{id}`
 
@@ -603,6 +1211,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/sessions/<id>' \
     -X DELETE \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The session was revoked. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such session.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PATCH /api/auth/profile`
 
@@ -644,6 +1288,62 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The profile after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: A value is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The caller's user no longer exists.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The email is used by another account (`email_in_use`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `PUT /api/auth/profile/avatar`
 
 Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
@@ -677,6 +1377,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
     --data-binary @file
 ```
 
+### Example response
+
+Status `200`: The avatar was stored. The body is JSON the schemas do not describe yet.
+
+Status `400`: The image is not JPEG, PNG or WebP.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `413`: The image is too large.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/auth/profile/avatar`
 
 Removes the caller's stored avatar, if any.
@@ -701,6 +1447,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/profile/avatar' \
     -X DELETE \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The avatar was removed. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/auth/oidc/providers`
 
@@ -747,6 +1519,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/identities' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
 
+### Example response
+
+Status `200`: The caller's linked identities. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/oidc/login`
 
 Starts an OIDC login authorize redirect, honoring login throttle.
@@ -775,6 +1573,32 @@ Starts an OIDC login authorize redirect, honoring login throttle.
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/login'
 ```
+
+### Example response
+
+Status `302`: Redirects to the identity provider. No body.
+
+Status `400`: The provider is unknown or disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/auth/oidc/elevate`
 
@@ -808,6 +1632,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/elevate' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
 
+### Example response
+
+Status `302`: Redirects to the identity provider for re-authentication. No body.
+
+Status `400`: The provider is unknown or disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/oidc/callback`
 
 GET callback (most IdPs); finishes the code exchange.
@@ -838,6 +1708,22 @@ GET callback (most IdPs); finishes the code exchange.
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/callback'
 ```
+
+### Example response
+
+Status `302`: Redirects into the app, signed in. No body.
+
+Status `400`: The state or code is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/oidc/callback`
 
@@ -873,6 +1759,22 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/callback' \
     -X POST
 ```
 
+### Example response
+
+Status `302`: Redirects into the app, signed in. No body.
+
+Status `400`: The state or code is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/oidc/config`
 
 Operator GET: broker settings plus secret-presence flags (never plaintext).
@@ -899,7 +1801,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Broker settings, with secrets as presence flags.
 
 ```json
 {
@@ -951,6 +1853,28 @@ Status `200`:
   ]
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/auth/oidc/config`
 
@@ -995,7 +1919,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/config' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The settings after the change.
 
 ```json
 {
@@ -1048,6 +1972,48 @@ Status `200`:
 }
 ```
 
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/passkeys`
 
 Lists this user's stored passkeys as `{ id, credential_id }` rows.
@@ -1071,6 +2037,32 @@ Lists this user's stored passkeys as `{ id, credential_id }` rows.
 $ curl 'http://127.0.0.1:8787/api/auth/passkeys' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
+
+### Example response
+
+Status `200`: The caller's passkeys. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/passkeys/register/begin`
 
@@ -1107,6 +2099,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/begin' \
     -H 'Content-Type: application/json' \
     -d '{}'
 ```
+
+### Example response
+
+Status `200`: WebAuthn creation options. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/passkeys/register/finish`
 
@@ -1147,6 +2165,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/finish' \
     -H 'Content-Type: application/json' \
     -d '{"challenge_id": "string"}'
 ```
+
+### Example response
+
+Status `200`: The passkey was stored. The body is JSON the schemas do not describe yet.
+
+Status `400`: The attestation is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The passkey is already registered.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/auth/passkeys/{id}`
 
@@ -1191,6 +2255,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/<id>' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The passkey was deleted. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such passkey for this user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/passkeys/login/begin`
 
 Rate-limits and starts passkey login; records a failure on any error.
@@ -1227,6 +2327,62 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' \
     -H 'Content-Type: application/json' \
     -d '{"login": "string"}'
 ```
+
+### Example response
+
+Status `200`: WebAuthn request options. The body is JSON the schemas do not describe yet.
+
+Status `400`: The request is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: No user has this login name or email.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The user is disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The user has no usable passkeys.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; try later.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/passkeys/login/finish`
 
@@ -1265,6 +2421,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' \
     -d '{"challenge_id": "string"}'
 ```
 
+### Example response
+
+Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
+
+Status `400`: The challenge is unknown or expired, or the credential is malformed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The assertion is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The user is disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/passkeys/elevate/begin`
 
 Starts Owner elevation; 403 unless the signed-in user is an Owner with passkeys.
@@ -1291,6 +2483,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/begin' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
+
+### Example response
+
+Status `200`: WebAuthn request options. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The caller has no passkeys.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/passkeys/elevate/finish`
 
@@ -1331,6 +2559,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' \
     -d '{"challenge_id": "string"}'
 ```
 
+### Example response
+
+Status `200`: Elevated; the response sets a short-lived operator cookie. The body is JSON the schemas do not describe yet.
+
+Status `400`: The challenge is unknown or expired, or the credential is malformed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/totp/login`
 
 Completes password+TOTP login and issues a portal session cookie.
@@ -1365,6 +2629,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/login' \
     -H 'Content-Type: application/json' \
     -d '{"challenge_id": "string", "code": "string"}'
 ```
+
+### Example response
+
+Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
+
+Status `401`: The challenge or code is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `429`: Too many attempts; try later.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/totp/enroll/begin`
 
@@ -1402,6 +2692,42 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/begin' \
     -H 'Content-Type: application/json' \
     -d '{}'
 ```
+
+### Example response
+
+Status `200`: A pending secret, its otpauth URL and a QR code SVG. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: TOTP is already on.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/auth/totp/enroll/finish`
 
@@ -1441,6 +2767,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' \
     -d '{"code": "string"}'
 ```
 
+### Example response
+
+Status `200`: TOTP is on. The body is JSON the schemas do not describe yet.
+
+Status `400`: No enrollment is pending; start one first.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the code is wrong (`invalid_code`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: TOTP is already on.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/totp`
 
 GET `/api/auth/totp` — whether TOTP is confirmed for this user.
@@ -1464,6 +2836,32 @@ GET `/api/auth/totp` — whether TOTP is confirmed for this user.
 $ curl 'http://127.0.0.1:8787/api/auth/totp' \
     -b 'bookclerk_portal_session=<portalSession>'
 ```
+
+### Example response
+
+Status `200`: Whether TOTP is on for the caller. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/auth/totp`
 
@@ -1501,6 +2899,32 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: TOTP is off. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/auth/mfa-policy`
 
 Current MFA policy (`require_second_factor`).
@@ -1524,6 +2948,32 @@ Current MFA policy (`require_second_factor`).
 $ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Whether a second factor is required. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/auth/mfa-policy`
 
@@ -1562,3 +3012,49 @@ $ curl 'http://127.0.0.1:8787/api/auth/mfa-policy' \
     -H 'Content-Type: application/json' \
     -d '{"require_second_factor": true}'
 ```
+
+### Example response
+
+Status `200`: The policy after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

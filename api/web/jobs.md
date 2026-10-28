@@ -31,7 +31,7 @@ $ curl 'http://127.0.0.1:8787/api/jobs' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Jobs, newest first.
 
 ```json
 [
@@ -49,6 +49,38 @@ Status `200`:
   }
 ]
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The job table could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/jobs/{id}/cancel`
 
@@ -85,7 +117,7 @@ $ curl 'http://127.0.0.1:8787/api/jobs/<id>/cancel' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The job was cancelled or asked to stop.
 
 ```json
 {
@@ -95,3 +127,45 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such job.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The job could not be updated.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

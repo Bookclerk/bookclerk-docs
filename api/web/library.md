@@ -53,7 +53,7 @@ $ curl 'http://127.0.0.1:8787/api/library/scan' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The scan jobs were accepted.
 
 ```json
 {
@@ -66,6 +66,82 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `400`: The body names no valid target.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not scan these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `409`: A scan is already pending or running.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "job_ids": [
+    "string"
+  ],
+  "error": "string"
+}
+```
+
+Status `422`: No account matched.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "job_ids": [
+    "string"
+  ],
+  "error": "string"
+}
+```
+
+Status `429`: The job queue is full.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "job_ids": [
+    "string"
+  ],
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/library/acquire`
 
@@ -124,7 +200,7 @@ $ curl 'http://127.0.0.1:8787/api/library/acquire' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The acquire jobs were accepted.
 
 ```json
 {
@@ -134,6 +210,84 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `400`: The body names no valid title.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not acquire for these accounts. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `409`: The same acquire is already pending or running, or no node can run it.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `429`: The job queue is full.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `500`: The jobs could not be queued.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `503`: Job admission is paused.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/library/books`
 
@@ -172,7 +326,7 @@ $ curl 'http://127.0.0.1:8787/api/library/books' \
 
 ### Example response
 
-Status `200`:
+Status `200`: A page of titles.
 
 ```json
 {
@@ -228,6 +382,22 @@ Status `200`:
 }
 ```
 
+Status `400`: A filter is invalid. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The library could not be read. The body is JSON the schemas do not describe yet.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/library/books/{uuid}`
 
 Returns one title by UUID, or 404 when it is absent.
@@ -261,7 +431,7 @@ $ curl 'http://127.0.0.1:8787/api/library/books/<uuid>' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The title.
 
 ```json
 {
@@ -310,6 +480,38 @@ Status `200`:
 }
 ```
 
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such title.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/library/books/{uuid}/cover`
 
 Serves the JPEG cover sidecar from the deployed local destination, or 404
@@ -340,3 +542,29 @@ when no local destination runs on this node.
 $ curl 'http://127.0.0.1:8787/api/library/books/<uuid>/cover' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The cover. The body is `image/jpeg`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such title, or it has no cover.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

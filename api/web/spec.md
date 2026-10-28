@@ -48,3 +48,19 @@ The same API as `GET /api/openapi.json`, restated in OpenAPI 3.0.3 form for tool
 ```console
 $ curl 'http://127.0.0.1:8787/api/openapi-3.0.json'
 ```
+
+### Example response
+
+Status `200`: The OpenAPI 3.0.3 document for this daemon's version. The body is JSON the schemas do not describe yet.
+
+Status `500`: The document could not be restated; this is a bug.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

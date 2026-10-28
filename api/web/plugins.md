@@ -30,6 +30,52 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: Every plugin instance with its deployments. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/plugin-instances`
 
 `POST /api/config/plugin-instances`: a second (non-default) instance of
@@ -73,6 +119,72 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances' \
     -d '{"plugin_key": "string"}'
 ```
 
+### Example response
+
+Status `200`: The new instance. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The instance id is taken.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/config/plugin-instances/{id}`
 
 `DELETE /api/config/plugin-instances/{id}`: removes an instance that has
@@ -109,6 +221,72 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The instance was removed. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The instance is a default or still deployed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/plugin-instances/{id}/config`
 
 `GET /api/config/plugin-instances/{id}/config`.
@@ -141,6 +319,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>' \
 $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/config' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The instance's settings document (secrets as presence flags). The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/config/plugin-instances/{id}/config`
 
@@ -193,6 +427,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/config' \
     -d '{"expected_revision": 0}'
 ```
 
+### Example response
+
+Status `200`: The document after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`
 
 `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`: the
@@ -241,6 +531,72 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/deployments/<node
     -d '{"desired": "present"}'
 ```
 
+### Example response
+
+Status `200`: The deployment after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The instance is placed by the scheduler.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `PUT /api/config/plugin-instances/{id}/placement`
 
 `PUT /api/config/plugin-instances/{id}/placement`: hand the instance's
@@ -288,6 +644,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/placement' \
     -d '{"replicas": 0}'
 ```
 
+### Example response
+
+Status `200`: The scheduler now places the instance. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/config/plugin-instances/{id}/placement`
 
 `DELETE /api/config/plugin-instances/{id}/placement`: return the
@@ -324,6 +736,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/placement' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The instance is back to manual deployment. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/plugins`
 
 `GET /api/config/plugins`: every installed plugin.
@@ -349,6 +817,52 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/placement' \
 $ curl 'http://127.0.0.1:8787/api/config/plugins' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Every installed plugin. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/plugins`
 
@@ -394,6 +908,82 @@ $ curl 'http://127.0.0.1:8787/api/config/plugins' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The installed version. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: A local package is missing its `package.json` or `archive.tar.gz`.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The version is already installed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The package catalog could not be reached or answered badly.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/plugins/{key}`
 
 `GET /api/config/plugins/{key}`: one installed plugin with its pinned
@@ -427,6 +1017,62 @@ settings schema.
 $ curl 'http://127.0.0.1:8787/api/config/plugins/<key>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The plugin with its pinned versions. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/config/plugins/{key}`
 
@@ -462,6 +1108,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugins/<key>' \
     -X DELETE \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The plugin was uninstalled. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/config/plugins/{key}/active`
 
@@ -507,6 +1209,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugins/<key>/active' \
     -d '{"version": "string"}'
 ```
 
+### Example response
+
+Status `200`: The active version after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/plugins/{key}/versions/{version}/approve`
 
 `POST /api/config/plugins/{key}/versions/{version}/approve`: record the
@@ -543,6 +1301,62 @@ $ curl 'http://127.0.0.1:8787/api/config/plugins/<key>/versions/<version>/approv
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The version's grant was approved. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/plugins/{id}/consent`
 
 Loads the consent dialog for one plugin, including coverage against the stored grant.
@@ -578,7 +1392,7 @@ $ curl 'http://127.0.0.1:8787/api/plugins/<id>/consent' \
 
 ### Example response
 
-Status `200`:
+Status `200`: What the plugin asks for and what is granted.
 
 ```json
 {
@@ -761,6 +1575,48 @@ Status `200`:
   }
 }
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The grant could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/plugins/{id}/consent`
 
@@ -810,7 +1666,7 @@ $ curl 'http://127.0.0.1:8787/api/plugins/<id>/consent' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The grant was stored.
 
 ```json
 {
@@ -994,6 +1850,58 @@ Status `200`:
 }
 ```
 
+Status `400`: An override is not allowed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such plugin.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The grant could not be stored.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/plugins/{kind}/{id}/logo`
 
 Serve an embedded `plugin.toml` `logo` file from under the plugin install root.
@@ -1025,3 +1933,39 @@ Serve an embedded `plugin.toml` `logo` file from under the plugin install root.
 $ curl 'http://127.0.0.1:8787/api/plugins/<kind>/<id>/logo' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The logo (PNG, or SVG served with a restrictive CSP). The body is `image/png`, `image/svg+xml`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The plugin has no logo.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

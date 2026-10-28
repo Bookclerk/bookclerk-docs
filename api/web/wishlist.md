@@ -30,7 +30,7 @@ $ curl 'http://127.0.0.1:8787/api/wishlist' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The caller's open requests.
 
 ```json
 [
@@ -119,6 +119,12 @@ Status `200`:
 ]
 ```
 
+Status `401`: No signed-in caller. The body is `text/plain`.
+
+Status `500`: The request could not be read or written. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/wishlist`
 
 Creates a wishlist / title-request row for the authenticated caller.
@@ -176,7 +182,7 @@ $ curl 'http://127.0.0.1:8787/api/wishlist' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The new request.
 
 ```json
 {
@@ -262,6 +268,24 @@ Status `200`:
   "updated_at": "2026-01-01T12:00:00Z"
 }
 ```
+
+Status `400`: The title is missing or invalid. The body is `text/plain`.
+
+Status `401`: No signed-in caller. The body is `text/plain`.
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The request could not be read or written. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/wishlist/{uuid}`
 
@@ -299,7 +323,7 @@ $ curl 'http://127.0.0.1:8787/api/wishlist/<uuid>' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The cancelled request.
 
 ```json
 {
@@ -386,6 +410,26 @@ Status `200`:
 }
 ```
 
+Status `400`: Only open wishlist items can be removed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: No signed-in caller. The body is `text/plain`.
+
+Status `403`: The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. The body is `text/plain`.
+
+Status `404`: No such request. The body is `text/plain`.
+
+Status `500`: The request could not be read or written. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/request-queue`
 
 Ranks the shared open-request queue without warming ONNX embeddings.
@@ -413,7 +457,7 @@ $ curl 'http://127.0.0.1:8787/api/request-queue' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Open requests, ranked.
 
 ```json
 [
@@ -451,3 +495,27 @@ Status `200`:
   }
 ]
 ```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The queue could not be ranked. The body is `text/plain`.
+
+Status `503`: Discover is shutting down; try again.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

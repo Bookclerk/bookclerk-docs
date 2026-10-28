@@ -26,7 +26,7 @@ $ curl 'http://127.0.0.1:8787/health'
 
 ### Example response
 
-Status `200`:
+Status `200`: The daemon is serving HTTP.
 
 ```json
 {

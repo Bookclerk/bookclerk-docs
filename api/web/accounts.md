@@ -39,6 +39,20 @@ $ curl 'http://127.0.0.1:8787/api/portal/redeem' \
     -d '{"ticket": "string", "nonce": "string"}'
 ```
 
+### Example response
+
+Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
+
+Status `400`: The ticket is invalid, used or expired.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/portal/login/integration`
 
 Authenticates against an enabled integration and mints a portal session.
@@ -74,6 +88,20 @@ $ curl 'http://127.0.0.1:8787/api/portal/login/integration' \
     -d '{"provider": "string", "username": "string", "password": "string"}'
 ```
 
+### Example response
+
+Status `200`: Signed in through the integration. The body is JSON the schemas do not describe yet.
+
+Status `400`: The request is invalid, or the integration refused the login.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/portal/logout`
 
 Revokes the portal session row and clears the session cookie.
@@ -96,6 +124,22 @@ Revokes the portal session row and clears the session cookie.
 $ curl 'http://127.0.0.1:8787/api/portal/logout' \
     -X POST
 ```
+
+### Example response
+
+Status `200`: Signed out (`{"ok": true}`); the cookie is cleared. The body is JSON the schemas do not describe yet.
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/portal/me`
 
@@ -122,7 +166,7 @@ $ curl 'http://127.0.0.1:8787/api/portal/me' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The signed-in identity.
 
 ```json
 {
@@ -131,6 +175,16 @@ Status `200`:
   "label": "string"
 }
 ```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/portal/sources`
 
@@ -156,7 +210,7 @@ $ curl 'http://127.0.0.1:8787/api/portal/sources'
 
 ### Example response
 
-Status `200`:
+Status `200`: Deployed content sources.
 
 ```json
 {
@@ -182,6 +236,8 @@ Status `200`:
   ]
 }
 ```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/portal/sources/{id}/login`
 
@@ -227,6 +283,38 @@ $ curl 'http://127.0.0.1:8787/api/portal/sources/<id>/login' \
     -d '{"email": "string", "password": "string"}'
 ```
 
+### Example response
+
+Status `200`: The account was connected. The body is JSON the schemas do not describe yet.
+
+Status `400`: The login failed.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/portal/sources/{id}/oauth/start`
 
 Starts interactive OAuth for an OAuth storefront and returns the browser login URL.
@@ -259,6 +347,38 @@ $ curl 'http://127.0.0.1:8787/api/portal/sources/<id>/oauth/start' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
+
+### Example response
+
+Status `200`: The browser login URL. The body is JSON the schemas do not describe yet.
+
+Status `400`: The source does not use OAuth.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/portal/libro/login`
 
@@ -299,6 +419,30 @@ $ curl 'http://127.0.0.1:8787/api/portal/libro/login' \
     -d '{"email": "string", "password": "string"}'
 ```
 
+### Example response
+
+Status `200`: The account was connected. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/portal/audible/start`
 
 **Deprecated.**
@@ -327,6 +471,30 @@ $ curl 'http://127.0.0.1:8787/api/portal/audible/start' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
 
+### Example response
+
+Status `200`: The browser login URL. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/portal/connections`
 
 Lists store accounts linked to the signed-in identity, including disabled sources.
@@ -352,7 +520,7 @@ $ curl 'http://127.0.0.1:8787/api/portal/connections' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Store accounts linked to the caller.
 
 ```json
 {
@@ -374,6 +542,16 @@ Status `200`:
   ]
 }
 ```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/portal/sources/{source}/connections/{account_id}/revoke`
 
@@ -414,3 +592,35 @@ $ curl 'http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_i
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787'
 ```
+
+### Example response
+
+Status `200`: The account was unlinked. The body is JSON the schemas do not describe yet.
+
+Status `400`: The account is not linked to this identity.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string"
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

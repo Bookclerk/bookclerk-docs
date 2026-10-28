@@ -26,7 +26,7 @@ $ curl 'http://127.0.0.1:8787/.well-known/openid-configuration'
 
 ### Example response
 
-Status `200`:
+Status `200`: The OIDC discovery document.
 
 ```json
 {
@@ -92,6 +92,20 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 $ curl 'http://127.0.0.1:8787/oidc/authorize?client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
 ```
 
+### Example response
+
+Status `302`: Redirects to sign-in, the consent page, or the client. No body.
+
+Status `400`: The request is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
 ## `POST /oidc/authorize`
 
 Completes consent: deny redirects with `access_denied`, grant issues a code.
@@ -134,6 +148,40 @@ $ curl 'http://127.0.0.1:8787/oidc/authorize' \
     -d 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
 ```
 
+### Example response
+
+Status `302`: Redirects to the client with a code or `access_denied`. No body.
+
+Status `400`: The request is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: An operator token was sent, or the user is disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
 ## `POST /oidc/token`
 
 Dispatches token grants; unknown `grant_type` values return 400.
@@ -174,7 +222,7 @@ $ curl 'http://127.0.0.1:8787/oidc/token' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Tokens.
 
 ```json
 {
@@ -184,6 +232,26 @@ Status `200`:
   "refresh_token": "string",
   "id_token": "string",
   "scope": "string"
+}
+```
+
+Status `400`: The grant is invalid or unsupported.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The client failed to authenticate.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
 }
 ```
 
@@ -209,6 +277,40 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 ```console
 $ curl 'http://127.0.0.1:8787/oidc/userinfo' \
     -H 'Authorization: Bearer <oidcAccessToken>'
+```
+
+### Example response
+
+Status `200`: Claims for the token's user. The body is JSON the schemas do not describe yet.
+
+Status `401`: The access token is missing or invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The token's user is disabled.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The user could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
 ```
 
 ## `POST /oidc/revoke`
@@ -268,6 +370,52 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: Registered clients (no secrets). The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/oidc/clients`
 
 Create a client; confidential clients return the generated secret once.
@@ -312,6 +460,62 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients' \
     -H 'Content-Type: application/json' \
     -d '{}'
 ```
+
+### Example response
+
+Status `200`: The client; a confidential client's secret appears once. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: A client with this id already exists.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/auth/oidc/clients/{client_id}`
 
@@ -363,6 +567,62 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
     -H 'Content-Type: application/json' \
     -d '{}'
 ```
+
+### Example response
+
+Status `200`: The client after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such client.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/auth/oidc/clients/{client_id}`
 
@@ -418,6 +678,72 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
     -d '{}'
 ```
 
+### Example response
+
+Status `204`: The client was deleted. No body.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such client.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The client is provided by a plugin; disable it instead.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/auth/oidc/clients/{client_id}/rotate-secret`
 
 Mint a new secret for a confidential client; plaintext is returned once.
@@ -463,3 +789,59 @@ $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' \
     -H 'Content-Type: application/json' \
     -d '{}'
 ```
+
+### Example response
+
+Status `200`: The new secret (shown once). The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such client.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

@@ -32,6 +32,32 @@ $ curl 'http://127.0.0.1:8787/api/users' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The library's users. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/users`
 
 Owner/admin or operator creates a user and optional invite magic link.
@@ -74,6 +100,52 @@ $ curl 'http://127.0.0.1:8787/api/users' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The new user, with an invite link when one was asked for. The body is JSON the schemas do not describe yet.
+
+Status `400`: The request is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The login is taken.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/users/{id}`
 
 Delete a user and their personal data (wishlist / links / sessions); keep acquired books.
@@ -109,6 +181,52 @@ $ curl 'http://127.0.0.1:8787/api/users/<id>' \
     -X DELETE \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The user and their personal data were deleted. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The user is the last Owner or Administrator.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PATCH /api/users/{id}`
 
@@ -158,6 +276,62 @@ $ curl 'http://127.0.0.1:8787/api/users/<id>' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The user after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: A value is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The login name or email is taken by another user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/users/{id}/claim-ticket`
 
 Mint a fresh local claim ticket for an active first-party user.
@@ -189,6 +363,42 @@ $ curl 'http://127.0.0.1:8787/api/users/<id>/claim-ticket' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: A fresh claim ticket. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/users/{id}/reset-password`
 
@@ -222,6 +432,42 @@ $ curl 'http://127.0.0.1:8787/api/users/<id>/reset-password' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The password was cleared; a claim ticket for the reset. The body is JSON the schemas do not describe yet.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/users/{id}/avatar`
 
 Serves a stored avatar JPEG for any authenticated household member.
@@ -251,3 +497,29 @@ Serves a stored avatar JPEG for any authenticated household member.
 $ curl 'http://127.0.0.1:8787/api/users/<id>/avatar' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The avatar. The body is `image/jpeg`, `image/png`, `image/webp`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The user has no avatar.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

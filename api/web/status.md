@@ -31,7 +31,7 @@ $ curl 'http://127.0.0.1:8787/api/status' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Library counts and daemon state.
 
 ```json
 {
@@ -60,6 +60,38 @@ Status `200`:
 }
 ```
 
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/cluster/status`
 
 `GET /api/cluster/status`: cluster-wide health every node administrator
@@ -87,3 +119,49 @@ plus detail for the nodes the caller may see.
 $ curl 'http://127.0.0.1:8787/api/cluster/status' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Cluster-wide node health. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

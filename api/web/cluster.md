@@ -49,6 +49,62 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/labels' \
     -d '{"labels": ["string"]}'
 ```
 
+### Example response
+
+Status `200`: The node's labels after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such node, or not one the caller administers.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `PUT /api/config/nodes/{node_id}/owner`
 
 `PUT /api/config/nodes/{node_id}/owner`: assign or clear a node's owner.
@@ -95,6 +151,62 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/owner' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The node's owner after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such node, or not one the caller administers.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/cluster-consents`
 
 `GET /api/config/cluster-consents`.
@@ -120,6 +232,52 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/owner' \
 $ curl 'http://127.0.0.1:8787/api/config/cluster-consents' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Pending and granted cluster consents. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/clusters/{cluster_id}/scan`
 
@@ -171,6 +329,72 @@ $ curl 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/scan' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The owner cluster accepted the scan. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such cluster.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The owner cluster could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/clusters/{cluster_id}/jobs`
 
 `POST /api/config/clusters/{cluster_id}/jobs`: the owner's view of jobs
@@ -217,6 +441,72 @@ $ curl 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs' \
     -d '{"job_ids": ["string"]}'
 ```
 
+### Example response
+
+Status `200`: The owner's jobs for these accounts. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such cluster.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The owner cluster could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/cluster-consents/approve`
 
 `POST /api/config/cluster-consents/approve`.
@@ -260,6 +550,62 @@ $ curl 'http://127.0.0.1:8787/api/config/cluster-consents/approve' \
     -d '{"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}'
 ```
 
+### Example response
+
+Status `200`: The consent was granted. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such consent.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/cluster-consents/revoke`
 
 `POST /api/config/cluster-consents/revoke`.
@@ -299,6 +645,62 @@ $ curl 'http://127.0.0.1:8787/api/config/cluster-consents/revoke' \
     -d '{"cluster_id": "string", "plugin_key": "string"}'
 ```
 
+### Example response
+
+Status `200`: The consent was revoked. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such consent.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/join`
 
 `GET /api/config/join`.
@@ -324,6 +726,52 @@ $ curl 'http://127.0.0.1:8787/api/config/cluster-consents/revoke' \
 $ curl 'http://127.0.0.1:8787/api/config/join' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Whether this install has joined a library, and its state. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/join/inspect`
 
@@ -362,6 +810,62 @@ $ curl 'http://127.0.0.1:8787/api/config/join/inspect' \
     -H 'Content-Type: application/json' \
     -d '{"address": "string"}'
 ```
+
+### Example response
+
+Status `200`: What the library says about itself. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The library could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/join/start`
 
@@ -404,6 +908,72 @@ $ curl 'http://127.0.0.1:8787/api/config/join/start' \
     -H 'Content-Type: application/json' \
     -d '{"address": "string"}'
 ```
+
+### Example response
+
+Status `200`: The library's sign-in URL to open. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: A join is already in progress or done.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The library could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/join/callback`
 
@@ -451,6 +1021,72 @@ $ curl 'http://127.0.0.1:8787/api/config/join/callback' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The join completed. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route, or the library refused the sign-in (`denied`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `410`: The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The library could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/config/join/invite`
 
 `POST /api/config/join/invite`: join with a pasted branch invite. The
@@ -490,6 +1126,70 @@ $ curl 'http://127.0.0.1:8787/api/config/join/invite' \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
     -d '{"link": "string"}'
+```
+
+### Example response
+
+Status `200`: The join completed. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `502`: The library could not be reached.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The library is slow to answer; the join goes on in the background (`join_pending`). Poll the join state instead of retrying.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
 ```
 
 ## `POST /api/config/join/leave`
@@ -533,6 +1233,72 @@ $ curl 'http://127.0.0.1:8787/api/config/join/leave' \
     -d '{"cluster_id": "string"}'
 ```
 
+### Example response
+
+Status `200`: Leaving started. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: This install is not a branch of that library (`not_found`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: This install has not joined a library.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/nodes`
 
 `GET /api/config/nodes`: every node for an operator; the caller's own
@@ -559,6 +1325,52 @@ nodes for a node owner.
 $ curl 'http://127.0.0.1:8787/api/config/nodes' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The nodes the caller administers. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/config/nodes/{node_id}`
 
@@ -598,6 +1410,62 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The owner node was removed. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such node, or not one the caller administers.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/clerks`
 
 `GET /api/config/clerks`: the owner nodes (this one and its clerks) for
@@ -627,6 +1495,52 @@ listing already shows them. Branches are not listed.
 $ curl 'http://127.0.0.1:8787/api/config/clerks' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: This node and its clerks. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/config/nodes/{node_id}/runtime`
 
@@ -677,6 +1591,62 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/runtime' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The node's runtime settings after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such node, or not one the caller administers.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/node-invites`
 
 `GET /api/config/node-invites`: every link for the operator or an
@@ -709,6 +1679,52 @@ Owner; the caller's own links for anyone else, and with `?mine=true`.
 $ curl 'http://127.0.0.1:8787/api/config/node-invites' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Enrollment links the caller may see. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/node-invites`
 
@@ -768,6 +1784,72 @@ $ curl 'http://127.0.0.1:8787/api/config/node-invites' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The new link (shown once). The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: Host enrollment is off.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: The node API's certificate pin is not available yet (`node_api_pin_unavailable`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `DELETE /api/config/node-invites/{id}`
 
 `DELETE /api/config/node-invites/{id}`: revoke an unredeemed link.
@@ -802,6 +1884,62 @@ $ curl 'http://127.0.0.1:8787/api/config/node-invites/<id>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The link was revoked. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such link.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/branches`
 
 `GET /api/config/branches`: this library's join settings: whether new
@@ -829,6 +1967,52 @@ joining operator confirms in `self_signed` mode.
 $ curl 'http://127.0.0.1:8787/api/config/branches' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The library's join settings and branches. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/config/branches`
 
@@ -866,6 +2050,52 @@ $ curl 'http://127.0.0.1:8787/api/config/branches' \
     -H 'Content-Type: application/json' \
     -d '{"enrollment": true}'
 ```
+
+### Example response
+
+Status `200`: The settings after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/branches/titles/remove`
 
@@ -905,6 +2135,52 @@ $ curl 'http://127.0.0.1:8787/api/config/branches/titles/remove' \
     -d '{}'
 ```
 
+### Example response
+
+Status `200`: The branch's titles were removed. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/join/sharing`
 
 `GET /api/config/join/sharing`: Settings → Library for the operator or
@@ -932,6 +2208,52 @@ sharing settings (`{clusters: [...]}`).
 $ curl 'http://127.0.0.1:8787/api/config/join/sharing' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: The branch's sharing settings. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/config/join/sharing`
 
@@ -974,6 +2296,62 @@ $ curl 'http://127.0.0.1:8787/api/config/join/sharing' \
     -H 'Content-Type: application/json' \
     -d '{"cluster_id": "string", "share_books": true, "include_branches": true}'
 ```
+
+### Example response
+
+Status `200`: The sharing settings after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: This install is not a branch of that library (`not_found`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `DELETE /api/config/node-credentials/{node_id}`
 
@@ -1027,6 +2405,62 @@ $ curl 'http://127.0.0.1:8787/api/config/node-credentials/<node_id>' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
+### Example response
+
+Status `200`: The host's credential was revoked. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such host.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/config/host-enrollment`
 
 `GET /api/config/host-enrollment`: whether host nodes may enroll.
@@ -1061,6 +2495,52 @@ Returns an error response when the switch cannot be read.
 $ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
+
+### Example response
+
+Status `200`: Whether host nodes may enroll. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/config/host-enrollment`
 
@@ -1114,3 +2594,49 @@ $ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
     -H 'Content-Type: application/json' \
     -d '{"enabled": true}'
 ```
+
+### Example response
+
+Status `200`: The switch after the change. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The configuration could not be read or written.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

@@ -36,7 +36,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/sync-listening' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The job was accepted.
 
 ```json
 {
@@ -46,6 +46,74 @@ Status `200`:
   "error": "string"
 }
 ```
+
+Status `400`: No listening-capable integration is enabled. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The same job is already pending or running, or no node can run it.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `429`: The job queue is full.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `500`: The job could not be queued.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `503`: Job admission is paused.
+
+```json
+{
+  "ok": true,
+  "message": "string",
+  "job_id": "string",
+  "error": "string"
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/discover/recommendations`
 
@@ -85,7 +153,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/recommendations' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The Discover feed.
 
 ```json
 {
@@ -113,6 +181,32 @@ Status `200`:
   ]
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `503`: Discover is shutting down; try again.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/discover/purchase-hints`
 
@@ -161,7 +255,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/purchase-hints' \
 
 ### Example response
 
-Status `200`:
+Status `200`: Prices and availability.
 
 ```json
 {
@@ -195,6 +289,32 @@ Status `200`:
   }
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/discover/purchase-hints/batch`
 
@@ -235,7 +355,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/purchase-hints/batch' \
 
 ### Example response
 
-Status `200`:
+Status `200`: One result per query, in order.
 
 ```json
 {
@@ -264,6 +384,32 @@ Status `200`:
   ]
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/discover/search`
 
@@ -318,7 +464,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/search' \
 
 ### Example response
 
-Status `200`:
+Status `200`: A page of catalog results.
 
 ```json
 {
@@ -369,6 +515,22 @@ Status `200`:
 }
 ```
 
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `POST /api/discover/title-meta`
 
 Resolves Audnexus-style title metadata for one query.
@@ -414,7 +576,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/title-meta' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The metadata, or null when nothing matched.
 
 ```json
 {
@@ -453,6 +615,32 @@ Status `200`:
   ]
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/discover/title-meta/batch`
 
@@ -493,7 +681,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/title-meta/batch' \
 
 ### Example response
 
-Status `200`:
+Status `200`: One result per query, in order.
 
 ```json
 {
@@ -529,6 +717,32 @@ Status `200`:
   ]
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/discover/title-reviews`
 
@@ -573,7 +787,7 @@ $ curl 'http://127.0.0.1:8787/api/discover/title-reviews' \
 
 ### Example response
 
-Status `200`:
+Status `200`: A page of reviews.
 
 ```json
 {
@@ -596,3 +810,29 @@ Status `200`:
   ]
 }
 ```
+
+Status `400`: The query is malformed or too large. The body is `text/plain`.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `500`: The lookup failed. The body is `text/plain`.
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.

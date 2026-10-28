@@ -47,6 +47,52 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/enroll' \
     -d '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
 ```
 
+### Example response
+
+Status `200`: The host is enrolled; its node credential. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The link is unknown, used or expired.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/node/v1/info`
 
 `GET /api/node/v1/info`.
@@ -69,6 +115,32 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/enroll' \
 ```console
 $ curl 'http://127.0.0.1:8787/api/node/v1/info'
 ```
+
+### Example response
+
+Status `200`: What this library says about itself to a joining install. The body is JSON the schemas do not describe yet.
+
+Status `403`: The transport is not allowed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `POST /api/node/v1/enroll/oauth`
 
@@ -118,6 +190,62 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' \
     -d '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
 ```
 
+### Example response
+
+Status `200`: The branch is enrolled; its node credential. The body is JSON the schemas do not describe yet.
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `401`: The code or verifier is wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The transport is not allowed. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: The enrollment could not be recorded; try again (`enrollment_unavailable`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
+
 ## `GET /api/node/v1/connect`
 
 `GET /api/node/v1/connect`: upgrade to the host-node socket after the
@@ -144,6 +272,52 @@ transport check. 403 `transport_insecure` for a refused connection,
 ```console
 $ curl 'http://127.0.0.1:8787/api/node/v1/connect'
 ```
+
+### Example response
+
+Status `101`: Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
+
+Status `400`: The request does not offer the node subprotocol (`subprotocol_required`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `403`: The transport is not allowed.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: The node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `503`: Too many handshakes are in flight (`handshakes_busy`); retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `GET /api/node/v1/artifacts/{sha256}`
 
@@ -174,6 +348,32 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/connect'
 $ curl 'http://127.0.0.1:8787/api/node/v1/artifacts/<sha256>' \
     -H 'Authorization: Bookclerk-Node <node_id> <issued_at> <signature>'
 ```
+
+### Example response
+
+Status `200`: The plugin archive. The body is `application/octet-stream`.
+
+Status `401`: The node signature is missing or wrong.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such archive, or the node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
 
 ## `PUT /api/node/v1/uploads/{upload_id}/files/{index}`
 
@@ -219,7 +419,77 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/files/<index>' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The file was stored (`received`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `401`: The upload token is missing or wrong (`unauthorized`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `403`: The connection's transport is refused (`transport_insecure`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such upload, or the node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The upload lost its fence to a newer one (`lost`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `421`: This node is not the upload's receiving node (`misdirected`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `422`: The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `503`: Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`).
 
 ```json
 {
@@ -278,7 +548,7 @@ $ curl 'http://127.0.0.1:8787/api/node/v1/uploads/<upload_id>/commit' \
 
 ### Example response
 
-Status `200`:
+Status `200`: The upload was committed to the destinations (`committed`).
 
 ```json
 {
@@ -287,3 +557,75 @@ Status `200`:
   "job_completed": true
 }
 ```
+
+Status `401`: The upload token is missing or wrong (`unauthorized`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `403`: The connection's transport is refused (`transport_insecure`).
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `404`: No such upload, or the node API is not mounted.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Status `409`: The upload lost its fence to a newer one (`lost`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `421`: This node is not the upload's receiving node (`misdirected`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `422`: The commit was refused (`refused`): an invalid body, missing files, or the destinations changed.
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `503`: Storage or the upload record is unavailable; retry (`unavailable`).
+
+```json
+{
+  "status": "string",
+  "reason": "string",
+  "job_completed": true
+}
+```
+
+Status `504`: The request ran past the API's time budget. The body is `text/plain`.
