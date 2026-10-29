@@ -289,11 +289,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/nodes/{node_id}/owner`
 
@@ -581,11 +577,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/cluster-consents`
 
@@ -811,11 +803,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/clusters/{cluster_id}/scan`
 
@@ -1146,11 +1134,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/clusters/{cluster_id}/jobs`
 
@@ -1477,11 +1461,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/cluster-consents/approve`
 
@@ -1768,11 +1748,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/cluster-consents/revoke`
 
@@ -2055,11 +2031,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/join`
 
@@ -2285,11 +2257,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/join/inspect`
 
@@ -2571,11 +2539,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/join/start`
 
@@ -2900,11 +2864,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/join/callback`
 
@@ -3233,11 +3193,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/join/invite`
 
@@ -3875,11 +3831,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/nodes`
 
@@ -4106,11 +4058,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/nodes/{node_id}`
 
@@ -4387,11 +4335,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/clerks`
 
@@ -4621,11 +4565,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/nodes/{node_id}/runtime`
 
@@ -4916,11 +4856,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/node-invites`
 
@@ -5151,11 +5087,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/node-invites`
 
@@ -5496,11 +5428,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/node-invites/{id}`
 
@@ -5773,11 +5701,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/branches`
 
@@ -6005,11 +5929,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/branches`
 
@@ -6251,11 +6171,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/branches/titles/remove`
 
@@ -6498,11 +6414,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/join/sharing`
 
@@ -6730,11 +6642,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/join/sharing`
 
@@ -7020,11 +6928,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/node-credentials/{node_id}`
 
@@ -7315,11 +7219,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/host-enrollment`
 
@@ -7554,11 +7454,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/host-enrollment`
 
@@ -7816,8 +7712,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

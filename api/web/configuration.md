@@ -246,11 +246,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/domains/core.events`
 
@@ -545,11 +541,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/domains/core.events`
 
@@ -973,11 +965,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/domains/core.output`
 
@@ -1666,11 +1654,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/domains/core.output`
 
@@ -2485,8 +2469,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

@@ -483,11 +483,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/library/acquire`
 
@@ -978,11 +974,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/library/books`
 
@@ -1574,11 +1566,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/library/books/{uuid}`
 
@@ -2173,11 +2161,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/library/books/{uuid}/cover`
 
@@ -2250,12 +2234,7 @@ Status `200`: The cover. The body is binary (`image/jpeg`).
 
 Schema:
 
-```json
-{
-  "type": "string",
-  "format": "binary"
-}
-```
+A `image/jpeg` body: binary bytes.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2344,8 +2323,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

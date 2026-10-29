@@ -313,11 +313,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/jobs/{id}/cancel`
 
@@ -612,8 +608,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

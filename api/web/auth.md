@@ -207,11 +207,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/signin`
 
@@ -269,11 +265,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/tray-handoff/prepare`
 
@@ -476,11 +468,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/tray-handoff`
 
@@ -587,11 +575,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/me`
 
@@ -697,11 +681,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/elevate`
 
@@ -943,11 +923,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/elevate`
 
@@ -1141,11 +1117,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/bootstrap`
 
@@ -1390,11 +1362,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/auth/password`
 
@@ -1638,11 +1606,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/password`
 
@@ -1841,11 +1805,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/impersonate`
 
@@ -2087,11 +2047,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/impersonate`
 
@@ -2245,11 +2201,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/branch-consent`
 
@@ -2491,11 +2443,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/branch-consent`
 
@@ -2827,11 +2775,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/branch-consent/step-up`
 
@@ -3067,11 +3011,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/logout`
 
@@ -3220,11 +3160,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/sessions`
 
@@ -3410,11 +3346,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/sessions/{id}`
 
@@ -3608,11 +3540,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PATCH /api/auth/profile`
 
@@ -3896,11 +3824,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/auth/profile/avatar`
 
@@ -4143,11 +4067,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/profile/avatar`
 
@@ -4296,11 +4216,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/providers`
 
@@ -4354,11 +4270,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/identities`
 
@@ -4506,11 +4418,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/login`
 
@@ -4648,11 +4556,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/elevate`
 
@@ -4884,11 +4788,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/callback`
 
@@ -4989,11 +4889,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/oidc/callback`
 
@@ -5104,11 +5000,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/oidc/config`
 
@@ -5524,11 +5416,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/auth/oidc/config`
 
@@ -6044,11 +5932,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/passkeys`
 
@@ -6196,11 +6080,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/register/begin`
 
@@ -6367,11 +6247,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/register/finish`
 
@@ -6620,11 +6496,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/passkeys/{id}`
 
@@ -6835,11 +6707,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/login/begin`
 
@@ -7117,11 +6985,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/login/finish`
 
@@ -7321,11 +7185,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/elevate/begin`
 
@@ -7519,11 +7379,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/passkeys/elevate/finish`
 
@@ -7732,11 +7588,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/totp/login`
 
@@ -7895,11 +7747,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/totp/enroll/begin`
 
@@ -8106,11 +7954,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/totp/enroll/finish`
 
@@ -8357,11 +8201,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/totp`
 
@@ -8509,11 +8349,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/totp`
 
@@ -8680,11 +8516,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/auth/mfa-policy`
 
@@ -8830,11 +8662,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/auth/mfa-policy`
 
@@ -9077,8 +8905,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

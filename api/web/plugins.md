@@ -228,11 +228,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/plugin-instances`
 
@@ -558,11 +554,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/plugin-instances/{id}`
 
@@ -876,11 +868,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/plugin-instances/{id}/config`
 
@@ -1150,11 +1138,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/plugin-instances/{id}/config`
 
@@ -1447,11 +1431,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`
 
@@ -1780,11 +1760,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/plugin-instances/{id}/placement`
 
@@ -2073,11 +2049,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/plugin-instances/{id}/placement`
 
@@ -2352,11 +2324,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/plugins`
 
@@ -2582,11 +2550,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/plugins`
 
@@ -2952,11 +2916,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/config/plugins/{key}`
 
@@ -3227,11 +3187,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/config/plugins/{key}`
 
@@ -3505,11 +3461,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/config/plugins/{key}/active`
 
@@ -3795,11 +3747,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/config/plugins/{key}/versions/{version}/approve`
 
@@ -4074,11 +4022,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/plugins/{id}/consent`
 
@@ -5292,11 +5236,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/plugins/{id}/consent`
 
@@ -6574,11 +6514,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/plugins/{kind}/{id}/logo`
 
@@ -6655,13 +6591,7 @@ Status `200`: The logo (PNG, or SVG served with a restrictive CSP). The body is 
 
 Schema:
 
-```json
-{
-  "type": "string",
-  "format": "binary",
-  "description": "A request body of raw bytes (a file upload), documented as\n`type: string, format: binary` so generated clients send the bytes\nrather than a JSON array."
-}
-```
+A `image/png` body: binary bytes.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -6786,8 +6716,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

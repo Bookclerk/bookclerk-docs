@@ -1154,11 +1154,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/oidc/clients`
 
@@ -1447,11 +1443,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/auth/oidc/clients/{client_id}`
 
@@ -1744,11 +1736,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/auth/oidc/clients/{client_id}`
 
@@ -2083,11 +2071,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/auth/oidc/clients/{client_id}/rotate-secret`
 
@@ -2375,8 +2359,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

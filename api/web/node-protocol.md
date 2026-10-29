@@ -247,11 +247,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/node/v1/info`
 
@@ -385,11 +381,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/node/v1/enroll/oauth`
 
@@ -678,11 +670,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/node/v1/connect`
 
@@ -898,11 +886,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/node/v1/artifacts/{sha256}`
 
@@ -974,13 +958,7 @@ Status `200`: The plugin archive. The body is binary (`application/octet-stream`
 
 Schema:
 
-```json
-{
-  "type": "string",
-  "format": "binary",
-  "description": "A request body of raw bytes (a file upload), documented as\n`type: string, format: binary` so generated clients send the bytes\nrather than a JSON array."
-}
-```
+A `application/octet-stream` body: binary bytes.
 
 Status `401`: The node signature is missing or wrong.
 
@@ -1062,11 +1040,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PUT /api/node/v1/uploads/{upload_id}/files/{index}`
 
@@ -1900,8 +1874,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

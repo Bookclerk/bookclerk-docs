@@ -478,11 +478,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/users`
 
@@ -851,11 +847,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `DELETE /api/users/{id}`
 
@@ -1117,11 +1109,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PATCH /api/users/{id}`
 
@@ -1499,11 +1487,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/users/{id}/claim-ticket`
 
@@ -1738,11 +1722,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/users/{id}/reset-password`
 
@@ -1979,11 +1959,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/users/{id}/avatar`
 
@@ -2055,13 +2031,7 @@ Status `200`: The avatar. The body is binary (`image/jpeg`).
 
 Schema:
 
-```json
-{
-  "type": "string",
-  "format": "binary",
-  "description": "A request body of raw bytes (a file upload), documented as\n`type: string, format: binary` so generated clients send the bytes\nrather than a JSON array."
-}
-```
+A `image/jpeg` body: binary bytes.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2143,8 +2113,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

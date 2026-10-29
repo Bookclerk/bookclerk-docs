@@ -148,11 +148,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -418,11 +414,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/discover/recommendations`
 
@@ -967,11 +959,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1017,11 +1005,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `503`: Discover is shutting down; try again.
 
@@ -1067,11 +1051,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/discover/purchase-hints`
 
@@ -1399,11 +1379,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1485,11 +1461,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -1499,11 +1471,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/discover/purchase-hints/batch`
 
@@ -1830,11 +1798,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1916,11 +1880,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -1930,11 +1890,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/discover/search`
 
@@ -2397,11 +2353,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2447,11 +2399,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -2461,11 +2409,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/discover/title-meta`
 
@@ -2863,11 +2807,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -2949,11 +2889,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -2963,11 +2899,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/discover/title-meta/batch`
 
@@ -3348,11 +3280,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -3434,11 +3362,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -3448,11 +3372,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/discover/title-reviews`
 
@@ -3688,11 +3608,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -3774,11 +3690,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -3788,8 +3700,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.

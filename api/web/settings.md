@@ -599,11 +599,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PATCH /api/settings`
 
@@ -1304,11 +1300,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `POST /api/database/migrate`
 
@@ -1656,11 +1648,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `GET /api/preferences`
 
@@ -1807,11 +1795,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `500`: The request could not be read or written.
 
@@ -1821,11 +1805,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -1835,11 +1815,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 ## `PATCH /api/preferences`
 
@@ -2013,11 +1989,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `401`: No signed-in caller.
 
@@ -2027,11 +1999,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
@@ -2077,11 +2045,7 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -2091,8 +2055,4 @@ string
 
 Schema:
 
-```json
-{
-  "type": "string"
-}
-```
+A `text/plain` body: a string.
