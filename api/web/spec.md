@@ -14,7 +14,7 @@ Serves the OpenAPI document.
 
 ### Responses
 
-- `200` — The OpenAPI 3.1 document for this daemon's version. Body: any JSON (`application/json`)
+- `200` — The OpenAPI 3.1 document for this daemon's version. Body: [`OpenApiDocument`](schemas.md#openapidocument) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -46,7 +46,63 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The OpenAPI 3.1 document for this daemon's version. The body is JSON the schemas do not describe yet.
+Status `200`: The OpenAPI 3.1 document for this daemon's version.
+
+```json
+{
+  "components": {
+    "schemas": {}
+  },
+  "info": {
+    "title": "Bookclerk daemon API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The daemon is up."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An OpenAPI document as this daemon serves it: the `openapi` version string, `info` about the daemon, every route under `paths` and the schemas under `components`.",
+  "examples": [
+    {
+      "components": {
+        "schemas": {}
+      },
+      "info": {
+        "title": "Bookclerk daemon API",
+        "version": "0.1.0"
+      },
+      "openapi": "3.1.0",
+      "paths": {
+        "/health": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "The daemon is up."
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
 
 Status `504`: The request ran past the API's time budget.
 
@@ -74,11 +130,10 @@ The same API as `GET /api/openapi.json`, restated in OpenAPI 3.0.3 form for tool
 
 ### Responses
 
-- `200` — The OpenAPI 3.0.3 document for this daemon's version. Body: any JSON (`application/json`)
-- `500` — The document could not be restated; this is a bug. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The OpenAPI 3.0.3 document for this daemon's version. Body: [`OpenApiDocument`](schemas.md#openapidocument) (`application/json`)
+- `500` — The document could not be restated; this is a bug. Body: [`OpenApiV30Unavailable`](schemas.md#openapiv30unavailable) (`application/json`)
+  - `error` *string*, **required** — Always `openapi_v30_unavailable`.
+  - `message` *string*, **required** — What to do: the daemon log names the form that could not be restated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -110,15 +165,29 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The OpenAPI 3.0.3 document for this daemon's version. The body is JSON the schemas do not describe yet.
-
-Status `500`: The document could not be restated; this is a bug.
+Status `200`: The OpenAPI 3.0.3 document for this daemon's version.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "components": {
+    "schemas": {}
+  },
+  "info": {
+    "title": "Bookclerk daemon API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The daemon is up."
+          }
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -127,22 +196,62 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "An OpenAPI document as this daemon serves it: the `openapi` version string, `info` about the daemon, every route under `paths` and the schemas under `components`.",
+  "examples": [
+    {
+      "components": {
+        "schemas": {}
+      },
+      "info": {
+        "title": "Bookclerk daemon API",
+        "version": "0.1.0"
+      },
+      "openapi": "3.1.0",
+      "paths": {
+        "/health": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "The daemon is up."
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `500`: The document could not be restated; this is a bug.
+
+```json
+{
+  "error": "openapi_v30_unavailable",
+  "message": "The OpenAPI 3.0 document could not be built; see the daemon log."
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Body of the `500` from `GET /api/openapi-3.0.json` when the 3.1\ndocument could not be restated as 3.0.3.",
   "required": [
-    "error"
+    "error",
+    "message"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Always `openapi_v30_unavailable`.",
+      "example": "openapi_v30_unavailable"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What to do: the daemon log names the form that could not be restated.",
+      "example": "The OpenAPI 3.0 document could not be built; see the daemon log."
     }
   }
 }

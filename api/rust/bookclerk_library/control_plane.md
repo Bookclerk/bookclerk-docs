@@ -1953,7 +1953,8 @@ instead of being silently truncated on the next write.
 - `widevine`: Prefer Widevine/CENC.
 - `xhe_aac`: Prefer xHE-AAC on the Widevine path when offered.
 - `widevine_cdm`: Optional `.wvd` path; relative paths resolve under each host's files dir.
-- `widevine_cdm_provider`: Remote L3 CDM provider (`None` = AudibleCdm, empty/`off` disables).
+- `widevine_cdm_provider`: Remote L3 CDM provider endpoint URL (`None` = the built-in AudibleCdm
+  provider, empty/`off` disables provisioning).
 - `naming_profile`: Named path-template preset.
 - `folder_template`: Folder-path template override.
 - `file_template`: File-stem template override.
@@ -2082,7 +2083,7 @@ Returns an error for an unknown key, an unparseable value, or a value
 the domain rejects. `self` may be partially changed on error; callers
 edit a clone.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NewPendingJoin
 
@@ -3223,7 +3224,7 @@ pub fn apply_to(&self, config: &mut EventsConfig)
 
 Writes the document onto the in-memory events table.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NodeRuntimeSettingsV1
 

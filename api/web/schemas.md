@@ -50,6 +50,12 @@ An error. `error` is a stable slug; bodies the error middleware writes also carr
 - `deny_bindings` *array of string* — Bindings to take out of the request. No duplicates.
 - `deny_network` *boolean* — Deny all network access.
 
+## BadBookAction
+
+How to handle acquire failures (`BadBook` setting).
+
+Type: one of `ask`, `abort`, `retry`, `ignore`
+
 ## BinaryBody
 
 A request body of raw bytes (a file upload), documented as
@@ -221,6 +227,16 @@ Browser attestation/assertion plus the challenge id from `begin`.
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
 - `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
 - `name` *string or null* — Label stored with the credential (`Passkey` when empty).
+
+## ChapterJsonMode
+
+Whether / which chapter JSON sidecars to write beside acquired audio.
+
+Default is [`Self::Off`]. Replaces the old `save_chapter_json` bool +
+`chapter_layout` pair for *sidecar output* (Audible API fetch layout is
+chosen separately when chapters are needed for embedding).
+
+Type: one of `off`, `flat`, `tree`, `both`
 
 ## ClusterJobsBody
 
@@ -395,6 +411,30 @@ Operator JSON for one `domain_events` row.
 - `source` *string*, **required** — Producer plugin id; empty when the host published it.
 - `deliverAfter` *string or null* — RFC 3339 earliest delivery time for delayed queue messages.
 
+## DomainReplayed
+
+Body of a `PUT` to a configuration domain whose write committed but
+could not be read back as the current document: another write landed
+between the commit and the read-back, so only the committed revision is
+reported (the library also returns it when a request id is replayed).
+
+- `namespace` *string*, **required** — Domain namespace (`core.events` or `core.output`).
+- `replayed` *boolean*, **required** — Always `true`: the write was a replay.
+- `revision` *integer (int64)*, **required** — Revision the earlier write produced.
+
+## DomainRevision
+
+Where a configuration domain document lives and which revision it is at:
+the metadata every domain response carries before its settings.
+
+- `namespace` *string*, **required** — Domain namespace (`core.events` or `core.output`).
+- `scope_type` *string*, **required** — Scope type: `cluster` for a shared document, `node` for one node's.
+- `scope_id` *string*, **required** — Scope id: `singleton` for the cluster, else the node id.
+- `schema_version` *integer (int64)*, **required** — Version of the document's schema, starting at 1.
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision; send it back as `expected_revision`.
+- `updated_at` *string*, **required** — RFC 3339 time of the last write.
+- `updated_by` *string*, **required** — Audit identity of the last writer.
+
 ## ElevateRequest
 
 JSON body for Owner password re-auth before issuing an elevated operator cookie.
@@ -462,6 +502,34 @@ Outbox delivery counts for `GET /api/status`.
 - `dispatch_latency_ms_avg` *integer (int64) or null* — Average first-dispatch latency in milliseconds, when sampled.
 - `handler_latency_ms_avg` *integer (int64) or null* — Average `onEvent` handler duration in milliseconds, when sampled.
 
+## EventsDomainChange
+
+Body of `PUT /api/config/domains/core.events`: the settings after the
+change, or a replay note.
+
+Type: [`EventsDomainResponse`](#eventsdomainresponse) or [`DomainReplayed`](#domainreplayed)
+
+## EventsDomainResponse
+
+Body of `GET /api/config/domains/core.events` and of a `PUT` that was
+applied: the revision metadata, then the `[events]` settings themselves.
+
+Includes every field of [`DomainRevision`](#domainrevision), [`EventsSettingsV1`](#eventssettingsv1).
+
+## EventsSettingsV1
+
+Typed `[events]` document, schema version 1.
+
+- `retention_days` *integer (int64)*, **required** — Days to keep acked and rejected deliveries. At least 0.
+- `dead_letter_retention_days` *integer (int64)*, **required** — Days to keep dead-lettered deliveries. At least 0.
+- `concurrency` *integer (int32)*, **required** — Local delivery workers and the cluster in-flight cap. At least 0.
+
+## FileTimestampMode
+
+Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
+
+Type: one of `now`, `purchased`, `published`
+
 ## HealthResponse
 
 Liveness payload for unauthenticated `GET /health`.
@@ -527,6 +595,17 @@ Lifecycle state of a durable job row.
 
 Type: one of `pending`, `running`, `succeeded`, `failed`, `cancelled`
 
+## LameConfig
+
+LAME encoder tuning (classic `Lame*` settings).
+
+- `target` *string* — `LameTarget`: `quality`, `bitrate`, `constant`, etc. Default `"quality"`.
+- `vbr_quality` *integer (int32)* — `LameVBRQuality` (0–9, lower = better). At least 0; default `2`.
+- `bitrate_kbps` *integer (int32)* — `LameBitrate` in kbps when target is bitrate/constant. At least 0; default `128`.
+- `mode` *string* — `LameMode`: `default`, `mono`, `stereo`. Default `"default"`.
+- `downsample_mono` *boolean* — `LameDownsampleMono`. Default `false`.
+- `constant_bitrate` *boolean* — `LameConstantBitrate`. Default `false`.
+
 ## LeaveBody
 
 `POST /api/config/join/leave` body.
@@ -566,6 +645,22 @@ PUT body for the host-wide second-factor policy.
 
 - `require_second_factor` *boolean*, **required** — When true, password login requires TOTP or the user must use a passkey.
 - `current_password` *string or null* — Current password for Owner step-up (operators omit this).
+
+## MultiDestinationMode
+
+Behavior when some output destinations already have a title and others do not.
+
+Type: one of `sync_missing`, `refetch_missing`, `refetch_all`
+
+## NamingProfile
+
+Preset path-template profile.
+
+Select via `output.naming_profile`. Individual `folder_template` /
+`file_template` / `chapter_file_template` values override the profile when
+set.
+
+Type: one of `audiobookshelf`, `classic`
 
 ## OAuthEnrollRequest
 
@@ -668,6 +763,91 @@ One IdP as shown to an operator (no client secret or Apple PEM).
 - `has_apple_private_key` *boolean*, **required** — Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned).
 - `secret_source` *string*, **required** — Where the client secret was found: `env`, `config`, `store`, or `none`.
 
+## OpenApiDocument
+
+An OpenAPI document as this daemon serves it: the `openapi` version string, `info` about the daemon, every route under `paths` and the schemas under `components`.
+
+Type: object
+
+## OpenApiV30Unavailable
+
+Body of the `500` from `GET /api/openapi-3.0.json` when the 3.1
+document could not be restated as 3.0.3.
+
+- `error` *string*, **required** — Always `openapi_v30_unavailable`.
+- `message` *string*, **required** — What to do: the daemon log names the form that could not be restated.
+
+## OutputDomainChange
+
+Body of `PUT /api/config/domains/core.output`: the settings after the
+change, or a replay note.
+
+Type: [`OutputDomainResponse`](#outputdomainresponse) or [`DomainReplayed`](#domainreplayed)
+
+## OutputDomainResponse
+
+Body of `GET /api/config/domains/core.output` and of a `PUT` that was
+applied: the revision metadata and the `[output]` document.
+
+Includes every field of [`DomainRevision`](#domainrevision).
+
+- `document` *[`OutputSettingsV1`](#outputsettingsv1)*, **required** — The settings at that revision (schema version 1).
+
+## OutputFormat
+
+Post-download output formatting. Default is enriched M4B (tags + chapters).
+`split_mp3_by_size` and `opus` parse but are not implemented yet: the
+acquire pipeline rejects a job that selects either before downloading.
+
+Type: one of `enriched_m4b`, `single_mp3`, `split_mp3_by_chapter`, `split_mp3_by_size`, `opus`, `none`
+
+## OutputSettingsV1
+
+Typed `core.output` document, schema version 1.
+
+Field meanings match [`OutputConfig`]. Unknown fields are rejected, inside
+the nested `lame` and `replacement_characters` objects too, so a document
+written by a newer binary under the same schema version fails closed
+instead of being silently truncated on the next write.
+
+- `format` *[`OutputFormat`](#outputformat)*, **required** — Post-acquire packaging format.
+- `widevine` *boolean*, **required** — Prefer Widevine/CENC.
+- `xhe_aac` *boolean*, **required** — Prefer xHE-AAC on the Widevine path when offered.
+- `widevine_cdm` *string or null* — Optional `.wvd` path; relative paths resolve under each host's files dir.
+- `widevine_cdm_provider` *string or null* — Remote L3 CDM provider endpoint URL (`None` = the built-in AudibleCdm provider, empty/`off` disables provisioning).
+- `naming_profile` *[`NamingProfile`](#namingprofile)*, **required** — Named path-template preset.
+- `folder_template` *string or null* — Folder-path template override.
+- `file_template` *string or null* — File-stem template override.
+- `chapter_file_template` *string or null* — Per-chapter file-stem template override.
+- `chapter_title_template` *string or null* — Embedded chapter-title template.
+- `download_cover` *boolean*, **required** — Save cover JPEG alongside audio.
+- `download_pdf` *boolean*, **required** — Download companion PDF when available.
+- `create_cue` *boolean*, **required** — Write a `.cue` sidecar.
+- `fixup_metadata` *boolean*, **required** — Embed tags, cover, and chapters natively.
+- `chapter_json` *[`ChapterJsonMode`](#chapterjsonmode)*, **required** — Chapter JSON sidecars.
+- `save_metadata_json` *boolean*, **required** — Persist raw catalog API JSON.
+- `cover_size` *string*, **required** — Cover image size (`500`, `1215`, another pixel size, or `native`).
+- `chapter_layout` *string*, **required** — Preferred chapter API layout (`tree`, `flat`, or `both`).
+- `overwrite_existing` *boolean*, **required** — Re-acquire when media already exists at the destination.
+- `multi_destination` *[`MultiDestinationMode`](#multidestinationmode)*, **required** — Policy when only some enabled destinations have a title.
+- `bad_book_action` *[`BadBookAction`](#badbookaction)*, **required** — Operator action when a title fails to acquire.
+- `split_mp3_max_mb` *integer (int32)*, **required** — Max MP3 part size in MiB for `split_mp3_by_size`. At least 0.
+- `minimum_file_duration_minutes` *integer (int32)*, **required** — Drop chapter splits shorter than this many minutes. At least 0.
+- `combine_nested_chapter_titles` *boolean*, **required** — Flatten nested chapter titles.
+- `merge_opening_and_end_credits` *boolean*, **required** — Merge opening/end credit chapters into neighbours.
+- `strip_unabridged` *boolean*, **required** — Strip an "Unabridged" suffix from titles used in naming.
+- `strip_audible_brand_audio` *boolean*, **required** — Trim Audible brand intro/outro audio.
+- `download_clips_bookmarks` *boolean*, **required** — Download Audible clips/bookmarks sidecars.
+- `retain_aax_file` *boolean*, **required** — Keep the encrypted download.
+- `download_speed_limit_kbps` *integer (int32)*, **required** — Fetch speed cap in KB/s (`0` = unlimited). At least 0.
+- `lame` *[`LameConfig`](#lameconfig)*, **required** — LAME encoder knobs.
+- `max_sample_rate` *integer (int32) or null* — Optional output sample-rate ceiling in Hz. At least 0.
+- `creation_time` *[`FileTimestampMode`](#filetimestampmode)*, **required** — File creation timestamp policy.
+- `last_write_time` *[`FileTimestampMode`](#filetimestampmode)*, **required** — File last-write timestamp policy.
+- `path_sanitization` *[`PathSanitizationMode`](#pathsanitizationmode)*, **required** — Sanitization profile used when no explicit rules are set.
+- `replacement_characters` *array of [`ReplacementRule`](#replacementrule)*, **required** — Explicit find/replace rules for path segments.
+- `max_filename_length` *integer (int32)*, **required** — Max length per path segment (`0` disables truncation). At least 0.
+
 ## PasskeyReauthBody
 
 Optional current password for step-up before register or delete.
@@ -724,6 +904,13 @@ Partial profile, role, or status patch for a first-party user.
 - `display_name` *string or null* — Replacement display name when present.
 - `login_name` *string or null* — Replacement local login name when present.
 - `email` *string or null* — Replacement email when present.
+
+## PathSanitizationMode
+
+How to sanitize storage path segments when [`crate::OutputConfig::replacement_characters`]
+is empty (explicit rules always win).
+
+Type: one of `auto`, `windows`, `posix`, `s3`, `none`
 
 ## PlacementView
 
@@ -1031,7 +1218,7 @@ node's runtime document.
 JSON body for `PUT /api/config/domains/core.output`.
 
 - `expected_revision` *integer (int64)*, **required** — Revision the caller read. A mismatch is a conflict.
-- `document` *object*, **required** — Complete replacement document (schema version 1).
+- `document` *[`OutputSettingsV1`](#outputsettingsv1)*, **required** — Complete replacement document (schema version 1).
 
 ## PutPluginDeployment
 
@@ -1160,11 +1347,26 @@ JSON body for `POST /redeem` (claim ticket plus retry nonce).
 
 - `node_id` *string or null* — Only this branch's entries; every branch's when absent.
 
+## ReplacementRule
+
+Character replacement rule (`ReplacementCharacters` in classic Settings.json).
+
+- `find` *string*, **required** — Substring to search for in each path segment / tag value.
+- `replace` *string*, **required** — Replacement text (may be empty to strip `find`).
+
 ## RequestStatus
 
 Wishlist row status (`open` while wishlisted; `cancelled` after un-wishlist).
 
 Type: one of `open`, `cancelled`
+
+## RevisionConflict
+
+Body of a `409 Conflict` from a compare-and-swap write whose
+`expected_revision` lost to a newer revision.
+
+- `error` *string*, **required** — Always `revision_conflict`.
+- `current_revision` *integer (int64)*, **required** — The revision to read and retry against.
 
 ## RevokeBody
 

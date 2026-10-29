@@ -1007,12 +1007,18 @@ Lists or searches library titles with optional account/status filters and pagina
   - `total` *integer*, **required** — Match count before pagination. At least 0.
   - `limit` *integer*, **required** — Applied page size. At least 0.
   - `offset` *integer*, **required** — Applied skip count. At least 0.
-- `400` — A filter is invalid. Body: any JSON (`application/json`)
+- `400` — A filter is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The library could not be read. Body: any JSON (`application/json`)
+- `500` — The library could not be read. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1445,7 +1451,41 @@ Schema:
 }
 ```
 
-Status `400`: A filter is invalid. The body is JSON the schemas do not describe yet.
+Status `400`: A filter is invalid.
+
+```json
+{
+  "error": "string",
+  "message": "string",
+  "status": 0
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1483,7 +1523,48 @@ Schema:
 }
 ```
 
-Status `500`: The library could not be read. The body is JSON the schemas do not describe yet.
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `504`: The request ran past the API's time budget.
 
@@ -2002,9 +2083,9 @@ Status `404`: No such title.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -2022,16 +2103,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -2042,9 +2126,9 @@ Status `500`: The library could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -2062,16 +2146,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -2210,9 +2297,9 @@ Status `404`: No such title, or it has no cover.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -2230,16 +2317,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }

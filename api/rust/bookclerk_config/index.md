@@ -66,7 +66,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OutputBackendKind`](#outputbackendkind) | enum | Which output destination plugin is active. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
-| [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). |
+| [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`NodeApiMode`](#nodeapimode) | enum | How host nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
@@ -471,7 +471,7 @@ LAME encoder tuning (classic `Lame*` settings).
 - `downsample_mono`: `LameDownsampleMono`.
 - `constant_bitrate`: `LameConstantBitrate`.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### ReplacementRule
 
@@ -489,7 +489,7 @@ Character replacement rule (`ReplacementCharacters` in classic Settings.json).
 - `find`: Substring to search for in each path segment / tag value.
 - `replace`: Replacement text (may be empty to strip `find`).
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### JobsConcurrencyConfig
 
@@ -2038,7 +2038,7 @@ Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
 - `Purchased`: Use the account purchase / added-to-library timestamp when known.
 - `Published`: Use the publisher release date when known.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### PathSanitizationMode
 
@@ -2068,7 +2068,7 @@ is empty (explicit rules always win).
 - `None`: Disable platform-specific sanitization; path separators (`/` `\`) are
   still stripped so metadata cannot inject extra directories.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### Isolation
 
@@ -2214,7 +2214,7 @@ pub fn templates(self) -> NamingProfileTemplates
 
 Built-in folder / file / chapter-file templates for this profile.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OidcProvisionMode
 
@@ -2274,7 +2274,7 @@ How to handle acquire failures (`BadBook` setting).
 - `Retry`: Retry the failed title before giving up.
 - `Ignore`: Skip the failed title and continue the batch.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### MultiDestinationMode
 
@@ -2296,7 +2296,7 @@ Behavior when some output destinations already have a title and others do not.
   the title.
 - `RefetchAll`: Re-run acquire and write to every enabled destination.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OutputBackendKind
 
@@ -2390,7 +2390,7 @@ pub fn parse(raw: &str) -> Option<Self>
 
 Parse `off|flat|tree|both`, or legacy bool-ish values (`true`→tree, `false`→off).
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OutputFormat
 
@@ -2406,14 +2406,18 @@ pub enum OutputFormat {
 ```
 
 Post-download output formatting. Default is enriched M4B (tags + chapters).
+`split_mp3_by_size` and `opus` parse but are not implemented yet: the
+acquire pipeline rejects a job that selects either before downloading.
 
 **Variants**
 
 - `EnrichedM4b`: Remux/transcode to M4B and embed metadata/chapters (default).
 - `SingleMp3`: Single MP3 file (LAME re-encode).
 - `SplitMp3ByChapter`: One MP3 per chapter (after M4B chapter split).
-- `SplitMp3BySize`: Split MP3 by target file size (see `split_mp3_max_mb`).
-- `Opus`: Opus output (not yet implemented).
+- `SplitMp3BySize`: Split MP3 by target file size (see `split_mp3_max_mb`). Not yet
+  implemented: the acquire pipeline rejects it before downloading.
+- `Opus`: Opus output. Not yet implemented: the acquire pipeline rejects it
+  before downloading.
 - `None`: Leave store-delivered media as-is (no remux/transcode/re-encode).
 
 #### OutputFormat::parse
@@ -2476,7 +2480,7 @@ pub fn prefers_m4b_container(self) -> bool
 
 True when the pipeline prefers an M4B intermediate (enriched or chapter-split).
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### AudioQuality
 

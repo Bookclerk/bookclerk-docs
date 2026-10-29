@@ -5202,9 +5202,9 @@ Status `404`: No such plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -5222,16 +5222,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -5242,9 +5245,9 @@ Status `500`: The grant could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -5262,16 +5265,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -6363,9 +6369,9 @@ Status `400`: An override is not allowed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -6383,16 +6389,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -6475,9 +6484,9 @@ Status `404`: No such plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -6495,16 +6504,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -6515,9 +6527,9 @@ Status `500`: The grant could not be stored.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -6535,16 +6547,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -6724,9 +6739,9 @@ Status `404`: The plugin has no logo.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -6744,16 +6759,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }

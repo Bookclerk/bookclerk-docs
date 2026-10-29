@@ -552,9 +552,9 @@ Status `500`: The settings could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -572,16 +572,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -1103,9 +1106,9 @@ Status `400`: A key is unknown or a value is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1123,16 +1126,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -1251,9 +1257,9 @@ Status `500`: The settings could not be written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1271,16 +1277,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -1449,9 +1458,9 @@ Status `400`: The target is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1469,16 +1478,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
@@ -1597,9 +1609,9 @@ Status `500`: The copy failed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1617,16 +1629,19 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`])."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
       "format": "int32",
       "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
       "minimum": 0
     }
   }
