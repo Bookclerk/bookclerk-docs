@@ -1509,6 +1509,141 @@ Body of `POST <UPLOADS_PATH><upload_id>/commit`.
 - `finish` *boolean* — Complete the job with this commit (the job's closing upload).
 - `detail` *string or null* — Outcome text recorded as the job's progress when `finish` is set.
 
+## UserChangeConflict
+
+Body of a `409 Conflict` from a user change that would leave the
+library without an owner or administrator.
+
+- `error` *string*, **required** — Why the change was refused: `last_owner` or `last_administrator`.
+
+## UserChangeInvalid
+
+Body of a `400 Bad Request` from a user change with an invalid email.
+
+- `error` *string*, **required** — Machine slug for the rejected value.
+- `message` *string*, **required** — A sentence to show the person who made the request.
+
+## UserChangeResponse
+
+Body of a user change that succeeded: the user as stored afterwards.
+
+- `ok` *boolean*, **required** — Always true; the status code says the change was applied.
+- `user` *[`UserSummary`](#usersummary)*, **required** — The user after the change.
+
+## UserClaimTicketResponse
+
+Body of `POST /api/users/{id}/claim-ticket`.
+
+- `ok` *boolean*, **required** — Always true; the status code says the ticket was minted.
+- `claim_ticket` *string*, **required** — Opaque single-use claim ticket for the user.
+- `invite_url` *string*, **required** — Invite link that redeems the claim ticket.
+
+## UserCreatedResponse
+
+Body of `POST /api/users`: the new user and, when one was asked for,
+the invite that lets them claim it.
+
+- `ok` *boolean*, **required** — Always true; the status code says the user was created.
+- `user` *[`UserSummary`](#usersummary)*, **required** — The user as created.
+- `claim_ticket` *string or null* — Opaque single-use claim ticket, when `mint_invite` was true.
+- `invite_url` *string or null* — Invite link that redeems the claim ticket, when one was minted.
+
+## UserDeletedResponse
+
+Body of `DELETE /api/users/{id}`.
+
+- `ok` *boolean*, **required** — Always true; the status code says the user was deleted.
+
+## UserIdentitySummary
+
+An external sign-in identity linked to a user.
+
+- `provider` *string*, **required** — Identity-broker id (`oidc:google`, `oidc:github`, …).
+- `external_user_id` *string*, **required** — The user's id at the provider.
+- `label` *string or null* — Operator-facing label for the identity, when one was set.
+
+## UserIntegrationHint
+
+Storefront / integration connection summary for admin user lists.
+
+- `source` *string*, **required** — Content-source or integration plugin id (`audible`, `libro`, …).
+- `account_id` *string*, **required** — Store or operator account id this row belongs to.
+- `label` *string or null* — Optional operator-facing account label.
+
+## UserListeningHint
+
+Recent unfinished listening hint for admin user lists.
+
+- `title` *string or null* — Display title when the provider reported one.
+- `provider` *string*, **required** — Integration / storefront provider id.
+- `last_listened_at` *string (date-time)*, **required** — RFC 3339 time of the last playback update.
+
+## UserListEntry
+
+One user in the list `GET /api/users` returns: the summary plus
+presence, avatar and connection details for administration.
+
+Includes every field of [`UserSummary`](#usersummary).
+
+- `online` *boolean*, **required** — Whether the user has a portal session that has not expired.
+- `last_active_at` *string or null* — RFC 3339 time of the most recent activity on an unexpired portal session, when the user is online.
+- `last_seen_at` *string or null* — RFC 3339 time of the last authenticated portal activity; kept after the session ends.
+- `has_avatar` *boolean*, **required** — Whether an uploaded avatar is stored for the user.
+- `avatar_source` *string*, **required** — Which avatar the user shows: `auto`, `upload`, `gravatar`, or an identity's picture.
+- `gravatar_hash` *string or null* — SHA-256 digest of the user's email for Gravatar, when they have one.
+- `sso_pictures` *array of [`UserSsoPictureSummary`](#userssopicturesummary)*, **required** — Pictures the user's identity providers supplied.
+- `listening` *[`UserListeningHint`](#userlisteninghint) or null* — The most recent unfinished listen within the last 30 minutes, if any.
+- `integrations` *array of [`UserIntegrationHint`](#userintegrationhint)*, **required** — Storefront and integration accounts linked to the user.
+- `identities` *array of [`UserIdentitySummary`](#useridentitysummary)*, **required** — External sign-in identities linked to the user.
+
+## UserListResponse
+
+Body of `GET /api/users`.
+
+- `users` *array of [`UserListEntry`](#userlistentry)*, **required** — Every first-party user.
+
+## UserPasswordResetResponse
+
+Body of `POST /api/users/{id}/reset-password`.
+
+- `ok` *boolean*, **required** — Always true; the status code says the password was cleared.
+- `claim_ticket` *string*, **required** — Opaque single-use claim ticket that lets the user set a new password.
+- `revoked_sessions` *integer (int64)*, **required** — How many of the user's portal sessions were signed out. At least 0.
+
+## UserRole
+
+First-party user role (`owner` | `administrator` | `host` | `member`).
+
+Type: one of `owner`, `administrator`, `host`, `member`
+
+## UserSsoPictureSummary
+
+A profile picture an identity provider supplied for a user.
+
+- `identity_id` *integer (int64)*, **required** — The linked identity the picture came from.
+- `provider` *string*, **required** — Identity-broker id (`oidc:google`, `oidc:github`, …).
+- `picture_url` *string*, **required** — HTTPS URL of the picture at the provider or its CDN.
+- `last_used_at` *string or null* — RFC 3339 time the identity last signed in, when it has.
+
+## UserStatus
+
+First-party user status.
+
+Type: one of `active`, `disabled`
+
+## UserSummary
+
+A first-party user as the Users routes return one: profile, role and
+status, never the password hash.
+
+- `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
+- `role` *[`UserRole`](#userrole)*, **required** — First-party role.
+- `status` *[`UserStatus`](#userstatus)*, **required** — Whether the account may sign in.
+- `display_name` *string or null* — Human-readable name shown in the UI, when set.
+- `login_name` *string or null* — Local username for password login, when set.
+- `email` *string or null* — Contact email, when set.
+- `has_password` *boolean*, **required** — Whether a local password is stored for the user.
+
 ## WishlistPurchaseHint
 
 Snapshotted purchase link/price for a wishlist title.

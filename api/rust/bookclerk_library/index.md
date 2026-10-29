@@ -3177,7 +3177,7 @@ Storefront / integration connection summary for admin user lists.
 - `account_id`: Store or operator account id this row belongs to.
 - `label`: Optional operator-facing account label.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### UserInviteRecord
 
@@ -3229,7 +3229,7 @@ Recent unfinished listening hint for admin user lists.
 - `provider`: Integration / storefront provider id.
 - `last_listened_at`: RFC 3339 time of the last playback update.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### UserPreferences
 
@@ -9599,7 +9599,7 @@ the user owns no node (Host, Administrator, Owner). Any other active
 user reaches them once they own a node: owning a node does not
 require a role.
 
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### UserStatus
 
@@ -9633,7 +9633,7 @@ pub fn parse(s: &str) -> Option<Self>
 
 Parses the canonical wire string; returns `None` when unknown.
 
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### SchemaState
 
