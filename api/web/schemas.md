@@ -31,6 +31,14 @@ Generic mutation result with success flag, message, and optional job id.
 - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
 - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 
+## ActiveVersionChanged
+
+`PUT /api/config/plugins/{key}/active` body: the pointer after the move.
+
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `version` *string*, **required** — Version now active.
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision of the pointer after the move.
+
 ## ApiError
 
 An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.
@@ -348,6 +356,12 @@ Body for copying library rows between database plugins.
 - `force` *boolean* — When true, overwrite a destination that is not empty.
 - `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
 
+## DeploymentConflict
+
+`PUT /api/config/plugin-instances/{id}/deployments/{node_id}` `409` body: the two conflicts a deployment write can hit.
+
+Type: [`RevisionConflict`](#revisionconflict) or [`ErrorMessage`](#errormessage)
+
 ## DesiredState
 
 What a deployment row asks its node to do, and who decided it.
@@ -465,6 +479,13 @@ JSON error object (`error`, `message`, numeric `status`) for API clients.
 - `message` *string*, **required** — Operator-facing explanation.
 - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 
+## ErrorMessage
+
+JSON error object with a single `error` message, written by handlers
+that report a library or plugin error in their own words.
+
+- `error` *string*, **required** — What went wrong, as the handler describes it.
+
 ## EventDeliveryInfo
 
 Operator JSON for one `event_deliveries` row.
@@ -547,6 +568,46 @@ JSON body naming the first-party user to impersonate.
 `POST /api/config/join/inspect` body.
 
 - `address` *string*, **required** — The library's address (`https://owner.example`, `owner.lan:8443`).
+
+## InstalledPluginDetail
+
+`GET /api/config/plugins/{key}` body: the plugin and its pinned schema.
+
+Includes every field of [`InstalledPluginSummary`](#installedpluginsummary).
+
+- `schema` *[`PinnedSchemaSummary`](#pinnedschemasummary) or null* — The pinned settings schema; `null` until a node pins one.
+
+## InstalledPluginsResponse
+
+`GET /api/config/plugins` body.
+
+- `plugins` *array of [`InstalledPluginSummary`](#installedpluginsummary)*, **required** — Every plugin with at least one installed version, by key.
+
+## InstalledPluginSummary
+
+One installed plugin: its active version and every installed version,
+newest first.
+
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `id` *string or null* — Manifest id (display alias) of the active version, or of the newest one when none is active; `null` without versions.
+- `active_version` *string or null* — Active version; `null` when the plugin is installed but not activated.
+- `revision` *integer (int64) or null* — Compare-and-swap revision of the active-version pointer; `null` when nothing is active.
+- `versions` *array of [`PluginVersionSummary`](#pluginversionsummary)*, **required** — Every installed version, newest first.
+
+## InstanceConfigView
+
+Instance document as the API renders it: values and secret *names* only.
+
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision.
+- `settings` *map of string to [`SettingValue`](#settingvalue)*, **required** — Scalar settings the operator wrote.
+- `secret_refs` *array of [`InstanceSecretRefV1`](#instancesecretrefv1)*, **required** — Secret refs; ciphertext stays in `encrypted_secrets`.
+
+## InstanceSecretRefV1
+
+A name in `encrypted_secrets`. The ciphertext is not part of the document.
+
+- `key` *string*, **required** — Key in the `SECRETS` object delivered to the guest.
+- `name` *string*, **required** — `encrypted_secrets.name` for this instance.
 
 ## IntegrationLoginBody
 
@@ -912,6 +973,17 @@ is empty (explicit rules always win).
 
 Type: one of `auto`, `windows`, `posix`, `s3`, `none`
 
+## PinnedSchemaSummary
+
+The settings schema pinned for a plugin, as the API renders it.
+
+- `manifest_id` *string*, **required** — Manifest id (display alias) at pin time.
+- `schema_sha256` *string*, **required** — Fingerprint of the normalized schema.
+- `package_version` *string*, **required** — Semver package version that produced the pinned schema.
+- `recorded_at` *string*, **required** — RFC 3339 time of the last pin.
+- `recorded_by_node` *string*, **required** — Node that recorded the last pin.
+- `settings` *array of [`SettingSpec`](#settingspec)*, **required** — Declared settings.
+
 ## PlacementView
 
 Scheduler placement of one instance: the operator's intent and the last
@@ -924,6 +996,16 @@ pass's result.
 - `detail` *string*, **required** — Why fewer than requested are placed; empty when satisfied.
 - `scheduled_at` *string*, **required** — RFC 3339 time the scheduler last changed the status.
 - `updated_at` *string*, **required** — RFC 3339 time of the last intent write.
+
+## PluginArtifactSummary
+
+One downloadable artifact of an installed version, as the API renders
+it.
+
+- `target` *string*, **required** — Bookclerk target (`linux-x64-gnu`, …; `any` for workerd packages).
+- `url` *string*, **required** — Where nodes fetch the archive: `https:`, `file:`, or `blob:sha256:<hex>`.
+- `archive_sha256` *string*, **required** — Lowercase hex SHA-256 of the archive bytes.
+- `payload_root_sha256` *string*, **required** — Payload-root digest of the extracted plugin tree.
 
 ## PluginConsentApproveRequest
 
@@ -975,6 +1057,17 @@ Consent dialog payload for one plugin.
 - `existing` *[`PluginGrantView`](#plugingrantview) or null* — Previously approved grant, when one is stored.
 - `brand` *[`PluginConsentBrand`](#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
 - `limits` *[`PluginConsentLimits`](#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+
+## PluginDeploymentChanged
+
+`PUT /api/config/plugin-instances/{id}/deployments/{node_id}` body: the
+deployment row after the write.
+
+- `deployment_id` *string*, **required** — Deployment row id.
+- `plugin_instance_id` *string*, **required** — Instance the row belongs to.
+- `node_id` *string*, **required** — Node the row targets.
+- `desired` *[`DesiredState`](#desiredstate)*, **required** — Desired state now stored.
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision after the write.
 
 ## PluginDeploymentView
 
@@ -1041,6 +1134,91 @@ Operator-facing grant JSON: CPU as cores (not Spec percent).
 - `cpuCores` *number (double) or null* — Jail CPU in cores (2 d.p.); absent for workerd.
 - `extraProcesses` *integer (int32) or null* — Extra process/thread budget beyond launcher overhead; native only. At least 0.
 
+## PluginInstalled
+
+`POST /api/config/plugins` body: what the install did.
+
+- `created` *boolean*, **required** — True when the version row was written now; false when the same version with the same artifacts was installed already.
+- `plugin_instance_id` *string*, **required** — Id of the plugin's default instance.
+- `version` *[`PluginVersionSummary`](#pluginversionsummary)*, **required** — The installed version.
+
+## PluginInstanceConfigChanged
+
+`PUT /api/config/plugin-instances/{id}/config` body: the document after
+the write.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `revision` *integer (int64)*, **required** — Revision after the write; unchanged when the same write was replayed.
+- `settings` *map of string to [`SettingValue`](#settingvalue)*, **required** — Scalar settings now stored.
+- `secret_refs` *array of [`InstanceSecretRefV1`](#instancesecretrefv1)*, **required** — Secret refs now stored, the newly sealed secrets included.
+
+## PluginInstanceConfigResponse
+
+`GET /api/config/plugin-instances/{id}/config` body: the stored document
+and the configuration the guest receives.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision of the document.
+- `settings` *map of string to [`SettingValue`](#settingvalue)*, **required** — Scalar settings the operator wrote.
+- `secret_refs` *array of [`InstanceSecretRefV1`](#instancesecretrefv1)*, **required** — Secret refs; ciphertext stays in `encrypted_secrets`.
+- `effective` *object*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
+- `schema` *array of [`SettingSpec`](#settingspec)*, **required** — Declared settings from the pinned schema; empty when there is none.
+
+## PluginInstanceCreated
+
+`POST /api/config/plugin-instances` body: the instance that was created.
+
+- `plugin_instance_id` *string*, **required** — Id of the new instance.
+- `plugin_key` *string*, **required** — Canonical plugin key the instance belongs to.
+- `display_name` *string*, **required** — Operator-facing name, trimmed.
+- `owner_node_id` *string or null* — Node the instance is local to; `null` for a cluster-wide instance.
+
+## PluginInstanceDeleted
+
+`DELETE /api/config/plugin-instances/{id}` body.
+
+- `plugin_instance_id` *string*, **required** — Id of the instance that was removed.
+- `deleted` *boolean*, **required** — Always true: removing an instance that is already gone answers the same way.
+
+## PluginInstancesResponse
+
+`GET /api/config/plugin-instances` body: every instance as this node
+sees it.
+
+- `node_id` *string*, **required** — Id of the node that answered; its deployments carry its own observations.
+- `instances` *array of [`PluginInstanceView`](#plugininstanceview)*, **required** — Every plugin instance in the cluster.
+
+## PluginInstanceView
+
+One plugin instance with its schema, document, and deployments.
+
+- `plugin_instance_id` *string*, **required** — Instance id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `alias` *string*, **required** — Manifest id recorded with the pinned schema (display alias).
+- `display_name` *string*, **required** — Operator-facing name; empty for the default instance.
+- `is_default` *boolean*, **required** — True when a bare plugin key or alias routes to this instance.
+- `created_at` *string*, **required** — RFC 3339 creation time.
+- `schema` *array of [`SettingSpec`](#settingspec)*, **required** — Declared settings from the pinned schema.
+- `config` *[`InstanceConfigView`](#instanceconfigview) or null* — Current document, when the instance has one.
+- `deployments` *array of [`PluginDeploymentView`](#plugindeploymentview)*, **required** — Deployment rows across nodes.
+- `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed.
+
+## PluginPlacementChanged
+
+`PUT /api/config/plugin-instances/{id}/placement` body: the placement
+after the write.
+
+- `plugin_instance_id` *string*, **required** — Instance the scheduler now places.
+- `placement` *[`PlacementView`](#placementview)*, **required** — The stored intent and the last scheduler pass's result.
+
+## PluginPlacementDeleted
+
+`DELETE /api/config/plugin-instances/{id}/placement` body.
+
+- `plugin_instance_id` *string*, **required** — Instance that is hand-managed again.
+- `deleted` *boolean*, **required** — True when a placement existed and was removed; false when the instance was hand-managed already.
+
 ## PluginSettingChoice
 
 One selectable value for a Settings dropdown.
@@ -1077,6 +1255,39 @@ Settings UI group for one discovered or loaded plugin.
 - `deployment` *[`PluginDeploymentView`](#plugindeploymentview) or null* — This node's deployment of the instance, when one exists.
 - `placement` *[`PlacementView`](#placementview) or null* — Scheduler placement; absent when the instance is hand-managed (the Enabled switch applies only then).
 - `present_on` *array of string* — Nodes whose deployment of the instance is `present`.
+
+## PluginUninstalled
+
+`DELETE /api/config/plugins/{key}` body.
+
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `uninstalled` *boolean*, **required** — True when an active-version pointer existed and was cleared.
+- `deployments_undeployed` *integer*, **required** — Deployment rows switched to `absent` across the plugin's instances. At least 0.
+
+## PluginVersionApproved
+
+`POST /api/config/plugins/{key}/versions/{version}/approve` body.
+
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `version` *string*, **required** — Semver version whose grant was approved.
+- `approved` *boolean*, **required** — Always true: a version that cannot be approved is an error instead.
+- `grant` *object*, **required** — The consent grant recorded for every node: the entrypoints, events, jobs, network domains and TCP targets the manifest asked for.
+
+## PluginVersionSummary
+
+One installed version of a plugin, as the API renders it.
+
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `id` *string*, **required** — Manifest id (display alias).
+- `version` *string*, **required** — Semver package version.
+- `active` *boolean*, **required** — True when this is the plugin's active version.
+- `approved` *boolean*, **required** — True once an operator approved the version's consent request.
+- `publisher_verified` *boolean*, **required** — True when the publisher was verified at install time.
+- `coordinate` *string*, **required** — Package coordinate the version was resolved from; empty for a local archive.
+- `installed_at` *string*, **required** — RFC 3339 install time.
+- `installed_by` *string*, **required** — Audit identity of the installer.
+- `host_payload_root_sha256` *string or null* — Payload-root digest of the artifact this host would run; `null` when no artifact fits the host's target.
+- `artifacts` *array of [`PluginArtifactSummary`](#pluginartifactsummary)*, **required** — Per-target artifacts.
 
 ## PortalErrorBody
 
@@ -1413,6 +1624,31 @@ JSON body for setting a password (self or provisioner target).
 - `current_password` *string or null* — Required when the caller already has a password (not first-time invite setup).
 - `user_id` *integer (int64) or null* — Target `users.id` when a provisioner sets another user's password.
 
+## SettingKind
+
+Value type of a declared plugin setting.
+
+Type: one of `string`, `bool`, `integer`, `enum`, `secret`
+
+## SettingNumber
+
+A finite JSON number; an integer for integer settings.
+
+Type: number
+
+## SettingSpec
+
+One setting a plugin declares in its `plugin.toml` `[[settings]]`:
+its key, value type, default and help text.
+
+- `key` *string*, **required** — Setting key (`[a-z][a-z0-9_]*`, at most 64 bytes).
+- `label` *string or null* — Operator-facing label; omitted when the key is shown.
+- `type` *[`SettingKind`](#settingkind)*, **required** — Value type: `string`, `bool`, `integer`, `enum` or `secret`.
+- `values` *array of [`SettingValueSpec`](#settingvaluespec) or null* — Allowed values of an `enum` setting; omitted for other kinds.
+- `default` *any JSON* — Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.
+- `required` *boolean or null* — True when the instance cannot run without a value; omitted when false.
+- `description` *string or null* — Help text shown beside the setting; omitted when there is none.
+
 ## SettingsResponse
 
 Settings page payload: file values, effective runtime, and plugin groups.
@@ -1430,6 +1666,19 @@ One `config.toml` key/value pair from a settings PATCH.
 
 - `key` *string*, **required** — Dotted config key; rejected unless it passes the settings allowlist.
 - `value` *string*, **required** — Raw string value, normalized before it is written.
+
+## SettingValue
+
+One scalar setting. Nested objects and arrays are not representable.
+
+Type: boolean or [`SettingNumber`](#settingnumber) or string
+
+## SettingValueSpec
+
+One allowed value of an `enum` setting: the stored id and its label.
+
+- `id` *string*, **required** — Stored value.
+- `label` *string or null* — Operator-facing label; omitted when the id is shown.
 
 ## SharingBody
 

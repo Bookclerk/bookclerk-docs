@@ -14,11 +14,9 @@ Back to the [web API reference](README.md).
 
 ### Responses
 
-- `200` — Every plugin instance with its deployments. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — Every plugin instance with its deployments. Body: [`PluginInstancesResponse`](schemas.md#plugininstancesresponse) (`application/json`)
+  - `node_id` *string*, **required** — Id of the node that answered; its deployments carry its own observations.
+  - `instances` *array of [`PluginInstanceView`](schemas.md#plugininstanceview)*, **required** — Every plugin instance in the cluster.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -27,10 +25,8 @@ Back to the [web API reference](README.md).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -74,15 +70,55 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Every plugin instance with its deployments. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: Every plugin instance with its deployments.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "node_id": "node-7f3a9c",
+  "instances": [
+    {
+      "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+      "plugin_key": "local",
+      "alias": "local",
+      "display_name": "",
+      "is_default": true,
+      "created_at": "2026-10-01T08:00:00Z",
+      "schema": [
+        {
+          "key": "root",
+          "type": "string"
+        }
+      ],
+      "config": {
+        "revision": 5,
+        "settings": {
+          "multi_destination": "sync_missing",
+          "root": "/srv/audiobooks"
+        },
+        "secret_refs": []
+      },
+      "deployments": [
+        {
+          "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+          "node_id": "node-7f3a9c",
+          "desired": "present",
+          "revision": 3
+        }
+      ],
+      "placement": {
+        "replicas": 0,
+        "constraints": [
+          "target=linux-x64-gnu",
+          "!drain"
+        ],
+        "revision": 2,
+        "placed": 1,
+        "detail": "",
+        "scheduled_at": "2026-10-28T19:07:00Z",
+        "updated_at": "2026-10-28T19:05:00Z"
+      }
+    }
+  ]
 }
 ```
 
@@ -91,22 +127,387 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`GET /api/config/plugin-instances` body: every instance as this node\nsees it.",
   "required": [
-    "error"
+    "node_id",
+    "instances"
   ],
   "properties": {
-    "error": {
+    "node_id": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Id of the node that answered; its deployments carry its own\nobservations.",
+      "example": "node-7f3a9c"
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "instances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One plugin instance with its schema, document, and deployments.",
+        "required": [
+          "plugin_instance_id",
+          "plugin_key",
+          "alias",
+          "display_name",
+          "is_default",
+          "created_at",
+          "schema",
+          "deployments"
+        ],
+        "properties": {
+          "plugin_instance_id": {
+            "type": "string",
+            "description": "Instance id.",
+            "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+          },
+          "plugin_key": {
+            "type": "string",
+            "description": "Canonical plugin key.",
+            "example": "local"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Manifest id recorded with the pinned schema (display alias).",
+            "example": "local"
+          },
+          "display_name": {
+            "type": "string",
+            "description": "Operator-facing name; empty for the default instance.",
+            "example": ""
+          },
+          "is_default": {
+            "type": "boolean",
+            "description": "True when a bare plugin key or alias routes to this instance.",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "description": "RFC 3339 creation time.",
+            "example": "2026-10-01T08:00:00Z"
+          },
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One setting a plugin declares in its `plugin.toml` `[[settings]]`:\nits key, value type, default and help text.",
+              "required": [
+                "key",
+                "type"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Setting key (`[a-z][a-z0-9_]*`, at most 64 bytes).",
+                  "example": "root"
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Operator-facing label; omitted when the key is shown.",
+                  "example": "Library root"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+                  "enum": [
+                    "string",
+                    "bool",
+                    "integer",
+                    "enum",
+                    "secret"
+                  ],
+                  "example": "string"
+                },
+                "values": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "description": "One allowed value of an `enum` setting: the stored id and its label.",
+                    "required": [
+                      "id"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Stored value.",
+                        "example": "sync_missing"
+                      },
+                      "label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Operator-facing label; omitted when the id is shown.",
+                        "example": "Sync missing"
+                      }
+                    }
+                  },
+                  "description": "Allowed values of an `enum` setting; omitted for other kinds."
+                },
+                "default": {
+                  "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+                  "examples": [
+                    "/srv/audiobooks"
+                  ]
+                },
+                "required": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "True when the instance cannot run without a value; omitted when\nfalse.",
+                  "example": true
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Help text shown beside the setting; omitted when there is none.",
+                  "example": "Directory the finished audiobooks are written to."
+                }
+              }
+            },
+            "description": "Declared settings from the pinned schema."
+          },
+          "config": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Current document, when the instance has one.",
+                "required": [
+                  "revision",
+                  "settings",
+                  "secret_refs"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision.",
+                    "example": 5
+                  },
+                  "settings": {
+                    "type": "object",
+                    "description": "Scalar settings the operator wrote.",
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "boolean",
+                          "description": "JSON boolean."
+                        },
+                        {
+                          "type": "number",
+                          "description": "Finite JSON number: an integer kind stores an `i64`, so the schema\nis an unformatted `number` rather than a `double`.",
+                          "examples": [
+                            8
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "description": "JSON string, at most 1024 bytes."
+                        }
+                      ],
+                      "description": "One scalar setting. Nested objects and arrays are not representable.",
+                      "example": "/srv/audiobooks"
+                    },
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "multi_destination": "sync_missing",
+                      "root": "/srv/audiobooks"
+                    }
+                  },
+                  "secret_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "description": "A name in `encrypted_secrets`. The ciphertext is not part of the document.",
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "description": "Key in the `SECRETS` object delivered to the guest.",
+                          "example": "api_token"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "`encrypted_secrets.name` for this instance.",
+                          "example": "api_token"
+                        }
+                      }
+                    },
+                    "description": "Secret refs; ciphertext stays in `encrypted_secrets`."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deployments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "This node's view of one deployment row, with its latest observation.",
+              "required": [
+                "deployment_id",
+                "node_id",
+                "desired",
+                "revision"
+              ],
+              "properties": {
+                "deployment_id": {
+                  "type": "string",
+                  "description": "Deployment row id.",
+                  "example": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+                },
+                "node_id": {
+                  "type": "string",
+                  "description": "Node the row targets.",
+                  "example": "node-7f3a9c"
+                },
+                "desired": {
+                  "type": "string",
+                  "description": "What the row asks the node to do: `present` / `absent` from an\noperator, `placed` / `unplaced` from the scheduler.",
+                  "enum": [
+                    "present",
+                    "absent",
+                    "placed",
+                    "unplaced"
+                  ]
+                },
+                "revision": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Compare-and-swap revision of the desired row.",
+                  "example": 3
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Latest observation status from that node, when it reported one.",
+                  "example": "healthy"
+                },
+                "detail": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Observation detail (error text, redacted).",
+                  "example": ""
+                },
+                "applied_config_revision": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Document revision the running guest applied.",
+                  "example": 5
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "RFC 3339 time of the observation.",
+                  "example": "2026-10-28T19:07:00Z"
+                }
+              }
+            },
+            "description": "Deployment rows across nodes."
+          },
+          "placement": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "Scheduler placement; absent when the instance is hand-managed.",
+                "required": [
+                  "replicas",
+                  "constraints",
+                  "revision",
+                  "placed",
+                  "detail",
+                  "scheduled_at",
+                  "updated_at"
+                ],
+                "properties": {
+                  "replicas": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "all"
+                        ]
+                      }
+                    ],
+                    "description": "A replica count (0 stops every replica) or `\"all\"`."
+                  },
+                  "constraints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Label constraints every chosen node must satisfy.",
+                    "example": [
+                      "target=linux-x64-gnu",
+                      "!drain"
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Compare-and-swap revision of the intent.",
+                    "example": 2
+                  },
+                  "placed": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Replicas the last scheduler pass placed.",
+                    "example": 1,
+                    "minimum": 0
+                  },
+                  "detail": {
+                    "type": "string",
+                    "description": "Why fewer than requested are placed; empty when satisfied.",
+                    "example": ""
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time the scheduler last changed the status.",
+                    "example": "2026-10-28T19:07:00Z"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time of the last intent write.",
+                    "example": "2026-10-28T19:05:00Z"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "Every plugin instance in the cluster."
     }
   }
 }
@@ -184,13 +585,11 @@ Schema:
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -199,22 +598,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -250,11 +642,13 @@ a plugin, with an empty document so schema defaults apply. With
 
 ### Responses
 
-- `200` — The new instance. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The new instance. Body: [`PluginInstanceCreated`](schemas.md#plugininstancecreated) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Id of the new instance.
+  - `plugin_key` *string*, **required** — Canonical plugin key the instance belongs to.
+  - `display_name` *string*, **required** — Operator-facing name, trimmed.
+  - `owner_node_id` *string or null* — Node the instance is local to; `null` for a cluster-wide instance.
+- `400` — The body is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -263,18 +657,12 @@ a plugin, with an empty document so schema defaults apply. With
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — The instance id is taken. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such plugin, or it has no pinned schema. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The instance id is taken. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -328,15 +716,14 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The new instance. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The new instance.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "plugin_key": "s3",
+  "display_name": "Archive bucket",
+  "owner_node_id": "node-7f3a9c"
 }
 ```
 
@@ -345,22 +732,62 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`POST /api/config/plugin-instances` body: the instance that was created.",
+  "required": [
+    "plugin_instance_id",
+    "plugin_key",
+    "display_name"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Id of the new instance.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical plugin key the instance belongs to.",
+      "example": "s3"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Operator-facing name, trimmed.",
+      "example": "Archive bucket"
+    },
+    "owner_node_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Node the instance is local to; `null` for a cluster-wide instance.",
+      "example": "node-7f3a9c"
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -438,13 +865,11 @@ Schema:
 }
 ```
 
-Status `404`: No such plugin.
+Status `404`: No such plugin, or it has no pinned schema.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -453,22 +878,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -478,9 +896,7 @@ Status `409`: The instance id is taken.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -489,22 +905,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -514,9 +923,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -525,22 +932,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -571,11 +971,11 @@ no deployment left.
 
 ### Responses
 
-- `200` — The instance was removed. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The instance was removed. Body: [`PluginInstanceDeleted`](schemas.md#plugininstancedeleted) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Id of the instance that was removed.
+  - `deleted` *boolean*, **required** — Always true: removing an instance that is already gone answers the same way.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -584,18 +984,12 @@ no deployment left.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — The instance is a default or still deployed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The instance is a default or still deployed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -642,15 +1036,12 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The instance was removed. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The instance was removed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "deleted": true
 }
 ```
 
@@ -659,22 +1050,48 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`DELETE /api/config/plugin-instances/{id}` body.",
+  "required": [
+    "plugin_instance_id",
+    "deleted"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Id of the instance that was removed.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "deleted": {
+      "type": "boolean",
+      "description": "Always true: removing an instance that is already gone answers the\nsame way.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -756,9 +1173,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -767,22 +1182,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -792,9 +1200,7 @@ Status `409`: The instance is a default or still deployed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -803,22 +1209,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -828,9 +1227,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -839,22 +1236,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -884,11 +1274,16 @@ A `text/plain` body: a string.
 
 ### Responses
 
-- `200` — The instance's settings document (secrets as presence flags). Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The instance's settings document (secrets as names only). Body: [`PluginInstanceConfigResponse`](schemas.md#plugininstanceconfigresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance id.
+  - `plugin_key` *string*, **required** — Canonical plugin key.
+  - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the document.
+  - `settings` *map of string to [`SettingValue`](schemas.md#settingvalue)*, **required** — Scalar settings the operator wrote.
+  - `secret_refs` *array of [`InstanceSecretRefV1`](schemas.md#instancesecretrefv1)*, **required** — Secret refs; ciphertext stays in `encrypted_secrets`.
+  - `effective` *object*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
+  - `schema` *array of [`SettingSpec`](schemas.md#settingspec)*, **required** — Declared settings from the pinned schema; empty when there is none.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -897,14 +1292,10 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance, or it has no document yet. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -948,15 +1339,38 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The instance's settings document (secrets as presence flags). The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The instance's settings document (secrets as names only).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "plugin_key": "local",
+  "revision": 5,
+  "settings": {
+    "root": "/srv/audiobooks"
+  },
+  "secret_refs": [
+    {
+      "key": "api_token",
+      "name": "api_token"
+    }
+  ],
+  "effective": {},
+  "schema": [
+    {
+      "key": "root",
+      "label": "Library root",
+      "type": "string",
+      "values": [
+        {
+          "id": "sync_missing"
+        }
+      ],
+      "default": "/srv/audiobooks",
+      "required": true,
+      "description": "Directory the finished audiobooks are written to."
+    }
+  ]
 }
 ```
 
@@ -965,22 +1379,208 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`GET /api/config/plugin-instances/{id}/config` body: the stored document\nand the configuration the guest receives.",
+  "required": [
+    "plugin_instance_id",
+    "plugin_key",
+    "revision",
+    "settings",
+    "secret_refs",
+    "effective",
+    "schema"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical plugin key.",
+      "example": "local"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Compare-and-swap revision of the document.",
+      "example": 5
+    },
+    "settings": {
+      "type": "object",
+      "description": "Scalar settings the operator wrote.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "boolean",
+            "description": "JSON boolean."
+          },
+          {
+            "type": "number",
+            "description": "Finite JSON number: an integer kind stores an `i64`, so the schema\nis an unformatted `number` rather than a `double`.",
+            "examples": [
+              8
+            ]
+          },
+          {
+            "type": "string",
+            "description": "JSON string, at most 1024 bytes."
+          }
+        ],
+        "description": "One scalar setting. Nested objects and arrays are not representable.",
+        "example": "/srv/audiobooks"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "example": {
+        "root": "/srv/audiobooks"
+      }
+    },
+    "secret_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A name in `encrypted_secrets`. The ciphertext is not part of the document.",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key in the `SECRETS` object delivered to the guest.",
+            "example": "api_token"
+          },
+          "name": {
+            "type": "string",
+            "description": "`encrypted_secrets.name` for this instance.",
+            "example": "api_token"
+          }
+        }
+      },
+      "description": "Secret refs; ciphertext stays in `encrypted_secrets`."
+    },
+    "effective": {
+      "type": "object",
+      "description": "Settings as the guest sees them: schema defaults overlaid with the\nstored values. Empty when the plugin has no pinned schema."
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One setting a plugin declares in its `plugin.toml` `[[settings]]`:\nits key, value type, default and help text.",
+        "required": [
+          "key",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Setting key (`[a-z][a-z0-9_]*`, at most 64 bytes).",
+            "example": "root"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator-facing label; omitted when the key is shown.",
+            "example": "Library root"
+          },
+          "type": {
+            "type": "string",
+            "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+            "enum": [
+              "string",
+              "bool",
+              "integer",
+              "enum",
+              "secret"
+            ],
+            "example": "string"
+          },
+          "values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "description": "One allowed value of an `enum` setting: the stored id and its label.",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Stored value.",
+                  "example": "sync_missing"
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Operator-facing label; omitted when the id is shown.",
+                  "example": "Sync missing"
+                }
+              }
+            },
+            "description": "Allowed values of an `enum` setting; omitted for other kinds."
+          },
+          "default": {
+            "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+            "examples": [
+              "/srv/audiobooks"
+            ]
+          },
+          "required": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "True when the instance cannot run without a value; omitted when\nfalse.",
+            "example": true
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Help text shown beside the setting; omitted when there is none.",
+            "example": "Directory the finished audiobooks are written to."
+          }
+        }
+      },
+      "description": "Declared settings from the pinned schema; empty when there is none."
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1058,13 +1658,11 @@ Schema:
 }
 ```
 
-Status `404`: No such instance.
+Status `404`: No such instance, or it has no document yet.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1073,34 +1671,25 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1109,22 +1698,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1167,11 +1749,13 @@ node does not need the guest installed.
 
 ### Responses
 
-- `200` — The document after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The document after the change. Body: [`PluginInstanceConfigChanged`](schemas.md#plugininstanceconfigchanged) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance id.
+  - `revision` *integer (int64)*, **required** — Revision after the write; unchanged when the same write was replayed.
+  - `settings` *map of string to [`SettingValue`](schemas.md#settingvalue)*, **required** — Scalar settings now stored.
+  - `secret_refs` *array of [`InstanceSecretRefV1`](schemas.md#instancesecretrefv1)*, **required** — Secret refs now stored, the newly sealed secrets included.
+- `400` — The body is invalid, or a value does not fit the pinned schema. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1180,14 +1764,13 @@ node does not need the guest installed.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance, or its plugin has no pinned schema. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — `expected_revision` is not the current revision. Body: [`RevisionConflict`](schemas.md#revisionconflict) (`application/json`)
+  - `error` *string*, **required** — Always `revision_conflict`.
+  - `current_revision` *integer (int64)*, **required** — The revision to read and retry against.
+- `500` — The configuration could not be read or written, or a secret was not stored. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1241,15 +1824,21 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The document after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The document after the change.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 6,
+  "settings": {
+    "root": "/srv/audiobooks"
+  },
+  "secret_refs": [
+    {
+      "key": "api_token",
+      "name": "api_token"
+    }
+  ]
 }
 ```
 
@@ -1258,22 +1847,106 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/plugin-instances/{id}/config` body: the document after\nthe write.",
+  "required": [
+    "plugin_instance_id",
+    "revision",
+    "settings",
+    "secret_refs"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision after the write; unchanged when the same write was\nreplayed.",
+      "example": 6
+    },
+    "settings": {
+      "type": "object",
+      "description": "Scalar settings now stored.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "boolean",
+            "description": "JSON boolean."
+          },
+          {
+            "type": "number",
+            "description": "Finite JSON number: an integer kind stores an `i64`, so the schema\nis an unformatted `number` rather than a `double`.",
+            "examples": [
+              8
+            ]
+          },
+          {
+            "type": "string",
+            "description": "JSON string, at most 1024 bytes."
+          }
+        ],
+        "description": "One scalar setting. Nested objects and arrays are not representable.",
+        "example": "/srv/audiobooks"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "example": {
+        "root": "/srv/audiobooks"
+      }
+    },
+    "secret_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A name in `encrypted_secrets`. The ciphertext is not part of the document.",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Key in the `SECRETS` object delivered to the guest.",
+            "example": "api_token"
+          },
+          "name": {
+            "type": "string",
+            "description": "`encrypted_secrets.name` for this instance.",
+            "example": "api_token"
+          }
+        }
+      },
+      "description": "Secret refs now stored, the newly sealed secrets included."
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid, or a value does not fit the pinned schema.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1351,13 +2024,11 @@ Schema:
 }
 ```
 
-Status `404`: No such instance.
+Status `404`: No such instance, or its plugin has no pinned schema.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1366,34 +2037,26 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `409`: `expected_revision` is not the current revision.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "revision_conflict",
+  "current_revision": 13
 }
 ```
 
@@ -1402,22 +2065,49 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "Body of a `409 Conflict` from a compare-and-swap write whose\n`expected_revision` lost to a newer revision.",
+  "required": [
+    "error",
+    "current_revision"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `revision_conflict`.",
+      "example": "revision_conflict"
+    },
+    "current_revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The revision to read and retry against.",
+      "example": 13
+    }
+  }
+}
+```
+
+Status `500`: The configuration could not be read or written, or a secret was not stored.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1456,11 +2146,14 @@ Deployed switch. Creates the row when the node has none.
 
 ### Responses
 
-- `200` — The deployment after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The deployment after the change. Body: [`PluginDeploymentChanged`](schemas.md#plugindeploymentchanged) (`application/json`)
+  - `deployment_id` *string*, **required** — Deployment row id.
+  - `plugin_instance_id` *string*, **required** — Instance the row belongs to.
+  - `node_id` *string*, **required** — Node the row targets.
+  - `desired` *[`DesiredState`](schemas.md#desiredstate)*, **required** — Desired state now stored.
+  - `revision` *integer (int64)*, **required** — Compare-and-swap revision after the write.
+- `400` — The body is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1469,18 +2162,11 @@ Deployed switch. Creates the row when the node has none.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — The instance is placed by the scheduler. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance or node. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The instance is placed by the scheduler (an `error` message), or `expected_revision` is stale (`revision_conflict` with `current_revision`). Body: [`DeploymentConflict`](schemas.md#deploymentconflict) (`application/json`)
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1534,15 +2220,15 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The deployment after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The deployment after the change.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "node_id": "node-7f3a9c",
+  "desired": "present",
+  "revision": 4
 }
 ```
 
@@ -1551,22 +2237,72 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/plugin-instances/{id}/deployments/{node_id}` body: the\ndeployment row after the write.",
+  "required": [
+    "deployment_id",
+    "plugin_instance_id",
+    "node_id",
+    "desired",
+    "revision"
+  ],
+  "properties": {
+    "deployment_id": {
+      "type": "string",
+      "description": "Deployment row id.",
+      "example": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+    },
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance the row belongs to.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "node_id": {
+      "type": "string",
+      "description": "Node the row targets.",
+      "example": "node-7f3a9c"
+    },
+    "desired": {
+      "type": "string",
+      "description": "Desired state now stored.",
+      "enum": [
+        "present",
+        "absent",
+        "placed",
+        "unplaced"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Compare-and-swap revision after the write.",
+      "example": 4
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1644,13 +2380,11 @@ Schema:
 }
 ```
 
-Status `404`: No such instance.
+Status `404`: No such instance or node.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1659,34 +2393,26 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `409`: The instance is placed by the scheduler.
+Status `409`: The instance is placed by the scheduler (an `error` message), or `expected_revision` is stale (`revision_conflict` with `current_revision`).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "revision_conflict",
+  "current_revision": 13
 }
 ```
 
@@ -1694,25 +2420,44 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "`expected_revision` lost to a newer revision of the row.",
+      "required": [
+        "error",
+        "current_revision"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Always `revision_conflict`.",
+          "example": "revision_conflict"
+        },
+        "current_revision": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The revision to read and retry against.",
+          "example": 13
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "description": "The scheduler places the instance, so its deployments are not hand-managed; `error` says so and names the way out.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     }
-  }
+  ],
+  "description": "`PUT /api/config/plugin-instances/{id}/deployments/{node_id}` `409` body: the two conflicts a deployment write can hit."
 }
 ```
 
@@ -1720,9 +2465,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1731,22 +2474,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1785,11 +2521,11 @@ deployments to the scheduler with a replica count and constraints.
 
 ### Responses
 
-- `200` — The scheduler now places the instance. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The scheduler now places the instance. Body: [`PluginPlacementChanged`](schemas.md#pluginplacementchanged) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance the scheduler now places.
+  - `placement` *[`PlacementView`](schemas.md#placementview)*, **required** — The stored intent and the last scheduler pass's result.
+- `400` — The body is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1798,14 +2534,13 @@ deployments to the scheduler with a replica count and constraints.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — `expected_revision` is not the current revision. Body: [`RevisionConflict`](schemas.md#revisionconflict) (`application/json`)
+  - `error` *string*, **required** — Always `revision_conflict`.
+  - `current_revision` *integer (int64)*, **required** — The revision to read and retry against.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1859,15 +2594,23 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The scheduler now places the instance. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The scheduler now places the instance.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "placement": {
+    "replicas": 0,
+    "constraints": [
+      "target=linux-x64-gnu",
+      "!drain"
+    ],
+    "revision": 2,
+    "placed": 1,
+    "detail": "",
+    "scheduled_at": "2026-10-28T19:07:00Z",
+    "updated_at": "2026-10-28T19:05:00Z"
+  }
 }
 ```
 
@@ -1876,22 +2619,112 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/plugin-instances/{id}/placement` body: the placement\nafter the write.",
+  "required": [
+    "plugin_instance_id",
+    "placement"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance the scheduler now places.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "placement": {
+      "type": "object",
+      "description": "The stored intent and the last scheduler pass's result.",
+      "required": [
+        "replicas",
+        "constraints",
+        "revision",
+        "placed",
+        "detail",
+        "scheduled_at",
+        "updated_at"
+      ],
+      "properties": {
+        "replicas": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "string",
+              "enum": [
+                "all"
+              ]
+            }
+          ],
+          "description": "A replica count (0 stops every replica) or `\"all\"`."
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Label constraints every chosen node must satisfy.",
+          "example": [
+            "target=linux-x64-gnu",
+            "!drain"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Compare-and-swap revision of the intent.",
+          "example": 2
+        },
+        "placed": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Replicas the last scheduler pass placed.",
+          "example": 1,
+          "minimum": 0
+        },
+        "detail": {
+          "type": "string",
+          "description": "Why fewer than requested are placed; empty when satisfied.",
+          "example": ""
+        },
+        "scheduled_at": {
+          "type": "string",
+          "description": "RFC 3339 time the scheduler last changed the status.",
+          "example": "2026-10-28T19:07:00Z"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "RFC 3339 time of the last intent write.",
+          "example": "2026-10-28T19:05:00Z"
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1973,9 +2806,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1984,22 +2815,50 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: `expected_revision` is not the current revision.
+
+```json
+{
+  "error": "revision_conflict",
+  "current_revision": 13
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Body of a `409 Conflict` from a compare-and-swap write whose\n`expected_revision` lost to a newer revision.",
+  "required": [
+    "error",
+    "current_revision"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Always `revision_conflict`.",
+      "example": "revision_conflict"
     },
-    "status": {
+    "current_revision": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int64",
+      "description": "The revision to read and retry against.",
+      "example": 13
     }
   }
 }
@@ -2009,9 +2868,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2020,22 +2877,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2067,11 +2917,11 @@ are.
 
 ### Responses
 
-- `200` — The instance is back to manual deployment. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The instance is back to manual deployment. Body: [`PluginPlacementDeleted`](schemas.md#pluginplacementdeleted) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — Instance that is hand-managed again.
+  - `deleted` *boolean*, **required** — True when a placement existed and was removed; false when the instance was hand-managed already.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -2080,14 +2930,10 @@ are.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such instance. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2134,15 +2980,12 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The instance is back to manual deployment. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The instance is back to manual deployment.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "deleted": true
 }
 ```
 
@@ -2151,22 +2994,48 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`DELETE /api/config/plugin-instances/{id}/placement` body.",
+  "required": [
+    "plugin_instance_id",
+    "deleted"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Instance that is hand-managed again.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "deleted": {
+      "type": "boolean",
+      "description": "True when a placement existed and was removed; false when the\ninstance was hand-managed already.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2248,9 +3117,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2259,22 +3126,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2284,9 +3144,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2295,22 +3153,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2336,11 +3187,8 @@ A `text/plain` body: a string.
 
 ### Responses
 
-- `200` — Every installed plugin. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — Every installed plugin. Body: [`InstalledPluginsResponse`](schemas.md#installedpluginsresponse) (`application/json`)
+  - `plugins` *array of [`InstalledPluginSummary`](schemas.md#installedpluginsummary)*, **required** — Every plugin with at least one installed version, by key.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -2349,10 +3197,8 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2396,15 +3242,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Every installed plugin. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: Every installed plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugins": [
+    {
+      "plugin_key": "libro",
+      "id": "libro",
+      "active_version": "0.4.2",
+      "revision": 3,
+      "versions": [
+        {
+          "plugin_key": "libro",
+          "id": "libro",
+          "version": "0.4.2",
+          "active": true,
+          "approved": true,
+          "publisher_verified": true,
+          "coordinate": "registry:plugins.example#source-libro@0.4.2",
+          "installed_at": "2026-10-20T10:15:00Z",
+          "installed_by": "operator",
+          "artifacts": []
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -2413,22 +3276,165 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`GET /api/config/plugins` body.",
   "required": [
-    "error"
+    "plugins"
   ],
   "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One installed plugin: its active version and every installed version,\nnewest first.",
+        "required": [
+          "plugin_key",
+          "versions"
+        ],
+        "properties": {
+          "plugin_key": {
+            "type": "string",
+            "description": "Canonical plugin key.",
+            "example": "libro"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Manifest id (display alias) of the active version, or of the newest\none when none is active; `null` without versions.",
+            "example": "libro"
+          },
+          "active_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Active version; `null` when the plugin is installed but not\nactivated.",
+            "example": "0.4.2"
+          },
+          "revision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Compare-and-swap revision of the active-version pointer; `null`\nwhen nothing is active.",
+            "example": 3
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One installed version of a plugin, as the API renders it.",
+              "required": [
+                "plugin_key",
+                "id",
+                "version",
+                "active",
+                "approved",
+                "publisher_verified",
+                "coordinate",
+                "installed_at",
+                "installed_by",
+                "artifacts"
+              ],
+              "properties": {
+                "plugin_key": {
+                  "type": "string",
+                  "description": "Canonical plugin key.",
+                  "example": "libro"
+                },
+                "id": {
+                  "type": "string",
+                  "description": "Manifest id (display alias).",
+                  "example": "libro"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Semver package version.",
+                  "example": "0.4.2"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "True when this is the plugin's active version.",
+                  "example": true
+                },
+                "approved": {
+                  "type": "boolean",
+                  "description": "True once an operator approved the version's consent request.",
+                  "example": true
+                },
+                "publisher_verified": {
+                  "type": "boolean",
+                  "description": "True when the publisher was verified at install time.",
+                  "example": true
+                },
+                "coordinate": {
+                  "type": "string",
+                  "description": "Package coordinate the version was resolved from; empty for a local\narchive.",
+                  "example": "registry:plugins.example#source-libro@0.4.2"
+                },
+                "installed_at": {
+                  "type": "string",
+                  "description": "RFC 3339 install time.",
+                  "example": "2026-10-20T10:15:00Z"
+                },
+                "installed_by": {
+                  "type": "string",
+                  "description": "Audit identity of the installer.",
+                  "example": "operator"
+                },
+                "host_payload_root_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Payload-root digest of the artifact this host would run; `null` when\nno artifact fits the host's target.",
+                  "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+                },
+                "artifacts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One downloadable artifact of an installed version, as the API renders\nit.",
+                    "required": [
+                      "target",
+                      "url",
+                      "archive_sha256",
+                      "payload_root_sha256"
+                    ],
+                    "properties": {
+                      "target": {
+                        "type": "string",
+                        "description": "Bookclerk target (`linux-x64-gnu`, …; `any` for workerd packages).",
+                        "example": "linux-x64-gnu"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "Where nodes fetch the archive: `https:`, `file:`, or\n`blob:sha256:<hex>`.",
+                        "example": "https://plugins.example/source-libro-0.4.2-linux-x64-gnu.tar.gz"
+                      },
+                      "archive_sha256": {
+                        "type": "string",
+                        "description": "Lowercase hex SHA-256 of the archive bytes.",
+                        "example": "9b74c9897bac770ffc029102a200c5de3f4b2b1a0b5e6c7d8e9f0a1b2c3d4e5f"
+                      },
+                      "payload_root_sha256": {
+                        "type": "string",
+                        "description": "Payload-root digest of the extracted plugin tree.",
+                        "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+                      }
+                    }
+                  },
+                  "description": "Per-target artifacts."
+                }
+              }
+            },
+            "description": "Every installed version, newest first."
+          }
+        }
+      },
+      "description": "Every plugin with at least one installed version, by key."
     }
   }
 }
@@ -2506,13 +3512,11 @@ Schema:
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2521,22 +3525,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2572,35 +3569,28 @@ A `text/plain` body: a string.
 
 ### Responses
 
-- `200` — The installed version. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The installed version. Body: [`PluginInstalled`](schemas.md#plugininstalled) (`application/json`)
+  - `created` *boolean*, **required** — True when the version row was written now; false when the same version with the same artifacts was installed already.
+  - `plugin_instance_id` *string*, **required** — Id of the plugin's default instance.
+  - `version` *[`PluginVersionSummary`](schemas.md#pluginversionsummary)*, **required** — The installed version.
+- `400` — The body is invalid: neither or both of `coordinate` and `package`, a malformed coordinate or package name, or a manifest the host rejects. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — A local package is missing its `package.json` or `archive.tar.gz`. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — The version is already installed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `502` — The package catalog could not be reached or answered badly. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The publisher is unverified and `allow_unverified_publisher` is off. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — A local package is missing its `package.json` or `archive.tar.gz`. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The version is already installed with different artifacts. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `502` — The package catalog could not be reached or answered badly. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The install needs a helper that is unavailable. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2654,15 +3644,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The installed version. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The installed version.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "created": true,
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "version": {
+    "plugin_key": "libro",
+    "id": "libro",
+    "version": "0.4.2",
+    "active": true,
+    "approved": true,
+    "publisher_verified": true,
+    "coordinate": "registry:plugins.example#source-libro@0.4.2",
+    "installed_at": "2026-10-20T10:15:00Z",
+    "installed_by": "operator",
+    "host_payload_root_sha256": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5",
+    "artifacts": [
+      {
+        "target": "linux-x64-gnu",
+        "url": "https://plugins.example/source-libro-0.4.2-linux-x64-gnu.tar.gz",
+        "archive_sha256": "9b74c9897bac770ffc029102a200c5de3f4b2b1a0b5e6c7d8e9f0a1b2c3d4e5f",
+        "payload_root_sha256": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+      }
+    ]
+  }
 }
 ```
 
@@ -2671,22 +3678,156 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`POST /api/config/plugins` body: what the install did.",
+  "required": [
+    "created",
+    "plugin_instance_id",
+    "version"
+  ],
+  "properties": {
+    "created": {
+      "type": "boolean",
+      "description": "True when the version row was written now; false when the same\nversion with the same artifacts was installed already.",
+      "example": true
+    },
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "Id of the plugin's default instance.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "version": {
+      "type": "object",
+      "description": "The installed version.",
+      "required": [
+        "plugin_key",
+        "id",
+        "version",
+        "active",
+        "approved",
+        "publisher_verified",
+        "coordinate",
+        "installed_at",
+        "installed_by",
+        "artifacts"
+      ],
+      "properties": {
+        "plugin_key": {
+          "type": "string",
+          "description": "Canonical plugin key.",
+          "example": "libro"
+        },
+        "id": {
+          "type": "string",
+          "description": "Manifest id (display alias).",
+          "example": "libro"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semver package version.",
+          "example": "0.4.2"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "True when this is the plugin's active version.",
+          "example": true
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "True once an operator approved the version's consent request.",
+          "example": true
+        },
+        "publisher_verified": {
+          "type": "boolean",
+          "description": "True when the publisher was verified at install time.",
+          "example": true
+        },
+        "coordinate": {
+          "type": "string",
+          "description": "Package coordinate the version was resolved from; empty for a local\narchive.",
+          "example": "registry:plugins.example#source-libro@0.4.2"
+        },
+        "installed_at": {
+          "type": "string",
+          "description": "RFC 3339 install time.",
+          "example": "2026-10-20T10:15:00Z"
+        },
+        "installed_by": {
+          "type": "string",
+          "description": "Audit identity of the installer.",
+          "example": "operator"
+        },
+        "host_payload_root_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Payload-root digest of the artifact this host would run; `null` when\nno artifact fits the host's target.",
+          "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One downloadable artifact of an installed version, as the API renders\nit.",
+            "required": [
+              "target",
+              "url",
+              "archive_sha256",
+              "payload_root_sha256"
+            ],
+            "properties": {
+              "target": {
+                "type": "string",
+                "description": "Bookclerk target (`linux-x64-gnu`, …; `any` for workerd packages).",
+                "example": "linux-x64-gnu"
+              },
+              "url": {
+                "type": "string",
+                "description": "Where nodes fetch the archive: `https:`, `file:`, or\n`blob:sha256:<hex>`.",
+                "example": "https://plugins.example/source-libro-0.4.2-linux-x64-gnu.tar.gz"
+              },
+              "archive_sha256": {
+                "type": "string",
+                "description": "Lowercase hex SHA-256 of the archive bytes.",
+                "example": "9b74c9897bac770ffc029102a200c5de3f4b2b1a0b5e6c7d8e9f0a1b2c3d4e5f"
+              },
+              "payload_root_sha256": {
+                "type": "string",
+                "description": "Payload-root digest of the extracted plugin tree.",
+                "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+              }
+            }
+          },
+          "description": "Per-target artifacts."
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid: neither or both of `coordinate` and `package`, a malformed coordinate or package name, or a manifest the host rejects.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2728,13 +3869,11 @@ Schema:
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The publisher is unverified and `allow_unverified_publisher` is off. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2743,22 +3882,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2768,9 +3900,7 @@ Status `404`: A local package is missing its `package.json` or `archive.tar.gz`.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2779,34 +3909,25 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `409`: The version is already installed.
+Status `409`: The version is already installed with different artifacts.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2815,22 +3936,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2840,9 +3954,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2851,22 +3963,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2876,9 +3981,7 @@ Status `502`: The package catalog could not be reached or answered badly.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2887,22 +3990,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The install needs a helper that is unavailable.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2933,11 +4056,8 @@ settings schema.
 
 ### Responses
 
-- `200` — The plugin with its pinned versions. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The plugin with its installed versions and pinned schema. Body: [`InstalledPluginDetail`](schemas.md#installedplugindetail) (`application/json`)
+  - `schema` *[`PinnedSchemaSummary`](schemas.md#pinnedschemasummary) or null* — The pinned settings schema; `null` until a node pins one.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -2946,14 +4066,10 @@ settings schema.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such plugin. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2997,15 +4113,54 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The plugin with its pinned versions. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The plugin with its installed versions and pinned schema.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_key": "libro",
+  "id": "libro",
+  "active_version": "0.4.2",
+  "revision": 3,
+  "versions": [
+    {
+      "plugin_key": "libro",
+      "id": "libro",
+      "version": "0.4.2",
+      "active": true,
+      "approved": true,
+      "publisher_verified": true,
+      "coordinate": "registry:plugins.example#source-libro@0.4.2",
+      "installed_at": "2026-10-20T10:15:00Z",
+      "installed_by": "operator",
+      "host_payload_root_sha256": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5",
+      "artifacts": [
+        {
+          "target": "linux-x64-gnu",
+          "url": "https://plugins.example/source-libro-0.4.2-linux-x64-gnu.tar.gz",
+          "archive_sha256": "9b74c9897bac770ffc029102a200c5de3f4b2b1a0b5e6c7d8e9f0a1b2c3d4e5f",
+          "payload_root_sha256": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+        }
+      ]
+    }
+  ],
+  "schema": {
+    "manifest_id": "libro",
+    "schema_sha256": "4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091",
+    "package_version": "0.4.2",
+    "recorded_at": "2026-10-20T10:15:05Z",
+    "recorded_by_node": "node-7f3a9c",
+    "settings": [
+      {
+        "key": "root",
+        "label": "Library root",
+        "type": "string",
+        "values": [],
+        "default": "/srv/audiobooks",
+        "required": true,
+        "description": "Directory the finished audiobooks are written to."
+      }
+    ]
+  }
 }
 ```
 
@@ -3013,25 +4168,301 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "allOf": [
+    {
+      "type": "object",
+      "description": "The plugin with its versions.",
+      "required": [
+        "plugin_key",
+        "versions"
+      ],
+      "properties": {
+        "plugin_key": {
+          "type": "string",
+          "description": "Canonical plugin key.",
+          "example": "libro"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Manifest id (display alias) of the active version, or of the newest\none when none is active; `null` without versions.",
+          "example": "libro"
+        },
+        "active_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Active version; `null` when the plugin is installed but not\nactivated.",
+          "example": "0.4.2"
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Compare-and-swap revision of the active-version pointer; `null`\nwhen nothing is active.",
+          "example": 3
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One installed version of a plugin, as the API renders it.",
+            "required": [
+              "plugin_key",
+              "id",
+              "version",
+              "active",
+              "approved",
+              "publisher_verified",
+              "coordinate",
+              "installed_at",
+              "installed_by",
+              "artifacts"
+            ],
+            "properties": {
+              "plugin_key": {
+                "type": "string",
+                "description": "Canonical plugin key.",
+                "example": "libro"
+              },
+              "id": {
+                "type": "string",
+                "description": "Manifest id (display alias).",
+                "example": "libro"
+              },
+              "version": {
+                "type": "string",
+                "description": "Semver package version.",
+                "example": "0.4.2"
+              },
+              "active": {
+                "type": "boolean",
+                "description": "True when this is the plugin's active version.",
+                "example": true
+              },
+              "approved": {
+                "type": "boolean",
+                "description": "True once an operator approved the version's consent request.",
+                "example": true
+              },
+              "publisher_verified": {
+                "type": "boolean",
+                "description": "True when the publisher was verified at install time.",
+                "example": true
+              },
+              "coordinate": {
+                "type": "string",
+                "description": "Package coordinate the version was resolved from; empty for a local\narchive.",
+                "example": "registry:plugins.example#source-libro@0.4.2"
+              },
+              "installed_at": {
+                "type": "string",
+                "description": "RFC 3339 install time.",
+                "example": "2026-10-20T10:15:00Z"
+              },
+              "installed_by": {
+                "type": "string",
+                "description": "Audit identity of the installer.",
+                "example": "operator"
+              },
+              "host_payload_root_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Payload-root digest of the artifact this host would run; `null` when\nno artifact fits the host's target.",
+                "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+              },
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "One downloadable artifact of an installed version, as the API renders\nit.",
+                  "required": [
+                    "target",
+                    "url",
+                    "archive_sha256",
+                    "payload_root_sha256"
+                  ],
+                  "properties": {
+                    "target": {
+                      "type": "string",
+                      "description": "Bookclerk target (`linux-x64-gnu`, …; `any` for workerd packages).",
+                      "example": "linux-x64-gnu"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Where nodes fetch the archive: `https:`, `file:`, or\n`blob:sha256:<hex>`.",
+                      "example": "https://plugins.example/source-libro-0.4.2-linux-x64-gnu.tar.gz"
+                    },
+                    "archive_sha256": {
+                      "type": "string",
+                      "description": "Lowercase hex SHA-256 of the archive bytes.",
+                      "example": "9b74c9897bac770ffc029102a200c5de3f4b2b1a0b5e6c7d8e9f0a1b2c3d4e5f"
+                    },
+                    "payload_root_sha256": {
+                      "type": "string",
+                      "description": "Payload-root digest of the extracted plugin tree.",
+                      "example": "1f2e3d4c5b6a79880970a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5"
+                    }
+                  }
+                },
+                "description": "Per-target artifacts."
+              }
+            }
+          },
+          "description": "Every installed version, newest first."
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "The pinned settings schema; `null` until a node pins one.",
+              "required": [
+                "manifest_id",
+                "schema_sha256",
+                "package_version",
+                "recorded_at",
+                "recorded_by_node",
+                "settings"
+              ],
+              "properties": {
+                "manifest_id": {
+                  "type": "string",
+                  "description": "Manifest id (display alias) at pin time.",
+                  "example": "libro"
+                },
+                "schema_sha256": {
+                  "type": "string",
+                  "description": "Fingerprint of the normalized schema.",
+                  "example": "4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091"
+                },
+                "package_version": {
+                  "type": "string",
+                  "description": "Semver package version that produced the pinned schema.",
+                  "example": "0.4.2"
+                },
+                "recorded_at": {
+                  "type": "string",
+                  "description": "RFC 3339 time of the last pin.",
+                  "example": "2026-10-20T10:15:05Z"
+                },
+                "recorded_by_node": {
+                  "type": "string",
+                  "description": "Node that recorded the last pin.",
+                  "example": "node-7f3a9c"
+                },
+                "settings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One setting a plugin declares in its `plugin.toml` `[[settings]]`:\nits key, value type, default and help text.",
+                    "required": [
+                      "key",
+                      "type"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "description": "Setting key (`[a-z][a-z0-9_]*`, at most 64 bytes).",
+                        "example": "root"
+                      },
+                      "label": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Operator-facing label; omitted when the key is shown.",
+                        "example": "Library root"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+                        "enum": [
+                          "string",
+                          "bool",
+                          "integer",
+                          "enum",
+                          "secret"
+                        ],
+                        "example": "string"
+                      },
+                      "values": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "description": "One allowed value of an `enum` setting: the stored id and its label.",
+                          "required": [
+                            "id"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "description": "Stored value.",
+                              "example": "sync_missing"
+                            },
+                            "label": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "description": "Operator-facing label; omitted when the id is shown.",
+                              "example": "Sync missing"
+                            }
+                          }
+                        },
+                        "description": "Allowed values of an `enum` setting; omitted for other kinds."
+                      },
+                      "default": {
+                        "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+                        "examples": [
+                          "/srv/audiobooks"
+                        ]
+                      },
+                      "required": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ],
+                        "description": "True when the instance cannot run without a value; omitted when\nfalse.",
+                        "example": true
+                      },
+                      "description": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Help text shown beside the setting; omitted when there is none.",
+                        "example": "Directory the finished audiobooks are written to."
+                      }
+                    }
+                  },
+                  "description": "Declared settings."
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     }
-  }
+  ],
+  "description": "`GET /api/config/plugins/{key}` body: the plugin and its pinned schema."
 }
 ```
 
@@ -3111,9 +4542,7 @@ Status `404`: No such plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3122,34 +4551,25 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3158,22 +4578,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3204,11 +4617,10 @@ cleared, placements dropped, every deployment `absent`).
 
 ### Responses
 
-- `200` — The plugin was uninstalled. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The plugin was uninstalled. Body: [`PluginUninstalled`](schemas.md#pluginuninstalled) (`application/json`)
+  - `plugin_key` *string*, **required** — Canonical plugin key.
+  - `uninstalled` *boolean*, **required** — True when an active-version pointer existed and was cleared.
+  - `deployments_undeployed` *integer*, **required** — Deployment rows switched to `absent` across the plugin's instances. At least 0.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3217,14 +4629,12 @@ cleared, placements dropped, every deployment `absent`).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such plugin. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — A deployment changed under the request. The install was not cleared, but deployments of earlier instances may already be stopped; retry the request. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3271,15 +4681,13 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The plugin was uninstalled. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The plugin was uninstalled.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_key": "libro",
+  "uninstalled": true,
+  "deployments_undeployed": 2
 }
 ```
 
@@ -3288,22 +4696,28 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`DELETE /api/config/plugins/{key}` body.",
   "required": [
-    "error"
+    "plugin_key",
+    "uninstalled",
+    "deployments_undeployed"
   ],
   "properties": {
-    "error": {
+    "plugin_key": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Canonical plugin key.",
+      "example": "libro"
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    "uninstalled": {
+      "type": "boolean",
+      "description": "True when an active-version pointer existed and was cleared.",
+      "example": true
     },
-    "status": {
+    "deployments_undeployed": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "Deployment rows switched to `absent` across the plugin's instances.",
+      "example": 2,
+      "minimum": 0
     }
   }
 }
@@ -3385,9 +4799,7 @@ Status `404`: No such plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3396,22 +4808,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: A deployment changed under the request. The install was not cleared, but deployments of earlier instances may already be stopped; retry the request.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3421,9 +4853,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3432,22 +4862,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3483,11 +4906,12 @@ A `text/plain` body: a string.
 
 ### Responses
 
-- `200` — The active version after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The active version after the change. Body: [`ActiveVersionChanged`](schemas.md#activeversionchanged) (`application/json`)
+  - `plugin_key` *string*, **required** — Canonical plugin key.
+  - `version` *string*, **required** — Version now active.
+  - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the pointer after the move.
+- `400` — The body is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3496,14 +4920,10 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such plugin or version. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3557,15 +4977,13 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The active version after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The active version after the change.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_key": "libro",
+  "version": "0.4.2",
+  "revision": 4
 }
 ```
 
@@ -3574,22 +4992,55 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/plugins/{key}/active` body: the pointer after the move.",
+  "required": [
+    "plugin_key",
+    "version",
+    "revision"
+  ],
+  "properties": {
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical plugin key.",
+      "example": "libro"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version now active.",
+      "example": "0.4.2"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Compare-and-swap revision of the pointer after the move.",
+      "example": 4
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3667,13 +5118,11 @@ Schema:
 }
 ```
 
-Status `404`: No such plugin.
+Status `404`: No such plugin or version.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3682,22 +5131,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3707,9 +5149,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3718,22 +5158,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3765,11 +5198,13 @@ version's requested consent as approved for every node.
 
 ### Responses
 
-- `200` — The version's grant was approved. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The version's grant was approved. Body: [`PluginVersionApproved`](schemas.md#pluginversionapproved) (`application/json`)
+  - `plugin_key` *string*, **required** — Canonical plugin key.
+  - `version` *string*, **required** — Semver version whose grant was approved.
+  - `approved` *boolean*, **required** — Always true: a version that cannot be approved is an error instead.
+  - `grant` *object*, **required** — The consent grant recorded for every node: the entrypoints, events, jobs, network domains and TCP targets the manifest asked for.
+- `400` — The version's manifest does not parse. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3778,14 +5213,10 @@ version's requested consent as approved for every node.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such plugin or version. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3832,15 +5263,14 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The version's grant was approved. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The version's grant was approved.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "plugin_key": "libro",
+  "version": "0.4.2",
+  "approved": true,
+  "grant": {}
 }
 ```
 
@@ -3849,22 +5279,59 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`POST /api/config/plugins/{key}/versions/{version}/approve` body.",
+  "required": [
+    "plugin_key",
+    "version",
+    "approved",
+    "grant"
+  ],
+  "properties": {
+    "plugin_key": {
+      "type": "string",
+      "description": "Canonical plugin key.",
+      "example": "libro"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver version whose grant was approved.",
+      "example": "0.4.2"
+    },
+    "approved": {
+      "type": "boolean",
+      "description": "Always true: a version that cannot be approved is an error instead.",
+      "example": true
+    },
+    "grant": {
+      "type": "object",
+      "description": "The consent grant recorded for every node: the entrypoints, events,\njobs, network domains and TCP targets the manifest asked for."
+    }
+  }
+}
+```
+
+Status `400`: The version's manifest does not parse.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3942,13 +5409,11 @@ Schema:
 }
 ```
 
-Status `404`: No such plugin.
+Status `404`: No such plugin or version.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3957,22 +5422,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3982,9 +5440,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3993,22 +5449,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }

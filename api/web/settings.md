@@ -106,23 +106,26 @@ Status `200`: The settings.
       "is_default": true,
       "config_revision": 0,
       "deployment": {
-        "deployment_id": "string",
-        "node_id": "string",
+        "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+        "node_id": "node-7f3a9c",
         "desired": "present",
-        "revision": 0,
-        "status": "string",
-        "detail": "string",
-        "applied_config_revision": 0,
-        "observed_at": "string"
+        "revision": 3,
+        "status": "healthy",
+        "detail": "",
+        "applied_config_revision": 5,
+        "observed_at": "2026-10-28T19:07:00Z"
       },
       "placement": {
         "replicas": 0,
-        "constraints": [],
-        "revision": 0,
-        "placed": 0,
-        "detail": "string",
-        "scheduled_at": "string",
-        "updated_at": "string"
+        "constraints": [
+          "target=linux-x64-gnu",
+          "!drain"
+        ],
+        "revision": 2,
+        "placed": 1,
+        "detail": "",
+        "scheduled_at": "2026-10-28T19:07:00Z",
+        "updated_at": "2026-10-28T19:05:00Z"
       },
       "present_on": [
         "string"
@@ -316,11 +319,13 @@ Schema:
                 "properties": {
                   "deployment_id": {
                     "type": "string",
-                    "description": "Deployment row id."
+                    "description": "Deployment row id.",
+                    "example": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
                   },
                   "node_id": {
                     "type": "string",
-                    "description": "Node the row targets."
+                    "description": "Node the row targets.",
+                    "example": "node-7f3a9c"
                   },
                   "desired": {
                     "type": "string",
@@ -335,21 +340,24 @@ Schema:
                   "revision": {
                     "type": "integer",
                     "format": "int64",
-                    "description": "Compare-and-swap revision of the desired row."
+                    "description": "Compare-and-swap revision of the desired row.",
+                    "example": 3
                   },
                   "status": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "Latest observation status from that node, when it reported one."
+                    "description": "Latest observation status from that node, when it reported one.",
+                    "example": "healthy"
                   },
                   "detail": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "Observation detail (error text, redacted)."
+                    "description": "Observation detail (error text, redacted).",
+                    "example": ""
                   },
                   "applied_config_revision": {
                     "type": [
@@ -357,14 +365,16 @@ Schema:
                       "null"
                     ],
                     "format": "int64",
-                    "description": "Document revision the running guest applied."
+                    "description": "Document revision the running guest applied.",
+                    "example": 5
                   },
                   "observed_at": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "RFC 3339 time of the observation."
+                    "description": "RFC 3339 time of the observation.",
+                    "example": "2026-10-28T19:07:00Z"
                   }
                 }
               },
@@ -408,30 +418,39 @@ Schema:
                     "items": {
                       "type": "string"
                     },
-                    "description": "Label constraints every chosen node must satisfy."
+                    "description": "Label constraints every chosen node must satisfy.",
+                    "example": [
+                      "target=linux-x64-gnu",
+                      "!drain"
+                    ]
                   },
                   "revision": {
                     "type": "integer",
                     "format": "int64",
-                    "description": "Compare-and-swap revision of the intent."
+                    "description": "Compare-and-swap revision of the intent.",
+                    "example": 2
                   },
                   "placed": {
                     "type": "integer",
                     "format": "int32",
                     "description": "Replicas the last scheduler pass placed.",
+                    "example": 1,
                     "minimum": 0
                   },
                   "detail": {
                     "type": "string",
-                    "description": "Why fewer than requested are placed; empty when satisfied."
+                    "description": "Why fewer than requested are placed; empty when satisfied.",
+                    "example": ""
                   },
                   "scheduled_at": {
                     "type": "string",
-                    "description": "RFC 3339 time the scheduler last changed the status."
+                    "description": "RFC 3339 time the scheduler last changed the status.",
+                    "example": "2026-10-28T19:07:00Z"
                   },
                   "updated_at": {
                     "type": "string",
-                    "description": "RFC 3339 time of the last intent write."
+                    "description": "RFC 3339 time of the last intent write.",
+                    "example": "2026-10-28T19:05:00Z"
                   }
                 }
               },
@@ -728,23 +747,26 @@ Status `200`: The settings after the change.
       "is_default": true,
       "config_revision": 0,
       "deployment": {
-        "deployment_id": "string",
-        "node_id": "string",
+        "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+        "node_id": "node-7f3a9c",
         "desired": "present",
-        "revision": 0,
-        "status": "string",
-        "detail": "string",
-        "applied_config_revision": 0,
-        "observed_at": "string"
+        "revision": 3,
+        "status": "healthy",
+        "detail": "",
+        "applied_config_revision": 5,
+        "observed_at": "2026-10-28T19:07:00Z"
       },
       "placement": {
         "replicas": 0,
-        "constraints": [],
-        "revision": 0,
-        "placed": 0,
-        "detail": "string",
-        "scheduled_at": "string",
-        "updated_at": "string"
+        "constraints": [
+          "target=linux-x64-gnu",
+          "!drain"
+        ],
+        "revision": 2,
+        "placed": 1,
+        "detail": "",
+        "scheduled_at": "2026-10-28T19:07:00Z",
+        "updated_at": "2026-10-28T19:05:00Z"
       },
       "present_on": [
         "string"
@@ -938,11 +960,13 @@ Schema:
                 "properties": {
                   "deployment_id": {
                     "type": "string",
-                    "description": "Deployment row id."
+                    "description": "Deployment row id.",
+                    "example": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
                   },
                   "node_id": {
                     "type": "string",
-                    "description": "Node the row targets."
+                    "description": "Node the row targets.",
+                    "example": "node-7f3a9c"
                   },
                   "desired": {
                     "type": "string",
@@ -957,21 +981,24 @@ Schema:
                   "revision": {
                     "type": "integer",
                     "format": "int64",
-                    "description": "Compare-and-swap revision of the desired row."
+                    "description": "Compare-and-swap revision of the desired row.",
+                    "example": 3
                   },
                   "status": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "Latest observation status from that node, when it reported one."
+                    "description": "Latest observation status from that node, when it reported one.",
+                    "example": "healthy"
                   },
                   "detail": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "Observation detail (error text, redacted)."
+                    "description": "Observation detail (error text, redacted).",
+                    "example": ""
                   },
                   "applied_config_revision": {
                     "type": [
@@ -979,14 +1006,16 @@ Schema:
                       "null"
                     ],
                     "format": "int64",
-                    "description": "Document revision the running guest applied."
+                    "description": "Document revision the running guest applied.",
+                    "example": 5
                   },
                   "observed_at": {
                     "type": [
                       "string",
                       "null"
                     ],
-                    "description": "RFC 3339 time of the observation."
+                    "description": "RFC 3339 time of the observation.",
+                    "example": "2026-10-28T19:07:00Z"
                   }
                 }
               },
@@ -1030,30 +1059,39 @@ Schema:
                     "items": {
                       "type": "string"
                     },
-                    "description": "Label constraints every chosen node must satisfy."
+                    "description": "Label constraints every chosen node must satisfy.",
+                    "example": [
+                      "target=linux-x64-gnu",
+                      "!drain"
+                    ]
                   },
                   "revision": {
                     "type": "integer",
                     "format": "int64",
-                    "description": "Compare-and-swap revision of the intent."
+                    "description": "Compare-and-swap revision of the intent.",
+                    "example": 2
                   },
                   "placed": {
                     "type": "integer",
                     "format": "int32",
                     "description": "Replicas the last scheduler pass placed.",
+                    "example": 1,
                     "minimum": 0
                   },
                   "detail": {
                     "type": "string",
-                    "description": "Why fewer than requested are placed; empty when satisfied."
+                    "description": "Why fewer than requested are placed; empty when satisfied.",
+                    "example": ""
                   },
                   "scheduled_at": {
                     "type": "string",
-                    "description": "RFC 3339 time the scheduler last changed the status."
+                    "description": "RFC 3339 time the scheduler last changed the status.",
+                    "example": "2026-10-28T19:07:00Z"
                   },
                   "updated_at": {
                     "type": "string",
-                    "description": "RFC 3339 time of the last intent write."
+                    "description": "RFC 3339 time of the last intent write.",
+                    "example": "2026-10-28T19:05:00Z"
                   }
                 }
               },

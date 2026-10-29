@@ -1248,7 +1248,7 @@ A name in `encrypted_secrets`. The ciphertext is not part of the document.
 - `key`: Key in the `SECRETS` object delivered to the guest.
 - `name`: `encrypted_secrets.name` for this instance.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### PluginInstanceConfigV1
 
@@ -3700,10 +3700,11 @@ One scalar setting. Nested objects and arrays are not representable.
 **Variants**
 
 - `Bool`: JSON boolean.
-- `Number`: Finite JSON number.
+- `Number`: Finite JSON number: an integer kind stores an `i64`, so the schema
+  is an unformatted `number` rather than a `double`.
 - `String`: JSON string, at most 1024 bytes.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### LiveTopic
 
