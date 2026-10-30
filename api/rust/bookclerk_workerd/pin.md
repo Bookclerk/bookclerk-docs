@@ -94,7 +94,7 @@ On-disk binary name after extracting the gzipped release asset.
 ### BUNDLED_WORKERD_COMPAT_DATE
 
 ```rust
-pub const BUNDLED_WORKERD_COMPAT_DATE: &str = "2026-10-22";
+pub const BUNDLED_WORKERD_COMPAT_DATE: &str = "2026-10-23";
 ```
 
 Newest compatibility date this Bookclerk build claims to understand.
@@ -102,7 +102,7 @@ Newest compatibility date this Bookclerk build claims to understand.
 ### WORKERD_RELEASE_TAG
 
 ```rust
-pub const WORKERD_RELEASE_TAG: &str = "v1.20261022.1";
+pub const WORKERD_RELEASE_TAG: &str = "v1.20261023.1";
 ```
 
 GitHub release tag (includes leading `v`).
