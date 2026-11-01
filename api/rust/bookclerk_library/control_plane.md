@@ -1747,7 +1747,7 @@ pub fn max(self, other: Self) -> Self
 
 Component-wise maximum.
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NodeHeartbeat
 
@@ -1854,12 +1854,12 @@ A node's latest heartbeat with budget, accounting, and availability.
 - `heartbeat_ms`: Heartbeat time in Unix milliseconds.
 - `interval_ms`: Promised interval in milliseconds.
 - `cpu_millicores`: Detected CPU capacity in millicores.
-- `memory_bytes`: Detected memory.
+- `memory_bytes`: Detected memory in bytes.
 - `cpu_budget_millicores`: CPU the scheduler may commit, in millicores.
-- `memory_budget_bytes`: Memory the scheduler may commit.
+- `memory_budget_bytes`: Memory the scheduler may commit, in bytes.
 - `schedulable`: False when an operator drained the node.
-- `cpu_used_millicores`: Measured CPU in use.
-- `memory_available_bytes`: Measured memory available.
+- `cpu_used_millicores`: Measured CPU in use, in millicores.
+- `memory_available_bytes`: Measured memory available, in bytes.
 - `files_dir_free_bytes`: Free bytes on the files directory's filesystem.
 - `reserved`: Ceilings of the guests running here.
 - `running_guests`: Guests running here.
@@ -1894,7 +1894,7 @@ pub fn memory_headroom_bytes(&self) -> Option<i64>
 Memory still uncommitted under the budget and actually available on
 the machine; empty when the node could not detect its memory.
 
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OutputSettingsV1
 
@@ -3274,7 +3274,7 @@ outside 1..=100.
 
 Returns an error when a field is out of range.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### ConfigurationDocument
 
@@ -3661,7 +3661,7 @@ pub fn parse(raw: &str) -> Self
 
 Parses stored text; anything unknown reads as [`Self::Owner`](#nodekind).
 
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### InstanceConfigReplace
 

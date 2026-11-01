@@ -246,6 +246,13 @@ chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
 
+## ClerksResponse
+
+`GET /api/config/clerks` body.
+
+- `node_id` *string*, **required** — Id of the node that answered.
+- `nodes` *array of [`NodeView`](#nodeview)*, **required** — This node and the clerks the caller may see.
+
 ## ClusterJobsBody
 
 `POST /api/config/clusters/{cluster_id}/jobs` body.
@@ -258,6 +265,33 @@ Type: one of `off`, `flat`, `tree`, `both`
 
 - `account` *string or null* — Scan only this store account of the owner cluster.
 - `plugin_instance_id` *string or null* — Pin every planned job to this owner plugin instance.
+
+## ClusterStatusResponse
+
+`GET /api/cluster/status` body.
+
+- `cluster` *[`ClusterSummary`](#clustersummary)*, **required** — Cluster-wide counters.
+- `node_id` *string*, **required** — Id of the node that answered.
+- `nodes` *array of [`NodeView`](#nodeview)*, **required** — The nodes the caller administers.
+- `capabilities` *[`NodeCapabilities`](#nodecapabilities)*, **required** — What the caller may do with them.
+
+## ClusterSummary
+
+Cluster-wide counters every node administrator may see.
+
+- `nodes` *integer*, **required** — Nodes in the library's node list. At least 0.
+- `live` *integer*, **required** — Nodes whose last heartbeat is recent enough. At least 0.
+- `drained` *integer*, **required** — Live nodes an operator drained. At least 0.
+- `host_nodes` *integer*, **required** — Enrolled hosts (nodes with their own database). At least 0.
+- `cpu_budget_millicores` *integer (int64)*, **required** — CPU the scheduler may commit across live nodes, in millicores.
+- `cpu_reserved_millicores` *integer (int64)*, **required** — CPU the running guests' ceilings add up to, in millicores.
+- `memory_budget_bytes` *integer (int64)*, **required** — Memory the scheduler may commit across live nodes, in bytes.
+- `memory_reserved_bytes` *integer (int64)*, **required** — Memory the running guests' ceilings add up to, in bytes.
+- `running_guests` *integer (int64)*, **required** — Guests running across live nodes.
+- `active_jobs` *integer (int64)*, **required** — Jobs queued or running.
+- `deliveries` *[`DeliveryBacklog`](#deliverybacklog)*, **required** — Event delivery backlog.
+- `leases` *array of [`LeaseView`](#leaseview)*, **required** — Every cluster lease, held or expired.
+- `schema` *[`SchemaStateView`](#schemastateview)*, **required** — The database schema against this binary.
 
 ## ConfigOptionValueInfo
 
@@ -355,6 +389,15 @@ Body for copying library rows between database plugins.
 - `dry_run` *boolean* — When true, count rows without writing.
 - `force` *boolean* — When true, overwrite a destination that is not empty.
 - `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
+
+## DeliveryBacklog
+
+Event delivery backlog across the cluster.
+
+- `pending` *integer (int64)*, **required** — Deliveries waiting for a consumer.
+- `running` *integer (int64)*, **required** — Deliveries a consumer is handling now.
+- `dead_letter` *integer (int64)*, **required** — Deliveries that exhausted their retries.
+- `oldest_pending_age_secs` *integer (int64) or null* — Age of the oldest pending delivery in seconds; `null` when none is pending.
 
 ## DeploymentConflict
 
@@ -551,6 +594,14 @@ Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
 
 Type: one of `now`, `purchased`, `published`
 
+## GuestReservation
+
+CPU and memory one guest may use at most: its grant's ceilings after the
+node's `[plugins.jail]` limits.
+
+- `memory_bytes` *integer (int64)*, **required** — Memory ceiling in bytes.
+- `cpu_millicores` *integer (int64)*, **required** — CPU ceiling in millicores.
+
 ## HealthResponse
 
 Liveness payload for unauthenticated `GET /health`.
@@ -667,6 +718,16 @@ LAME encoder tuning (classic `Lame*` settings).
 - `downsample_mono` *boolean* — `LameDownsampleMono`. Default `false`.
 - `constant_bitrate` *boolean* — `LameConstantBitrate`. Default `false`.
 
+## LeaseView
+
+A cluster lease as the status page shows it.
+
+- `name` *string*, **required** — Lease name.
+- `holder` *string*, **required** — Holder (a node id).
+- `token` *integer (int64)*, **required** — Fencing token; a new holder always gets a larger one.
+- `held` *boolean*, **required** — True while the lease has not expired.
+- `expires_at_ms` *integer (int64)*, **required** — Expiry in Unix milliseconds.
+
 ## LeaveBody
 
 `POST /api/config/join/leave` body.
@@ -722,6 +783,121 @@ Select via `output.naming_profile`. Individual `folder_template` /
 set.
 
 Type: one of `audiobookshelf`, `classic`
+
+## NodeCapabilities
+
+What the caller may do on the nodes it sees.
+
+- `scope` *[`NodeScope`](#nodescope)*, **required** — `all` for the operator, `owned` for a node owner.
+- `can_edit_runtime` *boolean*, **required** — True: every caller may edit the runtime settings of the nodes it sees.
+- `can_edit_labels` *boolean*, **required** — True for the operator, who may replace placement labels.
+- `can_assign_owner` *boolean*, **required** — True for the operator, who may assign or clear a node's owner.
+
+## NodeKind
+
+How a node joined the cluster.
+
+Type: one of `owner`, `host`
+
+## NodeOwnerChanged
+
+`PUT /api/config/nodes/{node_id}/owner` body: the owner after the
+change.
+
+- `node_id` *string*, **required** — Node id.
+- `owner_user_id` *integer (int64) or null* — User id of the owner; `null` when cleared.
+
+## NodeOwnerSummary
+
+The user who owns a node, as the nodes listing shows them.
+
+- `user_id` *integer (int64)*, **required** — The owner's user id.
+- `display_name` *string or null* — Display name, or the login name when none is set; `null` when the user has neither.
+- `role` *[`UserRole`](#userrole)*, **required** — The owner's role.
+
+## NodeRuntimeChanged
+
+`PUT /api/config/nodes/{node_id}/runtime` body: the document after the
+write.
+
+- `node_id` *string*, **required** — Node id, trimmed.
+- `revision` *integer (int64)*, **required** — Compare-and-swap revision of the runtime document after the write.
+- `runtime` *[`NodeRuntimeSettingsV1`](#noderuntimesettingsv1)*, **required** — The runtime document now stored.
+
+## NodeRuntimeSettingsV1
+
+Typed node-scoped runtime document, schema version 1.
+
+Desired state for one node, editable from any node in the cluster: an
+operator label, and the budget the scheduler may commit on this node.
+Budgets are shares of the capacity the node detects at heartbeat
+(CPU cores and memory, the tighter of the machine and its cgroup).
+
+- `label` *string*, **required** — Operator label shown for this node. Empty is allowed.
+- `cpu_budget_percent` *integer (int32)* — Share of detected CPU cores the scheduler may commit to plugin guests on this node (1..=100). At least 1; at most 100.
+- `memory_budget_percent` *integer (int32)* — Share of detected memory the scheduler may commit (1..=100). At least 1; at most 100.
+- `schedulable` *boolean* — False drains the node: the scheduler places nothing new here and moves its replicas elsewhere. Hand-managed deployments still run.
+
+## NodeScope
+
+Which nodes a listing shows the caller.
+
+Type: one of `all`, `owned`
+
+## NodesResponse
+
+`GET /api/config/nodes` body.
+
+- `node_id` *string*, **required** — Id of the node that answered.
+- `nodes` *array of [`NodeView`](#nodeview)*, **required** — The nodes the caller administers.
+- `capabilities` *[`NodeCapabilities`](#nodecapabilities)*, **required** — What the caller may do with them.
+
+## NodeStatus
+
+A node's latest heartbeat with budget, accounting, and availability.
+
+- `node_id` *string*, **required** — Reporting node.
+- `incarnation` *string*, **required** — Daemon process incarnation.
+- `started_at` *string*, **required** — RFC 3339 daemon start.
+- `heartbeat_at` *string*, **required** — RFC 3339 heartbeat time.
+- `heartbeat_ms` *integer (int64)*, **required** — Heartbeat time in Unix milliseconds.
+- `interval_ms` *integer (int64)*, **required** — Promised interval in milliseconds.
+- `cpu_millicores` *integer (int64)*, **required** — Detected CPU capacity in millicores.
+- `memory_bytes` *integer (int64) or null* — Detected memory in bytes.
+- `cpu_budget_millicores` *integer (int64)*, **required** — CPU the scheduler may commit, in millicores.
+- `memory_budget_bytes` *integer (int64) or null* — Memory the scheduler may commit, in bytes.
+- `schedulable` *boolean*, **required** — False when an operator drained the node.
+- `cpu_used_millicores` *integer (int64) or null* — Measured CPU in use, in millicores.
+- `memory_available_bytes` *integer (int64) or null* — Measured memory available, in bytes.
+- `files_dir_free_bytes` *integer (int64) or null* — Free bytes on the files directory's filesystem.
+- `reserved` *[`GuestReservation`](#guestreservation)*, **required** — Ceilings of the guests running here.
+- `running_guests` *integer (int64)*, **required** — Guests running here.
+- `availability_ppm` *integer (int64)*, **required** — Recent online fraction in parts per million.
+- `online_since_ms` *integer (int64)*, **required** — Unix milliseconds the current online stretch began.
+
+## NodeView
+
+One node with its latest heartbeat, budget and owner.
+
+- `node_id` *string*, **required** — Node id.
+- `cluster_id` *string*, **required** — Cluster the node belongs to.
+- `created_at` *string*, **required** — RFC 3339 time the node first enrolled.
+- `heartbeat_at` *string*, **required** — RFC 3339 time of the last heartbeat the node row recorded.
+- `software_version` *string*, **required** — Bookclerk version the node runs.
+- `schema_state` *string*, **required** — Database schema the node last applied.
+- `compatible` *boolean*, **required** — True when the node's own binary accepted the schema it reported; not a comparison with this daemon's schema.
+- `target` *string*, **required** — Bookclerk target the node runs on.
+- `labels` *array of string*, **required** — Operator-set placement labels.
+- `implicit_labels` *array of string*, **required** — Labels the scheduler adds for the node (its id and target).
+- `live` *boolean*, **required** — True while the last heartbeat is recent enough.
+- `runtime` *[`NodeRuntimeSettingsV1`](#noderuntimesettingsv1)*, **required** — The node's runtime document, or the defaults when it never wrote one.
+- `status` *[`NodeStatus`](#nodestatus) or null* — The latest heartbeat; `null` before the first one.
+- `this_node` *boolean*, **required** — True for the node that answered the request.
+- `kind` *[`NodeKind`](#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
+- `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
+- `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
+- `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
+- `owner` *[`NodeOwnerSummary`](#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 
 ## OAuthEnrollRequest
 
@@ -908,6 +1084,13 @@ instead of being silently truncated on the next write.
 - `path_sanitization` *[`PathSanitizationMode`](#pathsanitizationmode)*, **required** — Sanitization profile used when no explicit rules are set.
 - `replacement_characters` *array of [`ReplacementRule`](#replacementrule)*, **required** — Explicit find/replace rules for path segments.
 - `max_filename_length` *integer (int32)*, **required** — Max length per path segment (`0` disables truncation). At least 0.
+
+## OwnerNodeRemoved
+
+`DELETE /api/config/nodes/{node_id}` body.
+
+- `node_id` *string*, **required** — Id of the node that was removed, trimmed.
+- `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
 
 ## PasskeyReauthBody
 
@@ -1621,6 +1804,17 @@ Optional body for `POST /api/library/scan`.
 
 - `account` *string or null* — When set, scan this account even if `scan_enabled` is false.
 - `plugin_instance_id` *string or null* — When set, scan only this deployed plugin instance.
+
+## SchemaStateView
+
+Whether the database carries exactly the schema this binary applies.
+
+The object example is the successful read; a failed read has `state`
+null, `compatible` false and the `error` text.
+
+- `state` *string or null* — The schema state (`uninitialized`, `unreleased@base<n>+<checksum>` or `frozen@<n>+<checksum>`); `null` when it could not be read.
+- `compatible` *boolean*, **required** — True when this binary can run against that schema.
+- `error` *string or null* — Why the state could not be read; omitted when it was.
 
 ## SetPasswordRequest
 

@@ -25,11 +25,28 @@ labels. The scheduler re-plans on the wakeup this publishes.
 
 ### Responses
 
-- `200` — The node's labels after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The node after the change. Body: [`NodeView`](schemas.md#nodeview) (`application/json`)
+  - `node_id` *string*, **required** — Node id.
+  - `cluster_id` *string*, **required** — Cluster the node belongs to.
+  - `created_at` *string*, **required** — RFC 3339 time the node first enrolled.
+  - `heartbeat_at` *string*, **required** — RFC 3339 time of the last heartbeat the node row recorded.
+  - `software_version` *string*, **required** — Bookclerk version the node runs.
+  - `schema_state` *string*, **required** — Database schema the node last applied.
+  - `compatible` *boolean*, **required** — True when the node's own binary accepted the schema it reported; not a comparison with this daemon's schema.
+  - `target` *string*, **required** — Bookclerk target the node runs on.
+  - `labels` *array of string*, **required** — Operator-set placement labels.
+  - `implicit_labels` *array of string*, **required** — Labels the scheduler adds for the node (its id and target).
+  - `live` *boolean*, **required** — True while the last heartbeat is recent enough.
+  - `runtime` *[`NodeRuntimeSettingsV1`](schemas.md#noderuntimesettingsv1)*, **required** — The node's runtime document, or the defaults when it never wrote one.
+  - `status` *[`NodeStatus`](schemas.md#nodestatus) or null* — The latest heartbeat; `null` before the first one.
+  - `this_node` *boolean*, **required** — True for the node that answered the request.
+  - `kind` *[`NodeKind`](schemas.md#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
+  - `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
+  - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
+  - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
+  - `owner` *[`NodeOwnerSummary`](schemas.md#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
+- `400` — The body is invalid, or a label is malformed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -38,14 +55,10 @@ labels. The scheduler re-plans on the wakeup this publishes.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such node. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -99,15 +112,65 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The node's labels after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The node after the change.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-7f3a9c",
+  "cluster_id": "c0ffee12-3456-4789-8abc-def012345678",
+  "created_at": "2026-10-01T08:00:00Z",
+  "heartbeat_at": "2026-10-28T19:07:00Z",
+  "software_version": "0.3.1",
+  "schema_state": "frozen@12+a1b2c3d4",
+  "compatible": true,
+  "target": "linux-x64-gnu",
+  "labels": [
+    "rack=a"
+  ],
+  "implicit_labels": [
+    "node=node-7f3a9c",
+    "target=linux-x64-gnu"
+  ],
+  "live": true,
+  "runtime": {
+    "label": "Living-room server",
+    "cpu_budget_percent": 80,
+    "memory_budget_percent": 75,
+    "schedulable": true
+  },
+  "status": {
+    "node_id": "node-7f3a9c",
+    "incarnation": "01J9Q0Z5C7M8N3P4R6S8T9V0W1",
+    "started_at": "2026-10-28T06:00:00Z",
+    "heartbeat_at": "2026-10-28T19:07:00Z",
+    "heartbeat_ms": 1793214420000,
+    "interval_ms": 15000,
+    "cpu_millicores": 8000,
+    "memory_bytes": 16777216000,
+    "cpu_budget_millicores": 6400,
+    "memory_budget_bytes": 12582912000,
+    "schedulable": true,
+    "cpu_used_millicores": 350,
+    "memory_available_bytes": 9663676416,
+    "files_dir_free_bytes": 214748364800,
+    "reserved": {
+      "memory_bytes": 1073741824,
+      "cpu_millicores": 1600
+    },
+    "running_guests": 2,
+    "availability_ppm": 998500,
+    "online_since_ms": 1793167200000
+  },
+  "this_node": true,
+  "kind": "owner",
+  "owner_user_id": 7,
+  "share_books": true,
+  "include_branches": false,
+  "owner": {
+    "user_id": 7,
+    "display_name": "Sam Reader",
+    "role": "owner"
+  }
 }
 ```
 
@@ -116,22 +179,393 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "One node with its latest heartbeat, budget and owner.",
+  "required": [
+    "node_id",
+    "cluster_id",
+    "created_at",
+    "heartbeat_at",
+    "software_version",
+    "schema_state",
+    "compatible",
+    "target",
+    "labels",
+    "implicit_labels",
+    "live",
+    "runtime",
+    "this_node",
+    "kind"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Node id.",
+      "example": "node-7f3a9c"
+    },
+    "cluster_id": {
+      "type": "string",
+      "description": "Cluster the node belongs to.",
+      "example": "c0ffee12-3456-4789-8abc-def012345678"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "RFC 3339 time the node first enrolled.",
+      "example": "2026-10-01T08:00:00Z"
+    },
+    "heartbeat_at": {
+      "type": "string",
+      "description": "RFC 3339 time of the last heartbeat the node row recorded.",
+      "example": "2026-10-28T19:07:00Z"
+    },
+    "software_version": {
+      "type": "string",
+      "description": "Bookclerk version the node runs.",
+      "example": "0.3.1"
+    },
+    "schema_state": {
+      "type": "string",
+      "description": "Database schema the node last applied.",
+      "example": "frozen@12+a1b2c3d4"
+    },
+    "compatible": {
+      "type": "boolean",
+      "description": "True when the node's own binary accepted the schema it reported;\nnot a comparison with this daemon's schema.",
+      "example": true
+    },
+    "target": {
+      "type": "string",
+      "description": "Bookclerk target the node runs on.",
+      "example": "linux-x64-gnu"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Operator-set placement labels.",
+      "example": [
+        "rack=a"
+      ]
+    },
+    "implicit_labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Labels the scheduler adds for the node (its id and target).",
+      "example": [
+        "node=node-7f3a9c",
+        "target=linux-x64-gnu"
+      ]
+    },
+    "live": {
+      "type": "boolean",
+      "description": "True while the last heartbeat is recent enough.",
+      "example": true
+    },
+    "runtime": {
+      "type": "object",
+      "description": "The node's runtime document, or the defaults when it never wrote\none.",
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Operator label shown for this node. Empty is allowed.",
+          "example": "Living-room server"
+        },
+        "cpu_budget_percent": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Share of detected CPU cores the scheduler may commit to plugin\nguests on this node (1..=100).",
+          "example": 80,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "memory_budget_percent": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Share of detected memory the scheduler may commit (1..=100).",
+          "example": 75,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "schedulable": {
+          "type": "boolean",
+          "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
+          "example": true
+        }
+      }
+    },
+    "status": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The latest heartbeat; `null` before the first one.",
+          "required": [
+            "node_id",
+            "incarnation",
+            "started_at",
+            "heartbeat_at",
+            "heartbeat_ms",
+            "interval_ms",
+            "cpu_millicores",
+            "cpu_budget_millicores",
+            "schedulable",
+            "reserved",
+            "running_guests",
+            "availability_ppm",
+            "online_since_ms"
+          ],
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "description": "Reporting node.",
+              "example": "node-7f3a9c"
+            },
+            "incarnation": {
+              "type": "string",
+              "description": "Daemon process incarnation.",
+              "example": "01J9Q0Z5C7M8N3P4R6S8T9V0W1"
+            },
+            "started_at": {
+              "type": "string",
+              "description": "RFC 3339 daemon start.",
+              "example": "2026-10-28T06:00:00Z"
+            },
+            "heartbeat_at": {
+              "type": "string",
+              "description": "RFC 3339 heartbeat time.",
+              "example": "2026-10-28T19:07:00Z"
+            },
+            "heartbeat_ms": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Heartbeat time in Unix milliseconds.",
+              "example": 1793214420000
+            },
+            "interval_ms": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Promised interval in milliseconds.",
+              "example": 15000
+            },
+            "cpu_millicores": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Detected CPU capacity in millicores.",
+              "example": 8000
+            },
+            "memory_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Detected memory in bytes.",
+              "example": 16777216000
+            },
+            "cpu_budget_millicores": {
+              "type": "integer",
+              "format": "int64",
+              "description": "CPU the scheduler may commit, in millicores.",
+              "example": 6400
+            },
+            "memory_budget_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Memory the scheduler may commit, in bytes.",
+              "example": 12582912000
+            },
+            "schedulable": {
+              "type": "boolean",
+              "description": "False when an operator drained the node.",
+              "example": true
+            },
+            "cpu_used_millicores": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Measured CPU in use, in millicores.",
+              "example": 350
+            },
+            "memory_available_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Measured memory available, in bytes.",
+              "example": 9663676416
+            },
+            "files_dir_free_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Free bytes on the files directory's filesystem.",
+              "example": 214748364800
+            },
+            "reserved": {
+              "type": "object",
+              "description": "Ceilings of the guests running here.",
+              "required": [
+                "memory_bytes",
+                "cpu_millicores"
+              ],
+              "properties": {
+                "memory_bytes": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Memory ceiling in bytes.",
+                  "example": 1073741824
+                },
+                "cpu_millicores": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "CPU ceiling in millicores.",
+                  "example": 1600
+                }
+              }
+            },
+            "running_guests": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Guests running here.",
+              "example": 2
+            },
+            "availability_ppm": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Recent online fraction in parts per million.",
+              "example": 998500
+            },
+            "online_since_ms": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix milliseconds the current online stretch began.",
+              "example": 1793167200000
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "this_node": {
+      "type": "boolean",
+      "description": "True for the node that answered the request.",
+      "example": true
+    },
+    "kind": {
+      "type": "string",
+      "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+      "enum": [
+        "owner",
+        "host"
+      ],
+      "example": "owner"
+    },
+    "owner_user_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "User id of the node's owner; `null` when unassigned.",
+      "example": 7
+    },
+    "share_books": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+      "example": true
+    },
+    "include_branches": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+      "example": false
+    },
+    "owner": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The owner, when the node has one and the user still exists.",
+          "required": [
+            "user_id",
+            "role"
+          ],
+          "properties": {
+            "user_id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "The owner's user id.",
+              "example": 7
+            },
+            "display_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Display name, or the login name when none is set; `null` when the\nuser has neither.",
+              "example": "Sam Reader"
+            },
+            "role": {
+              "type": "string",
+              "description": "The owner's role.",
+              "enum": [
+                "owner",
+                "administrator",
+                "host",
+                "member"
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid, or a label is malformed.
+
+```json
+{
+  "error": "invalid configuration: label `Region=EU` must be `name` or `name=value` using lowercase letters, digits, and `._/-` (at most 63 bytes)"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -209,13 +643,11 @@ Schema:
 }
 ```
 
-Status `404`: No such node, or not one the caller administers.
+Status `404`: No such node.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
 }
 ```
 
@@ -224,22 +656,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -249,9 +674,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -260,22 +683,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -313,11 +729,11 @@ authority.
 
 ### Responses
 
-- `200` — The node's owner after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The node's owner after the change. Body: [`NodeOwnerChanged`](schemas.md#nodeownerchanged) (`application/json`)
+  - `node_id` *string*, **required** — Node id.
+  - `owner_user_id` *integer (int64) or null* — User id of the owner; `null` when cleared.
+- `400` — The user is disabled and cannot own a node. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -326,14 +742,10 @@ authority.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such node or user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -387,15 +799,12 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The node's owner after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The node's owner after the change.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-7f3a9c",
+  "owner_user_id": 7
 }
 ```
 
@@ -404,22 +813,51 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/nodes/{node_id}/owner` body: the owner after the\nchange.",
+  "required": [
+    "node_id"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Node id.",
+      "example": "node-7f3a9c"
+    },
+    "owner_user_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "User id of the owner; `null` when cleared.",
+      "example": 7
+    }
+  }
+}
+```
+
+Status `400`: The user is disabled and cannot own a node.
+
+```json
+{
+  "error": "user 42 is disabled and cannot own a node"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -497,13 +935,11 @@ Schema:
 }
 ```
 
-Status `404`: No such node, or not one the caller administers.
+Status `404`: No such node or user.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "book not found: user 42"
 }
 ```
 
@@ -512,22 +948,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -537,9 +966,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -548,22 +975,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -3844,11 +4264,10 @@ nodes for a node owner.
 
 ### Responses
 
-- `200` — The nodes the caller administers. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The nodes the caller administers. Body: [`NodesResponse`](schemas.md#nodesresponse) (`application/json`)
+  - `node_id` *string*, **required** — Id of the node that answered.
+  - `nodes` *array of [`NodeView`](schemas.md#nodeview)*, **required** — The nodes the caller administers.
+  - `capabilities` *[`NodeCapabilities`](schemas.md#nodecapabilities)*, **required** — What the caller may do with them.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3857,10 +4276,8 @@ nodes for a node owner.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3904,15 +4321,76 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The nodes the caller administers. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The nodes the caller administers.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-7f3a9c",
+  "nodes": [
+    {
+      "node_id": "node-7f3a9c",
+      "cluster_id": "c0ffee12-3456-4789-8abc-def012345678",
+      "created_at": "2026-10-01T08:00:00Z",
+      "heartbeat_at": "2026-10-28T19:07:00Z",
+      "software_version": "0.3.1",
+      "schema_state": "frozen@12+a1b2c3d4",
+      "compatible": true,
+      "target": "linux-x64-gnu",
+      "labels": [
+        "rack=a"
+      ],
+      "implicit_labels": [
+        "node=node-7f3a9c",
+        "target=linux-x64-gnu"
+      ],
+      "live": true,
+      "runtime": {
+        "label": "Living-room server",
+        "cpu_budget_percent": 80,
+        "memory_budget_percent": 75,
+        "schedulable": true
+      },
+      "status": {
+        "node_id": "node-7f3a9c",
+        "incarnation": "01J9Q0Z5C7M8N3P4R6S8T9V0W1",
+        "started_at": "2026-10-28T06:00:00Z",
+        "heartbeat_at": "2026-10-28T19:07:00Z",
+        "heartbeat_ms": 1793214420000,
+        "interval_ms": 15000,
+        "cpu_millicores": 8000,
+        "memory_bytes": 16777216000,
+        "cpu_budget_millicores": 6400,
+        "memory_budget_bytes": 12582912000,
+        "schedulable": true,
+        "cpu_used_millicores": 350,
+        "memory_available_bytes": 9663676416,
+        "files_dir_free_bytes": 214748364800,
+        "reserved": {
+          "memory_bytes": 1073741824,
+          "cpu_millicores": 1600
+        },
+        "running_guests": 2,
+        "availability_ppm": 998500,
+        "online_since_ms": 1793167200000
+      },
+      "this_node": true,
+      "kind": "owner",
+      "owner_user_id": 7,
+      "share_books": true,
+      "include_branches": false,
+      "owner": {
+        "user_id": 7,
+        "display_name": "Sam Reader",
+        "role": "owner"
+      }
+    }
+  ],
+  "capabilities": {
+    "scope": "all",
+    "can_edit_runtime": true,
+    "can_edit_labels": true,
+    "can_assign_owner": true
+  }
 }
 ```
 
@@ -3921,22 +4399,421 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`GET /api/config/nodes` body.",
   "required": [
-    "error"
+    "node_id",
+    "nodes",
+    "capabilities"
   ],
   "properties": {
-    "error": {
+    "node_id": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Id of the node that answered.",
+      "example": "node-7f3a9c"
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One node with its latest heartbeat, budget and owner.",
+        "required": [
+          "node_id",
+          "cluster_id",
+          "created_at",
+          "heartbeat_at",
+          "software_version",
+          "schema_state",
+          "compatible",
+          "target",
+          "labels",
+          "implicit_labels",
+          "live",
+          "runtime",
+          "this_node",
+          "kind"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "description": "Node id.",
+            "example": "node-7f3a9c"
+          },
+          "cluster_id": {
+            "type": "string",
+            "description": "Cluster the node belongs to.",
+            "example": "c0ffee12-3456-4789-8abc-def012345678"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "RFC 3339 time the node first enrolled.",
+            "example": "2026-10-01T08:00:00Z"
+          },
+          "heartbeat_at": {
+            "type": "string",
+            "description": "RFC 3339 time of the last heartbeat the node row recorded.",
+            "example": "2026-10-28T19:07:00Z"
+          },
+          "software_version": {
+            "type": "string",
+            "description": "Bookclerk version the node runs.",
+            "example": "0.3.1"
+          },
+          "schema_state": {
+            "type": "string",
+            "description": "Database schema the node last applied.",
+            "example": "frozen@12+a1b2c3d4"
+          },
+          "compatible": {
+            "type": "boolean",
+            "description": "True when the node's own binary accepted the schema it reported;\nnot a comparison with this daemon's schema.",
+            "example": true
+          },
+          "target": {
+            "type": "string",
+            "description": "Bookclerk target the node runs on.",
+            "example": "linux-x64-gnu"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Operator-set placement labels.",
+            "example": [
+              "rack=a"
+            ]
+          },
+          "implicit_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels the scheduler adds for the node (its id and target).",
+            "example": [
+              "node=node-7f3a9c",
+              "target=linux-x64-gnu"
+            ]
+          },
+          "live": {
+            "type": "boolean",
+            "description": "True while the last heartbeat is recent enough.",
+            "example": true
+          },
+          "runtime": {
+            "type": "object",
+            "description": "The node's runtime document, or the defaults when it never wrote\none.",
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Operator label shown for this node. Empty is allowed.",
+                "example": "Living-room server"
+              },
+              "cpu_budget_percent": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Share of detected CPU cores the scheduler may commit to plugin\nguests on this node (1..=100).",
+                "example": 80,
+                "maximum": 100,
+                "minimum": 1
+              },
+              "memory_budget_percent": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Share of detected memory the scheduler may commit (1..=100).",
+                "example": 75,
+                "maximum": 100,
+                "minimum": 1
+              },
+              "schedulable": {
+                "type": "boolean",
+                "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
+                "example": true
+              }
+            }
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The latest heartbeat; `null` before the first one.",
+                "required": [
+                  "node_id",
+                  "incarnation",
+                  "started_at",
+                  "heartbeat_at",
+                  "heartbeat_ms",
+                  "interval_ms",
+                  "cpu_millicores",
+                  "cpu_budget_millicores",
+                  "schedulable",
+                  "reserved",
+                  "running_guests",
+                  "availability_ppm",
+                  "online_since_ms"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "description": "Reporting node.",
+                    "example": "node-7f3a9c"
+                  },
+                  "incarnation": {
+                    "type": "string",
+                    "description": "Daemon process incarnation.",
+                    "example": "01J9Q0Z5C7M8N3P4R6S8T9V0W1"
+                  },
+                  "started_at": {
+                    "type": "string",
+                    "description": "RFC 3339 daemon start.",
+                    "example": "2026-10-28T06:00:00Z"
+                  },
+                  "heartbeat_at": {
+                    "type": "string",
+                    "description": "RFC 3339 heartbeat time.",
+                    "example": "2026-10-28T19:07:00Z"
+                  },
+                  "heartbeat_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Heartbeat time in Unix milliseconds.",
+                    "example": 1793214420000
+                  },
+                  "interval_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Promised interval in milliseconds.",
+                    "example": 15000
+                  },
+                  "cpu_millicores": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Detected CPU capacity in millicores.",
+                    "example": 8000
+                  },
+                  "memory_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Detected memory in bytes.",
+                    "example": 16777216000
+                  },
+                  "cpu_budget_millicores": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "CPU the scheduler may commit, in millicores.",
+                    "example": 6400
+                  },
+                  "memory_budget_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Memory the scheduler may commit, in bytes.",
+                    "example": 12582912000
+                  },
+                  "schedulable": {
+                    "type": "boolean",
+                    "description": "False when an operator drained the node.",
+                    "example": true
+                  },
+                  "cpu_used_millicores": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Measured CPU in use, in millicores.",
+                    "example": 350
+                  },
+                  "memory_available_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Measured memory available, in bytes.",
+                    "example": 9663676416
+                  },
+                  "files_dir_free_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Free bytes on the files directory's filesystem.",
+                    "example": 214748364800
+                  },
+                  "reserved": {
+                    "type": "object",
+                    "description": "Ceilings of the guests running here.",
+                    "required": [
+                      "memory_bytes",
+                      "cpu_millicores"
+                    ],
+                    "properties": {
+                      "memory_bytes": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Memory ceiling in bytes.",
+                        "example": 1073741824
+                      },
+                      "cpu_millicores": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "CPU ceiling in millicores.",
+                        "example": 1600
+                      }
+                    }
+                  },
+                  "running_guests": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Guests running here.",
+                    "example": 2
+                  },
+                  "availability_ppm": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Recent online fraction in parts per million.",
+                    "example": 998500
+                  },
+                  "online_since_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Unix milliseconds the current online stretch began.",
+                    "example": 1793167200000
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "this_node": {
+            "type": "boolean",
+            "description": "True for the node that answered the request.",
+            "example": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+            "enum": [
+              "owner",
+              "host"
+            ],
+            "example": "owner"
+          },
+          "owner_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "User id of the node's owner; `null` when unassigned.",
+            "example": 7
+          },
+          "share_books": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+            "example": true
+          },
+          "include_branches": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+            "example": false
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The owner, when the node has one and the user still exists.",
+                "required": [
+                  "user_id",
+                  "role"
+                ],
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "The owner's user id.",
+                    "example": 7
+                  },
+                  "display_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Display name, or the login name when none is set; `null` when the\nuser has neither.",
+                    "example": "Sam Reader"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "The owner's role.",
+                    "enum": [
+                      "owner",
+                      "administrator",
+                      "host",
+                      "member"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "The nodes the caller administers."
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "capabilities": {
+      "type": "object",
+      "description": "What the caller may do with them.",
+      "required": [
+        "scope",
+        "can_edit_runtime",
+        "can_edit_labels",
+        "can_assign_owner"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "`all` for the operator, `owned` for a node owner.",
+          "enum": [
+            "all",
+            "owned"
+          ]
+        },
+        "can_edit_runtime": {
+          "type": "boolean",
+          "description": "True: every caller may edit the runtime settings of the nodes it\nsees.",
+          "example": true
+        },
+        "can_edit_labels": {
+          "type": "boolean",
+          "description": "True for the operator, who may replace placement labels.",
+          "example": true
+        },
+        "can_assign_owner": {
+          "type": "boolean",
+          "description": "True for the operator, who may assign or clear a node's owner.",
+          "example": true
+        }
+      }
     }
   }
 }
@@ -4014,13 +4891,11 @@ Schema:
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4029,22 +4904,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4078,11 +4946,11 @@ refused (a branch is revoked instead).
 
 ### Responses
 
-- `200` — The owner node was removed. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The owner node was removed. Body: [`OwnerNodeRemoved`](schemas.md#ownernoderemoved) (`application/json`)
+  - `node_id` *string*, **required** — Id of the node that was removed, trimmed.
+  - `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
+- `400` — The node is this node, or a branch (revoke it instead). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -4091,14 +4959,12 @@ refused (a branch is revoked instead).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such node, or not one the caller administers. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The node is still running. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4145,15 +5011,12 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The owner node was removed. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The owner node was removed.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-2b8d4e",
+  "removed": true
 }
 ```
 
@@ -4162,22 +5025,48 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`DELETE /api/config/nodes/{node_id}` body.",
+  "required": [
+    "node_id",
+    "removed"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Id of the node that was removed, trimmed.",
+      "example": "node-2b8d4e"
+    },
+    "removed": {
+      "type": "boolean",
+      "description": "Always true: a refused removal is an error status instead.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The node is this node, or a branch (revoke it instead).
+
+```json
+{
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e is a branch: revoke it instead"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4259,9 +5148,7 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
 }
 ```
 
@@ -4270,22 +5157,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The node is still running.
+
+```json
+{
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e is running; stop Bookclerk there first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4295,9 +5202,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4306,22 +5211,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4351,11 +5249,9 @@ listing already shows them. Branches are not listed.
 
 ### Responses
 
-- `200` — This node and its clerks. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — This node and its clerks. Body: [`ClerksResponse`](schemas.md#clerksresponse) (`application/json`)
+  - `node_id` *string*, **required** — Id of the node that answered.
+  - `nodes` *array of [`NodeView`](schemas.md#nodeview)*, **required** — This node and the clerks the caller may see.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -4364,10 +5260,8 @@ listing already shows them. Branches are not listed.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4411,15 +5305,70 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: This node and its clerks. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: This node and its clerks.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-7f3a9c",
+  "nodes": [
+    {
+      "node_id": "node-7f3a9c",
+      "cluster_id": "c0ffee12-3456-4789-8abc-def012345678",
+      "created_at": "2026-10-01T08:00:00Z",
+      "heartbeat_at": "2026-10-28T19:07:00Z",
+      "software_version": "0.3.1",
+      "schema_state": "frozen@12+a1b2c3d4",
+      "compatible": true,
+      "target": "linux-x64-gnu",
+      "labels": [
+        "rack=a"
+      ],
+      "implicit_labels": [
+        "node=node-7f3a9c",
+        "target=linux-x64-gnu"
+      ],
+      "live": true,
+      "runtime": {
+        "label": "Living-room server",
+        "cpu_budget_percent": 80,
+        "memory_budget_percent": 75,
+        "schedulable": true
+      },
+      "status": {
+        "node_id": "node-7f3a9c",
+        "incarnation": "01J9Q0Z5C7M8N3P4R6S8T9V0W1",
+        "started_at": "2026-10-28T06:00:00Z",
+        "heartbeat_at": "2026-10-28T19:07:00Z",
+        "heartbeat_ms": 1793214420000,
+        "interval_ms": 15000,
+        "cpu_millicores": 8000,
+        "memory_bytes": 16777216000,
+        "cpu_budget_millicores": 6400,
+        "memory_budget_bytes": 12582912000,
+        "schedulable": true,
+        "cpu_used_millicores": 350,
+        "memory_available_bytes": 9663676416,
+        "files_dir_free_bytes": 214748364800,
+        "reserved": {
+          "memory_bytes": 1073741824,
+          "cpu_millicores": 1600
+        },
+        "running_guests": 2,
+        "availability_ppm": 998500,
+        "online_since_ms": 1793167200000
+      },
+      "this_node": true,
+      "kind": "owner",
+      "owner_user_id": 7,
+      "share_books": true,
+      "include_branches": false,
+      "owner": {
+        "user_id": 7,
+        "display_name": "Sam Reader",
+        "role": "owner"
+      }
+    }
+  ]
 }
 ```
 
@@ -4428,22 +5377,385 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`GET /api/config/clerks` body.",
   "required": [
-    "error"
+    "node_id",
+    "nodes"
   ],
   "properties": {
-    "error": {
+    "node_id": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Id of the node that answered.",
+      "example": "node-7f3a9c"
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One node with its latest heartbeat, budget and owner.",
+        "required": [
+          "node_id",
+          "cluster_id",
+          "created_at",
+          "heartbeat_at",
+          "software_version",
+          "schema_state",
+          "compatible",
+          "target",
+          "labels",
+          "implicit_labels",
+          "live",
+          "runtime",
+          "this_node",
+          "kind"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "description": "Node id.",
+            "example": "node-7f3a9c"
+          },
+          "cluster_id": {
+            "type": "string",
+            "description": "Cluster the node belongs to.",
+            "example": "c0ffee12-3456-4789-8abc-def012345678"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "RFC 3339 time the node first enrolled.",
+            "example": "2026-10-01T08:00:00Z"
+          },
+          "heartbeat_at": {
+            "type": "string",
+            "description": "RFC 3339 time of the last heartbeat the node row recorded.",
+            "example": "2026-10-28T19:07:00Z"
+          },
+          "software_version": {
+            "type": "string",
+            "description": "Bookclerk version the node runs.",
+            "example": "0.3.1"
+          },
+          "schema_state": {
+            "type": "string",
+            "description": "Database schema the node last applied.",
+            "example": "frozen@12+a1b2c3d4"
+          },
+          "compatible": {
+            "type": "boolean",
+            "description": "True when the node's own binary accepted the schema it reported;\nnot a comparison with this daemon's schema.",
+            "example": true
+          },
+          "target": {
+            "type": "string",
+            "description": "Bookclerk target the node runs on.",
+            "example": "linux-x64-gnu"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Operator-set placement labels.",
+            "example": [
+              "rack=a"
+            ]
+          },
+          "implicit_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels the scheduler adds for the node (its id and target).",
+            "example": [
+              "node=node-7f3a9c",
+              "target=linux-x64-gnu"
+            ]
+          },
+          "live": {
+            "type": "boolean",
+            "description": "True while the last heartbeat is recent enough.",
+            "example": true
+          },
+          "runtime": {
+            "type": "object",
+            "description": "The node's runtime document, or the defaults when it never wrote\none.",
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Operator label shown for this node. Empty is allowed.",
+                "example": "Living-room server"
+              },
+              "cpu_budget_percent": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Share of detected CPU cores the scheduler may commit to plugin\nguests on this node (1..=100).",
+                "example": 80,
+                "maximum": 100,
+                "minimum": 1
+              },
+              "memory_budget_percent": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Share of detected memory the scheduler may commit (1..=100).",
+                "example": 75,
+                "maximum": 100,
+                "minimum": 1
+              },
+              "schedulable": {
+                "type": "boolean",
+                "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
+                "example": true
+              }
+            }
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The latest heartbeat; `null` before the first one.",
+                "required": [
+                  "node_id",
+                  "incarnation",
+                  "started_at",
+                  "heartbeat_at",
+                  "heartbeat_ms",
+                  "interval_ms",
+                  "cpu_millicores",
+                  "cpu_budget_millicores",
+                  "schedulable",
+                  "reserved",
+                  "running_guests",
+                  "availability_ppm",
+                  "online_since_ms"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "description": "Reporting node.",
+                    "example": "node-7f3a9c"
+                  },
+                  "incarnation": {
+                    "type": "string",
+                    "description": "Daemon process incarnation.",
+                    "example": "01J9Q0Z5C7M8N3P4R6S8T9V0W1"
+                  },
+                  "started_at": {
+                    "type": "string",
+                    "description": "RFC 3339 daemon start.",
+                    "example": "2026-10-28T06:00:00Z"
+                  },
+                  "heartbeat_at": {
+                    "type": "string",
+                    "description": "RFC 3339 heartbeat time.",
+                    "example": "2026-10-28T19:07:00Z"
+                  },
+                  "heartbeat_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Heartbeat time in Unix milliseconds.",
+                    "example": 1793214420000
+                  },
+                  "interval_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Promised interval in milliseconds.",
+                    "example": 15000
+                  },
+                  "cpu_millicores": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Detected CPU capacity in millicores.",
+                    "example": 8000
+                  },
+                  "memory_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Detected memory in bytes.",
+                    "example": 16777216000
+                  },
+                  "cpu_budget_millicores": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "CPU the scheduler may commit, in millicores.",
+                    "example": 6400
+                  },
+                  "memory_budget_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Memory the scheduler may commit, in bytes.",
+                    "example": 12582912000
+                  },
+                  "schedulable": {
+                    "type": "boolean",
+                    "description": "False when an operator drained the node.",
+                    "example": true
+                  },
+                  "cpu_used_millicores": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Measured CPU in use, in millicores.",
+                    "example": 350
+                  },
+                  "memory_available_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Measured memory available, in bytes.",
+                    "example": 9663676416
+                  },
+                  "files_dir_free_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Free bytes on the files directory's filesystem.",
+                    "example": 214748364800
+                  },
+                  "reserved": {
+                    "type": "object",
+                    "description": "Ceilings of the guests running here.",
+                    "required": [
+                      "memory_bytes",
+                      "cpu_millicores"
+                    ],
+                    "properties": {
+                      "memory_bytes": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Memory ceiling in bytes.",
+                        "example": 1073741824
+                      },
+                      "cpu_millicores": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "CPU ceiling in millicores.",
+                        "example": 1600
+                      }
+                    }
+                  },
+                  "running_guests": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Guests running here.",
+                    "example": 2
+                  },
+                  "availability_ppm": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Recent online fraction in parts per million.",
+                    "example": 998500
+                  },
+                  "online_since_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Unix milliseconds the current online stretch began.",
+                    "example": 1793167200000
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "this_node": {
+            "type": "boolean",
+            "description": "True for the node that answered the request.",
+            "example": true
+          },
+          "kind": {
+            "type": "string",
+            "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+            "enum": [
+              "owner",
+              "host"
+            ],
+            "example": "owner"
+          },
+          "owner_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "User id of the node's owner; `null` when unassigned.",
+            "example": 7
+          },
+          "share_books": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+            "example": true
+          },
+          "include_branches": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+            "example": false
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "type": "object",
+                "description": "The owner, when the node has one and the user still exists.",
+                "required": [
+                  "user_id",
+                  "role"
+                ],
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "The owner's user id.",
+                    "example": 7
+                  },
+                  "display_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Display name, or the login name when none is set; `null` when the\nuser has neither.",
+                    "example": "Sam Reader"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "The owner's role.",
+                    "enum": [
+                      "owner",
+                      "administrator",
+                      "host",
+                      "member"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "description": "This node and the clerks the caller may see."
     }
   }
 }
@@ -4521,13 +5833,11 @@ Schema:
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4536,22 +5846,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4592,27 +5895,24 @@ edit only the nodes it owns.
 
 ### Responses
 
-- `200` — The node's runtime settings after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The node's runtime settings after the change. Body: [`NodeRuntimeChanged`](schemas.md#noderuntimechanged) (`application/json`)
+  - `node_id` *string*, **required** — Node id, trimmed.
+  - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the runtime document after the write.
+  - `runtime` *[`NodeRuntimeSettingsV1`](schemas.md#noderuntimesettingsv1)*, **required** — The runtime document now stored.
+- `400` — The body is invalid, or a budget is outside 1..=100. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — No such node, or not one the caller administers. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — A node owner named a node they do not own (an unknown node included). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — The operator named a node that does not exist. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — Concurrent edits kept changing the document; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4666,15 +5966,18 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The node's runtime settings after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The node's runtime settings after the change.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "node_id": "node-7f3a9c",
+  "revision": 4,
+  "runtime": {
+    "label": "Living-room server",
+    "cpu_budget_percent": 80,
+    "memory_budget_percent": 75,
+    "schedulable": true
+  }
 }
 ```
 
@@ -4683,22 +5986,85 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "`PUT /api/config/nodes/{node_id}/runtime` body: the document after the\nwrite.",
+  "required": [
+    "node_id",
+    "revision",
+    "runtime"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "Node id, trimmed.",
+      "example": "node-7f3a9c"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Compare-and-swap revision of the runtime document after the write.",
+      "example": 4
+    },
+    "runtime": {
+      "type": "object",
+      "description": "The runtime document now stored.",
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Operator label shown for this node. Empty is allowed.",
+          "example": "Living-room server"
+        },
+        "cpu_budget_percent": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Share of detected CPU cores the scheduler may commit to plugin\nguests on this node (1..=100).",
+          "example": 80,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "memory_budget_percent": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Share of detected memory the scheduler may commit (1..=100).",
+          "example": 75,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "schedulable": {
+          "type": "boolean",
+          "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
+          "example": true
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: The body is invalid, or a budget is outside 1..=100.
+
+```json
+{
+  "error": "invalid configuration: cpu_budget_percent must be between 1 and 100"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4740,13 +6106,11 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A node owner named a node they do not own (an unknown node included). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e is not owned by this user"
 }
 ```
 
@@ -4755,34 +6119,25 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
 ```
 
-Status `404`: No such node, or not one the caller administers.
+Status `404`: The operator named a node that does not exist.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
 }
 ```
 
@@ -4791,22 +6146,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: Concurrent edits kept changing the document; retry.
+
+```json
+{
+  "error": "node.runtime for 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4816,9 +6191,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4827,22 +6200,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
