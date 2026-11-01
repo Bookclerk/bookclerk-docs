@@ -810,6 +810,20 @@ A cluster lease as the status page shows it.
 
 - `cluster_id` *string*, **required** — The library (owner cluster id) to leave.
 
+## LinkedIdentitiesResponse
+
+JSON body for `GET /api/auth/oidc/identities`.
+
+- `identities` *array of [`LinkedIdentity`](#linkedidentity)*, **required** — Every sign-in identity linked to the caller's user, the local one included.
+
+## LinkedIdentity
+
+One sign-in identity linked to a user.
+
+- `provider` *string*, **required** — Identity-broker id (`local`, `oidc:google`, …).
+- `external_user_id` *string*, **required** — Provider-stable subject.
+- `label` *string or null* — Operator-facing label, when the provider supplied one.
+
 ## LoginBegin
 
 Login-name or email used to start a discoverable-less passkey login.
@@ -1012,6 +1026,27 @@ padding.
 - `software_version` *string* — The joining install's Bookclerk version.
 - `connection` *[`ConnectionType`](#connectiontype)* — The connection type the code was approved for. It must match the one bound to the code at consent; left out for a branch.
 
+## OidcClientsResponse
+
+JSON body for `GET /api/auth/oidc/clients`.
+
+- `clients` *array of [`OidcClientView`](#oidcclientview)*, **required** — Every registered client, without secrets.
+
+## OidcClientView
+
+A Bookclerk-as-IdP client as operators see it; the secret appears only when freshly minted.
+
+- `client_id` *string*, **required** — Public client id used at the authorize and token endpoints.
+- `name` *string or null* — Operator-facing display name.
+- `redirect_uris` *array of string*, **required** — Allowed OAuth redirect URIs.
+- `confidential` *boolean*, **required** — Whether the client authenticates with a secret (otherwise it is a public PKCE client).
+- `issue_refresh_token` *boolean*, **required** — Whether token responses include a refresh token.
+- `allowed_scopes` *array of string*, **required** — Scopes the client may be granted.
+- `has_secret` *boolean*, **required** — Same as `confidential`: a secret hash is stored.
+- `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
+- `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
+- `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
+
 ## OidcClientWrite
 
 Body for creating or updating a Bookclerk-as-IdP client.
@@ -1074,6 +1109,13 @@ One IdP in a PUT: omit secret fields to keep, empty string to clear.
 - `apple_team_id` *string or null* — Apple Developer team id for client-secret JWT minting.
 - `apple_key_id` *string or null* — Apple Sign In key id paired with the sealed private key.
 - `apple_private_key` *string or null* — Omit to keep; empty string to clear; non-empty to store.
+
+## OidcProvidersResponse
+
+JSON body for `GET /api/auth/oidc/providers`.
+
+- `enabled` *boolean*, **required** — Whether the OIDC broker is switched on at all.
+- `providers` *array of [`SigninOidcProvider`](#signinoidcprovider)*, **required** — Providers enabled in configuration, in configuration order (empty while the broker is off).
 
 ## OidcProviderView
 
@@ -2493,6 +2535,16 @@ An external sign-in identity linked to a user.
 - `provider` *string*, **required** — Identity-broker id (`oidc:google`, `oidc:github`, …).
 - `external_user_id` *string*, **required** — The user's id at the provider.
 - `label` *string or null* — Operator-facing label for the identity, when one was set.
+
+## UserinfoResponse
+
+Standard OIDC claims for `GET /oidc/userinfo`, limited to the token's scopes.
+
+- `sub` *string*, **required** — Subject: the Bookclerk `users.id` as a string.
+- `name` *string or null* — Display name (`profile` scope), when the user has one.
+- `preferred_username` *string or null* — Login name (`profile` scope), when the user has one.
+- `email` *string or null* — Email (`email` scope), when the user has one.
+- `email_verified` *boolean or null* — Always `true` when `email` is present: Bookclerk trusts the address the Owner recorded.
 
 ## UserIntegrationHint
 

@@ -320,7 +320,7 @@ Bookclerk as an OpenID Connect provider for other apps.
 | [`POST /oidc/revoke`](oidc-provider.md#post-oidcrevoke) | Best-effort refresh-token revoke; always returns 200 per RFC 7009. |
 | [`GET /api/auth/oidc/clients`](oidc-provider.md#get-apiauthoidcclients) | Owner/operator list of Bookclerk-as-IdP clients (secrets never included). |
 | [`POST /api/auth/oidc/clients`](oidc-provider.md#post-apiauthoidcclients) | Create a client; confidential clients return the generated secret once. |
-| [`PUT /api/auth/oidc/clients/{client_id}`](oidc-provider.md#put-apiauthoidcclientsclient_id) | Update redirects, name, scopes, and public/confidential mode (no secret echo unless rotating). |
+| [`PUT /api/auth/oidc/clients/{client_id}`](oidc-provider.md#put-apiauthoidcclientsclient_id) | Update redirects, name, scopes, and public/confidential mode; switching a public client to confidential mints its secret, shown once. |
 | [`DELETE /api/auth/oidc/clients/{client_id}`](oidc-provider.md#delete-apiauthoidcclientsclient_id) | Delete a registered client. |
 | [`POST /api/auth/oidc/clients/{client_id}/rotate-secret`](oidc-provider.md#post-apiauthoidcclientsclient_idrotate-secret) | Mint a new secret for a confidential client; plaintext is returned once. |
 

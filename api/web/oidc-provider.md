@@ -703,7 +703,12 @@ Returns `sub` / `name` / `preferred_username` for a valid access JWT.
 
 ### Responses
 
-- `200` — Claims for the token's user. Body: any JSON (`application/json`)
+- `200` — Claims for the token's user. Body: [`UserinfoResponse`](schemas.md#userinforesponse) (`application/json`)
+  - `sub` *string*, **required** — Subject: the Bookclerk `users.id` as a string.
+  - `name` *string or null* — Display name (`profile` scope), when the user has one.
+  - `preferred_username` *string or null* — Login name (`profile` scope), when the user has one.
+  - `email` *string or null* — Email (`email` scope), when the user has one.
+  - `email_verified` *boolean or null* — Always `true` when `email` is present: Bookclerk trusts the address the Owner recorded.
 - `401` — The access token is missing or invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -758,7 +763,68 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Claims for the token's user. The body is JSON the schemas do not describe yet.
+Status `200`: Claims for the token's user.
+
+```json
+{
+  "sub": "7",
+  "name": "Sam",
+  "preferred_username": "sam",
+  "email": "sam@example.com",
+  "email_verified": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Standard OIDC claims for `GET /oidc/userinfo`, limited to the token's scopes.",
+  "required": [
+    "sub"
+  ],
+  "properties": {
+    "sub": {
+      "type": "string",
+      "description": "Subject: the Bookclerk `users.id` as a string.",
+      "example": "7"
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Display name (`profile` scope), when the user has one.",
+      "example": "Sam"
+    },
+    "preferred_username": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Login name (`profile` scope), when the user has one.",
+      "example": "sam"
+    },
+    "email": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Email (`email` scope), when the user has one.",
+      "example": "sam@example.com"
+    },
+    "email_verified": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Always `true` when `email` is present: Bookclerk trusts the address the Owner recorded.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `401`: The access token is missing or invalid.
 
@@ -940,23 +1006,20 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
 
 ### Responses
 
-- `200` — Registered clients (no secrets). Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Registered clients (no secrets). Body: [`OidcClientsResponse`](schemas.md#oidcclientsresponse) (`application/json`)
+  - `clients` *array of [`OidcClientView`](schemas.md#oidcclientview)*, **required** — Every registered client, without secrets.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The clients could not be read (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1000,15 +1063,29 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Registered clients (no secrets). The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: Registered clients (no secrets).
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "clients": [
+    {
+      "allowed_scopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
+      "client_id": "audiobookshelf",
+      "confidential": true,
+      "enabled": true,
+      "has_secret": true,
+      "issue_refresh_token": true,
+      "name": "Audiobookshelf",
+      "plugin_id": "audiobookshelf",
+      "redirect_uris": [
+        "https://abs.example.com/auth/openid/callback"
+      ]
+    }
+  ]
 }
 ```
 
@@ -1017,28 +1094,106 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body for `GET /api/auth/oidc/clients`.",
   "required": [
-    "error"
+    "clients"
   ],
   "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "clients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A Bookclerk-as-IdP client as operators see it; the secret appears only when freshly minted.",
+        "required": [
+          "client_id",
+          "redirect_uris",
+          "confidential",
+          "issue_refresh_token",
+          "allowed_scopes",
+          "has_secret",
+          "enabled"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "Public client id used at the authorize and token endpoints.",
+            "example": "audiobookshelf"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator-facing display name.",
+            "example": "Audiobookshelf"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed OAuth redirect URIs.",
+            "example": [
+              "https://abs.example.com/auth/openid/callback"
+            ]
+          },
+          "confidential": {
+            "type": "boolean",
+            "description": "Whether the client authenticates with a secret (otherwise it is a public PKCE client).",
+            "example": true
+          },
+          "issue_refresh_token": {
+            "type": "boolean",
+            "description": "Whether token responses include a refresh token.",
+            "example": true
+          },
+          "allowed_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Scopes the client may be granted.",
+            "example": [
+              "openid",
+              "profile",
+              "email"
+            ]
+          },
+          "has_secret": {
+            "type": "boolean",
+            "description": "Same as `confidential`: a secret hash is stored.",
+            "example": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the authorize and token endpoints accept this client.",
+            "example": true
+          },
+          "plugin_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plugin that provides this client, or `null` for an operator-created one.",
+            "example": "audiobookshelf"
+          },
+          "client_secret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
+            "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+          }
+        }
+      },
+      "description": "Every registered client, without secrets."
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in.
 
 ```json
 {
@@ -1074,7 +1229,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller's role does not allow this route.
+Status `403`: The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`).
 
 ```json
 {
@@ -1089,33 +1244,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The clients could not be read (`oidc_client`).
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "error": "oidc_client",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
   "status": 500
 }
 ```
@@ -1125,22 +1287,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -1179,27 +1348,37 @@ Create a client; confidential clients return the generated secret once.
 
 ### Responses
 
-- `200` — The client; a confidential client's secret appears once. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — A client with this id already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The client; a confidential client's secret appears once. Body: [`OidcClientView`](schemas.md#oidcclientview) (`application/json`)
+  - `client_id` *string*, **required** — Public client id used at the authorize and token endpoints.
+  - `name` *string or null* — Operator-facing display name.
+  - `redirect_uris` *array of string*, **required** — Allowed OAuth redirect URIs.
+  - `confidential` *boolean*, **required** — Whether the client authenticates with a secret (otherwise it is a public PKCE client).
+  - `issue_refresh_token` *boolean*, **required** — Whether token responses include a refresh token.
+  - `allowed_scopes` *array of string*, **required** — Scopes the client may be granted.
+  - `has_secret` *boolean*, **required** — Same as `confidential`: a secret hash is stored.
+  - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
+  - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
+  - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
+- `400` — The client id or a redirect URI is invalid (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `409` — A client with this id already exists (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1253,14 +1432,126 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The client; a confidential client's secret appears once. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The client; a confidential client's secret appears once.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
+  "client_id": "audiobookshelf",
+  "name": "Audiobookshelf",
+  "redirect_uris": [
+    "https://abs.example.com/auth/openid/callback"
+  ],
+  "confidential": true,
+  "issue_refresh_token": true,
+  "allowed_scopes": [
+    "openid",
+    "profile",
+    "email"
+  ],
+  "has_secret": true,
+  "enabled": true,
+  "plugin_id": "audiobookshelf",
+  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A Bookclerk-as-IdP client as operators see it; the secret appears only when freshly minted.",
+  "required": [
+    "client_id",
+    "redirect_uris",
+    "confidential",
+    "issue_refresh_token",
+    "allowed_scopes",
+    "has_secret",
+    "enabled"
+  ],
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Public client id used at the authorize and token endpoints.",
+      "example": "audiobookshelf"
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Operator-facing display name.",
+      "example": "Audiobookshelf"
+    },
+    "redirect_uris": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed OAuth redirect URIs.",
+      "example": [
+        "https://abs.example.com/auth/openid/callback"
+      ]
+    },
+    "confidential": {
+      "type": "boolean",
+      "description": "Whether the client authenticates with a secret (otherwise it is a public PKCE client).",
+      "example": true
+    },
+    "issue_refresh_token": {
+      "type": "boolean",
+      "description": "Whether token responses include a refresh token.",
+      "example": true
+    },
+    "allowed_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Scopes the client may be granted.",
+      "example": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    "has_secret": {
+      "type": "boolean",
+      "description": "Same as `confidential`: a secret hash is stored.",
+      "example": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the authorize and token endpoints accept this client.",
+      "example": true
+    },
+    "plugin_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Plugin that provides this client, or `null` for an operator-created one.",
+      "example": "audiobookshelf"
+    },
+    "client_secret": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
+      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+    }
+  }
+}
+```
+
+Status `400`: The client id or a redirect URI is invalid (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "at least one redirect URI is required",
   "status": 400
 }
 ```
@@ -1270,28 +1561,35 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
 ```json
 {
@@ -1306,33 +1604,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "oidc_client",
+  "message": "forbidden",
   "status": 403
 }
 ```
@@ -1342,33 +1647,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `409`: A client with this id already exists.
+Status `409`: A client with this id already exists (`oidc_client`).
 
 ```json
 {
-  "error": "conflict",
-  "message": "Conflict",
+  "error": "oidc_client",
+  "message": "a client with this id already exists",
   "status": 409
 }
 ```
@@ -1378,33 +1690,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "error": "oidc_client",
+  "message": "the current password could not be checked",
   "status": 500
 }
 ```
@@ -1414,22 +1733,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -1447,7 +1773,7 @@ A `text/plain` body: a string.
 
 ## `PUT /api/auth/oidc/clients/{client_id}`
 
-Update redirects, name, scopes, and public/confidential mode (no secret echo unless rotating).
+Update redirects, name, scopes, and public/confidential mode; switching a public client to confidential mints its secret, shown once.
 
 **Access:** The operator, or a signed-in Owner.
 
@@ -1472,27 +1798,37 @@ Update redirects, name, scopes, and public/confidential mode (no secret echo unl
 
 ### Responses
 
-- `200` — The client after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The client after the change; when the update made a public client confidential, its new secret appears once. Body: [`OidcClientView`](schemas.md#oidcclientview) (`application/json`)
+  - `client_id` *string*, **required** — Public client id used at the authorize and token endpoints.
+  - `name` *string or null* — Operator-facing display name.
+  - `redirect_uris` *array of string*, **required** — Allowed OAuth redirect URIs.
+  - `confidential` *boolean*, **required** — Whether the client authenticates with a secret (otherwise it is a public PKCE client).
+  - `issue_refresh_token` *boolean*, **required** — Whether token responses include a refresh token.
+  - `allowed_scopes` *array of string*, **required** — Scopes the client may be granted.
+  - `has_secret` *boolean*, **required** — Same as `confidential`: a secret hash is stored.
+  - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
+  - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
+  - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
+- `400` — The client id or a redirect URI is invalid (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1546,14 +1882,126 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The client after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The client after the change; when the update made a public client confidential, its new secret appears once.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
+  "client_id": "audiobookshelf",
+  "name": "Audiobookshelf",
+  "redirect_uris": [
+    "https://abs.example.com/auth/openid/callback"
+  ],
+  "confidential": true,
+  "issue_refresh_token": true,
+  "allowed_scopes": [
+    "openid",
+    "profile",
+    "email"
+  ],
+  "has_secret": true,
+  "enabled": true,
+  "plugin_id": "audiobookshelf",
+  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A Bookclerk-as-IdP client as operators see it; the secret appears only when freshly minted.",
+  "required": [
+    "client_id",
+    "redirect_uris",
+    "confidential",
+    "issue_refresh_token",
+    "allowed_scopes",
+    "has_secret",
+    "enabled"
+  ],
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Public client id used at the authorize and token endpoints.",
+      "example": "audiobookshelf"
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Operator-facing display name.",
+      "example": "Audiobookshelf"
+    },
+    "redirect_uris": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed OAuth redirect URIs.",
+      "example": [
+        "https://abs.example.com/auth/openid/callback"
+      ]
+    },
+    "confidential": {
+      "type": "boolean",
+      "description": "Whether the client authenticates with a secret (otherwise it is a public PKCE client).",
+      "example": true
+    },
+    "issue_refresh_token": {
+      "type": "boolean",
+      "description": "Whether token responses include a refresh token.",
+      "example": true
+    },
+    "allowed_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Scopes the client may be granted.",
+      "example": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    "has_secret": {
+      "type": "boolean",
+      "description": "Same as `confidential`: a secret hash is stored.",
+      "example": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the authorize and token endpoints accept this client.",
+      "example": true
+    },
+    "plugin_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Plugin that provides this client, or `null` for an operator-created one.",
+      "example": "audiobookshelf"
+    },
+    "client_secret": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
+      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+    }
+  }
+}
+```
+
+Status `400`: The client id or a redirect URI is invalid (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "client id may only contain letters, digits, '.', '_', '-', and '~'",
   "status": 400
 }
 ```
@@ -1563,28 +2011,35 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
 ```json
 {
@@ -1599,33 +2054,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "oidc_client",
+  "message": "forbidden",
   "status": 403
 }
 ```
@@ -1635,33 +2097,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `404`: No such client.
+Status `404`: No such client (`oidc_client`).
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
+  "error": "oidc_client",
+  "message": "unknown client",
   "status": 404
 }
 ```
@@ -1671,33 +2140,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "error": "oidc_client",
+  "message": "the current password could not be checked",
   "status": 500
 }
 ```
@@ -1707,22 +2183,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -1768,30 +2251,26 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 ### Responses
 
 - `204` — The client was deleted. No body.
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — The client is provided by a plugin; disable it instead. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `409` — The client is provided by a plugin; disable it instead (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1847,43 +2326,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 Status `204`: The client was deleted. No body.
 
-Status `400`: The body is invalid.
-
-```json
-{
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
-    }
-  }
-}
-```
-
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
 ```json
 {
@@ -1898,33 +2341,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "oidc_client",
+  "message": "forbidden",
   "status": 403
 }
 ```
@@ -1934,33 +2384,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `404`: No such client.
+Status `404`: No such client (`oidc_client`).
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
+  "error": "oidc_client",
+  "message": "unknown client",
   "status": 404
 }
 ```
@@ -1970,33 +2427,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `409`: The client is provided by a plugin; disable it instead.
+Status `409`: The client is provided by a plugin; disable it instead (`oidc_client`).
 
 ```json
 {
-  "error": "conflict",
-  "message": "Conflict",
+  "error": "oidc_client",
+  "message": "plugin-provided clients cannot be deleted; disable them instead",
   "status": 409
 }
 ```
@@ -2006,33 +2470,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "error": "oidc_client",
+  "message": "the current password could not be checked",
   "status": 500
 }
 ```
@@ -2042,22 +2513,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -2095,27 +2573,33 @@ Optional.
 
 ### Responses
 
-- `200` — The new secret (shown once). Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — No such client. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The client with its new secret (shown once). Body: [`OidcClientView`](schemas.md#oidcclientview) (`application/json`)
+  - `client_id` *string*, **required** — Public client id used at the authorize and token endpoints.
+  - `name` *string or null* — Operator-facing display name.
+  - `redirect_uris` *array of string*, **required** — Allowed OAuth redirect URIs.
+  - `confidential` *boolean*, **required** — Whether the client authenticates with a secret (otherwise it is a public PKCE client).
+  - `issue_refresh_token` *boolean*, **required** — Whether token responses include a refresh token.
+  - `allowed_scopes` *array of string*, **required** — Scopes the client may be granted.
+  - `has_secret` *boolean*, **required** — Same as `confidential`: a secret hash is stored.
+  - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
+  - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
+  - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
+- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2169,15 +2653,26 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The new secret (shown once). The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The client with its new secret (shown once).
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "client_id": "audiobookshelf",
+  "name": "Audiobookshelf",
+  "redirect_uris": [
+    "https://abs.example.com/auth/openid/callback"
+  ],
+  "confidential": true,
+  "issue_refresh_token": true,
+  "allowed_scopes": [
+    "openid",
+    "profile",
+    "email"
+  ],
+  "has_secret": true,
+  "enabled": true,
+  "plugin_id": "audiobookshelf",
+  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
 }
 ```
 
@@ -2186,28 +2681,93 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "A Bookclerk-as-IdP client as operators see it; the secret appears only when freshly minted.",
   "required": [
-    "error"
+    "client_id",
+    "redirect_uris",
+    "confidential",
+    "issue_refresh_token",
+    "allowed_scopes",
+    "has_secret",
+    "enabled"
   ],
   "properties": {
-    "error": {
+    "client_id": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Public client id used at the authorize and token endpoints.",
+      "example": "audiobookshelf"
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Operator-facing display name.",
+      "example": "Audiobookshelf"
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "redirect_uris": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed OAuth redirect URIs.",
+      "example": [
+        "https://abs.example.com/auth/openid/callback"
+      ]
+    },
+    "confidential": {
+      "type": "boolean",
+      "description": "Whether the client authenticates with a secret (otherwise it is a public PKCE client).",
+      "example": true
+    },
+    "issue_refresh_token": {
+      "type": "boolean",
+      "description": "Whether token responses include a refresh token.",
+      "example": true
+    },
+    "allowed_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Scopes the client may be granted.",
+      "example": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    "has_secret": {
+      "type": "boolean",
+      "description": "Same as `confidential`: a secret hash is stored.",
+      "example": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the authorize and token endpoints accept this client.",
+      "example": true
+    },
+    "plugin_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Plugin that provides this client, or `null` for an operator-created one.",
+      "example": "audiobookshelf"
+    },
+    "client_secret": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
+      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
 ```json
 {
@@ -2222,33 +2782,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "oidc_client",
+  "message": "forbidden",
   "status": 403
 }
 ```
@@ -2258,33 +2825,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `404`: No such client.
+Status `404`: No such client (`oidc_client`).
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
+  "error": "oidc_client",
+  "message": "unknown client",
   "status": 404
 }
 ```
@@ -2294,33 +2868,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
 {
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "error": "oidc_client",
+  "message": "the current password could not be checked",
   "status": 500
 }
 ```
@@ -2330,22 +2911,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
