@@ -58,6 +58,59 @@ An error. `error` is a stable slug; bodies the error middleware writes also carr
 - `deny_bindings` *array of string* — Bindings to take out of the request. No duplicates.
 - `deny_network` *boolean* — Deny all network access.
 
+## AuthMeImpersonating
+
+Target user shown while an operator session is impersonating.
+
+- `user_id` *integer (int64)*, **required** — First-party `users.id` being impersonated.
+- `display_name` *string or null* — Display name of the impersonated user when the row exists.
+
+## AuthMeResponse
+
+JSON body for `GET /api/auth/me`.
+
+- `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
+- `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+- `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
+- `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
+- `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+- `impersonating` *[`AuthMeImpersonating`](#authmeimpersonating) or null* — Present when the operator is impersonating a User.
+- `portal` *[`PortalMeInfo`](#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
+- `user` *[`AuthMeUser`](#authmeuser) or null* — First-party user when the session is linked to a `users` row.
+- `second_factor` *[`AuthSecondFactor`](#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
+
+## AuthMeUser
+
+First-party user snapshot attached to `/me` when a `users` row is linked.
+
+- `id` *integer (int64)*, **required** — First-party `users.id`.
+- `role` *string*, **required** — Role string (`owner`, `administrator`, `member`).
+- `display_name` *string or null* — Optional human-readable name from the user row.
+- `email` *string or null* — Optional email; omitted from JSON when unset.
+- `has_password` *boolean*, **required** — True when a local password hash is stored (invite users may be false).
+- `has_avatar` *boolean*, **required** — True when a JPEG avatar is stored under `files_dir/avatars/{id}.*`.
+- `avatar_source` *string*, **required** — Selected picture source (`auto`, `monogram`, `gravatar`, `upload`, `sso:{id}`).
+- `gravatar_hash` *string or null* — SHA-256 hex of the contact email for Gravatar, when an email is set.
+- `sso_pictures` *array of [`AuthSsoPicture`](#authssopicture)* — IdP-supplied pictures the user can pick.
+
+## AuthSecondFactor
+
+Host MFA policy plus whether this user has TOTP and/or passkeys.
+
+- `required` *boolean*, **required** — `daemon.auth.require_second_factor`.
+- `totp` *boolean*, **required** — Confirmed authenticator-app TOTP.
+- `passkey_count` *integer (int64)*, **required** — Number of registered passkeys. At least 0.
+- `enrolled` *boolean*, **required** — True when TOTP is enabled or at least one passkey exists.
+
+## AuthSsoPicture
+
+HTTPS picture from a linked identity provider.
+
+- `identity_id` *integer (int64)*, **required** — `portal_identities.id`.
+- `provider` *string*, **required** — Identity-broker id (`oidc:google`, …).
+- `picture_url` *string*, **required** — HTTPS URL to display.
+- `last_used_at` *string or null* — RFC 3339 last portal-session activity for this identity, when any.
+
 ## BadBookAction
 
 How to handle acquire failures (`BadBook` setting).
@@ -492,6 +545,14 @@ the metadata every domain response carries before its settings.
 - `updated_at` *string*, **required** — RFC 3339 time of the last write.
 - `updated_by` *string*, **required** — Audit identity of the last writer.
 
+## Elevated
+
+JSON body after a successful Owner elevation.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `elevated` *boolean*, **required** — Always `true`: the cookie the response sets is an elevated operator session.
+- `expires_in_secs` *integer (int64)*, **required** — Seconds until the elevated session expires. At least 0.
+
 ## ElevateRequest
 
 JSON body for Owner password re-auth before issuing an elevated operator cookie.
@@ -613,6 +674,13 @@ Liveness payload for unauthenticated `GET /health`.
 JSON body naming the first-party user to impersonate.
 
 - `user_id` *integer (int64)*, **required** — Target `users.id` to impersonate.
+
+## ImpersonationStarted
+
+JSON body after an operator session started impersonating a user.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `impersonating` *[`AuthMeImpersonating`](#authmeimpersonating)*, **required** — The user the session now acts as.
 
 ## InspectBody
 
@@ -745,6 +813,23 @@ Login-name or email used to start a discoverable-less passkey login.
 JSON body for `POST /api/auth/login` (operator token).
 
 - `token` *string*, **required** — Operator token from the client; compared in constant time and never persisted.
+
+## LoginResponse
+
+JSON body after a successful operator token login.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `role` *string*, **required** — Issued role (`operator` for token login).
+- `default_view` *string*, **required** — Post-login SPA landing view from operator preferences (`discover` on lookup failure).
+
+## LoginThrottled
+
+JSON body of a 429 after too many failed sign-in attempts from one client.
+
+- `error` *string*, **required** — Always `too_many_requests`.
+- `message` *string*, **required** — Caller-facing explanation naming the wait.
+- `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+- `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
 
 ## LoginVerify
 
@@ -1000,6 +1085,12 @@ One IdP as shown to an operator (no client secret or Apple PEM).
 - `has_apple_private_key` *boolean*, **required** — Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned).
 - `secret_source` *string*, **required** — Where the client secret was found: `env`, `config`, `store`, or `none`.
 
+## OkResponse
+
+Acknowledgement body (`{"ok": true}`) for actions with nothing else to report.
+
+- `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+
 ## OpenApiDocument
 
 An OpenAPI document as this daemon serves it: the `openapi` version string, `info` about the daemon, every route under `paths` and the schemas under `components`.
@@ -1013,6 +1104,21 @@ document could not be restated as 3.0.3.
 
 - `error` *string*, **required** — Always `openapi_v30_unavailable`.
 - `message` *string*, **required** — What to do: the daemon log names the form that could not be restated.
+
+## OperatorSessionView
+
+An operator session as listed by `GET /api/auth/sessions`.
+
+- `id` *integer (int64)*, **required** — Session id, for `DELETE /api/auth/sessions/{id}`.
+- `created_at` *string*, **required** — RFC 3339 time the session was created.
+- `last_used_at` *string or null* — RFC 3339 time of the last authenticated use, when any.
+- `expires_at` *string*, **required** — RFC 3339 expiry.
+- `elevated` *boolean*, **required** — Whether an Owner elevated into this session (rather than the operator token).
+- `impersonating_user_id` *integer (int64) or null* — User the session is impersonating, when it is. Never set on the session making the request: while that session impersonates, the list shows the target's portal sessions instead.
+- `is_current` *boolean*, **required** — Whether this is the session making the request.
+- `client_label` *string or null* — Best-effort OS or client label from the User-Agent.
+- `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
+- `user_agent` *string or null* — Raw User-Agent captured when the session was created.
 
 ## OutputDomainChange
 
@@ -1085,6 +1191,17 @@ instead of being silently truncated on the next write.
 - `replacement_characters` *array of [`ReplacementRule`](#replacementrule)*, **required** — Explicit find/replace rules for path segments.
 - `max_filename_length` *integer (int32)*, **required** — Max length per path segment (`0` disables truncation). At least 0.
 
+## OwnerBootstrapped
+
+JSON body after the first Owner was created.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `user_id` *integer (int64)*, **required** — `users.id` of the new Owner.
+- `claim_ticket` *string*, **required** — Single-use claim ticket that signs the Owner in once (valid for seven days).
+- `invite_url` *string*, **required** — Invite link carrying the ticket, for the browser.
+- `login_name` *string or null* — Login name the Owner signs in with, when one was given.
+- `has_password` *boolean*, **required** — Whether a password was set, so password sign-in works right away.
+
 ## OwnerNodeRemoved
 
 `DELETE /api/config/nodes/{node_id}` body.
@@ -1105,12 +1222,25 @@ JSON body for password-store connect (`email` + `password`).
 - `email` *string*, **required** — Store account email / username.
 - `password` *string*, **required** — Store account password; never logged.
 
+## PasswordLoginOutcome
+
+JSON body of a successful `POST /api/auth/password`.
+
+Type: [`PortalSessionIssued`](#portalsessionissued) or [`TotpChallenge`](#totpchallenge)
+
 ## PasswordLoginRequest
 
 JSON body for local password login (login name or email plus password).
 
 - `login` *string*, **required** — Login name or email.
 - `password` *string*, **required** — Password verified against the stored hash; mismatch fails closed and counts toward lockout.
+
+## PasswordSet
+
+JSON body after a password was set.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `revoked_sessions` *integer (int64)*, **required** — Portal sessions of that user revoked by the change (the caller signs in again). At least 0.
 
 ## PatchPreferencesBody
 
@@ -1484,6 +1614,35 @@ JSON body of every portal error response.
 
 - `error` *string*, **required** — Operator-facing error text (no structured code).
 
+## PortalMeInfo
+
+Portal identity fields exposed on `/me` for SSO / local-portal callers.
+
+- `identity_id` *integer (int64)*, **required** — `portal_identities.id` for this session.
+- `provider` *string*, **required** — Identity-broker id (`local`, OIDC provider name, …).
+- `external_user_id` *string*, **required** — Provider-stable subject / external user id.
+- `label` *string or null* — Optional operator-facing label for the identity.
+
+## PortalSessionIssued
+
+JSON body after a portal session was minted for a first-party user.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+
+## PortalSessionView
+
+A portal (user) session as listed by `GET /api/auth/sessions`.
+
+- `id` *integer (int64)*, **required** — Session id, for `DELETE /api/auth/sessions/{id}`.
+- `created_at` *string*, **required** — RFC 3339 time the session was created.
+- `expires_at` *string*, **required** — RFC 3339 expiry.
+- `last_used_at` *string or null* — RFC 3339 time of the last authenticated use, when any.
+- `is_current` *boolean*, **required** — Whether this is the session making the request.
+- `client_label` *string or null* — Best-effort OS or client label from the User-Agent.
+- `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
+- `user_agent` *string or null* — Raw User-Agent captured when the session was created.
+
 ## PostNodeInvite
 
 `POST /api/config/node-invites` body.
@@ -1816,6 +1975,19 @@ null, `compatible` false and the `error` text.
 - `compatible` *boolean*, **required** — True when this binary can run against that schema.
 - `error` *string or null* — Why the state could not be read; omitted when it was.
 
+## SessionsResponse
+
+JSON body for `GET /api/auth/sessions`.
+
+- `sessions` *array of [`SessionView`](#sessionview)*, **required** — The caller's sessions, newest first; empty for a Bearer-only caller, who has no session rows.
+
+## SessionView
+
+One session in the caller's list, told apart by `kind`: an operator
+session or a portal (user) session.
+
+Type: [`OperatorSessionView`](#operatorsessionview) and object or [`PortalSessionView`](#portalsessionview) and object
+
 ## SetPasswordRequest
 
 JSON body for setting a password (self or provisioner target).
@@ -1894,6 +2066,30 @@ A shelf kind the operator can ignore (all offered by default).
 
 - `id` *string*, **required** — Stable kind id (`finish_series`, `author`, `genre`, `from_store`, …).
 - `label` *string*, **required** — Operator-visible label for this account or item.
+
+## SigninIntegration
+
+One integration that signs people in with its own credentials.
+
+- `id` *string*, **required** — Integration id, used in `/api/integrations/{id}/login`.
+- `name` *string*, **required** — Button label.
+
+## SigninMethods
+
+JSON body for `GET /api/auth/signin`: the ways this library lets people sign in.
+
+- `operator_token` *boolean*, **required** — Whether the operator token may be entered in the SPA (only before an Owner exists).
+- `oidc` *array of [`SigninOidcProvider`](#signinoidcprovider)*, **required** — Enabled OIDC identity providers, in configuration order.
+- `integrations` *array of [`SigninIntegration`](#signinintegration)*, **required** — Integrations that accept their own credentials at sign-in.
+- `require_second_factor` *boolean*, **required** — Whether `daemon.auth.require_second_factor` is on, so clients can explain the enrollment step.
+
+## SigninOidcProvider
+
+One OIDC identity provider offered on the sign-in page.
+
+- `id` *string*, **required** — Provider id from `[auth.oidc.providers]`, used in `/api/auth/oidc/{id}/start`.
+- `name` *string*, **required** — Button label.
+- `preset` *string or null* — Known social preset the client may style (`google`, `github`, …), when the provider matches one.
 
 ## SourceConfigOptionInfo
 
@@ -2139,11 +2335,32 @@ Successful token-endpoint JSON (access, optional refresh, and ID tokens).
 - `id_token` *string*, **required** — HS256 ID token; profile/email claims follow the granted scope.
 - `scope` *string*, **required** — Space-separated scopes granted to this token pair.
 
+## TotpChallenge
+
+Password accepted, but an authenticator-app code is needed before a session is issued.
+
+- `ok` *boolean*, **required** — Always `true`: the password step succeeded.
+- `mfa` *[`TotpChallengeDetails`](#totpchallengedetails)*, **required** — The second step the client must complete.
+
+## TotpChallengeDetails
+
+The pending second-factor step after a password login.
+
+- `method` *string*, **required** — Always `totp`: finish with `POST /api/auth/totp/login`.
+- `challenge_id` *string*, **required** — Challenge to send with the code; expires after five minutes.
+
 ## TotpReauthBody
 
 Optional current password for enroll/disable step-up.
 
 - `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
+
+## TrayHandoffPrepareResponse
+
+JSON returned to the tray after a successful prepare.
+
+- `code` *string*, **required** — Single-use loopback handoff code for `GET /api/auth/tray-handoff?code=`.
+- `expires_in_secs` *integer (int64)*, **required** — Seconds until this ticket expires (matches the in-process deadline). At least 0.
 
 ## UploadAnswer
 

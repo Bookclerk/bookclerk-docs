@@ -20,16 +20,24 @@ Validates the operator token (throttled, constant-time) and issues a hashed sess
 
 ### Responses
 
-- `200` — Signed in; the response sets the operator session cookie. Body: any JSON (`application/json`)
-- `401` — The token is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — Signed in; the response sets the operator session cookie. Body: [`LoginResponse`](schemas.md#loginresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `role` *string*, **required** — Issued role (`operator` for token login).
+  - `default_view` *string*, **required** — Post-login SPA landing view from operator preferences (`discover` on lookup failure).
+- `401` — The token is wrong (`unauthorized`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `403` — An Owner exists, so operator sign-in is off (`operator_login_disabled`); sign in as a user. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -82,14 +90,53 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in; the response sets the operator session cookie. The body is JSON the schemas do not describe yet.
+Status `200`: Signed in; the response sets the operator session cookie.
 
-Status `401`: The token is wrong.
+```json
+{
+  "ok": true,
+  "role": "operator",
+  "default_view": "discover"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a successful operator token login.",
+  "required": [
+    "ok",
+    "role",
+    "default_view"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "role": {
+      "type": "string",
+      "description": "Issued role (`operator` for token login).",
+      "example": "operator"
+    },
+    "default_view": {
+      "type": "string",
+      "description": "Post-login SPA landing view from operator preferences (`discover` on lookup failure).",
+      "example": "discover"
+    }
+  }
+}
+```
+
+Status `401`: The token is wrong (`unauthorized`).
 
 ```json
 {
   "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
+  "message": "Invalid operator token.",
   "status": 401
 }
 ```
@@ -99,22 +146,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -124,8 +178,8 @@ Status `403`: An Owner exists, so operator sign-in is off (`operator_login_disab
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "operator_login_disabled",
+  "message": "Operator token sign-in is unavailable after an Owner account exists. Open Bookclerk from the system tray, or elevate from an Owner session.",
   "status": 403
 }
 ```
@@ -163,13 +217,65 @@ Schema:
 }
 ```
 
-Status `429`: Too many attempts; retry after `Retry-After` seconds.
+Status `429`: Too many attempts from this client; retry after `Retry-After` seconds.
 
 ```json
 {
   "error": "too_many_requests",
-  "message": "Too many requests. Try again shortly.",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
   "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -223,7 +329,15 @@ Returns 500 when the owner-count query fails.
 
 ### Responses
 
-- `200` — The sign-in methods this library offers. Body: any JSON (`application/json`)
+- `200` — The sign-in methods this library offers. Body: [`SigninMethods`](schemas.md#signinmethods) (`application/json`)
+  - `operator_token` *boolean*, **required** — Whether the operator token may be entered in the SPA (only before an Owner exists).
+  - `oidc` *array of [`SigninOidcProvider`](schemas.md#signinoidcprovider)*, **required** — Enabled OIDC identity providers, in configuration order.
+  - `integrations` *array of [`SigninIntegration`](schemas.md#signinintegration)*, **required** — Integrations that accept their own credentials at sign-in.
+  - `require_second_factor` *boolean*, **required** — Whether `daemon.auth.require_second_factor` is on, so clients can explain the enrollment step.
+- `500` — The library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -255,7 +369,146 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The sign-in methods this library offers. The body is JSON the schemas do not describe yet.
+Status `200`: The sign-in methods this library offers.
+
+```json
+{
+  "operator_token": false,
+  "oidc": [
+    {
+      "id": "google",
+      "name": "Google",
+      "preset": "google"
+    }
+  ],
+  "integrations": [
+    {
+      "id": "audiobookshelf",
+      "name": "Audiobookshelf"
+    }
+  ],
+  "require_second_factor": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/signin`: the ways this library lets people sign in.",
+  "required": [
+    "operator_token",
+    "oidc",
+    "integrations",
+    "require_second_factor"
+  ],
+  "properties": {
+    "operator_token": {
+      "type": "boolean",
+      "description": "Whether the operator token may be entered in the SPA (only before an Owner exists).",
+      "example": false
+    },
+    "oidc": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One OIDC identity provider offered on the sign-in page.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Provider id from `[auth.oidc.providers]`, used in `/api/auth/oidc/{id}/start`.",
+            "example": "google"
+          },
+          "name": {
+            "type": "string",
+            "description": "Button label.",
+            "example": "Google"
+          },
+          "preset": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Known social preset the client may style (`google`, `github`, …), when the provider matches one.",
+            "example": "google"
+          }
+        }
+      },
+      "description": "Enabled OIDC identity providers, in configuration order."
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One integration that signs people in with its own credentials.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Integration id, used in `/api/integrations/{id}/login`.",
+            "example": "audiobookshelf"
+          },
+          "name": {
+            "type": "string",
+            "description": "Button label.",
+            "example": "Audiobookshelf"
+          }
+        }
+      },
+      "description": "Integrations that accept their own credentials at sign-in."
+    },
+    "require_second_factor": {
+      "type": "boolean",
+      "description": "Whether `daemon.auth.require_second_factor` is on, so clients can explain the enrollment step.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
 
 Status `504`: The request ran past the API's time budget.
 
@@ -288,7 +541,9 @@ does not match, or 429 when this client is locked out.
 
 ### Responses
 
-- `200` — A single-use tray ticket. Body: any JSON (`application/json`)
+- `200` — A single-use tray ticket. Body: [`TrayHandoffPrepareResponse`](schemas.md#trayhandoffprepareresponse) (`application/json`)
+  - `code` *string*, **required** — Single-use loopback handoff code for `GET /api/auth/tray-handoff?code=`.
+  - `expires_in_secs` *integer (int64)*, **required** — Seconds until this ticket expires (matches the in-process deadline). At least 0.
 - `204` — Operator authentication is off, so no ticket is needed. No body.
 - `401` — The Bearer token is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -298,10 +553,11 @@ does not match, or 429 when this client is locked out.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `429` — Too many failed attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -348,7 +604,41 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: A single-use tray ticket. The body is JSON the schemas do not describe yet.
+Status `200`: A single-use tray ticket.
+
+```json
+{
+  "code": "9b4f1c2e-3d5a-4b6c-8e7f-0a1b2c3d4e5f",
+  "expires_in_secs": 180
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON returned to the tray after a successful prepare.",
+  "required": [
+    "code",
+    "expires_in_secs"
+  ],
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Single-use loopback handoff code for `GET /api/auth/tray-handoff?code=`.",
+      "example": "9b4f1c2e-3d5a-4b6c-8e7f-0a1b2c3d4e5f"
+    },
+    "expires_in_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this ticket expires (matches the in-process deadline).",
+      "example": 180,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `204`: Operator authentication is off, so no ticket is needed. No body.
 
@@ -429,7 +719,8 @@ Status `429`: Too many failed attempts from this client; retry after `Retry-Afte
 ```json
 {
   "error": "too_many_requests",
-  "message": "Too many requests. Try again shortly.",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
   "status": 429
 }
 ```
@@ -439,22 +730,37 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
     }
   }
 }
@@ -587,11 +893,26 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 
 ### Responses
 
-- `200` — Who the caller is (operator, portal user, or impersonation). Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — Who the caller is (operator, portal user, or impersonation). Body: [`AuthMeResponse`](schemas.md#authmeresponse) (`application/json`)
+  - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
+  - `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+  - `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
+  - `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
+  - `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+  - `impersonating` *[`AuthMeImpersonating`](schemas.md#authmeimpersonating) or null* — Present when the operator is impersonating a User.
+  - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
+  - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
+  - `second_factor` *[`AuthSecondFactor`](schemas.md#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
+- `401` — Nobody is signed in: the same body with `authenticated` false, so the app can show the sign-in screen. Body: [`AuthMeResponse`](schemas.md#authmeresponse) (`application/json`)
+  - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
+  - `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+  - `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
+  - `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
+  - `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+  - `impersonating` *[`AuthMeImpersonating`](schemas.md#authmeimpersonating) or null* — Present when the operator is impersonating a User.
+  - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
+  - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
+  - `second_factor` *[`AuthSecondFactor`](schemas.md#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -635,15 +956,49 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Who the caller is (operator, portal user, or impersonation). The body is JSON the schemas do not describe yet.
-
-Status `401`: The caller is not signed in.
+Status `200`: Who the caller is (operator, portal user, or impersonation).
 
 ```json
 {
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
+  "authenticated": true,
+  "role": "administrator",
+  "default_view": "library",
+  "can_acquire": true,
+  "elevated": false,
+  "impersonating": {
+    "user_id": 7,
+    "display_name": "Sam"
+  },
+  "portal": {
+    "identity_id": 3,
+    "provider": "local",
+    "external_user_id": "7",
+    "label": "Sam"
+  },
+  "user": {
+    "id": 7,
+    "role": "administrator",
+    "display_name": "Sam",
+    "email": "sam@example.com",
+    "has_password": true,
+    "has_avatar": false,
+    "avatar_source": "auto",
+    "gravatar_hash": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2",
+    "sso_pictures": [
+      {
+        "identity_id": 3,
+        "provider": "oidc:google",
+        "picture_url": "https://lh3.googleusercontent.com/a/example=s96-c",
+        "last_used_at": "2026-10-29T08:15:00Z"
+      }
+    ]
+  },
+  "second_factor": {
+    "required": false,
+    "totp": true,
+    "passkey_count": 1,
+    "enrolled": true
+  }
 }
 ```
 
@@ -652,22 +1007,541 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body for `GET /api/auth/me`.",
   "required": [
-    "error"
+    "authenticated",
+    "default_view",
+    "can_acquire",
+    "elevated"
   ],
   "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+    "authenticated": {
+      "type": "boolean",
+      "description": "Whether the request resolved to an operator, portal, or impersonated session.",
+      "example": true
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    "role": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may\nstill send `portal`).",
+      "example": "administrator"
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "default_view": {
+      "type": "string",
+      "description": "Configured post-auth landing view (`discover` / `library` / `accounts` /\n`wishlist`).\nLoaded from per-user DB preferences (not config.toml).",
+      "example": "library"
+    },
+    "can_acquire": {
+      "type": "boolean",
+      "description": "Whether this session may acquire / scan / manage jobs.\nTrue for operator and administrator.",
+      "example": true
+    },
+    "elevated": {
+      "type": "boolean",
+      "description": "True when this operator session was created via Owner elevate.",
+      "example": false
+    },
+    "impersonating": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Present when the operator is impersonating a User.",
+          "required": [
+            "user_id"
+          ],
+          "properties": {
+            "user_id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "First-party `users.id` being impersonated.",
+              "example": 7
+            },
+            "display_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Display name of the impersonated user when the row exists.",
+              "example": "Sam"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "portal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Linked portal identity when the caller is a portal (or impersonated) user.",
+          "required": [
+            "identity_id",
+            "provider",
+            "external_user_id"
+          ],
+          "properties": {
+            "identity_id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "`portal_identities.id` for this session.",
+              "example": 3
+            },
+            "provider": {
+              "type": "string",
+              "description": "Identity-broker id (`local`, OIDC provider name, …).",
+              "example": "local"
+            },
+            "external_user_id": {
+              "type": "string",
+              "description": "Provider-stable subject / external user id.",
+              "example": "7"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional operator-facing label for the identity.",
+              "example": "Sam"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "user": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "First-party user when the session is linked to a `users` row.",
+          "required": [
+            "id",
+            "role",
+            "has_password",
+            "has_avatar",
+            "avatar_source"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "First-party `users.id`.",
+              "example": 7
+            },
+            "role": {
+              "type": "string",
+              "description": "Role string (`owner`, `administrator`, `member`).",
+              "example": "administrator"
+            },
+            "display_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional human-readable name from the user row.",
+              "example": "Sam"
+            },
+            "email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional email; omitted from JSON when unset.",
+              "example": "sam@example.com"
+            },
+            "has_password": {
+              "type": "boolean",
+              "description": "True when a local password hash is stored (invite users may be false).",
+              "example": true
+            },
+            "has_avatar": {
+              "type": "boolean",
+              "description": "True when a JPEG avatar is stored under `files_dir/avatars/{id}.*`.",
+              "example": false
+            },
+            "avatar_source": {
+              "type": "string",
+              "description": "Selected picture source (`auto`, `monogram`, `gravatar`, `upload`, `sso:{id}`).",
+              "example": "auto"
+            },
+            "gravatar_hash": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "SHA-256 hex of the contact email for Gravatar, when an email is set.",
+              "example": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2"
+            },
+            "sso_pictures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "HTTPS picture from a linked identity provider.",
+                "required": [
+                  "identity_id",
+                  "provider",
+                  "picture_url"
+                ],
+                "properties": {
+                  "identity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "`portal_identities.id`.",
+                    "example": 3
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Identity-broker id (`oidc:google`, …).",
+                    "example": "oidc:google"
+                  },
+                  "picture_url": {
+                    "type": "string",
+                    "description": "HTTPS URL to display.",
+                    "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+                  },
+                  "last_used_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 last portal-session activity for this identity, when any.",
+                    "example": "2026-10-29T08:15:00Z"
+                  }
+                }
+              },
+              "description": "IdP-supplied pictures the user can pick."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "second_factor": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Password-login second-factor policy and this user's enrollment.",
+          "required": [
+            "required",
+            "totp",
+            "passkey_count",
+            "enrolled"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean",
+              "description": "`daemon.auth.require_second_factor`.",
+              "example": false
+            },
+            "totp": {
+              "type": "boolean",
+              "description": "Confirmed authenticator-app TOTP.",
+              "example": true
+            },
+            "passkey_count": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Number of registered passkeys.",
+              "example": 1,
+              "minimum": 0
+            },
+            "enrolled": {
+              "type": "boolean",
+              "description": "True when TOTP is enabled or at least one passkey exists.",
+              "example": true
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `401`: Nobody is signed in: the same body with `authenticated` false, so the app can show the sign-in screen.
+
+```json
+{
+  "authenticated": false,
+  "can_acquire": false,
+  "default_view": "discover",
+  "elevated": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/me`.",
+  "required": [
+    "authenticated",
+    "default_view",
+    "can_acquire",
+    "elevated"
+  ],
+  "properties": {
+    "authenticated": {
+      "type": "boolean",
+      "description": "Whether the request resolved to an operator, portal, or impersonated session.",
+      "example": true
+    },
+    "role": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "`operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may\nstill send `portal`).",
+      "example": "administrator"
+    },
+    "default_view": {
+      "type": "string",
+      "description": "Configured post-auth landing view (`discover` / `library` / `accounts` /\n`wishlist`).\nLoaded from per-user DB preferences (not config.toml).",
+      "example": "library"
+    },
+    "can_acquire": {
+      "type": "boolean",
+      "description": "Whether this session may acquire / scan / manage jobs.\nTrue for operator and administrator.",
+      "example": true
+    },
+    "elevated": {
+      "type": "boolean",
+      "description": "True when this operator session was created via Owner elevate.",
+      "example": false
+    },
+    "impersonating": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Present when the operator is impersonating a User.",
+          "required": [
+            "user_id"
+          ],
+          "properties": {
+            "user_id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "First-party `users.id` being impersonated.",
+              "example": 7
+            },
+            "display_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Display name of the impersonated user when the row exists.",
+              "example": "Sam"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "portal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Linked portal identity when the caller is a portal (or impersonated) user.",
+          "required": [
+            "identity_id",
+            "provider",
+            "external_user_id"
+          ],
+          "properties": {
+            "identity_id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "`portal_identities.id` for this session.",
+              "example": 3
+            },
+            "provider": {
+              "type": "string",
+              "description": "Identity-broker id (`local`, OIDC provider name, …).",
+              "example": "local"
+            },
+            "external_user_id": {
+              "type": "string",
+              "description": "Provider-stable subject / external user id.",
+              "example": "7"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional operator-facing label for the identity.",
+              "example": "Sam"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "user": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "First-party user when the session is linked to a `users` row.",
+          "required": [
+            "id",
+            "role",
+            "has_password",
+            "has_avatar",
+            "avatar_source"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "description": "First-party `users.id`.",
+              "example": 7
+            },
+            "role": {
+              "type": "string",
+              "description": "Role string (`owner`, `administrator`, `member`).",
+              "example": "administrator"
+            },
+            "display_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional human-readable name from the user row.",
+              "example": "Sam"
+            },
+            "email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Optional email; omitted from JSON when unset.",
+              "example": "sam@example.com"
+            },
+            "has_password": {
+              "type": "boolean",
+              "description": "True when a local password hash is stored (invite users may be false).",
+              "example": true
+            },
+            "has_avatar": {
+              "type": "boolean",
+              "description": "True when a JPEG avatar is stored under `files_dir/avatars/{id}.*`.",
+              "example": false
+            },
+            "avatar_source": {
+              "type": "string",
+              "description": "Selected picture source (`auto`, `monogram`, `gravatar`, `upload`, `sso:{id}`).",
+              "example": "auto"
+            },
+            "gravatar_hash": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "SHA-256 hex of the contact email for Gravatar, when an email is set.",
+              "example": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2"
+            },
+            "sso_pictures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "HTTPS picture from a linked identity provider.",
+                "required": [
+                  "identity_id",
+                  "provider",
+                  "picture_url"
+                ],
+                "properties": {
+                  "identity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "`portal_identities.id`.",
+                    "example": 3
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Identity-broker id (`oidc:google`, …).",
+                    "example": "oidc:google"
+                  },
+                  "picture_url": {
+                    "type": "string",
+                    "description": "HTTPS URL to display.",
+                    "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+                  },
+                  "last_used_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 last portal-session activity for this identity, when any.",
+                    "example": "2026-10-29T08:15:00Z"
+                  }
+                }
+              },
+              "description": "IdP-supplied pictures the user can pick."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "second_factor": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Password-login second-factor policy and this user's enrollment.",
+          "required": [
+            "required",
+            "totp",
+            "passkey_count",
+            "enrolled"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean",
+              "description": "`daemon.auth.require_second_factor`.",
+              "example": false
+            },
+            "totp": {
+              "type": "boolean",
+              "description": "Confirmed authenticator-app TOTP.",
+              "example": true
+            },
+            "passkey_count": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Number of registered passkeys.",
+              "example": 1,
+              "minimum": 0
+            },
+            "enrolled": {
+              "type": "boolean",
+              "description": "True when TOTP is enabled or at least one passkey exists.",
+              "example": true
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }
@@ -699,20 +1573,27 @@ Owner portal session + password re-auth → short-lived elevated operator cookie
 
 ### Responses
 
-- `200` — Elevated; the response sets a short-lived operator cookie. Body: any JSON (`application/json`)
+- `200` — Elevated; the response sets a short-lived operator cookie. Body: [`Elevated`](schemas.md#elevated) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `elevated` *boolean*, **required** — Always `true`: the cookie the response sets is an elevated operator session.
+  - `expires_in_secs` *integer (int64)*, **required** — Seconds until the elevated session expires. At least 0.
 - `400` — Operator auth is off, or the password is empty. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — No portal session is signed in, or the password is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not an Owner, or the Owner has no password to check. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `409` — The caller is already an operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The password hash could not be read, or the elevated session could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -769,7 +1650,48 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Elevated; the response sets a short-lived operator cookie. The body is JSON the schemas do not describe yet.
+Status `200`: Elevated; the response sets a short-lived operator cookie.
+
+```json
+{
+  "ok": true,
+  "elevated": true,
+  "expires_in_secs": 900
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a successful Owner elevation.",
+  "required": [
+    "ok",
+    "elevated",
+    "expires_in_secs"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "elevated": {
+      "type": "boolean",
+      "description": "Always `true`: the cookie the response sets is an elevated operator session.",
+      "example": true
+    },
+    "expires_in_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until the elevated session expires.",
+      "example": 900,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `400`: Operator auth is off, or the password is empty.
 
@@ -807,7 +1729,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: No portal session is signed in, or the password is wrong.
 
 ```json
 {
@@ -843,7 +1765,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an Owner, or the Owner has no password to check. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -915,6 +1837,42 @@ Schema:
 }
 ```
 
+Status `500`: The password hash could not be read, or the elevated session could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -935,7 +1893,8 @@ End elevation by revoking the elevated operator session cookie.
 
 ### Responses
 
-- `200` — Elevation ended. Body: any JSON (`application/json`)
+- `200` — Elevation ended. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `400` — The session is not an elevated one. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -944,7 +1903,7 @@ End elevation by revoking the elevated operator session cookie.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -999,7 +1958,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Elevation ended. The body is JSON the schemas do not describe yet.
+Status `200`: Elevation ended.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `400`: The session is not an elevated one.
 
@@ -1073,7 +2057,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -1138,20 +2122,26 @@ Operator-only bootstrap of the first Owner when none exist.
 
 ### Responses
 
-- `200` — The first Owner was created. Body: any JSON (`application/json`)
+- `200` — The first Owner was created. Body: [`OwnerBootstrapped`](schemas.md#ownerbootstrapped) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `user_id` *integer (int64)*, **required** — `users.id` of the new Owner.
+  - `claim_ticket` *string*, **required** — Single-use claim ticket that signs the Owner in once (valid for seven days).
+  - `invite_url` *string*, **required** — Invite link carrying the ticket, for the browser.
+  - `login_name` *string or null* — Login name the Owner signs in with, when one was given.
+  - `has_password` *boolean*, **required** — Whether a password was set, so password sign-in works right away.
 - `400` — The email is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not the operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — An Owner or Administrator already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `409` — An Owner already exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -1208,7 +2198,70 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The first Owner was created. The body is JSON the schemas do not describe yet.
+Status `200`: The first Owner was created.
+
+```json
+{
+  "ok": true,
+  "user_id": 1,
+  "claim_ticket": "5f1c9a2e-7b3d-4e6f-8a90-1b2c3d4e5f60",
+  "invite_url": "https://books.example.com/invite?ticket=5f1c9a2e-7b3d-4e6f-8a90-1b2c3d4e5f60",
+  "login_name": "casey",
+  "has_password": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after the first Owner was created.",
+  "required": [
+    "ok",
+    "user_id",
+    "claim_ticket",
+    "invite_url",
+    "has_password"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "`users.id` of the new Owner.",
+      "example": 1
+    },
+    "claim_ticket": {
+      "type": "string",
+      "description": "Single-use claim ticket that signs the Owner in once (valid for seven days).",
+      "example": "5f1c9a2e-7b3d-4e6f-8a90-1b2c3d4e5f60"
+    },
+    "invite_url": {
+      "type": "string",
+      "description": "Invite link carrying the ticket, for the browser.",
+      "example": "https://books.example.com/invite?ticket=5f1c9a2e-7b3d-4e6f-8a90-1b2c3d4e5f60"
+    },
+    "login_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Login name the Owner signs in with, when one was given.",
+      "example": "casey"
+    },
+    "has_password": {
+      "type": "boolean",
+      "description": "Whether a password was set, so password sign-in works right away.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `400`: The email is invalid.
 
@@ -1246,7 +2299,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not the operator.
 
 ```json
 {
@@ -1282,13 +2335,13 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this.
+Status `409`: An Owner or Administrator already exists.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -1318,13 +2371,13 @@ Schema:
 }
 ```
 
-Status `409`: An Owner already exists.
+Status `500`: The library could not be read or written.
 
 ```json
 {
-  "error": "conflict",
-  "message": "Conflict",
-  "status": 409
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1382,20 +2435,26 @@ Set password for self (portal) or target user (operator/admin); revokes sessions
 
 ### Responses
 
-- `200` — The password was set and other sessions revoked. Body: any JSON (`application/json`)
-- `400` — The password is too weak or the request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — The password was set and other sessions revoked. Body: [`PasswordSet`](schemas.md#passwordset) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `revoked_sessions` *integer (int64)*, **required** — Portal sessions of that user revoked by the change (the caller signs in again). At least 0.
+- `400` — The password is empty (the standard error body). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the caller already has a password and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller may not set that user's password: not a provisioner, or a role the caller cannot manage. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The password could not be hashed, or the library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -1452,9 +2511,43 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The password was set and other sessions revoked. The body is JSON the schemas do not describe yet.
+Status `200`: The password was set and other sessions revoked.
 
-Status `400`: The password is too weak or the request is invalid.
+```json
+{
+  "ok": true,
+  "revoked_sessions": 2
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a password was set.",
+  "required": [
+    "ok",
+    "revoked_sessions"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "revoked_sessions": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Portal sessions of that user revoked by the change (the caller signs in again).",
+      "example": 2,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: The password is empty (the standard error body).
 
 ```json
 {
@@ -1490,7 +2583,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not signed in, or the caller already has a password and `current_password` is missing or wrong.
 
 ```json
 {
@@ -1526,7 +2619,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this.
+Status `403`: The caller may not set that user's password: not a provisioner, or a role the caller cannot manage.
 
 ```json
 {
@@ -1598,6 +2691,42 @@ Schema:
 }
 ```
 
+Status `500`: The password could not be hashed, or the library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -1625,16 +2754,21 @@ Local password login → portal session cookie, or a TOTP challenge when enabled
 
 ### Responses
 
-- `200` — Signed in (portal session cookie), or a TOTP challenge. Body: any JSON (`application/json`)
-- `401` — The login or password is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The account is disabled (`account_disabled`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `429` — Too many attempts; retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Signed in (portal session cookie), or a TOTP challenge. Body: [`PasswordLoginOutcome`](schemas.md#passwordloginoutcome) (`application/json`)
+- `401` — The login or password is wrong, or the user has no password (`invalid_credentials`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The account is disabled (`account_disabled`), or the server requires a second factor and the user has a passkey but no authenticator app (`passkey_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many attempts from this client; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
+- `500` — The user or password hash could not be read, or the session could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -1687,14 +2821,86 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in (portal session cookie), or a TOTP challenge. The body is JSON the schemas do not describe yet.
-
-Status `401`: The login or password is wrong.
+Status `200`: Signed in (portal session cookie), or a TOTP challenge.
 
 ```json
 {
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
+  "ok": true,
+  "role": "member"
+}
+```
+
+Schema:
+
+```json
+{
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The password was enough; the response sets the portal session cookie.",
+      "required": [
+        "ok",
+        "role"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "Always `true` on this success path.",
+          "example": true
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+          "example": "member"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The user has an authenticator app, so a code is needed before a session is issued.",
+      "required": [
+        "ok",
+        "mfa"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "Always `true`: the password step succeeded.",
+          "example": true
+        },
+        "mfa": {
+          "type": "object",
+          "description": "The second step the client must complete.",
+          "required": [
+            "method",
+            "challenge_id"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "description": "Always `totp`: finish with `POST /api/auth/totp/login`.",
+              "example": "totp"
+            },
+            "challenge_id": {
+              "type": "string",
+              "description": "Challenge to send with the code; expires after five minutes.",
+              "example": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "JSON body of a successful `POST /api/auth/password`."
+}
+```
+
+Status `401`: The login or password is wrong, or the user has no password (`invalid_credentials`).
+
+```json
+{
+  "error": "invalid_credentials",
+  "message": "Invalid login or password.",
   "status": 401
 }
 ```
@@ -1704,33 +2910,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The account is disabled (`account_disabled`).
+Status `403`: The account is disabled (`account_disabled`), or the server requires a second factor and the user has a passkey but no authenticator app (`passkey_required`).
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "account_disabled",
+  "message": "This account is disabled.",
   "status": 403
 }
 ```
@@ -1740,34 +2953,93 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `429`: Too many attempts; retry after `Retry-After` seconds.
+Status `429`: Too many attempts from this client; retry after `Retry-After` seconds.
 
 ```json
 {
   "error": "too_many_requests",
-  "message": "Too many requests. Try again shortly.",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
   "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The user or password hash could not be read, or the session could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1823,7 +3095,9 @@ Operator (or elevated) session starts impersonating a User.
 
 ### Responses
 
-- `200` — The session now acts as the user. Body: any JSON (`application/json`)
+- `200` — The session now acts as the user. Body: [`ImpersonationStarted`](schemas.md#impersonationstarted) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `impersonating` *[`AuthMeImpersonating`](schemas.md#authmeimpersonating)*, **required** — The user the session now acts as.
 - `400` — Operator auth is off. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1832,11 +3106,15 @@ Operator (or elevated) session starts impersonating a User.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The session is already impersonating a user, or the target user is disabled. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The user could not be read, or the session could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -1893,7 +3171,60 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The session now acts as the user. The body is JSON the schemas do not describe yet.
+Status `200`: The session now acts as the user.
+
+```json
+{
+  "ok": true,
+  "impersonating": {
+    "user_id": 7,
+    "display_name": "Sam"
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after an operator session started impersonating a user.",
+  "required": [
+    "ok",
+    "impersonating"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "impersonating": {
+      "type": "object",
+      "description": "The user the session now acts as.",
+      "required": [
+        "user_id"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "First-party `users.id` being impersonated.",
+          "example": 7
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name of the impersonated user when the row exists.",
+          "example": "Sam"
+        }
+      }
+    }
+  }
+}
+```
 
 Status `400`: Operator auth is off.
 
@@ -1967,7 +3298,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is already impersonating a user, or the target user is disabled. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -2039,6 +3370,42 @@ Schema:
 }
 ```
 
+Status `500`: The user could not be read, or the session could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -2059,12 +3426,17 @@ Clear impersonation on the current operator session.
 
 ### Responses
 
-- `200` — Impersonation ended. Body: any JSON (`application/json`)
+- `200` — Impersonation ended. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The session could not be updated. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -2119,7 +3491,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Impersonation ended. The body is JSON the schemas do not describe yet.
+Status `200`: Impersonation ended.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -2157,13 +3554,49 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
   "error": "forbidden",
   "message": "You do not have access to this resource.",
   "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The session could not be updated.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -3023,7 +4456,8 @@ Revokes hashed operator and portal sessions and clears both cookies.
 
 ### Responses
 
-- `200` — Signed out; both session cookies are cleared. Body: any JSON (`application/json`)
+- `200` — Signed out; both session cookies are cleared. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3078,7 +4512,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed out; both session cookies are cleared. The body is JSON the schemas do not describe yet.
+Status `200`: Signed out; both session cookies are cleared.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -3172,16 +4631,17 @@ List sessions for the current principal only (not every operator session).
 
 ### Responses
 
-- `200` — The caller's sessions. Body: any JSON (`application/json`)
+- `200` — The caller's sessions. Body: [`SessionsResponse`](schemas.md#sessionsresponse) (`application/json`)
+  - `sessions` *array of [`SessionView`](schemas.md#sessionview)*, **required** — The caller's sessions, newest first; empty for a Bearer-only caller, who has no session rows.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — The impersonated user has no sign-in identity. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — The user has no sign-in identity. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The sessions could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -3228,7 +4688,233 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The caller's sessions. The body is JSON the schemas do not describe yet.
+Status `200`: The caller's sessions.
+
+```json
+{
+  "sessions": [
+    {
+      "id": 12,
+      "created_at": "2026-10-28T19:02:11Z",
+      "last_used_at": "2026-10-29T08:15:00Z",
+      "expires_at": "2026-11-04T19:02:11Z",
+      "elevated": false,
+      "impersonating_user_id": 7,
+      "is_current": false,
+      "client_label": "Windows",
+      "device_type": "desktop",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/134.0",
+      "kind": "operator"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/sessions`.",
+  "required": [
+    "sessions"
+  ],
+  "properties": {
+    "sessions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "type": "object",
+                "description": "An operator session (`kind` is `operator`).",
+                "required": [
+                  "id",
+                  "created_at",
+                  "expires_at",
+                  "elevated",
+                  "is_current"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Session id, for `DELETE /api/auth/sessions/{id}`.",
+                    "example": 12
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time the session was created.",
+                    "example": "2026-10-28T19:02:11Z"
+                  },
+                  "last_used_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time of the last authenticated use, when any.",
+                    "example": "2026-10-29T08:15:00Z"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "description": "RFC 3339 expiry.",
+                    "example": "2026-11-04T19:02:11Z"
+                  },
+                  "elevated": {
+                    "type": "boolean",
+                    "description": "Whether an Owner elevated into this session (rather than the operator token).",
+                    "example": false
+                  },
+                  "impersonating_user_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "User the session is impersonating, when it is. Never set on the\nsession making the request: while that session impersonates, the\nlist shows the target's portal sessions instead.",
+                    "example": 7
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "description": "Whether this is the session making the request.",
+                    "example": false
+                  },
+                  "client_label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Best-effort OS or client label from the User-Agent.",
+                    "example": "Windows"
+                  },
+                  "device_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).",
+                    "example": "desktop"
+                  },
+                  "user_agent": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Raw User-Agent captured when the session was created.",
+                    "example": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/134.0"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "operator"
+                    ]
+                  }
+                }
+              }
+            ],
+            "description": "An operator session (`kind` is `operator`)."
+          },
+          {
+            "allOf": [
+              {
+                "type": "object",
+                "description": "A portal session (`kind` is `portal`).",
+                "required": [
+                  "id",
+                  "created_at",
+                  "expires_at",
+                  "is_current"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Session id, for `DELETE /api/auth/sessions/{id}`.",
+                    "example": 31
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "description": "RFC 3339 time the session was created.",
+                    "example": "2026-10-28T19:02:11Z"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "description": "RFC 3339 expiry.",
+                    "example": "2026-11-27T19:02:11Z"
+                  },
+                  "last_used_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "RFC 3339 time of the last authenticated use, when any.",
+                    "example": "2026-10-29T08:15:00Z"
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "description": "Whether this is the session making the request.",
+                    "example": true
+                  },
+                  "client_label": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Best-effort OS or client label from the User-Agent.",
+                    "example": "Android"
+                  },
+                  "device_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).",
+                    "example": "mobile"
+                  },
+                  "user_agent": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Raw User-Agent captured when the session was created.",
+                    "example": "Mozilla/5.0 (Linux; Android 15) Chrome/131.0 Mobile"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "portal"
+                    ]
+                  }
+                }
+              }
+            ],
+            "description": "A portal session (`kind` is `portal`)."
+          }
+        ],
+        "description": "One session in the caller's list, told apart by `kind`: an operator\nsession or a portal (user) session."
+      },
+      "description": "The caller's sessions, newest first; empty for a Bearer-only caller, who has no session rows."
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -3266,13 +4952,13 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this.
+Status `404`: The impersonated user has no sign-in identity.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -3302,13 +4988,13 @@ Schema:
 }
 ```
 
-Status `404`: The user has no sign-in identity.
+Status `500`: The sessions could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -3363,16 +5049,21 @@ portal users may only revoke their own.
 
 ### Responses
 
-- `200` — The session was revoked. Body: any JSON (`application/json`)
+- `200` — The session was revoked. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such session. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such session, or it belongs to someone else. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The session could not be deleted. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -3422,7 +5113,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The session was revoked. The body is JSON the schemas do not describe yet.
+Status `200`: The session was revoked.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -3460,7 +5176,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -3496,13 +5212,49 @@ Schema:
 }
 ```
 
-Status `404`: No such session.
+Status `404`: No such session, or it belongs to someone else.
 
 ```json
 {
   "error": "not_found",
   "message": "That page or resource was not found.",
   "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The session could not be deleted.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
