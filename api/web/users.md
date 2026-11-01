@@ -1976,11 +1976,15 @@ Serves a stored avatar JPEG for any authenticated household member.
 ### Responses
 
 - `200` — The avatar. Body: [`BinaryBody`](schemas.md#binarybody) (`image/jpeg`); [`BinaryBody`](schemas.md#binarybody) (`image/png`); [`BinaryBody`](schemas.md#binarybody) (`image/webp`)
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — The user has no avatar. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `404` — No such user, or the user has no avatar. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The user could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -2033,7 +2037,7 @@ Schema:
 
 A `image/jpeg` body: binary bytes.
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in.
 
 ```json
 {
@@ -2069,13 +2073,49 @@ Schema:
 }
 ```
 
-Status `404`: The user has no avatar.
+Status `404`: No such user, or the user has no avatar.
 
 ```json
 {
   "error": "not_found",
   "message": "That page or resource was not found.",
   "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The user could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 

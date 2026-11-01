@@ -5312,16 +5312,18 @@ Updates the caller's display name and/or email.
 
 ### Responses
 
-- `200` — The profile after the change. Body: any JSON (`application/json`)
-- `400` — A value is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The profile after the change. Body: [`ProfileChanged`](schemas.md#profilechanged) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `user` *[`AuthMeUser`](schemas.md#authmeuser)*, **required** — The profile after the change, as `GET /api/auth/me` reports it.
+- `400` — A value is invalid (`display_name_too_long`, `invalid_email`, `invalid_avatar_source`), or the body sets none of the three fields (the standard error body). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -5329,7 +5331,11 @@ Updates the caller's display name and/or email.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `409` — The email is used by another account (`email_in_use`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `409` — The email is used by another account (`email_in_use`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -5386,14 +5392,160 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The profile after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: A value is invalid.
+Status `200`: The profile after the change.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
+  "ok": true,
+  "user": {
+    "id": 7,
+    "role": "administrator",
+    "display_name": "Sam",
+    "email": "sam@example.com",
+    "has_password": true,
+    "has_avatar": false,
+    "avatar_source": "auto",
+    "gravatar_hash": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2",
+    "sso_pictures": [
+      {
+        "identity_id": 3,
+        "provider": "oidc:google",
+        "picture_url": "https://lh3.googleusercontent.com/a/example=s96-c",
+        "last_used_at": "2026-10-29T08:15:00Z"
+      }
+    ]
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after `PATCH /api/auth/profile`.",
+  "required": [
+    "ok",
+    "user"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "user": {
+      "type": "object",
+      "description": "The profile after the change, as `GET /api/auth/me` reports it.",
+      "required": [
+        "id",
+        "role",
+        "has_password",
+        "has_avatar",
+        "avatar_source"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "First-party `users.id`.",
+          "example": 7
+        },
+        "role": {
+          "type": "string",
+          "description": "Role string (`owner`, `administrator`, `member`).",
+          "example": "administrator"
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional human-readable name from the user row.",
+          "example": "Sam"
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional email; omitted from JSON when unset.",
+          "example": "sam@example.com"
+        },
+        "has_password": {
+          "type": "boolean",
+          "description": "True when a local password hash is stored (invite users may be false).",
+          "example": true
+        },
+        "has_avatar": {
+          "type": "boolean",
+          "description": "True when a JPEG avatar is stored under `files_dir/avatars/{id}.*`.",
+          "example": false
+        },
+        "avatar_source": {
+          "type": "string",
+          "description": "Selected picture source (`auto`, `monogram`, `gravatar`, `upload`, `sso:{id}`).",
+          "example": "auto"
+        },
+        "gravatar_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "SHA-256 hex of the contact email for Gravatar, when an email is set.",
+          "example": "0bc83cb571cd1c50ba6f3e8a78ef1346b6b31bd4d35b8d3dc1f0c8a3b4a9f7e2"
+        },
+        "sso_pictures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "HTTPS picture from a linked identity provider.",
+            "required": [
+              "identity_id",
+              "provider",
+              "picture_url"
+            ],
+            "properties": {
+              "identity_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "`portal_identities.id`.",
+                "example": 3
+              },
+              "provider": {
+                "type": "string",
+                "description": "Identity-broker id (`oidc:google`, …).",
+                "example": "oidc:google"
+              },
+              "picture_url": {
+                "type": "string",
+                "description": "HTTPS URL to display.",
+                "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+              },
+              "last_used_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "RFC 3339 last portal-session activity for this identity, when any.",
+                "example": "2026-10-29T08:15:00Z"
+              }
+            }
+          },
+          "description": "IdP-supplied pictures the user can pick."
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: A value is invalid (`display_name_too_long`, `invalid_email`, `invalid_avatar_source`), or the body sets none of the three fields (the standard error body).
+
+```json
+{
+  "error": "display_name_too_long",
+  "message": "Display name must be 80 characters or fewer.",
   "status": 400
 }
 ```
@@ -5403,22 +5555,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -5460,7 +5619,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -5536,9 +5695,52 @@ Status `409`: The email is used by another account (`email_in_use`).
 
 ```json
 {
-  "error": "conflict",
-  "message": "Conflict",
+  "error": "email_in_use",
+  "message": "That email is already used by another account.",
   "status": 409
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5592,8 +5794,11 @@ Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
 
 ### Responses
 
-- `200` — The avatar was stored. Body: any JSON (`application/json`)
-- `400` — The image is not JPEG, PNG or WebP. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — The avatar was stored. Body: [`AvatarChanged`](schemas.md#avatarchanged) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `has_avatar` *boolean*, **required** — Whether an uploaded picture is stored now.
+  - `avatar_source` *string or null* — Present only after an upload, always `upload`; absent after a removal (the stored source is then unchanged unless it was `upload`).
+- `400` — The body is empty or not a JPEG, PNG or WebP image. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -5601,11 +5806,15 @@ Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `413` — The image is too large. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `413` — The image is larger than 1.5 MB. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The files directory is unknown, or the image could not be written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -5665,9 +5874,50 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The avatar was stored. The body is JSON the schemas do not describe yet.
+Status `200`: The avatar was stored.
 
-Status `400`: The image is not JPEG, PNG or WebP.
+```json
+{
+  "ok": true,
+  "has_avatar": true,
+  "avatar_source": "upload"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after the caller's avatar was stored or removed.",
+  "required": [
+    "ok",
+    "has_avatar"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "has_avatar": {
+      "type": "boolean",
+      "description": "Whether an uploaded picture is stored now.",
+      "example": true
+    },
+    "avatar_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Present only after an upload, always `upload`; absent after a removal\n(the stored source is then unchanged unless it was `upload`).",
+      "example": "upload"
+    }
+  }
+}
+```
+
+Status `400`: The body is empty or not a JPEG, PNG or WebP image.
 
 ```json
 {
@@ -5739,7 +5989,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -5775,13 +6025,49 @@ Schema:
 }
 ```
 
-Status `413`: The image is too large.
+Status `413`: The image is larger than 1.5 MB.
 
 ```json
 {
   "error": "payload_too_large",
   "message": "Payload Too Large",
   "status": 413
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The files directory is unknown, or the image could not be written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5831,12 +6117,19 @@ Removes the caller's stored avatar, if any.
 
 ### Responses
 
-- `200` — The avatar was removed. Body: any JSON (`application/json`)
+- `200` — The avatar was removed. Body: [`AvatarChanged`](schemas.md#avatarchanged) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `has_avatar` *boolean*, **required** — Whether an uploaded picture is stored now.
+  - `avatar_source` *string or null* — Present only after an upload, always `upload`; absent after a removal (the stored source is then unchanged unless it was `upload`).
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The files directory is unknown. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -5886,7 +6179,47 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The avatar was removed. The body is JSON the schemas do not describe yet.
+Status `200`: The avatar was removed.
+
+```json
+{
+  "has_avatar": false,
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after the caller's avatar was stored or removed.",
+  "required": [
+    "ok",
+    "has_avatar"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "has_avatar": {
+      "type": "boolean",
+      "description": "Whether an uploaded picture is stored now.",
+      "example": true
+    },
+    "avatar_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Present only after an upload, always `upload`; absent after a removal\n(the stored source is then unchanged unless it was `upload`).",
+      "example": "upload"
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -5924,13 +6257,49 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
   "error": "forbidden",
   "message": "You do not have access to this resource.",
   "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The files directory is unknown.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7696,12 +8065,13 @@ Lists this user's stored passkeys as `{ id, credential_id }` rows.
 
 ### Responses
 
-- `200` — The caller's passkeys. Body: any JSON (`application/json`)
+- `200` — The caller's passkeys. Body: [`PasskeysResponse`](schemas.md#passkeysresponse) (`application/json`)
+  - `passkeys` *array of [`PasskeySummary`](schemas.md#passkeysummary)*, **required** — The caller's passkeys, oldest first.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The passkeys could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -7750,7 +8120,64 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The caller's passkeys. The body is JSON the schemas do not describe yet.
+Status `200`: The caller's passkeys.
+
+```json
+{
+  "passkeys": [
+    {
+      "id": 4,
+      "credential_id": "pQECAyYgASFYIE9ZJ2kLm3nO4pQ5rS6tU7vW8xY9zA0",
+      "name": "YubiKey 5C"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/passkeys`.",
+  "required": [
+    "passkeys"
+  ],
+  "properties": {
+    "passkeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One stored passkey.",
+        "required": [
+          "id",
+          "credential_id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Row id, for `DELETE /api/auth/passkeys/{id}`.",
+            "example": 4
+          },
+          "credential_id": {
+            "type": "string",
+            "description": "Base64url credential id the authenticator reports.",
+            "example": "pQECAyYgASFYIE9ZJ2kLm3nO4pQ5rS6tU7vW8xY9zA0"
+          },
+          "name": {
+            "type": "string",
+            "description": "Label chosen at registration (`Passkey` when none was given).",
+            "example": "YubiKey 5C"
+          }
+        }
+      },
+      "description": "The caller's passkeys, oldest first."
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -7788,13 +8215,13 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this.
+Status `500`: The passkeys could not be read.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7850,12 +8277,22 @@ Starts passkey registration (skips reauth only for first local-only setup).
 
 ### Responses
 
-- `200` — WebAuthn creation options. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — WebAuthn creation options. Body: [`PasskeyCreationOptions`](schemas.md#passkeycreationoptions) (`application/json`)
+  - `challenge_id` *string*, **required** — Server-issued challenge id to send back with the attestation; consumed once, five-minute lifetime.
+  - `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialCreationOptions (relying party, user, challenge, algorithms, excluded credentials), binary fields base64url-encoded.
+- `400` — The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read, or the challenge could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -7917,9 +8354,134 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: WebAuthn creation options. The body is JSON the schemas do not describe yet.
+Status `200`: WebAuthn creation options.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f",
+  "publicKey": {
+    "attestation": "none",
+    "authenticatorSelection": {
+      "residentKey": "required",
+      "userVerification": "preferred"
+    },
+    "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+    "excludeCredentials": [],
+    "pubKeyCredParams": [
+      {
+        "alg": -7,
+        "type": "public-key"
+      },
+      {
+        "alg": -257,
+        "type": "public-key"
+      }
+    ],
+    "rp": {
+      "id": "books.example.com",
+      "name": "Bookclerk"
+    },
+    "timeout": 60000,
+    "user": {
+      "displayName": "Sam",
+      "id": "AAAAAAAAAAAAAAAAAAAABw",
+      "name": "sam"
+    }
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "WebAuthn creation options for `navigator.credentials.create()`, plus the challenge id for the finish step.",
+  "required": [
+    "challenge_id",
+    "publicKey"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Server-issued challenge id to send back with the attestation; consumed once, five-minute lifetime.",
+      "example": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f"
+    },
+    "publicKey": {
+      "description": "W3C PublicKeyCredentialCreationOptions (relying party, user, challenge, algorithms, excluded credentials), binary fields base64url-encoded.",
+      "examples": [
+        {
+          "attestation": "none",
+          "authenticatorSelection": {
+            "residentKey": "required",
+            "userVerification": "preferred"
+          },
+          "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+          "excludeCredentials": [],
+          "pubKeyCredParams": [
+            {
+              "alg": -7,
+              "type": "public-key"
+            },
+            {
+              "alg": -257,
+              "type": "public-key"
+            }
+          ],
+          "rp": {
+            "id": "books.example.com",
+            "name": "Bookclerk"
+          },
+          "timeout": 60000,
+          "user": {
+            "displayName": "Sam",
+            "id": "AAAAAAAAAAAAAAAAAAAABw",
+            "name": "sam"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`).
+
+```json
+{
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong.
 
 ```json
 {
@@ -7955,13 +8517,49 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
   "error": "forbidden",
   "message": "You do not have access to this resource.",
   "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read, or the challenge could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -8019,8 +8617,9 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 
 ### Responses
 
-- `200` — The passkey was stored. Body: any JSON (`application/json`)
-- `400` — The attestation is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — The passkey was stored. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+- `400` — The challenge is unknown or expired, the attestation is invalid, or the daemon's origin is not a valid WebAuthn relying party. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8028,11 +8627,15 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The challenge was issued to another user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `409` — The passkey is already registered. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8094,9 +8697,34 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The passkey was stored. The body is JSON the schemas do not describe yet.
+Status `200`: The passkey was stored.
 
-Status `400`: The attestation is invalid.
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The challenge is unknown or expired, the attestation is invalid, or the daemon's origin is not a valid WebAuthn relying party.
 
 ```json
 {
@@ -8168,7 +8796,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The challenge was issued to another user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -8240,6 +8868,42 @@ Schema:
 }
 ```
 
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -8270,16 +8934,21 @@ Deletes one passkey after recent reauth; 404 when the id is not this user's.
 
 ### Responses
 
-- `200` — The passkey was deleted. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — The passkey was deleted. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+- `401` — The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such passkey for this user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8341,9 +9010,34 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The passkey was deleted. The body is JSON the schemas do not describe yet.
+Status `200`: The passkey was deleted.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong.
 
 ```json
 {
@@ -8379,7 +9073,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -8451,6 +9145,42 @@ Schema:
 }
 ```
 
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -8477,8 +9207,11 @@ Rate-limits and starts passkey login; records a failure on any error.
 
 ### Responses
 
-- `200` — WebAuthn request options. Body: any JSON (`application/json`)
-- `400` — The request is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — WebAuthn request options. Body: [`PasskeyRequestOptions`](schemas.md#passkeyrequestoptions) (`application/json`)
+  - `challenge_id` *string*, **required** — Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.
+  - `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.
+  - `mediation` *string or null* — Credential mediation the daemon asks the browser for; absent unless conditional mediation was requested.
+- `400` — The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8494,7 +9227,11 @@ Rate-limits and starts passkey login; records a failure on any error.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `429` — Too many attempts; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `429` — Too many failed attempts from this client; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read, or the challenge could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8547,9 +9284,73 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: WebAuthn request options. The body is JSON the schemas do not describe yet.
+Status `200`: WebAuthn request options.
 
-Status `400`: The request is invalid.
+```json
+{
+  "challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f",
+  "publicKey": {
+    "allowCredentials": [
+      {
+        "id": "pQECAyYgASFYIE",
+        "type": "public-key"
+      }
+    ],
+    "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+    "rpId": "books.example.com",
+    "timeout": 60000,
+    "userVerification": "preferred"
+  },
+  "mediation": "conditional"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.",
+  "required": [
+    "challenge_id",
+    "publicKey"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.",
+      "example": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f"
+    },
+    "publicKey": {
+      "description": "W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.",
+      "examples": [
+        {
+          "allowCredentials": [
+            {
+              "id": "pQECAyYgASFYIE",
+              "type": "public-key"
+            }
+          ],
+          "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+          "rpId": "books.example.com",
+          "timeout": 60000,
+          "userVerification": "preferred"
+        }
+      ]
+    },
+    "mediation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Credential mediation the daemon asks the browser for; absent unless\nconditional mediation was requested.",
+      "example": "conditional"
+    }
+  }
+}
+```
+
+Status `400`: The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`).
 
 ```json
 {
@@ -8693,13 +9494,49 @@ Schema:
 }
 ```
 
-Status `429`: Too many attempts; try later.
+Status `429`: Too many failed attempts from this client; try later.
 
 ```json
 {
   "error": "too_many_requests",
   "message": "Too many requests. Try again shortly.",
   "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read, or the challenge could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -8757,16 +9594,22 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 
 ### Responses
 
-- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
-- `400` — The challenge is unknown or expired, or the credential is malformed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Signed in; the response sets the portal session cookie. Body: [`PortalSessionIssued`](schemas.md#portalsessionissued) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+- `400` — The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The assertion is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The assertion does not verify, or the credential is not one of the challenged user's. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The user is disabled. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -8819,9 +9662,41 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
+Status `200`: Signed in; the response sets the portal session cookie.
 
-Status `400`: The challenge is unknown or expired, or the credential is malformed.
+```json
+{
+  "ok": true,
+  "role": "member"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a portal session was minted for a first-party user.",
+  "required": [
+    "ok",
+    "role"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "role": {
+      "type": "string",
+      "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+      "example": "member"
+    }
+  }
+}
+```
+
+Status `400`: The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party.
 
 ```json
 {
@@ -8857,7 +9732,7 @@ Schema:
 }
 ```
 
-Status `401`: The assertion is invalid.
+Status `401`: The assertion does not verify, or the credential is not one of the challenged user's.
 
 ```json
 {
@@ -8929,6 +9804,42 @@ Schema:
 }
 ```
 
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -8949,16 +9860,27 @@ Starts Owner elevation; 403 unless the signed-in user is an Owner with passkeys.
 
 ### Responses
 
-- `200` — WebAuthn request options. Body: any JSON (`application/json`)
+- `200` — WebAuthn request options. Body: [`PasskeyRequestOptions`](schemas.md#passkeyrequestoptions) (`application/json`)
+  - `challenge_id` *string*, **required** — Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.
+  - `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.
+  - `mediation` *string or null* — Credential mediation the daemon asks the browser for; absent unless conditional mediation was requested.
+- `400` — The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not an Owner. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — The caller has no passkeys. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read, or the challenge could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -9013,7 +9935,107 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: WebAuthn request options. The body is JSON the schemas do not describe yet.
+Status `200`: WebAuthn request options.
+
+```json
+{
+  "challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f",
+  "publicKey": {
+    "allowCredentials": [
+      {
+        "id": "pQECAyYgASFYIE",
+        "type": "public-key"
+      }
+    ],
+    "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+    "rpId": "books.example.com",
+    "timeout": 60000,
+    "userVerification": "preferred"
+  },
+  "mediation": "conditional"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.",
+  "required": [
+    "challenge_id",
+    "publicKey"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.",
+      "example": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f"
+    },
+    "publicKey": {
+      "description": "W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.",
+      "examples": [
+        {
+          "allowCredentials": [
+            {
+              "id": "pQECAyYgASFYIE",
+              "type": "public-key"
+            }
+          ],
+          "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+          "rpId": "books.example.com",
+          "timeout": 60000,
+          "userVerification": "preferred"
+        }
+      ]
+    },
+    "mediation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Credential mediation the daemon asks the browser for; absent unless\nconditional mediation was requested.",
+      "example": "conditional"
+    }
+  }
+}
+```
+
+Status `400`: The daemon's origin is not a valid WebAuthn relying party (set `integrations.public_origin`).
+
+```json
+{
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -9051,7 +10073,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an Owner. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -9123,6 +10145,42 @@ Schema:
 }
 ```
 
+Status `500`: The library could not be read, or the challenge could not be stored.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -9151,16 +10209,23 @@ Completes Owner elevation only when the assertion is user-verified.
 
 ### Responses
 
-- `200` — Elevated; the response sets a short-lived operator cookie. Body: any JSON (`application/json`)
-- `400` — The challenge is unknown or expired, or the credential is malformed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Elevated; the response sets a short-lived operator cookie. Body: [`Elevated`](schemas.md#elevated) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `elevated` *boolean*, **required** — Always `true`: the cookie the response sets is an elevated operator session.
+  - `expires_in_secs` *integer (int64)*, **required** — Seconds until the elevated session expires. At least 0.
+- `400` — The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in, the assertion does not verify or was not user-verified, or the credential is not the caller's. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — The caller is not an Owner, or the challenge was issued to another user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -9222,9 +10287,50 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Elevated; the response sets a short-lived operator cookie. The body is JSON the schemas do not describe yet.
+Status `200`: Elevated; the response sets a short-lived operator cookie.
 
-Status `400`: The challenge is unknown or expired, or the credential is malformed.
+```json
+{
+  "ok": true,
+  "elevated": true,
+  "expires_in_secs": 900
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a successful Owner elevation.",
+  "required": [
+    "ok",
+    "elevated",
+    "expires_in_secs"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "elevated": {
+      "type": "boolean",
+      "description": "Always `true`: the cookie the response sets is an elevated operator session.",
+      "example": true
+    },
+    "expires_in_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until the elevated session expires.",
+      "example": 900,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party.
 
 ```json
 {
@@ -9260,7 +10366,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not signed in, the assertion does not verify or was not user-verified, or the credential is not the caller's.
 
 ```json
 {
@@ -9296,13 +10402,49 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an Owner, or the challenge was issued to another user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
   "error": "forbidden",
   "message": "You do not have access to this resource.",
   "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -9359,12 +10501,18 @@ Completes password+TOTP login and issues a portal session cookie.
 
 ### Responses
 
-- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
-- `401` — The challenge or code is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Signed in; the response sets the portal session cookie. Body: [`PortalSessionIssued`](schemas.md#portalsessionissued) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true` on this success path.
+  - `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+- `401` — The challenge is unknown or expired, TOTP is off for the user, or the code is wrong (`invalid_code`); or the challenged user no longer exists (the standard error body). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many failed attempts from this client; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `429` — Too many attempts; try later. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The user or secret could not be read, or the session could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -9417,15 +10565,90 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
-
-Status `401`: The challenge or code is wrong.
+Status `200`: Signed in; the response sets the portal session cookie.
 
 ```json
 {
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
+  "ok": true,
+  "role": "member"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a portal session was minted for a first-party user.",
+  "required": [
+    "ok",
+    "role"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true` on this success path.",
+      "example": true
+    },
+    "role": {
+      "type": "string",
+      "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+      "example": "member"
+    }
+  }
+}
+```
+
+Status `401`: The challenge is unknown or expired, TOTP is off for the user, or the code is wrong (`invalid_code`); or the challenged user no longer exists (the standard error body).
+
+```json
+{
+  "error": "invalid_code",
+  "message": "Invalid authenticator code.",
   "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many failed attempts from this client; try later.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
 }
 ```
 
@@ -9455,13 +10678,13 @@ Schema:
 }
 ```
 
-Status `429`: Too many attempts; try later.
+Status `500`: The user or secret could not be read, or the session could not be stored.
 
 ```json
 {
-  "error": "too_many_requests",
-  "message": "Too many requests. Try again shortly.",
-  "status": 429
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -9517,16 +10740,23 @@ Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG.
 
 ### Responses
 
-- `200` — A pending secret, its otpauth URL and a QR code SVG. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — A pending secret, its otpauth URL and a QR code SVG. Body: [`TotpEnrollment`](schemas.md#totpenrollment) (`application/json`)
+  - `secret` *string*, **required** — Pending base32 secret, for typing into an app by hand.
+  - `otpauth_url` *string*, **required** — `otpauth://` URL the QR code encodes.
+  - `qr_svg` *string*, **required** — The QR code as an SVG document, ready to inline.
+- `401` — The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `409` — TOTP is already on. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The secret could not be sealed and stored, or the library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -9588,9 +10818,48 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: A pending secret, its otpauth URL and a QR code SVG. The body is JSON the schemas do not describe yet.
+Status `200`: A pending secret, its otpauth URL and a QR code SVG.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "secret": "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
+  "otpauth_url": "otpauth://totp/Bookclerk:sam?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Bookclerk&algorithm=SHA1&digits=6&period=30",
+  "qr_svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 37 37\">…</svg>"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after TOTP enrollment began: what the authenticator app needs.",
+  "required": [
+    "secret",
+    "otpauth_url",
+    "qr_svg"
+  ],
+  "properties": {
+    "secret": {
+      "type": "string",
+      "description": "Pending base32 secret, for typing into an app by hand.",
+      "example": "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+    },
+    "otpauth_url": {
+      "type": "string",
+      "description": "`otpauth://` URL the QR code encodes.",
+      "example": "otpauth://totp/Bookclerk:sam?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=Bookclerk&algorithm=SHA1&digits=6&period=30"
+    },
+    "qr_svg": {
+      "type": "string",
+      "description": "The QR code as an SVG document, ready to inline.",
+      "example": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 37 37\">…</svg>"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong.
 
 ```json
 {
@@ -9626,7 +10895,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -9698,6 +10967,42 @@ Schema:
 }
 ```
 
+Status `500`: The secret could not be sealed and stored, or the library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -9724,20 +11029,25 @@ Confirms the pending secret with a valid code and sets `users.totp_enabled`.
 
 ### Responses
 
-- `200` — TOTP is on. Body: any JSON (`application/json`)
+- `200` — TOTP is on. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `400` — No enrollment is pending; start one first. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the code is wrong (`invalid_code`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `401` — The caller is not signed in (the standard error body), or the code is wrong (`invalid_code`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `409` — TOTP is already on. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The pending secret could not be read, or the enrollment could not be confirmed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -9799,7 +11109,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: TOTP is on. The body is JSON the schemas do not describe yet.
+Status `200`: TOTP is on.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `400`: No enrollment is pending; start one first.
 
@@ -9837,12 +11172,12 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in, or the code is wrong (`invalid_code`).
+Status `401`: The caller is not signed in (the standard error body), or the code is wrong (`invalid_code`).
 
 ```json
 {
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
+  "error": "invalid_code",
+  "message": "Invalid authenticator code.",
   "status": 401
 }
 ```
@@ -9852,28 +11187,35 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -9945,6 +11287,42 @@ Schema:
 }
 ```
 
+Status `500`: The pending secret could not be read, or the enrollment could not be confirmed.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -9965,12 +11343,13 @@ GET `/api/auth/totp` — whether TOTP is confirmed for this user.
 
 ### Responses
 
-- `200` — Whether TOTP is on for the caller. Body: any JSON (`application/json`)
+- `200` — Whether TOTP is on for the caller. Body: [`TotpStatus`](schemas.md#totpstatus) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether an authenticator app is confirmed for the caller.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `500` — The user could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -10019,7 +11398,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Whether TOTP is on for the caller. The body is JSON the schemas do not describe yet.
+Status `200`: Whether TOTP is on for the caller.
+
+```json
+{
+  "enabled": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/totp`.",
+  "required": [
+    "enabled"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether an authenticator app is confirmed for the caller.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -10057,13 +11461,13 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this.
+Status `500`: The user could not be read.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -10119,12 +11523,17 @@ Disables TOTP after recent reauth and deletes sealed secrets.
 
 ### Responses
 
-- `200` — TOTP is off. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — TOTP is off. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
+- `401` — The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -10186,9 +11595,34 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: TOTP is off. The body is JSON the schemas do not describe yet.
+Status `200`: TOTP is off.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Acknowledgement body (`{\"ok\": true}`) for actions with nothing else to report.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`: a failure answers with an error status instead.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the session is older than fifteen minutes and `current_password` is missing or wrong.
 
 ```json
 {
@@ -10224,13 +11658,49 @@ Schema:
 }
 ```
 
-Status `403`: The caller may not do this. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
   "error": "forbidden",
   "message": "You do not have access to this resource.",
   "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -10280,15 +11750,16 @@ Current MFA policy (`require_second_factor`).
 
 ### Responses
 
-- `200` — Whether a second factor is required. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `200` — Whether a second factor is required. Body: [`MfaPolicy`](schemas.md#mfapolicy) (`application/json`)
+  - `require_second_factor` *boolean*, **required** — Whether every password sign-in must be followed by a passkey or authenticator code.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -10332,9 +11803,34 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Whether a second factor is required. The body is JSON the schemas do not describe yet.
+Status `200`: Whether a second factor is required.
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+```json
+{
+  "require_second_factor": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The host-wide second-factor policy.",
+  "required": [
+    "require_second_factor"
+  ],
+  "properties": {
+    "require_second_factor": {
+      "type": "boolean",
+      "description": "Whether every password sign-in must be followed by a passkey or authenticator code.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
 
 ```json
 {
@@ -10370,7 +11866,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller's role does not allow this route.
+Status `403`: The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`).
 
 ```json
 {
@@ -10385,22 +11881,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -10433,23 +11936,20 @@ Persists `daemon.auth.require_second_factor` to `config.toml`.
 
 ### Responses
 
-- `200` — The policy after the change. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — The policy after the change. Body: [`MfaPolicy`](schemas.md#mfapolicy) (`application/json`)
+  - `require_second_factor` *boolean*, **required** — Whether every password sign-in must be followed by a passkey or authenticator code.
+- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`reauth_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `403` — The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The configuration path is unknown or the configuration file could not be written, or an Owner's current password could not be read or checked (`internal_error`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -10503,15 +12003,11 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The policy after the change. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: The policy after the change.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "require_second_factor": false
 }
 ```
 
@@ -10520,28 +12016,21 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "The host-wide second-factor policy.",
   "required": [
-    "error"
+    "require_second_factor"
   ],
   "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "require_second_factor": {
+      "type": "boolean",
+      "description": "Whether every password sign-in must be followed by a passkey or authenticator code.",
+      "example": false
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in, or the credential is wrong.
+Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`reauth_required`).
 
 ```json
 {
@@ -10556,28 +12045,35 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -10592,33 +12088,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The configuration path is unknown or the configuration file could not be written, or an Owner's current password could not be read or checked (`internal_error`).
 
 ```json
 {
   "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
+  "message": "failed to write config.toml: Permission denied (os error 13)",
   "status": 500
 }
 ```
@@ -10628,22 +12131,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }

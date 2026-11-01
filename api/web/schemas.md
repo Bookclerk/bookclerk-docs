@@ -111,6 +111,14 @@ HTTPS picture from a linked identity provider.
 - `picture_url` *string*, **required** — HTTPS URL to display.
 - `last_used_at` *string or null* — RFC 3339 last portal-session activity for this identity, when any.
 
+## AvatarChanged
+
+JSON body after the caller's avatar was stored or removed.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `has_avatar` *boolean*, **required** — Whether an uploaded picture is stored now.
+- `avatar_source` *string or null* — Present only after an upload, always `upload`; absent after a removal (the stored source is then unchanged unless it was `upload`).
+
 ## BadBookAction
 
 How to handle acquire failures (`BadBook` setting).
@@ -846,6 +854,12 @@ JSON body for `GET /me`.
 - `external_user_id` *string*, **required** — Provider-scoped user id stored on the portal identity row.
 - `label` *string or null* — Optional display label from the identity row.
 
+## MfaPolicy
+
+The host-wide second-factor policy.
+
+- `require_second_factor` *boolean*, **required** — Whether every password sign-in must be followed by a passkey or authenticator code.
+
 ## MfaPolicyPut
 
 PUT body for the host-wide second-factor policy.
@@ -1209,11 +1223,40 @@ JSON body after the first Owner was created.
 - `node_id` *string*, **required** — Id of the node that was removed, trimmed.
 - `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
 
+## PasskeyCreationOptions
+
+WebAuthn creation options for `navigator.credentials.create()`, plus the challenge id for the finish step.
+
+- `challenge_id` *string*, **required** — Server-issued challenge id to send back with the attestation; consumed once, five-minute lifetime.
+- `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialCreationOptions (relying party, user, challenge, algorithms, excluded credentials), binary fields base64url-encoded.
+
 ## PasskeyReauthBody
 
 Optional current password for step-up before register or delete.
 
 - `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
+
+## PasskeyRequestOptions
+
+WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.
+
+- `challenge_id` *string*, **required** — Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.
+- `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.
+- `mediation` *string or null* — Credential mediation the daemon asks the browser for; absent unless conditional mediation was requested.
+
+## PasskeysResponse
+
+JSON body for `GET /api/auth/passkeys`.
+
+- `passkeys` *array of [`PasskeySummary`](#passkeysummary)*, **required** — The caller's passkeys, oldest first.
+
+## PasskeySummary
+
+One stored passkey.
+
+- `id` *integer (int64)*, **required** — Row id, for `DELETE /api/auth/passkeys/{id}`.
+- `credential_id` *string*, **required** — Base64url credential id the authenticator reports.
+- `name` *string*, **required** — Label chosen at registration (`Passkey` when none was given).
 
 ## PasswordLoginBody
 
@@ -1673,6 +1716,13 @@ Normalized Discover/library preferences for the authenticated subject.
 - `discover_language` *string or null* — `null` = use browser language on the client.
 - `discover_excluded_sources` *array of string*, **required** — Lowercased store ids hidden from Discover results.
 - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
+
+## ProfileChanged
+
+JSON body after `PATCH /api/auth/profile`.
+
+- `ok` *boolean*, **required** — Always `true` on this success path.
+- `user` *[`AuthMeUser`](#authmeuser)*, **required** — The profile after the change, as `GET /api/auth/me` reports it.
 
 ## PurchaseHint
 
@@ -2349,11 +2399,25 @@ The pending second-factor step after a password login.
 - `method` *string*, **required** — Always `totp`: finish with `POST /api/auth/totp/login`.
 - `challenge_id` *string*, **required** — Challenge to send with the code; expires after five minutes.
 
+## TotpEnrollment
+
+JSON body after TOTP enrollment began: what the authenticator app needs.
+
+- `secret` *string*, **required** — Pending base32 secret, for typing into an app by hand.
+- `otpauth_url` *string*, **required** — `otpauth://` URL the QR code encodes.
+- `qr_svg` *string*, **required** — The QR code as an SVG document, ready to inline.
+
 ## TotpReauthBody
 
 Optional current password for enroll/disable step-up.
 
 - `current_password` *string or null* — Password used for recent-reauth when the user already has a credential.
+
+## TotpStatus
+
+JSON body for `GET /api/auth/totp`.
+
+- `enabled` *boolean*, **required** — Whether an authenticator app is confirmed for the caller.
 
 ## TrayHandoffPrepareResponse
 
