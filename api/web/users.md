@@ -402,9 +402,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -438,9 +438,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -473,7 +473,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -699,9 +699,9 @@ Status `400`: The request is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -735,9 +735,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -771,9 +771,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -807,9 +807,9 @@ Status `409`: The login is taken.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -842,7 +842,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -961,9 +961,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -997,9 +997,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1033,9 +1033,9 @@ Status `404`: No such user.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1069,9 +1069,9 @@ Status `409`: The user is the last Owner or Administrator.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -1104,7 +1104,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1348,9 +1348,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1384,9 +1384,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1420,9 +1420,9 @@ Status `404`: No such user.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1482,7 +1482,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1610,9 +1610,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1646,9 +1646,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1682,9 +1682,9 @@ Status `404`: No such user.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1717,7 +1717,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1847,9 +1847,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1883,9 +1883,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1919,9 +1919,9 @@ Status `404`: No such user.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1954,7 +1954,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2037,9 +2037,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2073,9 +2073,9 @@ Status `404`: The user has no avatar.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -2108,7 +2108,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

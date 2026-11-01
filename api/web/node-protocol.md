@@ -99,9 +99,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -135,9 +135,9 @@ Status `401`: The link is unknown, used or expired.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -171,9 +171,9 @@ Status `403`: The transport is not allowed. A write sent with a session cookie b
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -207,9 +207,9 @@ Status `404`: The node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -242,7 +242,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -305,9 +305,9 @@ Status `403`: The transport is not allowed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -341,9 +341,9 @@ Status `404`: The node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -376,7 +376,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -486,9 +486,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -522,9 +522,9 @@ Status `401`: The code or verifier is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -558,9 +558,9 @@ Status `403`: The transport is not allowed. A write sent with a session cookie b
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -594,9 +594,9 @@ Status `404`: The node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -630,9 +630,9 @@ Status `503`: The enrollment could not be recorded; try again (`enrollment_unava
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
 }
 ```
 
@@ -665,7 +665,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -738,9 +738,9 @@ Status `400`: The request does not offer the node subprotocol (`subprotocol_requ
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -774,9 +774,9 @@ Status `403`: The transport is not allowed.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -810,9 +810,9 @@ Status `404`: The node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -846,9 +846,9 @@ Status `503`: Too many handshakes are in flight (`handshakes_busy`); retry after
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
 }
 ```
 
@@ -881,7 +881,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -964,9 +964,9 @@ Status `401`: The node signature is missing or wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1000,9 +1000,9 @@ Status `404`: No such archive, or the node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1035,7 +1035,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1230,9 +1230,9 @@ Status `403`: The connection's transport is refused (`transport_insecure`).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1266,9 +1266,9 @@ Status `404`: No such upload, or the node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1642,9 +1642,9 @@ Status `403`: The connection's transport is refused (`transport_insecure`).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1678,9 +1678,9 @@ Status `404`: No such upload, or the node API is not mounted.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1869,7 +1869,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

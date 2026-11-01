@@ -107,7 +107,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -256,7 +256,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

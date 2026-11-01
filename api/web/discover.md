@@ -143,7 +143,7 @@ Schema:
 Status `400`: No listening-capable integration is enabled.
 
 ```text
-string
+no listening-capable integrations are enabled
 ```
 
 Schema:
@@ -154,9 +154,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -190,9 +190,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -226,10 +226,10 @@ Status `409`: The same job is already pending or running, or no node can run it.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "conflict",
+  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "message": "listen_sync already pending or running",
+  "ok": false
 }
 ```
 
@@ -272,10 +272,10 @@ Status `429`: The job queue is full.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "queue_full",
+  "job_id": "",
+  "message": "job queue is full",
+  "ok": false
 }
 ```
 
@@ -318,10 +318,10 @@ Status `500`: The job could not be queued.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "internal_error",
+  "job_id": "",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
+  "ok": false
 }
 ```
 
@@ -364,10 +364,10 @@ Status `503`: Job admission is paused.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "admission_paused",
+  "job_id": "",
+  "message": "job admission paused (database reload in progress)",
+  "ok": false
 }
 ```
 
@@ -409,7 +409,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -443,10 +443,7 @@ Builds the Discover recommendation feed, skipping embed work on an empty library
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `500` — The lookup failed. Body: string (`text/plain`)
-- `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `503` — Discover is shutting down; try again. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -954,7 +951,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+Failed to deserialize query string: invalid digit found in string
 ```
 
 Schema:
@@ -965,9 +962,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1000,7 +997,7 @@ Schema:
 Status `500`: The lookup failed.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
@@ -1009,44 +1006,18 @@ A `text/plain` body: a string.
 
 Status `503`: Discover is shutting down; try again.
 
-```json
-{
-  "error": "string",
-  "message": "string",
-  "status": 0
-}
+```text
+discover gate closed
 ```
 
 Schema:
 
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
-    }
-  }
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1089,7 +1060,6 @@ Resolves storefront price/availability for one title, forcing server-side prefer
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1374,7 +1344,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+title, asin, isbn, or candidate_product_id is required
 ```
 
 Schema:
@@ -1385,9 +1355,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1421,9 +1391,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1453,20 +1423,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
-
-```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1500,7 +1460,7 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
+- `500` — A lookup task was cancelled before it answered. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1793,7 +1753,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+at most 24 purchase-hint queries per batch
 ```
 
 Schema:
@@ -1804,9 +1764,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1840,9 +1800,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1872,10 +1832,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
+Status `500`: A lookup task was cancelled before it answered.
 
 ```text
-string
+purchase-hints batch task cancelled
 ```
 
 Schema:
@@ -1885,7 +1845,7 @@ A `text/plain` body: a string.
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1938,8 +1898,7 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
-- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+- `504` — The stores did not answer within the search budget. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2348,7 +2307,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+catalog query must be 256 bytes or fewer
 ```
 
 Schema:
@@ -2359,9 +2318,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2391,20 +2350,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
+Status `504`: The stores did not answer within the search budget.
 
 ```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `504`: The request ran past the API's time budget.
-
-```text
-string
+catalog search timed out
 ```
 
 Schema:
@@ -2465,7 +2414,6 @@ Resolves Audnexus-style title metadata for one query.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2802,7 +2750,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+title, asin, or isbn is required
 ```
 
 Schema:
@@ -2813,9 +2761,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2849,9 +2797,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2881,20 +2829,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
-
-```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2928,7 +2866,6 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3275,7 +3212,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+at most 24 title-meta queries per batch
 ```
 
 Schema:
@@ -3286,9 +3223,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3322,9 +3259,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3354,20 +3291,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
-
-```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3410,7 +3337,6 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3603,7 +3529,7 @@ Schema:
 Status `400`: The query is malformed or too large.
 
 ```text
-string
+asin is required
 ```
 
 Schema:
@@ -3614,9 +3540,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3650,9 +3576,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3682,20 +3608,10 @@ Schema:
 }
 ```
 
-Status `500`: The lookup failed.
-
-```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

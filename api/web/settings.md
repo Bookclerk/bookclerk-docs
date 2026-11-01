@@ -499,9 +499,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -535,9 +535,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -571,9 +571,9 @@ Status `500`: The settings could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -613,7 +613,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1140,9 +1140,9 @@ Status `400`: A key is unknown or a value is invalid.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1183,9 +1183,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1219,9 +1219,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1255,9 +1255,9 @@ Status `409`: `output.*` keys were sent with a stale `expected_output_revision`,
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -1291,9 +1291,9 @@ Status `500`: The settings could not be written.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1333,7 +1333,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1488,9 +1488,9 @@ Status `400`: The target is invalid.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1531,9 +1531,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1567,9 +1567,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1603,9 +1603,9 @@ Status `409`: The migration target matches more than one database plugin.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -1639,9 +1639,9 @@ Status `500`: The copy failed.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1681,7 +1681,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1708,7 +1708,7 @@ Loads preferences for the caller with a 3s timeout, creating defaults when missi
   - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
 - `401` — No signed-in caller. Body: string (`text/plain`)
 - `500` — The request could not be read or written. Body: string (`text/plain`)
-- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+- `504` — The preferences row did not load in time. Body: string (`text/plain`)
 
 ### Example request
 
@@ -1828,7 +1828,7 @@ Schema:
 Status `401`: No signed-in caller.
 
 ```text
-string
+Unauthorized
 ```
 
 Schema:
@@ -1838,17 +1838,17 @@ A `text/plain` body: a string.
 Status `500`: The request could not be read or written.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
 
 A `text/plain` body: a string.
 
-Status `504`: The request ran past the API's time budget.
+Status `504`: The preferences row did not load in time.
 
 ```text
-string
+preferences lookup timed out
 ```
 
 Schema:
@@ -1885,14 +1885,16 @@ Merges a preferences PATCH onto the caller’s stored row and writes it back.
   - `discover_language` *string or null* — `null` = use browser language on the client.
   - `discover_excluded_sources` *array of string*, **required** — Lowercased store ids hidden from Discover results.
   - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
-- `400` — A value is invalid. Body: string (`text/plain`)
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — No signed-in caller. Body: string (`text/plain`)
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the patch (a wrong type or an unknown shape). Body: string (`text/plain`)
 - `500` — The request could not be read or written. Body: string (`text/plain`)
-- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+- `504` — The preferences row did not load or save in time. Body: string (`text/plain`)
 
 ### Example request
 
@@ -2019,10 +2021,10 @@ Schema:
 }
 ```
 
-Status `400`: A value is invalid.
+Status `400`: The body is not syntactically valid JSON.
 
 ```text
-string
+Failed to parse the request body as JSON: expected value at line 1 column 10
 ```
 
 Schema:
@@ -2032,7 +2034,7 @@ A `text/plain` body: a string.
 Status `401`: No signed-in caller.
 
 ```text
-string
+Unauthorized
 ```
 
 Schema:
@@ -2043,9 +2045,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2075,20 +2077,40 @@ Schema:
 }
 ```
 
-Status `500`: The request could not be read or written.
+Status `415`: The request did not declare a JSON body.
 
 ```text
-string
+Expected request with `Content-Type: application/json`
 ```
 
 Schema:
 
 A `text/plain` body: a string.
 
-Status `504`: The request ran past the API's time budget.
+Status `422`: The JSON does not fit the patch (a wrong type or an unknown shape).
 
 ```text
-string
+Failed to deserialize the JSON body into the target type: theme: invalid type: integer `3`, expected a string at line 1 column 11
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The request could not be read or written.
+
+```text
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `504`: The preferences row did not load or save in time.
+
+```text
+preferences update timed out
 ```
 
 Schema:

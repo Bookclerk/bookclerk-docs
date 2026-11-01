@@ -258,9 +258,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -294,9 +294,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -330,9 +330,9 @@ Status `500`: The library could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -372,7 +372,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -457,9 +457,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -493,9 +493,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -529,9 +529,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -565,9 +565,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -600,7 +600,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

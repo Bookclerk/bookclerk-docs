@@ -48,12 +48,7 @@ Optional.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
-- `409` — A scan is already pending or running. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when at least one job was accepted.
-  - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
-  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
-  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `409` — A scan is already pending or running, or no node can run it. Body: [`PlanConflict`](schemas.md#planconflict) (`application/json`)
 - `422` — No account matched. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
   - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
@@ -66,6 +61,16 @@ Optional.
   - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
   - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
   - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `500` — The jobs could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `503` — Job admission is paused. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `message` *string*, **required** — Operator-facing status text.
+  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
+  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -180,10 +185,10 @@ Status `400`: The body names no valid target.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "invalid",
+  "job_id": "",
+  "message": "the account named is blank",
+  "ok": false
 }
 ```
 
@@ -226,9 +231,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -262,10 +267,10 @@ Status `403`: The caller may not scan these accounts. A write sent with a sessio
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "forbidden",
+  "job_id": "",
+  "message": "this user may not scan the library",
+  "ok": false
 }
 ```
 
@@ -304,17 +309,17 @@ Schema:
 }
 ```
 
-Status `409`: A scan is already pending or running.
+Status `409`: A scan is already pending or running, or no node can run it.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
+  "error": "conflict",
+  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
   "job_ids": [
-    "string"
+    "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
   ],
-  "error": "string"
+  "message": "scan already pending or running",
+  "ok": false
 }
 ```
 
@@ -322,42 +327,77 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
-  "required": [
-    "ok",
-    "message",
-    "job_id",
-    "job_ids"
-  ],
-  "properties": {
-    "ok": {
-      "type": "boolean",
-      "description": "True when at least one job was accepted."
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing status text."
-    },
-    "job_id": {
-      "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
-    },
-    "job_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Every accepted or already-queued job id, in plan order."
-    },
-    "error": {
-      "type": [
-        "string",
-        "null"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Every planned job is already pending or running; `error` is `conflict`.",
+      "required": [
+        "ok",
+        "message",
+        "job_id",
+        "job_ids"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when at least one job was accepted."
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text."
+        },
+        "job_id": {
+          "type": "string",
+          "description": "First accepted (or, when none was, already queued) job id."
+        },
+        "job_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Every accepted or already-queued job id, in plan order."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "No node runs every plugin instance a job requires; `error` is `unroutable` and `message` names the instances.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed."
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text."
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+        }
+      }
     }
-  }
+  ],
+  "description": "`POST /api/library/scan` and `POST /api/library/acquire` `409` body: the two conflicts a plan can hit."
 }
 ```
 
@@ -365,13 +405,11 @@ Status `422`: No account matched.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "job_ids": [
-    "string"
-  ],
-  "error": "string"
+  "error": "nothing_to_scan",
+  "job_id": "",
+  "job_ids": [],
+  "message": "no scan-enabled store account to scan",
+  "ok": false
 }
 ```
 
@@ -422,13 +460,11 @@ Status `429`: The job queue is full.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "job_ids": [
-    "string"
-  ],
-  "error": "string"
+  "error": "queue_full",
+  "job_id": "",
+  "job_ids": [],
+  "message": "job queue is full",
+  "ok": false
 }
 ```
 
@@ -475,10 +511,102 @@ Schema:
 }
 ```
 
+Status `500`: The jobs could not be queued.
+
+```json
+{
+  "error": "internal_error",
+  "job_id": "",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
+Status `503`: Job admission is paused.
+
+```json
+{
+  "error": "admission_paused",
+  "job_id": "",
+  "message": "job admission paused (database reload in progress)",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "required": [
+    "ok",
+    "message",
+    "job_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True when the action was accepted or completed."
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing status text."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Queued job id, or empty when the action is synchronous."
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -516,11 +644,12 @@ Optional.
 
 ### Responses
 
-- `200` — The acquire jobs were accepted. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+- `200` — The acquire jobs were accepted. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
-  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
 - `400` — The body names no valid title. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
   - `ok` *boolean*, **required** — True when the action was accepted or completed.
   - `message` *string*, **required** — Operator-facing status text.
@@ -535,16 +664,19 @@ Optional.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
-- `409` — The same acquire is already pending or running, or no node can run it. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+- `409` — The same acquire is already pending or running, or no node can run it. Body: [`PlanConflict`](schemas.md#planconflict) (`application/json`)
+- `422` — No account of the caller's can acquire. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
-  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
-- `429` — The job queue is full. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when the action was accepted or completed.
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
+- `429` — The job queue is full. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+  - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
-  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+  - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
+  - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
+  - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
 - `500` — The jobs could not be queued. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
   - `ok` *boolean*, **required** — True when the action was accepted or completed.
   - `message` *string*, **required** — Operator-facing status text.
@@ -615,6 +747,9 @@ Status `200`: The acquire jobs were accepted.
   "ok": true,
   "message": "string",
   "job_id": "string",
+  "job_ids": [
+    "string"
+  ],
   "error": "string"
 }
 ```
@@ -624,16 +759,17 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
   "required": [
     "ok",
     "message",
-    "job_id"
+    "job_id",
+    "job_ids"
   ],
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when at least one job was accepted."
     },
     "message": {
       "type": "string",
@@ -641,14 +777,21 @@ Schema:
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
     }
   }
 }
@@ -658,10 +801,10 @@ Status `400`: The body names no valid title.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "invalid",
+  "job_id": "",
+  "message": "every title id given is blank",
+  "ok": false
 }
 ```
 
@@ -704,9 +847,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -740,10 +883,10 @@ Status `403`: The caller may not acquire for these accounts. A write sent with a
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "forbidden",
+  "job_id": "",
+  "message": "that title is not in a store account linked to this user",
+  "ok": false
 }
 ```
 
@@ -786,10 +929,103 @@ Status `409`: The same acquire is already pending or running, or no node can run
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "conflict",
+  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "job_ids": [
+    "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+  ],
+  "message": "acquire already pending or running",
+  "ok": false
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Every planned job is already pending or running; `error` is `conflict`.",
+      "required": [
+        "ok",
+        "message",
+        "job_id",
+        "job_ids"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when at least one job was accepted."
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text."
+        },
+        "job_id": {
+          "type": "string",
+          "description": "First accepted (or, when none was, already queued) job id."
+        },
+        "job_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Every accepted or already-queued job id, in plan order."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "No node runs every plugin instance a job requires; `error` is `unroutable` and `message` names the instances.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed."
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text."
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+        }
+      }
+    }
+  ],
+  "description": "`POST /api/library/scan` and `POST /api/library/acquire` `409` body: the two conflicts a plan can hit."
+}
+```
+
+Status `422`: No account of the caller's can acquire.
+
+```json
+{
+  "error": "nothing_to_acquire",
+  "job_id": "",
+  "job_ids": [],
+  "message": "no store account of yours to acquire from",
+  "ok": false
 }
 ```
 
@@ -798,16 +1034,17 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
   "required": [
     "ok",
     "message",
-    "job_id"
+    "job_id",
+    "job_ids"
   ],
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when at least one job was accepted."
     },
     "message": {
       "type": "string",
@@ -815,14 +1052,21 @@ Schema:
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
     }
   }
 }
@@ -832,10 +1076,11 @@ Status `429`: The job queue is full.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "queue_full",
+  "job_id": "",
+  "job_ids": [],
+  "message": "job queue is full",
+  "ok": false
 }
 ```
 
@@ -844,16 +1089,17 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Generic mutation result with success flag, message, and optional job id.",
+  "description": "Result of a planned scan or acquire: [`ActionResponse`] plus every job id.",
   "required": [
     "ok",
     "message",
-    "job_id"
+    "job_id",
+    "job_ids"
   ],
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when at least one job was accepted."
     },
     "message": {
       "type": "string",
@@ -861,14 +1107,21 @@ Schema:
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "First accepted (or, when none was, already queued) job id."
+    },
+    "job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every accepted or already-queued job id, in plan order."
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
     }
   }
 }
@@ -878,10 +1131,10 @@ Status `500`: The jobs could not be queued.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "internal_error",
+  "job_id": "",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
+  "ok": false
 }
 ```
 
@@ -924,10 +1177,10 @@ Status `503`: Job admission is paused.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "admission_paused",
+  "job_id": "",
+  "message": "job admission paused (database reload in progress)",
+  "ok": false
 }
 ```
 
@@ -969,7 +1222,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1447,9 +1700,9 @@ Status `400`: A filter is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1483,9 +1736,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1519,9 +1772,9 @@ Status `500`: The library could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1561,7 +1814,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2035,9 +2288,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2114,9 +2367,9 @@ Status `500`: The library could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -2156,7 +2409,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2240,9 +2493,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2318,7 +2571,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

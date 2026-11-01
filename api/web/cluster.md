@@ -105,9 +105,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -141,9 +141,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -177,9 +177,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -213,9 +213,9 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -249,9 +249,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -284,7 +284,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -393,9 +393,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -429,9 +429,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -465,9 +465,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -501,9 +501,9 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -537,9 +537,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -572,7 +572,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -655,9 +655,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -691,9 +691,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -727,9 +727,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -763,9 +763,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -798,7 +798,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -914,9 +914,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -950,9 +950,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -986,9 +986,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1022,9 +1022,9 @@ Status `404`: No such cluster.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1058,9 +1058,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1094,9 +1094,9 @@ Status `502`: The owner cluster could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -1129,7 +1129,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1241,9 +1241,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1277,9 +1277,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1313,9 +1313,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1349,9 +1349,9 @@ Status `404`: No such cluster.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1385,9 +1385,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1421,9 +1421,9 @@ Status `502`: The owner cluster could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -1456,7 +1456,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1564,9 +1564,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1600,9 +1600,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1636,9 +1636,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1672,9 +1672,9 @@ Status `404`: No such consent.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1708,9 +1708,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1743,7 +1743,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1847,9 +1847,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1883,9 +1883,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1919,9 +1919,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1955,9 +1955,9 @@ Status `404`: No such consent.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -1991,9 +1991,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -2026,7 +2026,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2109,9 +2109,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -2145,9 +2145,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2181,9 +2181,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2217,9 +2217,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -2252,7 +2252,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2355,9 +2355,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -2391,9 +2391,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2427,9 +2427,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2463,9 +2463,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -2499,9 +2499,9 @@ Status `502`: The library could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -2534,7 +2534,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2644,9 +2644,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -2680,9 +2680,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2716,9 +2716,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2752,9 +2752,9 @@ Status `409`: A join is already in progress or done.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -2788,9 +2788,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -2824,9 +2824,9 @@ Status `502`: The library could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -2859,7 +2859,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2973,9 +2973,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -3009,9 +3009,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3045,9 +3045,9 @@ Status `403`: The caller's role does not allow this route, or the library refuse
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3081,9 +3081,9 @@ Status `410`: The sign-in is unknown, already used, or older than ten minutes; s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "gone",
+  "message": "This resource is no longer available.",
+  "status": 410
 }
 ```
 
@@ -3117,9 +3117,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -3153,9 +3153,9 @@ Status `502`: The library could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -3188,7 +3188,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3297,9 +3297,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -3333,9 +3333,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3369,9 +3369,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3405,9 +3405,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -3441,9 +3441,9 @@ Status `502`: The library could not be reached.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
 }
 ```
 
@@ -3477,9 +3477,9 @@ Status `504`: The library is slow to answer; the join goes on in the background 
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "gateway_timeout",
+  "message": "The upstream request timed out.",
+  "status": 504
 }
 ```
 
@@ -3611,9 +3611,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -3647,9 +3647,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3683,9 +3683,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3719,9 +3719,9 @@ Status `404`: This install is not a branch of that library (`not_found`).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -3755,9 +3755,9 @@ Status `409`: This install has not joined a library.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -3791,9 +3791,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -3826,7 +3826,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3910,9 +3910,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -3946,9 +3946,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3982,9 +3982,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4018,9 +4018,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -4053,7 +4053,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4151,9 +4151,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -4187,9 +4187,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -4223,9 +4223,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4259,9 +4259,9 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -4295,9 +4295,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -4330,7 +4330,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4417,9 +4417,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -4453,9 +4453,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -4489,9 +4489,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4525,9 +4525,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -4560,7 +4560,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4672,9 +4672,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -4708,9 +4708,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -4744,9 +4744,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4780,9 +4780,9 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -4816,9 +4816,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -4851,7 +4851,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4939,9 +4939,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -4975,9 +4975,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5011,9 +5011,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5047,9 +5047,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5082,7 +5082,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -5208,9 +5208,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -5244,9 +5244,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5280,9 +5280,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5316,9 +5316,9 @@ Status `409`: Host enrollment is off.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "conflict",
+  "message": "Conflict",
+  "status": 409
 }
 ```
 
@@ -5352,9 +5352,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5388,9 +5388,9 @@ Status `503`: The node API's certificate pin is not available yet (`node_api_pin
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
 }
 ```
 
@@ -5423,7 +5423,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -5517,9 +5517,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -5553,9 +5553,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5589,9 +5589,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5625,9 +5625,9 @@ Status `404`: No such link.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -5661,9 +5661,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5696,7 +5696,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -5781,9 +5781,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -5817,9 +5817,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5853,9 +5853,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5889,9 +5889,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -5924,7 +5924,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -6023,9 +6023,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -6059,9 +6059,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -6095,9 +6095,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -6131,9 +6131,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -6166,7 +6166,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -6266,9 +6266,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -6302,9 +6302,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -6338,9 +6338,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -6374,9 +6374,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -6409,7 +6409,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -6494,9 +6494,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -6530,9 +6530,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -6566,9 +6566,9 @@ Status `403`: The caller may not do this.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -6602,9 +6602,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -6637,7 +6637,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -6744,9 +6744,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -6780,9 +6780,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -6816,9 +6816,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -6852,9 +6852,9 @@ Status `404`: This install is not a branch of that library (`not_found`).
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -6888,9 +6888,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -6923,7 +6923,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -7035,9 +7035,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -7071,9 +7071,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -7107,9 +7107,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -7143,9 +7143,9 @@ Status `404`: No such host.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
 }
 ```
 
@@ -7179,9 +7179,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7214,7 +7214,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -7306,9 +7306,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -7342,9 +7342,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -7378,9 +7378,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -7414,9 +7414,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7449,7 +7449,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -7564,9 +7564,9 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -7600,9 +7600,9 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -7636,9 +7636,9 @@ Status `403`: The caller may not do this. A write sent with a session cookie but
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -7672,9 +7672,9 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7707,7 +7707,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

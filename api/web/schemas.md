@@ -997,6 +997,12 @@ pass's result.
 - `scheduled_at` *string*, **required** — RFC 3339 time the scheduler last changed the status.
 - `updated_at` *string*, **required** — RFC 3339 time of the last intent write.
 
+## PlanConflict
+
+`POST /api/library/scan` and `POST /api/library/acquire` `409` body: the two conflicts a plan can hit.
+
+Type: [`ScanPlanResponse`](#scanplanresponse) or [`ActionResponse`](#actionresponse)
+
 ## PluginArtifactSummary
 
 One downloadable artifact of an installed version, as the API renders

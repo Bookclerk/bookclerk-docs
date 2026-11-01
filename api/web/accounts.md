@@ -80,7 +80,7 @@ Status `400`: The ticket is invalid, used or expired.
 
 ```json
 {
-  "error": "string"
+  "error": "claim ticket invalid, expired, or already redeemed"
 }
 ```
 
@@ -105,7 +105,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -188,7 +188,7 @@ Status `400`: The request is invalid, or the integration refused the login.
 
 ```json
 {
-  "error": "string"
+  "error": "integration `audiobookshelf` does not support credential login"
 }
 ```
 
@@ -213,7 +213,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -280,9 +280,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -315,7 +315,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -427,7 +427,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -452,7 +452,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -648,7 +648,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -749,7 +749,7 @@ Status `400`: The login failed.
 
 ```json
 {
-  "error": "string"
+  "error": "this source uses OAuth; call /oauth/start instead"
 }
 ```
 
@@ -775,7 +775,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -801,9 +801,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -836,7 +836,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -923,7 +923,7 @@ Status `400`: The source does not use OAuth.
 
 ```json
 {
-  "error": "string"
+  "error": "this source uses password login; call /login instead"
 }
 ```
 
@@ -949,7 +949,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -975,9 +975,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1010,7 +1010,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1107,7 +1107,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -1133,9 +1133,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1168,7 +1168,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1251,7 +1251,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -1277,9 +1277,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1312,7 +1312,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1498,7 +1498,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -1523,7 +1523,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1617,7 +1617,7 @@ Status `400`: The account is not linked to this identity.
 
 ```json
 {
-  "error": "string"
+  "error": "account not linked to this identity"
 }
 ```
 
@@ -1643,7 +1643,7 @@ Status `401`: The caller is not signed in.
 
 ```json
 {
-  "error": "string"
+  "error": "not signed in"
 }
 ```
 
@@ -1669,9 +1669,9 @@ Status `403`: A write sent with a session cookie but without a matching `Origin`
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1704,7 +1704,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

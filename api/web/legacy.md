@@ -259,9 +259,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -295,9 +295,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -331,9 +331,9 @@ Status `500`: The library could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -518,9 +518,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -554,9 +554,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -729,9 +729,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -765,9 +765,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -988,9 +988,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1024,9 +1024,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1060,9 +1060,9 @@ Status `500`: The job table could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -1227,9 +1227,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1263,9 +1263,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1503,9 +1503,9 @@ Status `400`: The integration cannot scan a library.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -1546,9 +1546,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1582,9 +1582,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1661,10 +1661,10 @@ Status `409`: The same job is already pending or running, or no node can run it.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "conflict",
+  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "message": "integration_scan already pending or running",
+  "ok": false
 }
 ```
 
@@ -1707,10 +1707,10 @@ Status `429`: The job queue is full.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "queue_full",
+  "job_id": "",
+  "message": "job queue is full",
+  "ok": false
 }
 ```
 
@@ -1753,10 +1753,10 @@ Status `500`: The job could not be queued.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "internal_error",
+  "job_id": "",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
+  "ok": false
 }
 ```
 
@@ -1799,10 +1799,10 @@ Status `503`: Job admission is paused.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "error": "admission_paused",
+  "job_id": "",
+  "message": "job admission paused (database reload in progress)",
+  "ok": false
 }
 ```
 

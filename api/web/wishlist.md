@@ -43,7 +43,10 @@ Lists open wishlist rows for the caller (portal identity or operator-owned).
   - `purchase_hints` *array of [`WishlistPurchaseHint`](schemas.md#wishlistpurchasehint)* — Purchase URLs and prices observed per storefront.
   - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
   - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
-- `401` — No signed-in caller. Body: string (`text/plain`)
+- `401` — No signed-in caller. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The request could not be read or written. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -693,18 +696,44 @@ Schema:
 
 Status `401`: No signed-in caller.
 
-```text
-string
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
 ```
 
 Schema:
 
-A `text/plain` body: a string.
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
 
 Status `500`: The request could not be read or written.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
@@ -714,7 +743,7 @@ A `text/plain` body: a string.
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -785,7 +814,10 @@ Creates a wishlist / title-request row for the authenticated caller.
   - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
   - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
 - `400` — The title is missing or invalid. Body: string (`text/plain`)
-- `401` — No signed-in caller. Body: string (`text/plain`)
+- `401` — No signed-in caller. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1445,7 +1477,7 @@ Schema:
 Status `400`: The title is missing or invalid.
 
 ```text
-string
+title is required
 ```
 
 Schema:
@@ -1454,21 +1486,47 @@ A `text/plain` body: a string.
 
 Status `401`: No signed-in caller.
 
-```text
-string
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
 ```
 
 Schema:
 
-A `text/plain` body: a string.
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug."
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people."
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
 
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1501,7 +1559,7 @@ Schema:
 Status `500`: The request could not be read or written.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
@@ -1511,7 +1569,7 @@ A `text/plain` body: a string.
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1561,11 +1619,11 @@ Cancels an open wishlist item the caller owns; others get 403.
   - `purchase_hints` *array of [`WishlistPurchaseHint`](schemas.md#wishlistpurchasehint)* — Purchase URLs and prices observed per storefront.
   - `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
   - `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
-- `400` — Only open wishlist items can be removed. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+- `400` — Only open wishlist items can be removed. Body: string (`text/plain`)
+- `401` — No signed-in caller. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `401` — No signed-in caller. Body: string (`text/plain`)
 - `403` — The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: string (`text/plain`)
 - `404` — No such request. Body: string (`text/plain`)
 - `500` — The request could not be read or written. Body: string (`text/plain`)
@@ -2215,11 +2273,21 @@ Schema:
 
 Status `400`: Only open wishlist items can be removed.
 
+```text
+only open wishlist items can be removed
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: No signed-in caller.
+
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2249,20 +2317,10 @@ Schema:
 }
 ```
 
-Status `401`: No signed-in caller.
-
-```text
-string
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
 Status `403`: The request belongs to someone else. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```text
-string
+not your wishlist item
 ```
 
 Schema:
@@ -2272,7 +2330,7 @@ A `text/plain` body: a string.
 Status `404`: No such request.
 
 ```text
-string
+wishlist item not found: 0b7e4c1d-2a3f-4e5d-9c8b-7a6f5e4d3c2b
 ```
 
 Schema:
@@ -2282,7 +2340,7 @@ A `text/plain` body: a string.
 Status `500`: The request could not be read or written.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
@@ -2292,7 +2350,7 @@ A `text/plain` body: a string.
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2329,10 +2387,7 @@ Ranks the shared open-request queue without warming ONNX embeddings.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `500` — The queue could not be ranked. Body: string (`text/plain`)
-- `503` — Discover is shutting down; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `503` — Discover is shutting down; try again. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2588,9 +2643,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2623,7 +2678,7 @@ Schema:
 Status `500`: The queue could not be ranked.
 
 ```text
-string
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
 ```
 
 Schema:
@@ -2632,44 +2687,18 @@ A `text/plain` body: a string.
 
 Status `503`: Discover is shutting down; try again.
 
-```json
-{
-  "error": "string",
-  "message": "string",
-  "status": 0
-}
+```text
+discover gate closed
 ```
 
 Schema:
 
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
-    }
-  }
-}
-```
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

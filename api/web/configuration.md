@@ -127,9 +127,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -163,9 +163,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -199,9 +199,9 @@ Status `500`: The reload failed; the old configuration stays live.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -241,7 +241,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -267,10 +267,8 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -429,9 +427,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -465,9 +463,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -501,9 +499,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -512,22 +508,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -536,7 +525,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -563,10 +552,8 @@ A `text/plain` body: a string.
 ### Responses
 
 - `200` — The settings after the change, or a `replayed: true` note with the committed revision when another write landed between this one and its read-back. Body: [`EventsDomainChange`](schemas.md#eventsdomainchange) (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `400` — A value is outside its range. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -578,10 +565,8 @@ A `text/plain` body: a string.
 - `409` — `expected_revision` is stale; `current_revision` is the revision to retry against. Body: [`RevisionConflict`](schemas.md#revisionconflict) (`application/json`)
   - `error` *string*, **required** — Always `revision_conflict`.
   - `current_revision` *integer (int64)*, **required** — The revision to read and retry against.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -778,13 +763,11 @@ Schema:
 }
 ```
 
-Status `400`: The body is invalid.
+Status `400`: A value is outside its range.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "invalid configuration: retention_days must be 1..=3650"
 }
 ```
 
@@ -793,22 +776,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -818,9 +794,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -854,9 +830,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -890,8 +866,8 @@ Status `409`: `expected_revision` is stale; `current_revision` is the revision t
 
 ```json
 {
-  "error": "revision_conflict",
-  "current_revision": 13
+  "current_revision": 7,
+  "error": "revision_conflict"
 }
 ```
 
@@ -925,9 +901,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -936,22 +910,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -960,7 +927,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -987,10 +954,8 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `500` — The configuration could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1542,9 +1507,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1578,9 +1543,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1614,9 +1579,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -1625,22 +1588,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -1649,7 +1605,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1674,10 +1630,8 @@ A `text/plain` body: a string.
 ### Responses
 
 - `200` — The settings after the change, or a `replayed: true` note with the committed revision when another write landed between this one and its read-back. Body: [`OutputDomainChange`](schemas.md#outputdomainchange) (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `400` — The body is invalid, or a key or value is not an output setting. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1689,10 +1643,8 @@ A `text/plain` body: a string.
 - `409` — `expected_revision` is stale; `current_revision` is the revision to retry against. Body: [`RevisionConflict`](schemas.md#revisionconflict) (`application/json`)
   - `error` *string*, **required** — Always `revision_conflict`.
   - `current_revision` *integer (int64)*, **required** — The revision to read and retry against.
-- `500` — The configuration could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2282,13 +2234,11 @@ Schema:
 }
 ```
 
-Status `400`: The body is invalid.
+Status `400`: The body is invalid, or a key or value is not an output setting.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "invalid configuration: cover_size must be `native` or a pixel size 1..=10000"
 }
 ```
 
@@ -2297,22 +2247,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2322,9 +2265,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2358,9 +2301,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2394,8 +2337,8 @@ Status `409`: `expected_revision` is stale; `current_revision` is the revision t
 
 ```json
 {
-  "error": "revision_conflict",
-  "current_revision": 13
+  "current_revision": 7,
+  "error": "revision_conflict"
 }
 ```
 
@@ -2429,9 +2372,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -2440,22 +2381,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -2464,7 +2398,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:

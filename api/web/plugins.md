@@ -517,9 +517,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -553,9 +553,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -589,7 +589,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -615,7 +615,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -658,8 +658,6 @@ a plugin, with an empty document so schema defaults apply. With
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such plugin, or it has no pinned schema. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `409` — The instance id is taken. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -770,7 +768,7 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid plugin instance: display_name must be at most 64 bytes without control characters"
 }
 ```
 
@@ -797,9 +795,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -833,9 +831,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -869,34 +867,7 @@ Status `404`: No such plugin, or it has no pinned schema.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
-Status `409`: The instance id is taken.
-
-```json
-{
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: plugin `source-libro` has no pinned settings schema; install it on a node first"
 }
 ```
 
@@ -923,7 +894,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -949,7 +920,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1074,7 +1045,7 @@ Status `400`: The id is not a plugin instance id.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid plugin instance id: expected a UUID"
 }
 ```
 
@@ -1101,9 +1072,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1137,9 +1108,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1173,7 +1144,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
 }
 ```
 
@@ -1200,7 +1171,7 @@ Status `409`: The instance is a default or still deployed.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b still has deployments; set them absent and remove them first"
 }
 ```
 
@@ -1227,7 +1198,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -1253,7 +1224,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1563,7 +1534,7 @@ Status `400`: The id is not a plugin instance id.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid plugin instance id: expected a UUID"
 }
 ```
 
@@ -1590,9 +1561,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1626,9 +1597,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -1662,7 +1633,7 @@ Status `404`: No such instance, or it has no document yet.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: configuration plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b is not initialized"
 }
 ```
 
@@ -1689,7 +1660,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -1715,7 +1686,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -1929,7 +1900,7 @@ Status `400`: The body is invalid, or a value does not fit the pinned schema.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid configuration: secret `api_token` is empty"
 }
 ```
 
@@ -1956,9 +1927,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -1992,9 +1963,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2028,7 +1999,7 @@ Status `404`: No such instance, or its plugin has no pinned schema.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
 }
 ```
 
@@ -2055,8 +2026,8 @@ Status `409`: `expected_revision` is not the current revision.
 
 ```json
 {
-  "error": "revision_conflict",
-  "current_revision": 13
+  "current_revision": 7,
+  "error": "revision_conflict"
 }
 ```
 
@@ -2090,7 +2061,7 @@ Status `500`: The configuration could not be read or written, or a secret was no
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "document revision 8 was saved but secret `api_token` was not stored (the secret store refused the write); submit the secret again"
 }
 ```
 
@@ -2116,7 +2087,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2285,7 +2256,7 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid configuration: desired must be `present`, `absent`, `placed`, or `unplaced`"
 }
 ```
 
@@ -2312,9 +2283,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2348,9 +2319,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2384,7 +2355,7 @@ Status `404`: No such instance or node.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
 }
 ```
 
@@ -2411,8 +2382,7 @@ Status `409`: The instance is placed by the scheduler (an `error` message), or `
 
 ```json
 {
-  "error": "revision_conflict",
-  "current_revision": 13
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b is placed by the scheduler (2 replica(s) on region=eu); change it with `bookclerk plugins deploy`, or drop the placement with `bookclerk plugins deploy --manual` first"
 }
 ```
 
@@ -2465,7 +2435,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -2491,7 +2461,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -2707,7 +2677,7 @@ Status `400`: The body is invalid.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid configuration: replicas must be at most 64"
 }
 ```
 
@@ -2734,9 +2704,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -2770,9 +2740,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -2806,7 +2776,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
 }
 ```
 
@@ -2833,8 +2803,8 @@ Status `409`: `expected_revision` is not the current revision.
 
 ```json
 {
-  "error": "revision_conflict",
-  "current_revision": 13
+  "current_revision": 7,
+  "error": "revision_conflict"
 }
 ```
 
@@ -2868,7 +2838,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -2894,7 +2864,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3018,7 +2988,7 @@ Status `400`: The id is not a plugin instance id.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "invalid plugin instance id: expected a UUID"
 }
 ```
 
@@ -3045,9 +3015,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3081,9 +3051,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3117,7 +3087,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
 }
 ```
 
@@ -3144,7 +3114,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -3170,7 +3140,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3444,9 +3414,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3480,9 +3450,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -3516,7 +3486,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -3542,7 +3512,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -3585,11 +3555,11 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `409` — The version is already installed with different artifacts. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `500` — The node identity could not be read or created, or the catalog lookup task failed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `502` — The package catalog could not be reached or answered badly. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `502` — The package registry could not be reached or answered badly. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The install needs a helper that is unavailable. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `503` — The database plugin is unavailable; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -3810,7 +3780,7 @@ Status `400`: The body is invalid: neither or both of `coordinate` and `package`
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "pass exactly one of `coordinate` or `package`"
 }
 ```
 
@@ -3837,9 +3807,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -3873,7 +3843,7 @@ Status `403`: The publisher is unverified and `allow_unverified_publisher` is of
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "refusing community plugin without an explicit operator override; pass --allow-unverified-publisher after verifying the digest (API: set `allow_unverified_publisher: true` in the request body)"
 }
 ```
 
@@ -3900,7 +3870,7 @@ Status `404`: A local package is missing its `package.json` or `archive.tar.gz`.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "archive.tar.gz is missing"
 }
 ```
 
@@ -3927,7 +3897,7 @@ Status `409`: The version is already installed with different artifacts.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "version source-libro 0.4.2 is already installed with different content; install a new version"
 }
 ```
 
@@ -3950,11 +3920,11 @@ Schema:
 }
 ```
 
-Status `500`: The configuration could not be read or written.
+Status `500`: The node identity could not be read or created, or the catalog lookup task failed.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "I/O error: Permission denied (os error 13)"
 }
 ```
 
@@ -3977,11 +3947,11 @@ Schema:
 }
 ```
 
-Status `502`: The package catalog could not be reached or answered badly.
+Status `502`: The package registry could not be reached or answered badly.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "download failed: http status: 404"
 }
 ```
 
@@ -4004,11 +3974,11 @@ Schema:
 }
 ```
 
-Status `503`: The install needs a helper that is unavailable.
+Status `503`: The database plugin is unavailable; retry.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "unavailable: D1 ambiguous commit"
 }
 ```
 
@@ -4034,7 +4004,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4470,9 +4440,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -4506,9 +4476,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4542,7 +4512,7 @@ Status `404`: No such plugin.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "plugin source-libro is not installed"
 }
 ```
 
@@ -4569,7 +4539,7 @@ Status `500`: The configuration could not be read.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4595,7 +4565,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4617,7 +4587,7 @@ cleared, placements dropped, every deployment `absent`).
 
 ### Responses
 
-- `200` — The plugin was uninstalled. Body: [`PluginUninstalled`](schemas.md#pluginuninstalled) (`application/json`)
+- `200` — The plugin was uninstalled; `uninstalled` is false when no version was active, so the request is idempotent. Body: [`PluginUninstalled`](schemas.md#pluginuninstalled) (`application/json`)
   - `plugin_key` *string*, **required** — Canonical plugin key.
   - `uninstalled` *boolean*, **required** — True when an active-version pointer existed and was cleared.
   - `deployments_undeployed` *integer*, **required** — Deployment rows switched to `absent` across the plugin's instances. At least 0.
@@ -4629,8 +4599,6 @@ cleared, placements dropped, every deployment `absent`).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `404` — No such plugin. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `409` — A deployment changed under the request. The install was not cleared, but deployments of earlier instances may already be stopped; retry the request. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -4681,7 +4649,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The plugin was uninstalled.
+Status `200`: The plugin was uninstalled; `uninstalled` is false when no version was active, so the request is idempotent.
 
 ```json
 {
@@ -4727,9 +4695,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -4763,9 +4731,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -4795,38 +4763,11 @@ Schema:
 }
 ```
 
-Status `404`: No such plugin.
-
-```json
-{
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
 Status `409`: A deployment changed under the request. The install was not cleared, but deployments of earlier instances may already be stopped; retry the request.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "deployments of instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b kept changing during undeploy; retry"
 }
 ```
 
@@ -4853,7 +4794,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -4879,7 +4820,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -4910,8 +4851,6 @@ A `text/plain` body: a string.
   - `plugin_key` *string*, **required** — Canonical plugin key.
   - `version` *string*, **required** — Version now active.
   - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the pointer after the move.
-- `400` — The body is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -5019,40 +4958,13 @@ Schema:
 }
 ```
 
-Status `400`: The body is invalid.
-
-```json
-{
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
 Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5086,9 +4998,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5122,7 +5034,7 @@ Status `404`: No such plugin or version.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "book not found: version source-libro 0.4.2"
 }
 ```
 
@@ -5149,7 +5061,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -5175,7 +5087,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -5314,7 +5226,7 @@ Status `400`: The version's manifest does not parse.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "version plugin.toml: missing field `id`"
 }
 ```
 
@@ -5341,9 +5253,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -5377,9 +5289,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -5413,7 +5325,7 @@ Status `404`: No such plugin or version.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "version source-libro 0.4.2"
 }
 ```
 
@@ -5440,7 +5352,7 @@ Status `500`: The configuration could not be read or written.
 
 ```json
 {
-  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
 }
 ```
 
@@ -5466,7 +5378,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -6523,9 +6435,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -6559,9 +6471,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -6638,9 +6550,9 @@ Status `500`: The grant could not be read.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -6680,7 +6592,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -7758,9 +7670,9 @@ Status `400`: An override is not allowed.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
 }
 ```
 
@@ -7801,9 +7713,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -7837,9 +7749,9 @@ Status `403`: The caller's role does not allow this route. A write sent with a s
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -7916,9 +7828,9 @@ Status `500`: The grant could not be stored.
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
 }
 ```
 
@@ -7958,7 +7870,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
@@ -8046,9 +7958,9 @@ Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
 }
 ```
 
@@ -8082,9 +7994,9 @@ Status `403`: The caller's role does not allow this route.
 
 ```json
 {
-  "error": "string",
-  "message": "string",
-  "status": 0
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
 }
 ```
 
@@ -8160,7 +8072,7 @@ Schema:
 Status `504`: The request ran past the API's time budget.
 
 ```text
-string
+request timed out
 ```
 
 Schema:
