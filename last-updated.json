@@ -645,7 +645,7 @@
   "api/web/status": "2026-11-02",
   "api/web/users": "2026-11-01",
   "api/web/wishlist": "2026-11-02",
-  "contributing/automation": "2026-11-01",
+  "contributing/automation": "2026-11-02",
   "contributing/build-from-source": "2026-10-27",
   "contributing/ci": "2026-11-02",
   "contributing/code-documentation": "2026-10-27",
