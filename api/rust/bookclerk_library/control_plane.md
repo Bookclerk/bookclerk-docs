@@ -512,7 +512,7 @@ Counts of one branch's shared titles.
 - `delivered`: Of those, titles whose files arrived.
 - `detached`: Titles marked detached (it stopped sharing, left, or withdrew them).
 
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### CatalogSessionOpened
 

@@ -223,6 +223,76 @@ Includes every field of [`BranchAuthorizeParams`](#branchauthorizeparams).
 - `connection` *string or null* — `branch` (default) or `clerk`.
 - `step_up` *[`StepUp`](#stepup) or null* — The fresh second factor a clerk needs.
 
+## BranchConsentPage
+
+JSON body for `GET /api/auth/branch-consent`: what the consent page shows.
+
+- `library_name` *string*, **required** — This library's name.
+- `branch_name` *string*, **required** — The name the branch asks to join as.
+- `redirect_origin` *string*, **required** — Origin of the branch's redirect URI, for the page to name.
+- `enrollment` *boolean*, **required** — Whether this library lets new branches join right now.
+- `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the branch would belong to.
+- `connection` *[`ConnectionChoice`](#connectionchoice)*, **required** — The connection types the page may offer.
+
+## BranchesResponse
+
+JSON body for `GET /api/config/branches`.
+
+- `library_name` *string*, **required** — This library's name.
+- `origin` *string*, **required** — The canonical origin branches connect to.
+- `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
+- `enrollment` *boolean*, **required** — Whether new branches may join.
+- `spki_fingerprint` *string or null* — In `self_signed` mode, the fingerprint a joining operator confirms.
+- `branches` *array of [`BranchView`](#branchview)*, **required** — Every branch, newest first.
+
+## BranchJoined
+
+JSON body once this install joined a library as a branch.
+
+- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The new link.
+- `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
+- `running` *boolean*, **required** — Whether the link's client is running now.
+
+## BranchJoinSetting
+
+JSON body after `PUT /api/config/branches`.
+
+- `enrollment` *boolean*, **required** — "Let new branches join", as stored.
+
+## BranchOnlyChoice
+
+The consent page's connection block when only a branch is offered.
+
+- `choice` *boolean*, **required** — Always `false`.
+- `default` *string*, **required** — Always `branch`.
+
+## BranchTitleCounts
+
+Counts of one branch's shared titles.
+
+- `shared` *integer (int64)*, **required** — Titles it shares now. At least 0.
+- `delivered` *integer (int64)*, **required** — Of those, titles whose files arrived. At least 0.
+- `detached` *integer (int64)*, **required** — Titles marked detached (it stopped sharing, left, or withdrew them). At least 0.
+
+## BranchTitlesRemoved
+
+JSON body after detached branch titles were removed.
+
+- `removed` *integer (int64)*, **required** — How many title entries were removed. At least 0.
+
+## BranchView
+
+One branch (host node) of this library.
+
+- `node_id` *string*, **required** — The branch's node id.
+- `created_at` *string*, **required** — RFC 3339 time the node was created.
+- `owner_user_id` *integer (int64) or null* — The user who owns the branch.
+- `owner_name` *string or null* — That user's display or login name.
+- `joined` *boolean*, **required** — Whether its credential is still valid (it has not left or been revoked).
+- `share_books` *boolean or null* — "Share this branch's books" as it last reported it; `null` until its first catalog sync.
+- `include_branches` *boolean or null* — "Include books from my own branches" as it last reported it; `null` until its first catalog sync.
+- `titles` *[`BranchTitleCounts`](#branchtitlecounts)*, **required** — Counts of the titles it shared.
+
 ## BrandInfo
 
 CSS colors and logo href for a storefront or integration brand.
@@ -307,6 +377,18 @@ chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
 
+## ClerkJoined
+
+JSON body once this install joined a library as a clerk.
+
+- `connection` *string*, **required** — Always `clerk`.
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `node_id` *string*, **required** — The node id the library minted for this install.
+- `library_name` *string*, **required** — The library's name.
+- `database` *string*, **required** — The database plugin this install now runs (`postgres` or `d1`).
+- `master_key_wrapped` *boolean*, **required** — Whether the shared master key was wrapped with this install's password.
+- `restarting` *boolean*, **required** — Always `true`: the daemon restarts as an owner node right after answering.
+
 ## ClerksResponse
 
 `GET /api/config/clerks` body.
@@ -314,11 +396,38 @@ Type: one of `off`, `flat`, `tree`, `both`
 - `node_id` *string*, **required** — Id of the node that answered.
 - `nodes` *array of [`NodeView`](#nodeview)*, **required** — This node and the clerks the caller may see.
 
+## ClusterConsentsResponse
+
+JSON body for `GET /api/config/cluster-consents`.
+
+- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of.
+- `consents` *array of [`RemoteConsentView`](#remoteconsentview)*, **required** — Every plugin request from those libraries, pending or answered.
+
 ## ClusterJobsBody
 
 `POST /api/config/clusters/{cluster_id}/jobs` body.
 
 - `job_ids` *array of string*, **required** — Job ids on the owner cluster.
+
+## ClusterJobsResponse
+
+JSON body for `POST /api/config/clusters/{cluster_id}/jobs`.
+
+- `jobs` *array of [`JobStatusEntry`](#jobstatusentry)*, **required** — The owner's state of each job this install may see, in request order.
+
+## ClusterLinkView
+
+A library this install is a branch of: ids, origin and state, never key material.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `owner_origin` *string*, **required** — The library's canonical origin.
+- `node_id` *string*, **required** — The node id the library minted for this install.
+- `pinned` *boolean*, **required** — Whether the link pins the library's self-signed certificate.
+- `state` *string*, **required** — `active`, `revoked`, or `left`.
+- `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
+- `share_books` *boolean*, **required** — "Share this branch's books with the library".
+- `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
 
 ## ClusterScanBody
 
@@ -326,6 +435,15 @@ Type: one of `off`, `flat`, `tree`, `both`
 
 - `account` *string or null* — Scan only this store account of the owner cluster.
 - `plugin_instance_id` *string or null* — Pin every planned job to this owner plugin instance.
+
+## ClusterScanPlanned
+
+JSON body after the owner library queued a scan for this install.
+
+- `cluster_id` *string*, **required** — The owner library's cluster id.
+- `created` *array of string*, **required** — Ids of the jobs the owner created.
+- `duplicates` *array of string*, **required** — Ids of jobs that were already pending or running.
+- `queue_full` *integer (int64)*, **required** — Planned jobs the owner's queue had no room for. At least 0.
 
 ## ClusterStatusResponse
 
@@ -360,6 +478,12 @@ One allowed value for a storefront config option.
 
 - `id` *string*, **required** — Stored option value (for example `m4b`).
 - `label` *string*, **required** — Operator-facing value label.
+
+## ConnectionChoice
+
+What the consent page may offer: branch only, or a choice between branch and clerk for an Owner.
+
+Type: [`BranchOnlyChoice`](#branchonlychoice) or [`OwnerChoice`](#ownerchoice)
 
 ## ConnectionInfo
 
@@ -397,6 +521,25 @@ Form body for `POST /oidc/authorize` after the user grants or denies consent.
 - `code_challenge` *string*, **required** — PKCE S256 challenge (base64url SHA-256 of the verifier).
 - `code_challenge_method` *string or null* — PKCE method; omitted is treated as `plain` and then rejected.
 - `consent` *string or null* — `deny` aborts with `access_denied`; any other value proceeds to issue a code.
+
+## ConsentChanged
+
+JSON body after a consent was approved or revoked.
+
+- `consent` *[`RemoteConsentView`](#remoteconsentview)*, **required** — The consent as stored now.
+
+## ConsentingUser
+
+The user a branch consent is for.
+
+- `id` *integer (int64)*, **required** — `users.id`.
+- `display_name` *string or null* — Display name, when set.
+
+## ConsentRedirect
+
+JSON body after a branch consent was answered.
+
+- `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
 
 ## CreatePluginInstance
 
@@ -577,11 +720,46 @@ JSON body for Owner password re-auth before issuing an elevated operator cookie.
 - `box_pk` *string*, **required** — X25519 public box key.
 - `software_version` *string* — Host's Bookclerk version.
 
+## EnrolledNodeView
+
+JSON body after an enrollment link or branch sign-in was redeemed.
+
+- `cluster_id` *string*, **required** — The cluster the node joined.
+- `node_id` *string*, **required** — The node id minted for it.
+
 ## EnrollFinish
 
 First TOTP code that confirms the pending secret.
 
 - `code` *string*, **required** — Six-digit code from the authenticator app.
+
+## EnrollmentLinkView
+
+An enrollment link as the invites routes list it; never its secret.
+
+- `link_id` *string*, **required** — Public link id.
+- `for_user_id` *integer (int64)*, **required** — User the enrolled node will belong to.
+- `label` *string*, **required** — Label shown in listings.
+- `created_by` *string*, **required** — Audit id of whoever minted it (`operator` or `user:<id>`).
+- `created_at` *string*, **required** — RFC 3339 mint time.
+- `expires_at` *string*, **required** — RFC 3339 expiry.
+- `redeemed_at` *string or null* — RFC 3339 redeem time, once a host used it.
+- `redeemed_node_id` *string or null* — Node the redeem created.
+- `revoked_at` *string or null* — RFC 3339 revoke time.
+- `state` *string*, **required** — `pending`, `redeemed`, `revoked`, or `expired` right now.
+
+## ErrorAnswer
+
+An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each.
+
+Type: [`ErrorJson`](#errorjson) or [`ErrorMessage`](#errormessage) or [`ErrorDetail`](#errordetail)
+
+## ErrorDetail
+
+JSON error body with a machine slug and a longer explanation (`detail`).
+
+- `error` *string*, **required** — Stable machine slug clients branch on.
+- `detail` *string*, **required** — What went wrong, for the person reading the answer.
 
 ## ErrorJson
 
@@ -677,6 +855,13 @@ Liveness payload for unauthenticated `GET /health`.
 
 - `status` *string*, **required** — Always `ok` when the process can serve HTTP.
 
+## HostEnrollment
+
+The host-enrollment switch.
+
+- `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+- `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
+
 ## ImpersonateRequest
 
 JSON body naming the first-party user to impersonate.
@@ -695,6 +880,24 @@ JSON body after an operator session started impersonating a user.
 `POST /api/config/join/inspect` body.
 
 - `address` *string*, **required** — The library's address (`https://owner.example`, `owner.lan:8443`).
+
+## InspectedLibraryResponse
+
+JSON body for `POST /api/config/join/inspect`.
+
+- `library` *[`InspectedLibraryView`](#inspectedlibraryview)*, **required** — What the library said about itself.
+
+## InspectedLibraryView
+
+A library as `POST /api/config/join/inspect` saw it.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_name` *string*, **required** — A name to show for the library.
+- `origin` *string*, **required** — Its canonical origin.
+- `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
+- `enrollment` *boolean*, **required** — Whether it lets new branches join.
+- `fingerprint` *string or null* — The SPKI fingerprint to confirm (self-signed libraries only).
+- `needs_fingerprint` *boolean*, **required** — Whether the operator must confirm `fingerprint` before joining.
 
 ## InstalledPluginDetail
 
@@ -783,6 +986,50 @@ Lifecycle state of a durable job row.
 
 Type: one of `pending`, `running`, `succeeded`, `failed`, `cancelled`
 
+## JobStatusEntry
+
+One job's state in [`Body::JobStatuses`].
+
+- `id` *string*, **required** — Job id.
+- `kind` *string*, **required** — Job kind (`scan`, `acquire`, ...).
+- `state` *string*, **required** — `pending`, `running`, `succeeded`, `failed`, or `cancelled`.
+- `progress` *string or null* — Progress or result text.
+- `error_kind` *string or null* — Structured error kind when it failed or was cancelled.
+- `error_message` *string or null* — Error text when it failed or was cancelled.
+
+## JoinCompleted
+
+JSON body once a join completed: as a branch, or as a clerk.
+
+Type: [`BranchJoined`](#branchjoined) or [`ClerkJoined`](#clerkjoined)
+
+## JoinConflict
+
+A `409` from a join step: the handler's error, or an origin mismatch that names the address to join with; the route's examples name each.
+
+Type: [`ErrorDetail`](#errordetail) or [`OriginMismatch`](#originmismatch)
+
+## JoinStarted
+
+JSON body for `POST /api/config/join/start`.
+
+- `authorize_url` *string*, **required** — The library's sign-in URL to open in the browser.
+- `library` *[`InspectedLibraryView`](#inspectedlibraryview)*, **required** — What the library said about itself.
+- `branch_name` *string*, **required** — The name this install asked to join as.
+- `clerk_offered` *boolean*, **required** — Whether joining as a clerk was offered.
+- `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
+
+## JoinStatus
+
+JSON body for `GET /api/config/join`.
+
+- `fresh` *boolean*, **required** — Whether this install has no users and no libraries yet.
+- `has_owner` *boolean*, **required** — Whether an Owner (or legacy administrator) exists here.
+- `clerk_eligible` *boolean*, **required** — Whether this install could still join a library as a clerk.
+- `clerk_problem` *string or null* — Why it cannot join as a clerk, when it cannot.
+- `default_branch_name` *string*, **required** — The name a join is offered under by default (this machine's name).
+- `links` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with whether its client runs.
+
 ## LameConfig
 
 LAME encoder tuning (classic `Lame*` settings).
@@ -809,6 +1056,13 @@ A cluster lease as the status page shows it.
 `POST /api/config/join/leave` body.
 
 - `cluster_id` *string*, **required** — The library (owner cluster id) to leave.
+
+## LeaveStarted
+
+JSON body once leaving a library started.
+
+- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The link, now `left`.
+- `owner_notified` *boolean*, **required** — Whether the library was told (otherwise it notices the missed heartbeats).
 
 ## LinkedIdentitiesResponse
 
@@ -906,6 +1160,41 @@ What the caller may do on the nodes it sees.
 - `can_edit_labels` *boolean*, **required** — True for the operator, who may replace placement labels.
 - `can_assign_owner` *boolean*, **required** — True for the operator, who may assign or clear a node's owner.
 
+## NodeCredentialRevoked
+
+JSON body after a host's credential was revoked.
+
+- `credential` *[`NodeCredentialView`](#nodecredentialview)*, **required** — The credential, with `revoked_at` set (revoking twice keeps the first time).
+
+## NodeCredentialView
+
+A host's node credential as the credentials routes show it; never its keys.
+
+- `node_id` *string*, **required** — Host node.
+- `link_id` *string*, **required** — Link that enrolled it.
+- `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
+- `revoked_at` *string or null* — RFC 3339 revoke time.
+- `last_connected_at` *string or null* — RFC 3339 time of the last authenticated connection.
+
+## NodeInviteCreated
+
+JSON body after an enrollment link was minted.
+
+- `link` *[`EnrollmentLinkView`](#enrollmentlinkview)*, **required** — The link's record.
+- `url` *string*, **required** — The full enrollment URL with the secret, shown once.
+
+## NodeInviteRevoked
+
+JSON body after an enrollment link was revoked.
+
+- `link` *[`EnrollmentLinkView`](#enrollmentlinkview)*, **required** — The link, with `revoked_at` set.
+
+## NodeInvitesResponse
+
+JSON body for `GET /api/config/node-invites`.
+
+- `links` *array of [`EnrollmentLinkView`](#enrollmentlinkview)*, **required** — The links the caller may see, newest first.
+
 ## NodeKind
 
 How a node joined the cluster.
@@ -927,6 +1216,12 @@ The user who owns a node, as the nodes listing shows them.
 - `user_id` *integer (int64)*, **required** — The owner's user id.
 - `display_name` *string or null* — Display name, or the login name when none is set; `null` when the user has neither.
 - `role` *[`UserRole`](#userrole)*, **required** — The owner's role.
+
+## NodeRefusal
+
+A `403` from a node API route: the transport policy's refusal, the standard body, or the handler's own error; the route's examples name each.
+
+Type: [`TransportRefused`](#transportrefused) or [`ErrorJson`](#errorjson) or [`ErrorMessage`](#errormessage) or [`ErrorDetail`](#errordetail)
 
 ## NodeRuntimeChanged
 
@@ -1011,6 +1306,15 @@ One node with its latest heartbeat, budget and owner.
 - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
 - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
 - `owner` *[`NodeOwnerSummary`](#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
+
+## OAuthEnrollAnswer
+
+`POST /api/node/v1/enroll/oauth` answer.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `node_id` *string*, **required** — The node id recorded for the joining install.
+- `connection` *[`ConnectionType`](#connectiontype)* — The connection type recorded (`branch` when left out).
+- `bootstrap` *string or null* — For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box key ([`crate::seal_clerk_bootstrap`]), as base64url without padding.
 
 ## OAuthEnrollRequest
 
@@ -1176,6 +1480,16 @@ An operator session as listed by `GET /api/auth/sessions`.
 - `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
 - `user_agent` *string or null* — Raw User-Agent captured when the session was created.
 
+## OriginMismatch
+
+`409 origin_mismatch`: the library's canonical address is not the one
+the join was started with. An [`crate::http_error::ErrorDetail`] that
+also carries the address to use.
+
+- `error` *string*, **required** — Always `origin_mismatch`.
+- `detail` *string*, **required** — Why, naming the address to join with instead.
+- `origin` *string*, **required** — The library's canonical origin, to join with instead.
+
 ## OutputDomainChange
 
 Body of `PUT /api/config/domains/core.output`: the settings after the
@@ -1257,6 +1571,29 @@ JSON body after the first Owner was created.
 - `invite_url` *string*, **required** — Invite link carrying the ticket, for the browser.
 - `login_name` *string or null* — Login name the Owner signs in with, when one was given.
 - `has_password` *boolean*, **required** — Whether a password was set, so password sign-in works right away.
+
+## OwnerChoice
+
+The consent page's connection block for an Owner, who may pick clerk.
+
+- `choice` *boolean*, **required** — Always `true`.
+- `default` *string*, **required** — Always `branch`.
+- `clerk_available` *boolean*, **required** — Whether clerk may be chosen right now.
+- `clerk_reason` *string or null* — Why clerk is shown disabled, when it is.
+- `step_up` *array of string*, **required** — The second factors the Owner can step up with (`totp`, `passkey`).
+
+## OwnerInfo
+
+`GET /api/node/v1/info` answer.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_name` *string*, **required** — A name to show for the library.
+- `origin` *string*, **required** — The library's canonical origin: the one the node handshake signs and the authorize endpoint lives under.
+- `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
+- `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.host_enrollment`).
+- `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
+- `software_version` *string* — The library's Bookclerk version.
+- `ancestry` *array of string* — The library's ancestry: its own cluster id first, then the cluster id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own cluster id, so a tree of libraries never becomes a cycle.
 
 ## OwnerNodeRemoved
 
@@ -1992,6 +2329,24 @@ JSON body for `POST /redeem` (claim ticket plus retry nonce).
 - `nonce` *string*, **required** — Browser-generated one-time nonce persisted across HTTP retries.
 - `password` *string or null* — Required when the linked local user has no password (invite / reset).
 
+## RemoteConsentView
+
+An owner library's request to run a plugin on this install, and what the operator answered.
+
+- `cluster_id` *string*, **required** — The owner library's cluster id.
+- `plugin_key` *string*, **required** — Canonical plugin key.
+- `requested_version` *string*, **required** — Version the owner deploys here now.
+- `requested_grant` *any JSON*, **required** — A plugin grant document (the plugin host's `PluginGrant`): the plugin key, the entrypoints, network mode and domains, and the bindings it may use; `null` when nothing was approved.
+- `requested_artifact` *[`RequestedArtifact`](#requestedartifact)*, **required** — The archive the owner deploys to this install.
+- `request_digest` *string*, **required** — Digest of the request as a whole; an approval names it so a changed request is not approved by mistake.
+- `approved_version` *string or null* — Version this install's operator approved, when any.
+- `grant` *any JSON*, **required** — A plugin grant document (the plugin host's `PluginGrant`): the plugin key, the entrypoints, network mode and domains, and the bindings it may use; `null` when nothing was approved.
+- `approved_at` *string or null* — RFC 3339 approval time.
+- `approved_by` *string or null* — Who approved (`operator`, or `platform` for an automatic approval).
+- `revoked_at` *string or null* — RFC 3339 time the operator revoked the approval.
+- `updated_at` *string*, **required** — RFC 3339 time of the last write.
+- `state` *string*, **required** — How this host stands on the request: `consented`, `awaiting_host_consent` (no approval, or a revoked one), `awaiting_host_reapproval` (the owner changed the request or the archive since the approval), or `invalid_grant` (a grant that does not parse).
+
 ## RemoveBranchTitles
 
 `POST /api/config/branches/titles/remove` body.
@@ -2004,6 +2359,14 @@ Character replacement rule (`ReplacementCharacters` in classic Settings.json).
 
 - `find` *string*, **required** — Substring to search for in each path segment / tag value.
 - `replace` *string*, **required** — Replacement text (may be empty to strip `find`).
+
+## RequestedArtifact
+
+The archive an owner library deploys to this install.
+
+- `url` *string*, **required** — Where the owner fetches it from.
+- `archive_sha256` *string*, **required** — SHA-256 of the archive.
+- `payload_root_sha256` *string*, **required** — Payload-root digest of the tree it unpacks to.
 
 ## RequestStatus
 
@@ -2151,6 +2514,18 @@ One allowed value of an `enum` setting: the stored id and its label.
 - `cluster_id` *string*, **required** — The library (owner cluster id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+
+## SharingChanged
+
+JSON body after `POST /api/config/join/sharing`.
+
+- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The link with its settings as stored now.
+
+## SharingSettings
+
+JSON body for `GET /api/config/join/sharing`.
+
+- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with its two sharing settings.
 
 ## ShelfKindInfo
 
@@ -2460,6 +2835,15 @@ Optional current password for enroll/disable step-up.
 JSON body for `GET /api/auth/totp`.
 
 - `enabled` *boolean*, **required** — Whether an authenticator app is confirmed for the caller.
+
+## TransportRefused
+
+JSON body of a `403` from the node API's transport policy: the
+connection is plain HTTP off loopback, or arrived through a proxy the
+policy does not trust, and `reason` names the check that refused it.
+
+- `error` *string*, **required** — Always `transport_insecure`.
+- `reason` *string*, **required** — The transport check that refused the connection (`plain_http`, `unknown_peer`, `untrusted_forwarding`, `proxy_proto_missing`, `proxy_proto_ambiguous`, `proxy_proto_not_https`, `public_origin_not_https`, `listener_mode_mismatch`, `node_api_misconfigured`).
 
 ## TrayHandoffPrepareResponse
 

@@ -516,7 +516,7 @@ One job's state in [`Body::JobStatuses`](#body).
 - `error_kind`: Structured error kind when it failed or was cancelled.
 - `error_message`: Error text when it failed or was cancelled.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### PlanDestination
 
@@ -771,9 +771,9 @@ pub struct OAuthEnrollAnswer {
 - `node_id`: The node id recorded for the joining install.
 - `connection`: The connection type recorded (`branch` when left out).
 - `bootstrap`: For a clerk: the [`crate::ClerkBootstrap`](#clerkbootstrap) sealed to the node's box
-  key ([`crate::seal_clerk_bootstrap`](#seal_clerk_bootstrap)).
+  key ([`crate::seal_clerk_bootstrap`](#seal_clerk_bootstrap)), as base64url without padding.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### OAuthEnrollRequest
 
@@ -842,7 +842,7 @@ pub struct OwnerInfo {
   refuses a parent whose ancestry names its own cluster id, so a
   tree of libraries never becomes a cycle.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### SecretEntry
 

@@ -3660,23 +3660,22 @@ shows the problem and never redirects).
 
 ### Responses
 
-- `200` — What the consent page shows. Body: any JSON (`application/json`)
-- `400` — The authorize parameters are invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — What the consent page shows. Body: [`BranchConsentPage`](schemas.md#branchconsentpage) (`application/json`)
+  - `library_name` *string*, **required** — This library's name.
+  - `branch_name` *string*, **required** — The name the branch asks to join as.
+  - `redirect_origin` *string*, **required** — Origin of the branch's redirect URI, for the page to name.
+  - `enrollment` *boolean*, **required** — Whether this library lets new branches join right now.
+  - `user` *[`ConsentingUser`](schemas.md#consentinguser)*, **required** — The signed-in user the branch would belong to.
+  - `connection` *[`ConnectionChoice`](schemas.md#connectionchoice)*, **required** — The connection types the page may offer.
+- `400` — The authorize parameters are invalid (`invalid_request`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller is not a library user (`user_required`; an operator session counts only while impersonating) or the account is inactive. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `503` — The library could not be read; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not a library user (`user_required`; an operator session counts only while impersonating), the account is inactive (`user_inactive`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `503` — The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3722,15 +3721,22 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: What the consent page shows. The body is JSON the schemas do not describe yet.
-
-Status `400`: The authorize parameters are invalid.
+Status `200`: What the consent page shows.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "library_name": "books.example.com",
+  "branch_name": "Living-room NAS",
+  "redirect_origin": "http://127.0.0.1:8787",
+  "enrollment": true,
+  "user": {
+    "id": 7,
+    "display_name": "Sam"
+  },
+  "connection": {
+    "choice": false,
+    "default": "branch"
+  }
 }
 ```
 
@@ -3739,22 +3745,162 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body for `GET /api/auth/branch-consent`: what the consent page shows.",
   "required": [
-    "error"
+    "library_name",
+    "branch_name",
+    "redirect_origin",
+    "enrollment",
+    "user",
+    "connection"
+  ],
+  "properties": {
+    "library_name": {
+      "type": "string",
+      "description": "This library's name.",
+      "example": "books.example.com"
+    },
+    "branch_name": {
+      "type": "string",
+      "description": "The name the branch asks to join as.",
+      "example": "Living-room NAS"
+    },
+    "redirect_origin": {
+      "type": "string",
+      "description": "Origin of the branch's redirect URI, for the page to name.",
+      "example": "http://127.0.0.1:8787"
+    },
+    "enrollment": {
+      "type": "boolean",
+      "description": "Whether this library lets new branches join right now.",
+      "example": true
+    },
+    "user": {
+      "type": "object",
+      "description": "The signed-in user the branch would belong to.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "`users.id`.",
+          "example": 7
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name, when set.",
+          "example": "Sam"
+        }
+      }
+    },
+    "connection": {
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "Only a branch (the user is not an Owner).",
+          "required": [
+            "choice",
+            "default"
+          ],
+          "properties": {
+            "choice": {
+              "type": "boolean",
+              "description": "Always `false`.",
+              "example": false
+            },
+            "default": {
+              "type": "string",
+              "description": "Always `branch`.",
+              "example": "branch"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "An Owner may pick clerk, when it is available.",
+          "required": [
+            "choice",
+            "default",
+            "clerk_available",
+            "step_up"
+          ],
+          "properties": {
+            "choice": {
+              "type": "boolean",
+              "description": "Always `true`.",
+              "example": true
+            },
+            "default": {
+              "type": "string",
+              "description": "Always `branch`.",
+              "example": "branch"
+            },
+            "clerk_available": {
+              "type": "boolean",
+              "description": "Whether clerk may be chosen right now.",
+              "example": false
+            },
+            "clerk_reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Why clerk is shown disabled, when it is.",
+              "example": "The joining server already holds library data of its own (or did not offer it), so it can only join as a branch."
+            },
+            "step_up": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The second factors the Owner can step up with (`totp`, `passkey`).",
+              "example": [
+                "passkey"
+              ]
+            }
+          }
+        }
+      ],
+      "description": "The connection types the page may offer."
+    }
+  }
+}
+```
+
+Status `400`: The authorize parameters are invalid (`invalid_request`).
+
+```json
+{
+  "detail": "the branch needs a name of 1 to 64 characters",
+  "error": "invalid_request"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "message": {
+    "detail": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
     }
   }
 }
@@ -3796,12 +3942,12 @@ Schema:
 }
 ```
 
-Status `403`: The caller is not a library user (`user_required`; an operator session counts only while impersonating) or the account is inactive.
+Status `403`: The caller is not a library user (`user_required`; an operator session counts only while impersonating), the account is inactive (`user_inactive`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`).
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
   "status": 403
 }
 ```
@@ -3810,35 +3956,79 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
     }
-  }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
 
-Status `503`: The library could not be read; try again.
+Status `503`: The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`).
 
 ```json
 {
-  "error": "service_unavailable",
-  "message": "The Bookclerk daemon is not ready to handle this request.",
-  "status": 503
+  "error": "cluster_unavailable"
 }
 ```
 
@@ -3846,25 +4036,71 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
     }
-  }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
 
@@ -3899,31 +4135,29 @@ enrollment on, and a connection the transport policy allows.
 
 ### Responses
 
-- `200` — `{redirect}` back to the branch. Body: any JSON (`application/json`)
-- `400` — The body is invalid. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — `{redirect}` back to the branch. Body: [`ConsentRedirect`](schemas.md#consentredirect) (`application/json`)
+  - `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
+- `400` — The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a clerk join (`clerk_not_offered`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller is not an active library user, or a clerk join lacks the Owner role or a passed step-up (`step_up_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `409` — This library's database cannot be shared with a clerk (`database_not_shareable`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `429` — Too many wrong step-up codes; wait a few minutes (`step_up_locked`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `503` — The library could not be read; try again. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a clerk join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
+- `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — This library's database cannot be shared with a clerk (`database_not_shareable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `413` — The body is larger than 8 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request is not `application/json`. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `429` — Too many wrong step-up codes; wait a few minutes (`step_up_locked`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `503` — The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3982,15 +4216,11 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: `{redirect}` back to the branch. The body is JSON the schemas do not describe yet.
-
-Status `400`: The body is invalid.
+Status `200`: `{redirect}` back to the branch.
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "redirect": "http://127.0.0.1:8787/api/config/join/callback?code=8f2c…&state=xyz"
 }
 ```
 
@@ -3999,22 +4229,49 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body after a branch consent was answered.",
   "required": [
-    "error"
+    "redirect"
+  ],
+  "properties": {
+    "redirect": {
+      "type": "string",
+      "description": "Where to send the browser: the branch's callback with a code, or with `error=access_denied`.",
+      "example": "http://127.0.0.1:8787/api/config/join/callback?code=8f2c…&state=xyz"
+    }
+  }
+}
+```
+
+Status `400`: The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a clerk join (`clerk_not_offered`).
+
+```json
+{
+  "detail": "connection must be branch or clerk",
+  "error": "invalid_request"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "message": {
+    "detail": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
     }
   }
 }
@@ -4056,13 +4313,112 @@ Schema:
 }
 ```
 
-Status `403`: The caller is not an active library user, or a clerk join lacks the Owner role or a passed step-up (`step_up_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a clerk join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "detail": "this library isn't accepting new branches",
+  "error": "enrollment_disabled"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The connection failed the transport policy.",
+      "required": [
+        "error",
+        "reason"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Always `transport_insecure`.",
+          "example": "transport_insecure"
+        },
+        "reason": {
+          "type": "string",
+          "description": "The transport check that refused the connection (`plain_http`,\n`unknown_peer`, `untrusted_forwarding`, `proxy_proto_missing`,\n`proxy_proto_ambiguous`, `proxy_proto_not_https`,\n`public_origin_not_https`, `listener_mode_mismatch`,\n`node_api_misconfigured`).",
+          "example": "plain_http"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The handler refused with a slug in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The handler refused with a slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "A `403` from a node API route: the transport policy's refusal, the standard body, or the handler's own error; the route's examples name each."
+}
+```
+
+Status `404`: The node API is not mounted on this listener (`node_api_unmounted`).
+
+```json
+{
+  "error": "node_api_unmounted"
 }
 ```
 
@@ -4071,22 +4427,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4096,9 +4445,8 @@ Status `409`: This library's database cannot be shared with a clerk (`database_n
 
 ```json
 {
-  "error": "conflict",
-  "message": "Conflict",
-  "status": 409
+  "detail": "This library keeps its database in a SQLite file that only this server can open. A clerk needs a PostgreSQL or Cloudflare D1 database.",
+  "error": "database_not_shareable"
 }
 ```
 
@@ -4107,22 +4455,75 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `413`: The body is larger than 8 KiB.
+
+```json
+{
+  "error": "request too large"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
-    },
-    "message": {
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request is not `application/json`.
+
+```json
+{
+  "error": "expected application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }
@@ -4132,9 +4533,8 @@ Status `429`: Too many wrong step-up codes; wait a few minutes (`step_up_locked`
 
 ```json
 {
-  "error": "too_many_requests",
-  "message": "Too many requests. Try again shortly.",
-  "status": 429
+  "detail": "too many wrong codes; wait a few minutes",
+  "error": "step_up_locked"
 }
 ```
 
@@ -4143,34 +4543,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
   "required": [
-    "error"
+    "error",
+    "detail"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "message": {
+    "detail": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
     }
   }
 }
 ```
 
-Status `503`: The library could not be read; try again.
+Status `503`: The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`).
 
 ```json
 {
-  "error": "service_unavailable",
-  "message": "The Bookclerk daemon is not ready to handle this request.",
-  "status": 503
+  "error": "cluster_unavailable"
 }
 ```
 
@@ -4178,25 +4575,71 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
     }
-  }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
 
@@ -4222,23 +4665,27 @@ options with a `challenge_id` to send back in the consent's `step_up`.
 
 ### Responses
 
-- `200` — Passkey request options. Body: any JSON (`application/json`)
+- `200` — Passkey request options. Body: [`PasskeyRequestOptions`](schemas.md#passkeyrequestoptions) (`application/json`)
+  - `challenge_id` *string*, **required** — Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.
+  - `publicKey` *any JSON*, **required** — W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.
+  - `mediation` *string or null* — Credential mediation the daemon asks the browser for; absent unless conditional mediation was requested.
+- `400` — This server's public origin is not a URL WebAuthn can use, so the passkey check could not start (`unavailable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller is not an active library user, or not an Owner (`owner_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `404` — The account has no passkey (`no_passkey`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `503` — The library could not be read, or the passkey check could not start. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not an active library user (`user_required`, `user_inactive`), not an Owner (`owner_required`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `404` — The account has no passkey (`no_passkey`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `500` — The passkeys could not be read, or the challenge could not be created or stored (`unavailable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `503` — The user record could not be read (`unavailable`); try again. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4290,7 +4737,105 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Passkey request options. The body is JSON the schemas do not describe yet.
+Status `200`: Passkey request options.
+
+```json
+{
+  "challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f",
+  "publicKey": {
+    "allowCredentials": [
+      {
+        "id": "pQECAyYgASFYIE",
+        "type": "public-key"
+      }
+    ],
+    "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+    "rpId": "books.example.com",
+    "timeout": 60000,
+    "userVerification": "preferred"
+  },
+  "mediation": "conditional"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "WebAuthn request options for `navigator.credentials.get()`, plus the challenge id for the finish step.",
+  "required": [
+    "challenge_id",
+    "publicKey"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Server-issued challenge id to send back with the assertion; consumed once, five-minute lifetime.",
+      "example": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f"
+    },
+    "publicKey": {
+      "description": "W3C PublicKeyCredentialRequestOptions (challenge, relying party id, allowed credentials), binary fields base64url-encoded.",
+      "examples": [
+        {
+          "allowCredentials": [
+            {
+              "id": "pQECAyYgASFYIE",
+              "type": "public-key"
+            }
+          ],
+          "challenge": "k9u2Xo3cZ1Qp7mT4vW8yA2bC5dE6fG7hI8jK9lM0nO1",
+          "rpId": "books.example.com",
+          "timeout": 60000,
+          "userVerification": "preferred"
+        }
+      ]
+    },
+    "mediation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Credential mediation the daemon asks the browser for; absent unless\nconditional mediation was requested.",
+      "example": "conditional"
+    }
+  }
+}
+```
+
+Status `400`: This server's public origin is not a URL WebAuthn can use, so the passkey check could not start (`unavailable`).
+
+```json
+{
+  "detail": "could not start the passkey check",
+  "error": "unavailable"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 
@@ -4328,12 +4873,12 @@ Schema:
 }
 ```
 
-Status `403`: The caller is not an active library user, or not an Owner (`owner_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an active library user (`user_required`, `user_inactive`), not an Owner (`owner_required`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
   "status": 403
 }
 ```
@@ -4342,25 +4887,71 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug."
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people."
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
     }
-  }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
 
@@ -4368,9 +4959,8 @@ Status `404`: The account has no passkey (`no_passkey`).
 
 ```json
 {
-  "error": "not_found",
-  "message": "That page or resource was not found.",
-  "status": 404
+  "detail": "this account has no passkey",
+  "error": "no_passkey"
 }
 ```
 
@@ -4379,34 +4969,32 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
   "required": [
-    "error"
+    "error",
+    "detail"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "message": {
+    "detail": {
       "type": "string",
-      "description": "Explanation for people."
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
     }
   }
 }
 ```
 
-Status `503`: The library could not be read, or the passkey check could not start.
+Status `500`: The passkeys could not be read, or the challenge could not be created or stored (`unavailable`).
 
 ```json
 {
-  "error": "service_unavailable",
-  "message": "The Bookclerk daemon is not ready to handle this request.",
-  "status": 503
+  "detail": "could not start the passkey check",
+  "error": "unavailable"
 }
 ```
 
@@ -4415,22 +5003,55 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
   "required": [
-    "error"
+    "error",
+    "detail"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "message": {
+    "detail": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `503`: The user record could not be read (`unavailable`); try again.
+
+```json
+{
+  "detail": "try again",
+  "error": "unavailable"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
     },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated."
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
     }
   }
 }
