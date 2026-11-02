@@ -36,14 +36,14 @@ Redeems a claim ticket, optionally setting a first password, and sets the sessio
 $ curl 'http://127.0.0.1:8787/api/portal/redeem' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"ticket": "string", "nonce": "string"}'
+    -d '{"ticket": "3f9a1c7e5b2d4a6f8e0c1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a", "nonce": "a7c3e9f1b5d2486e0f3a9c7b1d5e2f8a4c6b0d9e3f7a1c5b8d2e6f0a4c8b1d3e"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/portal/redeem' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"ticket": "string", "nonce": "string"}'
+    -Body '{"ticket": "3f9a1c7e5b2d4a6f8e0c1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a", "nonce": "a7c3e9f1b5d2486e0f3a9c7b1d5e2f8a4c6b0d9e3f7a1c5b8d2e6f0a4c8b1d3e"}'
 ```
 
 ```python
@@ -51,7 +51,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/portal/redeem",
-    json={"ticket": "string", "nonce": "string"},
+    json={"ticket": "3f9a1c7e5b2d4a6f8e0c1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a", "nonce": "a7c3e9f1b5d2486e0f3a9c7b1d5e2f8a4c6b0d9e3f7a1c5b8d2e6f0a4c8b1d3e"},
 )
 print(response.status_code, response.text)
 ```
@@ -60,7 +60,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/portal/redeem", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"ticket": "string", "nonce": "string"}),
+  body: JSON.stringify({"ticket": "3f9a1c7e5b2d4a6f8e0c1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a", "nonce": "a7c3e9f1b5d2486e0f3a9c7b1d5e2f8a4c6b0d9e3f7a1c5b8d2e6f0a4c8b1d3e"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -69,7 +69,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/portal/redeem")
-    .json(&serde_json::json!({"ticket": "string", "nonce": "string"}))
+    .json(&serde_json::json!({"ticket": "3f9a1c7e5b2d4a6f8e0c1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3a", "nonce": "a7c3e9f1b5d2486e0f3a9c7b1d5e2f8a4c6b0d9e3f7a1c5b8d2e6f0a4c8b1d3e"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -198,14 +198,14 @@ Authenticates against an enabled integration and mints a portal session.
 $ curl 'http://127.0.0.1:8787/api/portal/login/integration' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"provider": "string", "username": "string", "password": "string"}'
+    -d '{"provider": "audiobookshelf", "username": "dana", "password": "correct horse battery staple"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/portal/login/integration' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"provider": "string", "username": "string", "password": "string"}'
+    -Body '{"provider": "audiobookshelf", "username": "dana", "password": "correct horse battery staple"}'
 ```
 
 ```python
@@ -213,7 +213,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/portal/login/integration",
-    json={"provider": "string", "username": "string", "password": "string"},
+    json={"provider": "audiobookshelf", "username": "dana", "password": "correct horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -222,7 +222,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/portal/login/integration", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"provider": "string", "username": "string", "password": "string"}),
+  body: JSON.stringify({"provider": "audiobookshelf", "username": "dana", "password": "correct horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -231,7 +231,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/portal/login/integration")
-    .json(&serde_json::json!({"provider": "string", "username": "string", "password": "string"}))
+    .json(&serde_json::json!({"provider": "audiobookshelf", "username": "dana", "password": "correct horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -498,9 +498,9 @@ Status `200`: The signed-in identity.
 
 ```json
 {
-  "provider": "string",
-  "external_user_id": "string",
-  "label": "string"
+  "provider": "local",
+  "external_user_id": "user:7",
+  "label": "Dana Reader"
 }
 ```
 
@@ -517,18 +517,21 @@ Schema:
   "properties": {
     "provider": {
       "type": "string",
-      "description": "Identity provider id (`local` or an integration plugin id)."
+      "description": "Identity provider id (`local` or an integration plugin id).",
+      "example": "local"
     },
     "external_user_id": {
       "type": "string",
-      "description": "Provider-scoped user id stored on the portal identity row."
+      "description": "Provider-scoped user id stored on the portal identity row.",
+      "example": "user:7"
     },
     "label": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Optional display label from the identity row."
+      "description": "Optional display label from the identity row.",
+      "example": "Dana Reader"
     }
   }
 }
@@ -648,21 +651,21 @@ Status `200`: Deployed content sources.
 {
   "sources": [
     {
-      "id": "string",
-      "name": "string",
-      "auth": "string",
+      "id": "libro",
+      "name": "Libro.fm",
+      "auth": "password",
       "config_options": [
         {
-          "key": "string",
-          "label": "string",
+          "key": "container",
+          "label": "Container",
           "values": []
         }
       ],
       "brand": {
-        "bg": "string",
-        "fg": "string",
-        "accent": "string",
-        "logo": "string"
+        "bg": "#1F4E3D",
+        "fg": "#F4F1EA",
+        "accent": "#2F6B53",
+        "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
       }
     }
   ]
@@ -693,15 +696,18 @@ Schema:
         "properties": {
           "id": {
             "type": "string",
-            "description": "Source plugin id (`audible`, `libro`, …)."
+            "description": "Source plugin id (`audible`, `libro`, …).",
+            "example": "libro"
           },
           "name": {
             "type": "string",
-            "description": "Operator-facing storefront name."
+            "description": "Operator-facing storefront name.",
+            "example": "Libro.fm"
           },
           "auth": {
             "type": "string",
-            "description": "Portal auth mode (`password` or `oauth`)."
+            "description": "Portal auth mode (`password` or `oauth`).",
+            "example": "password"
           },
           "config_options": {
             "type": "array",
@@ -716,11 +722,13 @@ Schema:
               "properties": {
                 "key": {
                   "type": "string",
-                  "description": "Config table key (for example `container`)."
+                  "description": "Config table key (for example `container`).",
+                  "example": "container"
                 },
                 "label": {
                   "type": "string",
-                  "description": "Operator-facing option name."
+                  "description": "Operator-facing option name.",
+                  "example": "Container"
                 },
                 "values": {
                   "type": "array",
@@ -734,11 +742,13 @@ Schema:
                     "properties": {
                       "id": {
                         "type": "string",
-                        "description": "Stored option value (for example `m4b`)."
+                        "description": "Stored option value (for example `m4b`).",
+                        "example": "m4b"
                       },
                       "label": {
                         "type": "string",
-                        "description": "Operator-facing value label."
+                        "description": "Operator-facing value label.",
+                        "example": "M4B"
                       }
                     }
                   },
@@ -760,19 +770,23 @@ Schema:
             "properties": {
               "bg": {
                 "type": "string",
-                "description": "Background color (`#RRGGBB`)."
+                "description": "Background color (`#RRGGBB`).",
+                "example": "#1F4E3D"
               },
               "fg": {
                 "type": "string",
-                "description": "Foreground / text color (`#RRGGBB`)."
+                "description": "Foreground / text color (`#RRGGBB`).",
+                "example": "#F4F1EA"
               },
               "accent": {
                 "type": "string",
-                "description": "Accent color (`#RRGGBB`)."
+                "description": "Accent color (`#RRGGBB`).",
+                "example": "#2F6B53"
               },
               "logo": {
                 "type": "string",
-                "description": "Logo image href (often a favicon URL)."
+                "description": "Logo image href (often a favicon URL).",
+                "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
               }
             }
           }
@@ -838,7 +852,7 @@ $ curl 'http://127.0.0.1:8787/api/portal/sources/<id>/login' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"email": "string", "password": "string"}'
+    -d '{"email": "reader@example.com", "password": "correct horse battery staple"}'
 ```
 
 ```powershell
@@ -849,7 +863,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/portal/sources/<id>/login' `
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"email": "string", "password": "string"}'
+    -Body '{"email": "reader@example.com", "password": "correct horse battery staple"}'
 ```
 
 ```python
@@ -858,7 +872,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/portal/sources/<id>/login",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"email": "string", "password": "string"},
+    json={"email": "reader@example.com", "password": "correct horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -867,7 +881,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/portal/sources/<id>/login", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"email": "string", "password": "string"}),
+  body: JSON.stringify({"email": "reader@example.com", "password": "correct horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -878,7 +892,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/portal/sources/<id>/login")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"email": "string", "password": "string"}))
+    .json(&serde_json::json!({"email": "reader@example.com", "password": "correct horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1278,7 +1292,7 @@ $ curl 'http://127.0.0.1:8787/api/portal/libro/login' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"email": "string", "password": "string"}'
+    -d '{"email": "reader@example.com", "password": "correct horse battery staple"}'
 ```
 
 ```powershell
@@ -1289,7 +1303,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/portal/libro/login' `
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"email": "string", "password": "string"}'
+    -Body '{"email": "reader@example.com", "password": "correct horse battery staple"}'
 ```
 
 ```python
@@ -1298,7 +1312,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/portal/libro/login",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"email": "string", "password": "string"},
+    json={"email": "reader@example.com", "password": "correct horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -1307,7 +1321,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/portal/libro/login", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"email": "string", "password": "string"}),
+  body: JSON.stringify({"email": "reader@example.com", "password": "correct horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -1318,7 +1332,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/portal/libro/login")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"email": "string", "password": "string"}))
+    .json(&serde_json::json!({"email": "reader@example.com", "password": "correct horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1741,17 +1755,17 @@ Status `200`: Store accounts linked to the caller.
 {
   "connections": [
     {
-      "account_id": "string",
-      "source": "string",
-      "plugin_key": "string",
-      "label": "string",
-      "connection_status": "string",
+      "account_id": "reader@example.com",
+      "source": "libro",
+      "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+      "label": "Household",
+      "connection_status": "active",
       "source_enabled": true,
       "brand": {
-        "bg": "string",
-        "fg": "string",
-        "accent": "string",
-        "logo": "string"
+        "bg": "#1F4E3D",
+        "fg": "#F4F1EA",
+        "accent": "#2F6B53",
+        "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
       }
     }
   ]
@@ -1783,30 +1797,36 @@ Schema:
         "properties": {
           "account_id": {
             "type": "string",
-            "description": "Store account id (unique within its source)."
+            "description": "Store account id (unique within its source).",
+            "example": "reader@example.com"
           },
           "source": {
             "type": "string",
-            "description": "Source plugin id that owns this account."
+            "description": "Source plugin id that owns this account.",
+            "example": "libro"
           },
           "plugin_key": {
             "type": "string",
-            "description": "Provenance-qualified PluginKey that owns the account."
+            "description": "Provenance-qualified PluginKey that owns the account.",
+            "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
           },
           "label": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Operator-facing account label when the store provided one."
+            "description": "Operator-facing account label when the store provided one.",
+            "example": "Household"
           },
           "connection_status": {
             "type": "string",
-            "description": "Connection state (`active`, revoked, …); defaults to `active` if the account row is missing."
+            "description": "Connection state (`active`, revoked, …); defaults to `active` if the account row is missing.",
+            "example": "active"
           },
           "source_enabled": {
             "type": "boolean",
-            "description": "Whether `[sources.<id>] enabled` is currently true (new connects blocked when false)."
+            "description": "Whether `[sources.<id>] enabled` is currently true (new connects blocked when false).",
+            "example": true
           },
           "brand": {
             "oneOf": [
@@ -1822,19 +1842,23 @@ Schema:
                 "properties": {
                   "bg": {
                     "type": "string",
-                    "description": "Background color (`#RRGGBB`)."
+                    "description": "Background color (`#RRGGBB`).",
+                    "example": "#1F4E3D"
                   },
                   "fg": {
                     "type": "string",
-                    "description": "Foreground / text color (`#RRGGBB`)."
+                    "description": "Foreground / text color (`#RRGGBB`).",
+                    "example": "#F4F1EA"
                   },
                   "accent": {
                     "type": "string",
-                    "description": "Accent color (`#RRGGBB`)."
+                    "description": "Accent color (`#RRGGBB`).",
+                    "example": "#2F6B53"
                   },
                   "logo": {
                     "type": "string",
-                    "description": "Logo image href (often a favicon URL)."
+                    "description": "Logo image href (often a favicon URL).",
+                    "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
                   }
                 }
               },
