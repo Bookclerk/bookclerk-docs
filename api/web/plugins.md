@@ -5474,181 +5474,208 @@ Status `200`: What the plugin asks for and what is granted.
 
 ```json
 {
-  "plugin_id": "string",
-  "plugin_key": "string",
-  "provenance": "string",
-  "runtime": "string",
+  "plugin_id": "libro",
+  "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+  "provenance": "platform_bundled",
+  "runtime": "native",
   "request": {
-    "pluginKey": "string",
-    "pluginId": "string",
+    "pluginKey": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+    "pluginId": "libro",
     "entrypoints": [
-      "string"
+      "storefront"
     ],
     "producers": [
-      "string"
+      "book_acquired"
     ],
     "consumers": [
-      {}
+      {
+        "eventType": "book_acquired",
+        "schemaVersions": [
+          1
+        ],
+        "supportsSuspend": false
+      }
     ],
     "jobs": [
-      "string"
+      "stream_copy"
     ],
-    "networkMode": "string",
+    "networkMode": "outbound",
     "domains": [
-      "string"
+      "*.libro.fm",
+      "api.libro.fm"
     ],
     "manifestDomains": [
-      "string"
+      "*.libro.fm"
     ],
     "operatorAddedDomains": [
-      "string"
+      "api.libro.fm"
     ],
-    "operatorDeniedDomains": [
-      "string"
-    ],
+    "operatorDeniedDomains": [],
     "tcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorAddedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorDeniedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "addressCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
     "operatorAddedCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
-    "operatorDeniedCidrs": [
-      "string"
-    ],
-    "allowUndeclaredPublicRedirects": true,
-    "grantRevision": "string",
-    "authorityRevision": "string",
+    "operatorDeniedCidrs": [],
+    "allowUndeclaredPublicRedirects": false,
+    "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
+    "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
-      "string"
+      "config",
+      "secrets"
     ],
     "compatibilityFlags": [
-      "string"
+      "nodejs_compat"
     ],
-    "approvedAt": "string",
-    "cpuMs": 0,
-    "subrequests": 0,
-    "diskMib": 0,
-    "memoryMib": 0,
-    "cpuCores": 0,
-    "extraProcesses": 0
+    "approvedAt": "2026-10-29T10:12:00Z",
+    "cpuMs": 50,
+    "subrequests": 50,
+    "diskMib": 256,
+    "memoryMib": 512,
+    "cpuCores": 1.0,
+    "extraProcesses": 4
   },
-  "covered": true,
+  "covered": false,
   "summary": [
-    "string"
+    "Plugin: libro (entrypoints: storefront)",
+    "Network: outbound",
+    "Raw TCP connect: *.libro.fm:[443]",
+    "Host bindings: config, secrets"
   ],
   "existing": {
-    "pluginKey": "string",
-    "pluginId": "string",
+    "pluginKey": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+    "pluginId": "libro",
     "entrypoints": [
-      "string"
+      "storefront"
     ],
     "producers": [
-      "string"
+      "book_acquired"
     ],
     "consumers": [
-      {}
+      {
+        "eventType": "book_acquired",
+        "schemaVersions": [
+          1
+        ],
+        "supportsSuspend": false
+      }
     ],
     "jobs": [
-      "string"
+      "stream_copy"
     ],
-    "networkMode": "string",
+    "networkMode": "outbound",
     "domains": [
-      "string"
+      "*.libro.fm",
+      "api.libro.fm"
     ],
     "manifestDomains": [
-      "string"
+      "*.libro.fm"
     ],
     "operatorAddedDomains": [
-      "string"
+      "api.libro.fm"
     ],
-    "operatorDeniedDomains": [
-      "string"
-    ],
+    "operatorDeniedDomains": [],
     "tcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorAddedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorDeniedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "addressCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
     "operatorAddedCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
-    "operatorDeniedCidrs": [
-      "string"
-    ],
-    "allowUndeclaredPublicRedirects": true,
-    "grantRevision": "string",
-    "authorityRevision": "string",
+    "operatorDeniedCidrs": [],
+    "allowUndeclaredPublicRedirects": false,
+    "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
+    "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
-      "string"
+      "config",
+      "secrets"
     ],
     "compatibilityFlags": [
-      "string"
+      "nodejs_compat"
     ],
-    "approvedAt": "string",
-    "cpuMs": 0,
-    "subrequests": 0,
-    "diskMib": 0,
-    "memoryMib": 0,
-    "cpuCores": 0,
-    "extraProcesses": 0
+    "approvedAt": "2026-10-29T10:12:00Z",
+    "cpuMs": 50,
+    "subrequests": 50,
+    "diskMib": 256,
+    "memoryMib": 512,
+    "cpuCores": 1.0,
+    "extraProcesses": 4
   },
   "brand": {
-    "name": "string",
-    "bg": "string",
-    "fg": "string",
-    "accent": "string",
-    "logo": "string"
+    "name": "Libro.fm",
+    "bg": "#0f2a3f",
+    "fg": "#ffffff",
+    "accent": "#f4b400",
+    "logo": "/api/plugins/libro/logo"
   },
   "limits": {
-    "cpu_ms": 0,
-    "subrequests": 0,
-    "max_cpu_ms": 0,
-    "max_subrequests": 0,
-    "disk_mib": 0,
-    "max_disk_mib": 0,
-    "memory_mib": 0,
-    "max_memory_mib": 0,
-    "cpu_cores": 0,
-    "max_cpu_cores": 0,
-    "jail_cpu_cores": 0,
-    "extra_processes": 0,
-    "max_extra_processes": 0,
+    "cpu_ms": 30000,
+    "subrequests": 50,
+    "max_cpu_ms": 120000,
+    "max_subrequests": 1000,
+    "disk_mib": 512,
+    "max_disk_mib": 4096,
+    "memory_mib": 512,
+    "max_memory_mib": 4096,
+    "cpu_cores": 0.8,
+    "max_cpu_cores": 8.0,
+    "jail_cpu_cores": 2.0,
+    "extra_processes": 2,
+    "max_extra_processes": 62,
     "known_bindings": [
-      "string"
+      "config",
+      "secrets",
+      "plugin_kv",
+      "work_fs",
+      "oauth"
     ]
   }
 }
@@ -5673,19 +5700,23 @@ Schema:
   "properties": {
     "plugin_id": {
       "type": "string",
-      "description": "Plugin id whose grant is being reviewed."
+      "description": "Plugin id whose grant is being reviewed.",
+      "example": "libro"
     },
     "plugin_key": {
       "type": "string",
-      "description": "Canonical PluginKey for this install (empty when unknown)."
+      "description": "Canonical PluginKey for this install (empty when unknown).",
+      "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
     },
     "provenance": {
       "type": "string",
-      "description": "Host-evaluated provenance label."
+      "description": "Host-evaluated provenance label.",
+      "example": "platform_bundled"
     },
     "runtime": {
       "type": "string",
-      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable."
+      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable.",
+      "example": "native"
     },
     "request": {
       "type": "object",
@@ -5718,71 +5749,103 @@ Schema:
       "properties": {
         "pluginKey": {
           "type": "string",
-          "description": "Canonical provenance-qualified PluginKey."
+          "description": "Canonical provenance-qualified PluginKey.",
+          "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
         },
         "pluginId": {
           "type": "string",
-          "description": "Plugin id this grant applies to."
+          "description": "Plugin id this grant applies to.",
+          "example": "libro"
         },
         "entrypoints": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …).",
+          "example": [
+            "storefront"
+          ]
         },
         "producers": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Event types the operator approved the plugin to publish."
+          "description": "Event types the operator approved the plugin to publish.",
+          "example": [
+            "book_acquired"
+          ]
         },
         "consumers": {
           "type": "array",
           "items": {
             "type": "object"
           },
-          "description": "Approved event-consumer subscriptions."
+          "description": "Approved event-consumer subscriptions.",
+          "example": [
+            {
+              "eventType": "book_acquired",
+              "schemaVersions": [
+                1
+              ],
+              "supportsSuspend": false
+            }
+          ]
         },
         "jobs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Approved job trigger types."
+          "description": "Approved job trigger types.",
+          "example": [
+            "stream_copy"
+          ]
         },
         "networkMode": {
           "type": "string",
-          "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+          "description": "Approved egress mode (`deny` or `outbound`).",
+          "example": "outbound"
         },
         "domains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Hostnames the operator approved for egress."
+          "description": "Hostnames the operator approved for egress.",
+          "example": [
+            "*.libro.fm",
+            "api.libro.fm"
+          ]
         },
         "manifestDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Destinations requested by the current manifest."
+          "description": "Destinations requested by the current manifest.",
+          "example": [
+            "*.libro.fm"
+          ]
         },
         "operatorAddedDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-added destinations beyond the manifest."
+          "description": "Operator-added destinations beyond the manifest.",
+          "example": [
+            "api.libro.fm"
+          ]
         },
         "operatorDeniedDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-denied destinations still listed by the manifest."
+          "description": "Operator-denied destinations still listed by the manifest.",
+          "example": []
         },
         "tcp": {
           "type": "array",
@@ -5796,7 +5859,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -5805,7 +5869,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -5823,7 +5890,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -5832,7 +5900,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -5850,7 +5921,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -5859,7 +5931,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -5870,51 +5945,69 @@ Schema:
           "items": {
             "type": "string"
           },
-          "description": "Effective address-space CIDRs."
+          "description": "Effective address-space CIDRs.",
+          "example": [
+            "203.0.113.0/24"
+          ]
         },
         "operatorAddedCidrs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-added CIDRs."
+          "description": "Operator-added CIDRs.",
+          "example": [
+            "203.0.113.0/24"
+          ]
         },
         "operatorDeniedCidrs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-denied CIDRs still listed by the manifest."
+          "description": "Operator-denied CIDRs still listed by the manifest.",
+          "example": []
         },
         "allowUndeclaredPublicRedirects": {
           "type": "boolean",
-          "description": "Undeclared public redirect permission."
+          "description": "Undeclared public redirect permission.",
+          "example": false
         },
         "grantRevision": {
           "type": "string",
-          "description": "SHA-256 of persisted operator consent (no host overlays)."
+          "description": "SHA-256 of persisted operator consent (no host overlays).",
+          "example": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"
         },
         "authorityRevision": {
           "type": "string",
-          "description": "SHA-256 of the canonical effective authority."
+          "description": "SHA-256 of the canonical effective authority.",
+          "example": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b"
         },
         "bindings": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Host bindings the operator approved."
+          "description": "Host bindings the operator approved.",
+          "example": [
+            "config",
+            "secrets"
+          ]
         },
         "compatibilityFlags": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Extra compatibility flags stored on the grant."
+          "description": "Extra compatibility flags stored on the grant.",
+          "example": [
+            "nodejs_compat"
+          ]
         },
         "approvedAt": {
           "type": "string",
-          "description": "RFC 3339 timestamp when the grant was last approved."
+          "description": "RFC 3339 timestamp when the grant was last approved.",
+          "example": "2026-10-29T10:12:00Z"
         },
         "cpuMs": {
           "type": [
@@ -5923,6 +6016,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional workerd CPU budget in milliseconds.",
+          "example": 50,
           "minimum": 0
         },
         "subrequests": {
@@ -5932,6 +6026,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional workerd subrequest budget.",
+          "example": 50,
           "minimum": 0
         },
         "diskMib": {
@@ -5941,6 +6036,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional plugin state disk budget in mebibytes.",
+          "example": 256,
           "minimum": 0
         },
         "memoryMib": {
@@ -5950,6 +6046,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional jail memory in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "cpuCores": {
@@ -5958,7 +6055,8 @@ Schema:
             "null"
           ],
           "format": "double",
-          "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+          "description": "Jail CPU in cores (2 d.p.); absent for workerd.",
+          "example": 1.0
         },
         "extraProcesses": {
           "type": [
@@ -5967,20 +6065,28 @@ Schema:
           ],
           "format": "int32",
           "description": "Extra process/thread budget beyond launcher overhead; native only.",
+          "example": 4,
           "minimum": 0
         }
       }
     },
     "covered": {
       "type": "boolean",
-      "description": "True when an existing on-disk grant already satisfies the request."
+      "description": "True when an existing on-disk grant already satisfies the request.",
+      "example": false
     },
     "summary": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Operator-facing bullet list of requested capabilities."
+      "description": "Operator-facing bullet list of requested capabilities.",
+      "example": [
+        "Plugin: libro (entrypoints: storefront)",
+        "Network: outbound",
+        "Raw TCP connect: *.libro.fm:[443]",
+        "Host bindings: config, secrets"
+      ]
     },
     "existing": {
       "oneOf": [
@@ -6015,71 +6121,103 @@ Schema:
           "properties": {
             "pluginKey": {
               "type": "string",
-              "description": "Canonical provenance-qualified PluginKey."
+              "description": "Canonical provenance-qualified PluginKey.",
+              "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
             },
             "pluginId": {
               "type": "string",
-              "description": "Plugin id this grant applies to."
+              "description": "Plugin id this grant applies to.",
+              "example": "libro"
             },
             "entrypoints": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …).",
+              "example": [
+                "storefront"
+              ]
             },
             "producers": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Event types the operator approved the plugin to publish."
+              "description": "Event types the operator approved the plugin to publish.",
+              "example": [
+                "book_acquired"
+              ]
             },
             "consumers": {
               "type": "array",
               "items": {
                 "type": "object"
               },
-              "description": "Approved event-consumer subscriptions."
+              "description": "Approved event-consumer subscriptions.",
+              "example": [
+                {
+                  "eventType": "book_acquired",
+                  "schemaVersions": [
+                    1
+                  ],
+                  "supportsSuspend": false
+                }
+              ]
             },
             "jobs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Approved job trigger types."
+              "description": "Approved job trigger types.",
+              "example": [
+                "stream_copy"
+              ]
             },
             "networkMode": {
               "type": "string",
-              "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+              "description": "Approved egress mode (`deny` or `outbound`).",
+              "example": "outbound"
             },
             "domains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Hostnames the operator approved for egress."
+              "description": "Hostnames the operator approved for egress.",
+              "example": [
+                "*.libro.fm",
+                "api.libro.fm"
+              ]
             },
             "manifestDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Destinations requested by the current manifest."
+              "description": "Destinations requested by the current manifest.",
+              "example": [
+                "*.libro.fm"
+              ]
             },
             "operatorAddedDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-added destinations beyond the manifest."
+              "description": "Operator-added destinations beyond the manifest.",
+              "example": [
+                "api.libro.fm"
+              ]
             },
             "operatorDeniedDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-denied destinations still listed by the manifest."
+              "description": "Operator-denied destinations still listed by the manifest.",
+              "example": []
             },
             "tcp": {
               "type": "array",
@@ -6093,7 +6231,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -6102,7 +6241,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -6120,7 +6262,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -6129,7 +6272,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -6147,7 +6293,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -6156,7 +6303,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -6167,51 +6317,69 @@ Schema:
               "items": {
                 "type": "string"
               },
-              "description": "Effective address-space CIDRs."
+              "description": "Effective address-space CIDRs.",
+              "example": [
+                "203.0.113.0/24"
+              ]
             },
             "operatorAddedCidrs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-added CIDRs."
+              "description": "Operator-added CIDRs.",
+              "example": [
+                "203.0.113.0/24"
+              ]
             },
             "operatorDeniedCidrs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-denied CIDRs still listed by the manifest."
+              "description": "Operator-denied CIDRs still listed by the manifest.",
+              "example": []
             },
             "allowUndeclaredPublicRedirects": {
               "type": "boolean",
-              "description": "Undeclared public redirect permission."
+              "description": "Undeclared public redirect permission.",
+              "example": false
             },
             "grantRevision": {
               "type": "string",
-              "description": "SHA-256 of persisted operator consent (no host overlays)."
+              "description": "SHA-256 of persisted operator consent (no host overlays).",
+              "example": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"
             },
             "authorityRevision": {
               "type": "string",
-              "description": "SHA-256 of the canonical effective authority."
+              "description": "SHA-256 of the canonical effective authority.",
+              "example": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b"
             },
             "bindings": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Host bindings the operator approved."
+              "description": "Host bindings the operator approved.",
+              "example": [
+                "config",
+                "secrets"
+              ]
             },
             "compatibilityFlags": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Extra compatibility flags stored on the grant."
+              "description": "Extra compatibility flags stored on the grant.",
+              "example": [
+                "nodejs_compat"
+              ]
             },
             "approvedAt": {
               "type": "string",
-              "description": "RFC 3339 timestamp when the grant was last approved."
+              "description": "RFC 3339 timestamp when the grant was last approved.",
+              "example": "2026-10-29T10:12:00Z"
             },
             "cpuMs": {
               "type": [
@@ -6220,6 +6388,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional workerd CPU budget in milliseconds.",
+              "example": 50,
               "minimum": 0
             },
             "subrequests": {
@@ -6229,6 +6398,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional workerd subrequest budget.",
+              "example": 50,
               "minimum": 0
             },
             "diskMib": {
@@ -6238,6 +6408,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional plugin state disk budget in mebibytes.",
+              "example": 256,
               "minimum": 0
             },
             "memoryMib": {
@@ -6247,6 +6418,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional jail memory in mebibytes.",
+              "example": 512,
               "minimum": 0
             },
             "cpuCores": {
@@ -6255,7 +6427,8 @@ Schema:
                 "null"
               ],
               "format": "double",
-              "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+              "description": "Jail CPU in cores (2 d.p.); absent for workerd.",
+              "example": 1.0
             },
             "extraProcesses": {
               "type": [
@@ -6264,6 +6437,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Extra process/thread budget beyond launcher overhead; native only.",
+              "example": 4,
               "minimum": 0
             }
           }
@@ -6284,35 +6458,40 @@ Schema:
           "properties": {
             "name": {
               "type": "string",
-              "description": "Display name from the portal brand or plugin manifest."
+              "description": "Display name from the portal brand or plugin manifest.",
+              "example": "Libro.fm"
             },
             "bg": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Background CSS color from the portal brand, when known."
+              "description": "Background CSS color from the portal brand, when known.",
+              "example": "#0f2a3f"
             },
             "fg": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Foreground CSS color from the portal brand, when known."
+              "description": "Foreground CSS color from the portal brand, when known.",
+              "example": "#ffffff"
             },
             "accent": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Accent CSS color from the portal brand, when known."
+              "description": "Accent CSS color from the portal brand, when known.",
+              "example": "#f4b400"
             },
             "logo": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Logo URL or host-served embed path."
+              "description": "Logo URL or host-served embed path.",
+              "example": "/api/plugins/libro/logo"
             }
           }
         },
@@ -6344,59 +6523,69 @@ Schema:
           "type": "integer",
           "format": "int32",
           "description": "Requested workerd CPU budget in milliseconds.",
+          "example": 30000,
           "minimum": 0
         },
         "subrequests": {
           "type": "integer",
           "format": "int32",
           "description": "Requested workerd subrequest budget.",
+          "example": 50,
           "minimum": 0
         },
         "max_cpu_ms": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for workerd CPU milliseconds.",
+          "example": 120000,
           "minimum": 0
         },
         "max_subrequests": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for workerd subrequests.",
+          "example": 1000,
           "minimum": 0
         },
         "disk_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Default plugin state disk budget in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "max_disk_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for plugin state disk in mebibytes.",
+          "example": 4096,
           "minimum": 0
         },
         "memory_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Default jail memory in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "max_memory_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for jail memory in mebibytes.",
+          "example": 4096,
           "minimum": 0
         },
         "cpu_cores": {
           "type": "number",
           "format": "double",
-          "description": "Manifest / default jail CPU in cores (2 d.p.)."
+          "description": "Manifest / default jail CPU in cores (2 d.p.).",
+          "example": 0.8
         },
         "max_cpu_cores": {
           "type": "number",
           "format": "double",
-          "description": "Host max jail CPU in cores (2 d.p.)."
+          "description": "Host max jail CPU in cores (2 d.p.).",
+          "example": 8.0
         },
         "jail_cpu_cores": {
           "type": [
@@ -6404,18 +6593,21 @@ Schema:
             "null"
           ],
           "format": "double",
-          "description": "Optional `[plugins.jail]` ceiling in cores."
+          "description": "Optional `[plugins.jail]` ceiling in cores.",
+          "example": 2.0
         },
         "extra_processes": {
           "type": "integer",
           "format": "int32",
           "description": "Default extra process/thread budget (native consent).",
+          "example": 2,
           "minimum": 0
         },
         "max_extra_processes": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for extra process budget.",
+          "example": 62,
           "minimum": 0
         },
         "known_bindings": {
@@ -6423,7 +6615,14 @@ Schema:
           "items": {
             "type": "string"
           },
-          "description": "Suggested / default host bindings operators may grant."
+          "description": "Suggested / default host bindings operators may grant.",
+          "example": [
+            "config",
+            "secrets",
+            "plugin_kv",
+            "work_fs",
+            "oauth"
+          ]
         }
       }
     }
@@ -6709,181 +6908,208 @@ Status `200`: The grant was stored.
 
 ```json
 {
-  "plugin_id": "string",
-  "plugin_key": "string",
-  "provenance": "string",
-  "runtime": "string",
+  "plugin_id": "libro",
+  "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+  "provenance": "platform_bundled",
+  "runtime": "native",
   "request": {
-    "pluginKey": "string",
-    "pluginId": "string",
+    "pluginKey": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+    "pluginId": "libro",
     "entrypoints": [
-      "string"
+      "storefront"
     ],
     "producers": [
-      "string"
+      "book_acquired"
     ],
     "consumers": [
-      {}
+      {
+        "eventType": "book_acquired",
+        "schemaVersions": [
+          1
+        ],
+        "supportsSuspend": false
+      }
     ],
     "jobs": [
-      "string"
+      "stream_copy"
     ],
-    "networkMode": "string",
+    "networkMode": "outbound",
     "domains": [
-      "string"
+      "*.libro.fm",
+      "api.libro.fm"
     ],
     "manifestDomains": [
-      "string"
+      "*.libro.fm"
     ],
     "operatorAddedDomains": [
-      "string"
+      "api.libro.fm"
     ],
-    "operatorDeniedDomains": [
-      "string"
-    ],
+    "operatorDeniedDomains": [],
     "tcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorAddedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorDeniedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "addressCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
     "operatorAddedCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
-    "operatorDeniedCidrs": [
-      "string"
-    ],
-    "allowUndeclaredPublicRedirects": true,
-    "grantRevision": "string",
-    "authorityRevision": "string",
+    "operatorDeniedCidrs": [],
+    "allowUndeclaredPublicRedirects": false,
+    "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
+    "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
-      "string"
+      "config",
+      "secrets"
     ],
     "compatibilityFlags": [
-      "string"
+      "nodejs_compat"
     ],
-    "approvedAt": "string",
-    "cpuMs": 0,
-    "subrequests": 0,
-    "diskMib": 0,
-    "memoryMib": 0,
-    "cpuCores": 0,
-    "extraProcesses": 0
+    "approvedAt": "2026-10-29T10:12:00Z",
+    "cpuMs": 50,
+    "subrequests": 50,
+    "diskMib": 256,
+    "memoryMib": 512,
+    "cpuCores": 1.0,
+    "extraProcesses": 4
   },
-  "covered": true,
+  "covered": false,
   "summary": [
-    "string"
+    "Plugin: libro (entrypoints: storefront)",
+    "Network: outbound",
+    "Raw TCP connect: *.libro.fm:[443]",
+    "Host bindings: config, secrets"
   ],
   "existing": {
-    "pluginKey": "string",
-    "pluginId": "string",
+    "pluginKey": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+    "pluginId": "libro",
     "entrypoints": [
-      "string"
+      "storefront"
     ],
     "producers": [
-      "string"
+      "book_acquired"
     ],
     "consumers": [
-      {}
+      {
+        "eventType": "book_acquired",
+        "schemaVersions": [
+          1
+        ],
+        "supportsSuspend": false
+      }
     ],
     "jobs": [
-      "string"
+      "stream_copy"
     ],
-    "networkMode": "string",
+    "networkMode": "outbound",
     "domains": [
-      "string"
+      "*.libro.fm",
+      "api.libro.fm"
     ],
     "manifestDomains": [
-      "string"
+      "*.libro.fm"
     ],
     "operatorAddedDomains": [
-      "string"
+      "api.libro.fm"
     ],
-    "operatorDeniedDomains": [
-      "string"
-    ],
+    "operatorDeniedDomains": [],
     "tcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorAddedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "operatorDeniedTcp": [
       {
-        "host": "string",
-        "ports": []
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
       }
     ],
     "addressCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
     "operatorAddedCidrs": [
-      "string"
+      "203.0.113.0/24"
     ],
-    "operatorDeniedCidrs": [
-      "string"
-    ],
-    "allowUndeclaredPublicRedirects": true,
-    "grantRevision": "string",
-    "authorityRevision": "string",
+    "operatorDeniedCidrs": [],
+    "allowUndeclaredPublicRedirects": false,
+    "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
+    "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
-      "string"
+      "config",
+      "secrets"
     ],
     "compatibilityFlags": [
-      "string"
+      "nodejs_compat"
     ],
-    "approvedAt": "string",
-    "cpuMs": 0,
-    "subrequests": 0,
-    "diskMib": 0,
-    "memoryMib": 0,
-    "cpuCores": 0,
-    "extraProcesses": 0
+    "approvedAt": "2026-10-29T10:12:00Z",
+    "cpuMs": 50,
+    "subrequests": 50,
+    "diskMib": 256,
+    "memoryMib": 512,
+    "cpuCores": 1.0,
+    "extraProcesses": 4
   },
   "brand": {
-    "name": "string",
-    "bg": "string",
-    "fg": "string",
-    "accent": "string",
-    "logo": "string"
+    "name": "Libro.fm",
+    "bg": "#0f2a3f",
+    "fg": "#ffffff",
+    "accent": "#f4b400",
+    "logo": "/api/plugins/libro/logo"
   },
   "limits": {
-    "cpu_ms": 0,
-    "subrequests": 0,
-    "max_cpu_ms": 0,
-    "max_subrequests": 0,
-    "disk_mib": 0,
-    "max_disk_mib": 0,
-    "memory_mib": 0,
-    "max_memory_mib": 0,
-    "cpu_cores": 0,
-    "max_cpu_cores": 0,
-    "jail_cpu_cores": 0,
-    "extra_processes": 0,
-    "max_extra_processes": 0,
+    "cpu_ms": 30000,
+    "subrequests": 50,
+    "max_cpu_ms": 120000,
+    "max_subrequests": 1000,
+    "disk_mib": 512,
+    "max_disk_mib": 4096,
+    "memory_mib": 512,
+    "max_memory_mib": 4096,
+    "cpu_cores": 0.8,
+    "max_cpu_cores": 8.0,
+    "jail_cpu_cores": 2.0,
+    "extra_processes": 2,
+    "max_extra_processes": 62,
     "known_bindings": [
-      "string"
+      "config",
+      "secrets",
+      "plugin_kv",
+      "work_fs",
+      "oauth"
     ]
   }
 }
@@ -6908,19 +7134,23 @@ Schema:
   "properties": {
     "plugin_id": {
       "type": "string",
-      "description": "Plugin id whose grant is being reviewed."
+      "description": "Plugin id whose grant is being reviewed.",
+      "example": "libro"
     },
     "plugin_key": {
       "type": "string",
-      "description": "Canonical PluginKey for this install (empty when unknown)."
+      "description": "Canonical PluginKey for this install (empty when unknown).",
+      "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
     },
     "provenance": {
       "type": "string",
-      "description": "Host-evaluated provenance label."
+      "description": "Host-evaluated provenance label.",
+      "example": "platform_bundled"
     },
     "runtime": {
       "type": "string",
-      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable."
+      "description": "Guest runtime (`native` or `workerd`) — drives which controls are enforceable.",
+      "example": "native"
     },
     "request": {
       "type": "object",
@@ -6953,71 +7183,103 @@ Schema:
       "properties": {
         "pluginKey": {
           "type": "string",
-          "description": "Canonical provenance-qualified PluginKey."
+          "description": "Canonical provenance-qualified PluginKey.",
+          "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
         },
         "pluginId": {
           "type": "string",
-          "description": "Plugin id this grant applies to."
+          "description": "Plugin id this grant applies to.",
+          "example": "libro"
         },
         "entrypoints": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+          "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …).",
+          "example": [
+            "storefront"
+          ]
         },
         "producers": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Event types the operator approved the plugin to publish."
+          "description": "Event types the operator approved the plugin to publish.",
+          "example": [
+            "book_acquired"
+          ]
         },
         "consumers": {
           "type": "array",
           "items": {
             "type": "object"
           },
-          "description": "Approved event-consumer subscriptions."
+          "description": "Approved event-consumer subscriptions.",
+          "example": [
+            {
+              "eventType": "book_acquired",
+              "schemaVersions": [
+                1
+              ],
+              "supportsSuspend": false
+            }
+          ]
         },
         "jobs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Approved job trigger types."
+          "description": "Approved job trigger types.",
+          "example": [
+            "stream_copy"
+          ]
         },
         "networkMode": {
           "type": "string",
-          "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+          "description": "Approved egress mode (`deny` or `outbound`).",
+          "example": "outbound"
         },
         "domains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Hostnames the operator approved for egress."
+          "description": "Hostnames the operator approved for egress.",
+          "example": [
+            "*.libro.fm",
+            "api.libro.fm"
+          ]
         },
         "manifestDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Destinations requested by the current manifest."
+          "description": "Destinations requested by the current manifest.",
+          "example": [
+            "*.libro.fm"
+          ]
         },
         "operatorAddedDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-added destinations beyond the manifest."
+          "description": "Operator-added destinations beyond the manifest.",
+          "example": [
+            "api.libro.fm"
+          ]
         },
         "operatorDeniedDomains": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-denied destinations still listed by the manifest."
+          "description": "Operator-denied destinations still listed by the manifest.",
+          "example": []
         },
         "tcp": {
           "type": "array",
@@ -7031,7 +7293,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -7040,7 +7303,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -7058,7 +7324,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -7067,7 +7334,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -7085,7 +7355,8 @@ Schema:
             "properties": {
               "host": {
                 "type": "string",
-                "description": "Hostname or `*.` wildcard."
+                "description": "Hostname or `*.` wildcard.",
+                "example": "*.libro.fm"
               },
               "ports": {
                 "type": "array",
@@ -7094,7 +7365,10 @@ Schema:
                   "format": "int32",
                   "minimum": 0
                 },
-                "description": "Destination ports."
+                "description": "Destination ports.",
+                "example": [
+                  443
+                ]
               }
             }
           },
@@ -7105,51 +7379,69 @@ Schema:
           "items": {
             "type": "string"
           },
-          "description": "Effective address-space CIDRs."
+          "description": "Effective address-space CIDRs.",
+          "example": [
+            "203.0.113.0/24"
+          ]
         },
         "operatorAddedCidrs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-added CIDRs."
+          "description": "Operator-added CIDRs.",
+          "example": [
+            "203.0.113.0/24"
+          ]
         },
         "operatorDeniedCidrs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Operator-denied CIDRs still listed by the manifest."
+          "description": "Operator-denied CIDRs still listed by the manifest.",
+          "example": []
         },
         "allowUndeclaredPublicRedirects": {
           "type": "boolean",
-          "description": "Undeclared public redirect permission."
+          "description": "Undeclared public redirect permission.",
+          "example": false
         },
         "grantRevision": {
           "type": "string",
-          "description": "SHA-256 of persisted operator consent (no host overlays)."
+          "description": "SHA-256 of persisted operator consent (no host overlays).",
+          "example": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"
         },
         "authorityRevision": {
           "type": "string",
-          "description": "SHA-256 of the canonical effective authority."
+          "description": "SHA-256 of the canonical effective authority.",
+          "example": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b"
         },
         "bindings": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Host bindings the operator approved."
+          "description": "Host bindings the operator approved.",
+          "example": [
+            "config",
+            "secrets"
+          ]
         },
         "compatibilityFlags": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Extra compatibility flags stored on the grant."
+          "description": "Extra compatibility flags stored on the grant.",
+          "example": [
+            "nodejs_compat"
+          ]
         },
         "approvedAt": {
           "type": "string",
-          "description": "RFC 3339 timestamp when the grant was last approved."
+          "description": "RFC 3339 timestamp when the grant was last approved.",
+          "example": "2026-10-29T10:12:00Z"
         },
         "cpuMs": {
           "type": [
@@ -7158,6 +7450,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional workerd CPU budget in milliseconds.",
+          "example": 50,
           "minimum": 0
         },
         "subrequests": {
@@ -7167,6 +7460,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional workerd subrequest budget.",
+          "example": 50,
           "minimum": 0
         },
         "diskMib": {
@@ -7176,6 +7470,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional plugin state disk budget in mebibytes.",
+          "example": 256,
           "minimum": 0
         },
         "memoryMib": {
@@ -7185,6 +7480,7 @@ Schema:
           ],
           "format": "int32",
           "description": "Optional jail memory in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "cpuCores": {
@@ -7193,7 +7489,8 @@ Schema:
             "null"
           ],
           "format": "double",
-          "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+          "description": "Jail CPU in cores (2 d.p.); absent for workerd.",
+          "example": 1.0
         },
         "extraProcesses": {
           "type": [
@@ -7202,20 +7499,28 @@ Schema:
           ],
           "format": "int32",
           "description": "Extra process/thread budget beyond launcher overhead; native only.",
+          "example": 4,
           "minimum": 0
         }
       }
     },
     "covered": {
       "type": "boolean",
-      "description": "True when an existing on-disk grant already satisfies the request."
+      "description": "True when an existing on-disk grant already satisfies the request.",
+      "example": false
     },
     "summary": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Operator-facing bullet list of requested capabilities."
+      "description": "Operator-facing bullet list of requested capabilities.",
+      "example": [
+        "Plugin: libro (entrypoints: storefront)",
+        "Network: outbound",
+        "Raw TCP connect: *.libro.fm:[443]",
+        "Host bindings: config, secrets"
+      ]
     },
     "existing": {
       "oneOf": [
@@ -7250,71 +7555,103 @@ Schema:
           "properties": {
             "pluginKey": {
               "type": "string",
-              "description": "Canonical provenance-qualified PluginKey."
+              "description": "Canonical provenance-qualified PluginKey.",
+              "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
             },
             "pluginId": {
               "type": "string",
-              "description": "Plugin id this grant applies to."
+              "description": "Plugin id this grant applies to.",
+              "example": "libro"
             },
             "entrypoints": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …)."
+              "description": "Exported entrypoints the operator approved (`storefront`, `cli`, …).",
+              "example": [
+                "storefront"
+              ]
             },
             "producers": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Event types the operator approved the plugin to publish."
+              "description": "Event types the operator approved the plugin to publish.",
+              "example": [
+                "book_acquired"
+              ]
             },
             "consumers": {
               "type": "array",
               "items": {
                 "type": "object"
               },
-              "description": "Approved event-consumer subscriptions."
+              "description": "Approved event-consumer subscriptions.",
+              "example": [
+                {
+                  "eventType": "book_acquired",
+                  "schemaVersions": [
+                    1
+                  ],
+                  "supportsSuspend": false
+                }
+              ]
             },
             "jobs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Approved job trigger types."
+              "description": "Approved job trigger types.",
+              "example": [
+                "stream_copy"
+              ]
             },
             "networkMode": {
               "type": "string",
-              "description": "Approved egress mode (`deny`, `allowlist`, and similar)."
+              "description": "Approved egress mode (`deny` or `outbound`).",
+              "example": "outbound"
             },
             "domains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Hostnames the operator approved for egress."
+              "description": "Hostnames the operator approved for egress.",
+              "example": [
+                "*.libro.fm",
+                "api.libro.fm"
+              ]
             },
             "manifestDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Destinations requested by the current manifest."
+              "description": "Destinations requested by the current manifest.",
+              "example": [
+                "*.libro.fm"
+              ]
             },
             "operatorAddedDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-added destinations beyond the manifest."
+              "description": "Operator-added destinations beyond the manifest.",
+              "example": [
+                "api.libro.fm"
+              ]
             },
             "operatorDeniedDomains": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-denied destinations still listed by the manifest."
+              "description": "Operator-denied destinations still listed by the manifest.",
+              "example": []
             },
             "tcp": {
               "type": "array",
@@ -7328,7 +7665,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -7337,7 +7675,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -7355,7 +7696,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -7364,7 +7706,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -7382,7 +7727,8 @@ Schema:
                 "properties": {
                   "host": {
                     "type": "string",
-                    "description": "Hostname or `*.` wildcard."
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
                   },
                   "ports": {
                     "type": "array",
@@ -7391,7 +7737,10 @@ Schema:
                       "format": "int32",
                       "minimum": 0
                     },
-                    "description": "Destination ports."
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
                   }
                 }
               },
@@ -7402,51 +7751,69 @@ Schema:
               "items": {
                 "type": "string"
               },
-              "description": "Effective address-space CIDRs."
+              "description": "Effective address-space CIDRs.",
+              "example": [
+                "203.0.113.0/24"
+              ]
             },
             "operatorAddedCidrs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-added CIDRs."
+              "description": "Operator-added CIDRs.",
+              "example": [
+                "203.0.113.0/24"
+              ]
             },
             "operatorDeniedCidrs": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Operator-denied CIDRs still listed by the manifest."
+              "description": "Operator-denied CIDRs still listed by the manifest.",
+              "example": []
             },
             "allowUndeclaredPublicRedirects": {
               "type": "boolean",
-              "description": "Undeclared public redirect permission."
+              "description": "Undeclared public redirect permission.",
+              "example": false
             },
             "grantRevision": {
               "type": "string",
-              "description": "SHA-256 of persisted operator consent (no host overlays)."
+              "description": "SHA-256 of persisted operator consent (no host overlays).",
+              "example": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"
             },
             "authorityRevision": {
               "type": "string",
-              "description": "SHA-256 of the canonical effective authority."
+              "description": "SHA-256 of the canonical effective authority.",
+              "example": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b"
             },
             "bindings": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Host bindings the operator approved."
+              "description": "Host bindings the operator approved.",
+              "example": [
+                "config",
+                "secrets"
+              ]
             },
             "compatibilityFlags": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "Extra compatibility flags stored on the grant."
+              "description": "Extra compatibility flags stored on the grant.",
+              "example": [
+                "nodejs_compat"
+              ]
             },
             "approvedAt": {
               "type": "string",
-              "description": "RFC 3339 timestamp when the grant was last approved."
+              "description": "RFC 3339 timestamp when the grant was last approved.",
+              "example": "2026-10-29T10:12:00Z"
             },
             "cpuMs": {
               "type": [
@@ -7455,6 +7822,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional workerd CPU budget in milliseconds.",
+              "example": 50,
               "minimum": 0
             },
             "subrequests": {
@@ -7464,6 +7832,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional workerd subrequest budget.",
+              "example": 50,
               "minimum": 0
             },
             "diskMib": {
@@ -7473,6 +7842,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional plugin state disk budget in mebibytes.",
+              "example": 256,
               "minimum": 0
             },
             "memoryMib": {
@@ -7482,6 +7852,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Optional jail memory in mebibytes.",
+              "example": 512,
               "minimum": 0
             },
             "cpuCores": {
@@ -7490,7 +7861,8 @@ Schema:
                 "null"
               ],
               "format": "double",
-              "description": "Jail CPU in cores (2 d.p.); absent for workerd."
+              "description": "Jail CPU in cores (2 d.p.); absent for workerd.",
+              "example": 1.0
             },
             "extraProcesses": {
               "type": [
@@ -7499,6 +7871,7 @@ Schema:
               ],
               "format": "int32",
               "description": "Extra process/thread budget beyond launcher overhead; native only.",
+              "example": 4,
               "minimum": 0
             }
           }
@@ -7519,35 +7892,40 @@ Schema:
           "properties": {
             "name": {
               "type": "string",
-              "description": "Display name from the portal brand or plugin manifest."
+              "description": "Display name from the portal brand or plugin manifest.",
+              "example": "Libro.fm"
             },
             "bg": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Background CSS color from the portal brand, when known."
+              "description": "Background CSS color from the portal brand, when known.",
+              "example": "#0f2a3f"
             },
             "fg": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Foreground CSS color from the portal brand, when known."
+              "description": "Foreground CSS color from the portal brand, when known.",
+              "example": "#ffffff"
             },
             "accent": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Accent CSS color from the portal brand, when known."
+              "description": "Accent CSS color from the portal brand, when known.",
+              "example": "#f4b400"
             },
             "logo": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Logo URL or host-served embed path."
+              "description": "Logo URL or host-served embed path.",
+              "example": "/api/plugins/libro/logo"
             }
           }
         },
@@ -7579,59 +7957,69 @@ Schema:
           "type": "integer",
           "format": "int32",
           "description": "Requested workerd CPU budget in milliseconds.",
+          "example": 30000,
           "minimum": 0
         },
         "subrequests": {
           "type": "integer",
           "format": "int32",
           "description": "Requested workerd subrequest budget.",
+          "example": 50,
           "minimum": 0
         },
         "max_cpu_ms": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for workerd CPU milliseconds.",
+          "example": 120000,
           "minimum": 0
         },
         "max_subrequests": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for workerd subrequests.",
+          "example": 1000,
           "minimum": 0
         },
         "disk_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Default plugin state disk budget in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "max_disk_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for plugin state disk in mebibytes.",
+          "example": 4096,
           "minimum": 0
         },
         "memory_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Default jail memory in mebibytes.",
+          "example": 512,
           "minimum": 0
         },
         "max_memory_mib": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for jail memory in mebibytes.",
+          "example": 4096,
           "minimum": 0
         },
         "cpu_cores": {
           "type": "number",
           "format": "double",
-          "description": "Manifest / default jail CPU in cores (2 d.p.)."
+          "description": "Manifest / default jail CPU in cores (2 d.p.).",
+          "example": 0.8
         },
         "max_cpu_cores": {
           "type": "number",
           "format": "double",
-          "description": "Host max jail CPU in cores (2 d.p.)."
+          "description": "Host max jail CPU in cores (2 d.p.).",
+          "example": 8.0
         },
         "jail_cpu_cores": {
           "type": [
@@ -7639,18 +8027,21 @@ Schema:
             "null"
           ],
           "format": "double",
-          "description": "Optional `[plugins.jail]` ceiling in cores."
+          "description": "Optional `[plugins.jail]` ceiling in cores.",
+          "example": 2.0
         },
         "extra_processes": {
           "type": "integer",
           "format": "int32",
           "description": "Default extra process/thread budget (native consent).",
+          "example": 2,
           "minimum": 0
         },
         "max_extra_processes": {
           "type": "integer",
           "format": "int32",
           "description": "Host hard cap for extra process budget.",
+          "example": 62,
           "minimum": 0
         },
         "known_bindings": {
@@ -7658,7 +8049,14 @@ Schema:
           "items": {
             "type": "string"
           },
-          "description": "Suggested / default host bindings operators may grant."
+          "description": "Suggested / default host bindings operators may grant.",
+          "example": [
+            "config",
+            "secrets",
+            "plugin_kv",
+            "work_fs",
+            "oauth"
+          ]
         }
       }
     }

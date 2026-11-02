@@ -84,27 +84,27 @@ Status `200`: Library counts and daemon state.
 
 ```json
 {
-  "accounts": 0,
-  "books": 0,
-  "acquired": 0,
-  "pending": 0,
-  "error": 0,
-  "in_progress": 0,
-  "listen": "string",
-  "storage_backend": "string",
+  "accounts": 2,
+  "books": 412,
+  "acquired": 380,
+  "pending": 27,
+  "error": 1,
+  "in_progress": 4,
+  "listen": "127.0.0.1:8787,[::1]:8787",
+  "storage_backend": "local",
   "auth_enabled": true,
   "events": {
-    "pending": 0,
-    "running": 0,
+    "pending": 3,
+    "running": 1,
     "suspended": 0,
     "dead_letter": 0,
-    "acked": 0,
-    "oldest_pending_age_secs": 0,
-    "retries_total": 0,
-    "suspensions_total": 0,
+    "acked": 1284,
+    "oldest_pending_age_secs": 12,
+    "retries_total": 7,
+    "suspensions_total": 2,
     "dead_letters_total": 0,
-    "dispatch_latency_ms_avg": 0,
-    "handler_latency_ms_avg": 0
+    "dispatch_latency_ms_avg": 140,
+    "handler_latency_ms_avg": 860
   }
 }
 ```
@@ -131,44 +131,53 @@ Schema:
     "accounts": {
       "type": "integer",
       "description": "Count of configured store accounts.",
+      "example": 2,
       "minimum": 0
     },
     "books": {
       "type": "integer",
       "description": "Total title rows in the library.",
+      "example": 412,
       "minimum": 0
     },
     "acquired": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles whose `acquire_status` is `acquired`."
+      "description": "Titles whose `acquire_status` is `acquired`.",
+      "example": 380
     },
     "pending": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles still needing acquire (`not_acquired`)."
+      "description": "Titles still needing acquire (`not_acquired`).",
+      "example": 27
     },
     "error": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles stuck in `error` after a failed acquire."
+      "description": "Titles stuck in `error` after a failed acquire.",
+      "example": 1
     },
     "in_progress": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles currently `queued` or `downloading`."
+      "description": "Titles currently `queued` or `downloading`.",
+      "example": 4
     },
     "listen": {
       "type": "string",
-      "description": "Comma-joined `daemon.listen` addresses from live config."
+      "description": "Comma-joined `daemon.listen` addresses from live config.",
+      "example": "127.0.0.1:8787,[::1]:8787"
     },
     "storage_backend": {
       "type": "string",
-      "description": "Comma-joined enabled destination plugin ids, or `none`."
+      "description": "Comma-joined enabled destination plugin ids, or `none`.",
+      "example": "local"
     },
     "auth_enabled": {
       "type": "boolean",
-      "description": "Whether the live auth middleware requires operator credentials."
+      "description": "Whether the live auth middleware requires operator credentials.",
+      "example": true
     },
     "events": {
       "type": "object",
@@ -187,27 +196,32 @@ Schema:
         "pending": {
           "type": "integer",
           "format": "int64",
-          "description": "Pending deliveries without a suspend checkpoint."
+          "description": "Pending deliveries without a suspend checkpoint.",
+          "example": 3
         },
         "running": {
           "type": "integer",
           "format": "int64",
-          "description": "Currently claimed deliveries."
+          "description": "Currently claimed deliveries.",
+          "example": 1
         },
         "suspended": {
           "type": "integer",
           "format": "int64",
-          "description": "Pending deliveries parked with a checkpoint."
+          "description": "Pending deliveries parked with a checkpoint.",
+          "example": 0
         },
         "dead_letter": {
           "type": "integer",
           "format": "int64",
-          "description": "Dead-lettered deliveries."
+          "description": "Dead-lettered deliveries.",
+          "example": 0
         },
         "acked": {
           "type": "integer",
           "format": "int64",
-          "description": "Successfully acked deliveries."
+          "description": "Successfully acked deliveries.",
+          "example": 1284
         },
         "oldest_pending_age_secs": {
           "type": [
@@ -215,22 +229,26 @@ Schema:
             "null"
           ],
           "format": "int64",
-          "description": "Age in seconds of the oldest pending delivery, when any exist."
+          "description": "Age in seconds of the oldest pending delivery, when any exist.",
+          "example": 12
         },
         "retries_total": {
           "type": "integer",
           "format": "int64",
-          "description": "Durable retry outcomes (including reclaim-as-retry)."
+          "description": "Durable retry outcomes (including reclaim-as-retry).",
+          "example": 7
         },
         "suspensions_total": {
           "type": "integer",
           "format": "int64",
-          "description": "Durable suspend outcomes."
+          "description": "Durable suspend outcomes.",
+          "example": 2
         },
         "dead_letters_total": {
           "type": "integer",
           "format": "int64",
-          "description": "Durable transitions into `dead_letter`."
+          "description": "Durable transitions into `dead_letter`.",
+          "example": 0
         },
         "dispatch_latency_ms_avg": {
           "type": [
@@ -238,7 +256,8 @@ Schema:
             "null"
           ],
           "format": "int64",
-          "description": "Average first-dispatch latency in milliseconds, when sampled."
+          "description": "Average first-dispatch latency in milliseconds, when sampled.",
+          "example": 140
         },
         "handler_latency_ms_avg": {
           "type": [
@@ -246,7 +265,8 @@ Schema:
             "null"
           ],
           "format": "int64",
-          "description": "Average `onEvent` handler duration in milliseconds, when sampled."
+          "description": "Average `onEvent` handler duration in milliseconds, when sampled.",
+          "example": 860
         }
       }
     }

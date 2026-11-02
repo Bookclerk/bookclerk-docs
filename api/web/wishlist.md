@@ -832,7 +832,7 @@ $ curl 'http://127.0.0.1:8787/api/wishlist' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"title": "string"}'
+    -d '{"title": "The Left Hand of Darkness"}'
 ```
 
 ```powershell
@@ -840,7 +840,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/wishlist' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"title": "string"}'
+    -Body '{"title": "The Left Hand of Darkness"}'
 ```
 
 ```python
@@ -849,7 +849,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/wishlist",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"title": "string"},
+    json={"title": "The Left Hand of Darkness"},
 )
 print(response.status_code, response.text)
 ```
@@ -858,7 +858,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/wishlist", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"title": "string"}),
+  body: JSON.stringify({"title": "The Left Hand of Darkness"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -868,7 +868,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/wishlist")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"title": "string"}))
+    .json(&serde_json::json!({"title": "The Left Hand of Darkness"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);

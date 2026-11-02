@@ -50,7 +50,7 @@ Status `200`: The daemon is serving HTTP.
 
 ```json
 {
-  "status": "string"
+  "status": "ok"
 }
 ```
 
@@ -66,7 +66,8 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Always `ok` when the process can serve HTTP."
+      "description": "Always `ok` when the process can serve HTTP.",
+      "example": "ok"
     }
   }
 }

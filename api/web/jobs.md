@@ -85,16 +85,16 @@ Status `200`: Jobs, newest first.
 ```json
 [
   {
-    "id": "string",
+    "id": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
     "kind": "scan",
     "status": "pending",
-    "detail": "string",
-    "progress": "string",
-    "attempt_count": 0,
-    "max_attempts": 0,
-    "error_kind": "string",
-    "created_at": "string",
-    "finished_at": "string"
+    "detail": "scanning reader@example.com (libro)",
+    "progress": "12 of 40 titles",
+    "attempt_count": 1,
+    "max_attempts": 3,
+    "error_kind": "cancelled",
+    "created_at": "2026-10-29T10:12:00Z",
+    "finished_at": "2026-10-29T10:14:22Z"
   }
 ]
 ```
@@ -115,7 +115,8 @@ Schema:
     "properties": {
       "id": {
         "type": "string",
-        "description": "Opaque job id returned to the client when the job is accepted."
+        "description": "Opaque job id returned to the client when the job is accepted.",
+        "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
       },
       "kind": {
         "type": "string",
@@ -145,45 +146,52 @@ Schema:
           "string",
           "null"
         ],
-        "description": "Optional operator-facing progress or error text."
+        "description": "Optional operator-facing progress or error text.",
+        "example": "scanning reader@example.com (libro)"
       },
       "progress": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Human-readable progress string while the job is running."
+        "description": "Human-readable progress string while the job is running.",
+        "example": "12 of 40 titles"
       },
       "attempt_count": {
         "type": "integer",
         "format": "int64",
-        "description": "Number of times a worker has claimed this row."
+        "description": "Number of times a worker has claimed this row.",
+        "example": 1
       },
       "max_attempts": {
         "type": "integer",
         "format": "int64",
-        "description": "Maximum claims before a failure is terminal."
+        "description": "Maximum claims before a failure is terminal.",
+        "example": 3
       },
       "error_kind": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Structured error kind when failed or cancelled."
+        "description": "Structured error kind when failed or cancelled.",
+        "example": "cancelled"
       },
       "created_at": {
         "type": [
           "string",
           "null"
         ],
-        "description": "RFC 3339 timestamp when the row was inserted."
+        "description": "RFC 3339 timestamp when the row was inserted.",
+        "example": "2026-10-29T10:12:00Z"
       },
       "finished_at": {
         "type": [
           "string",
           "null"
         ],
-        "description": "RFC 3339 timestamp when the row reached a terminal state."
+        "description": "RFC 3339 timestamp when the row reached a terminal state.",
+        "example": "2026-10-29T10:14:22Z"
       }
     }
   }
@@ -400,10 +408,9 @@ Status `200`: The job was cancelled or asked to stop.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "message": "job scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f cancelled",
+  "ok": true
 }
 ```
 
@@ -421,22 +428,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }

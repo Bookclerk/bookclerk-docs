@@ -128,13 +128,13 @@ Status `200`: The scan jobs were accepted.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
+  "job_id": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
   "job_ids": [
-    "string"
+    "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+    "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
   ],
-  "error": "string"
+  "message": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)",
+  "ok": true
 }
 ```
 
@@ -153,29 +153,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -206,22 +214,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -288,22 +300,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -314,9 +330,9 @@ Status `409`: A scan is already pending or running, or no node can run it.
 ```json
 {
   "error": "conflict",
-  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "job_id": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
   "job_ids": [
-    "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
   ],
   "message": "scan already pending or running",
   "ok": false
@@ -340,29 +356,37 @@ Schema:
       "properties": {
         "ok": {
           "type": "boolean",
-          "description": "True when at least one job was accepted."
+          "description": "True when at least one job was accepted.",
+          "example": true
         },
         "message": {
           "type": "string",
-          "description": "Operator-facing status text."
+          "description": "Operator-facing status text.",
+          "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
         },
         "job_id": {
           "type": "string",
-          "description": "First accepted (or, when none was, already queued) job id."
+          "description": "First accepted (or, when none was, already queued) job id.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
         },
         "job_ids": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Every accepted or already-queued job id, in plan order."
+          "description": "Every accepted or already-queued job id, in plan order.",
+          "example": [
+            "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+            "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+          ]
         },
         "error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+          "example": "nothing_to_scan"
         }
       }
     },
@@ -377,22 +401,26 @@ Schema:
       "properties": {
         "ok": {
           "type": "boolean",
-          "description": "True when the action was accepted or completed."
+          "description": "True when the action was accepted or completed.",
+          "example": true
         },
         "message": {
           "type": "string",
-          "description": "Operator-facing status text."
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
         },
         "job_id": {
           "type": "string",
-          "description": "Queued job id, or empty when the action is synchronous."
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
         },
         "error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
         }
       }
     }
@@ -428,29 +456,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -483,29 +519,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -536,22 +580,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -582,22 +630,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -744,13 +796,12 @@ Status `200`: The acquire jobs were accepted.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
+  "job_id": "acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
   "job_ids": [
-    "string"
+    "acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
   ],
-  "error": "string"
+  "message": "acquire job acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b accepted",
+  "ok": true
 }
 ```
 
@@ -769,29 +820,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -822,22 +881,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -904,22 +967,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -930,9 +997,9 @@ Status `409`: The same acquire is already pending or running, or no node can run
 ```json
 {
   "error": "conflict",
-  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "job_id": "acquire-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
   "job_ids": [
-    "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+    "acquire-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
   ],
   "message": "acquire already pending or running",
   "ok": false
@@ -956,29 +1023,37 @@ Schema:
       "properties": {
         "ok": {
           "type": "boolean",
-          "description": "True when at least one job was accepted."
+          "description": "True when at least one job was accepted.",
+          "example": true
         },
         "message": {
           "type": "string",
-          "description": "Operator-facing status text."
+          "description": "Operator-facing status text.",
+          "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
         },
         "job_id": {
           "type": "string",
-          "description": "First accepted (or, when none was, already queued) job id."
+          "description": "First accepted (or, when none was, already queued) job id.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
         },
         "job_ids": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Every accepted or already-queued job id, in plan order."
+          "description": "Every accepted or already-queued job id, in plan order.",
+          "example": [
+            "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+            "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+          ]
         },
         "error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+          "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+          "example": "nothing_to_scan"
         }
       }
     },
@@ -993,22 +1068,26 @@ Schema:
       "properties": {
         "ok": {
           "type": "boolean",
-          "description": "True when the action was accepted or completed."
+          "description": "True when the action was accepted or completed.",
+          "example": true
         },
         "message": {
           "type": "string",
-          "description": "Operator-facing status text."
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
         },
         "job_id": {
           "type": "string",
-          "description": "Queued job id, or empty when the action is synchronous."
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
         },
         "error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
         }
       }
     }
@@ -1044,29 +1123,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -1099,29 +1186,37 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when at least one job was accepted."
+      "description": "True when at least one job was accepted.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan planned: 2 accepted, 0 already pending or running, 0 not admitted (queue full)"
     },
     "job_id": {
       "type": "string",
-      "description": "First accepted (or, when none was, already queued) job id."
+      "description": "First accepted (or, when none was, already queued) job id.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "job_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Every accepted or already-queued job id, in plan order."
+      "description": "Every accepted or already-queued job id, in plan order.",
+      "example": [
+        "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+        "scan-8c1d2e3f-4a5b-4c6d-9e7f-0a1b2c3d4e5f"
+      ]
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`)."
+      "description": "Machine slug when nothing was accepted (`conflict`, `queue_full`,\n`nothing_to_scan`, `nothing_to_acquire`).",
+      "example": "nothing_to_scan"
     }
   }
 }
@@ -1152,22 +1247,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -1198,22 +1297,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -1357,8 +1460,8 @@ Status `200`: A page of titles.
       "updated_at": "2026-01-01T12:00:00Z"
     }
   ],
-  "total": 0,
-  "limit": 0,
+  "total": 412,
+  "limit": 50,
   "offset": 0
 }
 ```
@@ -1680,16 +1783,19 @@ Schema:
     "total": {
       "type": "integer",
       "description": "Match count before pagination.",
+      "example": 412,
       "minimum": 0
     },
     "limit": {
       "type": "integer",
       "description": "Applied page size.",
+      "example": 50,
       "minimum": 0
     },
     "offset": {
       "type": "integer",
       "description": "Applied skip count.",
+      "example": 0,
       "minimum": 0
     }
   }

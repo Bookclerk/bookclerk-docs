@@ -86,17 +86,17 @@ Status `200`: Recent domain events, newest first.
 ```json
 [
   {
-    "id": "string",
-    "eventType": "string",
-    "schemaVersion": 0,
-    "dispatchState": "string",
-    "accountId": "string",
-    "dedupKey": "string",
-    "createdAt": "string",
-    "queueName": "string",
-    "contentType": "string",
-    "source": "string",
-    "deliverAfter": "string"
+    "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "eventType": "book_acquired",
+    "schemaVersion": 1,
+    "dispatchState": "dispatched",
+    "accountId": "reader@example.com",
+    "dedupKey": "book_acquired:3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
+    "createdAt": "2026-10-29T10:12:00Z",
+    "queueName": "core.events",
+    "contentType": "json",
+    "source": "",
+    "deliverAfter": "2026-10-29T10:15:00Z"
   }
 ]
 ```
@@ -124,51 +124,62 @@ Schema:
     "properties": {
       "id": {
         "type": "string",
-        "description": "Event id."
+        "description": "Event id.",
+        "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
       },
       "eventType": {
         "type": "string",
-        "description": "Event type (`book_acquired`)."
+        "description": "Event type (`book_acquired`).",
+        "example": "book_acquired"
       },
       "schemaVersion": {
         "type": "integer",
         "format": "int64",
-        "description": "Payload schema version."
+        "description": "Payload schema version.",
+        "example": 1
       },
       "dispatchState": {
         "type": "string",
-        "description": "`pending` or `dispatched`."
+        "description": "`pending` or `dispatched`.",
+        "example": "dispatched"
       },
       "accountId": {
         "type": "string",
-        "description": "Tenant / account id."
+        "description": "Tenant / account id.",
+        "example": "reader@example.com"
       },
       "dedupKey": {
         "type": "string",
-        "description": "Producer idempotency key."
+        "description": "Producer idempotency key.",
+        "example": "book_acquired:3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31"
       },
       "createdAt": {
         "type": "string",
-        "description": "RFC 3339 insert time."
+        "description": "RFC 3339 insert time.",
+        "example": "2026-10-29T10:12:00Z"
       },
       "queueName": {
         "type": "string",
-        "description": "Queue the row belongs to (`core.events` for domain events)."
+        "description": "Queue the row belongs to (`core.events` for domain events).",
+        "example": "core.events"
       },
       "contentType": {
         "type": "string",
-        "description": "Body encoding (`json`, `text`, `bytes`)."
+        "description": "Body encoding (`json`, `text`, `bytes`).",
+        "example": "json"
       },
       "source": {
         "type": "string",
-        "description": "Producer plugin id; empty when the host published it."
+        "description": "Producer plugin id; empty when the host published it.",
+        "example": ""
       },
       "deliverAfter": {
         "type": [
           "string",
           "null"
         ],
-        "description": "RFC 3339 earliest delivery time for delayed queue messages."
+        "description": "RFC 3339 earliest delivery time for delayed queue messages.",
+        "example": "2026-10-29T10:15:00Z"
       }
     }
   }
@@ -391,22 +402,22 @@ Status `200`: Deliveries, newest first.
 ```json
 [
   {
-    "id": "string",
-    "eventId": "string",
-    "pluginId": "string",
-    "state": "string",
-    "attemptCount": 0,
-    "leaseGeneration": 0,
+    "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+    "eventId": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "pluginId": "audiobookshelf",
+    "state": "pending",
+    "attemptCount": 1,
+    "leaseGeneration": 2,
     "invocationSequence": 0,
-    "outcome": "string",
-    "errorMessage": "string",
-    "runAfter": "string",
-    "updatedAt": "string",
-    "cancelRequested": true,
-    "resourceClass": "string",
-    "resumePending": true,
-    "hasCheckpoint": true,
-    "queueName": "string"
+    "outcome": "ack",
+    "errorMessage": "integration API error (503): library scan in progress",
+    "runAfter": "2026-10-29T10:12:00Z",
+    "updatedAt": "2026-10-29T10:12:30Z",
+    "cancelRequested": false,
+    "resourceClass": "network",
+    "resumePending": false,
+    "hasCheckpoint": false,
+    "queueName": "core.events"
   }
 ]
 ```
@@ -438,76 +449,92 @@ Schema:
     "properties": {
       "id": {
         "type": "string",
-        "description": "Delivery id (`{event_id}:{plugin_id}`)."
+        "description": "Delivery id (`{event_id}:{plugin_id}`).",
+        "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf"
       },
       "eventId": {
         "type": "string",
-        "description": "Parent event id."
+        "description": "Parent event id.",
+        "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
       },
       "pluginId": {
         "type": "string",
-        "description": "Subscriber plugin id."
+        "description": "Subscriber plugin id.",
+        "example": "audiobookshelf"
       },
       "state": {
         "type": "string",
-        "description": "Lifecycle state."
+        "description": "Lifecycle state.",
+        "example": "pending"
       },
       "attemptCount": {
         "type": "integer",
         "format": "int64",
-        "description": "Claim count (not incremented on resume)."
+        "description": "Claim count (not incremented on resume).",
+        "example": 1
       },
       "leaseGeneration": {
         "type": "integer",
         "format": "int64",
-        "description": "Fence generation."
+        "description": "Fence generation.",
+        "example": 2
       },
       "invocationSequence": {
         "type": "integer",
         "format": "int64",
-        "description": "Resume ordinal."
+        "description": "Resume ordinal.",
+        "example": 0
       },
       "outcome": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Terminal outcome when set."
+        "description": "Terminal outcome when set.",
+        "example": "ack"
       },
       "errorMessage": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Operator-facing error."
+        "description": "Operator-facing error.",
+        "example": "integration API error (503): library scan in progress"
       },
       "runAfter": {
         "type": "string",
-        "description": "RFC 3339 earliest claim time."
+        "description": "RFC 3339 earliest claim time.",
+        "example": "2026-10-29T10:12:00Z"
       },
       "updatedAt": {
         "type": "string",
-        "description": "RFC 3339 last update."
+        "description": "RFC 3339 last update.",
+        "example": "2026-10-29T10:12:30Z"
       },
       "cancelRequested": {
         "type": "boolean",
-        "description": "Cooperative cancel flag."
+        "description": "Cooperative cancel flag.",
+        "example": false
       },
       "resourceClass": {
         "type": "string",
-        "description": "Concurrency class (`network` today)."
+        "description": "Concurrency class (`network` today).",
+        "example": "network"
       },
       "resumePending": {
         "type": "boolean",
-        "description": "Next claim should resume rather than increment attempt."
+        "description": "Next claim should resume rather than increment attempt.",
+        "example": false
       },
       "hasCheckpoint": {
         "type": "boolean",
-        "description": "True when a suspend checkpoint is stored."
+        "description": "True when a suspend checkpoint is stored.",
+        "example": false
       },
       "queueName": {
         "type": "string",
-        "description": "Queue of the parent event."
+        "description": "Queue of the parent event.",
+        "example": "core.events"
       }
     }
   }
@@ -718,14 +745,14 @@ Status `200`: Every known queue.
 ```json
 [
   {
-    "name": "string",
+    "name": "core.events",
     "core": true,
-    "pending": 0,
-    "running": 0,
-    "acked": 0,
+    "pending": 3,
+    "running": 1,
+    "acked": 1284,
     "deadLetter": 0,
     "consumers": [
-      "string"
+      "platform:bookclerk/bookclerk-plugin-integration-audiobookshelf#audiobookshelf"
     ]
   }
 ]
@@ -751,38 +778,47 @@ Schema:
     "properties": {
       "name": {
         "type": "string",
-        "description": "Queue name."
+        "description": "Queue name.",
+        "example": "core.events"
       },
       "core": {
         "type": "boolean",
-        "description": "True for the domain-event bus (`core.events`)."
+        "description": "True for the domain-event bus (`core.events`).",
+        "example": true
       },
       "pending": {
         "type": "integer",
         "format": "int64",
-        "description": "Deliveries waiting to be claimed (including suspended rows)."
+        "description": "Deliveries waiting to be claimed (including suspended rows).",
+        "example": 3
       },
       "running": {
         "type": "integer",
         "format": "int64",
-        "description": "Deliveries currently claimed by a worker."
+        "description": "Deliveries currently claimed by a worker.",
+        "example": 1
       },
       "acked": {
         "type": "integer",
         "format": "int64",
-        "description": "Deliveries acked."
+        "description": "Deliveries acked.",
+        "example": 1284
       },
       "deadLetter": {
         "type": "integer",
         "format": "int64",
-        "description": "Deliveries parked for operator review."
+        "description": "Deliveries parked for operator review.",
+        "example": 0
       },
       "consumers": {
         "type": "array",
         "items": {
           "type": "string"
         },
-        "description": "Live catalog consumers (plugin keys or instance ids) of this queue."
+        "description": "Live catalog consumers (plugin keys or instance ids) of this queue.",
+        "example": [
+          "platform:bookclerk/bookclerk-plugin-integration-audiobookshelf#audiobookshelf"
+        ]
       }
     }
   }
@@ -994,48 +1030,48 @@ Status `200`: The queue.
 
 ```json
 {
-  "name": "string",
+  "name": "core.events",
   "core": true,
-  "pending": 0,
-  "running": 0,
-  "acked": 0,
+  "pending": 3,
+  "running": 1,
+  "acked": 1284,
   "deadLetter": 0,
   "consumers": [
-    "string"
+    "platform:bookclerk/bookclerk-plugin-integration-audiobookshelf#audiobookshelf"
   ],
   "messages": [
     {
-      "id": "string",
-      "eventType": "string",
-      "schemaVersion": 0,
-      "dispatchState": "string",
-      "accountId": "string",
-      "dedupKey": "string",
-      "createdAt": "string",
-      "queueName": "string",
-      "contentType": "string",
-      "source": "string",
-      "deliverAfter": "string"
+      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "eventType": "book_acquired",
+      "schemaVersion": 1,
+      "dispatchState": "dispatched",
+      "accountId": "reader@example.com",
+      "dedupKey": "book_acquired:3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
+      "createdAt": "2026-10-29T10:12:00Z",
+      "queueName": "core.events",
+      "contentType": "json",
+      "source": "",
+      "deliverAfter": "2026-10-29T10:15:00Z"
     }
   ],
   "deliveries": [
     {
-      "id": "string",
-      "eventId": "string",
-      "pluginId": "string",
-      "state": "string",
-      "attemptCount": 0,
-      "leaseGeneration": 0,
+      "id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+      "eventId": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "pluginId": "audiobookshelf",
+      "state": "pending",
+      "attemptCount": 1,
+      "leaseGeneration": 2,
       "invocationSequence": 0,
-      "outcome": "string",
-      "errorMessage": "string",
-      "runAfter": "string",
-      "updatedAt": "string",
-      "cancelRequested": true,
-      "resourceClass": "string",
-      "resumePending": true,
-      "hasCheckpoint": true,
-      "queueName": "string"
+      "outcome": "ack",
+      "errorMessage": "integration API error (503): library scan in progress",
+      "runAfter": "2026-10-29T10:12:00Z",
+      "updatedAt": "2026-10-29T10:12:30Z",
+      "cancelRequested": false,
+      "resourceClass": "network",
+      "resumePending": false,
+      "hasCheckpoint": false,
+      "queueName": "core.events"
     }
   ]
 }
@@ -1061,38 +1097,47 @@ Schema:
       "properties": {
         "name": {
           "type": "string",
-          "description": "Queue name."
+          "description": "Queue name.",
+          "example": "core.events"
         },
         "core": {
           "type": "boolean",
-          "description": "True for the domain-event bus (`core.events`)."
+          "description": "True for the domain-event bus (`core.events`).",
+          "example": true
         },
         "pending": {
           "type": "integer",
           "format": "int64",
-          "description": "Deliveries waiting to be claimed (including suspended rows)."
+          "description": "Deliveries waiting to be claimed (including suspended rows).",
+          "example": 3
         },
         "running": {
           "type": "integer",
           "format": "int64",
-          "description": "Deliveries currently claimed by a worker."
+          "description": "Deliveries currently claimed by a worker.",
+          "example": 1
         },
         "acked": {
           "type": "integer",
           "format": "int64",
-          "description": "Deliveries acked."
+          "description": "Deliveries acked.",
+          "example": 1284
         },
         "deadLetter": {
           "type": "integer",
           "format": "int64",
-          "description": "Deliveries parked for operator review."
+          "description": "Deliveries parked for operator review.",
+          "example": 0
         },
         "consumers": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Live catalog consumers (plugin keys or instance ids) of this queue."
+          "description": "Live catalog consumers (plugin keys or instance ids) of this queue.",
+          "example": [
+            "platform:bookclerk/bookclerk-plugin-integration-audiobookshelf#audiobookshelf"
+          ]
         }
       }
     },
@@ -1123,51 +1168,62 @@ Schema:
             "properties": {
               "id": {
                 "type": "string",
-                "description": "Event id."
+                "description": "Event id.",
+                "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
               },
               "eventType": {
                 "type": "string",
-                "description": "Event type (`book_acquired`)."
+                "description": "Event type (`book_acquired`).",
+                "example": "book_acquired"
               },
               "schemaVersion": {
                 "type": "integer",
                 "format": "int64",
-                "description": "Payload schema version."
+                "description": "Payload schema version.",
+                "example": 1
               },
               "dispatchState": {
                 "type": "string",
-                "description": "`pending` or `dispatched`."
+                "description": "`pending` or `dispatched`.",
+                "example": "dispatched"
               },
               "accountId": {
                 "type": "string",
-                "description": "Tenant / account id."
+                "description": "Tenant / account id.",
+                "example": "reader@example.com"
               },
               "dedupKey": {
                 "type": "string",
-                "description": "Producer idempotency key."
+                "description": "Producer idempotency key.",
+                "example": "book_acquired:3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31"
               },
               "createdAt": {
                 "type": "string",
-                "description": "RFC 3339 insert time."
+                "description": "RFC 3339 insert time.",
+                "example": "2026-10-29T10:12:00Z"
               },
               "queueName": {
                 "type": "string",
-                "description": "Queue the row belongs to (`core.events` for domain events)."
+                "description": "Queue the row belongs to (`core.events` for domain events).",
+                "example": "core.events"
               },
               "contentType": {
                 "type": "string",
-                "description": "Body encoding (`json`, `text`, `bytes`)."
+                "description": "Body encoding (`json`, `text`, `bytes`).",
+                "example": "json"
               },
               "source": {
                 "type": "string",
-                "description": "Producer plugin id; empty when the host published it."
+                "description": "Producer plugin id; empty when the host published it.",
+                "example": ""
               },
               "deliverAfter": {
                 "type": [
                   "string",
                   "null"
                 ],
-                "description": "RFC 3339 earliest delivery time for delayed queue messages."
+                "description": "RFC 3339 earliest delivery time for delayed queue messages.",
+                "example": "2026-10-29T10:15:00Z"
               }
             }
           },
@@ -1197,76 +1253,92 @@ Schema:
             "properties": {
               "id": {
                 "type": "string",
-                "description": "Delivery id (`{event_id}:{plugin_id}`)."
+                "description": "Delivery id (`{event_id}:{plugin_id}`).",
+                "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf"
               },
               "eventId": {
                 "type": "string",
-                "description": "Parent event id."
+                "description": "Parent event id.",
+                "example": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
               },
               "pluginId": {
                 "type": "string",
-                "description": "Subscriber plugin id."
+                "description": "Subscriber plugin id.",
+                "example": "audiobookshelf"
               },
               "state": {
                 "type": "string",
-                "description": "Lifecycle state."
+                "description": "Lifecycle state.",
+                "example": "pending"
               },
               "attemptCount": {
                 "type": "integer",
                 "format": "int64",
-                "description": "Claim count (not incremented on resume)."
+                "description": "Claim count (not incremented on resume).",
+                "example": 1
               },
               "leaseGeneration": {
                 "type": "integer",
                 "format": "int64",
-                "description": "Fence generation."
+                "description": "Fence generation.",
+                "example": 2
               },
               "invocationSequence": {
                 "type": "integer",
                 "format": "int64",
-                "description": "Resume ordinal."
+                "description": "Resume ordinal.",
+                "example": 0
               },
               "outcome": {
                 "type": [
                   "string",
                   "null"
                 ],
-                "description": "Terminal outcome when set."
+                "description": "Terminal outcome when set.",
+                "example": "ack"
               },
               "errorMessage": {
                 "type": [
                   "string",
                   "null"
                 ],
-                "description": "Operator-facing error."
+                "description": "Operator-facing error.",
+                "example": "integration API error (503): library scan in progress"
               },
               "runAfter": {
                 "type": "string",
-                "description": "RFC 3339 earliest claim time."
+                "description": "RFC 3339 earliest claim time.",
+                "example": "2026-10-29T10:12:00Z"
               },
               "updatedAt": {
                 "type": "string",
-                "description": "RFC 3339 last update."
+                "description": "RFC 3339 last update.",
+                "example": "2026-10-29T10:12:30Z"
               },
               "cancelRequested": {
                 "type": "boolean",
-                "description": "Cooperative cancel flag."
+                "description": "Cooperative cancel flag.",
+                "example": false
               },
               "resourceClass": {
                 "type": "string",
-                "description": "Concurrency class (`network` today)."
+                "description": "Concurrency class (`network` today).",
+                "example": "network"
               },
               "resumePending": {
                 "type": "boolean",
-                "description": "Next claim should resume rather than increment attempt."
+                "description": "Next claim should resume rather than increment attempt.",
+                "example": false
               },
               "hasCheckpoint": {
                 "type": "boolean",
-                "description": "True when a suspend checkpoint is stored."
+                "description": "True when a suspend checkpoint is stored.",
+                "example": false
               },
               "queueName": {
                 "type": "string",
-                "description": "Queue of the parent event."
+                "description": "Queue of the parent event.",
+                "example": "core.events"
               }
             }
           },
@@ -1532,10 +1604,9 @@ Status `200`: The delivery was queued again.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+  "message": "delivery b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf re-queued",
+  "ok": true
 }
 ```
 
@@ -1553,22 +1624,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -1827,10 +1902,9 @@ Status `200`: The delivery was acknowledged.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+  "message": "delivery b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf acknowledged",
+  "ok": true
 }
 ```
 
@@ -1848,22 +1922,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -2122,10 +2200,9 @@ Status `200`: The delivery was cancelled or asked to stop.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+  "message": "delivery b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf rejected",
+  "ok": true
 }
 ```
 
@@ -2143,22 +2220,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -2417,10 +2498,9 @@ Status `200`: The delivery was resumed.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf",
+  "message": "delivery b3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d:audiobookshelf resumed",
+  "ok": true
 }
 ```
 
@@ -2438,22 +2518,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }

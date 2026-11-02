@@ -98,10 +98,9 @@ Status `200`: The job was accepted.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "listen_sync-2b1a0f9e-8d7c-4b6a-9f5e-4d3c2b1a0f9e",
+  "message": "listen_sync job listen_sync-2b1a0f9e-8d7c-4b6a-9f5e-4d3c2b1a0f9e accepted",
+  "ok": true
 }
 ```
 
@@ -119,22 +118,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -227,7 +230,7 @@ Status `409`: The same job is already pending or running, or no node can run it.
 ```json
 {
   "error": "conflict",
-  "job_id": "7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
+  "job_id": "listen_sync-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f",
   "message": "listen_sync already pending or running",
   "ok": false
 }
@@ -247,22 +250,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -293,22 +300,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -339,22 +350,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -385,22 +400,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }

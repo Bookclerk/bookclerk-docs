@@ -1833,7 +1833,7 @@ This node's view of one deployment row, with its latest observation.
 
 Operator-supplied grant fields that replace matching request values.
 
-- `networkMode` *string or null* — Override egress mode when set.
+- `networkMode` *string or null* — Override egress mode (`deny` or `outbound`) when set.
 - `domains` *array of string or null* — Override approved hostnames when set.
 - `tcp` *array of [`TcpGrantView`](#tcpgrantview) or null* — Override raw TCP grants when set.
 - `addressCidrs` *array of string or null* — Override address-space CIDRs when set.
@@ -1857,7 +1857,7 @@ Operator-facing grant JSON: CPU as cores (not Spec percent).
 - `producers` *array of string*, **required** — Event types the operator approved the plugin to publish.
 - `consumers` *array of object*, **required** — Approved event-consumer subscriptions.
 - `jobs` *array of string*, **required** — Approved job trigger types.
-- `networkMode` *string*, **required** — Approved egress mode (`deny`, `allowlist`, and similar).
+- `networkMode` *string*, **required** — Approved egress mode (`deny` or `outbound`).
 - `domains` *array of string*, **required** — Hostnames the operator approved for egress.
 - `manifestDomains` *array of string*, **required** — Destinations requested by the current manifest.
 - `operatorAddedDomains` *array of string*, **required** — Operator-added destinations beyond the manifest.

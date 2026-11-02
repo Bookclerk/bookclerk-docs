@@ -81,30 +81,34 @@ Status `200`: The settings.
 ```json
 {
   "settings": {
-    "key": "string"
+    "daemon.auth.enabled": "true",
+    "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+    "library.auto_acquire": "false"
   },
   "effective": {
-    "key": "string"
+    "daemon.auth.enabled": "true",
+    "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+    "library.auto_acquire": "false"
   },
   "plugins": [
     {
-      "id": "string",
-      "family": "string",
-      "plugin_key": "string",
-      "provenance": "string",
-      "logo": "string",
+      "id": "libro",
+      "family": "source",
+      "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+      "provenance": "platform_bundled",
+      "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64",
       "settings": [
         {
-          "key": "string",
-          "label": "string",
-          "value": "string",
+          "key": "container",
+          "label": "Container",
+          "value": "m4b",
           "value_type": "string"
         }
       ],
-      "plugin_instance_id": "string",
-      "display_name": "string",
+      "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+      "display_name": "Libro.fm (household)",
       "is_default": true,
-      "config_revision": 0,
+      "config_revision": 4,
       "deployment": {
         "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
         "node_id": "node-7f3a9c",
@@ -128,13 +132,13 @@ Status `200`: The settings.
         "updated_at": "2026-10-28T19:05:00Z"
       },
       "present_on": [
-        "string"
+        "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
     }
   ],
-  "host_cpu_cores_max": 0,
-  "jail_cpu_cores": 0,
-  "output_revision": 0
+  "host_cpu_cores_max": 8.0,
+  "jail_cpu_cores": 2.0,
+  "output_revision": 7
 }
 ```
 
@@ -159,6 +163,11 @@ Schema:
       },
       "propertyNames": {
         "type": "string"
+      },
+      "example": {
+        "daemon.auth.enabled": "true",
+        "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+        "library.auto_acquire": "false"
       }
     },
     "effective": {
@@ -169,6 +178,11 @@ Schema:
       },
       "propertyNames": {
         "type": "string"
+      },
+      "example": {
+        "daemon.auth.enabled": "true",
+        "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+        "library.auto_acquire": "false"
       }
     },
     "plugins": {
@@ -184,32 +198,37 @@ Schema:
         "properties": {
           "id": {
             "type": "string",
-            "description": "Plugin id (`audible`, `sqlite`, and similar)."
+            "description": "Plugin id (`audible`, `sqlite`, and similar).",
+            "example": "libro"
           },
           "family": {
             "type": "string",
-            "description": "Handler family wire label (`source`, `integration`, `output`, `database`)."
+            "description": "Handler family wire label (`source`, `integration`, `output`, `database`).",
+            "example": "source"
           },
           "plugin_key": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Provenance-qualified PluginKey when this row came from a discovered install."
+            "description": "Provenance-qualified PluginKey when this row came from a discovered install.",
+            "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
           },
           "provenance": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …)."
+            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …).",
+            "example": "platform_bundled"
           },
           "logo": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Google favicon (or portal brand) URL for Settings list rows."
+            "description": "Google favicon (or portal brand) URL for Settings list rows.",
+            "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64"
           },
           "settings": {
             "type": "array",
@@ -225,19 +244,23 @@ Schema:
               "properties": {
                 "key": {
                   "type": "string",
-                  "description": "Dotted `config.toml` key for this option."
+                  "description": "Dotted `config.toml` key for this option.",
+                  "example": "container"
                 },
                 "label": {
                   "type": "string",
-                  "description": "Operator-facing field caption."
+                  "description": "Operator-facing field caption.",
+                  "example": "Container"
                 },
                 "value": {
                   "type": "string",
-                  "description": "Current string form of the setting."
+                  "description": "Current string form of the setting.",
+                  "example": "m4b"
                 },
                 "value_type": {
                   "type": "string",
-                  "description": "UI widget hint (`boolean`, `string`, or `number`)."
+                  "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                  "example": "string"
                 },
                 "choices": {
                   "type": [
@@ -254,11 +277,13 @@ Schema:
                     "properties": {
                       "value": {
                         "type": "string",
-                        "description": "Stored config value; empty string means use the plugin default."
+                        "description": "Stored config value; empty string means use the plugin default.",
+                        "example": "m4b"
                       },
                       "label": {
                         "type": "string",
-                        "description": "Operator-facing choice caption."
+                        "description": "Operator-facing choice caption.",
+                        "example": "M4B"
                       }
                     }
                   },
@@ -266,14 +291,16 @@ Schema:
                 },
                 "secret": {
                   "type": "boolean",
-                  "description": "True for a `secret` setting: `value` is never the stored value."
+                  "description": "True for a `secret` setting: `value` is never the stored value.",
+                  "example": false
                 },
                 "secret_set": {
                   "type": [
                     "boolean",
                     "null"
                   ],
-                  "description": "For a secret setting, whether the instance document names a sealed value."
+                  "description": "For a secret setting, whether the instance document names a sealed value.",
+                  "example": true
                 }
               }
             },
@@ -284,18 +311,21 @@ Schema:
               "string",
               "null"
             ],
-            "description": "Plugin instance this group edits; absent for a bootstrap database adapter."
+            "description": "Plugin instance this group edits; absent for a bootstrap database adapter.",
+            "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
           },
           "display_name": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Operator-facing instance name, when the operator set one."
+            "description": "Operator-facing instance name, when the operator set one.",
+            "example": "Libro.fm (household)"
           },
           "is_default": {
             "type": "boolean",
-            "description": "True when a bare plugin key or alias routes to this instance."
+            "description": "True when a bare plugin key or alias routes to this instance.",
+            "example": true
           },
           "config_revision": {
             "type": [
@@ -303,7 +333,8 @@ Schema:
               "null"
             ],
             "format": "int64",
-            "description": "Instance document revision for compare-and-swap writes."
+            "description": "Instance document revision for compare-and-swap writes.",
+            "example": 4
           },
           "deployment": {
             "oneOf": [
@@ -464,7 +495,10 @@ Schema:
             "items": {
               "type": "string"
             },
-            "description": "Nodes whose deployment of the instance is `present`."
+            "description": "Nodes whose deployment of the instance is `present`.",
+            "example": [
+              "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
+            ]
           }
         }
       },
@@ -473,7 +507,8 @@ Schema:
     "host_cpu_cores_max": {
       "type": "number",
       "format": "double",
-      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count)."
+      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count).",
+      "example": 8.0
     },
     "jail_cpu_cores": {
       "type": [
@@ -481,7 +516,8 @@ Schema:
         "null"
       ],
       "format": "double",
-      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`)."
+      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).",
+      "example": 2.0
     },
     "output_revision": {
       "type": [
@@ -489,7 +525,8 @@ Schema:
         "null"
       ],
       "format": "int64",
-      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup."
+      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup.",
+      "example": 7
     }
   }
 }
@@ -673,7 +710,7 @@ $ curl 'http://127.0.0.1:8787/api/settings' \
     -X PATCH \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"settings": [{"key": "string", "value": "string"}]}'
+    -d '{"settings": [{"key": "library.auto_acquire", "value": "false"}]}'
 ```
 
 ```powershell
@@ -681,7 +718,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/settings' `
     -Method Patch `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"settings": [{"key": "string", "value": "string"}]}'
+    -Body '{"settings": [{"key": "library.auto_acquire", "value": "false"}]}'
 ```
 
 ```python
@@ -690,7 +727,7 @@ import requests
 response = requests.patch(
     "http://127.0.0.1:8787/api/settings",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"settings": [{"key": "string", "value": "string"}]},
+    json={"settings": [{"key": "library.auto_acquire", "value": "false"}]},
 )
 print(response.status_code, response.text)
 ```
@@ -699,7 +736,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/settings", {
   method: "PATCH",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"settings": [{"key": "string", "value": "string"}]}),
+  body: JSON.stringify({"settings": [{"key": "library.auto_acquire", "value": "false"}]}),
 });
 console.log(response.status, await response.text());
 ```
@@ -709,7 +746,7 @@ let client = reqwest::Client::new();
 let response = client
     .patch("http://127.0.0.1:8787/api/settings")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"settings": [{"key": "string", "value": "string"}]}))
+    .json(&serde_json::json!({"settings": [{"key": "library.auto_acquire", "value": "false"}]}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -722,30 +759,34 @@ Status `200`: The settings after the change.
 ```json
 {
   "settings": {
-    "key": "string"
+    "daemon.auth.enabled": "true",
+    "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+    "library.auto_acquire": "false"
   },
   "effective": {
-    "key": "string"
+    "daemon.auth.enabled": "true",
+    "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+    "library.auto_acquire": "false"
   },
   "plugins": [
     {
-      "id": "string",
-      "family": "string",
-      "plugin_key": "string",
-      "provenance": "string",
-      "logo": "string",
+      "id": "libro",
+      "family": "source",
+      "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
+      "provenance": "platform_bundled",
+      "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64",
       "settings": [
         {
-          "key": "string",
-          "label": "string",
-          "value": "string",
+          "key": "container",
+          "label": "Container",
+          "value": "m4b",
           "value_type": "string"
         }
       ],
-      "plugin_instance_id": "string",
-      "display_name": "string",
+      "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+      "display_name": "Libro.fm (household)",
       "is_default": true,
-      "config_revision": 0,
+      "config_revision": 4,
       "deployment": {
         "deployment_id": "8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
         "node_id": "node-7f3a9c",
@@ -769,13 +810,13 @@ Status `200`: The settings after the change.
         "updated_at": "2026-10-28T19:05:00Z"
       },
       "present_on": [
-        "string"
+        "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
       ]
     }
   ],
-  "host_cpu_cores_max": 0,
-  "jail_cpu_cores": 0,
-  "output_revision": 0
+  "host_cpu_cores_max": 8.0,
+  "jail_cpu_cores": 2.0,
+  "output_revision": 7
 }
 ```
 
@@ -800,6 +841,11 @@ Schema:
       },
       "propertyNames": {
         "type": "string"
+      },
+      "example": {
+        "daemon.auth.enabled": "true",
+        "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+        "library.auto_acquire": "false"
       }
     },
     "effective": {
@@ -810,6 +856,11 @@ Schema:
       },
       "propertyNames": {
         "type": "string"
+      },
+      "example": {
+        "daemon.auth.enabled": "true",
+        "daemon.listen": "127.0.0.1:8787,[::1]:8787",
+        "library.auto_acquire": "false"
       }
     },
     "plugins": {
@@ -825,32 +876,37 @@ Schema:
         "properties": {
           "id": {
             "type": "string",
-            "description": "Plugin id (`audible`, `sqlite`, and similar)."
+            "description": "Plugin id (`audible`, `sqlite`, and similar).",
+            "example": "libro"
           },
           "family": {
             "type": "string",
-            "description": "Handler family wire label (`source`, `integration`, `output`, `database`)."
+            "description": "Handler family wire label (`source`, `integration`, `output`, `database`).",
+            "example": "source"
           },
           "plugin_key": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Provenance-qualified PluginKey when this row came from a discovered install."
+            "description": "Provenance-qualified PluginKey when this row came from a discovered install.",
+            "example": "platform:bookclerk/bookclerk-plugin-source-libro#libro"
           },
           "provenance": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …)."
+            "description": "Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …).",
+            "example": "platform_bundled"
           },
           "logo": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Google favicon (or portal brand) URL for Settings list rows."
+            "description": "Google favicon (or portal brand) URL for Settings list rows.",
+            "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64"
           },
           "settings": {
             "type": "array",
@@ -866,19 +922,23 @@ Schema:
               "properties": {
                 "key": {
                   "type": "string",
-                  "description": "Dotted `config.toml` key for this option."
+                  "description": "Dotted `config.toml` key for this option.",
+                  "example": "container"
                 },
                 "label": {
                   "type": "string",
-                  "description": "Operator-facing field caption."
+                  "description": "Operator-facing field caption.",
+                  "example": "Container"
                 },
                 "value": {
                   "type": "string",
-                  "description": "Current string form of the setting."
+                  "description": "Current string form of the setting.",
+                  "example": "m4b"
                 },
                 "value_type": {
                   "type": "string",
-                  "description": "UI widget hint (`boolean`, `string`, or `number`)."
+                  "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                  "example": "string"
                 },
                 "choices": {
                   "type": [
@@ -895,11 +955,13 @@ Schema:
                     "properties": {
                       "value": {
                         "type": "string",
-                        "description": "Stored config value; empty string means use the plugin default."
+                        "description": "Stored config value; empty string means use the plugin default.",
+                        "example": "m4b"
                       },
                       "label": {
                         "type": "string",
-                        "description": "Operator-facing choice caption."
+                        "description": "Operator-facing choice caption.",
+                        "example": "M4B"
                       }
                     }
                   },
@@ -907,14 +969,16 @@ Schema:
                 },
                 "secret": {
                   "type": "boolean",
-                  "description": "True for a `secret` setting: `value` is never the stored value."
+                  "description": "True for a `secret` setting: `value` is never the stored value.",
+                  "example": false
                 },
                 "secret_set": {
                   "type": [
                     "boolean",
                     "null"
                   ],
-                  "description": "For a secret setting, whether the instance document names a sealed value."
+                  "description": "For a secret setting, whether the instance document names a sealed value.",
+                  "example": true
                 }
               }
             },
@@ -925,18 +989,21 @@ Schema:
               "string",
               "null"
             ],
-            "description": "Plugin instance this group edits; absent for a bootstrap database adapter."
+            "description": "Plugin instance this group edits; absent for a bootstrap database adapter.",
+            "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
           },
           "display_name": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Operator-facing instance name, when the operator set one."
+            "description": "Operator-facing instance name, when the operator set one.",
+            "example": "Libro.fm (household)"
           },
           "is_default": {
             "type": "boolean",
-            "description": "True when a bare plugin key or alias routes to this instance."
+            "description": "True when a bare plugin key or alias routes to this instance.",
+            "example": true
           },
           "config_revision": {
             "type": [
@@ -944,7 +1011,8 @@ Schema:
               "null"
             ],
             "format": "int64",
-            "description": "Instance document revision for compare-and-swap writes."
+            "description": "Instance document revision for compare-and-swap writes.",
+            "example": 4
           },
           "deployment": {
             "oneOf": [
@@ -1105,7 +1173,10 @@ Schema:
             "items": {
               "type": "string"
             },
-            "description": "Nodes whose deployment of the instance is `present`."
+            "description": "Nodes whose deployment of the instance is `present`.",
+            "example": [
+              "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
+            ]
           }
         }
       },
@@ -1114,7 +1185,8 @@ Schema:
     "host_cpu_cores_max": {
       "type": "number",
       "format": "double",
-      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count)."
+      "description": "Host max jail CPU in cores (2 d.p.; equals logical CPU count).",
+      "example": 8.0
     },
     "jail_cpu_cores": {
       "type": [
@@ -1122,7 +1194,8 @@ Schema:
         "null"
       ],
       "format": "double",
-      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`)."
+      "description": "Optional global per-jail CPU ceiling in cores (from `[plugins.jail]`).",
+      "example": 2.0
     },
     "output_revision": {
       "type": [
@@ -1130,7 +1203,8 @@ Schema:
         "null"
       ],
       "format": "int64",
-      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup."
+      "description": "Revision of the `core.output` document the `output.*` values in\n`settings` were read from; send it back as `expected_output_revision`.\n`effective[\"output.revision\"]` is the revision this host has applied,\nwhich lags the document until the host's next wakeup.",
+      "example": 7
     }
   }
 }
@@ -1394,7 +1468,7 @@ $ curl 'http://127.0.0.1:8787/api/database/migrate' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"to": "string"}'
+    -d '{"to": "postgres"}'
 ```
 
 ```powershell
@@ -1402,7 +1476,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/database/migrate' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"to": "string"}'
+    -Body '{"to": "postgres"}'
 ```
 
 ```python
@@ -1411,7 +1485,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/database/migrate",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"to": "string"},
+    json={"to": "postgres"},
 )
 print(response.status_code, response.text)
 ```
@@ -1420,7 +1494,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/database/migrate", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"to": "string"}),
+  body: JSON.stringify({"to": "postgres"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -1430,7 +1504,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/database/migrate")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"to": "string"}))
+    .json(&serde_json::json!({"to": "postgres"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1442,10 +1516,9 @@ Status `200`: The rows were copied.
 
 ```json
 {
-  "ok": true,
-  "message": "string",
-  "job_id": "string",
-  "error": "string"
+  "job_id": "",
+  "message": "copied 1284 row(s) from `sqlite` to `postgres`; updated [database].plugin, wrote /home/bookclerk/BookclerkFiles/config.toml, and reloaded library connection",
+  "ok": true
 }
 ```
 
@@ -1463,22 +1536,26 @@ Schema:
   "properties": {
     "ok": {
       "type": "boolean",
-      "description": "True when the action was accepted or completed."
+      "description": "True when the action was accepted or completed.",
+      "example": true
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing status text."
+      "description": "Operator-facing status text.",
+      "example": "scan queued"
     },
     "job_id": {
       "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous."
+      "description": "Queued job id, or empty when the action is synchronous.",
+      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
     },
     "error": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`)."
+      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+      "example": "queue_full"
     }
   }
 }
@@ -1755,17 +1832,18 @@ Status `200`: The caller's preferences.
 
 ```json
 {
-  "default_view": "string",
+  "default_view": "library",
   "disabled_shelves": [
-    "string"
+    "chirp_deals",
+    "from_store"
   ],
-  "discover_sort": "string",
-  "discover_sort_dir": "string",
-  "discover_language": "string",
+  "discover_sort": "relevance",
+  "discover_sort_dir": "desc",
+  "discover_language": "en",
   "discover_excluded_sources": [
-    "string"
+    "chirp"
   ],
-  "theme": "string"
+  "theme": "system"
 }
 ```
 
@@ -1786,40 +1864,52 @@ Schema:
   "properties": {
     "default_view": {
       "type": "string",
-      "description": "Landing view id (`library`, `discover`, …) after normalization."
+      "description": "Landing view id (`library`, `discover`, …) after normalization.",
+      "example": "library"
     },
     "disabled_shelves": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Lowercased Discover shelf ids the user has hidden."
+      "description": "Lowercased Discover shelf ids the user has hidden.",
+      "example": [
+        "chirp_deals",
+        "from_store"
+      ]
     },
     "discover_sort": {
       "type": "string",
-      "description": "Discover sort key (`relevance`, `popularity`, …)."
+      "description": "Discover sort key (`relevance`, `popularity`, …).",
+      "example": "relevance"
     },
     "discover_sort_dir": {
       "type": "string",
-      "description": "Discover sort direction (`asc` or `desc`)."
+      "description": "Discover sort direction (`asc` or `desc`).",
+      "example": "desc"
     },
     "discover_language": {
       "type": [
         "string",
         "null"
       ],
-      "description": "`null` = use browser language on the client."
+      "description": "`null` = use browser language on the client.",
+      "example": "en"
     },
     "discover_excluded_sources": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Lowercased store ids hidden from Discover results."
+      "description": "Lowercased store ids hidden from Discover results.",
+      "example": [
+        "chirp"
+      ]
     },
     "theme": {
       "type": "string",
-      "description": "Appearance preference (`system`, `light`, or `dark`)."
+      "description": "Appearance preference (`system`, `light`, or `dark`).",
+      "example": "system"
     }
   }
 }
@@ -1951,17 +2041,18 @@ Status `200`: The preferences after the change.
 
 ```json
 {
-  "default_view": "string",
+  "default_view": "library",
   "disabled_shelves": [
-    "string"
+    "chirp_deals",
+    "from_store"
   ],
-  "discover_sort": "string",
-  "discover_sort_dir": "string",
-  "discover_language": "string",
+  "discover_sort": "relevance",
+  "discover_sort_dir": "desc",
+  "discover_language": "en",
   "discover_excluded_sources": [
-    "string"
+    "chirp"
   ],
-  "theme": "string"
+  "theme": "system"
 }
 ```
 
@@ -1982,40 +2073,52 @@ Schema:
   "properties": {
     "default_view": {
       "type": "string",
-      "description": "Landing view id (`library`, `discover`, …) after normalization."
+      "description": "Landing view id (`library`, `discover`, …) after normalization.",
+      "example": "library"
     },
     "disabled_shelves": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Lowercased Discover shelf ids the user has hidden."
+      "description": "Lowercased Discover shelf ids the user has hidden.",
+      "example": [
+        "chirp_deals",
+        "from_store"
+      ]
     },
     "discover_sort": {
       "type": "string",
-      "description": "Discover sort key (`relevance`, `popularity`, …)."
+      "description": "Discover sort key (`relevance`, `popularity`, …).",
+      "example": "relevance"
     },
     "discover_sort_dir": {
       "type": "string",
-      "description": "Discover sort direction (`asc` or `desc`)."
+      "description": "Discover sort direction (`asc` or `desc`).",
+      "example": "desc"
     },
     "discover_language": {
       "type": [
         "string",
         "null"
       ],
-      "description": "`null` = use browser language on the client."
+      "description": "`null` = use browser language on the client.",
+      "example": "en"
     },
     "discover_excluded_sources": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Lowercased store ids hidden from Discover results."
+      "description": "Lowercased store ids hidden from Discover results.",
+      "example": [
+        "chirp"
+      ]
     },
     "theme": {
       "type": "string",
-      "description": "Appearance preference (`system`, `light`, or `dark`)."
+      "description": "Appearance preference (`system`, `light`, or `dark`).",
+      "example": "system"
     }
   }
 }
