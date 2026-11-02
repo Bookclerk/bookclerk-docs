@@ -364,7 +364,7 @@ Paged catalog-search response.
 Browser attestation/assertion plus the challenge id from `begin`.
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
-- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
 - `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ## ChapterJsonMode

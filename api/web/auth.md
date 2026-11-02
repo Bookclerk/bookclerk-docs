@@ -49,14 +49,14 @@ Validates the operator token (throttled, constant-time) and issues a hashed sess
 $ curl 'http://127.0.0.1:8787/api/auth/login' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"token": "string"}'
+    -d '{"token": "9b1e4f6a2c8d3e5f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/login' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"token": "string"}'
+    -Body '{"token": "9b1e4f6a2c8d3e5f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f"}'
 ```
 
 ```python
@@ -64,7 +64,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/login",
-    json={"token": "string"},
+    json={"token": "9b1e4f6a2c8d3e5f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f"},
 )
 print(response.status_code, response.text)
 ```
@@ -73,7 +73,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/login", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"token": "string"}),
+  body: JSON.stringify({"token": "9b1e4f6a2c8d3e5f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -82,7 +82,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/login")
-    .json(&serde_json::json!({"token": "string"}))
+    .json(&serde_json::json!({"token": "9b1e4f6a2c8d3e5f7a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1606,7 +1606,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/elevate' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"password": "string"}'
+    -d '{"password": "correct horse battery staple"}'
 ```
 
 ```powershell
@@ -1614,7 +1614,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/elevate' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"password": "string"}'
+    -Body '{"password": "correct horse battery staple"}'
 ```
 
 ```python
@@ -1623,7 +1623,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/elevate",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"password": "string"},
+    json={"password": "correct horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -1632,7 +1632,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/elevate", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"password": "string"}),
+  body: JSON.stringify({"password": "correct horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -1642,7 +1642,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/elevate")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"password": "string"}))
+    .json(&serde_json::json!({"password": "correct horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2467,7 +2467,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"password": "string"}'
+    -d '{"password": "new horse battery staple"}'
 ```
 
 ```powershell
@@ -2475,7 +2475,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password' `
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"password": "string"}'
+    -Body '{"password": "new horse battery staple"}'
 ```
 
 ```python
@@ -2484,7 +2484,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/auth/password",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"password": "string"},
+    json={"password": "new horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -2493,7 +2493,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/password", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"password": "string"}),
+  body: JSON.stringify({"password": "new horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2503,7 +2503,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/auth/password")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"password": "string"}))
+    .json(&serde_json::json!({"password": "new horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2780,14 +2780,14 @@ Local password login → portal session cookie, or a TOTP challenge when enabled
 $ curl 'http://127.0.0.1:8787/api/auth/password' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"login": "string", "password": "string"}'
+    -d '{"login": "dana", "password": "correct horse battery staple"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/password' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"login": "string", "password": "string"}'
+    -Body '{"login": "dana", "password": "correct horse battery staple"}'
 ```
 
 ```python
@@ -2795,7 +2795,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/password",
-    json={"login": "string", "password": "string"},
+    json={"login": "dana", "password": "correct horse battery staple"},
 )
 print(response.status_code, response.text)
 ```
@@ -2804,7 +2804,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/password", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"login": "string", "password": "string"}),
+  body: JSON.stringify({"login": "dana", "password": "correct horse battery staple"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2813,7 +2813,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/password")
-    .json(&serde_json::json!({"login": "string", "password": "string"}))
+    .json(&serde_json::json!({"login": "dana", "password": "correct horse battery staple"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3127,7 +3127,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/impersonate' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"user_id": 0}'
+    -d '{"user_id": 7}'
 ```
 
 ```powershell
@@ -3135,7 +3135,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/impersonate' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"user_id": 0}'
+    -Body '{"user_id": 7}'
 ```
 
 ```python
@@ -3144,7 +3144,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/impersonate",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"user_id": 0},
+    json={"user_id": 7},
 )
 print(response.status_code, response.text)
 ```
@@ -3153,7 +3153,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/impersonate", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"user_id": 0}),
+  body: JSON.stringify({"user_id": 7}),
 });
 console.log(response.status, await response.text());
 ```
@@ -3163,7 +3163,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/impersonate")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"user_id": 0}))
+    .json(&serde_json::json!({"user_id": 7}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -9478,7 +9478,7 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
-- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
 - `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
@@ -9515,7 +9515,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/register/finish' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"challenge_id": "string"}'
+    -d '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```powershell
@@ -9526,7 +9526,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/register/finish'
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"challenge_id": "string"}'
+    -Body '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```python
@@ -9535,7 +9535,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/passkeys/register/finish",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"challenge_id": "string"},
+    json={"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}},
 )
 print(response.status_code, response.text)
 ```
@@ -9544,7 +9544,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/register/finish", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"challenge_id": "string"}),
+  body: JSON.stringify({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -9555,7 +9555,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/auth/passkeys/register/finish")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"challenge_id": "string"}))
+    .json(&serde_json::json!({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -10109,14 +10109,14 @@ Rate-limits and starts passkey login; records a failure on any error.
 $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"login": "string"}'
+    -d '{"login": "dana"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/login/begin' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"login": "string"}'
+    -Body '{"login": "dana"}'
 ```
 
 ```python
@@ -10124,7 +10124,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/passkeys/login/begin",
-    json={"login": "string"},
+    json={"login": "dana"},
 )
 print(response.status_code, response.text)
 ```
@@ -10133,7 +10133,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/login/begin", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"login": "string"}),
+  body: JSON.stringify({"login": "dana"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -10142,7 +10142,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/passkeys/login/begin")
-    .json(&serde_json::json!({"login": "string"}))
+    .json(&serde_json::json!({"login": "dana"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -10455,7 +10455,7 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
-- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
 - `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
@@ -10487,14 +10487,14 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 $ curl 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"challenge_id": "string"}'
+    -d '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/login/finish' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"challenge_id": "string"}'
+    -Body '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```python
@@ -10502,7 +10502,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/passkeys/login/finish",
-    json={"challenge_id": "string"},
+    json={"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}},
 )
 print(response.status_code, response.text)
 ```
@@ -10511,7 +10511,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/login/finish", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"challenge_id": "string"}),
+  body: JSON.stringify({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -10520,7 +10520,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/passkeys/login/finish")
-    .json(&serde_json::json!({"challenge_id": "string"}))
+    .json(&serde_json::json!({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -11070,7 +11070,7 @@ Completes Owner elevation only when the assertion is user-verified.
 `application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
-- `credential` *any JSON*, **required** — Browser `PublicKeyCredential` JSON for `finish_*`.
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
 - `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
@@ -11105,7 +11105,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"challenge_id": "string"}'
+    -d '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```powershell
@@ -11116,7 +11116,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/passkeys/elevate/finish' 
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"challenge_id": "string"}'
+    -Body '{"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}'
 ```
 
 ```python
@@ -11125,7 +11125,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/passkeys/elevate/finish",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"challenge_id": "string"},
+    json={"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}},
 )
 print(response.status_code, response.text)
 ```
@@ -11134,7 +11134,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/passkeys/elevate/finish", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"challenge_id": "string"}),
+  body: JSON.stringify({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}),
 });
 console.log(response.status, await response.text());
 ```
@@ -11145,7 +11145,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/auth/passkeys/elevate/finish")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"challenge_id": "string"}))
+    .json(&serde_json::json!({"challenge_id": "6d2f0c1e-8a4b-4f3d-9e7c-5b1a2c3d4e5f", "credential": {"extensions": {}, "id": "pQECAyYgASFYIE", "rawId": "pQECAyYgASFYIE", "response": {"attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU", "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiazl1MlhvM2NaMVFwN21UNHZXOHlBMmJDNWRFNmZHN2hJOGpLOWxNMG5PMSIsIm9yaWdpbiI6Imh0dHBzOi8vYm9va3MuZXhhbXBsZS5jb20ifQ"}, "type": "public-key"}}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -11390,14 +11390,14 @@ Completes password+TOTP login and issues a portal session cookie.
 $ curl 'http://127.0.0.1:8787/api/auth/totp/login' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"challenge_id": "string", "code": "string"}'
+    -d '{"challenge_id": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c", "code": "492817"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp/login' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"challenge_id": "string", "code": "string"}'
+    -Body '{"challenge_id": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c", "code": "492817"}'
 ```
 
 ```python
@@ -11405,7 +11405,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/totp/login",
-    json={"challenge_id": "string", "code": "string"},
+    json={"challenge_id": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c", "code": "492817"},
 )
 print(response.status_code, response.text)
 ```
@@ -11414,7 +11414,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/totp/login", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"challenge_id": "string", "code": "string"}),
+  body: JSON.stringify({"challenge_id": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c", "code": "492817"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -11423,7 +11423,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/totp/login")
-    .json(&serde_json::json!({"challenge_id": "string", "code": "string"}))
+    .json(&serde_json::json!({"challenge_id": "2c7e4f0a-9b1d-4e3c-a5f6-7d8e9f0a1b2c", "code": "492817"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -11927,7 +11927,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"code": "string"}'
+    -d '{"code": "492817"}'
 ```
 
 ```powershell
@@ -11938,7 +11938,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/totp/enroll/finish' `
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"code": "string"}'
+    -Body '{"code": "492817"}'
 ```
 
 ```python
@@ -11947,7 +11947,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/totp/enroll/finish",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"code": "string"},
+    json={"code": "492817"},
 )
 print(response.status_code, response.text)
 ```
@@ -11956,7 +11956,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/totp/enroll/finish", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"code": "string"}),
+  body: JSON.stringify({"code": "492817"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -11967,7 +11967,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/auth/totp/enroll/finish")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"code": "string"}))
+    .json(&serde_json::json!({"code": "492817"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
