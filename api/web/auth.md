@@ -7950,48 +7950,48 @@ Status `200`: Broker settings, with secrets as presence flags.
 {
   "enabled": true,
   "allowed_email_domains": [
-    "string"
+    "example.com"
   ],
-  "public_origin": "string",
-  "issuer_url": "string",
-  "detected_origin": "string",
-  "discovery_url": "string",
-  "authorization_endpoint": "string",
-  "token_endpoint": "string",
-  "userinfo_endpoint": "string",
-  "revocation_endpoint": "string",
-  "callback_url": "string",
+  "public_origin": "https://books.example.com",
+  "issuer_url": "https://books.example.com",
+  "detected_origin": "http://localhost:8787",
+  "discovery_url": "https://books.example.com/.well-known/openid-configuration",
+  "authorization_endpoint": "https://books.example.com/oidc/authorize",
+  "token_endpoint": "https://books.example.com/oidc/token",
+  "userinfo_endpoint": "https://books.example.com/oidc/userinfo",
+  "revocation_endpoint": "https://books.example.com/oidc/revoke",
+  "callback_url": "https://books.example.com/api/auth/oidc/callback",
   "providers": [
     {
-      "id": "string",
-      "name": "string",
-      "preset": "string",
-      "issuer": "string",
-      "client_id": "string",
+      "id": "google",
+      "name": "Google",
+      "preset": "google",
+      "issuer": "https://accounts.google.com",
+      "client_id": "123456789012-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com",
       "scopes": [
-        "string"
+        "openid",
+        "profile",
+        "email"
       ],
-      "provision": "string",
-      "default_role": "string",
-      "role_claim": "string",
-      "role_map": {
-        "key": "string"
-      },
+      "provision": "allowlist",
+      "default_role": "member",
+      "role_claim": "groups",
+      "role_map": {},
       "link_by_email": true,
       "allowed_email_domains": [
-        "string"
+        "example.com"
       ],
       "allowed_emails": [
-        "string"
+        "dana@example.com"
       ],
       "allowed_subjects": [
-        "string"
+        "248289761001"
       ],
-      "apple_team_id": "string",
-      "apple_key_id": "string",
+      "apple_team_id": "A1B2C3D4E5",
+      "apple_key_id": "K9L8M7N6P5",
       "has_client_secret": true,
-      "has_apple_private_key": true,
-      "secret_source": "string"
+      "has_apple_private_key": false,
+      "secret_source": "store"
     }
   ]
 }
@@ -8019,53 +8019,66 @@ Schema:
   "properties": {
     "enabled": {
       "type": "boolean",
-      "description": "Whether the broker accepts new authorize starts."
+      "description": "Whether the broker accepts new authorize starts.",
+      "example": true
     },
     "allowed_email_domains": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Broker-wide email domain allowlist applied before per-provider rules."
+      "description": "Broker-wide email domain allowlist applied before per-provider rules.",
+      "example": [
+        "example.com"
+      ]
     },
     "public_origin": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Configured `integrations.public_origin` (issuer / callback / invite base)."
+      "description": "Configured `integrations.public_origin` (issuer / callback / invite base).",
+      "example": "https://books.example.com"
     },
     "issuer_url": {
       "type": "string",
-      "description": "Effective issuer origin (`public_origin`, else this request, else localhost)."
+      "description": "Effective issuer origin (`public_origin`, else this request, else localhost).",
+      "example": "https://books.example.com"
     },
     "detected_origin": {
       "type": "string",
-      "description": "Origin detected from this request (loopback IPs rewritten to `localhost`)."
+      "description": "Origin detected from this request (loopback IPs rewritten to `localhost`).",
+      "example": "http://localhost:8787"
     },
     "discovery_url": {
       "type": "string",
-      "description": "Absolute OpenID discovery URL (`/.well-known/openid-configuration`)."
+      "description": "Absolute OpenID discovery URL (`/.well-known/openid-configuration`).",
+      "example": "https://books.example.com/.well-known/openid-configuration"
     },
     "authorization_endpoint": {
       "type": "string",
-      "description": "Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP."
+      "description": "Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/authorize"
     },
     "token_endpoint": {
       "type": "string",
-      "description": "Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP."
+      "description": "Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/token"
     },
     "userinfo_endpoint": {
       "type": "string",
-      "description": "Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP."
+      "description": "Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/userinfo"
     },
     "revocation_endpoint": {
       "type": "string",
-      "description": "Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP."
+      "description": "Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/revoke"
     },
     "callback_url": {
       "type": "string",
-      "description": "Absolute `/api/auth/oidc/callback` derived from the effective issuer origin."
+      "description": "Absolute `/api/auth/oidc/callback` derived from the effective issuer origin.",
+      "example": "https://books.example.com/api/auth/oidc/callback"
     },
     "providers": {
       "type": "array",
@@ -8092,48 +8105,61 @@ Schema:
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable provider id used in authorize URLs and sealed-row names."
+            "description": "Stable provider id used in authorize URLs and sealed-row names.",
+            "example": "google"
           },
           "name": {
             "type": "string",
-            "description": "Operator-facing display name."
+            "description": "Operator-facing display name.",
+            "example": "Google"
           },
           "preset": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Built-in social preset (`google`, `github`, `apple`, `discord`) when not a generic issuer."
+            "description": "Built-in social preset (`google`, `github`, `apple`, `discord`) when not a generic issuer.",
+            "example": "google"
           },
           "issuer": {
             "type": [
               "string",
               "null"
             ],
-            "description": "OpenID issuer URL for discovery when no social preset applies."
+            "description": "OpenID issuer URL for discovery when no social preset applies.",
+            "example": "https://accounts.google.com"
           },
           "client_id": {
             "type": "string",
-            "description": "OAuth client id registered at the IdP."
+            "description": "OAuth client id registered at the IdP.",
+            "example": "123456789012-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com"
           },
           "scopes": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "OAuth scopes requested at authorize."
+            "description": "OAuth scopes requested at authorize.",
+            "example": [
+              "openid",
+              "profile",
+              "email"
+            ]
           },
           "provision": {
             "type": "string",
-            "description": "How a first login becomes a portal user (JIT, mapped role, allowlist, invite-only)."
+            "description": "How a first login becomes a portal user (JIT, mapped role, allowlist, invite-only).",
+            "example": "allowlist"
           },
           "default_role": {
             "type": "string",
-            "description": "Portal role used when no mapped claim matches (`member` by default)."
+            "description": "Portal role used when no mapped claim matches (`member` by default).",
+            "example": "member"
           },
           "role_claim": {
             "type": "string",
-            "description": "Claim name read from id_token/userinfo for role mapping (`groups` by default)."
+            "description": "Claim name read from id_token/userinfo for role mapping (`groups` by default).",
+            "example": "groups"
           },
           "role_map": {
             "type": "object",
@@ -8143,58 +8169,74 @@ Schema:
             },
             "propertyNames": {
               "type": "string"
-            }
+            },
+            "example": {}
           },
           "link_by_email": {
             "type": "boolean",
-            "description": "When true, a verified email may attach this IdP to an existing user."
+            "description": "When true, a verified email may attach this IdP to an existing user.",
+            "example": true
           },
           "allowed_email_domains": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Per-provider email domain allowlist (in addition to the broker-wide list)."
+            "description": "Per-provider email domain allowlist (in addition to the broker-wide list).",
+            "example": [
+              "example.com"
+            ]
           },
           "allowed_emails": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Exact emails permitted under allowlist provision."
+            "description": "Exact emails permitted under allowlist provision.",
+            "example": [
+              "dana@example.com"
+            ]
           },
           "allowed_subjects": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Exact IdP subject ids permitted under allowlist provision."
+            "description": "Exact IdP subject ids permitted under allowlist provision.",
+            "example": [
+              "248289761001"
+            ]
           },
           "apple_team_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Apple Developer team id used to mint the client-secret JWT."
+            "description": "Apple Developer team id used to mint the client-secret JWT.",
+            "example": "A1B2C3D4E5"
           },
           "apple_key_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Apple Sign In key id paired with the sealed private key."
+            "description": "Apple Sign In key id paired with the sealed private key.",
+            "example": "K9L8M7N6P5"
           },
           "has_client_secret": {
             "type": "boolean",
-            "description": "Whether a client secret exists in env, TOML, or the sealed store (value never returned)."
+            "description": "Whether a client secret exists in env, TOML, or the sealed store (value never returned).",
+            "example": true
           },
           "has_apple_private_key": {
             "type": "boolean",
-            "description": "Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned)."
+            "description": "Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned).",
+            "example": false
           },
           "secret_source": {
             "type": "string",
-            "description": "Where the client secret was found: `env`, `config`, `store`, or `none`."
+            "description": "Where the client secret was found: `env`, `config`, `store`, or `none`.",
+            "example": "store"
           }
         }
       },
@@ -8401,48 +8443,48 @@ Status `200`: The settings after the change.
 {
   "enabled": true,
   "allowed_email_domains": [
-    "string"
+    "example.com"
   ],
-  "public_origin": "string",
-  "issuer_url": "string",
-  "detected_origin": "string",
-  "discovery_url": "string",
-  "authorization_endpoint": "string",
-  "token_endpoint": "string",
-  "userinfo_endpoint": "string",
-  "revocation_endpoint": "string",
-  "callback_url": "string",
+  "public_origin": "https://books.example.com",
+  "issuer_url": "https://books.example.com",
+  "detected_origin": "http://localhost:8787",
+  "discovery_url": "https://books.example.com/.well-known/openid-configuration",
+  "authorization_endpoint": "https://books.example.com/oidc/authorize",
+  "token_endpoint": "https://books.example.com/oidc/token",
+  "userinfo_endpoint": "https://books.example.com/oidc/userinfo",
+  "revocation_endpoint": "https://books.example.com/oidc/revoke",
+  "callback_url": "https://books.example.com/api/auth/oidc/callback",
   "providers": [
     {
-      "id": "string",
-      "name": "string",
-      "preset": "string",
-      "issuer": "string",
-      "client_id": "string",
+      "id": "google",
+      "name": "Google",
+      "preset": "google",
+      "issuer": "https://accounts.google.com",
+      "client_id": "123456789012-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com",
       "scopes": [
-        "string"
+        "openid",
+        "profile",
+        "email"
       ],
-      "provision": "string",
-      "default_role": "string",
-      "role_claim": "string",
-      "role_map": {
-        "key": "string"
-      },
+      "provision": "allowlist",
+      "default_role": "member",
+      "role_claim": "groups",
+      "role_map": {},
       "link_by_email": true,
       "allowed_email_domains": [
-        "string"
+        "example.com"
       ],
       "allowed_emails": [
-        "string"
+        "dana@example.com"
       ],
       "allowed_subjects": [
-        "string"
+        "248289761001"
       ],
-      "apple_team_id": "string",
-      "apple_key_id": "string",
+      "apple_team_id": "A1B2C3D4E5",
+      "apple_key_id": "K9L8M7N6P5",
       "has_client_secret": true,
-      "has_apple_private_key": true,
-      "secret_source": "string"
+      "has_apple_private_key": false,
+      "secret_source": "store"
     }
   ]
 }
@@ -8470,53 +8512,66 @@ Schema:
   "properties": {
     "enabled": {
       "type": "boolean",
-      "description": "Whether the broker accepts new authorize starts."
+      "description": "Whether the broker accepts new authorize starts.",
+      "example": true
     },
     "allowed_email_domains": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Broker-wide email domain allowlist applied before per-provider rules."
+      "description": "Broker-wide email domain allowlist applied before per-provider rules.",
+      "example": [
+        "example.com"
+      ]
     },
     "public_origin": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Configured `integrations.public_origin` (issuer / callback / invite base)."
+      "description": "Configured `integrations.public_origin` (issuer / callback / invite base).",
+      "example": "https://books.example.com"
     },
     "issuer_url": {
       "type": "string",
-      "description": "Effective issuer origin (`public_origin`, else this request, else localhost)."
+      "description": "Effective issuer origin (`public_origin`, else this request, else localhost).",
+      "example": "https://books.example.com"
     },
     "detected_origin": {
       "type": "string",
-      "description": "Origin detected from this request (loopback IPs rewritten to `localhost`)."
+      "description": "Origin detected from this request (loopback IPs rewritten to `localhost`).",
+      "example": "http://localhost:8787"
     },
     "discovery_url": {
       "type": "string",
-      "description": "Absolute OpenID discovery URL (`/.well-known/openid-configuration`)."
+      "description": "Absolute OpenID discovery URL (`/.well-known/openid-configuration`).",
+      "example": "https://books.example.com/.well-known/openid-configuration"
     },
     "authorization_endpoint": {
       "type": "string",
-      "description": "Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP."
+      "description": "Absolute authorization endpoint (`/oidc/authorize`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/authorize"
     },
     "token_endpoint": {
       "type": "string",
-      "description": "Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP."
+      "description": "Absolute token endpoint (`/oidc/token`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/token"
     },
     "userinfo_endpoint": {
       "type": "string",
-      "description": "Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP."
+      "description": "Absolute userinfo endpoint (`/oidc/userinfo`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/userinfo"
     },
     "revocation_endpoint": {
       "type": "string",
-      "description": "Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP."
+      "description": "Absolute revocation endpoint (`/oidc/revoke`) for Bookclerk-as-IdP.",
+      "example": "https://books.example.com/oidc/revoke"
     },
     "callback_url": {
       "type": "string",
-      "description": "Absolute `/api/auth/oidc/callback` derived from the effective issuer origin."
+      "description": "Absolute `/api/auth/oidc/callback` derived from the effective issuer origin.",
+      "example": "https://books.example.com/api/auth/oidc/callback"
     },
     "providers": {
       "type": "array",
@@ -8543,48 +8598,61 @@ Schema:
         "properties": {
           "id": {
             "type": "string",
-            "description": "Stable provider id used in authorize URLs and sealed-row names."
+            "description": "Stable provider id used in authorize URLs and sealed-row names.",
+            "example": "google"
           },
           "name": {
             "type": "string",
-            "description": "Operator-facing display name."
+            "description": "Operator-facing display name.",
+            "example": "Google"
           },
           "preset": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Built-in social preset (`google`, `github`, `apple`, `discord`) when not a generic issuer."
+            "description": "Built-in social preset (`google`, `github`, `apple`, `discord`) when not a generic issuer.",
+            "example": "google"
           },
           "issuer": {
             "type": [
               "string",
               "null"
             ],
-            "description": "OpenID issuer URL for discovery when no social preset applies."
+            "description": "OpenID issuer URL for discovery when no social preset applies.",
+            "example": "https://accounts.google.com"
           },
           "client_id": {
             "type": "string",
-            "description": "OAuth client id registered at the IdP."
+            "description": "OAuth client id registered at the IdP.",
+            "example": "123456789012-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com"
           },
           "scopes": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "OAuth scopes requested at authorize."
+            "description": "OAuth scopes requested at authorize.",
+            "example": [
+              "openid",
+              "profile",
+              "email"
+            ]
           },
           "provision": {
             "type": "string",
-            "description": "How a first login becomes a portal user (JIT, mapped role, allowlist, invite-only)."
+            "description": "How a first login becomes a portal user (JIT, mapped role, allowlist, invite-only).",
+            "example": "allowlist"
           },
           "default_role": {
             "type": "string",
-            "description": "Portal role used when no mapped claim matches (`member` by default)."
+            "description": "Portal role used when no mapped claim matches (`member` by default).",
+            "example": "member"
           },
           "role_claim": {
             "type": "string",
-            "description": "Claim name read from id_token/userinfo for role mapping (`groups` by default)."
+            "description": "Claim name read from id_token/userinfo for role mapping (`groups` by default).",
+            "example": "groups"
           },
           "role_map": {
             "type": "object",
@@ -8594,58 +8662,74 @@ Schema:
             },
             "propertyNames": {
               "type": "string"
-            }
+            },
+            "example": {}
           },
           "link_by_email": {
             "type": "boolean",
-            "description": "When true, a verified email may attach this IdP to an existing user."
+            "description": "When true, a verified email may attach this IdP to an existing user.",
+            "example": true
           },
           "allowed_email_domains": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Per-provider email domain allowlist (in addition to the broker-wide list)."
+            "description": "Per-provider email domain allowlist (in addition to the broker-wide list).",
+            "example": [
+              "example.com"
+            ]
           },
           "allowed_emails": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Exact emails permitted under allowlist provision."
+            "description": "Exact emails permitted under allowlist provision.",
+            "example": [
+              "dana@example.com"
+            ]
           },
           "allowed_subjects": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Exact IdP subject ids permitted under allowlist provision."
+            "description": "Exact IdP subject ids permitted under allowlist provision.",
+            "example": [
+              "248289761001"
+            ]
           },
           "apple_team_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Apple Developer team id used to mint the client-secret JWT."
+            "description": "Apple Developer team id used to mint the client-secret JWT.",
+            "example": "A1B2C3D4E5"
           },
           "apple_key_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Apple Sign In key id paired with the sealed private key."
+            "description": "Apple Sign In key id paired with the sealed private key.",
+            "example": "K9L8M7N6P5"
           },
           "has_client_secret": {
             "type": "boolean",
-            "description": "Whether a client secret exists in env, TOML, or the sealed store (value never returned)."
+            "description": "Whether a client secret exists in env, TOML, or the sealed store (value never returned).",
+            "example": true
           },
           "has_apple_private_key": {
             "type": "boolean",
-            "description": "Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned)."
+            "description": "Whether an Apple PEM exists in env, TOML, or the sealed store (PEM never returned).",
+            "example": false
           },
           "secret_source": {
             "type": "string",
-            "description": "Where the client secret was found: `env`, `config`, `store`, or `none`."
+            "description": "Where the client secret was found: `env`, `config`, `store`, or `none`.",
+            "example": "store"
           }
         }
       },

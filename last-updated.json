@@ -637,7 +637,7 @@
   "api/web/library": "2026-11-02",
   "api/web/live": "2026-11-01",
   "api/web/node-protocol": "2026-11-02",
-  "api/web/oidc-provider": "2026-11-01",
+  "api/web/oidc-provider": "2026-11-02",
   "api/web/plugins": "2026-11-02",
   "api/web/schemas": "2026-11-02",
   "api/web/settings": "2026-11-02",

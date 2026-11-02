@@ -61,31 +61,35 @@ Status `200`: The OIDC discovery document.
 
 ```json
 {
-  "issuer": "string",
-  "authorization_endpoint": "string",
-  "token_endpoint": "string",
-  "userinfo_endpoint": "string",
-  "revocation_endpoint": "string",
+  "issuer": "https://books.example.com",
+  "authorization_endpoint": "https://books.example.com/oidc/authorize",
+  "token_endpoint": "https://books.example.com/oidc/token",
+  "userinfo_endpoint": "https://books.example.com/oidc/userinfo",
+  "revocation_endpoint": "https://books.example.com/oidc/revoke",
   "response_types_supported": [
-    "string"
+    "code"
   ],
   "grant_types_supported": [
-    "string"
+    "authorization_code",
+    "refresh_token"
   ],
   "code_challenge_methods_supported": [
-    "string"
+    "S256"
   ],
   "scopes_supported": [
-    "string"
+    "openid",
+    "profile",
+    "email"
   ],
   "subject_types_supported": [
-    "string"
+    "public"
   ],
   "id_token_signing_alg_values_supported": [
-    "string"
+    "HS256"
   ],
   "token_endpoint_auth_methods_supported": [
-    "string"
+    "none",
+    "client_secret_post"
   ]
 }
 ```
@@ -113,72 +117,102 @@ Schema:
   "properties": {
     "issuer": {
       "type": "string",
-      "description": "Issuer origin used as `iss` in minted JWTs (`public_origin` or loopback)."
+      "description": "Issuer origin used as `iss` in minted JWTs (`public_origin` or loopback).",
+      "example": "https://books.example.com"
     },
     "authorization_endpoint": {
       "type": "string",
-      "description": "Absolute URL of the authorization endpoint (`/oidc/authorize`)."
+      "description": "Absolute URL of the authorization endpoint (`/oidc/authorize`).",
+      "example": "https://books.example.com/oidc/authorize"
     },
     "token_endpoint": {
       "type": "string",
-      "description": "Absolute URL of the token endpoint (`/oidc/token`)."
+      "description": "Absolute URL of the token endpoint (`/oidc/token`).",
+      "example": "https://books.example.com/oidc/token"
     },
     "userinfo_endpoint": {
       "type": "string",
-      "description": "Absolute URL of the userinfo endpoint (`/oidc/userinfo`)."
+      "description": "Absolute URL of the userinfo endpoint (`/oidc/userinfo`).",
+      "example": "https://books.example.com/oidc/userinfo"
     },
     "revocation_endpoint": {
       "type": "string",
-      "description": "Absolute URL of the refresh-token revocation endpoint (`/oidc/revoke`)."
+      "description": "Absolute URL of the refresh-token revocation endpoint (`/oidc/revoke`).",
+      "example": "https://books.example.com/oidc/revoke"
     },
     "response_types_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Supported `response_type` values; this server only issues `code`."
+      "description": "Supported `response_type` values; this server only issues `code`.",
+      "example": [
+        "code"
+      ]
     },
     "grant_types_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Supported token grants: `authorization_code` and `refresh_token`."
+      "description": "Supported token grants: `authorization_code` and `refresh_token`.",
+      "example": [
+        "authorization_code",
+        "refresh_token"
+      ]
     },
     "code_challenge_methods_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "PKCE methods; only S256 is accepted (`plain` is rejected)."
+      "description": "PKCE methods; only S256 is accepted (`plain` is rejected).",
+      "example": [
+        "S256"
+      ]
     },
     "scopes_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Scopes advertised to clients (`openid`, `profile`, and `email`)."
+      "description": "Scopes advertised to clients (`openid`, `profile`, and `email`).",
+      "example": [
+        "openid",
+        "profile",
+        "email"
+      ]
     },
     "subject_types_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Subject identifier types; only public (stable user id) is used."
+      "description": "Subject identifier types; only public (stable user id) is used.",
+      "example": [
+        "public"
+      ]
     },
     "id_token_signing_alg_values_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "ID-token signing algorithms; tokens are HS256 with a derived key."
+      "description": "ID-token signing algorithms; tokens are HS256 with a derived key.",
+      "example": [
+        "HS256"
+      ]
     },
     "token_endpoint_auth_methods_supported": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Client auth methods: public PKCE (`none`) or `client_secret_post`."
+      "description": "Client auth methods: public PKCE (`none`) or `client_secret_post`.",
+      "example": [
+        "none",
+        "client_secret_post"
+      ]
     }
   }
 }
@@ -321,7 +355,7 @@ $ curl 'http://127.0.0.1:8787/oidc/authorize' \
     -X POST \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
-    -d 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+    -d 'client_id=audiobookshelf&redirect_uri=https%3A%2F%2Fabs.example.com%2Fauth%2Fopenid%2Fcallback&response_type=code&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
 ```
 
 ```powershell
@@ -332,7 +366,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/authorize' `
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/x-www-form-urlencoded' `
-    -Body 'client_id=string&redirect_uri=string&response_type=string&code_challenge=string'
+    -Body 'client_id=audiobookshelf&redirect_uri=https%3A%2F%2Fabs.example.com%2Fauth%2Fopenid%2Fcallback&response_type=code&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
 ```
 
 ```python
@@ -341,7 +375,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/oidc/authorize",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    data={"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string"},
+    data={"client_id": "audiobookshelf", "redirect_uri": "https://abs.example.com/auth/openid/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"},
 )
 print(response.status_code, response.text)
 ```
@@ -350,7 +384,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/oidc/authorize", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787" },
-  body: new URLSearchParams("client_id=string&redirect_uri=string&response_type=string&code_challenge=string"),
+  body: new URLSearchParams("client_id=audiobookshelf&redirect_uri=https%3A%2F%2Fabs.example.com%2Fauth%2Fopenid%2Fcallback&response_type=code&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"),
 });
 console.log(response.status, await response.text());
 ```
@@ -361,7 +395,7 @@ let response = client
     .post("http://127.0.0.1:8787/oidc/authorize")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .form(&[("client_id", "string"), ("redirect_uri", "string"), ("response_type", "string"), ("code_challenge", "string")])
+    .form(&[("client_id", "audiobookshelf"), ("redirect_uri", "https://abs.example.com/auth/openid/callback"), ("response_type", "code"), ("code_challenge", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")])
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -522,14 +556,14 @@ Dispatches token grants; unknown `grant_type` values return 400.
 ```console
 $ curl 'http://127.0.0.1:8787/oidc/token' \
     -X POST \
-    -d 'grant_type=string'
+    -d 'grant_type=authorization_code'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/token' `
     -Method Post `
     -ContentType 'application/x-www-form-urlencoded' `
-    -Body 'grant_type=string'
+    -Body 'grant_type=authorization_code'
 ```
 
 ```python
@@ -537,7 +571,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/oidc/token",
-    data={"grant_type": "string"},
+    data={"grant_type": "authorization_code"},
 )
 print(response.status_code, response.text)
 ```
@@ -545,7 +579,7 @@ print(response.status_code, response.text)
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/oidc/token", {
   method: "POST",
-  body: new URLSearchParams("grant_type=string"),
+  body: new URLSearchParams("grant_type=authorization_code"),
 });
 console.log(response.status, await response.text());
 ```
@@ -554,7 +588,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/oidc/token")
-    .form(&[("grant_type", "string")])
+    .form(&[("grant_type", "authorization_code")])
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -566,12 +600,12 @@ Status `200`: Tokens.
 
 ```json
 {
-  "access_token": "string",
-  "token_type": "string",
-  "expires_in": 0,
-  "refresh_token": "string",
-  "id_token": "string",
-  "scope": "string"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3IiwidG9rZW5fdXNlIjoiYWNjZXNzIn0.3x9Y…",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+  "id_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3IiwibmFtZSI6IkRhbmEgUmVhZGVyIn0.Q2r8…",
+  "scope": "openid profile email"
 }
 ```
 
@@ -591,31 +625,37 @@ Schema:
   "properties": {
     "access_token": {
       "type": "string",
-      "description": "HS256 JWT access token bound to the User (`token_use=access`)."
+      "description": "HS256 JWT access token bound to the User (`token_use=access`).",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3IiwidG9rZW5fdXNlIjoiYWNjZXNzIn0.3x9Y…"
     },
     "token_type": {
       "type": "string",
-      "description": "Always `Bearer` for this server."
+      "description": "Always `Bearer` for this server.",
+      "example": "Bearer"
     },
     "expires_in": {
       "type": "integer",
       "format": "int64",
-      "description": "Access-token lifetime in seconds (same as [`ACCESS_TTL_SECS`])."
+      "description": "Access-token lifetime in seconds (same as [`ACCESS_TTL_SECS`]).",
+      "example": 3600
     },
     "refresh_token": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Opaque refresh token when the client is allowed to receive one."
+      "description": "Opaque refresh token when the client is allowed to receive one.",
+      "example": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
     },
     "id_token": {
       "type": "string",
-      "description": "HS256 ID token; profile/email claims follow the granted scope."
+      "description": "HS256 ID token; profile/email claims follow the granted scope.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3IiwibmFtZSI6IkRhbmEgUmVhZGVyIn0.Q2r8…"
     },
     "scope": {
       "type": "string",
-      "description": "Space-separated scopes granted to this token pair."
+      "description": "Space-separated scopes granted to this token pair.",
+      "example": "openid profile email"
     }
   }
 }
@@ -958,14 +998,14 @@ Best-effort refresh-token revoke; always returns 200 per RFC 7009.
 ```console
 $ curl 'http://127.0.0.1:8787/oidc/revoke' \
     -X POST \
-    -d 'token=string'
+    -d 'token=9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/oidc/revoke' `
     -Method Post `
     -ContentType 'application/x-www-form-urlencoded' `
-    -Body 'token=string'
+    -Body 'token=9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d'
 ```
 
 ```python
@@ -973,7 +1013,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/oidc/revoke",
-    data={"token": "string"},
+    data={"token": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"},
 )
 print(response.status_code, response.text)
 ```
@@ -981,7 +1021,7 @@ print(response.status_code, response.text)
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/oidc/revoke", {
   method: "POST",
-  body: new URLSearchParams("token=string"),
+  body: new URLSearchParams("token=9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"),
 });
 console.log(response.status, await response.text());
 ```
@@ -990,7 +1030,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/oidc/revoke")
-    .form(&[("token", "string")])
+    .form(&[("token", "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d")])
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1183,7 +1223,7 @@ Schema:
               "null"
             ],
             "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
-            "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+            "example": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
           }
         }
       },
@@ -1451,7 +1491,7 @@ Status `200`: The client; a confidential client's secret appears once.
   "has_secret": true,
   "enabled": true,
   "plugin_id": "audiobookshelf",
-  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+  "client_secret": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
 }
 ```
 
@@ -1540,7 +1580,7 @@ Schema:
         "null"
       ],
       "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
-      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+      "example": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
     }
   }
 }
@@ -1901,7 +1941,7 @@ Status `200`: The client after the change; when the update made a public client 
   "has_secret": true,
   "enabled": true,
   "plugin_id": "audiobookshelf",
-  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+  "client_secret": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
 }
 ```
 
@@ -1990,7 +2030,7 @@ Schema:
         "null"
       ],
       "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
-      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+      "example": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
     }
   }
 }
@@ -2672,7 +2712,7 @@ Status `200`: The client with its new secret (shown once).
   "has_secret": true,
   "enabled": true,
   "plugin_id": "audiobookshelf",
-  "client_secret": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+  "client_secret": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
 }
 ```
 
@@ -2761,7 +2801,7 @@ Schema:
         "null"
       ],
       "description": "The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.",
-      "example": "Qm9va2NsZXJrLXNlY3JldC1leGFtcGxlLXZhbHVl"
+      "example": "K3mP9qT2vX8bN5cR7wZ1yA4dF6hJ0lS2uE9gI3oV5kM"
     }
   }
 }
