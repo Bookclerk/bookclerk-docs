@@ -22,8 +22,11 @@ Redeems a claim ticket, optionally setting a first password, and sets the sessio
 
 ### Responses
 
-- `200` — Signed in; the response sets the portal session cookie. Body: any JSON (`application/json`)
-- `400` — The ticket is invalid, used or expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — Signed in; the response sets the portal session cookie. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+- `400` — The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `503` — The library's atomic redeem did not answer in time or its reply was lost; redeem again with the same ticket and nonce. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -74,13 +77,38 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in; the response sets the portal session cookie. The body is JSON the schemas do not describe yet.
-
-Status `400`: The ticket is invalid, used or expired.
+Status `200`: Signed in; the response sets the portal session cookie.
 
 ```json
 {
-  "error": "claim ticket invalid, expired, or already redeemed"
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a portal route that has nothing to report beyond success.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message).
+
+```json
+{
+  "error": "integration `audiobookshelf` is not deployed on this host"
 }
 ```
 
@@ -96,7 +124,35 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `503`: The library's atomic redeem did not answer in time or its reply was lost; redeem again with the same ticket and nonce.
+
+```json
+{
+  "error": "deadline_exceeded: host RPC deadline elapsed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -130,8 +186,9 @@ Authenticates against an enabled integration and mints a portal session.
 
 ### Responses
 
-- `200` — Signed in through the integration. Body: any JSON (`application/json`)
-- `400` — The request is invalid, or the integration refused the login. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — Signed in through the integration; the response sets the portal session cookie. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+- `400` — The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -182,13 +239,38 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed in through the integration. The body is JSON the schemas do not describe yet.
-
-Status `400`: The request is invalid, or the integration refused the login.
+Status `200`: Signed in through the integration; the response sets the portal session cookie.
 
 ```json
 {
-  "error": "integration `audiobookshelf` does not support credential login"
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a portal route that has nothing to report beyond success.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step.
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
 }
 ```
 
@@ -204,7 +286,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -230,7 +313,8 @@ Revokes the portal session row and clears the session cookie.
 
 ### Responses
 
-- `200` — Signed out (`{"ok": true}`); the cookie is cleared. Body: any JSON (`application/json`)
+- `200` — Signed out; the cookie is cleared. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -274,7 +358,32 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Signed out (`{"ok": true}`); the cookie is cleared. The body is JSON the schemas do not describe yet.
+Status `200`: Signed out; the cookie is cleared.
+
+```json
+{
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a portal route that has nothing to report beyond success.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    }
+  }
+}
+```
 
 Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
@@ -336,7 +445,9 @@ Returns the signed-in portal identity, or 401 when the cookie is missing or expi
   - `provider` *string*, **required** — Identity provider id (`local` or an integration plugin id).
   - `external_user_id` *string*, **required** — Provider-scoped user id stored on the portal identity row.
   - `label` *string or null* — Optional display label from the identity row.
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The library database refused the lookup. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -423,7 +534,34 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `400`: The library database refused the lookup.
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -443,7 +581,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -676,10 +815,14 @@ Connects a password storefront, upserts the account, and links it to the signed-
 
 ### Responses
 
-- `200` — The account was connected. Body: any JSON (`application/json`)
-- `400` — The login failed. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — The account was connected. Body: [`SourceConnected`](schemas.md#sourceconnected) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+  - `account_id` *string*, **required** — The store's id for the account.
+  - `source` *string*, **required** — The source's id, as listed by `GET /api/portal/sources`.
+  - `plugin_key` *string*, **required** — The plugin that owns the account.
+- `400` — No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -743,13 +886,59 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The account was connected. The body is JSON the schemas do not describe yet.
-
-Status `400`: The login failed.
+Status `200`: The account was connected.
 
 ```json
 {
-  "error": "this source uses OAuth; call /oauth/start instead"
+  "ok": true,
+  "account_id": "reader@example.com",
+  "source": "libro",
+  "plugin_key": "bookclerk:source-libro"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a connected store account.",
+  "required": [
+    "ok",
+    "account_id",
+    "source",
+    "plugin_key"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    },
+    "account_id": {
+      "type": "string",
+      "description": "The store's id for the account.",
+      "example": "reader@example.com"
+    },
+    "source": {
+      "type": "string",
+      "description": "The source's id, as listed by `GET /api/portal/sources`.",
+      "example": "libro"
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "The plugin that owns the account.",
+      "example": "bookclerk:source-libro"
+    }
+  }
+}
+```
+
+Status `400`: No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message).
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
 }
 ```
 
@@ -765,13 +954,14 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -791,7 +981,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -857,10 +1048,11 @@ Starts interactive OAuth for an OAuth storefront and returns the browser login U
 
 ### Responses
 
-- `200` — The browser login URL. Body: any JSON (`application/json`)
-- `400` — The source does not use OAuth. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — The browser login URL. Body: [`OAuthStartUrl`](schemas.md#oauthstarturl) (`application/json`)
+  - `url` *string*, **required** — The store's login page, bound to this sign-in.
+- `400` — No deployed source has that id, the source signs in with a password, the store produced no login URL in time, the login stopped before it produced one, or the library database refused the step. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -917,13 +1109,38 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The browser login URL. The body is JSON the schemas do not describe yet.
-
-Status `400`: The source does not use OAuth.
+Status `200`: The browser login URL.
 
 ```json
 {
-  "error": "this source uses password login; call /login instead"
+  "url": "https://www.amazon.com/ap/signin?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&…"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of an OAuth start: the browser login URL to open.",
+  "required": [
+    "url"
+  ],
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The store's login page, bound to this sign-in.",
+      "example": "https://www.amazon.com/ap/signin?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&…"
+    }
+  }
+}
+```
+
+Status `400`: No deployed source has that id, the source signs in with a password, the store produced no login URL in time, the login stopped before it produced one, or the library database refused the step.
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
 }
 ```
 
@@ -939,13 +1156,14 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -965,7 +1183,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1036,8 +1255,14 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
 
 ### Responses
 
-- `200` — The account was connected. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — The account was connected. Body: [`SourceConnected`](schemas.md#sourceconnected) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+  - `account_id` *string*, **required** — The store's id for the account.
+  - `source` *string*, **required** — The source's id, as listed by `GET /api/portal/sources`.
+  - `plugin_key` *string*, **required** — The plugin that owns the account.
+- `400` — The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -1101,9 +1326,82 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The account was connected. The body is JSON the schemas do not describe yet.
+Status `200`: The account was connected.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "ok": true,
+  "account_id": "reader@example.com",
+  "source": "libro",
+  "plugin_key": "bookclerk:source-libro"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a connected store account.",
+  "required": [
+    "ok",
+    "account_id",
+    "source",
+    "plugin_key"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    },
+    "account_id": {
+      "type": "string",
+      "description": "The store's id for the account.",
+      "example": "reader@example.com"
+    },
+    "source": {
+      "type": "string",
+      "description": "The source's id, as listed by `GET /api/portal/sources`.",
+      "example": "libro"
+    },
+    "plugin_key": {
+      "type": "string",
+      "description": "The plugin that owns the account.",
+      "example": "bookclerk:source-libro"
+    }
+  }
+}
+```
+
+Status `400`: The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message).
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -1123,7 +1421,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1187,8 +1486,11 @@ Legacy `POST /audible/start` alias that forwards to Audible OAuth start.
 
 ### Responses
 
-- `200` — The browser login URL. Body: any JSON (`application/json`)
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — The browser login URL. Body: [`OAuthStartUrl`](schemas.md#oauthstarturl) (`application/json`)
+  - `url` *string*, **required** — The store's login page, bound to this sign-in.
+- `400` — The Audible source is not deployed here, the store produced no login URL in time, the login stopped before it produced one, or the library database refused the step. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -1245,9 +1547,61 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The browser login URL. The body is JSON the schemas do not describe yet.
+Status `200`: The browser login URL.
 
-Status `401`: The caller is not signed in.
+```json
+{
+  "url": "https://www.amazon.com/ap/signin?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&…"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of an OAuth start: the browser login URL to open.",
+  "required": [
+    "url"
+  ],
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The store's login page, bound to this sign-in.",
+      "example": "https://www.amazon.com/ap/signin?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&…"
+    }
+  }
+}
+```
+
+Status `400`: The Audible source is not deployed here, the store produced no login URL in time, the login stopped before it produced one, or the library database refused the step.
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -1267,7 +1621,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1331,7 +1686,9 @@ Lists store accounts linked to the signed-in identity, including disabled source
 
 - `200` — Store accounts linked to the caller. Body: [`ConnectionsResponse`](schemas.md#connectionsresponse) (`application/json`)
   - `connections` *array of [`ConnectionInfo`](schemas.md#connectioninfo)*, **required** — Linked store accounts the SPA may show or revoke.
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The library database refused the lookup. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1494,7 +1851,34 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `400`: The library database refused the lookup.
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -1514,7 +1898,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1551,15 +1936,18 @@ store (for example, Audible deregisters its device), best effort.
 
 ### Responses
 
-- `200` — The account was unlinked. Body: any JSON (`application/json`)
-- `400` — The account is not linked to this identity. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `200` — The account was unlinked. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
+  - `ok` *boolean*, **required** — Always `true`.
+- `400` — The account is not linked to this identity, or the library database refused the unlink or the credential revoke (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `401` — The caller is not signed in. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `503` — The store sign-out task that follows the last unlink stopped. The link is already gone (a retry answers 400 `account not linked to this identity`) and the account's stored credentials may remain; the daemon log names the task. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1611,13 +1999,38 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The account was unlinked. The body is JSON the schemas do not describe yet.
-
-Status `400`: The account is not linked to this identity.
+Status `200`: The account was unlinked.
 
 ```json
 {
-  "error": "account not linked to this identity"
+  "ok": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a portal route that has nothing to report beyond success.",
+  "required": [
+    "ok"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "Always `true`.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The account is not linked to this identity, or the library database refused the unlink or the credential revoke (the body carries its message).
+
+```json
+{
+  "error": "ORM / database plugin error: Execution Error: error returned from database: database is locked"
 }
 ```
 
@@ -1633,13 +2046,14 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
 ```
 
-Status `401`: The caller is not signed in.
+Status `401`: The caller is not signed in, or the portal session expired.
 
 ```json
 {
@@ -1659,7 +2073,8 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Operator-facing error text (no structured code)."
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1696,6 +2111,33 @@ Schema:
     "status": {
       "type": "integer",
       "description": "The HTTP status, repeated."
+    }
+  }
+}
+```
+
+Status `503`: The store sign-out task that follows the last unlink stopped. The link is already gone (a retry answers 400 `account not linked to this identity`) and the account's stored credentials may remain; the daemon log names the task.
+
+```json
+{
+  "error": "revoke cleanup failed: task 12 panicked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }

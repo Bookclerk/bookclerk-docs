@@ -1330,6 +1330,12 @@ padding.
 - `software_version` *string* — The joining install's Bookclerk version.
 - `connection` *[`ConnectionType`](#connectiontype)* — The connection type the code was approved for. It must match the one bound to the code at consent; left out for a branch.
 
+## OAuthStartUrl
+
+JSON body of an OAuth start: the browser login URL to open.
+
+- `url` *string*, **required** — The store's login page, bound to this sign-in.
+
 ## OidcClientsResponse
 
 JSON body for `GET /api/auth/oidc/clients`.
@@ -2045,6 +2051,12 @@ Portal identity fields exposed on `/me` for SSO / local-portal callers.
 - `external_user_id` *string*, **required** — Provider-stable subject / external user id.
 - `label` *string or null* — Optional operator-facing label for the identity.
 
+## PortalOk
+
+JSON body of a portal route that has nothing to report beyond success.
+
+- `ok` *boolean*, **required** — Always `true`.
+
 ## PortalSessionIssued
 
 JSON body after a portal session was minted for a first-party user.
@@ -2565,6 +2577,15 @@ One storefront config option (key, label, allowed values).
 - `key` *string*, **required** — Config table key (for example `container`).
 - `label` *string*, **required** — Operator-facing option name.
 - `values` *array of [`ConfigOptionValueInfo`](#configoptionvalueinfo)*, **required** — Allowed values the SPA may offer for this option.
+
+## SourceConnected
+
+JSON body of a connected store account.
+
+- `ok` *boolean*, **required** — Always `true`.
+- `account_id` *string*, **required** — The store's id for the account.
+- `source` *string*, **required** — The source's id, as listed by `GET /api/portal/sources`.
+- `plugin_key` *string*, **required** — The plugin that owns the account.
 
 ## SourceInfo
 
