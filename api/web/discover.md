@@ -871,7 +871,8 @@ Schema:
                           "null"
                         ],
                         "format": "int64",
-                        "description": "First-party `users.id` when the portal identity is linked."
+                        "description": "First-party `users.id` when the portal identity is linked.",
+                        "example": 7
                       },
                       "identity_id": {
                         "type": [
@@ -879,50 +880,58 @@ Schema:
                           "null"
                         ],
                         "format": "int64",
-                        "description": "Portal identity that created the wish (dedupe for unlinked identities)."
+                        "description": "Portal identity that created the wish (dedupe for unlinked identities).",
+                        "example": 7
                       },
                       "display_name": {
                         "type": [
                           "string",
                           "null"
                         ],
-                        "description": "Display name, identity label, or `\"Operator\"`."
+                        "description": "Display name, identity label, or `\"Operator\"`.",
+                        "example": "Dana Reader"
                       },
                       "login_name": {
                         "type": [
                           "string",
                           "null"
                         ],
-                        "description": "Local login name when the first-party user has one."
+                        "description": "Local login name when the first-party user has one.",
+                        "example": "dana"
                       },
                       "operator": {
                         "type": "boolean",
-                        "description": "True when the wish came from the operator token (no portal user)."
+                        "description": "True when the wish came from the operator token (no portal user).",
+                        "example": false
                       },
                       "has_avatar": {
                         "type": "boolean",
-                        "description": "True when an uploaded avatar file exists (filled by the daemon)."
+                        "description": "True when an uploaded avatar file exists (filled by the daemon).",
+                        "example": true
                       },
                       "avatar_source": {
                         "type": [
                           "string",
                           "null"
                         ],
-                        "description": "Explicit picture choice when the user has set one."
+                        "description": "Explicit picture choice when the user has set one.",
+                        "example": "upload"
                       },
                       "gravatar_hash": {
                         "type": [
                           "string",
                           "null"
                         ],
-                        "description": "SHA-256 hex of the contact email for Gravatar."
+                        "description": "SHA-256 hex of the contact email for Gravatar.",
+                        "example": "84d2a1a1d9ba6a4c2f4b9d0e7a7c6b5f3e2d1c0b9a8f7e6d5c4b3a2918f7e6d5"
                       },
                       "picture_url": {
                         "type": [
                           "string",
                           "null"
                         ],
-                        "description": "HTTPS picture from the wishing identity, when any."
+                        "description": "HTTPS picture from the wishing identity, when any.",
+                        "example": "https://accounts.example.com/u/dana/picture.png"
                       }
                     }
                   },
