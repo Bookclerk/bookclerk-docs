@@ -2787,7 +2787,7 @@ One page of title reviews for infinite scroll.
 - `page` *integer (int32)*, **required** — 1-based page index for this reviews / list request. At least 0.
 - `page_size` *integer (int32)*, **required** — Maximum number of items returned in this page. At least 0.
 - `has_more` *boolean*, **required** — When true, another page is available by incrementing [`Self::page`].
-- `sort_by` *string*, **required** — Remote sort key for reviews (`most_helpful`, `most_recent`, …).
+- `sort_by` *string*, **required** — Remote sort key for reviews (`MostHelpful` or `MostRecent`, as applied).
 - `reviews` *array of [`TitleReview`](#titlereview)*, **required** — Review rows on this page.
 
 ## TitleReviewsQuery

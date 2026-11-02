@@ -2637,13 +2637,13 @@ Status `200`: Open requests, ranked.
 ```json
 [
   {
-    "work_key": "string",
-    "title": "string",
-    "authors": "string",
-    "asin": "string",
-    "isbn": "string",
-    "cover_url": "string",
-    "wish_count": 0,
+    "work_key": "isbn:9780441478125",
+    "title": "The Left Hand of Darkness",
+    "authors": "Ursula K. Le Guin",
+    "asin": "B002V0QK4C",
+    "isbn": "9780441478125",
+    "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+    "wish_count": 3,
     "wishers": [
       {
         "user_id": 7,
@@ -2658,14 +2658,15 @@ Status `200`: Open requests, ranked.
       }
     ],
     "sample_uuids": [
-      "string"
+      "0b7e2c1d-5f3a-4e6b-9c8d-1a2b3c4d5e6f"
     ],
-    "first_requested_at": "2026-01-01T12:00:00Z",
-    "last_requested_at": "2026-01-01T12:00:00Z",
-    "score": 0,
-    "taste_score": 0,
+    "first_requested_at": "2026-09-02T08:15:00Z",
+    "last_requested_at": "2026-10-29T10:12:00Z",
+    "score": 120.61,
+    "taste_score": 0.61,
     "reasons": [
-      "string"
+      "wishlisted by 3 people",
+      "matches liked author (Ursula K. Le Guin)"
     ]
   }
 ]
@@ -2693,44 +2694,51 @@ Schema:
     "properties": {
       "work_key": {
         "type": "string",
-        "description": "Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author)."
+        "description": "Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).",
+        "example": "isbn:9780441478125"
       },
       "title": {
         "type": "string",
-        "description": "Display title as shown on the storefront or library card."
+        "description": "Display title as shown on the storefront or library card.",
+        "example": "The Left Hand of Darkness"
       },
       "authors": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Comma-separated author names when the storefront provides them."
+        "description": "Comma-separated author names when the storefront provides them.",
+        "example": "Ursula K. Le Guin"
       },
       "asin": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Audible / Amazon ASIN when this edition is sold on Audible."
+        "description": "Audible / Amazon ASIN when this edition is sold on Audible.",
+        "example": "B002V0QK4C"
       },
       "isbn": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published."
+        "description": "Canonical ISBN-13 (or ISBN-10 normalized) when published.",
+        "example": "9780441478125"
       },
       "cover_url": {
         "type": [
           "string",
           "null"
         ],
-        "description": "HTTPS URL for cover art when the catalog exposes one."
+        "description": "HTTPS URL for cover art when the catalog exposes one.",
+        "example": "https://images.example.com/covers/9780441478125.jpg"
       },
       "wish_count": {
         "type": "integer",
         "format": "int64",
-        "description": "Number of distinct users who wishlisted this title."
+        "description": "Number of distinct users who wishlisted this title.",
+        "example": 3
       },
       "wishers": {
         "type": "array",
@@ -2815,34 +2823,45 @@ Schema:
         "items": {
           "type": "string"
         },
-        "description": "Sample Bookclerk user UUIDs who requested this title (privacy-capped)."
+        "description": "Sample Bookclerk user UUIDs who requested this title (privacy-capped).",
+        "example": [
+          "0b7e2c1d-5f3a-4e6b-9c8d-1a2b3c4d5e6f"
+        ]
       },
       "first_requested_at": {
         "type": "string",
         "format": "date-time",
-        "description": "UTC timestamp of the earliest wishlist request for this work."
+        "description": "UTC timestamp of the earliest wishlist request for this work.",
+        "example": "2026-09-02T08:15:00Z"
       },
       "last_requested_at": {
         "type": "string",
         "format": "date-time",
-        "description": "UTC timestamp of the latest wishlist request for this work."
+        "description": "UTC timestamp of the latest wishlist request for this work.",
+        "example": "2026-10-29T10:12:00Z"
       },
       "score": {
         "type": "number",
         "format": "double",
-        "description": "Final rank score (`taste_score + wish_count * `[`WISH_COUNT_WEIGHT`])."
+        "description": "Final rank score (`taste_score + wish_count * `[`WISH_COUNT_WEIGHT`]).",
+        "example": 120.61
       },
       "taste_score": {
         "type": "number",
         "format": "double",
-        "description": "Local taste / embedding component before the wish-count boost."
+        "description": "Local taste / embedding component before the wish-count boost.",
+        "example": 0.61
       },
       "reasons": {
         "type": "array",
         "items": {
           "type": "string"
         },
-        "description": "Short human-readable explanations for why this item was ranked here."
+        "description": "Short human-readable explanations for why this item was ranked here.",
+        "example": [
+          "wishlisted by 3 people",
+          "matches liked author (Ursula K. Le Guin)"
+        ]
       }
     }
   }

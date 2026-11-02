@@ -1130,7 +1130,7 @@ One page of title reviews for infinite scroll.
 - `page`: 1-based page index for this reviews / list request.
 - `page_size`: Maximum number of items returned in this page.
 - `has_more`: When true, another page is available by incrementing [`Self::page`](#titlereviewspage).
-- `sort_by`: Remote sort key for reviews (`most_helpful`, `most_recent`, …).
+- `sort_by`: Remote sort key for reviews (`MostHelpful` or `MostRecent`, as applied).
 - `reviews`: Review rows on this page.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
