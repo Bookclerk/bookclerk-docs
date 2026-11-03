@@ -1,7 +1,7 @@
 {
  "version": 1,
  "pages": {
-  "README": "2026-10-27",
+  "README": "2026-11-03",
   "adr/control-plane": "2026-10-28",
   "adr/first-party-identity": "2026-10-28",
   "adr/licensing": "2026-10-27",
@@ -13,6 +13,7 @@
   "adr/security-advisory-automation": "2026-10-26",
   "adr/sql-database-contract": "2026-10-26",
   "adr/untrusted-input-fuzzing": "2026-10-26",
+  "adr/web-api-contract-checks": "2026-11-03",
   "api/README": "2026-10-27",
   "api/python/README": "2026-10-27",
   "api/python/bookclerk_plugin_sdk": "2026-10-27",
@@ -647,7 +648,7 @@
   "api/web/wishlist": "2026-11-03",
   "contributing/automation": "2026-11-02",
   "contributing/build-from-source": "2026-10-27",
-  "contributing/ci": "2026-11-02",
+  "contributing/ci": "2026-11-03",
   "contributing/code-documentation": "2026-11-03",
   "contributing/devcontainer": "2026-10-30",
   "contributing/fuzzing": "2026-11-02",
