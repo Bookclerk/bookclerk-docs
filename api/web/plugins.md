@@ -670,7 +670,7 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"plugin_key": "string"}'
+    -d '{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}'
 ```
 
 ```powershell
@@ -678,7 +678,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"plugin_key": "string"}'
+    -Body '{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}'
 ```
 
 ```python
@@ -687,7 +687,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/plugin-instances",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"plugin_key": "string"},
+    json={"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"},
 )
 print(response.status_code, response.text)
 ```
@@ -696,7 +696,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"plugin_key": "string"}),
+  body: JSON.stringify({"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -706,7 +706,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/plugin-instances")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"plugin_key": "string"}))
+    .json(&serde_json::json!({"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -1251,7 +1251,7 @@ A `text/plain` body: a string.
   - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the document.
   - `settings` *map of string to [`SettingValue`](schemas.md#settingvalue)*, **required** — Scalar settings the operator wrote.
   - `secret_refs` *array of [`InstanceSecretRefV1`](schemas.md#instancesecretrefv1)*, **required** — Secret refs; ciphertext stays in `encrypted_secrets`.
-  - `effective` *object*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
+  - `effective` *map of string to any JSON*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
   - `schema` *array of [`SettingSpec`](schemas.md#settingspec)*, **required** — Declared settings from the pinned schema; empty when there is none.
 - `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -1326,7 +1326,10 @@ Status `200`: The instance's settings document (secrets as names only).
       "name": "api_token"
     }
   ],
-  "effective": {},
+  "effective": {
+    "multi_destination": "sync_missing",
+    "root": "/srv/audiobooks"
+  },
   "schema": [
     {
       "key": "root",
@@ -1434,7 +1437,15 @@ Schema:
     },
     "effective": {
       "type": "object",
-      "description": "Settings as the guest sees them: schema defaults overlaid with the\nstored values. Empty when the plugin has no pinned schema."
+      "description": "Settings as the guest sees them: schema defaults overlaid with the\nstored values. Empty when the plugin has no pinned schema.",
+      "additionalProperties": {},
+      "propertyNames": {
+        "type": "string"
+      },
+      "example": {
+        "multi_destination": "sync_missing",
+        "root": "/srv/audiobooks"
+      }
     },
     "schema": {
       "type": "array",
@@ -1714,7 +1725,7 @@ node does not need the guest installed.
 `application/json`: [`PutPluginInstanceConfig`](schemas.md#putplugininstanceconfig)
 
 - `expected_revision` *integer (int64)*, **required** — Revision the caller last observed.
-- `settings` *object* — Scalar settings. Secret values are not accepted here.
+- `settings` *map of string to [`SettingValue`](schemas.md#settingvalue)* — Scalar settings. Secret values are not accepted here.
 - `secret_refs` *array of object* — Secret refs to keep. Omitted refs are dropped from the document; the ciphertext stays sealed until the secret is overwritten.
 - `secrets` *map of string to string* — Secret values to seal, keyed by the declared `secret` setting. Each is sealed into `encrypted_secrets` and referenced from the document; the plaintext is never stored in the document or echoed back.
 
@@ -1751,7 +1762,7 @@ $ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/config' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"expected_revision": 0}'
+    -d '{"expected_revision": 4}'
 ```
 
 ```powershell
@@ -1759,7 +1770,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/c
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"expected_revision": 0}'
+    -Body '{"expected_revision": 4}'
 ```
 
 ```python
@@ -1768,7 +1779,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/config/plugin-instances/<id>/config",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"expected_revision": 0},
+    json={"expected_revision": 4},
 )
 print(response.status_code, response.text)
 ```
@@ -1777,7 +1788,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/config", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"expected_revision": 0}),
+  body: JSON.stringify({"expected_revision": 4}),
 });
 console.log(response.status, await response.text());
 ```
@@ -1787,7 +1798,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/config/plugin-instances/<id>/config")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"expected_revision": 0}))
+    .json(&serde_json::json!({"expected_revision": 4}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -4872,7 +4883,7 @@ $ curl 'http://127.0.0.1:8787/api/config/plugins/<key>/active' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"version": "string"}'
+    -d '{"version": "0.4.1"}'
 ```
 
 ```powershell
@@ -4880,7 +4891,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugins/<key>/active' `
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"version": "string"}'
+    -Body '{"version": "0.4.1"}'
 ```
 
 ```python
@@ -4889,7 +4900,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/config/plugins/<key>/active",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"version": "string"},
+    json={"version": "0.4.1"},
 )
 print(response.status_code, response.text)
 ```
@@ -4898,7 +4909,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/plugins/<key>/active", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"version": "string"}),
+  body: JSON.stringify({"version": "0.4.1"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4908,7 +4919,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/config/plugins/<key>/active")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"version": "string"}))
+    .json(&serde_json::json!({"version": "0.4.1"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);

@@ -1909,7 +1909,7 @@ and the configuration the guest receives.
 - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the document.
 - `settings` *map of string to [`SettingValue`](#settingvalue)*, **required** — Scalar settings the operator wrote.
 - `secret_refs` *array of [`InstanceSecretRefV1`](#instancesecretrefv1)*, **required** — Secret refs; ciphertext stays in `encrypted_secrets`.
-- `effective` *object*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
+- `effective` *map of string to any JSON*, **required** — Settings as the guest sees them: schema defaults overlaid with the stored values. Empty when the plugin has no pinned schema.
 - `schema` *array of [`SettingSpec`](#settingspec)*, **required** — Declared settings from the pinned schema; empty when there is none.
 
 ## PluginInstanceCreated
@@ -2232,7 +2232,7 @@ JSON body for `PUT /api/config/domains/core.output`.
 `PUT /api/config/plugin-instances/{id}/config` body.
 
 - `expected_revision` *integer (int64)*, **required** — Revision the caller last observed.
-- `settings` *object* — Scalar settings. Secret values are not accepted here.
+- `settings` *map of string to [`SettingValue`](#settingvalue)* — Scalar settings. Secret values are not accepted here.
 - `secret_refs` *array of object* — Secret refs to keep. Omitted refs are dropped from the document; the ciphertext stays sealed until the secret is overwritten.
 - `secrets` *map of string to string* — Secret values to seal, keyed by the declared `secret` setting. Each is sealed into `encrypted_secrets` and referenced from the document; the plaintext is never stored in the document or echoed back.
 

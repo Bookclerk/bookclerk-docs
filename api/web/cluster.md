@@ -68,7 +68,7 @@ $ curl 'http://127.0.0.1:8787/api/config/nodes/<node_id>/labels' \
     -X PUT \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"labels": ["string"]}'
+    -d '{"labels": ["region=eu", "gpu"]}'
 ```
 
 ```powershell
@@ -76,7 +76,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/nodes/<node_id>/labels'
     -Method Put `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"labels": ["string"]}'
+    -Body '{"labels": ["region=eu", "gpu"]}'
 ```
 
 ```python
@@ -85,7 +85,7 @@ import requests
 response = requests.put(
     "http://127.0.0.1:8787/api/config/nodes/<node_id>/labels",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"labels": ["string"]},
+    json={"labels": ["region=eu", "gpu"]},
 )
 print(response.status_code, response.text)
 ```
@@ -94,7 +94,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/nodes/<node_id>/labels", {
   method: "PUT",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"labels": ["string"]}),
+  body: JSON.stringify({"labels": ["region=eu", "gpu"]}),
 });
 console.log(response.status, await response.text());
 ```
@@ -104,7 +104,7 @@ let client = reqwest::Client::new();
 let response = client
     .put("http://127.0.0.1:8787/api/config/nodes/<node_id>/labels")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"labels": ["string"]}))
+    .json(&serde_json::json!({"labels": ["region=eu", "gpu"]}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2111,7 +2111,7 @@ $ curl 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"job_ids": ["string"]}'
+    -d '{"job_ids": ["acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"]}'
 ```
 
 ```powershell
@@ -2119,7 +2119,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clusters/<cluster_id>/j
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"job_ids": ["string"]}'
+    -Body '{"job_ids": ["acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"]}'
 ```
 
 ```python
@@ -2128,7 +2128,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"job_ids": ["string"]},
+    json={"job_ids": ["acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"]},
 )
 print(response.status_code, response.text)
 ```
@@ -2137,7 +2137,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"job_ids": ["string"]}),
+  body: JSON.stringify({"job_ids": ["acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"]}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2147,7 +2147,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/clusters/<cluster_id>/jobs")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"job_ids": ["string"]}))
+    .json(&serde_json::json!({"job_ids": ["acquire-3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"]}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2690,7 +2690,7 @@ $ curl 'http://127.0.0.1:8787/api/config/cluster-consents/approve' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}'
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "request_digest": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"}'
 ```
 
 ```powershell
@@ -2698,7 +2698,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/cluster-consents/approv
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}'
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "request_digest": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"}'
 ```
 
 ```python
@@ -2707,7 +2707,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/cluster-consents/approve",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"cluster_id": "string", "plugin_key": "string", "request_digest": "string"},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "request_digest": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"},
 )
 print(response.status_code, response.text)
 ```
@@ -2716,7 +2716,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/cluster-consents/approve", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}),
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "request_digest": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -2726,7 +2726,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/cluster-consents/approve")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"cluster_id": "string", "plugin_key": "string", "request_digest": "string"}))
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "request_digest": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3293,7 +3293,7 @@ $ curl 'http://127.0.0.1:8787/api/config/cluster-consents/revoke' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"cluster_id": "string", "plugin_key": "string"}'
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}'
 ```
 
 ```powershell
@@ -3301,7 +3301,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/cluster-consents/revoke
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"cluster_id": "string", "plugin_key": "string"}'
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}'
 ```
 
 ```python
@@ -3310,7 +3310,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/cluster-consents/revoke",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"cluster_id": "string", "plugin_key": "string"},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"},
 )
 print(response.status_code, response.text)
 ```
@@ -3319,7 +3319,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/cluster-consents/revoke", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"cluster_id": "string", "plugin_key": "string"}),
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -3329,7 +3329,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/cluster-consents/revoke")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"cluster_id": "string", "plugin_key": "string"}))
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -4173,7 +4173,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/inspect' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"address": "string"}'
+    -d '{"address": "https://books.example.com"}'
 ```
 
 ```powershell
@@ -4181,7 +4181,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/inspect' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"address": "string"}'
+    -Body '{"address": "https://books.example.com"}'
 ```
 
 ```python
@@ -4190,7 +4190,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/inspect",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"address": "string"},
+    json={"address": "https://books.example.com"},
 )
 print(response.status_code, response.text)
 ```
@@ -4199,7 +4199,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/inspect", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"address": "string"}),
+  body: JSON.stringify({"address": "https://books.example.com"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4209,7 +4209,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/inspect")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"address": "string"}))
+    .json(&serde_json::json!({"address": "https://books.example.com"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -4589,7 +4589,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/start' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"address": "string"}'
+    -d '{"address": "https://books.example.com"}'
 ```
 
 ```powershell
@@ -4597,7 +4597,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/start' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"address": "string"}'
+    -Body '{"address": "https://books.example.com"}'
 ```
 
 ```python
@@ -4606,7 +4606,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/start",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"address": "string"},
+    json={"address": "https://books.example.com"},
 )
 print(response.status_code, response.text)
 ```
@@ -4615,7 +4615,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/start", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"address": "string"}),
+  body: JSON.stringify({"address": "https://books.example.com"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4625,7 +4625,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/start")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"address": "string"}))
+    .json(&serde_json::json!({"address": "https://books.example.com"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -5634,7 +5634,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/invite' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"link": "string"}'
+    -d '{"link": "https://books.example.com/enroll#bcn1.9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b.kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o"}'
 ```
 
 ```powershell
@@ -5642,7 +5642,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/invite' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"link": "string"}'
+    -Body '{"link": "https://books.example.com/enroll#bcn1.9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b.kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o"}'
 ```
 
 ```python
@@ -5651,7 +5651,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/invite",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"link": "string"},
+    json={"link": "https://books.example.com/enroll#bcn1.9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b.kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o"},
 )
 print(response.status_code, response.text)
 ```
@@ -5660,7 +5660,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/invite", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"link": "string"}),
+  body: JSON.stringify({"link": "https://books.example.com/enroll#bcn1.9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b.kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -5670,7 +5670,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/invite")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"link": "string"}))
+    .json(&serde_json::json!({"link": "https://books.example.com/enroll#bcn1.9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b.kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -6151,7 +6151,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/leave' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"cluster_id": "string"}'
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"}'
 ```
 
 ```powershell
@@ -6159,7 +6159,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/leave' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"cluster_id": "string"}'
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"}'
 ```
 
 ```python
@@ -6168,7 +6168,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/leave",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"cluster_id": "string"},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"},
 )
 print(response.status_code, response.text)
 ```
@@ -6177,7 +6177,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/leave", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"cluster_id": "string"}),
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -6187,7 +6187,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/leave")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"cluster_id": "string"}))
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -10901,7 +10901,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/sharing' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"cluster_id": "string", "share_books": true, "include_branches": true}'
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "share_books": true, "include_branches": false}'
 ```
 
 ```powershell
@@ -10909,7 +10909,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/sharing' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"cluster_id": "string", "share_books": true, "include_branches": true}'
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "share_books": true, "include_branches": false}'
 ```
 
 ```python
@@ -10918,7 +10918,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/sharing",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"cluster_id": "string", "share_books": True, "include_branches": True},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "share_books": True, "include_branches": False},
 )
 print(response.status_code, response.text)
 ```
@@ -10927,7 +10927,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/sharing", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"cluster_id": "string", "share_books": true, "include_branches": true}),
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "share_books": true, "include_branches": false}),
 });
 console.log(response.status, await response.text());
 ```
@@ -10937,7 +10937,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/sharing")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"cluster_id": "string", "share_books": true, "include_branches": true}))
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "share_books": true, "include_branches": false}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);

@@ -49,14 +49,14 @@ does not redeem.
 $ curl 'http://127.0.0.1:8787/api/node/v1/enroll' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
+    -d '{"link_id": "9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b", "secret": "kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/enroll' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}'
+    -Body '{"link_id": "9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b", "secret": "kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}'
 ```
 
 ```python
@@ -64,7 +64,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/node/v1/enroll",
-    json={"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"},
+    json={"link_id": "9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b", "secret": "kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"},
 )
 print(response.status_code, response.text)
 ```
@@ -73,7 +73,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/node/v1/enroll", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}),
+  body: JSON.stringify({"link_id": "9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b", "secret": "kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -82,7 +82,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/node/v1/enroll")
-    .json(&serde_json::json!({"link_id": "string", "secret": "string", "sign_pk": "string", "box_pk": "string"}))
+    .json(&serde_json::json!({"link_id": "9f2c7b1e4a8d3c6f0b5e2a7d4c1f8e3b", "secret": "kQ3nUj9Z2vY4xW8pT6rS1aB5cD7eF0gH2iJ4kL6mN8o", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -661,14 +661,14 @@ redirect URI, enrollment off, or the user no longer active).
 $ curl 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
+    -d '{"code": "BhD5jGe21A8WEIm7SrdBZ-KXhs5B9HkeUSEc58grX94", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/node/v1/enroll/oauth' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}'
+    -Body '{"code": "BhD5jGe21A8WEIm7SrdBZ-KXhs5B9HkeUSEc58grX94", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}'
 ```
 
 ```python
@@ -676,7 +676,7 @@ import requests
 
 response = requests.post(
     "http://127.0.0.1:8787/api/node/v1/enroll/oauth",
-    json={"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"},
+    json={"code": "BhD5jGe21A8WEIm7SrdBZ-KXhs5B9HkeUSEc58grX94", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"},
 )
 print(response.status_code, response.text)
 ```
@@ -685,7 +685,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/node/v1/enroll/oauth", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}),
+  body: JSON.stringify({"code": "BhD5jGe21A8WEIm7SrdBZ-KXhs5B9HkeUSEc58grX94", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -694,7 +694,7 @@ console.log(response.status, await response.text());
 let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/node/v1/enroll/oauth")
-    .json(&serde_json::json!({"code": "string", "code_verifier": "string", "redirect_uri": "string", "sign_pk": "string", "box_pk": "string"}))
+    .json(&serde_json::json!({"code": "BhD5jGe21A8WEIm7SrdBZ-KXhs5B9HkeUSEc58grX94", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "sign_pk": "Nflg3bNZ7h6Q7aePwVccVzry1BxzaqtguKtJlkfPE0M", "box_pk": "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);

@@ -4168,7 +4168,7 @@ $ curl 'http://127.0.0.1:8787/api/auth/branch-consent' \
     -b 'bookclerk_portal_session=<portalSession>' \
     -H 'Origin: http://127.0.0.1:8787' \
     -H 'Content-Type: application/json' \
-    -d '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
+    -d '{"client_id": "bookclerk-branch", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}'
 ```
 
 ```powershell
@@ -4179,7 +4179,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/branch-consent' `
     -WebSession $session `
     -Headers @{ Origin = 'http://127.0.0.1:8787' } `
     -ContentType 'application/json' `
-    -Body '{"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}'
+    -Body '{"client_id": "bookclerk-branch", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}'
 ```
 
 ```python
@@ -4188,7 +4188,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/branch-consent",
     headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
-    json={"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": True},
+    json={"client_id": "bookclerk-branch", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": True},
 )
 print(response.status_code, response.text)
 ```
@@ -4197,7 +4197,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/auth/branch-consent", {
   method: "POST",
   headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
-  body: JSON.stringify({"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}),
+  body: JSON.stringify({"client_id": "bookclerk-branch", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4208,7 +4208,7 @@ let response = client
     .post("http://127.0.0.1:8787/api/auth/branch-consent")
     .header("Cookie", "bookclerk_portal_session=<portalSession>")
     .header("Origin", "http://127.0.0.1:8787")
-    .json(&serde_json::json!({"client_id": "string", "redirect_uri": "string", "response_type": "string", "code_challenge": "string", "approve": true}))
+    .json(&serde_json::json!({"client_id": "bookclerk-branch", "redirect_uri": "http://127.0.0.1:41923/enroll/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
