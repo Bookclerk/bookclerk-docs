@@ -297,15 +297,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -427,15 +436,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -463,15 +481,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -499,15 +526,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -683,15 +719,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -719,15 +764,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -888,15 +942,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -924,15 +987,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -960,15 +1032,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1255,15 +1336,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1399,7 +1489,7 @@ Create a client; confidential clients return the generated secret once.
   - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
   - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
   - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
-- `400` — The client id or a redirect URI is invalid (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `400` — The client id or a redirect URI is invalid (`oidc_client`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1415,6 +1505,8 @@ Create a client; confidential clients return the generated secret once.
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -1586,7 +1678,7 @@ Schema:
 }
 ```
 
-Status `400`: The client id or a redirect URI is invalid (`oidc_client`).
+Status `400`: The client id or a redirect URI is invalid (`oidc_client`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -1758,6 +1850,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: client_id: invalid type: integer `1`, expected a string at line 1 column 14
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -1849,7 +1961,7 @@ Update redirects, name, scopes, and public/confidential mode; switching a public
   - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
   - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
   - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
-- `400` — The client id or a redirect URI is invalid (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `400` — The client id or a redirect URI is invalid (`oidc_client`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1865,6 +1977,8 @@ Update redirects, name, scopes, and public/confidential mode; switching a public
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2036,7 +2150,7 @@ Schema:
 }
 ```
 
-Status `400`: The client id or a redirect URI is invalid (`oidc_client`).
+Status `400`: The client id or a redirect URI is invalid (`oidc_client`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -2208,6 +2322,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: client_id: invalid type: integer `1`, expected a string at line 1 column 14
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -2291,6 +2425,7 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 ### Responses
 
 - `204` — The client was deleted. No body.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2307,6 +2442,7 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2365,6 +2501,16 @@ println!("{} {}", response.status(), response.text().await?);
 ### Example response
 
 Status `204`: The client was deleted. No body.
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
@@ -2538,6 +2684,16 @@ Schema:
 }
 ```
 
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: client_id: invalid type: integer `1`, expected a string at line 1 column 14
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -2624,6 +2780,7 @@ Optional.
   - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
   - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
   - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2636,6 +2793,7 @@ Optional.
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2807,6 +2965,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
 
 ```json
@@ -2935,6 +3103,16 @@ Schema:
   }
 }
 ```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: current_password: invalid type: integer `1`, expected a string at line 1 column 21
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`).
 

@@ -45,7 +45,7 @@ labels. The scheduler re-plans on the wakeup this publishes.
   - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
   - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
   - `owner` *[`NodeOwnerSummary`](schemas.md#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
-- `400` — The body is invalid, or a label is malformed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `400` — The body is invalid, or a label is malformed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -57,6 +57,8 @@ labels. The scheduler re-plans on the wakeup this publishes.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such node. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -544,7 +546,7 @@ Schema:
 }
 ```
 
-Status `400`: The body is invalid, or a label is malformed.
+Status `400`: The body is invalid, or a label is malformed. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -593,15 +595,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -629,15 +640,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -669,6 +689,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `labels` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The configuration could not be read or written.
 
@@ -732,7 +772,7 @@ authority.
 - `200` — The node's owner after the change. Body: [`NodeOwnerChanged`](schemas.md#nodeownerchanged) (`application/json`)
   - `node_id` *string*, **required** — Node id.
   - `owner_user_id` *integer (int64) or null* — User id of the owner; `null` when cleared.
-- `400` — The user is disabled and cannot own a node. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `400` — The user is disabled and cannot own a node. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -744,6 +784,8 @@ authority.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such node or user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -836,7 +878,7 @@ Schema:
 }
 ```
 
-Status `400`: The user is disabled and cannot own a node.
+Status `400`: The user is disabled and cannot own a node. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -885,15 +927,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -921,15 +972,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -961,6 +1021,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: invalid type: null, expected struct PutNodeOwner at line 1 column 4
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The configuration could not be read or written.
 
@@ -1476,15 +1556,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1512,15 +1601,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1593,7 +1691,7 @@ Optional.
   - `created` *array of string*, **required** — Ids of the jobs the owner created.
   - `duplicates` *array of string*, **required** — Ids of jobs that were already pending or running.
   - `queue_full` *integer (int64)*, **required** — Planned jobs the owner's queue had no room for. At least 0.
-- `400` — The account named is blank, or the owner refused the request as invalid (`invalid`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The account named is blank, or the owner refused the request as invalid (`invalid`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -1601,6 +1699,7 @@ Optional.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The owner refused the scan (`forbidden`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `502` — The owner cluster answered with an unexpected frame (`unexpected_answer`), or with an error code other than `forbidden` and `invalid`. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
@@ -1718,7 +1817,7 @@ Schema:
 }
 ```
 
-Status `400`: The account named is blank, or the owner refused the request as invalid (`invalid`).
+Status `400`: The account named is blank, or the owner refused the request as invalid (`invalid`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -1774,15 +1873,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1869,6 +1977,16 @@ Schema:
   "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: account: invalid type: integer `1`, expected a string at line 1 column 12
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read.
 
@@ -2092,12 +2210,14 @@ this node may see (those it would be trusted to claim).
 
 - `200` — The owner's jobs for these accounts. Body: [`ClusterJobsResponse`](schemas.md#clusterjobsresponse) (`application/json`)
   - `jobs` *array of [`JobStatusEntry`](schemas.md#jobstatusentry)*, **required** — The owner's state of each job this install may see, in request order.
-- `400` — Too many job ids (`too_many_jobs`), or the owner refused the request as invalid (`invalid`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `400` — Too many job ids (`too_many_jobs`), or the owner refused the request as invalid (`invalid`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`); string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The owner refused the request (`forbidden`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `502` — The owner cluster answered with an unexpected frame (`unexpected_answer`), or with an error code other than `forbidden` and `invalid`. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
@@ -2240,7 +2360,7 @@ Schema:
 }
 ```
 
-Status `400`: Too many job ids (`too_many_jobs`), or the owner refused the request as invalid (`invalid`).
+Status `400`: Too many job ids (`too_many_jobs`), or the owner refused the request as invalid (`invalid`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -2343,15 +2463,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2438,6 +2567,26 @@ Schema:
   "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `job_ids` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read.
 
@@ -2661,7 +2810,7 @@ A `text/plain` body: a string.
 
 - `200` — The consent was granted. Body: [`ConsentChanged`](schemas.md#consentchanged) (`application/json`)
   - `consent` *[`RemoteConsentView`](schemas.md#remoteconsentview)*, **required** — The consent as stored now.
-- `400` — The narrowing or the recorded request is not valid (`invalid_approval`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The narrowing or the recorded request is not valid (`invalid_approval`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -2678,6 +2827,8 @@ A `text/plain` body: a string.
 - `409` — The request changed since it was reviewed; review it again (`approval_refused`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `503` — The approval could not be stored; try again (`store_unavailable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -3035,7 +3186,7 @@ Schema:
 }
 ```
 
-Status `400`: The narrowing or the recorded request is not valid (`invalid_approval`).
+Status `400`: The narrowing or the recorded request is not valid (`invalid_approval`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -3091,15 +3242,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3127,15 +3287,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3209,6 +3378,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `503`: The approval could not be stored; try again (`store_unavailable`).
 
 ```json
@@ -3272,6 +3461,7 @@ A `text/plain` body: a string.
 
 - `200` — The consent was revoked. Body: [`ConsentChanged`](schemas.md#consentchanged) (`application/json`)
   - `consent` *[`RemoteConsentView`](schemas.md#remoteconsentview)*, **required** — The consent as stored now.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3282,6 +3472,8 @@ A `text/plain` body: a string.
   - `status` *integer* — The HTTP status, repeated.
 - `404` — No such consent (`not_found`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -3638,6 +3830,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -3660,15 +3862,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3696,15 +3907,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3736,6 +3956,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 
@@ -4008,15 +4248,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -4044,15 +4293,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -4147,7 +4405,7 @@ A `text/plain` body: a string.
 
 - `200` — What the library says about itself. Body: [`InspectedLibraryResponse`](schemas.md#inspectedlibraryresponse) (`application/json`)
   - `library` *[`InspectedLibraryView`](schemas.md#inspectedlibraryview)*, **required** — What the library said about itself.
-- `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -4159,6 +4417,8 @@ A `text/plain` body: a string.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `409` — Joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`, with the address to use in `origin`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `502` — The library could not be reached (`unreachable`), or answered with an error (`library_error`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -4299,7 +4559,7 @@ Schema:
 }
 ```
 
-Status `400`: The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`).
+Status `400`: The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -4355,15 +4615,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -4391,15 +4660,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -4469,6 +4747,26 @@ Schema:
   "description": "A `409` from a join step: the handler's error, or an origin mismatch that names the address to join with; the route's examples name each."
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `address` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read.
 
@@ -4566,7 +4864,7 @@ A `text/plain` body: a string.
   - `branch_name` *string*, **required** — The name this install asked to join as.
   - `clerk_offered` *boolean*, **required** — Whether joining as a clerk was offered.
   - `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
-- `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -4575,6 +4873,8 @@ A `text/plain` body: a string.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library is not accepting new branches (`enrollment_disabled`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `409` — The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a clerk join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `502` — The library could not be reached (`unreachable`), or answered with an error (`library_error`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -4745,7 +5045,7 @@ Schema:
 }
 ```
 
-Status `400`: The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`).
+Status `400`: The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -4801,15 +5101,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -4961,6 +5270,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `address` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The library database could not be read or written.
 
 ```json
@@ -5056,7 +5385,7 @@ on success, refusal, or anything else.
 ### Responses
 
 - `200` — The join completed. Body: [`JoinCompleted`](schemas.md#joincompleted) (`application/json`)
-- `400` — The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -5070,6 +5399,8 @@ on success, refusal, or anything else.
 - `410` — The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `502` — The redeem can be retried with the sign-in still pending (`join_retry`), the library could not be reached (`unreachable`), it answered with an error (`library_error`), or it enrolled this host but the join could not be saved (`join_unsaved`, `join_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -5295,7 +5626,7 @@ Schema:
 }
 ```
 
-Status `400`: The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`).
+Status `400`: The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -5351,15 +5682,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -5514,6 +5854,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: code: invalid type: integer `1`, expected a string at line 1 column 9
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The library database could not be read or written.
 
 ```json
@@ -5608,7 +5968,7 @@ while the join carries on and starts its client when it lands.
   - `cluster` *[`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The new link.
   - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
   - `running` *boolean*, **required** — Whether the link's client is running now.
-- `400` — The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -5617,6 +5977,8 @@ while the join carries on and starts its client when it lands.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library refused the invite (`refused`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `409` — Joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one in the invite (`origin_mismatch`, with the address to use in `origin`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The join stopped unexpectedly (`join_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -5790,7 +6152,7 @@ Schema:
 }
 ```
 
-Status `400`: The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`).
+Status `400`: The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -5846,15 +6208,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -6007,6 +6378,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `link` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The join stopped unexpectedly (`join_failed`).
 
 ```json
@@ -6130,6 +6521,7 @@ still records it once the library has been told.
 - `200` — Leaving started. Body: [`LeaveStarted`](schemas.md#leavestarted) (`application/json`)
   - `cluster` *[`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The link, now `left`.
   - `owner_notified` *boolean*, **required** — Whether the library was told (otherwise it notices the missed heartbeats).
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -6141,6 +6533,8 @@ still records it once the library has been told.
 - `404` — This install is not a branch of that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The leave stopped before it finished (`leave_failed`), or the library database could not be read or written. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -6298,6 +6692,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -6320,15 +6724,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -6356,15 +6769,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -6403,6 +6825,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The leave stopped before it finished (`leave_failed`), or the library database could not be read or written.
 
@@ -7082,15 +7524,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -7118,15 +7569,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -7335,15 +7795,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -7371,15 +7840,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -8024,15 +8502,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -8060,15 +8547,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -8140,7 +8636,7 @@ edit only the nodes it owns.
   - `node_id` *string*, **required** — Node id, trimmed.
   - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the runtime document after the write.
   - `runtime` *[`NodeRuntimeSettingsV1`](schemas.md#noderuntimesettingsv1)*, **required** — The runtime document now stored.
-- `400` — The body is invalid, or a budget is outside 1..=100. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `400` — The body is invalid, or a budget is outside 1..=100. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -8152,6 +8648,8 @@ edit only the nodes it owns.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `409` — Concurrent edits kept changing the document; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -8284,7 +8782,7 @@ Schema:
 }
 ```
 
-Status `400`: The body is invalid, or a budget is outside 1..=100.
+Status `400`: The body is invalid, or a budget is outside 1..=100. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -8333,15 +8831,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -8427,6 +8934,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: label: invalid type: integer `1`, expected a string at line 1 column 10
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The configuration could not be read or written.
 
@@ -8671,15 +9198,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -8803,7 +9339,7 @@ response when the library refuses the mint.
 - `200` — The new link (shown once). Body: [`NodeInviteCreated`](schemas.md#nodeinvitecreated) (`application/json`)
   - `link` *[`EnrollmentLinkView`](schemas.md#enrollmentlinkview)*, **required** — The link's record.
   - `url` *string*, **required** — The full enrollment URL with the secret, shown once.
-- `400` — The operator named no user, the ttl or label is out of range, or the user is disabled. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `400` — The operator named no user, the ttl or label is out of range, or the user is disabled. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -8812,6 +9348,8 @@ response when the library refuses the mint.
 - `403` — The user may not mint a link for that user, host enrollment is off, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `503` — The node API's certificate pin is not available yet (`node_api_pin_unavailable`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -8984,7 +9522,7 @@ Schema:
 }
 ```
 
-Status `400`: The operator named no user, the ttl or label is out of range, or the user is disabled.
+Status `400`: The operator named no user, the ttl or label is out of range, or the user is disabled. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -9033,15 +9571,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -9153,6 +9700,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: label: invalid type: integer `1`, expected a string at line 1 column 10
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 
@@ -9424,15 +9991,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -9835,15 +10411,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -10011,6 +10596,7 @@ A `text/plain` body: a string.
 
 - `200` — The settings after the change. Body: [`BranchJoinSetting`](schemas.md#branchjoinsetting) (`application/json`)
   - `enrollment` *boolean*, **required** — "Let new branches join", as stored.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -10018,6 +10604,8 @@ A `text/plain` body: a string.
 - `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `409` — The setting kept changing under the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -10100,6 +10688,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -10122,15 +10720,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -10243,6 +10850,26 @@ Schema:
 }
 ```
 
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `enrollment` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `500`: The library database could not be read or written.
 
 ```json
@@ -10299,11 +10926,14 @@ titles from a branch that stopped sharing or left. Delivered files stay.
 
 - `200` — The branch's titles were removed. Body: [`BranchTitlesRemoved`](schemas.md#branchtitlesremoved) (`application/json`)
   - `removed` *integer (int64)*, **required** — How many title entries were removed. At least 0.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -10388,6 +11018,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -10410,15 +11050,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -10503,6 +11152,26 @@ Schema:
   "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: node_id: invalid type: integer `1`, expected a string at line 1 column 12
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 
@@ -10729,15 +11398,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -10882,6 +11560,7 @@ an Owner (verified from the stored role); anyone else gets 403.
 
 - `200` — The sharing settings after the change. Body: [`SharingChanged`](schemas.md#sharingchanged) (`application/json`)
   - `cluster` *[`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The link with its settings as stored now.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -10890,6 +11569,8 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `404` — This install is not a branch of that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -11041,6 +11722,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -11063,15 +11754,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -11190,6 +11890,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 
@@ -11441,15 +12161,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -11696,15 +12425,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -11825,6 +12563,7 @@ and an error response when the switch cannot be written.
 - `200` — The switch after the change. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
   - `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
   - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -11832,6 +12571,8 @@ and an error response when the switch cannot be written.
 - `403` — The user is not an active Owner, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `409` — The setting kept changing under the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -11924,6 +12665,16 @@ Schema:
 }
 ```
 
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 Status `401`: The caller is not signed in.
 
 ```json
@@ -11946,15 +12697,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -12068,6 +12828,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `enabled` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 

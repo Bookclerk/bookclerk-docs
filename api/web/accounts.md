@@ -24,8 +24,10 @@ Redeems a claim ticket, optionally setting a first password, and sets the sessio
 
 - `200` — Signed in; the response sets the portal session cookie. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
   - `ok` *boolean*, **required** — Always `true`.
-- `400` — The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `503` — The library's atomic redeem did not answer in time or its reply was lost; redeem again with the same ticket and nonce. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -104,7 +106,7 @@ Schema:
 }
 ```
 
-Status `400`: The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message).
+Status `400`: The ticket or nonce is invalid, used or expired, the ticket's integration is not deployed here, a first local claim needs a password of at least 8 characters, or the library refused the claim (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -130,6 +132,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `ticket` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `503`: The library's atomic redeem did not answer in time or its reply was lost; redeem again with the same ticket and nonce.
 
@@ -188,8 +210,10 @@ Authenticates against an enabled integration and mints a portal session.
 
 - `200` — Signed in through the integration; the response sets the portal session cookie. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
   - `ok` *boolean*, **required** — Always `true`.
-- `400` — The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step. As `text/plain`, when the body is not syntactically valid JSON. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -266,7 +290,7 @@ Schema:
 }
 ```
 
-Status `400`: The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step.
+Status `400`: The integration is not deployed here, does not take a username and password, or refused them, or the library database refused the step. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -292,6 +316,26 @@ Schema:
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `provider` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -407,15 +451,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -834,7 +887,7 @@ Connects a password storefront, upserts the account, and links it to the signed-
   - `account_id` *string*, **required** — The store's id for the account.
   - `source` *string*, **required** — The source's id, as listed by `GET /api/portal/sources`.
   - `plugin_key` *string*, **required** — The plugin that owns the account.
-- `400` — No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
@@ -842,6 +895,8 @@ Connects a password storefront, upserts the account, and links it to the signed-
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -948,7 +1003,7 @@ Schema:
 }
 ```
 
-Status `400`: No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message).
+Status `400`: No deployed source has that id, the source signs in through OAuth, or the store or the library database refused the step (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -1024,19 +1079,48 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `email` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -1226,15 +1310,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1274,7 +1367,7 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
   - `account_id` *string*, **required** — The store's id for the account.
   - `source` *string*, **required** — The source's id, as listed by `GET /api/portal/sources`.
   - `plugin_key` *string*, **required** — The plugin that owns the account.
-- `400` — The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
@@ -1282,6 +1375,8 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1388,7 +1483,7 @@ Schema:
 }
 ```
 
-Status `400`: The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message).
+Status `400`: The Libro.fm source is not deployed here, or the store or the library database refused the step (the body carries its message). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -1464,19 +1559,48 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `email` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
 
 Status `504`: The request ran past the API's time budget.
 
@@ -1664,15 +1788,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2126,15 +2259,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }

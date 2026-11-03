@@ -34,7 +34,7 @@ Optional.
   - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
   - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
   - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
-- `400` — The body names no valid target. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `400` — The body names no valid target. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`); string (`text/plain`)
   - `ok` *boolean*, **required** — True when the action was accepted or completed.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
@@ -49,7 +49,7 @@ Optional.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `409` — A scan is already pending or running, or no node can run it. Body: [`PlanConflict`](schemas.md#planconflict) (`application/json`)
-- `422` — No account matched. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+- `422` — No account matched. As `text/plain`, when the JSON does not fit the body. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`); string (`text/plain`)
   - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
@@ -189,7 +189,7 @@ Schema:
 }
 ```
 
-Status `400`: The body names no valid target.
+Status `400`: The body names no valid target. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -261,15 +261,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -429,7 +438,7 @@ Schema:
 }
 ```
 
-Status `422`: No account matched.
+Status `422`: No account matched. As `text/plain`, when the JSON does not fit the body.
 
 ```json
 {
@@ -702,7 +711,7 @@ Optional.
   - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
   - `job_ids` *array of string*, **required** — Every accepted or already-queued job id, in plan order.
   - `error` *string or null* — Machine slug when nothing was accepted (`conflict`, `queue_full`, `nothing_to_scan`, `nothing_to_acquire`).
-- `400` — The body names no valid title. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
+- `400` — The body names no valid title. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`); string (`text/plain`)
   - `ok` *boolean*, **required** — True when the action was accepted or completed.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
@@ -717,7 +726,7 @@ Optional.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
 - `409` — The same acquire is already pending or running, or no node can run it. Body: [`PlanConflict`](schemas.md#planconflict) (`application/json`)
-- `422` — No account of the caller's can acquire. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`)
+- `422` — No account of the caller's can acquire. As `text/plain`, when the JSON does not fit the body. Body: [`ScanPlanResponse`](schemas.md#scanplanresponse) (`application/json`); string (`text/plain`)
   - `ok` *boolean*, **required** — True when at least one job was accepted.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — First accepted (or, when none was, already queued) job id.
@@ -856,7 +865,7 @@ Schema:
 }
 ```
 
-Status `400`: The body names no valid title.
+Status `400`: The body names no valid title. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -928,15 +937,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1096,7 +1114,7 @@ Schema:
 }
 ```
 
-Status `422`: No account of the caller's can acquire.
+Status `422`: No account of the caller's can acquire. As `text/plain`, when the JSON does not fit the body.
 
 ```json
 {
@@ -1864,15 +1882,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -1900,15 +1927,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2492,15 +2528,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2697,15 +2742,24 @@ Schema:
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug."
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated."
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }

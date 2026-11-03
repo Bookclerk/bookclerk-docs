@@ -2018,7 +2018,7 @@ Settings UI group for one discovered or loaded plugin.
 - `plugin_key` *string*, **required** — Canonical plugin key.
 - `version` *string*, **required** — Semver version whose grant was approved.
 - `approved` *boolean*, **required** — Always true: a version that cannot be approved is an error instead.
-- `grant` *object*, **required** — The consent grant recorded for every node: the entrypoints, events, jobs, network domains and TCP targets the manifest asked for.
+- `grant` *object*, **required** — The grant document, as the consent store keeps it: approved entrypoints, event producers and consumers, jobs, the network mode with the effective, manifest, operator-added and operator-denied domains, TCP targets and CIDRs, host bindings, compatibility flags, resource budgets and the approval time.
 
 ## PluginVersionSummary
 
