@@ -107,6 +107,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`consent_summary`](#consent_summary) | function | Human-readable consent lines for CLI/UI. |
 | [`consumers_cover`](#consumers_cover) | function | True when every requested consumer is covered by some approved consumer. |
 | [`cores_to_percent`](#cores_to_percent) | function | Convert cores to Spec/config percent-of-one-core, rounded to 0.01 core. |
+| [`cron_grant`](#cron_grant) | function | Grant token for firing the normalized cron schedule `cron`. |
 | [`database_binding_name`](#database_binding_name) | function | The binding name when a grant entry is a named database binding. |
 | [`effective_cpu_cores`](#effective_cpu_cores) | function | Clamp operator/manifest cores into `0.01..=``host_cpu_cores_max`. |
 | [`effective_cpu_rate_percent`](#effective_cpu_rate_percent) | function | Resolved jail Spec CPU rate as percent of one logical CPU. |
@@ -729,6 +730,14 @@ pub fn allows_queue_consumer(&self, queue: &str) -> bool
 ```
 
 True when this grant authorizes delivering messages from `queue`.
+
+#### PluginGrant::allows_cron
+
+```rust
+pub fn allows_cron(&self, cron: &str) -> bool
+```
+
+True when this grant authorizes firing the normalized cron `cron`.
 
 #### PluginGrant::allows_queue_producer
 
@@ -2909,6 +2918,25 @@ Returns a plugin error when the grant does not cover the queue, the
 guest did not export a queue consumer, the RPC fails, or the delivery
 is cancelled.
 
+#### PluginSession::run_scheduled
+
+```rust
+pub async fn run_scheduled(
+    &self,
+    controller: ScheduledController,
+    cancel: Arc<AtomicBool>,
+) -> Result<()>
+```
+
+Runs one cron fire through the guest's `scheduled(controller)`
+trigger, aborted when `cancel` is set.
+
+##### Errors
+
+Returns a plugin error when the grant does not cover the cron, the
+guest did not export a scheduled handler, the handler fails, or the
+fire is cancelled.
+
 #### PluginSession::cli_describe
 
 ```rust
@@ -4142,6 +4170,14 @@ pub fn cores_to_percent(cores: f64) -> u32
 ```
 
 Convert cores to Spec/config percent-of-one-core, rounded to 0.01 core.
+
+### cron_grant
+
+```rust
+pub fn cron_grant(cron: &str) -> String
+```
+
+Grant token for firing the normalized cron schedule `cron`.
 
 ### database_binding_name
 

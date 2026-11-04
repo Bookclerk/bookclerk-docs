@@ -52,6 +52,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_KV_BINDING`](#default_kv_binding) | constant | Default `binding` for `[[kv_namespaces]]`. |
 | [`DEFAULT_EVENTS_BINDING`](#default_events_binding) | constant | Default `binding` for `[[events.producers]]`. |
 | [`CONFIG_BINDING`](#config_binding) | constant | Binding name the host uses for operator config (`[vars]`). |
+| [`MAX_CRON_TRIGGERS`](#max_cron_triggers) | constant | Most `[triggers] crons` entries one manifest may declare. |
 | [`HOST_EVENT_TYPES`](#host_event_types) | constant | Domain event types only the host emits. |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Maximum length of a queue name. |
 | [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefixes) | constant | Queue-name prefixes only the host may use (`core.events`, `node.<id>`). |
@@ -271,18 +272,22 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 
 ```rust
 pub struct TriggersManifest {
+    pub crons: Vec<CronSchedule>,
     pub jobs: Vec<String>,
 }
 ```
 
 `[triggers]` — handlers on the default entrypoint the host invokes.
 
-Mirrors `wrangler.jsonc` `triggers`; Bookclerk's triggers are durable
-commands (`job(controller)`) rather than crons. Event triggers live under
-`[[events.consumers]]`.
+Mirrors `wrangler.jsonc` `triggers`: `crons` are Workers-style
+`scheduled(controller)` triggers, and `jobs` are durable commands
+(`job(controller)`). Event triggers live under `[[events.consumers]]`.
 
 **Fields**
 
+- `crons`: Five-field UTC cron schedules the default entrypoint's
+  `scheduled(controller)` handles (`*/30 * * * *`). At most
+  [`MAX_CRON_TRIGGERS`](#max_cron_triggers), no duplicates. Empty means no cron trigger.
 - `jobs`: Command types the default entrypoint's `job(controller)` handles
   (snake_case, e.g. `stream_copy`). Empty means no job trigger.
 
@@ -800,6 +805,15 @@ pub fn runs_jobs(&self) -> bool
 ```
 
 True when the default entrypoint has a `job(controller)` trigger.
+
+#### PluginManifest::runs_crons
+
+```rust
+pub fn runs_crons(&self) -> bool
+```
+
+True when the default entrypoint has a `scheduled(controller)`
+trigger (`[triggers] crons`).
 
 #### PluginManifest::produces_events
 
@@ -1410,6 +1424,14 @@ pub const CONFIG_BINDING: &str = "CONFIG";
 ```
 
 Binding name the host uses for operator config (`[vars]`).
+
+### MAX_CRON_TRIGGERS
+
+```rust
+pub const MAX_CRON_TRIGGERS: usize = 8;
+```
+
+Most `[triggers] crons` entries one manifest may declare.
 
 ### HOST_EVENT_TYPES
 

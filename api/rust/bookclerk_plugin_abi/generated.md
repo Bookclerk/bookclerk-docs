@@ -74,6 +74,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`KvListOptions`](#kvlistoptions) | struct | Page request for `KvNamespace.list`. |
 | [`KvListKey`](#kvlistkey) | struct | One key on a `KvNamespace.list` page. |
 | [`KvListOk`](#kvlistok) | struct | Success payload of `KvNamespace.list`. |
+| [`ScheduledController`](#scheduledcontroller) | struct | One fire of a `\[triggers\] crons` schedule (`scheduled(controller)`). |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -260,6 +261,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_kv_list_ok`](#read_kv_list_ok) | function | Decode a `KvListOk` from a Cap'n Proto reader. |
 | [`write_kv_list_reply`](#write_kv_list_reply) | function | Encode a `KvListReply` union from a typed result. |
 | [`read_kv_list_reply`](#read_kv_list_reply) | function | Decode a `KvListReply` union into a typed result. |
+| [`write_scheduled_controller`](#write_scheduled_controller) | function | Encode a `ScheduledController` onto a Cap'n Proto builder. |
+| [`read_scheduled_controller`](#read_scheduled_controller) | function | Decode a `ScheduledController` from a Cap'n Proto reader. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -299,6 +302,7 @@ pub struct PluginCapabilities {
     pub bindings: Vec<String>,
     pub queue_consumers: Vec<String>,
     pub queue_producers: Vec<String>,
+    pub crons: Vec<String>,
 }
 ```
 
@@ -316,6 +320,9 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
   `WORK_FS`, `OAUTH`, `KV`, `EVENTS`, `\[\[queues.producers\]\]` names, ...).
 - `queue_consumers`: Queues the default entrypoint consumes (`queue(batch)` trigger).
 - `queue_producers`: Queues the guest may send to through its `\[\[queues.producers\]\]` bindings.
+- `crons`: Five-field UTC cron schedules the default entrypoint handles
+  (`scheduled(controller)` trigger, `\[triggers\] crons`), normalized to
+  single spaces.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1866,6 +1873,32 @@ Success payload of `KvNamespace.list`.
 - `keys`: Keys in lexical order.
 - `list_complete`: True when no further page exists.
 - `cursor`: Cursor for the next page; empty when `listComplete`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ScheduledController
+
+```rust
+pub struct ScheduledController {
+    pub cron: String,
+    pub scheduled_time: u64,
+    pub fire_id: String,
+    pub attempt: u32,
+    pub deadline_unix_ms: u64,
+}
+```
+
+One fire of a `\[triggers\] crons` schedule (`scheduled(controller)`).
+
+**Fields**
+
+- `cron`: The schedule that fired, normalized to single spaces (`0 3 * * MON`).
+- `scheduled_time`: Fire time, UTC unix milliseconds (always a whole minute). Retries of
+  one fire keep it.
+- `fire_id`: Durable id of this fire, stable across retries; dedupe on it.
+- `attempt`: Failure attempt, starting at 1.
+- `deadline_unix_ms`: UTC unix milliseconds. Host fence/lease is authoritative; this hint must
+  not outlive the fence.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4540,6 +4573,30 @@ Decode a `KvListReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_scheduled_controller
+
+```rust
+pub fn write_scheduled_controller(b: Builder<'_>, v: &ScheduledController) -> Result<()>
+```
+
+Encode a [`ScheduledController`](#scheduledcontroller) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_scheduled_controller
+
+```rust
+pub fn read_scheduled_controller(r: Reader<'_>) -> Result<ScheduledController>
+```
+
+Decode a [`ScheduledController`](#scheduledcontroller) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### read_any_message
 
 ```rust
@@ -4592,7 +4649,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 86;
+pub const READ_ANY_COUNT: u8 = 87;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

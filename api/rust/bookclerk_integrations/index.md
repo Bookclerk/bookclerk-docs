@@ -17,6 +17,7 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`IntegrationContext`](#integrationcontext) | struct | Context passed when starting background watchers. |
 | [`ProvidedOidcClient`](#providedoidcclient) | struct | Host-side copy of a guest `oidcClients` template (no ABI crate dependency). |
 | [`QueueSubscription`](#queuesubscription) | struct | Declared `[[queues.consumers]]` row (mirrors `plugin.toml`): the queue the integration's `queue(batch)` trigger consumes and its redelivery policy. |
+| [`ScheduledInvocation`](#scheduledinvocation) | struct | One fire of a `[triggers] crons` schedule, as the host delivers it to the `scheduled(controller)` trigger. |
 | [`ExternalUser`](#externaluser) | struct | External user resolved via integration credential login or watcher. |
 | [`IntegrationHealth`](#integrationhealth-1) | struct | Health snapshot for one integration. |
 | [`ListeningProgressSnapshot`](#listeningprogresssnapshot) | struct | One listening / progress row from any integration (ABS, plugins, …). |
@@ -94,6 +95,15 @@ pub trait Integration: Send + Sync {
         'life0: 'async_trait,;
     fn event_subscriptions(&self) -> Vec<EventSubscription>;
     fn queue_subscriptions(&self) -> Vec<QueueSubscription>;
+    fn cron_schedules(&self) -> Vec<CronSchedule>;
+    fn run_scheduled_cancelable<'life0, 'async_trait>(
+        &'life0 self,
+        invocation: ScheduledInvocation,
+        _cancel: Arc<AtomicBool>,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn deliver_queue_batch_cancelable<'life0, 'async_trait>(
         &'life0 self,
         batch: QueueBatch,
@@ -280,6 +290,38 @@ fn queue_subscriptions(&self) -> Vec<QueueSubscription>
 
 Declared `[[queues.consumers]]` rows. Empty means this integration
 consumes no plugin-owned queue.
+
+#### Integration::cron_schedules
+
+```rust
+fn cron_schedules(&self) -> Vec<CronSchedule>
+```
+
+Declared `[triggers] crons` schedules. Empty means this integration
+has no `scheduled(controller)` trigger.
+
+#### Integration::run_scheduled_cancelable
+
+```rust
+fn run_scheduled_cancelable<'life0, 'async_trait>(
+    &'life0 self,
+    invocation: ScheduledInvocation,
+    _cancel: Arc<AtomicBool>,
+) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Run one cron fire through the `scheduled(controller)` trigger,
+aborting when `cancel` is set (fence loss or operator cancel).
+
+##### Errors
+
+Returns an error when the handler throws or the call fails; the host
+retries the fire with backoff. The default returns
+[`IntegrationError::Message`](#integrationerror) because the integration declares no
+crons.
 
 #### Integration::deliver_queue_batch_cancelable
 
@@ -802,6 +844,33 @@ integration's `queue(batch)` trigger consumes and its redelivery policy.
 - `max_retries`: Redeliveries before a message is dead-lettered.
 - `dead_letter_queue`: Queue that receives a copy once `max_retries` is exhausted.
 - `retry_delay_secs`: Seconds a retried message waits when the consumer names no delay.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ScheduledInvocation
+
+```rust
+pub struct ScheduledInvocation {
+    pub cron: CronSchedule,
+    pub scheduled_time_ms: i64,
+    pub job_id: String,
+    pub attempt: u32,
+    pub deadline_unix_ms: u64,
+}
+```
+
+One fire of a `[triggers] crons` schedule, as the host delivers it to
+the `scheduled(controller)` trigger.
+
+**Fields**
+
+- `cron`: The schedule that fired (normalized source is the handler's `cron`).
+- `scheduled_time_ms`: Fire time in Unix milliseconds (a whole UTC minute): the handler's
+  `scheduledTime`. Retries of one fire keep it.
+- `job_id`: Durable job id of this fire; stable across retries.
+- `attempt`: Failure attempt, starting at 1.
+- `deadline_unix_ms`: Lease expiry hint in Unix milliseconds; the host fence is
+  authoritative.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

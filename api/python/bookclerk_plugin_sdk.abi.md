@@ -98,6 +98,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`EventConsumer`](#eventconsumer) | class | `[[events.consumers]]` handler (`Entrypoints.eventConsumer`). Delivery is at-least-once; consumers must be idempotent on `deduplicationKey`. |
 | [`EventPublisher`](#eventpublisher) | class | `EVENTS` binding: host-served outbox publisher granted through `Bindings.events`. Event types must be listed in `[[events.producers]]`. |
 | [`NamedDatabase`](#nameddatabase) | class | One named plugin-owned database binding delivered on `Bindings.databases`. |
+| [`ScheduledHandler`](#scheduledhandler) | class | `[triggers] crons` handler (`Entrypoints.scheduledHandler`), the Workers `scheduled(controller)` trigger. Each fire is delivered at least once; a fire that throws is retried with backoff, keeping `scheduledTime` and `fireId`, so handlers dedupe on `fireId`. |
 | [`QueueConsumer`](#queueconsumer) | class | `[[queues.consumers]]` handler (`Entrypoints.queueConsumer`). Delivery is at-least-once; consumers must be idempotent on `QueueMessage.id`. |
 | [`QueueProducer`](#queueproducer) | class | Queue producer binding: host-served send into the queue a `[[queues.producers]]` row names, granted through `Bindings.queues`. |
 | [`NamedQueue`](#namedqueue) | class | One named queue producer delivered on `Bindings.queues`. |
@@ -215,6 +216,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`KvListOk`](#kvlistok) | class | Success payload of `KvNamespace.list`. |
 | [`KvListReplyOk`](#kvlistreplyok) | class | `KvListReply` member `ok`. |
 | [`KvListReplyErr`](#kvlistreplyerr) | class | `KvListReply` member `err`. |
+| [`ScheduledController`](#scheduledcontroller) | class | One fire of a `[triggers] crons` schedule (`scheduled(controller)`). |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -644,6 +646,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `cli`: `cli` entrypoint. Null when the guest does not export this capability.
 - `oidc`: `oidc` entrypoint. Null when the guest does not export this capability.
 - `queueConsumer`: `[[queues.consumers]]` trigger: `queue(batch)` handler. Null when the guest does not export this capability.
+- `scheduledHandler`: `[triggers] crons` trigger: `scheduled(controller)` handler. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -1853,6 +1856,33 @@ One named plugin-owned database binding delivered on `Bindings.databases`.
 - `name`: Binding name from `plugin.toml` `[[databases]]`.
 - `database`: Isolated typed SQL session for this binding (plugin-owned schema). Null when the guest does not export this capability.
 
+### ScheduledHandler
+
+```python
+class ScheduledHandler(Protocol)
+```
+
+`[triggers] crons` handler (`Entrypoints.scheduledHandler`), the Workers
+`scheduled(controller)` trigger. Each fire is delivered at least once;
+a fire that throws is retried with backoff, keeping `scheduledTime` and
+`fireId`, so handlers dedupe on `fireId`.
+
+#### ScheduledHandler.scheduled
+
+```python
+async def scheduled(self, controller: ScheduledController) -> EmptyReply
+```
+
+Run one cron fire to completion.
+
+**Args**
+
+- `controller`: The fire being delivered.
+
+**Returns**
+
+`EmptyReply`
+
 ### QueueConsumer
 
 ```python
@@ -2458,6 +2488,7 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `bindings`: Other named bindings the guest expects on `env` (`CONFIG`, `SECRETS`, `WORK_FS`, `OAUTH`, `KV`, `EVENTS`, `[[queues.producers]]` names, ...).
 - `queueConsumers`: Queues the default entrypoint consumes (`queue(batch)` trigger).
 - `queueProducers`: Queues the guest may send to through its `[[queues.producers]]` bindings.
+- `crons`: Five-field UTC cron schedules the default entrypoint handles (`scheduled(controller)` trigger, `[triggers] crons`), normalized to single spaces.
 
 ### Brand
 
@@ -4100,6 +4131,22 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### ScheduledController
+
+```python
+class ScheduledController(TypedDict)
+```
+
+One fire of a `[triggers] crons` schedule (`scheduled(controller)`).
+
+**Attributes**
+
+- `cron`: The schedule that fired, normalized to single spaces (`0 3 * * MON`).
+- `scheduledTime`: Fire time, UTC unix milliseconds (always a whole minute). Retries of one fire keep it.
+- `fireId`: Durable id of this fire, stable across retries; dedupe on it.
+- `attempt`: Failure attempt, starting at 1.
+- `deadlineUnixMs`: UTC unix milliseconds. Host fence/lease is authoritative; this hint must not outlive the fence.
 
 ### DbValueNull
 

@@ -321,7 +321,7 @@ Maximum decoded size of a domain-event scalar payload (not a stream).
 ### TRIGGER\_FAMILIES
 
 ```ts
-const TRIGGER_FAMILIES: Readonly<Record<"eventConsumer" | "queueConsumer" | "jobRunner", string>>;
+const TRIGGER_FAMILIES: Readonly<Record<"eventConsumer" | "queueConsumer" | "scheduledHandler" | "jobRunner", string>>;
 ```
 
 Wire names of the trigger families the launcher may ask `openInvocation` about.

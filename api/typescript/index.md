@@ -383,6 +383,29 @@ Adapter dispatch for the `queue(batch)` trigger.
 
 One outcome per message, in order.
 
+##### bookclerkScheduled()
+
+```ts
+bookclerkScheduled(context, wire): Promise<void>;
+```
+
+**`Internal`**
+
+Adapter dispatch for the `scheduled(controller)` trigger.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `wire` | `Partial`\<[`ScheduledController`](#scheduledcontroller)\> | Wire `ScheduledController`. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the author's handler completes.
+
 ##### bookclerkShutdown()
 
 ```ts
@@ -514,6 +537,27 @@ and retry on throw.
 | Parameter | Type |
 | ------ | ------ |
 | `batch` | [`QueueBatch`](#queuebatch) |
+
+###### Returns
+
+`void` \| `Promise`\<`void`\>
+
+##### scheduled()?
+
+```ts
+scheduled?(controller): void | Promise<void>;
+```
+
+`[triggers] crons` trigger, the Workers `scheduled(controller)`: run one
+cron fire. Return to complete; throw to have the host retry the same
+fire (same `scheduledTime` and `fireId`) with backoff. Fires are
+delivered at least once, so dedupe on `controller.fireId`.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `controller` | `Readonly`\<[`ScheduledController`](#scheduledcontroller)\> |
 
 ###### Returns
 
@@ -6081,6 +6125,15 @@ remoteLibrary?: RemoteLibrary | null;
 `remoteLibrary` entrypoint.
 Null when the guest does not export this capability.
 
+##### scheduledHandler?
+
+```ts
+scheduledHandler?: ScheduledHandler | null;
+```
+
+`[triggers] crons` trigger: `scheduled(controller)` handler.
+Null when the guest does not export this capability.
+
 ##### storage?
 
 ```ts
@@ -9200,6 +9253,16 @@ consumes: EventConsumerSpec[];
 
 Event types the default entrypoint consumes (`event(batch)` trigger).
 
+##### crons
+
+```ts
+crons: string[];
+```
+
+Five-field UTC cron schedules the default entrypoint handles
+(`scheduled(controller)` trigger, `[triggers] crons`), normalized to
+single spaces.
+
 ##### databases
 
 ```ts
@@ -10938,6 +11001,87 @@ Accounts skipped because `scanEnabled` was false.
 
 ***
 
+### ScheduledController
+
+One fire of a `[triggers] crons` schedule (`scheduled(controller)`).
+
+#### Properties
+
+##### attempt
+
+```ts
+attempt: number;
+```
+
+Failure attempt, starting at 1.
+
+##### cron
+
+```ts
+cron: string;
+```
+
+The schedule that fired, normalized to single spaces (`0 3 * * MON`).
+
+##### deadlineUnixMs
+
+```ts
+deadlineUnixMs: number;
+```
+
+UTC unix milliseconds. Host fence/lease is authoritative; this hint must
+not outlive the fence.
+
+##### fireId
+
+```ts
+fireId: string;
+```
+
+Durable id of this fire, stable across retries; dedupe on it.
+
+##### scheduledTime
+
+```ts
+scheduledTime: number;
+```
+
+Fire time, UTC unix milliseconds (always a whole minute). Retries of
+one fire keep it.
+
+***
+
+### ScheduledHandler
+
+`[triggers] crons` handler (`Entrypoints.scheduledHandler`), the Workers
+`scheduled(controller)` trigger. Each fire is delivered at least once;
+a fire that throws is retried with backoff, keeping `scheduledTime` and
+`fireId`, so handlers dedupe on `fireId`.
+
+#### Methods
+
+##### scheduled()
+
+```ts
+scheduled(controller): Promise<EmptyReply>;
+```
+
+Run one cron fire to completion.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `controller` | [`ScheduledController`](#scheduledcontroller) | The fire being delivered. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+***
+
 ### SchemaCreate
 
 `CREATE TABLE` action with its durable fingerprint.
@@ -11572,6 +11716,7 @@ type AuthorStub = Pick<BookclerkEntrypoint,
   | "bookclerkDescribe"
   | "bookclerkEvent"
   | "bookclerkQueue"
+  | "bookclerkScheduled"
   | "bookclerkJob"
   | "bookclerkDatabaseMigrations"
 | "bookclerkShutdown">;
@@ -13040,7 +13185,8 @@ function allowedEntrypointFamilies(capabilities, requested): string[];
 Filters requested entrypoint / trigger family names against the manifest
 capabilities: named entrypoints must be declared in `entrypoints`,
 `eventConsumer` needs a non-empty `consumes`, `queueConsumer` needs a
-non-empty `queueConsumers`, and `jobRunner` needs `jobs` or the `storage`
+non-empty `queueConsumers`, `scheduledHandler` needs a non-empty `crons`,
+and `jobRunner` needs `jobs` or the `storage`
 entrypoint (storage guests run the host `stream_copy` job). Unknown names
 and a missing manifest fail closed.
 

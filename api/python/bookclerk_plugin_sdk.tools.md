@@ -45,6 +45,7 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`ENTRYPOINT_NAMES`](#entrypoint_names) | constant | Entrypoint wire names accepted in `entrypoints`. |
 | [`ENTRYPOINT_EXPORT_CLASSES`](#entrypoint_export_classes) | constant | Exported class name the launcher binds for each `entrypoints` wire name. |
 | [`TYPES_OUTPUT_FILE`](#types_output_file) | constant | Default `types` output filename next to `plugin.toml`. |
+| [`MAX_CRON_TRIGGERS`](#max_cron_triggers) | constant | Most `[triggers] crons` entries one manifest may declare. |
 
 ## Classes
 
@@ -611,3 +612,11 @@ TYPES_OUTPUT_FILE = 'bookclerk_configuration.py'
 ```
 
 Default `types` output filename next to `plugin.toml`.
+
+### MAX_CRON_TRIGGERS
+
+```python
+MAX_CRON_TRIGGERS = 8
+```
+
+Most `[triggers] crons` entries one manifest may declare.

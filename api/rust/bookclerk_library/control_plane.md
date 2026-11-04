@@ -18,6 +18,7 @@ See `docs/adr/control-plane.md`.
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
 | [`NewClusterLink`](#newclusterlink) | struct | What enrollment returned, to record with `record_cluster_link`. |
+| [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
 | [`DocumentKey`](#documentkey) | struct | Address of one configuration document. |
@@ -96,6 +97,7 @@ See `docs/adr/control-plane.md`.
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
+| [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
 | [`DeploymentReplace`](#deploymentreplace) | enum | Outcome of `replace_plugin_deployment`. |
 | [`DeploymentStatus`](#deploymentstatus) | enum | Observed deployment status. |
 | [`DesiredState`](#desiredstate) | enum | What a deployment row asks its node to do, and who decided it. |
@@ -153,6 +155,9 @@ See `docs/adr/control-plane.md`.
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
 | [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
+| [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
+| [`ensure_cron_cursor`](#ensure_cron_cursor) | function | Creates the cursor at `initial_last_ms` unless one exists, and returns the stored cursor. |
+| [`load_cron_cursor`](#load_cron_cursor) | function | Reads one cursor. |
 | [`bounded_observation_detail`](#bounded_observation_detail) | function | Truncates detail to 512 bytes and drops ASCII control characters. |
 | [`delete_plugin_deployment`](#delete_plugin_deployment) | function | Deletes an absent deployment and its observations. |
 | [`ensure_plugin_deployment`](#ensure_plugin_deployment) | function | Inserts `(instance, node, desired)` when that pair has no row. |
@@ -376,6 +381,7 @@ See `docs/adr/control-plane.md`.
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
 | [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) | constant | `cluster_links.state` once the owner revoked this node (close 4403). |
+| [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
 | [`MAX_OBSERVATION_DETAIL_BYTES`](#max_observation_detail_bytes) | constant | Maximum UTF-8 size of an observation detail string. |
 | [`CLUSTER_SCOPE_ID`](#cluster_scope_id) | constant | Cluster scope instance. There is one cluster document per namespace. |
 | [`CLUSTER_SCOPE_TYPE`](#cluster_scope_type) | constant | Scope type stored for cluster documents. |
@@ -696,6 +702,27 @@ What enrollment returned, to record with [`record_cluster_link`](#record_cluster
 - `owner_origin`: Owner origin the host enrolled through.
 - `remote_node_id`: Node id from the enroll answer.
 - `spki_pin`: SPKI pin from the enrollment link.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CronCursor
+
+```rust
+pub struct CronCursor {
+    pub plugin_instance_id: String,
+    pub cron: String,
+    pub last_fire_ms: i64,
+}
+```
+
+One `plugin_cron_cursors` row.
+
+**Fields**
+
+- `plugin_instance_id`: Plugin instance whose schedule this is.
+- `cron`: Normalized cron source.
+- `last_fire_ms`: Last claimed (or, for a fresh cursor, last skipped) fire time in Unix
+  milliseconds.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -3375,6 +3402,29 @@ Outcome of [`begin_catalog`](#begin_catalog).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CronFireClaim
+
+```rust
+pub enum CronFireClaim {
+    Claimed { job_id: Option<String> },
+    Lost,
+}
+```
+
+What [`claim_cron_fire`](#claim_cron_fire) did.
+
+**Variants**
+
+- `Claimed`: This call moved the cursor and admitted the fire as job `job_id`, or
+  moved the cursor while an earlier fire of the schedule was still
+  active (`job_id` is `None`; the fire is skipped).
+  - `job_id`: The new job, or `None` when the fire coalesced onto an active one.
+- `Lost`: The cursor was not at `expected_last_ms` (another node claimed the
+  fire, or this node's view is stale). Re-read with
+  [`load_cron_cursor`](#load_cron_cursor).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### DeploymentReplace
 
 ```rust
@@ -4769,6 +4819,77 @@ Sets a link's state. Answers false when no such link exists.
 
 Returns [`LibraryError::Invalid`](index.md#libraryerror) for an unknown state, and the write
 error.
+
+### claim_cron_fire
+
+```rust
+pub async fn claim_cron_fire(
+    store: &LibraryStore,
+    plugin_instance_id: &str,
+    cron: &str,
+    expected_last_ms: i64,
+    fire_ms: i64,
+) -> Result<CronFireClaim>
+```
+
+Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits
+its `plugin_scheduled` job in the same batch.
+
+#### Arguments
+
+* `expected_last_ms` - The cursor value this node read; the claim is a
+  compare-and-swap on it.
+* `fire_ms` - The fire time to claim; must be later than
+  `expected_last_ms`.
+
+#### Returns
+
+[`CronFireClaim::Claimed`](#cronfireclaim) when this call moved the cursor, otherwise
+[`CronFireClaim::Lost`](#cronfireclaim).
+
+#### Errors
+
+Returns an error when `fire_ms` does not advance the cursor, or when the
+batch or the read-back fails.
+
+### ensure_cron_cursor
+
+```rust
+pub async fn ensure_cron_cursor(
+    store: &LibraryStore,
+    plugin_instance_id: &str,
+    cron: &str,
+    initial_last_ms: i64,
+) -> Result<CronCursor>
+```
+
+Creates the cursor at `initial_last_ms` unless one exists, and returns
+the stored cursor.
+
+#### Arguments
+
+* `initial_last_ms` - The newest past fire time, so a new schedule waits
+  for its next fire instead of firing at once.
+
+#### Errors
+
+Returns an error when the write or the read-back fails.
+
+### load_cron_cursor
+
+```rust
+pub async fn load_cron_cursor(
+    store: &LibraryStore,
+    plugin_instance_id: &str,
+    cron: &str,
+) -> Result<Option<CronCursor>>
+```
+
+Reads one cursor.
+
+#### Errors
+
+Returns an error when the read fails.
 
 ### bounded_observation_detail
 
@@ -8644,6 +8765,15 @@ pub const CLUSTER_LINK_REVOKED: &str = "revoked";
 ```
 
 `cluster_links.state` once the owner revoked this node (close 4403).
+
+### CRON_FIRE_MAX_ATTEMPTS
+
+```rust
+pub const CRON_FIRE_MAX_ATTEMPTS: i64 = 3;
+```
+
+Failure attempts a cron fire gets before it is terminal (the first run
+plus two retries with the queue's backoff).
 
 ### MAX_OBSERVATION_DETAIL_BYTES
 

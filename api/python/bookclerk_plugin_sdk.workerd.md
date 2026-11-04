@@ -38,6 +38,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`QueueBinding`](#queuebinding) | class | `[[queues.producers]]` binding (`env.<BINDING>`): Workers `Queue`-shaped producer. |
 | [`QueueMessage`](#queuemessage) | class | One delivered queue message (`QueueMessage` struct), Workers `Message`-shaped. |
 | [`RemoteLibraryEntrypoint`](#remotelibraryentrypoint) | class | `remoteLibrary` entrypoint: lifecycle, rescan, listening sync, user polling. |
+| [`ScheduledController`](#scheduledcontroller) | class | One `[triggers] crons` fire, as `scheduled(controller)` receives it. |
 | [`StorageEntrypoint`](#storageentrypoint) | class | `storage` entrypoint (`Destination` interface): an object store the host writes to. |
 | [`StorefrontEntrypoint`](#storefrontentrypoint) | class | `storefront` entrypoint (`ContentSource` interface). |
 | [`cli_args`](#cli_args) | function | Turn `CliInvokeParams.args` (`[{name, value}]`) into a `{name: value}` dict. |
@@ -165,8 +166,10 @@ class BookclerkEntrypoint(WorkerEntrypoint)
 
 Default-export base for `api_version = 3` Python Workers guests.
 
-Optional trigger methods: `event(batch)` (for `[[events.consumers]]`)
-and `job(job)` (for `[triggers] jobs`); optional `describe()`
+Optional trigger methods: `event(batch)` (for `[[events.consumers]]`),
+`queue(batch)` (for `[[queues.consumers]]`), `scheduled(controller)`
+(for `[triggers] crons`) and `job(job)` (for `[triggers] jobs`);
+optional `describe()`
 (presentation fields beyond `plugin.toml`), `database_migrations(binding)`,
 and `shutdown()`. Return plain Python values; the SDK converts them.
 
@@ -220,6 +223,21 @@ Adapter dispatch: deliver one `QueueBatch` to `queue(batch)`.
 **Raises**
 
 - `PluginError`: `unsupported` when the author defines no `queue`.
+
+#### BookclerkEntrypoint.bookclerkScheduled
+
+```python
+async def bookclerkScheduled(self, context: Any=None, wire_controller: Any=None) -> None
+```
+
+Adapter dispatch: run one cron fire through `scheduled(controller)`.
+
+The handler receives a [`ScheduledController`](#scheduledcontroller). Returning
+completes the fire; raising has the host retry the same fire.
+
+**Raises**
+
+- `PluginError`: `unsupported` when the author defines no `scheduled`.
 
 #### BookclerkEntrypoint.bookclerkJob
 
@@ -1070,6 +1088,43 @@ async def pollEvents(self)
 ```
 
 `ExternalUser` records observed since the last poll.
+
+### ScheduledController
+
+```python
+@dataclass(frozen=True)
+class ScheduledController
+```
+
+One `[triggers] crons` fire, as `scheduled(controller)` receives it.
+
+Fires are delivered at least once; a fire that raises is retried with the
+same `scheduled_time` and `fire_id`, so dedupe on `fire_id`.
+
+**Attributes**
+
+- `cron`: The schedule that fired, normalized to single spaces.
+- `scheduled_time`: Fire time in UTC Unix milliseconds (a whole minute).
+- `fire_id`: Durable id of this fire, stable across retries.
+- `attempt`: Failure attempt, starting at 1.
+- `deadline_unix_ms`: Deadline hint in Unix milliseconds; the host fence is authoritative.
+
+#### ScheduledController.from_wire
+
+```python
+@classmethod
+def from_wire(cls, wire: Any) -> ScheduledController
+```
+
+Builds the controller from a wire `ScheduledController`.
+
+**Args**
+
+- `wire`: Decoded wire struct (a JS proxy or a dict); fields may be missing.
+
+**Returns**
+
+The controller with every field present.
 
 ### StorageEntrypoint
 

@@ -47,6 +47,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`operator_sessions`](entities/operator_sessions.md): SeaORM entity for the `operator_sessions` table.
 - [`pending_joins`](entities/pending_joins.md): SeaORM entity for `pending_joins`: on a host joining a library, one sign-in in progress (written by `control_plane::create_pending_join`). The PKCE verifier and the node keys are sealed in `encrypted_secrets`, never stored here.
 - [`plugin_artifacts`](entities/plugin_artifacts.md): SeaORM entity for `plugin_artifacts`: small version archives stored in the library when no shared artifact location exists.
+- [`plugin_cron_cursors`](entities/plugin_cron_cursors.md): SeaORM entity for `plugin_cron_cursors`: the last claimed fire of each plugin cron schedule.
 - [`plugin_deployment_observations`](entities/plugin_deployment_observations.md): SeaORM entity for observed plugin deployment state.
 - [`plugin_deployments`](entities/plugin_deployments.md): SeaORM entity for desired plugin deployment state.
 - [`plugin_installs`](entities/plugin_installs.md): SeaORM entity for `plugin_installs`: the active version per plugin.

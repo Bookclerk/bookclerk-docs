@@ -182,6 +182,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`is_valid_queue_name`](#is_valid_queue_name) | function | True when `name` is `a-z0-9*` and at most `MAX_QUEUE_NAME_LEN` chars. |
 | [`job_backoff_run_after`](#job_backoff_run_after) | function | Next `run_after` after a failed attempt, exponential from a 5s base (capped). |
 | [`normalize_theme`](#normalize_theme) | function | Canonical appearance preference; unknown values become `system`. |
+| [`plugin_scheduled_dedup_key`](#plugin_scheduled_dedup_key) | function | Dedup key of a `JobKind::PluginScheduled` fire: one active fire per `(instance, cron)`. |
 | [`portal_prefs_key`](#portal_prefs_key) | function | Subject key for a portal identity (legacy; prefer `user_prefs_key`). |
 | [`push_queue_wisher`](#push_queue_wisher) | function | Adds `wisher` when they are not already present (capped at `MAX_QUEUE_WISHERS`). |
 | [`queue_name_or_bus`](#queue_name_or_bus) | function | Resolves an optional queue name: empty means `CORE_EVENTS_QUEUE`. |
@@ -2534,6 +2535,8 @@ pub struct JobPayload {
     pub resume_pending: bool,
     pub pdf_only: bool,
     pub requires_unsettled_since_ms: Option<i64>,
+    pub cron: Option<String>,
+    pub scheduled_time_ms: Option<i64>,
 }
 ```
 
@@ -2579,6 +2582,10 @@ JSON command envelope stored on a job row.
   a dropped instance is involved, rewrites it) once it has been unsettled
   for its grace period, so a placement move that briefly leaves no common
   node does not fail queued work (`control_plane::sweep_job_requirements`).
+- `cron`: For [`JobKind::PluginScheduled`]: the normalized `[triggers] crons`
+  schedule that fired.
+- `scheduled_time_ms`: For [`JobKind::PluginScheduled`]: the fire time the handler sees as
+  `scheduledTime`, in Unix milliseconds (always a whole UTC minute).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -9296,6 +9303,7 @@ pub enum JobKind {
     ListenSync,
     IntegrationScan,
     PluginCopy,
+    PluginScheduled,
     Invalid,
 }
 ```
@@ -9309,6 +9317,9 @@ Kind of durable daemon work stored in the `jobs` table.
 - `ListenSync`: Sync listening progress from capable integrations.
 - `IntegrationScan`: Remote integration library scan (Audiobookshelf, …).
 - `PluginCopy`: ABI `JobRunner` stream-copy vertical slice (`plugin_copy`).
+- `PluginScheduled`: One fire of a plugin's `[triggers] crons` schedule
+  (`plugin_scheduled`), delivered to its `scheduled(controller)`
+  handler on a node that runs the instance.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::as_str
@@ -10700,6 +10711,15 @@ pub fn normalize_theme(raw: &str) -> String
 ```
 
 Canonical appearance preference; unknown values become `system`.
+
+### plugin_scheduled_dedup_key
+
+```rust
+pub fn plugin_scheduled_dedup_key(plugin_instance_id: &str, cron: &str) -> String
+```
+
+Dedup key of a [`JobKind::PluginScheduled`](#jobkind) fire: one active fire per
+`(instance, cron)`.
 
 ### portal_prefs_key
 

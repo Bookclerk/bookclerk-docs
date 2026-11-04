@@ -145,6 +145,18 @@ pub fn get_queue_consumer(self) -> Result<Client>
 pub fn has_queue_consumer(&self) -> bool
 ```
 
+#### Reader::get_scheduled_handler
+
+```rust
+pub fn get_scheduled_handler(self) -> Result<Client>
+```
+
+#### Reader::has_scheduled_handler
+
+```rust
+pub fn has_scheduled_handler(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -341,6 +353,24 @@ pub fn set_queue_consumer(&mut self, value: Client)
 pub fn has_queue_consumer(&self) -> bool
 ```
 
+#### Builder::get_scheduled_handler
+
+```rust
+pub fn get_scheduled_handler(self) -> Result<Client>
+```
+
+#### Builder::set_scheduled_handler
+
+```rust
+pub fn set_scheduled_handler(&mut self, value: Client)
+```
+
+#### Builder::has_scheduled_handler
+
+```rust
+pub fn has_scheduled_handler(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -403,6 +433,12 @@ pub fn get_oidc(&self) -> Client
 
 ```rust
 pub fn get_queue_consumer(&self) -> Client
+```
+
+#### Pipeline::get_scheduled_handler
+
+```rust
+pub fn get_scheduled_handler(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

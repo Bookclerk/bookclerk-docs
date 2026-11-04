@@ -22,6 +22,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](methods/names.md).
 - [`event`](methods/event.md): Deliver one ordered batch of domain events (Cap'n Proto `EventConsumer.event`).
 - [`publish`](methods/publish.md): Append one guest event to the host outbox (Cap'n Proto `EventPublisher.publish`).
 - [`queue`](methods/queue.md): Deliver one ordered batch of queue messages (Cap'n Proto `QueueConsumer.queue`).
+- [`scheduled`](methods/scheduled.md): Run one cron fire (Cap'n Proto `ScheduledHandler.scheduled`).
 - [`send`](methods/send.md): Send one message into a granted queue (Cap'n Proto `QueueProducer.send`).
 - [`send_batch`](methods/send_batch.md): Send a batch of messages into a granted queue (Cap'n Proto `QueueProducer.sendBatch`).
 - [`poll_events`](methods/poll_events.md): Poll for plugin-observed external users after `start`.

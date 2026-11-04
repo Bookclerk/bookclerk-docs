@@ -127,6 +127,7 @@ Schema:
           "listen_sync",
           "integration_scan",
           "plugin_copy",
+          "plugin_scheduled",
           "invalid"
         ]
       },

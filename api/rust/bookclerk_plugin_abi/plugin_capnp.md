@@ -31,6 +31,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_LIST_PAGE`](#max_list_page) | constant |  |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant |  |
 | [`MAX_IDENTIFIER_BYTES`](#max_identifier_bytes) | constant |  |
+| [`MAX_CRON_BYTES`](#max_cron_bytes) | constant |  |
 | [`MAX_CONFIG_PAYLOAD_BYTES`](#max_config_payload_bytes) | constant |  |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant |  |
 | [`MAX_KV_VALUE_BYTES`](#max_kv_value_bytes) | constant |  |
@@ -109,6 +110,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`event_consumer`](plugin_capnp/event_consumer.md)
 - [`event_publisher`](plugin_capnp/event_publisher.md)
 - [`named_database`](plugin_capnp/named_database.md)
+- [`scheduled_handler`](plugin_capnp/scheduled_handler.md)
 - [`queue_consumer`](plugin_capnp/queue_consumer.md)
 - [`queue_producer`](plugin_capnp/queue_producer.md)
 - [`named_queue`](plugin_capnp/named_queue.md)
@@ -205,6 +207,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`kv_list_key`](plugin_capnp/kv_list_key.md)
 - [`kv_list_ok`](plugin_capnp/kv_list_ok.md)
 - [`kv_list_reply`](plugin_capnp/kv_list_reply.md)
+- [`scheduled_controller`](plugin_capnp/scheduled_controller.md)
 - [`db_value`](plugin_capnp/db_value.md)
 - [`db_column`](plugin_capnp/db_column.md)
 - [`db_row`](plugin_capnp/db_row.md)
@@ -549,6 +552,12 @@ pub const MAX_CHECKPOINT_BYTES: u32 = 65536;
 
 ```rust
 pub const MAX_IDENTIFIER_BYTES: u32 = 64;
+```
+
+### MAX_CRON_BYTES
+
+```rust
+pub const MAX_CRON_BYTES: u32 = 128;
 ```
 
 ### MAX_CONFIG_PAYLOAD_BYTES

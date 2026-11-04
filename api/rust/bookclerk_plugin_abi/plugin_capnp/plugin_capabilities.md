@@ -133,6 +133,18 @@ pub fn get_queue_producers(self) -> Result<Reader<'a>>
 pub fn has_queue_producers(&self) -> bool
 ```
 
+#### Reader::get_crons
+
+```rust
+pub fn get_crons(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_crons
+
+```rust
+pub fn has_crons(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -360,6 +372,30 @@ pub fn init_queue_producers(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_queue_producers(&self) -> bool
+```
+
+#### Builder::get_crons
+
+```rust
+pub fn get_crons(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_crons
+
+```rust
+pub fn set_crons(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+```
+
+#### Builder::init_crons
+
+```rust
+pub fn init_crons(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_crons
+
+```rust
+pub fn has_crons(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
