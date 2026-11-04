@@ -101,6 +101,7 @@ assert_eq!(manifest.id, "echo");
 - [`bookclerk_plugin_abi::EventConsumerSpec`](../bookclerk_plugin_abi/generated.md#eventconsumerspec)
 - [`bookclerk_plugin_abi::PluginCapabilities`](../bookclerk_plugin_abi/generated.md#plugincapabilities)
 - [`types::ALL_ENTRYPOINTS`](types.md#all_entrypoints)
+- [`types::REGISTRY_ENTRYPOINTS`](types.md#registry_entrypoints)
 - [`types::entrypoint_family`](types.md#entrypoint_family)
 - [`types::PluginFamily`](types.md#pluginfamily)
 - [`types::PluginRuntimeKind`](types.md#pluginruntimekind)

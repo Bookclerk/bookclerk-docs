@@ -40,6 +40,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`is_valid_queue_name`](#is_valid_queue_name) | function | True when `name` is a valid queue name: `a-z0-9*`, at most `MAX_QUEUE_NAME_LEN` characters. |
 | [`is_reserved_queue_name`](#is_reserved_queue_name) | function | True when `name` starts with a `RESERVED_QUEUE_PREFIXES` entry. |
 | [`ALL_ENTRYPOINTS`](#all_entrypoints) | constant | Every entrypoint in declaration order (mirrors the Cap'n Proto enum). |
+| [`REGISTRY_ENTRYPOINTS`](#registry_entrypoints) | constant | Entrypoints the host loads into their own registry (sources, destinations, database adapters) rather than the integration registry. |
 | [`MAX_DATABASE_BINDINGS`](#max_database_bindings) | constant | Maximum named database bindings one plugin may declare. |
 | [`MAX_DATABASE_BINDING_NAME_LEN`](#max_database_binding_name_len) | constant | Maximum length of one database binding name. |
 | [`DEFAULT_KV_MAX_VALUE_BYTES`](#default_kv_max_value_bytes) | constant | Default `max_value_bytes` for `[[kv_namespaces]]`: 64 KiB. |
@@ -815,6 +816,14 @@ pub fn runs_crons(&self) -> bool
 True when the default entrypoint has a `scheduled(controller)`
 trigger (`[triggers] crons`).
 
+#### PluginManifest::has_registry_entrypoint
+
+```rust
+pub fn has_registry_entrypoint(&self) -> bool
+```
+
+True when the plugin declares one of the [`REGISTRY_ENTRYPOINTS`](#registry_entrypoints).
+
 #### PluginManifest::produces_events
 
 ```rust
@@ -867,8 +876,15 @@ Handler families this plugin belongs to, in
 
 A plugin joins the `Source` / `Output` / `Database` families through
 the matching named entrypoint and the `Integration` family through
-event consumers, queue consumers, job triggers, `RemoteLibrary`,
-`Cli`, `Oidc`, or `Metadata`.
+event consumers, queue consumers, crons, `RemoteLibrary`, `Cli`,
+`Oidc`, or `Metadata`.
+
+Job triggers make a plugin an integration only when it has no
+`storefront`, `storage` or `databaseAdapter` entrypoint. Beside one of
+those, jobs run on that entrypoint's session (the host's `stream_copy`
+job runs on the storage guest's destination session), so the plugin
+stays in that one family and a deployment registers it there instead
+of as an integration.
 
 ##### Returns
 
@@ -1329,6 +1345,18 @@ pub const ALL_ENTRYPOINTS: [Entrypoint; 7] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
+
+### REGISTRY_ENTRYPOINTS
+
+```rust
+pub const REGISTRY_ENTRYPOINTS: [Entrypoint; 3] = _;
+```
+
+Entrypoints the host loads into their own registry (sources,
+destinations, database adapters) rather than the integration registry.
+
+Crons are rejected beside these, and job triggers beside them stay on
+that registry's session instead of making the plugin an integration.
 
 ### MAX_DATABASE_BINDINGS
 

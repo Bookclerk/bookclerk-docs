@@ -1838,7 +1838,7 @@ Operator-supplied grant fields that replace matching request values.
 - `tcp` *array of [`TcpGrantView`](#tcpgrantview) or null* — Override raw TCP grants when set.
 - `addressCidrs` *array of string or null* — Override address-space CIDRs when set.
 - `allowUndeclaredPublicRedirects` *boolean or null* — Override undeclared-public-redirect permission when set.
-- `bindings` *array of string or null* — Override approved host bindings when set.
+- `bindings` *array of string or null* — Override approved bindings when set. Entries are host binding names (`config`, `secrets`, `plugin_kv`, `work_fs`, `oauth`) and the manifest tokens the consent request lists (`database:<NAME>`, `queue:<BINDING>`, `queue_consumer:<queue>`, `cron:<schedule>`). A manifest token must match one in the request exactly; leaving one out narrows the grant.
 - `compatibilityFlags` *array of string or null* — Override compatibility flags when set.
 - `cpuMs` *integer (int32) or null* — Override workerd CPU milliseconds when set. At least 0.
 - `subrequests` *integer (int32) or null* — Override workerd subrequest budget when set. At least 0.
