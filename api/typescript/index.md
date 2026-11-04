@@ -614,7 +614,7 @@ new CliEntrypoint<Env>(ctx, env): CliEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -626,7 +626,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -636,7 +636,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -648,7 +648,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -660,7 +660,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -694,7 +694,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### describe()
 
@@ -732,7 +732,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ##### invoke()
 
@@ -797,7 +797,7 @@ new DatabaseAdapterEntrypoint<Env>(ctx, env): DatabaseAdapterEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -809,7 +809,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -819,7 +819,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -831,7 +831,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -843,7 +843,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -878,7 +878,7 @@ Session id for `openSession`, else the session method result.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### dropUnit()
 
@@ -922,7 +922,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ##### openSession()
 
@@ -1156,7 +1156,7 @@ new EventBatch(events, invocation?): EventBatch;
 | Parameter | Type |
 | ------ | ------ |
 | `events` | readonly `Partial`\<[`DomainEvent`](#domainevent)\>[] \| `undefined` |
-| `invocation?` | [`Invocation`](#invocation-11) |
+| `invocation?` | [`Invocation`](#invocation-12) |
 
 ###### Returns
 
@@ -1775,6 +1775,225 @@ Release with a bounded checkpoint; the host resumes at `wakeAt`.
 
 ***
 
+### MetadataEntrypoint
+
+`metadata` entrypoint (`MetadataProvider`): bibliographic lookups against a
+public catalog. Records describe editions; the host decides identity.
+Export it as `export class Metadata extends MetadataEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new MetadataEntrypoint<Env>(ctx, env): MetadataEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`MetadataEntrypoint`](#metadataentrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+
+##### chapters()
+
+```ts
+chapters(_params): Promise<MetadataChapters>;
+```
+
+Chapter layout of one edition.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`MetadataChaptersParams`](#metadatachaptersparams) | Identifiers of the edition. |
+
+###### Returns
+
+`Promise`\<[`MetadataChapters`](#metadatachapters)\>
+
+The layout, or `{ found: false }` when the provider has none.
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+
+##### health()
+
+```ts
+health(): Promise<HealthOk>;
+```
+
+Reports whether the provider can answer.
+
+###### Returns
+
+`Promise`\<[`HealthOk`](#healthok)\>
+
+Health flag plus detail.
+
+##### lookup()
+
+```ts
+lookup(_params): Promise<MetadataRecord[]>;
+```
+
+Records for the editions the identifiers name.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`MetadataLookupParams`](#metadatalookupparams) | Identifiers, marketplace and result cap. |
+
+###### Returns
+
+`Promise`\<[`MetadataRecord`](#metadatarecord)[]\>
+
+Records in relevance order (`[]` when nothing matched).
+
+##### search()
+
+```ts
+search(_params): Promise<MetadataRecord[]>;
+```
+
+Records matching a title and, optionally, an author.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`MetadataSearchParams`](#metadatasearchparams) | Title, author, language, marketplace and result cap. |
+
+###### Returns
+
+`Promise`\<[`MetadataRecord`](#metadatarecord)[]\>
+
+Records in relevance order (`[]` when nothing matched).
+
+***
+
 ### NamedEntrypoint
 
 Base for named entrypoints. Subclasses list their RPC surface on the static
@@ -1789,6 +2008,7 @@ which installs the granted bindings on `env` before dispatching.
 
 - [`CliEntrypoint`](#clientrypoint)
 - [`DatabaseAdapterEntrypoint`](#databaseadapterentrypoint)
+- [`MetadataEntrypoint`](#metadataentrypoint)
 - [`OidcEntrypoint`](#oidcentrypoint)
 - [`RemoteLibraryEntrypoint`](#remotelibraryentrypoint)
 - [`StorageEntrypoint`](#storageentrypoint)
@@ -1798,7 +2018,7 @@ which installs the granted bindings on `env` before dispatching.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -1926,7 +2146,7 @@ verification. Export it as `export class Oidc extends OidcEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -1949,7 +2169,7 @@ new OidcEntrypoint<Env>(ctx, env): OidcEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -1961,7 +2181,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -1971,7 +2191,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -1983,7 +2203,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -1995,7 +2215,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -2049,7 +2269,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### clients()
 
@@ -2088,7 +2308,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ***
 
@@ -2244,7 +2464,7 @@ new QueueBatch(
 | ------ | ------ |
 | `queue` | `string` \| `undefined` |
 | `messages` | readonly `Partial`\<`QueueMessage`\>[] \| `undefined` |
-| `invocation?` | [`Invocation`](#invocation-11) |
+| `invocation?` | [`Invocation`](#invocation-12) |
 
 ###### Returns
 
@@ -2495,7 +2715,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2518,7 +2738,7 @@ new RemoteLibraryEntrypoint<Env>(ctx, env): RemoteLibraryEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -2530,7 +2750,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -2540,7 +2760,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -2552,7 +2772,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -2564,7 +2784,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -2598,7 +2818,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### diagnose()
 
@@ -2636,7 +2856,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ##### health()
 
@@ -2792,7 +3012,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2815,7 +3035,7 @@ new StorageEntrypoint<Env>(ctx, env): StorageEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -2827,7 +3047,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -2837,7 +3057,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -2849,7 +3069,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -2861,7 +3081,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -2916,7 +3136,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### commit()
 
@@ -3002,7 +3222,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ##### get()
 
@@ -3107,7 +3327,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -3130,7 +3350,7 @@ new StorefrontEntrypoint<Env>(ctx, env): StorefrontEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-8)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
 
 #### Properties
 
@@ -3142,7 +3362,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-3)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
 
 ##### env
 
@@ -3152,7 +3372,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-3)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
 
 ##### invocation
 
@@ -3164,7 +3384,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-4)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
 
 ##### bookclerkMethods
 
@@ -3176,7 +3396,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
 
 #### Methods
 
@@ -3210,7 +3430,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-2)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
 
 ##### catalogDetail()
 
@@ -3288,7 +3508,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-3)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
 
 ##### fetchTitle()
 
@@ -6098,6 +6318,15 @@ jobRunner?: JobRunner | null;
 `[triggers] jobs` trigger: `job(controller)` handler.
 Null when the guest does not export this capability.
 
+##### metadata?
+
+```ts
+metadata?: MetadataProvider | null;
+```
+
+`metadata` entrypoint.
+Null when the guest does not export this capability.
+
 ##### oidc?
 
 ```ts
@@ -7663,7 +7892,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-10)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-11)
 
 ##### jobId?
 
@@ -8805,6 +9034,495 @@ Browser URL the operator should open to complete OAuth.
 
 ***
 
+### MetadataChapter
+
+One chapter in a provider's chapter layout. Chapters are listed in
+pre-order: a chapter with `depth` n + 1 is nested under the nearest
+earlier chapter with `depth` n.
+
+#### Properties
+
+##### depth
+
+```ts
+depth: number;
+```
+
+Nesting depth; 0 for a top-level chapter.
+
+##### lengthMs?
+
+```ts
+lengthMs?: number;
+```
+
+Length in milliseconds when known.
+Omitted when absent (wire zero value).
+
+##### startMs
+
+```ts
+startMs: number;
+```
+
+Start offset in milliseconds from the beginning of the title.
+
+##### title
+
+```ts
+title: string;
+```
+
+Chapter title.
+
+***
+
+### MetadataChapters
+
+Success payload of `MetadataProvider.chapters`.
+
+#### Properties
+
+##### accurate
+
+```ts
+accurate: boolean;
+```
+
+Whether the provider marks the offsets as exact rather than estimated.
+
+##### brandIntroMs?
+
+```ts
+brandIntroMs?: number;
+```
+
+Length of the store's spoken brand intro in milliseconds when known.
+Omitted when absent (wire zero value).
+
+##### brandOutroMs?
+
+```ts
+brandOutroMs?: number;
+```
+
+Length of the store's spoken brand outro in milliseconds when known.
+Omitted when absent (wire zero value).
+
+##### chapters
+
+```ts
+chapters: MetadataChapter[];
+```
+
+Chapters in pre-order; empty when not `found`.
+
+##### found
+
+```ts
+found: boolean;
+```
+
+False when the provider has no chapter layout for the edition.
+
+##### runtimeMs?
+
+```ts
+runtimeMs?: number;
+```
+
+Total runtime the layout was measured against, in milliseconds.
+Omitted when absent (wire zero value).
+
+***
+
+### MetadataChaptersParams
+
+Params of `MetadataProvider.chapters`.
+
+#### Properties
+
+##### identifiers
+
+```ts
+identifiers: Identifier[];
+```
+
+Identifiers of one edition (an ASIN for Audnexus); never empty.
+
+##### marketplace?
+
+```ts
+marketplace?: string;
+```
+
+Marketplace to answer for when the provider is regional.
+Omitted when absent (wire zero value).
+
+***
+
+### MetadataLookupParams
+
+Params of `MetadataProvider.lookup`.
+
+#### Properties
+
+##### identifiers
+
+```ts
+identifiers: Identifier[];
+```
+
+Identifiers naming the wanted edition or work; never empty. A provider
+ignores schemes it does not serve.
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Most records to return; the provider picks a small default when absent.
+Omitted when absent (wire zero value).
+
+##### marketplace?
+
+```ts
+marketplace?: string;
+```
+
+Marketplace to answer for (`us`, `uk`, ...) when the provider is
+regional.
+Omitted when absent (wire zero value).
+
+***
+
+### MetadataProvider
+
+`metadata` entrypoint: bibliographic lookups against a public catalog
+(OpenLibrary, Audnexus, ...). A provider describes what it finds as
+edition records; the host decides identity and never trusts a record to
+name an existing library row. Network access is limited to the domains the
+manifest's `[capabilities.network]` declares.
+
+#### Methods
+
+##### chapters()
+
+```ts
+chapters(params): Promise<MetadataChaptersReply>;
+```
+
+Chapter layout of the edition the given identifiers name.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MetadataChaptersParams`](#metadatachaptersparams) | Identifiers of one edition. |
+
+###### Returns
+
+`Promise`\<[`MetadataChaptersReply`](#metadatachaptersreply)\>
+
+[MetadataChaptersReply](#metadatachaptersreply)
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+##### lookup()
+
+```ts
+lookup(params): Promise<MetadataRecordsReply>;
+```
+
+Records for the editions the given identifiers name.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MetadataLookupParams`](#metadatalookupparams) | Identifiers to resolve and a result cap. |
+
+###### Returns
+
+`Promise`\<[`MetadataRecordsReply`](#metadatarecordsreply)\>
+
+[MetadataRecordsReply](#metadatarecordsreply)
+
+##### search()
+
+```ts
+search(params): Promise<MetadataRecordsReply>;
+```
+
+Records matching a title and, optionally, an author.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MetadataSearchParams`](#metadatasearchparams) | Title, author, language and a result cap. |
+
+###### Returns
+
+`Promise`\<[`MetadataRecordsReply`](#metadatarecordsreply)\>
+
+[MetadataRecordsReply](#metadatarecordsreply)
+
+***
+
+### MetadataRecord
+
+One edition as a metadata provider describes it: the same structured
+fields as `CatalogHit`, without store pricing.
+
+#### Properties
+
+##### abridgement
+
+```ts
+abridgement: "unknown" | "unabridged" | "abridged";
+```
+
+Whether the edition is abridged when the provider says so.
+
+##### categories?
+
+```ts
+categories?: string;
+```
+
+Category / genre labels as a single string when known.
+Omitted when absent (wire zero value).
+
+##### coverUrl?
+
+```ts
+coverUrl?: string;
+```
+
+Cover image URL.
+Omitted when absent (wire zero value).
+
+##### credits
+
+```ts
+credits: Credit[];
+```
+
+Credited contributors in billing order.
+
+##### description?
+
+```ts
+description?: string;
+```
+
+Long description / blurb when known.
+Omitted when absent (wire zero value).
+
+##### expressionKind
+
+```ts
+expressionKind: "narration" | "text" | "translation" | "dramatisation" | "podcastAudio";
+```
+
+How the work is realised in this edition.
+
+##### identifiers
+
+```ts
+identifiers: Identifier[];
+```
+
+External identifiers (ISBN, ASIN, OpenLibrary ids).
+
+##### language?
+
+```ts
+language?: string;
+```
+
+Content language code when known.
+Omitted when absent (wire zero value).
+
+##### lengthMinutes?
+
+```ts
+lengthMinutes?: number;
+```
+
+Runtime in whole minutes when known.
+Omitted when absent (wire zero value).
+
+##### mediaKind
+
+```ts
+mediaKind: "podcastAudio" | "audiobook" | "ebook" | "print";
+```
+
+Form of this edition.
+
+##### publishedAt?
+
+```ts
+publishedAt?: string;
+```
+
+Publication date string as the provider prints it.
+Omitted when absent (wire zero value).
+
+##### publisher?
+
+```ts
+publisher?: string;
+```
+
+Publisher name when known.
+Omitted when absent (wire zero value).
+
+##### ratingCount?
+
+```ts
+ratingCount?: number;
+```
+
+Number of ratings behind `ratingOverall` when known.
+Omitted when absent (wire zero value).
+
+##### ratingOverall?
+
+```ts
+ratingOverall?: number;
+```
+
+Aggregate rating when the provider publishes one.
+Omitted when absent (wire zero value).
+
+##### seriesEntries
+
+```ts
+seriesEntries: SeriesEntry[];
+```
+
+Series the work belongs to.
+
+##### subtitle?
+
+```ts
+subtitle?: string;
+```
+
+Subtitle when distinct from `title`.
+Omitted when absent (wire zero value).
+
+##### title
+
+```ts
+title: string;
+```
+
+Primary title.
+
+##### url?
+
+```ts
+url?: string;
+```
+
+The provider's page for this record.
+Omitted when absent (wire zero value).
+
+##### workKind
+
+```ts
+workKind: "book" | "podcastShow" | "podcastEpisode" | "drama";
+```
+
+Kind of work the record describes.
+
+***
+
+### MetadataRecords
+
+Success payload of `MetadataProvider.lookup` / `search`.
+
+#### Properties
+
+##### records
+
+```ts
+records: MetadataRecord[];
+```
+
+Records in the provider's relevance order; empty when nothing matched.
+
+***
+
+### MetadataSearchParams
+
+Params of `MetadataProvider.search`.
+
+#### Properties
+
+##### author?
+
+```ts
+author?: string;
+```
+
+Author display name to narrow the match when known.
+Omitted when absent (wire zero value).
+
+##### language?
+
+```ts
+language?: string;
+```
+
+Preferred content language code when known.
+Omitted when absent (wire zero value).
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Most records to return; the provider picks a small default when absent.
+Omitted when absent (wire zero value).
+
+##### marketplace?
+
+```ts
+marketplace?: string;
+```
+
+Marketplace to answer for when the provider is regional.
+Omitted when absent (wire zero value).
+
+##### title
+
+```ts
+title: string;
+```
+
+Title to match; never empty.
+
+***
+
 ### NamedDatabase
 
 One named `[[databases]]` binding on the granted context: either an
@@ -9280,7 +9998,8 @@ entrypoints: (
   | "databaseAdapter"
   | "remoteLibrary"
   | "cli"
-  | "oidc")[];
+  | "oidc"
+  | "metadata")[];
 ```
 
 Named entrypoints the guest exports.
@@ -9535,7 +10254,7 @@ bindings. Entrypoints the manifest does not export are null.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `invocation` | [`Invocation`](#invocation-11) | Host-issued invocation identity. |
+| `invocation` | [`Invocation`](#invocation-12) | Host-issued invocation identity. |
 | `bindings` | [`Bindings`](#bindings) | Granted `env` bindings. |
 
 ###### Returns
@@ -12052,7 +12771,8 @@ type EntrypointName =
   | "databaseAdapter"
   | "remoteLibrary"
   | "cli"
-  | "oidc";
+  | "oidc"
+  | "metadata";
 ```
 
 Wire name of each named entrypoint (`plugin.toml` `entrypoints`).
@@ -12607,6 +13327,42 @@ type MediaKind = typeof MEDIA_KINDS[number];
 ```
 
 Union of `MEDIA_KINDS` wire names.
+
+***
+
+### MetadataChaptersReply
+
+```ts
+type MetadataChaptersReply = 
+  | {
+  kind: "ok";
+  value: MetadataChapters;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `MetadataProvider.chapters`.
+
+***
+
+### MetadataRecordsReply
+
+```ts
+type MetadataRecordsReply = 
+  | {
+  kind: "ok";
+  value: MetadataRecords;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `MetadataProvider.lookup` / `search`.
 
 ***
 
@@ -13539,7 +14295,7 @@ Invocation envelope (`Invocation` struct) with zero values normalized.
 
 #### Returns
 
-[`Invocation`](#invocation-11)
+[`Invocation`](#invocation-12)
 
 Frozen invocation identity.
 

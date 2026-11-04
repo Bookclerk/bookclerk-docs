@@ -120,6 +120,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`remote_library`](plugin_capnp/remote_library.md)
 - [`plugin_cli`](plugin_capnp/plugin_cli.md)
 - [`oidc`](plugin_capnp/oidc.md)
+- [`metadata_provider`](plugin_capnp/metadata_provider.md)
 - [`json_enum`](plugin_capnp/json_enum.md)
 - [`event_consumer_spec`](plugin_capnp/event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capnp/plugin_capabilities.md)
@@ -208,6 +209,15 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`kv_list_ok`](plugin_capnp/kv_list_ok.md)
 - [`kv_list_reply`](plugin_capnp/kv_list_reply.md)
 - [`scheduled_controller`](plugin_capnp/scheduled_controller.md)
+- [`metadata_lookup_params`](plugin_capnp/metadata_lookup_params.md)
+- [`metadata_search_params`](plugin_capnp/metadata_search_params.md)
+- [`metadata_chapters_params`](plugin_capnp/metadata_chapters_params.md)
+- [`metadata_record`](plugin_capnp/metadata_record.md)
+- [`metadata_records`](plugin_capnp/metadata_records.md)
+- [`metadata_records_reply`](plugin_capnp/metadata_records_reply.md)
+- [`metadata_chapter`](plugin_capnp/metadata_chapter.md)
+- [`metadata_chapters`](plugin_capnp/metadata_chapters.md)
+- [`metadata_chapters_reply`](plugin_capnp/metadata_chapters_reply.md)
 - [`db_value`](plugin_capnp/db_value.md)
 - [`db_column`](plugin_capnp/db_column.md)
 - [`db_row`](plugin_capnp/db_row.md)
@@ -283,6 +293,7 @@ pub enum Entrypoint {
     RemoteLibrary = 3,
     Cli = 4,
     Oidc = 5,
+    Metadata = 6,
 }
 ```
 

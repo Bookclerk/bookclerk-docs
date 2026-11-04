@@ -592,7 +592,7 @@ Allowed file extensions for embedded `plugin.toml` logo paths.
 ### ENTRYPOINT_NAMES
 
 ```python
-ENTRYPOINT_NAMES: tuple[str, ...] = ('storefront', 'storage', 'databaseAdapter', 'remoteLibrary', 'cli', 'oidc')
+ENTRYPOINT_NAMES: tuple[str, ...] = ('storefront', 'storage', 'databaseAdapter', 'remoteLibrary', 'cli', 'oidc', ...
 ```
 
 Entrypoint wire names accepted in `entrypoints`.

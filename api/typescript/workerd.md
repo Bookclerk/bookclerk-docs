@@ -40,7 +40,7 @@ new InvokeError(
 
 ###### Overrides
 
-[`PluginError`](index.md#pluginerror).[`constructor`](index.md#constructor-10)
+[`PluginError`](index.md#pluginerror).[`constructor`](index.md#constructor-11)
 
 #### Properties
 
@@ -750,7 +750,7 @@ Re-exports [Instant](index.md#instant)
 
 ### Invocation
 
-Re-exports [Invocation](index.md#invocation-11)
+Re-exports [Invocation](index.md#invocation-12)
 
 ***
 
@@ -919,6 +919,12 @@ Re-exports [MAX_SCALAR_BYTES](index.md#max_scalar_bytes)
 ### MAX\_STREAM\_WINDOW\_BYTES
 
 Re-exports [MAX_STREAM_WINDOW_BYTES](index.md#max_stream_window_bytes)
+
+***
+
+### MetadataEntrypoint
+
+Re-exports [MetadataEntrypoint](index.md#metadataentrypoint)
 
 ***
 

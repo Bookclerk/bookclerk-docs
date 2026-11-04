@@ -3,8 +3,8 @@
 Out-of-tree workerd plugin smoke: ensure → materialize → describe + health.
 
 Spawns the pinned Cloudflare `workerd` with a materialized Cap'n Proto config
-and POSTs `describe` (plus a `POST /invoke` `health` call for storefront /
-remoteLibrary guests) to the HTTP bridge. Does not require the Rust
+and POSTs `describe` (plus a `POST /invoke` `health` call for storefront,
+remoteLibrary and metadata guests) to the HTTP bridge. Does not require the Rust
 `bookclerk-workerd` binary.
 
 ## Functions

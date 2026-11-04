@@ -3,7 +3,8 @@
 Role capability method names (camelCase on the wire).
 
 Each submodule exposes a single [`NAME`](methods/health.md#name) constant equal to
-the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` / `Cli` /
+the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` /
+`MetadataProvider` / `Cli` /
 `EventConsumer` / `EventPublisher` / `QueueConsumer` / `QueueProducer` /
 `PluginWorker` method in
 `schema/plugin.capnp`. Prefer these constants over string literals when
@@ -29,6 +30,9 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](methods/names.md).
 - [`scan_library`](methods/scan_library.md): Trigger an integration library scan against a remote server (e.g. ABS).
 - [`sync_listening`](methods/sync_listening.md): Pull listening-progress snapshots; host upserts tagged with the plugin id.
 - [`authenticate_user`](methods/authenticate_user.md): Validate a username/password against a remote IdP (Cap'n Proto `Oidc.authenticateUser`) and return an external user.
+- [`lookup`](methods/lookup.md): Edition records for a set of identifiers (Cap'n Proto `MetadataProvider.lookup`).
+- [`search`](methods/search.md): Edition records matching a title and author (Cap'n Proto `MetadataProvider.search`).
+- [`chapters`](methods/chapters.md): Chapter layout of one edition (Cap'n Proto `MetadataProvider.chapters`).
 - [`clients`](methods/clients.md): Plugin-provided OIDC client templates (Cap'n Proto `Oidc.clients`).
 - [`describe`](methods/describe.md): Return the guest's declared CLI schema (`crate::CliSchema`; Cap'n Proto `PluginCli.describe`). Also the root `PluginWorker.describe` identity call.
 - [`invoke`](methods/invoke.md): Invoke a declared plugin CLI command (Cap'n Proto `PluginCli.invoke`).

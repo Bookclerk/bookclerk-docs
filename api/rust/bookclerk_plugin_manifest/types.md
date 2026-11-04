@@ -868,7 +868,7 @@ Handler families this plugin belongs to, in
 A plugin joins the `Source` / `Output` / `Database` families through
 the matching named entrypoint and the `Integration` family through
 event consumers, queue consumers, job triggers, `RemoteLibrary`,
-`Cli`, or `Oidc`.
+`Cli`, `Oidc`, or `Metadata`.
 
 ##### Returns
 
@@ -1152,7 +1152,8 @@ are lowercase (`source`, `integration`, `output`, `database`).
 **Variants**
 
 - `Source`: Storefront / library source (`Storefront` entrypoint).
-- `Integration`: Event consumer, job runner, remote library, CLI, or OIDC bridge.
+- `Integration`: Event consumer, job runner, remote library, CLI, OIDC bridge, or
+  metadata provider.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).
 
@@ -1324,7 +1325,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 6] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 7] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).

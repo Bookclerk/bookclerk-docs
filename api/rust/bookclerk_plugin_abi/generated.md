@@ -75,6 +75,13 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`KvListKey`](#kvlistkey) | struct | One key on a `KvNamespace.list` page. |
 | [`KvListOk`](#kvlistok) | struct | Success payload of `KvNamespace.list`. |
 | [`ScheduledController`](#scheduledcontroller) | struct | One fire of a `\[triggers\] crons` schedule (`scheduled(controller)`). |
+| [`MetadataLookupParams`](#metadatalookupparams) | struct | Params of `MetadataProvider.lookup`. |
+| [`MetadataSearchParams`](#metadatasearchparams) | struct | Params of `MetadataProvider.search`. |
+| [`MetadataChaptersParams`](#metadatachaptersparams) | struct | Params of `MetadataProvider.chapters`. |
+| [`MetadataRecord`](#metadatarecord) | struct | One edition as a metadata provider describes it: the same structured fields as `CatalogHit`, without store pricing. |
+| [`MetadataRecords`](#metadatarecords) | struct | Success payload of `MetadataProvider.lookup` / `search`. |
+| [`MetadataChapter`](#metadatachapter) | struct | One chapter in a provider's chapter layout. Chapters are listed in pre-order: a chapter with `depth` n + 1 is nested under the nearest earlier chapter with `depth` n. |
+| [`MetadataChapters`](#metadatachapters) | struct | Success payload of `MetadataProvider.chapters`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -263,6 +270,24 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_kv_list_reply`](#read_kv_list_reply) | function | Decode a `KvListReply` union into a typed result. |
 | [`write_scheduled_controller`](#write_scheduled_controller) | function | Encode a `ScheduledController` onto a Cap'n Proto builder. |
 | [`read_scheduled_controller`](#read_scheduled_controller) | function | Decode a `ScheduledController` from a Cap'n Proto reader. |
+| [`write_metadata_lookup_params`](#write_metadata_lookup_params) | function | Encode a `MetadataLookupParams` onto a Cap'n Proto builder. |
+| [`read_metadata_lookup_params`](#read_metadata_lookup_params) | function | Decode a `MetadataLookupParams` from a Cap'n Proto reader. |
+| [`write_metadata_search_params`](#write_metadata_search_params) | function | Encode a `MetadataSearchParams` onto a Cap'n Proto builder. |
+| [`read_metadata_search_params`](#read_metadata_search_params) | function | Decode a `MetadataSearchParams` from a Cap'n Proto reader. |
+| [`write_metadata_chapters_params`](#write_metadata_chapters_params) | function | Encode a `MetadataChaptersParams` onto a Cap'n Proto builder. |
+| [`read_metadata_chapters_params`](#read_metadata_chapters_params) | function | Decode a `MetadataChaptersParams` from a Cap'n Proto reader. |
+| [`write_metadata_record`](#write_metadata_record) | function | Encode a `MetadataRecord` onto a Cap'n Proto builder. |
+| [`read_metadata_record`](#read_metadata_record) | function | Decode a `MetadataRecord` from a Cap'n Proto reader. |
+| [`write_metadata_records`](#write_metadata_records) | function | Encode a `MetadataRecords` onto a Cap'n Proto builder. |
+| [`read_metadata_records`](#read_metadata_records) | function | Decode a `MetadataRecords` from a Cap'n Proto reader. |
+| [`write_metadata_records_reply`](#write_metadata_records_reply) | function | Encode a `MetadataRecordsReply` union from a typed result. |
+| [`read_metadata_records_reply`](#read_metadata_records_reply) | function | Decode a `MetadataRecordsReply` union into a typed result. |
+| [`write_metadata_chapter`](#write_metadata_chapter) | function | Encode a `MetadataChapter` onto a Cap'n Proto builder. |
+| [`read_metadata_chapter`](#read_metadata_chapter) | function | Decode a `MetadataChapter` from a Cap'n Proto reader. |
+| [`write_metadata_chapters`](#write_metadata_chapters) | function | Encode a `MetadataChapters` onto a Cap'n Proto builder. |
+| [`read_metadata_chapters`](#read_metadata_chapters) | function | Decode a `MetadataChapters` from a Cap'n Proto reader. |
+| [`write_metadata_chapters_reply`](#write_metadata_chapters_reply) | function | Encode a `MetadataChaptersReply` union from a typed result. |
+| [`read_metadata_chapters_reply`](#read_metadata_chapters_reply) | function | Decode a `MetadataChaptersReply` union into a typed result. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -1902,6 +1927,211 @@ One fire of a `\[triggers\] crons` schedule (`scheduled(controller)`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### MetadataLookupParams
+
+```rust
+pub struct MetadataLookupParams {
+    pub identifiers: Vec<Identifier>,
+    pub marketplace: Option<String>,
+    pub limit: Option<u32>,
+}
+```
+
+Params of `MetadataProvider.lookup`.
+
+**Fields**
+
+- `identifiers`: Identifiers naming the wanted edition or work; never empty. A provider
+  ignores schemes it does not serve.
+- `marketplace`: Marketplace to answer for (`us`, `uk`, ...) when the provider is
+  regional.
+  `None` when absent (wire zero value).
+- `limit`: Most records to return; the provider picks a small default when absent.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataSearchParams
+
+```rust
+pub struct MetadataSearchParams {
+    pub title: String,
+    pub author: Option<String>,
+    pub language: Option<String>,
+    pub marketplace: Option<String>,
+    pub limit: Option<u32>,
+}
+```
+
+Params of `MetadataProvider.search`.
+
+**Fields**
+
+- `title`: Title to match; never empty.
+- `author`: Author display name to narrow the match when known.
+  `None` when absent (wire zero value).
+- `language`: Preferred content language code when known.
+  `None` when absent (wire zero value).
+- `marketplace`: Marketplace to answer for when the provider is regional.
+  `None` when absent (wire zero value).
+- `limit`: Most records to return; the provider picks a small default when absent.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataChaptersParams
+
+```rust
+pub struct MetadataChaptersParams {
+    pub identifiers: Vec<Identifier>,
+    pub marketplace: Option<String>,
+}
+```
+
+Params of `MetadataProvider.chapters`.
+
+**Fields**
+
+- `identifiers`: Identifiers of one edition (an ASIN for Audnexus); never empty.
+- `marketplace`: Marketplace to answer for when the provider is regional.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataRecord
+
+```rust
+pub struct MetadataRecord {
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub description: Option<String>,
+    pub cover_url: Option<String>,
+    pub url: Option<String>,
+    pub publisher: Option<String>,
+    pub length_minutes: Option<u32>,
+    pub published_at: Option<String>,
+    pub categories: Option<String>,
+    pub language: Option<String>,
+    pub abridgement: Abridgement,
+    pub work_kind: WorkKind,
+    pub expression_kind: ExpressionKind,
+    pub media_kind: MediaKind,
+    pub identifiers: Vec<Identifier>,
+    pub credits: Vec<Credit>,
+    pub series_entries: Vec<SeriesEntry>,
+    pub rating_overall: Option<f64>,
+    pub rating_count: Option<u32>,
+}
+```
+
+One edition as a metadata provider describes it: the same structured
+fields as `CatalogHit`, without store pricing.
+
+**Fields**
+
+- `title`: Primary title.
+- `subtitle`: Subtitle when distinct from `title`.
+  `None` when absent (wire zero value).
+- `description`: Long description / blurb when known.
+  `None` when absent (wire zero value).
+- `cover_url`: Cover image URL.
+  `None` when absent (wire zero value).
+- `url`: The provider's page for this record.
+  `None` when absent (wire zero value).
+- `publisher`: Publisher name when known.
+  `None` when absent (wire zero value).
+- `length_minutes`: Runtime in whole minutes when known.
+  `None` when absent (wire zero value).
+- `published_at`: Publication date string as the provider prints it.
+  `None` when absent (wire zero value).
+- `categories`: Category / genre labels as a single string when known.
+  `None` when absent (wire zero value).
+- `language`: Content language code when known.
+  `None` when absent (wire zero value).
+- `abridgement`: Whether the edition is abridged when the provider says so.
+- `work_kind`: Kind of work the record describes.
+- `expression_kind`: How the work is realised in this edition.
+- `media_kind`: Form of this edition.
+- `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
+- `credits`: Credited contributors in billing order.
+- `series_entries`: Series the work belongs to.
+- `rating_overall`: Aggregate rating when the provider publishes one.
+  `None` when absent (wire zero value).
+- `rating_count`: Number of ratings behind `ratingOverall` when known.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### MetadataRecords
+
+```rust
+pub struct MetadataRecords {
+    pub records: Vec<MetadataRecord>,
+}
+```
+
+Success payload of `MetadataProvider.lookup` / `search`.
+
+**Fields**
+
+- `records`: Records in the provider's relevance order; empty when nothing matched.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### MetadataChapter
+
+```rust
+pub struct MetadataChapter {
+    pub title: String,
+    pub start_ms: u64,
+    pub length_ms: Option<u64>,
+    pub depth: u32,
+}
+```
+
+One chapter in a provider's chapter layout. Chapters are listed in
+pre-order: a chapter with `depth` n + 1 is nested under the nearest
+earlier chapter with `depth` n.
+
+**Fields**
+
+- `title`: Chapter title.
+- `start_ms`: Start offset in milliseconds from the beginning of the title.
+- `length_ms`: Length in milliseconds when known.
+  `None` when absent (wire zero value).
+- `depth`: Nesting depth; 0 for a top-level chapter.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataChapters
+
+```rust
+pub struct MetadataChapters {
+    pub found: bool,
+    pub chapters: Vec<MetadataChapter>,
+    pub brand_intro_ms: Option<u64>,
+    pub brand_outro_ms: Option<u64>,
+    pub runtime_ms: Option<u64>,
+    pub accurate: bool,
+}
+```
+
+Success payload of `MetadataProvider.chapters`.
+
+**Fields**
+
+- `found`: False when the provider has no chapter layout for the edition.
+- `chapters`: Chapters in pre-order; empty when not `found`.
+- `brand_intro_ms`: Length of the store's spoken brand intro in milliseconds when known.
+  `None` when absent (wire zero value).
+- `brand_outro_ms`: Length of the store's spoken brand outro in milliseconds when known.
+  `None` when absent (wire zero value).
+- `runtime_ms`: Total runtime the layout was measured against, in milliseconds.
+  `None` when absent (wire zero value).
+- `accurate`: Whether the provider marks the offsets as exact rather than estimated.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### Entrypoint
@@ -1914,6 +2144,7 @@ pub enum Entrypoint {
     RemoteLibrary,
     Cli,
     Oidc,
+    Metadata,
 }
 ```
 
@@ -1930,6 +2161,8 @@ the default entrypoint (`event`, `job`) are declared separately.
   pollEvents (`RemoteLibrary`).
 - `Cli`: Guest CLI (`PluginCli.describe` / `PluginCli.invoke`).
 - `Oidc`: OIDC bridge: relying-party client templates and `authenticateUser`.
+- `Metadata`: Metadata provider: `lookup`, `search` and `chapters`
+  (`MetadataProvider`).
 
 #### Entrypoint::wire_name
 
@@ -4597,6 +4830,241 @@ Decode a [`ScheduledController`](#scheduledcontroller) from a Cap'n Proto reader
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_metadata_lookup_params
+
+```rust
+pub fn write_metadata_lookup_params(
+    b: Builder<'_>,
+    v: &MetadataLookupParams,
+) -> Result<()>
+```
+
+Encode a [`MetadataLookupParams`](#metadatalookupparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_lookup_params
+
+```rust
+pub fn read_metadata_lookup_params(r: Reader<'_>) -> Result<MetadataLookupParams>
+```
+
+Decode a [`MetadataLookupParams`](#metadatalookupparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_search_params
+
+```rust
+pub fn write_metadata_search_params(
+    b: Builder<'_>,
+    v: &MetadataSearchParams,
+) -> Result<()>
+```
+
+Encode a [`MetadataSearchParams`](#metadatasearchparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_search_params
+
+```rust
+pub fn read_metadata_search_params(r: Reader<'_>) -> Result<MetadataSearchParams>
+```
+
+Decode a [`MetadataSearchParams`](#metadatasearchparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_chapters_params
+
+```rust
+pub fn write_metadata_chapters_params(
+    b: Builder<'_>,
+    v: &MetadataChaptersParams,
+) -> Result<()>
+```
+
+Encode a [`MetadataChaptersParams`](#metadatachaptersparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_chapters_params
+
+```rust
+pub fn read_metadata_chapters_params(r: Reader<'_>) -> Result<MetadataChaptersParams>
+```
+
+Decode a [`MetadataChaptersParams`](#metadatachaptersparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_record
+
+```rust
+pub fn write_metadata_record(b: Builder<'_>, v: &MetadataRecord) -> Result<()>
+```
+
+Encode a [`MetadataRecord`](#metadatarecord) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_record
+
+```rust
+pub fn read_metadata_record(r: Reader<'_>) -> Result<MetadataRecord>
+```
+
+Decode a [`MetadataRecord`](#metadatarecord) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_records
+
+```rust
+pub fn write_metadata_records(b: Builder<'_>, v: &MetadataRecords) -> Result<()>
+```
+
+Encode a [`MetadataRecords`](#metadatarecords) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_records
+
+```rust
+pub fn read_metadata_records(r: Reader<'_>) -> Result<MetadataRecords>
+```
+
+Decode a [`MetadataRecords`](#metadatarecords) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_records_reply
+
+```rust
+pub fn write_metadata_records_reply(
+    b: Builder<'_>,
+    v: &Result<MetadataRecords, PluginError>,
+) -> Result<()>
+```
+
+Encode a `MetadataRecordsReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_metadata_records_reply
+
+```rust
+pub fn read_metadata_records_reply(
+    r: Reader<'_>,
+) -> Result<Result<MetadataRecords, PluginError>>
+```
+
+Decode a `MetadataRecordsReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_metadata_chapter
+
+```rust
+pub fn write_metadata_chapter(b: Builder<'_>, v: &MetadataChapter) -> Result<()>
+```
+
+Encode a [`MetadataChapter`](#metadatachapter) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_chapter
+
+```rust
+pub fn read_metadata_chapter(r: Reader<'_>) -> Result<MetadataChapter>
+```
+
+Decode a [`MetadataChapter`](#metadatachapter) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_chapters
+
+```rust
+pub fn write_metadata_chapters(b: Builder<'_>, v: &MetadataChapters) -> Result<()>
+```
+
+Encode a [`MetadataChapters`](#metadatachapters) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_chapters
+
+```rust
+pub fn read_metadata_chapters(r: Reader<'_>) -> Result<MetadataChapters>
+```
+
+Decode a [`MetadataChapters`](#metadatachapters) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_chapters_reply
+
+```rust
+pub fn write_metadata_chapters_reply(
+    b: Builder<'_>,
+    v: &Result<MetadataChapters, PluginError>,
+) -> Result<()>
+```
+
+Encode a `MetadataChaptersReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_metadata_chapters_reply
+
+```rust
+pub fn read_metadata_chapters_reply(
+    r: Reader<'_>,
+) -> Result<Result<MetadataChapters, PluginError>>
+```
+
+Decode a `MetadataChaptersReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### read_any_message
 
 ```rust
@@ -4649,7 +5117,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 87;
+pub const READ_ANY_COUNT: u8 = 96;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

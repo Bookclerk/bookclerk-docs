@@ -664,7 +664,7 @@ One approved grant snapshot for a provenance-qualified plugin.
 - `plugin_key`: Canonical [`bookclerk_plugin_catalog::PluginKey`](../bookclerk_plugin_catalog/index.md#pluginkey).
 - `plugin_id`: Display / CLI alias from `plugin.toml` (not security authoritative).
 - `entrypoints`: Approved named entrypoints (wire names: `storefront`, `storage`,
-  `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`).
+  `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`, `metadata`).
 - `producers`: Approved event types the plugin may publish through its events binding.
 - `consumers`: Approved event-consumer subscriptions (type + schema + suspend + filter).
 - `jobs`: Approved `[triggers].jobs` types the plugin may handle.
@@ -1682,14 +1682,14 @@ pub async fn check_health(&self) -> Result<()>
 
 Integration health RPC.
 
-Guests that do not export `remoteLibrary` are ready once `open` has
-succeeded. Event, job, OIDC, and CLI-only integrations use that
-describe/open check. This function calls remote-library health only
-when that entrypoint is exported.
+Calls `health` on each exported entrypoint that has one
+(`remoteLibrary`, `metadata`). Guests that export neither are ready
+once `open` has succeeded: event, job, OIDC, and CLI-only integrations
+use that describe/open check.
 
 ##### Errors
 
-Returns an error when remote-library health reports not ok.
+Returns an error when an entrypoint's health reports not ok.
 
 Implements: `Integration`
 
@@ -2839,6 +2839,26 @@ runtime.
 
 Returns a plugin error when the guest did not export `storefront` or
 the method fails.
+
+#### PluginSession::metadata
+
+```rust
+pub async fn metadata<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn MetadataProvider>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `metadata` method on the opened primary entrypoints.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `metadata` or the
+method fails.
 
 #### PluginSession::remote_library
 

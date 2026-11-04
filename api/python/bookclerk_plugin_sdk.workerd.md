@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -31,6 +31,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`GuestDatabase`](#guestdatabase) | class | Host-granted SQL transport behind a named `[[databases]]` binding. |
 | [`JobController`](#jobcontroller) | class | Everything one job invocation may touch. |
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
+| [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
 | [`OidcEntrypoint`](#oidcentrypoint) | class | `oidc` entrypoint: relying-party client templates and credential verification. |
 | [`PluginError`](#pluginerror) | class | SDK-thrown failure. Unknown wire codes stay on `wire_code`. |
@@ -748,6 +749,48 @@ List keys in lexical order, one page at a time.
 **Returns**
 
 `{"keys": [{"name", "expiration"?, "metadata"?}], "list_complete": bool, "cursor"?: str}`.
+
+### MetadataEntrypoint
+
+```python
+class MetadataEntrypoint(NamedEntrypoint)
+```
+
+`metadata` entrypoint: bibliographic lookups against a public catalog.
+
+Records describe editions; the host decides identity.
+
+#### MetadataEntrypoint.health
+
+```python
+async def health(self) -> abi.HealthOk
+```
+
+Liveness / readiness probe (`HealthOk`).
+
+#### MetadataEntrypoint.lookup
+
+```python
+async def lookup(self, _params: abi.MetadataLookupParams) -> list[abi.MetadataRecord]
+```
+
+Records for the editions the identifiers name (list of `MetadataRecord`).
+
+#### MetadataEntrypoint.search
+
+```python
+async def search(self, _params: abi.MetadataSearchParams) -> list[abi.MetadataRecord]
+```
+
+Records matching a title and author (list of `MetadataRecord`).
+
+#### MetadataEntrypoint.chapters
+
+```python
+async def chapters(self, _params: abi.MetadataChaptersParams) -> abi.MetadataChapters
+```
+
+Chapter layout of one edition (`MetadataChapters`).
 
 ### NamedEntrypoint
 
