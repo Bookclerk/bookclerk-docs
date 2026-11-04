@@ -4156,24 +4156,6 @@ abridgement: "unknown" | "unabridged" | "abridged";
 
 Whether the edition is abridged when the storefront says so.
 
-##### asin?
-
-```ts
-asin?: string;
-```
-
-Amazon ASIN when known.
-Omitted when absent (wire zero value).
-
-##### authors?
-
-```ts
-authors?: string;
-```
-
-Authors string when known.
-Omitted when absent (wire zero value).
-
 ##### categories?
 
 ```ts
@@ -4191,6 +4173,14 @@ coverUrl?: string;
 
 Cover image URL.
 Omitted when absent (wire zero value).
+
+##### credits
+
+```ts
+credits: Credit[];
+```
+
+Credited contributors in billing order.
 
 ##### currency?
 
@@ -4210,14 +4200,21 @@ description?: string;
 Long description / blurb when fetched.
 Omitted when absent (wire zero value).
 
-##### isbn?
+##### expressionKind
 
 ```ts
-isbn?: string;
+expressionKind: "narration" | "text" | "translation" | "dramatisation" | "podcastAudio";
 ```
 
-ISBN when known.
-Omitted when absent (wire zero value).
+How the work is realised in this edition.
+
+##### identifiers
+
+```ts
+identifiers: Identifier[];
+```
+
+External identifiers (ISBN, ASIN, OpenLibrary ids).
 
 ##### language?
 
@@ -4237,14 +4234,13 @@ lengthMinutes?: bigint;
 Runtime in whole minutes.
 Omitted when absent (wire zero value).
 
-##### narrators?
+##### mediaKind
 
 ```ts
-narrators?: string;
+mediaKind: "podcastAudio" | "audiobook" | "ebook" | "print";
 ```
 
-Narrators string when known.
-Omitted when absent (wire zero value).
+Form of this edition; print and ebook hits are never acquired.
 
 ##### origin
 
@@ -4253,6 +4249,15 @@ origin: string;
 ```
 
 Hit origin label (plugin id or storefront name).
+
+##### parentProductId?
+
+```ts
+parentProductId?: string;
+```
+
+Product id of the parent podcast show, for a podcast episode.
+Omitted when absent (wire zero value).
 
 ##### priceCents?
 
@@ -4316,23 +4321,13 @@ ratingOverall?: number;
 Aggregate rating when known.
 Omitted when absent (wire zero value).
 
-##### series?
+##### seriesEntries
 
 ```ts
-series?: string;
+seriesEntries: SeriesEntry[];
 ```
 
-Series name when applicable.
-Omitted when absent (wire zero value).
-
-##### seriesIndex?
-
-```ts
-seriesIndex?: string;
-```
-
-Series index / sequence label.
-Omitted when absent (wire zero value).
+Series the work belongs to.
 
 ##### subtitle?
 
@@ -4359,6 +4354,14 @@ url?: string;
 
 Storefront product page URL.
 Omitted when absent (wire zero value).
+
+##### workKind
+
+```ts
+workKind: "book" | "podcastShow" | "podcastEpisode" | "drama";
+```
+
+Kind of work the hit is.
 
 ***
 
@@ -5094,6 +5097,47 @@ Table-level constraints, in order.
 
 ***
 
+### Credit
+
+One credited contributor. Credits are listed in billing order.
+
+#### Properties
+
+##### level
+
+```ts
+level: "roleDefault" | "work" | "expression" | "edition";
+```
+
+Level the credit attaches to.
+
+##### name
+
+```ts
+name: string;
+```
+
+Contributor display name as the source prints it, one person or body.
+
+##### role
+
+```ts
+role: 
+  | "author"
+  | "narrator"
+  | "translator"
+  | "editor"
+  | "illustrator"
+  | "publisher"
+  | "host"
+  | "cast"
+  | "adaptor";
+```
+
+What the contributor did.
+
+***
+
 ### D1ExecResult
 
 Cloudflare [D1ExecResult](https://developers.cloudflare.com/d1/worker-api/return-object/).
@@ -5687,7 +5731,7 @@ One column in a typed result set.
 ##### dbType
 
 ```ts
-dbType: "unspecified" | "bool" | "int64" | "float64" | "text" | "bytes";
+dbType: "unspecified" | "bool" | "text" | "int64" | "float64" | "bytes";
 ```
 
 Declared / inferred type.
@@ -7145,6 +7189,39 @@ ok: boolean;
 ```
 
 True when the guest is healthy enough for traffic.
+
+***
+
+### Identifier
+
+One external identifier a storefront or metadata provider reports.
+
+#### Properties
+
+##### marketplace?
+
+```ts
+marketplace?: string;
+```
+
+Marketplace the id is scoped to (ASIN); absent for global schemes.
+Omitted when absent (wire zero value).
+
+##### scheme
+
+```ts
+scheme: "isbn" | "asin" | "openLibraryEdition" | "openLibraryWork";
+```
+
+Scheme the value belongs to; it decides the identifier's level.
+
+##### value
+
+```ts
+value: string;
+```
+
+The identifier as the source printed it; the host trims and normalises.
 
 ***
 
@@ -10569,10 +10646,19 @@ Largest `ByteSource.pull` window; at most `maxStreamWindowBytes`.
 
 ### ScanBook
 
-One library title returned by `ContentSource.scan`. The host upserts these
-rows and forces `source` to the plugin id.
+One library title returned by `ContentSource.scan`. The host forces `source`
+to the plugin id and, until the library stores works, expressions and
+editions, maps the record onto one flat library row.
 
 #### Properties
+
+##### abridgement
+
+```ts
+abridgement: "unknown" | "unabridged" | "abridged";
+```
+
+Whether the edition is abridged when the storefront says so.
 
 ##### accountId
 
@@ -10582,40 +10668,46 @@ accountId: string;
 
 Account that owns this library entry.
 
-##### asin?
+##### categories?
 
 ```ts
-asin?: string;
+categories?: string;
 ```
 
-Amazon ASIN when the storefront exposes one.
+Category / genre labels as a single string when known.
 Omitted when absent (wire zero value).
 
-##### authors?
+##### credits
 
 ```ts
-authors?: string;
+credits: Credit[];
 ```
 
-Comma- or guest-formatted author list.
-Omitted when absent (wire zero value).
+Credited contributors in billing order.
 
-##### contentKind?
+##### expressionKind
 
 ```ts
-contentKind?: string;
+expressionKind: "narration" | "text" | "translation" | "dramatisation" | "podcastAudio";
 ```
 
-Content classification (e.g. `book` vs `episode`).
-Omitted when absent (wire zero value).
+How the work is realised in this edition.
 
-##### isbn?
+##### identifiers
 
 ```ts
-isbn?: string;
+identifiers: Identifier[];
 ```
 
-ISBN when the storefront exposes one.
+External identifiers (ISBN, ASIN, OpenLibrary ids).
+
+##### language?
+
+```ts
+language?: string;
+```
+
+Content language code when known.
 Omitted when absent (wire zero value).
 
 ##### lengthMinutes?
@@ -10636,13 +10728,21 @@ marketplace?: string;
 Marketplace / region when known.
 Omitted when absent (wire zero value).
 
-##### narrators?
+##### mediaKind
 
 ```ts
-narrators?: string;
+mediaKind: "podcastAudio" | "audiobook" | "ebook" | "print";
 ```
 
-Comma- or guest-formatted narrator list.
+Form of this edition.
+
+##### parentProductId?
+
+```ts
+parentProductId?: string;
+```
+
+Product id of the parent podcast show, for a podcast episode.
 Omitted when absent (wire zero value).
 
 ##### productId
@@ -10653,6 +10753,15 @@ productId: string;
 
 Storefront product / SKU id.
 
+##### publishedAt?
+
+```ts
+publishedAt?: string;
+```
+
+Publication date as RFC 3339 when known.
+Omitted when absent (wire zero value).
+
 ##### publisher?
 
 ```ts
@@ -10662,23 +10771,22 @@ publisher?: string;
 Publisher name when known.
 Omitted when absent (wire zero value).
 
-##### series?
+##### purchasedAt?
 
 ```ts
-series?: string;
+purchasedAt?: string;
 ```
 
-Series name when applicable.
+When the account bought or added the title, as RFC 3339, when known.
 Omitted when absent (wire zero value).
 
-##### seriesIndex?
+##### seriesEntries
 
 ```ts
-seriesIndex?: string;
+seriesEntries: SeriesEntry[];
 ```
 
-Series index / sequence label.
-Omitted when absent (wire zero value).
+Series the work belongs to.
 
 ##### subtitle?
 
@@ -10696,6 +10804,14 @@ title: string;
 ```
 
 Primary title string.
+
+##### workKind
+
+```ts
+workKind: "book" | "podcastShow" | "podcastEpisode" | "drama";
+```
+
+Kind of work the title is.
 
 ***
 
@@ -10863,7 +10979,7 @@ Params of `ContentSource.searchCatalog`.
 ##### field
 
 ```ts
-field: "author" | "any" | "narrator" | "series" | "genre";
+field: "author" | "narrator" | "any" | "series" | "genre";
 ```
 
 Facet restriction.
@@ -10912,10 +11028,44 @@ Storefront region / marketplace code; empty means the guest default.
 ##### sort
 
 ```ts
-sort: "relevance" | "popularity" | "rating" | "title" | "author";
+sort: "author" | "relevance" | "popularity" | "rating" | "title";
 ```
 
 Sort order.
+
+***
+
+### SeriesEntry
+
+A work's place in one series.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Series name as the source prints it.
+
+##### position?
+
+```ts
+position?: string;
+```
+
+Position label as the source prints it (`1`, `2.5`, `1-3`).
+Omitted when absent (wire zero value).
+
+##### storeSeriesId?
+
+```ts
+storeSeriesId?: string;
+```
+
+The store's own id for the series (an Audible series ASIN) when known.
+Omitted when absent (wire zero value).
 
 ***
 
@@ -11561,6 +11711,26 @@ Result union of `Destination.copy`.
 
 ***
 
+### CreditLevel
+
+```ts
+type CreditLevel = typeof CREDIT_LEVELS[number];
+```
+
+Union of `CREDIT_LEVELS` wire names.
+
+***
+
+### CreditRole
+
+```ts
+type CreditRole = typeof CREDIT_ROLES[number];
+```
+
+Union of `CREDIT_ROLES` wire names.
+
+***
+
 ### DbBootstrapReply
 
 ```ts
@@ -11882,6 +12052,16 @@ Result union of `execute`.
 
 ***
 
+### ExpressionKind
+
+```ts
+type ExpressionKind = typeof EXPRESSION_KINDS[number];
+```
+
+Union of `EXPRESSION_KINDS` wire names.
+
+***
+
 ### ExternalUserReply
 
 ```ts
@@ -12005,6 +12185,16 @@ type HealthReply =
 ```
 
 Result union of `health`.
+
+***
+
+### IdentifierScheme
+
+```ts
+type IdentifierScheme = typeof IDENTIFIER_SCHEMES[number];
+```
+
+Union of `IDENTIFIER_SCHEMES` wire names.
 
 ***
 
@@ -12262,6 +12452,16 @@ type LoginStartReply =
 ```
 
 Result union of `ContentSource.loginStart`.
+
+***
+
+### MediaKind
+
+```ts
+type MediaKind = typeof MEDIA_KINDS[number];
+```
+
+Union of `MEDIA_KINDS` wire names.
 
 ***
 
@@ -12688,6 +12888,16 @@ type UserRelationsReply =
 ```
 
 Result union of `AdapterDatabaseSession.listUserRelations`.
+
+***
+
+### WorkKind
+
+```ts
+type WorkKind = typeof WORK_KINDS[number];
+```
+
+Union of `WORK_KINDS` wire names.
 
 ## Variables
 

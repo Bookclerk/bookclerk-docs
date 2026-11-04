@@ -53,6 +53,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 ## Modules
 
 - [`abi`](abi.md): Conversions between host storefront types and the typed Cap'n Proto plugin ABI (`bookclerk_plugin_abi`).
+- [`records`](records.md): Builders and flat views for the structured bibliographic records that `ScanBook` and `CatalogHit` carry on the plugin ABI.
 
 ## Traits
 
@@ -983,12 +984,6 @@ Implements: `Clone`, `Default`
 pub struct CatalogHit {
     pub product_id: String,
     pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
     pub url: Option<String>,
     pub cover_url: Option<String>,
     pub origin: String,
@@ -1005,6 +1000,13 @@ pub struct CatalogHit {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
+    pub work_kind: WorkKind,
+    pub expression_kind: ExpressionKind,
+    pub media_kind: MediaKind,
+    pub identifiers: Vec<Identifier>,
+    pub credits: Vec<Credit>,
+    pub series_entries: Vec<SeriesEntry>,
+    pub parent_product_id: Option<String>,
 }
 ```
 
@@ -1018,12 +1020,6 @@ second Audnexus / purchase-hint round-trip for Discover detail).
 
 - `product_id`: Store-native product / title id (ASIN, ISBN, UUID, …).
 - `title`: Display title for the work.
-- `authors`: Author names (`;`-separated when multiple).
-- `narrators`: Narrator names (`;`-separated when multiple).
-- `series`: Series name when the title belongs to a series.
-- `series_index`: Position within the series (e.g. `"1"`, `"1-5"`).
-- `asin`: Amazon ASIN when known (may match [`Self::product_id`](#cataloghit) for Audible).
-- `isbn`: ISBN-10/13 when known.
 - `url`: Canonical storefront product URL when available.
 - `cover_url`: Public cover image URL when the storefront provides one.
 - `origin`: How this was found (`related`, `series`, `author`, `search`, `top_deals`, …).
@@ -1041,6 +1037,13 @@ second Audnexus / purchase-hint round-trip for Discover detail).
 - `rating_count`: Number of star ratings backing [`Self::rating_overall`](#cataloghit) when known.
 - `is_abridged`: `Some(true)` when the storefront marks the title abridged; `Some(false)`
   for unabridged; `None` when unknown.
+- `work_kind`: Kind of work the hit is.
+- `expression_kind`: How the work is realised in this edition.
+- `media_kind`: Form of this edition; print and ebook hits are never acquired.
+- `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
+- `credits`: Credited contributors in billing order.
+- `series_entries`: Series the work belongs to.
+- `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
 
 #### CatalogHit::decode_html_entities
 
@@ -1054,6 +1057,63 @@ Storefronts (notably Libro.fm) sometimes return `Memory&#39;s Blade`-style
 titles; normalize before discover merge / UI display.
 
 No-op (no allocations) when no field contains `&`.
+
+#### CatalogHit::authors
+
+```rust
+pub fn authors(&self) -> Option<String>
+```
+
+Author names joined for the flat view; `None` when none is credited.
+
+#### CatalogHit::narrators
+
+```rust
+pub fn narrators(&self) -> Option<String>
+```
+
+Narrator names joined for the flat view; `None` when none is credited.
+
+#### CatalogHit::asin
+
+```rust
+pub fn asin(&self) -> Option<String>
+```
+
+Amazon ASIN when the hit carries one.
+
+#### CatalogHit::asin_in
+
+```rust
+pub fn asin_in(&self, marketplace: &str) -> Option<String>
+```
+
+ASIN for `marketplace`, falling back to an unscoped ASIN and then to
+any ASIN the hit carries.
+
+#### CatalogHit::isbn
+
+```rust
+pub fn isbn(&self) -> Option<String>
+```
+
+ISBN when the hit carries one.
+
+#### CatalogHit::series
+
+```rust
+pub fn series(&self) -> Option<String>
+```
+
+Name of the first series the hit belongs to.
+
+#### CatalogHit::series_index
+
+```rust
+pub fn series_index(&self) -> Option<String>
+```
+
+Position label in the first series the hit belongs to.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<CatalogHit>`, `Serialize`
 

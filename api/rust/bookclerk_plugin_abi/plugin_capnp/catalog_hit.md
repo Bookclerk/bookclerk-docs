@@ -61,78 +61,6 @@ pub fn get_title(self) -> Result<Reader<'a>>
 pub fn has_title(&self) -> bool
 ```
 
-#### Reader::get_authors
-
-```rust
-pub fn get_authors(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_authors
-
-```rust
-pub fn has_authors(&self) -> bool
-```
-
-#### Reader::get_narrators
-
-```rust
-pub fn get_narrators(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_narrators
-
-```rust
-pub fn has_narrators(&self) -> bool
-```
-
-#### Reader::get_series
-
-```rust
-pub fn get_series(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_series
-
-```rust
-pub fn has_series(&self) -> bool
-```
-
-#### Reader::get_series_index
-
-```rust
-pub fn get_series_index(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_series_index
-
-```rust
-pub fn has_series_index(&self) -> bool
-```
-
-#### Reader::get_asin
-
-```rust
-pub fn get_asin(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_asin
-
-```rust
-pub fn has_asin(&self) -> bool
-```
-
-#### Reader::get_isbn
-
-```rust
-pub fn get_isbn(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_isbn
-
-```rust
-pub fn has_isbn(&self) -> bool
-```
-
 #### Reader::get_url
 
 ```rust
@@ -295,6 +223,72 @@ pub fn get_rating_count(self) -> i64
 pub fn get_abridgement(self) -> Result<Abridgement, NotInSchema>
 ```
 
+#### Reader::get_work_kind
+
+```rust
+pub fn get_work_kind(self) -> Result<WorkKind, NotInSchema>
+```
+
+#### Reader::get_expression_kind
+
+```rust
+pub fn get_expression_kind(self) -> Result<ExpressionKind, NotInSchema>
+```
+
+#### Reader::get_media_kind
+
+```rust
+pub fn get_media_kind(self) -> Result<MediaKind, NotInSchema>
+```
+
+#### Reader::get_identifiers
+
+```rust
+pub fn get_identifiers(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_identifiers
+
+```rust
+pub fn has_identifiers(&self) -> bool
+```
+
+#### Reader::get_credits
+
+```rust
+pub fn get_credits(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_credits
+
+```rust
+pub fn has_credits(&self) -> bool
+```
+
+#### Reader::get_series_entries
+
+```rust
+pub fn get_series_entries(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_series_entries
+
+```rust
+pub fn has_series_entries(&self) -> bool
+```
+
+#### Reader::get_parent_product_id
+
+```rust
+pub fn get_parent_product_id(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_parent_product_id
+
+```rust
+pub fn has_parent_product_id(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -375,150 +369,6 @@ pub fn init_title(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_title(&self) -> bool
-```
-
-#### Builder::get_authors
-
-```rust
-pub fn get_authors(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_authors
-
-```rust
-pub fn set_authors(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_authors
-
-```rust
-pub fn init_authors(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_authors
-
-```rust
-pub fn has_authors(&self) -> bool
-```
-
-#### Builder::get_narrators
-
-```rust
-pub fn get_narrators(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_narrators
-
-```rust
-pub fn set_narrators(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_narrators
-
-```rust
-pub fn init_narrators(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_narrators
-
-```rust
-pub fn has_narrators(&self) -> bool
-```
-
-#### Builder::get_series
-
-```rust
-pub fn get_series(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_series
-
-```rust
-pub fn set_series(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_series
-
-```rust
-pub fn init_series(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_series
-
-```rust
-pub fn has_series(&self) -> bool
-```
-
-#### Builder::get_series_index
-
-```rust
-pub fn get_series_index(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_series_index
-
-```rust
-pub fn set_series_index(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_series_index
-
-```rust
-pub fn init_series_index(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_series_index
-
-```rust
-pub fn has_series_index(&self) -> bool
-```
-
-#### Builder::get_asin
-
-```rust
-pub fn get_asin(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_asin
-
-```rust
-pub fn set_asin(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_asin
-
-```rust
-pub fn init_asin(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_asin
-
-```rust
-pub fn has_asin(&self) -> bool
-```
-
-#### Builder::get_isbn
-
-```rust
-pub fn get_isbn(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_isbn
-
-```rust
-pub fn set_isbn(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_isbn
-
-```rust
-pub fn init_isbn(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_isbn
-
-```rust
-pub fn has_isbn(&self) -> bool
 ```
 
 #### Builder::get_url
@@ -843,6 +693,138 @@ pub fn get_abridgement(self) -> Result<Abridgement, NotInSchema>
 
 ```rust
 pub fn set_abridgement(&mut self, value: Abridgement)
+```
+
+#### Builder::get_work_kind
+
+```rust
+pub fn get_work_kind(self) -> Result<WorkKind, NotInSchema>
+```
+
+#### Builder::set_work_kind
+
+```rust
+pub fn set_work_kind(&mut self, value: WorkKind)
+```
+
+#### Builder::get_expression_kind
+
+```rust
+pub fn get_expression_kind(self) -> Result<ExpressionKind, NotInSchema>
+```
+
+#### Builder::set_expression_kind
+
+```rust
+pub fn set_expression_kind(&mut self, value: ExpressionKind)
+```
+
+#### Builder::get_media_kind
+
+```rust
+pub fn get_media_kind(self) -> Result<MediaKind, NotInSchema>
+```
+
+#### Builder::set_media_kind
+
+```rust
+pub fn set_media_kind(&mut self, value: MediaKind)
+```
+
+#### Builder::get_identifiers
+
+```rust
+pub fn get_identifiers(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_identifiers
+
+```rust
+pub fn set_identifiers(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_identifiers
+
+```rust
+pub fn init_identifiers(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_identifiers
+
+```rust
+pub fn has_identifiers(&self) -> bool
+```
+
+#### Builder::get_credits
+
+```rust
+pub fn get_credits(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_credits
+
+```rust
+pub fn set_credits(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_credits
+
+```rust
+pub fn init_credits(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_credits
+
+```rust
+pub fn has_credits(&self) -> bool
+```
+
+#### Builder::get_series_entries
+
+```rust
+pub fn get_series_entries(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_series_entries
+
+```rust
+pub fn set_series_entries(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_series_entries
+
+```rust
+pub fn init_series_entries(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_series_entries
+
+```rust
+pub fn has_series_entries(&self) -> bool
+```
+
+#### Builder::get_parent_product_id
+
+```rust
+pub fn get_parent_product_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_parent_product_id
+
+```rust
+pub fn set_parent_product_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_parent_product_id
+
+```rust
+pub fn init_parent_product_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_parent_product_id
+
+```rust
+pub fn has_parent_product_id(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

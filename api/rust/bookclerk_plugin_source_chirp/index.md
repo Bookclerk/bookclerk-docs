@@ -25,7 +25,7 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 | [`ChirpError`](#chirperror) | enum | Failures from Chirp GraphQL sign-in, library listing, or DRM-free download. |
 | [`chirp_slug_candidates`](#chirp_slug_candidates) | function | Slug guesses for Chirp `series(slug:)` / `author(slug:)`. |
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs. |
-| [`audiobook_to_new_book`](#audiobook_to_new_book) | function | Map a Chirp audiobook to a `NewBook` row. |
+| [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Chirp audiobook to a structured scan row. Chirp returns one display string per role, so names are split with `records::credits_from_display`. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
 | [`scan_account_into_library`](#scan_account_into_library) | function | Fetch all library pages for one client and upsert books. |
 | [`scan_library`](#scan_library) | function | Sync Chirp libraries for configured accounts into `library`. |
@@ -787,17 +787,18 @@ Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs.
 
 Returns an error when the operation fails.
 
-### audiobook_to_new_book
+### audiobook_to_scan_book
 
 ```rust
-pub fn audiobook_to_new_book(
+pub fn audiobook_to_scan_book(
     book: &Audiobook,
     account_id: &str,
     marketplace: &str,
-) -> NewBook
+) -> ScanBook
 ```
 
-Map a Chirp audiobook to a [`NewBook`](../bookclerk_library/index.md#newbook) row.
+Map a Chirp audiobook to a structured scan row. Chirp returns one display
+string per role, so names are split with [`records::credits_from_display`](../bookclerk_source/records.md#credits_from_display).
 
 ### collect_account_books
 
@@ -807,7 +808,7 @@ pub async fn collect_account_books(
     account_id: &str,
     marketplace: &str,
     page_size: u32,
-) -> Result<(Vec<NewBook>, u32)>
+) -> Result<(Vec<ScanBook>, u32)>
 ```
 
 Fetch all library pages for one client and collect books (no DB writes).

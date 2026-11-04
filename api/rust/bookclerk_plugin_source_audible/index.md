@@ -1001,12 +1001,12 @@ pub async fn collect_account_books(
     page_size: u32,
     import_episodes: bool,
     import_plus_titles: bool,
-) -> Result<(Vec<NewBook>, u32)>
+) -> Result<(Vec<ScanBook>, u32)>
 ```
 
 Fetch library pages for one account without touching the library DB.
 
-Used by the external guest plugin (host upserts [`NewBook`](../bookclerk_library/index.md#newbook) rows).
+Used by the external guest plugin (the host resolves the structured rows).
 
 #### Errors
 

@@ -10,6 +10,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`Entrypoint`](#entrypoint) | enum |  |
 | [`PortalAuthMode`](#portalauthmode) | enum |  |
 | [`CliArgKind`](#cliargkind) | enum |  |
+| [`WorkKind`](#workkind) | enum |  |
+| [`ExpressionKind`](#expressionkind) | enum |  |
+| [`MediaKind`](#mediakind) | enum |  |
+| [`IdentifierScheme`](#identifierscheme) | enum |  |
+| [`CreditRole`](#creditrole) | enum |  |
+| [`CreditLevel`](#creditlevel) | enum |  |
 | [`CatalogSort`](#catalogsort) | enum |  |
 | [`CatalogField`](#catalogfield) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
@@ -138,6 +144,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`login_start_reply`](plugin_capnp/login_start_reply.md)
 - [`account_credential`](plugin_capnp/account_credential.md)
 - [`scan_params`](plugin_capnp/scan_params.md)
+- [`identifier`](plugin_capnp/identifier.md)
+- [`credit`](plugin_capnp/credit.md)
+- [`series_entry`](plugin_capnp/series_entry.md)
 - [`scan_book`](plugin_capnp/scan_book.md)
 - [`scan_summary`](plugin_capnp/scan_summary.md)
 - [`scan_reply`](plugin_capnp/scan_reply.md)
@@ -300,6 +309,90 @@ pub enum CliArgKind {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CliArgKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### WorkKind
+
+```rust
+pub enum WorkKind {
+    Book = 0,
+    PodcastShow = 1,
+    PodcastEpisode = 2,
+    Drama = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<WorkKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### ExpressionKind
+
+```rust
+pub enum ExpressionKind {
+    Narration = 0,
+    Text = 1,
+    Translation = 2,
+    Dramatisation = 3,
+    PodcastAudio = 4,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ExpressionKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### MediaKind
+
+```rust
+pub enum MediaKind {
+    Audiobook = 0,
+    Ebook = 1,
+    Print = 2,
+    PodcastAudio = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<MediaKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### IdentifierScheme
+
+```rust
+pub enum IdentifierScheme {
+    Isbn = 0,
+    Asin = 1,
+    OpenLibraryEdition = 2,
+    OpenLibraryWork = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<IdentifierScheme>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### CreditRole
+
+```rust
+pub enum CreditRole {
+    Author = 0,
+    Narrator = 1,
+    Translator = 2,
+    Editor = 3,
+    Illustrator = 4,
+    Publisher = 5,
+    Host = 6,
+    Cast = 7,
+    Adaptor = 8,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CreditRole>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### CreditLevel
+
+```rust
+pub enum CreditLevel {
+    RoleDefault = 0,
+    Work = 1,
+    Expression = 2,
+    Edition = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CreditLevel>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### CatalogSort
 

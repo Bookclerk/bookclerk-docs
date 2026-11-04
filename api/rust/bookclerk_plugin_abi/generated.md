@@ -30,7 +30,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`LoginCompleteParams`](#logincompleteparams) | struct | Params of `ContentSource.loginComplete`. |
 | [`AccountCredential`](#accountcredential) | struct | Host-sealed credentials for one account, delivered on `scan`. |
 | [`ScanParams`](#scanparams) | struct | Params of `ContentSource.scan`. The host injects sealed credentials so the plugin does not need a private credential store under `pluginDataDir`. |
-| [`ScanBook`](#scanbook) | struct | One library title returned by `ContentSource.scan`. The host upserts these rows and forces `source` to the plugin id. |
+| [`Identifier`](#identifier) | struct | One external identifier a storefront or metadata provider reports. |
+| [`Credit`](#credit) | struct | One credited contributor. Credits are listed in billing order. |
+| [`SeriesEntry`](#seriesentry) | struct | A work's place in one series. |
+| [`ScanBook`](#scanbook) | struct | One library title returned by `ContentSource.scan`. The host forces `source` to the plugin id and, until the library stores works, expressions and editions, maps the record onto one flat library row. |
 | [`ScanSummary`](#scansummary) | struct | Summary result of `ContentSource.scan`. |
 | [`FetchOptions`](#fetchoptions) | struct | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
 | [`FetchTitleParams`](#fetchtitleparams) | struct | Params of `ContentSource.fetchTitle`. The plugin writes media under `cacheDir` and returns plain (DRM-free) paths. The host injects credentials; guests must not open `library.db` or `master.key`. |
@@ -74,6 +77,12 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
+| [`WorkKind`](#workkind) | enum | What kind of creative work a record describes (FRBR work). Ordinal 0 is the common case, so a guest that leaves it unset describes a book. |
+| [`ExpressionKind`](#expressionkind) | enum | How a work is realised (FRBR expression). Ordinal 0 is the common case for a storefront that sells audiobooks. |
+| [`MediaKind`](#mediakind) | enum | Physical or digital form of an edition (FRBR manifestation). Only `audiobook` and `podcastAudio` editions are acquire candidates. |
+| [`IdentifierScheme`](#identifierscheme) | enum | Scheme of an external identifier. The scheme fixes whether the id names a work or an edition, and whether it is strong (unique) or weak (shared). |
+| [`CreditRole`](#creditrole) | enum | A contributor's responsibility for a work, expression or edition. |
+| [`CreditLevel`](#creditlevel) | enum | Which level a credit attaches to. Ordinal 0 is the role's usual level, so a guest sets this only when a credit departs from it. |
 | [`CatalogSort`](#catalogsort) | enum | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
@@ -129,6 +138,12 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_account_credential`](#read_account_credential) | function | Decode a `AccountCredential` from a Cap'n Proto reader. |
 | [`write_scan_params`](#write_scan_params) | function | Encode a `ScanParams` onto a Cap'n Proto builder. |
 | [`read_scan_params`](#read_scan_params) | function | Decode a `ScanParams` from a Cap'n Proto reader. |
+| [`write_identifier`](#write_identifier) | function | Encode a `Identifier` onto a Cap'n Proto builder. |
+| [`read_identifier`](#read_identifier) | function | Decode a `Identifier` from a Cap'n Proto reader. |
+| [`write_credit`](#write_credit) | function | Encode a `Credit` onto a Cap'n Proto builder. |
+| [`read_credit`](#read_credit) | function | Decode a `Credit` from a Cap'n Proto reader. |
+| [`write_series_entry`](#write_series_entry) | function | Encode a `SeriesEntry` onto a Cap'n Proto builder. |
+| [`read_series_entry`](#read_series_entry) | function | Decode a `SeriesEntry` from a Cap'n Proto reader. |
 | [`write_scan_book`](#write_scan_book) | function | Encode a `ScanBook` onto a Cap'n Proto builder. |
 | [`read_scan_book`](#read_scan_book) | function | Decode a `ScanBook` from a Cap'n Proto reader. |
 | [`write_scan_summary`](#write_scan_summary) | function | Encode a `ScanSummary` onto a Cap'n Proto builder. |
@@ -735,6 +750,69 @@ plugin does not need a private credential store under `pluginDataDir`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### Identifier
+
+```rust
+pub struct Identifier {
+    pub scheme: IdentifierScheme,
+    pub value: String,
+    pub marketplace: Option<String>,
+}
+```
+
+One external identifier a storefront or metadata provider reports.
+
+**Fields**
+
+- `scheme`: Scheme the value belongs to; it decides the identifier's level.
+- `value`: The identifier as the source printed it; the host trims and normalises.
+- `marketplace`: Marketplace the id is scoped to (ASIN); absent for global schemes.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### Credit
+
+```rust
+pub struct Credit {
+    pub name: String,
+    pub role: CreditRole,
+    pub level: CreditLevel,
+}
+```
+
+One credited contributor. Credits are listed in billing order.
+
+**Fields**
+
+- `name`: Contributor display name as the source prints it, one person or body.
+- `role`: What the contributor did.
+- `level`: Level the credit attaches to.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SeriesEntry
+
+```rust
+pub struct SeriesEntry {
+    pub name: String,
+    pub position: Option<String>,
+    pub store_series_id: Option<String>,
+}
+```
+
+A work's place in one series.
+
+**Fields**
+
+- `name`: Series name as the source prints it.
+- `position`: Position label as the source prints it (`1`, `2.5`, `1-3`).
+  `None` when absent (wire zero value).
+- `store_series_id`: The store's own id for the series (an Audible series ASIN) when known.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### ScanBook
 
 ```rust
@@ -743,21 +821,27 @@ pub struct ScanBook {
     pub product_id: String,
     pub title: String,
     pub marketplace: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
-    pub content_kind: Option<String>,
     pub publisher: Option<String>,
     pub length_minutes: Option<i64>,
     pub subtitle: Option<String>,
+    pub work_kind: WorkKind,
+    pub expression_kind: ExpressionKind,
+    pub media_kind: MediaKind,
+    pub identifiers: Vec<Identifier>,
+    pub credits: Vec<Credit>,
+    pub series_entries: Vec<SeriesEntry>,
+    pub parent_product_id: Option<String>,
+    pub language: Option<String>,
+    pub abridgement: Abridgement,
+    pub published_at: Option<String>,
+    pub purchased_at: Option<String>,
+    pub categories: Option<String>,
 }
 ```
 
-One library title returned by `ContentSource.scan`. The host upserts these
-rows and forces `source` to the plugin id.
+One library title returned by `ContentSource.scan`. The host forces `source`
+to the plugin id and, until the library stores works, expressions and
+editions, maps the record onto one flat library row.
 
 **Fields**
 
@@ -766,25 +850,28 @@ rows and forces `source` to the plugin id.
 - `title`: Primary title string.
 - `marketplace`: Marketplace / region when known.
   `None` when absent (wire zero value).
-- `asin`: Amazon ASIN when the storefront exposes one.
-  `None` when absent (wire zero value).
-- `isbn`: ISBN when the storefront exposes one.
-  `None` when absent (wire zero value).
-- `authors`: Comma- or guest-formatted author list.
-  `None` when absent (wire zero value).
-- `narrators`: Comma- or guest-formatted narrator list.
-  `None` when absent (wire zero value).
-- `series`: Series name when applicable.
-  `None` when absent (wire zero value).
-- `series_index`: Series index / sequence label.
-  `None` when absent (wire zero value).
-- `content_kind`: Content classification (e.g. `book` vs `episode`).
-  `None` when absent (wire zero value).
 - `publisher`: Publisher name when known.
   `None` when absent (wire zero value).
 - `length_minutes`: Runtime in whole minutes when known.
   `None` when absent (wire zero value).
 - `subtitle`: Subtitle when distinct from `title`.
+  `None` when absent (wire zero value).
+- `work_kind`: Kind of work the title is.
+- `expression_kind`: How the work is realised in this edition.
+- `media_kind`: Form of this edition.
+- `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
+- `credits`: Credited contributors in billing order.
+- `series_entries`: Series the work belongs to.
+- `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
+  `None` when absent (wire zero value).
+- `language`: Content language code when known.
+  `None` when absent (wire zero value).
+- `abridgement`: Whether the edition is abridged when the storefront says so.
+- `published_at`: Publication date as RFC 3339 when known.
+  `None` when absent (wire zero value).
+- `purchased_at`: When the account bought or added the title, as RFC 3339, when known.
+  `None` when absent (wire zero value).
+- `categories`: Category / genre labels as a single string when known.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -1143,12 +1230,6 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct CatalogHit {
     pub product_id: String,
     pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
     pub url: Option<String>,
     pub cover_url: Option<String>,
     pub origin: String,
@@ -1165,6 +1246,13 @@ pub struct CatalogHit {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub abridgement: Abridgement,
+    pub work_kind: WorkKind,
+    pub expression_kind: ExpressionKind,
+    pub media_kind: MediaKind,
+    pub identifiers: Vec<Identifier>,
+    pub credits: Vec<Credit>,
+    pub series_entries: Vec<SeriesEntry>,
+    pub parent_product_id: Option<String>,
 }
 ```
 
@@ -1175,18 +1263,6 @@ One catalog / candidate hit returned by `searchCatalog`,
 
 - `product_id`: Storefront product / SKU id.
 - `title`: Primary title.
-- `authors`: Authors string when known.
-  `None` when absent (wire zero value).
-- `narrators`: Narrators string when known.
-  `None` when absent (wire zero value).
-- `series`: Series name when applicable.
-  `None` when absent (wire zero value).
-- `series_index`: Series index / sequence label.
-  `None` when absent (wire zero value).
-- `asin`: Amazon ASIN when known.
-  `None` when absent (wire zero value).
-- `isbn`: ISBN when known.
-  `None` when absent (wire zero value).
 - `url`: Storefront product page URL.
   `None` when absent (wire zero value).
 - `cover_url`: Cover image URL.
@@ -1217,6 +1293,14 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `rating_count`: Number of ratings when known.
   `None` when absent (wire zero value).
 - `abridgement`: Whether the edition is abridged when the storefront says so.
+- `work_kind`: Kind of work the hit is.
+- `expression_kind`: How the work is realised in this edition.
+- `media_kind`: Form of this edition; print and ebook hits are never acquired.
+- `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
+- `credits`: Credited contributors in billing order.
+- `series_entries`: Series the work belongs to.
+- `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
+  `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
@@ -1905,6 +1989,254 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CliArgKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### WorkKind
+
+```rust
+pub enum WorkKind {
+    Book,
+    PodcastShow,
+    PodcastEpisode,
+    Drama,
+}
+```
+
+What kind of creative work a record describes (FRBR work). Ordinal 0 is
+the common case, so a guest that leaves it unset describes a book.
+
+**Variants**
+
+- `Book`: A book: fiction or non-fiction, read or narrated.
+- `PodcastShow`: A podcast show; its episodes name it through `parentProductId`.
+- `PodcastEpisode`: One podcast episode, a child work of its show.
+- `Drama`: An original audio drama that is not an adaptation of a book.
+
+#### WorkKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### WorkKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<WorkKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### ExpressionKind
+
+```rust
+pub enum ExpressionKind {
+    Narration,
+    Text,
+    Translation,
+    Dramatisation,
+    PodcastAudio,
+}
+```
+
+How a work is realised (FRBR expression). Ordinal 0 is the common case
+for a storefront that sells audiobooks.
+
+**Variants**
+
+- `Narration`: A reading of the text by one or more narrators.
+- `Text`: The text itself, as sold in print and ebook editions.
+- `Translation`: A translation of the text into another language.
+- `Dramatisation`: A full-cast dramatisation or adaptation of the work.
+- `PodcastAudio`: The recorded audio of a podcast episode.
+
+#### ExpressionKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### ExpressionKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<ExpressionKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### MediaKind
+
+```rust
+pub enum MediaKind {
+    Audiobook,
+    Ebook,
+    Print,
+    PodcastAudio,
+}
+```
+
+Physical or digital form of an edition (FRBR manifestation). Only
+`audiobook` and `podcastAudio` editions are acquire candidates.
+
+**Variants**
+
+- `Audiobook`: A downloadable audiobook.
+- `Ebook`: An ebook; shown in discover but never acquired.
+- `Print`: A printed book; shown in discover but never acquired.
+- `PodcastAudio`: Podcast episode audio.
+
+#### MediaKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### MediaKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<MediaKind>`, `Hash`, `PartialEq`, `Serialize`
+
+### IdentifierScheme
+
+```rust
+pub enum IdentifierScheme {
+    Isbn,
+    Asin,
+    OpenLibraryEdition,
+    OpenLibraryWork,
+}
+```
+
+Scheme of an external identifier. The scheme fixes whether the id names a
+work or an edition, and whether it is strong (unique) or weak (shared).
+
+**Variants**
+
+- `Isbn`: ISBN-10 or ISBN-13 of an edition; weak, because one ISBN can sit on
+  several editions. The host normalises it to ISBN-13.
+- `Asin`: Amazon ASIN of an edition in one marketplace; strong.
+- `OpenLibraryEdition`: OpenLibrary edition id (`OL…M`); strong.
+- `OpenLibraryWork`: OpenLibrary work id (`OL…W`); names the work, not an edition.
+
+#### IdentifierScheme::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### IdentifierScheme::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<IdentifierScheme>`, `Hash`, `PartialEq`, `Serialize`
+
+### CreditRole
+
+```rust
+pub enum CreditRole {
+    Author,
+    Narrator,
+    Translator,
+    Editor,
+    Illustrator,
+    Publisher,
+    Host,
+    Cast,
+    Adaptor,
+}
+```
+
+A contributor's responsibility for a work, expression or edition.
+
+**Variants**
+
+- `Author`: Wrote the work.
+- `Narrator`: Reads the text in a narration.
+- `Translator`: Translated the text.
+- `Editor`: Edited the work or the edition.
+- `Illustrator`: Illustrated the work or the edition.
+- `Publisher`: Published the edition.
+- `Host`: Hosts a podcast show or episode.
+- `Cast`: Performs a part in a dramatisation.
+- `Adaptor`: Adapted the work into a dramatisation.
+
+#### CreditRole::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### CreditRole::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CreditRole>`, `Hash`, `PartialEq`, `Serialize`
+
+### CreditLevel
+
+```rust
+pub enum CreditLevel {
+    RoleDefault,
+    Work,
+    Expression,
+    Edition,
+}
+```
+
+Which level a credit attaches to. Ordinal 0 is the role's usual level, so
+a guest sets this only when a credit departs from it.
+
+**Variants**
+
+- `RoleDefault`: The role's usual level: author and adaptor on the work; narrator,
+  translator, host and cast on the expression; editor, illustrator and
+  publisher on the edition.
+- `Work`: The work.
+- `Expression`: The expression.
+- `Edition`: The edition.
+
+#### CreditLevel::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### CreditLevel::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CreditLevel>`, `Hash`, `PartialEq`, `Serialize`
 
 ### CatalogSort
 
@@ -2679,6 +3011,78 @@ pub fn read_scan_params(r: Reader<'_>) -> Result<ScanParams>
 ```
 
 Decode a [`ScanParams`](#scanparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_identifier
+
+```rust
+pub fn write_identifier(b: Builder<'_>, v: &Identifier) -> Result<()>
+```
+
+Encode a [`Identifier`](#identifier) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_identifier
+
+```rust
+pub fn read_identifier(r: Reader<'_>) -> Result<Identifier>
+```
+
+Decode a [`Identifier`](#identifier) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_credit
+
+```rust
+pub fn write_credit(b: Builder<'_>, v: &Credit) -> Result<()>
+```
+
+Encode a [`Credit`](#credit) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_credit
+
+```rust
+pub fn read_credit(r: Reader<'_>) -> Result<Credit>
+```
+
+Decode a [`Credit`](#credit) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_series_entry
+
+```rust
+pub fn write_series_entry(b: Builder<'_>, v: &SeriesEntry) -> Result<()>
+```
+
+Encode a [`SeriesEntry`](#seriesentry) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_series_entry
+
+```rust
+pub fn read_series_entry(r: Reader<'_>) -> Result<SeriesEntry>
+```
+
+Decode a [`SeriesEntry`](#seriesentry) from a Cap'n Proto reader.
 
 #### Errors
 
@@ -4188,7 +4592,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 83;
+pub const READ_ANY_COUNT: u8 = 86;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

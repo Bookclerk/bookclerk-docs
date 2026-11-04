@@ -59,7 +59,7 @@ pub async fn guest_scan(
     credentials: &BTreeMap<String, Value>,
     account_filter: &[String],
     page_size: u32,
-) -> Result<(Vec<NewBook>, usize, u32)>
+) -> Result<(Vec<ScanBook>, usize, u32)>
 ```
 
 Scan libraries for the credential blobs the host injected.

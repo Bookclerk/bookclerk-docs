@@ -38,7 +38,7 @@ Access paths (see `docs/contributing/research/source-candidates.md`), selected b
 | [`fetch_title_materials`](#fetch_title_materials) | function | Password env (same as CLI login) for Magento ZIP / Browser Player. Fetch one product id into `cache_dir` via `api/links` Hi/Lo URLs. |
 | [`fetch_title_with_mode`](#fetch_title_with_mode) | function | Fetch owned audio for one product using the configured access path only (no ZIP→web→device cascade). |
 | [`collect_account_books`](#collect_account_books) | function | Collect owned titles for one account (no DB writes). |
-| [`product_to_new_book`](#product_to_new_book) | function | Map a GraphicAudio product JSON object to a `NewBook` row. |
+| [`product_to_scan_book`](#product_to_scan_book) | function | Map a GraphicAudio product JSON object to a structured scan row. |
 | [`scan_library`](#scan_library) | function | Sync GraphicAudio libraries for configured accounts into `library`. |
 | [`Result`](#result) | type alias | Result alias for GraphicAudio auth, sync, and download operations. |
 | [`DEFAULT_BASE_URL`](#default_base_url) | constant | Default API origin (no trailing slash after `/access`). |
@@ -1127,7 +1127,7 @@ pub async fn collect_account_books(
     include_samples: bool,
     account_id: &str,
     marketplace: &str,
-) -> Result<(Vec<NewBook>, u32)>
+) -> Result<(Vec<ScanBook>, u32)>
 ```
 
 Collect owned titles for one account (no DB writes).
@@ -1141,17 +1141,20 @@ when a legacy device token exists and Magento password is unavailable.
 
 Returns an error when the operation fails.
 
-### product_to_new_book
+### product_to_scan_book
 
 ```rust
-pub fn product_to_new_book(
+pub fn product_to_scan_book(
     product: &Product,
     account_id: &str,
     marketplace: &str,
-) -> NewBook
+) -> ScanBook
 ```
 
-Map a GraphicAudio product JSON object to a [`NewBook`](../bookclerk_library/index.md#newbook) row.
+Map a GraphicAudio product JSON object to a structured scan row.
+
+Every GraphicAudio production is a full-cast dramatisation of the work,
+so the expression kind is `ExpressionKind::Dramatisation`.
 
 ### scan_library
 

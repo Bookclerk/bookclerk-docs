@@ -26,7 +26,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 | [`LibroError`](#libroerror) | enum | Failures from Libro.fm OAuth, library listing, or DRM-free download. |
 | [`chapters_from_tracks`](#chapters_from_tracks) | function | Chapters from tracks. |
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one ISBN into `cache_dir`, preferring M4B when available. |
-| [`audiobook_to_new_book`](#audiobook_to_new_book) | function | Map a Libro.fm audiobook JSON object to a `NewBook` row. |
+| [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Libro.fm audiobook JSON object to a structured scan row. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
 | [`scan_account_into_library`](#scan_account_into_library) | function | Fetch all library pages for one client and upsert books. |
 | [`scan_library`](#scan_library) | function | Sync Libro.fm libraries for configured accounts into `library`. |
@@ -651,17 +651,17 @@ Fetch one ISBN into `cache_dir`, preferring M4B when available.
 
 Returns an error when the operation fails.
 
-### audiobook_to_new_book
+### audiobook_to_scan_book
 
 ```rust
-pub fn audiobook_to_new_book(
+pub fn audiobook_to_scan_book(
     book: &Audiobook,
     account_id: &str,
     marketplace: &str,
-) -> NewBook
+) -> ScanBook
 ```
 
-Map a Libro.fm audiobook JSON object to a [`NewBook`](../bookclerk_library/index.md#newbook) row.
+Map a Libro.fm audiobook JSON object to a structured scan row.
 
 ### collect_account_books
 
@@ -670,7 +670,7 @@ pub async fn collect_account_books(
     client: &LibroClient,
     account_id: &str,
     marketplace: &str,
-) -> Result<(Vec<NewBook>, u32)>
+) -> Result<(Vec<ScanBook>, u32)>
 ```
 
 Fetch all library pages for one client and collect books (no DB writes).

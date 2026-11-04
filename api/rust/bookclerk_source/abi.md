@@ -21,10 +21,10 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`expand_candidates_params`](#expand_candidates_params) | function | Builds `expandCandidates` params from a seed plus the result cap. |
 | [`expand_seed_from_params`](#expand_seed_from_params) | function | Splits `expandCandidates` params into the host seed and result cap. |
 | [`login_params`](#login_params) | function | Builds guest login params. `plugin_data_dir` is the jail-granted data directory; the host fills `callback_ipc` / `callback_public_base` after it starts the OAuth callback proxy. |
-| [`scan_book_from_new`](#scan_book_from_new) | function | Guest scan row for a library `NewBook` the storefront produced. |
-| [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto `NewBook`, forcing `source` to the plugin id so a guest can never claim another storefront's rows. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
+| [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto the flat `NewBook` row the library stores until it keeps works, expressions and editions, forcing `source` to the plugin id so a guest can never claim another storefront's rows. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
+| [`rfc3339`](#rfc3339) | function | RFC 3339 wire form of a host timestamp, for `ScanBook` date fields. |
 | [`scan_summary`](#scan_summary) | function | Builds a guest scan summary from the books a scan produced. |
-| [`scan_summary_from_abi`](#scan_summary_from_abi) | function | Host counters from a guest scan summary (`books_upserted` is the host's own upsert count when it upserted rows itself). |
+| [`scan_summary_from_abi`](#scan_summary_from_abi) | function | Host counters from a guest scan summary. |
 | [`credentials_to_bytes`](#credentials_to_bytes) | function | Encodes a credential document as the opaque bytes the ABI carries. |
 | [`credentials_from_bytes`](#credentials_from_bytes) | function | Decodes an opaque credential blob into the JSON document guests store. |
 | [`account_credentials`](#account_credentials) | function | Host-issued per-account credential list for `scan`. |
@@ -92,28 +92,49 @@ Builds guest login params. `plugin_data_dir` is the jail-granted data
 directory; the host fills `callback_ipc` / `callback_public_base` after it
 starts the OAuth callback proxy.
 
-### scan_book_from_new
-
-```rust
-pub fn scan_book_from_new(book: NewBook) -> ScanBook
-```
-
-Guest scan row for a library [`NewBook`](../bookclerk_library/index.md#newbook) the storefront produced.
-
 ### scan_book_to_new
 
 ```rust
-pub fn scan_book_to_new(plugin_id: &str, book: ScanBook) -> NewBook
+pub fn scan_book_to_new(plugin_id: &str, book: ScanBook) -> Option<NewBook>
 ```
 
-Maps a guest scan row onto [`NewBook`](../bookclerk_library/index.md#newbook), forcing `source` to the plugin id
-so a guest can never claim another storefront's rows. The owning
-`plugin_key` is stamped by the [`bookclerk_library::SourceScope`](../bookclerk_library/scope.md#sourcescope) on write.
+Maps a guest scan row onto the flat [`NewBook`](../bookclerk_library/index.md#newbook) row the library stores
+until it keeps works, expressions and editions, forcing `source` to the
+plugin id so a guest can never claim another storefront's rows. The
+owning `plugin_key` is stamped by the [`bookclerk_library::SourceScope`](../bookclerk_library/scope.md#sourcescope)
+on write.
+
+Credits join by role, the first ISBN and ASIN fill the identifier
+columns (normalised), the first series entry fills the series columns,
+and the work kind becomes `content_kind`. An episode with no store
+series id names its show through `parent_product_id`, which fills
+`series_asin` so the episode is filed under the show.
+
+The ASIN columns take an ASIN scoped to the book's marketplace, or an
+unscoped one, before an ASIN from another marketplace.
+
+#### Returns
+
+`None` for a record with a blank product id, which would overwrite
+another blank row, and for an ebook or print edition: the flat table has
+no way to keep those out of acquire, so they are not stored until the
+library keeps editions.
+
+### rfc3339
+
+```rust
+pub fn rfc3339(at: DateTime<Utc>) -> String
+```
+
+RFC 3339 wire form of a host timestamp, for `ScanBook` date fields.
+
+Sub-second precision is kept when the timestamp has it, so a round
+trip through the wire form returns the same instant.
 
 ### scan_summary
 
 ```rust
-pub fn scan_summary(books: Vec<NewBook>, accounts: usize, pages: u32) -> ScanSummary
+pub fn scan_summary(books: Vec<ScanBook>, accounts: usize, pages: u32) -> ScanSummary
 ```
 
 Builds a guest scan summary from the books a scan produced.
@@ -124,8 +145,11 @@ Builds a guest scan summary from the books a scan produced.
 pub fn scan_summary_from_abi(summary: &ScanSummary, upserted: usize) -> ScanSummary
 ```
 
-Host counters from a guest scan summary (`books_upserted` is the host's
-own upsert count when it upserted rows itself).
+Host counters from a guest scan summary.
+
+`books_upserted` is always the host's own count of the rows it wrote, so
+records the host skipped (ebook and print editions, blank product ids)
+never count, even when the guest reported them.
 
 ### credentials_to_bytes
 
