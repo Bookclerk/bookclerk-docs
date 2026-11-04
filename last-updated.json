@@ -43,7 +43,7 @@
   "api/rust/bookclerk_dev/package": "2026-10-27",
   "api/rust/bookclerk_dev/plugins": "2026-10-27",
   "api/rust/bookclerk_discover/index": "2026-11-02",
-  "api/rust/bookclerk_enrich/index": "2026-10-27",
+  "api/rust/bookclerk_enrich/index": "2026-11-04",
   "api/rust/bookclerk_integrations/index": "2026-10-27",
   "api/rust/bookclerk_library/atomic_status": "2026-10-27",
   "api/rust/bookclerk_library/control_plane": "2026-11-02",
@@ -696,7 +696,7 @@
   "server/plugins": "2026-10-27",
   "server/security": "2026-10-27",
   "server/sign-in": "2026-10-27",
-  "server/stores": "2026-10-27",
+  "server/stores": "2026-11-04",
   "sql-contract/v1": "2026-10-26"
  }
 }

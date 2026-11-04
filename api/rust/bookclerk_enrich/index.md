@@ -33,6 +33,7 @@ audio that lacks Audible brand intro/outro.
 | [`canonicalize_isbn`](#canonicalize_isbn) | function | Normalize then convert ISBN-10 → ISBN-13 (`978…`) when possible. |
 | [`clean_author_for_compares`](#clean_author_for_compares) | function | Clean an author string for fuzzy compares (AudioBookshelf `cleanAuthorForCompares`). |
 | [`clean_title_for_compares`](#clean_title_for_compares) | function | Clean a title for fuzzy compares (AudioBookshelf `cleanTitleForCompares`). |
+| [`is_asin_title`](#is_asin_title) | function | True when a title field holds an Audible ASIN rather than a real title. |
 | [`is_valid_asin`](#is_valid_asin) | function | True when `s` looks like an Audible ASIN (`^[A-Z0-9]{10}$`, case-insensitive). |
 | [`isbn_exact_match`](#isbn_exact_match) | function | Returns true when both sides normalize to the same ISBN-13 (or matching ISBN-10). |
 | [`levenshtein_distance`](#levenshtein_distance) | function | Levenshtein distance (case-insensitive by default, matching ABS). |
@@ -586,7 +587,10 @@ Base score follows AudioBookshelf (duration / title / author). When Libro
 - **Exact ISBN** (normalized digits): boost by closing
   `ISBN_MATCH_GAP_CLOSE` of the remaining gap to 1.0 (not a forced accept)
 
-When the query title is an ASIN, returns `1.0`.
+When the query title (without its subtitle) is an ASIN (see
+[`is_asin_title`](#is_asin_title)), returns `1.0`: the lookup fetched the candidate by
+that ASIN. A plain ten-letter title such as `Foundation` is not an ASIN
+and is scored like any other title.
 
 #### Arguments
 
@@ -649,6 +653,30 @@ Clean a title for fuzzy compares (AudioBookshelf `cleanTitleForCompares`).
 #### Returns
 
 String result for this operation.
+
+### is_asin_title
+
+```rust
+pub fn is_asin_title(title: &str) -> bool
+```
+
+True when a title field holds an Audible ASIN rather than a real title.
+
+[`is_valid_asin`](#is_valid_asin) accepts any ten ASCII alphanumerics, which every
+ten-letter title (`Foundation`, `Persuasion`) also satisfies. A title is
+only treated as an ASIN when it also has an ASIN's shape: `B0` followed by
+eight letters or digits (Audible's own ids), or an ISBN-10 (nine digits
+and a digit or `X` check character), which older numeric ASINs use.
+Case and surrounding whitespace are ignored.
+
+#### Arguments
+
+* `title` - Title text from a match query, possibly an ASIN typed or
+  stored in place of a title.
+
+#### Returns
+
+`true` when the title should be looked up and scored as an ASIN.
 
 ### is_valid_asin
 
