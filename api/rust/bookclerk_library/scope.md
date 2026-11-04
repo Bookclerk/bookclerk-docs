@@ -132,6 +132,18 @@ Upsert a book; `plugin_key` and `source` are forced to this plugin.
 
 Returns an error when the operation fails.
 
+#### SourceScope::upsert_scanned_title
+
+```rust
+pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<BookRecord>
+```
+
+Upsert a scanned title as this plugin's, and resolve its listing.
+
+##### Errors
+
+Returns an error when a read or write fails.
+
 #### SourceScope::get_book
 
 ```rust

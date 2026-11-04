@@ -7186,7 +7186,7 @@ pub async fn accept_scan_results(
     job_id: &str,
     generation: i64,
     plugin_key: &str,
-    books: Vec<NewBook>,
+    books: Vec<impl Into<ScannedTitle>>,
 ) -> Result<ScanAccept>
 ```
 

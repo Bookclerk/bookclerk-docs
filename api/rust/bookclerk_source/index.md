@@ -53,6 +53,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 ## Modules
 
 - [`abi`](abi.md): Conversions between host storefront types and the typed Cap'n Proto plugin ABI (`bookclerk_plugin_abi`).
+- [`listing`](listing.md): Plugin ABI records as resolver listing drafts.
 - [`records`](records.md): Builders and flat views for the structured bibliographic records that `ScanBook` and `CatalogHit` carry on the plugin ABI.
 
 ## Traits

@@ -83,6 +83,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkRecord`](#workrecord) | struct | Canonical work spanning one or more ownership rows / editions. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
+| [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
@@ -94,8 +95,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
 | [`NewTitleRequest`](#newtitlerequest) | struct | Input for creating a title request / wishlist row. |
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
-| [`NewWork`](#newwork) | struct | Input for upserting a canonical work. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
+| [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
 | [`TitleFile`](#titlefile) | struct | Who holds a recorded file key. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishlistIdentity`](#wishlistidentity) | struct | Bibliographic slice used for wishlist dedupe. |
@@ -200,6 +201,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
 | [`inject_dispatch_page_failures`](#inject_dispatch_page_failures) | function | Fail after the next `n` successful dispatch pages (tests only). |
+| [`holding_from_book`](#holding_from_book) | function | The holding a flat library row describes. |
+| [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
 | [`wishlist_identities_match`](#wishlist_identities_match) | function | Whether two wishlist rows refer to the same work despite differing keys. |
@@ -327,6 +330,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`control_plane`](control_plane.md): Database-backed control plane: node identity and typed configuration.
 - [`email`](email.md): Contact-email normalization and library-backed validation.
 - [`entities`](entities.md): SeaORM entities mirroring the greenfield schema in `crate::migrations`.
+- [`library_link`](library_link.md): Named-atomic parameters for writing a resolved listing.
 - [`master_key`](master_key.md): Data-encryption key (DEK) for `encrypted_secrets`.
 - [`migrations`](migrations.md): Host library schema: frozen plan steps plus the unreleased development pack.
 - [`operator_token`](operator_token.md): Durable operator API token in `encrypted_secrets`.
@@ -493,6 +497,20 @@ pub trait AtomicTxnBackend: Send + Sync {
         'life1: 'async_trait,
         'life2: 'async_trait,
         'life3: 'async_trait,;
+    fn link_listing<'life0, 'async_trait>(
+        &'life0 self,
+        params: ListingLinkParams,
+    ) -> Pin<Box<dyn Future<Output = Result<String>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn write_credits<'life0, 'async_trait>(
+        &'life0 self,
+        params: CreditBatchParams,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn claim_event_delivery<'life0, 'life1, 'life2, 'life3, 'life4, 'life5, 'async_trait>(
         &'life0 self,
         delivery_id: &'life1 str,
@@ -779,6 +797,37 @@ where
 ```
 
 Create deliveries for `subscribers`. `mark_dispatched` finishes the parent event.
+
+#### AtomicTxnBackend::link_listing
+
+```rust
+fn link_listing<'life0, 'async_trait>(
+    &'life0 self,
+    params: ListingLinkParams,
+) -> Pin<Box<dyn Future<Output = Result<String>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Write one resolved listing as one guarded batch.
+
+Returns the batch status: `ok`, or `retry` when another writer
+changed the rows the plan was resolved against.
+
+#### AtomicTxnBackend::write_credits
+
+```rust
+fn write_credits<'life0, 'async_trait>(
+    &'life0 self,
+    params: CreditBatchParams,
+) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Write one batch of contributors, credits, series and series entries.
 
 #### AtomicTxnBackend::claim_event_delivery
 
@@ -3425,19 +3474,16 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `Partia
 ```rust
 pub struct WorkRecord {
     pub id: String,
-    pub canonical_asin: Option<String>,
-    pub canonical_isbn: Option<String>,
+    pub kind: String,
     pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
+    pub parent_work_id: Option<String>,
+    pub credits: Vec<String>,
+    pub narrators: Vec<String>,
+    pub series: Vec<String>,
     pub description: Option<String>,
     pub subjects: Option<String>,
     pub categories: Option<String>,
-    pub language: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
     pub cover_url: Option<String>,
-    pub openlibrary_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -3447,22 +3493,19 @@ Canonical work spanning one or more ownership rows / editions.
 
 **Fields**
 
-- `id`: Surrogate primary key assigned by the database.
-- `canonical_asin`: Preferred ASIN representing this canonical work.
-- `canonical_isbn`: Preferred ISBN representing this canonical work.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `narrators`: Comma-separated or JSON narrator list when present.
+- `id`: Work id (UUID).
+- `kind`: Stored work kind (`book`, `podcast_show`, `podcast_episode`, `drama`).
+- `title`: Display title.
+- `parent_work_id`: The show a podcast episode belongs to.
+- `credits`: Names credited on the work itself (authors, …), in billing order.
+- `narrators`: Narrators credited on the work's expressions, each named once.
+- `series`: Names of the series the work belongs to.
 - `description`: Blurb / synopsis text (may contain HTML).
 - `subjects`: Subject / topic tags from enrichment (serialized).
-- `categories`: Storefront category / genre path list (serialized).
-- `language`: BCP-47 or storefront language code when known.
-- `series`: Series name when the title belongs to a series.
-- `series_index`: Position within the series (storefront string form).
+- `categories`: Store category / genre path list (serialized).
 - `cover_url`: HTTPS URL for cover art when known.
-- `openlibrary_id`: Open Library work/edition id when enrichment found one.
-- `created_at`: RFC 3339 timestamp when the row was inserted.
-- `updated_at`: RFC 3339 timestamp when the row was last modified.
+- `created_at`: When the row was inserted.
+- `updated_at`: When the row was last modified.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -3520,6 +3563,44 @@ Parsed client presentation for a session row.
 - `client_label`: Human label such as `Windows`, `macOS`, `Android`, `iPhone`, or `API`.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkEnrichment
+
+```rust
+pub struct WorkEnrichment {
+    pub description: Option<String>,
+    pub subjects: Option<String>,
+    pub categories: Option<String>,
+    pub cover_url: Option<String>,
+}
+```
+
+Enrichment fields for [`LibraryStore::set_work_enrichment`](#librarystoreset_work_enrichment).
+
+**Fields**
+
+- `description`: Blurb / synopsis text.
+- `subjects`: Subject tags (serialized).
+- `categories`: Category labels (serialized).
+- `cover_url`: HTTPS cover URL.
+
+#### WorkEnrichment::of_book
+
+```rust
+pub fn of_book(book: &BookRecord) -> Self
+```
+
+The fields a library title offers its work.
+
+#### WorkEnrichment::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when no field is set.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### PluginDatabaseRecord
 
@@ -4384,6 +4465,151 @@ The number of rows removed.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+
+#### LibraryStore::record_listing
+
+```rust
+pub async fn record_listing(
+    &self,
+    listing: &Listing,
+    holding: &HoldingDraft,
+) -> Result<Plan>
+```
+
+Resolves `listing` into the library and records `holding` of it.
+
+##### Arguments
+
+* `listing` - The validated listing a storefront reported.
+* `holding` - Who holds it, and how.
+
+##### Returns
+
+The plan that was written (a no-op plan when nothing changed).
+
+##### Errors
+
+Returns [`LibraryError`](#libraryerror) when a read or write fails, when the stored
+rows are inconsistent, or when other writers kept changing the rows
+for three attempts.
+
+#### LibraryStore::get_work
+
+```rust
+pub async fn get_work(&self, id: &str) -> Result<Option<WorkRecord>>
+```
+
+Loads a work by id, with its work-level credits and series.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::list_works
+
+```rust
+pub async fn list_works(&self) -> Result<Vec<WorkRecord>>
+```
+
+Lists every work by title, with its work-level credits and series.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::work_id_for_book
+
+```rust
+pub async fn work_id_for_book(&self, book_uuid: &str) -> Result<Option<String>>
+```
+
+The work a library title's listing resolves to, if it has been
+resolved.
+
+##### Arguments
+
+* `book_uuid` - Library `books.uuid`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::work_ids_for_books
+
+```rust
+pub async fn work_ids_for_books(
+    &self,
+    book_uuids: &[String],
+) -> Result<BTreeMap<String, String>>
+```
+
+The works many library titles resolve to, read in a few bulk
+queries rather than a chain of lookups per title.
+
+##### Arguments
+
+* `book_uuids` - Library `books.uuid` values.
+
+##### Returns
+
+Each resolved title's work id, keyed by title UUID; titles not yet
+resolved are absent.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::book_uuids_for_work
+
+```rust
+pub async fn book_uuids_for_work(&self, work_id: &str) -> Result<Vec<String>>
+```
+
+Library title UUIDs whose listings resolve to `work_id`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::set_work_enrichment
+
+```rust
+pub async fn set_work_enrichment(
+    &self,
+    work_id: &str,
+    enrichment: &WorkEnrichment,
+) -> Result<()>
+```
+
+Fills a work's enrichment fields; `None` keeps the stored value.
+
+##### Arguments
+
+* `work_id` - The work.
+* `enrichment` - Description, subjects and cover found by enrichment.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) when the work is gone, or
+[`LibraryError::Orm`](#libraryerror) when the write fails.
+
+#### LibraryStore::add_work_identifier
+
+```rust
+pub async fn add_work_identifier(
+    &self,
+    work_id: &str,
+    scheme: IdentifierScheme,
+    raw: &str,
+) -> Result<()>
+```
+
+Attaches a work-level identifier enrichment found (an OpenLibrary
+work id); a value another work already holds is left there.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the write fails.
 
 #### LibraryStore::record_plugin_database
 
@@ -7563,16 +7789,36 @@ Returns an error when the operation fails.
 pub async fn upsert_book(&self, book: &NewBook) -> Result<BookRecord>
 ```
 
-Upsert a book from a library sync.
+Upsert a book from a library sync and resolve the listing it
+describes into works, expressions and editions.
 
-Insert on first sight; on `(source, account_id, product_id)` conflict,
-merge fields with Audible-precedence rules (a Libro rescan without an
-ASIN must not wipe Audible enrichment). Expressed as load-then-merge over
-the `books` entity so the precedence logic is explicit and portable.
+The listing is derived from the flat row ([`listing_from_book`](#listing_from_book));
+a scan that has the plugin's structured record uses
+[`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title) instead. A row that fails listing
+validation, or whose listing cannot be resolved, is still stored,
+and the listing is skipped with a warning.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when the flat row cannot be read or written.
+
+#### LibraryStore::upsert_scanned_title
+
+```rust
+pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<BookRecord>
+```
+
+Upsert a scanned title: the flat row, and the listing its plugin's
+structured record describes (or, without one, the listing the flat
+row describes).
+
+The listing is filed under the book's plugin, whatever plugin key it
+carries.
+
+##### Errors
+
+Returns an error when the flat row cannot be read or written; a
+listing that cannot be resolved is logged, not returned.
 
 #### LibraryStore::get_book_by_uuid
 
@@ -7938,140 +8184,6 @@ Persist enrichment fields without touching scan / ownership columns.
 ##### Errors
 
 Returns an error when the operation fails.
-
-#### LibraryStore::upsert_work
-
-```rust
-pub async fn upsert_work(&self, work: &NewWork) -> Result<WorkRecord>
-```
-
-Upsert a canonical work row (COALESCE-preserve on conflict).
-
-##### Errors
-
-Returns an error when the operation fails.
-
-#### LibraryStore::get_work
-
-```rust
-pub async fn get_work(&self, id: &str) -> Result<Option<WorkRecord>>
-```
-
-Loads a canonical work by id, if present.
-
-##### Arguments
-
-* `id` - Row or work id.
-
-##### Returns
-
-`Result<Option<WorkRecord>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::find_work_by_asin
-
-```rust
-pub async fn find_work_by_asin(&self, asin: &str) -> Result<Option<WorkRecord>>
-```
-
-Find work by Amazon ASIN identifier.
-
-##### Errors
-
-Returns an error when the operation fails.
-
-#### LibraryStore::find_work_by_isbn
-
-```rust
-pub async fn find_work_by_isbn(&self, isbn: &str) -> Result<Option<WorkRecord>>
-```
-
-Finds a canonical work whose preferred ISBN matches `isbn`.
-
-##### Errors
-
-Returns an error when the operation fails.
-
-#### LibraryStore::list_works
-
-```rust
-pub async fn list_works(&self) -> Result<Vec<WorkRecord>>
-```
-
-Lists every canonical work row in the library database.
-
-
-##### Returns
-
-`Result<Vec<WorkRecord>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::link_book_to_work
-
-```rust
-pub async fn link_book_to_work(&self, work_id: &str, book_uuid: &str) -> Result<()>
-```
-
-Associates a book UUID with a canonical work id.
-
-##### Arguments
-
-* `work_id` - Canonical work id.
-* `book_uuid` - Library `books.uuid`.
-
-##### Returns
-
-`Result<()>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::work_id_for_book
-
-```rust
-pub async fn work_id_for_book(&self, book_uuid: &str) -> Result<Option<String>>
-```
-
-Returns the work id linked to `book_uuid`, if any.
-
-##### Arguments
-
-* `book_uuid` - Library `books.uuid`.
-
-##### Returns
-
-`Result<Option<String>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::book_uuids_for_work
-
-```rust
-pub async fn book_uuids_for_work(&self, work_id: &str) -> Result<Vec<String>>
-```
-
-Lists book UUIDs linked to `work_id`.
-
-##### Arguments
-
-* `work_id` - Canonical work id.
-
-##### Returns
-
-`Result<Vec<String>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
 
 #### LibraryStore::upsert_listening_progress
 
@@ -8605,7 +8717,7 @@ Sets `product_id` from the first argument, `asin = Some(product_id)`,
 `isbn = None`, `uuid = None` (auto), and `plugin_key = source =
 "audible"` (a [`crate::SourceScope`] replaces both on write).
 
-Implements: `Clone`, `Debug`
+Implements: `Clone`, `Debug`, `From<NewBook>`
 
 ### NewListeningProgress
 
@@ -8785,48 +8897,6 @@ Decode HTML entities in human-readable metadata fields.
 
 Implements: `Clone`, `Debug`, `Default`
 
-### NewWork
-
-```rust
-pub struct NewWork {
-    pub id: Option<String>,
-    pub canonical_asin: Option<String>,
-    pub canonical_isbn: Option<String>,
-    pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub description: Option<String>,
-    pub subjects: Option<String>,
-    pub categories: Option<String>,
-    pub language: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
-    pub cover_url: Option<String>,
-    pub openlibrary_id: Option<String>,
-}
-```
-
-Input for upserting a canonical work.
-
-**Fields**
-
-- `id`: Surrogate primary key assigned by the database.
-- `canonical_asin`: Preferred ASIN representing this canonical work.
-- `canonical_isbn`: Preferred ISBN representing this canonical work.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `narrators`: Comma-separated or JSON narrator list when present.
-- `description`: Blurb / synopsis text (may contain HTML).
-- `subjects`: Subject / topic tags from enrichment (serialized).
-- `categories`: Storefront category / genre path list (serialized).
-- `language`: BCP-47 or storefront language code when known.
-- `series`: Series name when the title belongs to a series.
-- `series_index`: Position within the series (storefront string form).
-- `cover_url`: HTTPS URL for cover art when known.
-- `openlibrary_id`: Open Library work/edition id when enrichment found one.
-
-Implements: `Clone`, `Debug`, `Default`
-
 ### SavedFilterRecord
 
 ```rust
@@ -8850,6 +8920,25 @@ Saved Lucene-style quick filter.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
 Implements: `Clone`, `Debug`
+
+### ScannedTitle
+
+```rust
+pub struct ScannedTitle {
+    pub book: NewBook,
+    pub listing: Option<Listing>,
+}
+```
+
+One title a storefront scan reported.
+
+**Fields**
+
+- `book`: The flat row the library views read.
+- `listing`: The listing the plugin's structured record describes; `None` when
+  only the flat row is known.
+
+Implements: `Clone`, `Debug`, `From<NewBook>`
 
 ### TitleFile
 
@@ -8951,6 +9040,8 @@ pub enum DbAtomicParams {
     SetAcquireStatus { book_uuid: String, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
     DispatchEventDeliveries { event_id: String, subscribers_json: String, mark_dispatched: bool },
     ClaimNextEventDelivery { owner: String, lease_secs: i64, plugin_ids_json: String, max_in_flight: i64 },
+    LinkListing(Box<ListingLinkParams>),
+    WriteCredits(Box<CreditBatchParams>),
 }
 ```
 
@@ -9051,6 +9142,12 @@ Named atomic library operation compiled by the host into a generic plan.
   - `lease_secs`: Lease length in seconds.
   - `plugin_ids_json`: JSON array of plugin ids this worker can execute (`[]` claims nothing).
   - `max_in_flight`: Cluster-wide max `running` deliveries per `(plugin_id, resource_class)`.
+- `LinkListing`: Write one resolved store listing: new work, expression and edition,
+  identifiers, the listing, its holding, conflicts and events.
+  
+  Answers `retry` when another writer stored the listing or claimed a
+  strong identifier first.
+- `WriteCredits`: Write contributors, credits, series and series entries (idempotent).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
@@ -10981,6 +11078,29 @@ pub fn inject_dispatch_page_failures(n: u32)
 ```
 
 Fail after the next `n` successful dispatch pages (tests only).
+
+### holding_from_book
+
+```rust
+pub fn holding_from_book(book: &NewBook) -> HoldingDraft
+```
+
+The holding a flat library row describes.
+
+### listing_from_book
+
+```rust
+pub fn listing_from_book(book: &NewBook) -> Result<Listing, ListingError>
+```
+
+The structured listing a flat library row describes, for paths that
+only have a [`NewBook`](#newbook) (imports, seeds, tests).
+
+Scans that carry a plugin's structured record use that instead.
+
+#### Errors
+
+Returns [`resolve::ListingError`](../bookclerk_resolve/listing.md#listingerror) when the row fails listing validation.
 
 ### prefer_enrichment_source
 

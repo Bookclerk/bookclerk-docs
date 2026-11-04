@@ -92,7 +92,8 @@ Splits a display string of contributor names into one name per entry.
 #### Returns
 
 The trimmed, non-empty names in the order they appear. HTML entities
-are decoded first, so `O&#39;Brien` stays one name.
+are decoded first, so `O&#39;Brien` stays one name; splitting is
+[`bookclerk_resolve::names::split_display_names`](../bookclerk_resolve/names.md#split_display_names).
 
 ### identifier
 
@@ -232,7 +233,7 @@ Adds the identifiers of `fill` whose scheme `base` has none of.
 ### NAME_SEPARATOR
 
 ```rust
-pub const NAME_SEPARATOR: &str = ", ";
+pub const NAME_SEPARATOR: &str = bookclerk_resolve::names::NAME_SEPARATOR;
 ```
 
 Separator the flat `books` row view uses between contributor names.

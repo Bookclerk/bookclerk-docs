@@ -24,12 +24,18 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`configuration_audit`](entities/configuration_audit.md): SeaORM entity for successful configuration commits.
 - [`configuration_changes`](entities/configuration_changes.md): SeaORM entity for the configuration change notice written with each commit.
 - [`configuration_documents`](entities/configuration_documents.md): SeaORM entity for one typed configuration document.
+- [`contributors`](entities/contributors.md): SeaORM entity for the `contributors` table (text primary key).
+- [`credits`](entities/credits.md): SeaORM entity for the `credits` table (composite primary key).
 - [`domain_events`](entities/domain_events.md): SeaORM entity for the durable `domain_events` outbox.
+- [`edition_identifiers`](entities/edition_identifiers.md): SeaORM entity for the `edition_identifiers` table (composite primary key).
+- [`editions`](entities/editions.md): SeaORM entity for the `editions` table (text primary key).
 - [`embeddings`](entities/embeddings.md): SeaORM entity for the `embeddings` table.
 - [`encrypted_secrets`](entities/encrypted_secrets.md): SeaORM entity for the `encrypted_secrets` table.
 - [`event_deliveries`](entities/event_deliveries.md): SeaORM entity for per-subscriber `event_deliveries`.
 - [`event_outbox_stats`](entities/event_outbox_stats.md): SeaORM entity for the singleton durable event-outbox counters.
 - [`event_subscriber_nodes`](entities/event_subscriber_nodes.md): SeaORM entity for live per-node `event_subscriber_nodes` registrations.
+- [`expressions`](entities/expressions.md): SeaORM entity for the `expressions` table (text primary key).
+- [`holdings`](entities/holdings.md): SeaORM entity for the `holdings` table (composite primary key).
 - [`ignored_titles`](entities/ignored_titles.md): SeaORM entity for the `ignored_titles` table entity (composite primary key).
 - [`job_secret_handoffs`](entities/job_secret_handoffs.md): SeaORM entity for `job_secret_handoffs`: which store-account secrets a Host was handed with a job, per lease generation.
 - [`job_temp_paths`](entities/job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.
@@ -59,10 +65,15 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`portal_identities`](entities/portal_identities.md): SeaORM entity for the `portal_identities` table.
 - [`portal_sessions`](entities/portal_sessions.md): SeaORM entity for the `portal_sessions` table.
 - [`remote_plugin_consents`](entities/remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a host node, this install's operator consent for each owner plugin an owner cluster wants to run here (written by `control_plane::remote_consents`).
+- [`resolution_conflicts`](entities/resolution_conflicts.md): SeaORM entity for the `resolution_conflicts` table (composite primary key).
+- [`resolution_overrides`](entities/resolution_overrides.md): SeaORM entity for the `resolution_overrides` table (composite primary key).
 - [`saved_filters`](entities/saved_filters.md): SeaORM entity for the `saved_filters` table.
 - [`security_audit_events`](entities/security_audit_events.md): SeaORM entity for the `security_audit_events` table entity — elevate / impersonate / login audit.
+- [`series`](entities/series.md): SeaORM entity for the `series` table (text primary key).
+- [`series_entries`](entities/series_entries.md): SeaORM entity for the `series_entries` table (composite primary key).
 - [`storage_scan_generations`](entities/storage_scan_generations.md): Ownership row for one durable storage-scan generation.
 - [`storage_scan_rows`](entities/storage_scan_rows.md): SeaORM entity for paged storage-scan rows.
+- [`store_listings`](entities/store_listings.md): SeaORM entity for the `store_listings` table (text primary key).
 - [`title_files`](entities/title_files.md): SeaORM entity for `title_files`: every file key a title's acquire or host upload wrote, per output destination (H-4 design, section 6). Written by the acquire pipeline (`crate::LibraryStore::record_title_file`) and by `control_plane::uploads`, which refuses an upload a key another title holds and deletes an aborted upload's copy only while the key is still its own.
 - [`title_request_sources`](entities/title_request_sources.md): SeaORM entity for the `title_request_sources` — per-storefront catalog/pricing snapshot for a wish.
 - [`title_requests`](entities/title_requests.md): SeaORM entity for the `title_requests` table.
@@ -71,5 +82,5 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`users`](entities/users.md): SeaORM entity for the `users` table entity — first-party identity principal (#117).
 - [`webauthn_challenges`](entities/webauthn_challenges.md): SeaORM entity for in-flight WebAuthn ceremonies.
 - [`webauthn_credentials`](entities/webauthn_credentials.md): SeaORM entity for WebAuthn / passkey credentials.
-- [`work_editions`](entities/work_editions.md): SeaORM entity for the `work_editions` table entity (composite primary key).
-- [`works`](entities/works.md): SeaORM entity for the `works` table entity (text primary key).
+- [`work_identifiers`](entities/work_identifiers.md): SeaORM entity for the `work_identifiers` table (composite primary key).
+- [`works`](entities/works.md): SeaORM entity for the `works` table (text primary key).

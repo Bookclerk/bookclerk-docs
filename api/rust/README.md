@@ -53,6 +53,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_node_proto`](bookclerk_node_proto/index.md) | Host-node protocol: node API frames, handshake signatures, key checks, and sealed boxes |
 | [`bookclerk_plugin_catalog`](bookclerk_plugin_catalog/index.md) | Registry-neutral plugin discovery, manifests, and secure install |
 | [`bookclerk_plugin_host`](bookclerk_plugin_host/index.md) | External plugin host: discovery, spawn, consent, and workerd-fronted guests |
+| [`bookclerk_resolve`](bookclerk_resolve/index.md) | Sans-IO resolver that maps store listings to FRBR works, expressions and editions |
 | [`bookclerk_sandbox`](bookclerk_sandbox/index.md) | Portable, unprivileged process confinement (Landlock/seccomp, Seatbelt, AppContainer) |
 | [`bookclerk_search`](bookclerk_search/index.md) | Full-text library search (Tantivy; classic Lucene parity) |
 | [`bookclerk_source`](bookclerk_source/index.md) | ContentSource trait and shared types for multi-source library providers |

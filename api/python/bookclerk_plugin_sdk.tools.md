@@ -560,7 +560,7 @@ Queue-name prefixes only the host may use.
 ### HOST_EVENT_TYPES
 
 ```python
-HOST_EVENT_TYPES = frozenset({'book_acquired'})
+HOST_EVENT_TYPES = frozenset({'book_acquired', 'edition_linked', 'edition_updated', 'holding_add...
 ```
 
 Domain event types only the host emits; plugins consume them but cannot produce them.

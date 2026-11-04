@@ -629,13 +629,16 @@ pub fn clean_author_for_compares(author: &str) -> String
 
 Clean an author string for fuzzy compares (AudioBookshelf `cleanAuthorForCompares`).
 
+Decodes HTML entities, then cleans with
+[`bookclerk_resolve::normalize::clean_author`](../bookclerk_resolve/normalize.md#clean_author).
+
 #### Arguments
 
-* `author` - String `author` for this call.
+* `author` - Author name or comma-separated names.
 
 #### Returns
 
-String result for this operation.
+The cleaned, lower-cased name.
 
 ### clean_title_for_compares
 
@@ -645,6 +648,9 @@ pub fn clean_title_for_compares(title: &str, keep_subtitle: bool) -> String
 
 Clean a title for fuzzy compares (AudioBookshelf `cleanTitleForCompares`).
 
+Decodes HTML entities (Libro.fm and others ship entity-encoded titles),
+then cleans with [`bookclerk_resolve::normalize::clean_title`](../bookclerk_resolve/normalize.md#clean_title).
+
 #### Arguments
 
 * `title` - Display title.
@@ -652,7 +658,7 @@ Clean a title for fuzzy compares (AudioBookshelf `cleanTitleForCompares`).
 
 #### Returns
 
-String result for this operation.
+The cleaned, lower-cased title.
 
 ### is_asin_title
 

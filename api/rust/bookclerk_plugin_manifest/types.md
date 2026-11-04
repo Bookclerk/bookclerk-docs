@@ -1437,15 +1437,17 @@ Most `[triggers] crons` entries one manifest may declare.
 ### HOST_EVENT_TYPES
 
 ```rust
-pub const HOST_EVENT_TYPES: [&str; 1] = _;
+pub const HOST_EVENT_TYPES: [&str; 4] = _;
 ```
 
 Domain event types only the host emits.
 
 `book_acquired` is written by the host's acquire pipeline in the same
 transaction as the library row once a source plugin's acquire handler
-returns; the source never publishes it. Plugins consume these types but
-cannot declare them under `[[events.producers]]`.
+returns; the source never publishes it. `edition_linked`,
+`edition_updated` and `holding_added` are written by the library model
+resolver in the same batch as the listing they describe. Plugins consume
+these types but cannot declare them under `[[events.producers]]`.
 
 ### MAX_QUEUE_NAME_LEN
 

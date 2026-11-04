@@ -85,7 +85,6 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
-| [`rebuild_works_from_library`](#rebuild_works_from_library) | function | Link every book into a work keyed by ASIN and/or ISBN, else book uuid. |
 | [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
@@ -2119,31 +2118,6 @@ Resolve one page of Audible customer reviews for infinite scroll.
 #### Returns
 
 On success, the inner `TitleReviewsPage` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### rebuild_works_from_library
-
-```rust
-pub async fn rebuild_works_from_library(
-    library: &LibraryStore,
-) -> Result<usize, DiscoverError>
-```
-
-Link every book into a work keyed by ASIN and/or ISBN, else book uuid.
-
-When a book has both identifiers, prefer an existing work that already
-carries either alias so ISBN-only and ASIN-only rows consolidate.
-
-#### Arguments
-
-* `library` - Open library store used for reads/writes.
-
-#### Returns
-
-On success, the inner `usize` value.
 
 #### Errors
 

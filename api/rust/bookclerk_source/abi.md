@@ -21,6 +21,7 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`expand_candidates_params`](#expand_candidates_params) | function | Builds `expandCandidates` params from a seed plus the result cap. |
 | [`expand_seed_from_params`](#expand_seed_from_params) | function | Splits `expandCandidates` params into the host seed and result cap. |
 | [`login_params`](#login_params) | function | Builds guest login params. `plugin_data_dir` is the jail-granted data directory; the host fills `callback_ipc` / `callback_public_base` after it starts the OAuth callback proxy. |
+| [`scanned_title`](#scanned_title) | function | The title a scan record describes: its flat row and its listing. |
 | [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto the flat `NewBook` row the library stores until it keeps works, expressions and editions, forcing `source` to the plugin id so a guest can never claim another storefront's rows. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
 | [`rfc3339`](#rfc3339) | function | RFC 3339 wire form of a host timestamp, for `ScanBook` date fields. |
 | [`scan_summary`](#scan_summary) | function | Builds a guest scan summary from the books a scan produced. |
@@ -91,6 +92,23 @@ pub fn login_params(plugin_data_dir: String, opts: LoginOptions) -> LoginParams
 Builds guest login params. `plugin_data_dir` is the jail-granted data
 directory; the host fills `callback_ipc` / `callback_public_base` after it
 starts the OAuth callback proxy.
+
+### scanned_title
+
+```rust
+pub fn scanned_title(plugin_id: &str, book: ScanBook) -> Option<ScannedTitle>
+```
+
+The title a scan record describes: its flat row and its listing.
+
+The listing is `None` when the record fails listing validation (the
+flat row is still stored and its own listing derived from it); see
+[`scan_book_to_new`](#scan_book_to_new) for when no title is returned at all.
+
+#### Arguments
+
+* `plugin_id` - The plugin that produced the record; it owns the listing.
+* `book` - The scan record as the guest returned it.
 
 ### scan_book_to_new
 

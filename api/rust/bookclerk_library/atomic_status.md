@@ -13,6 +13,7 @@ Application status strings produced by host plan interpretation.
 | [`IDEMPOTENCY_CONFLICT`](#idempotency_conflict) | constant | Same `operationId` reused with a different request body. |
 | [`DUPLICATE`](#duplicate) | constant | Job admit found an equivalent pending/running row. |
 | [`QUEUE_FULL`](#queue_full) | constant | Job admit refused because the pending+running cap was reached. |
+| [`RETRY`](#retry) | constant | Another writer changed the rows a listing link read; resolve again. |
 
 ## Constants
 
@@ -87,3 +88,11 @@ pub const QUEUE_FULL: &str = "queueFull";
 ```
 
 Job admit refused because the pending+running cap was reached.
+
+### RETRY
+
+```rust
+pub const RETRY: &str = "retry";
+```
+
+Another writer changed the rows a listing link read; resolve again.
