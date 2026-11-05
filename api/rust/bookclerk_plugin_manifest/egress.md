@@ -30,8 +30,10 @@ CONNECT mux; ambient `AF_INET`/`AF_INET6` is denied by the sibling jail. See
 | [`normalize_hostname`](#normalize_hostname) | function | Normalizes a hostname with IDNA ToASCII (fail closed). |
 | [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com` or exact host) via IDNA. |
 | [`host_matches`](#host_matches) | function | True when an IDNA-normalized request host is covered by an allowlist pattern. |
+| [`https_url_on_hosts`](#https_url_on_hosts) | function | Checks a URL from untrusted output (a plugin's record, for example) before the host fetches it itself, outside any guest's egress policy. |
 | [`DEFAULT_MAX_REDIRECTS`](#default_max_redirects) | constant | Default redirect budget injected when building policy from network caps. |
 | [`PYODIDE_EGRESS_HOSTS`](#pyodide_egress_hosts) | constant | Hosts Pyodide / Cloudflare Python Workers commonly fetch on first boot (runtime index + micropip). |
+| [`MAX_FETCH_URL_BYTES`](#max_fetch_url_bytes) | constant | Longest URL `https_url_on_hosts` accepts, in bytes. |
 
 ## Structs
 
@@ -463,6 +465,41 @@ assert!(host_matches("www.cdn.example.com", "*.cdn.example.com"));
 assert!(!host_matches("evil.com", "api.example.com"));
 ```
 
+### https_url_on_hosts
+
+```rust
+pub fn https_url_on_hosts(url: &str, patterns: &[&str]) -> Option<String>
+```
+
+Checks a URL from untrusted output (a plugin's record, for example) before
+the host fetches it itself, outside any guest's egress policy.
+
+The URL is accepted only when it parses, is `https` on the default port,
+carries no user name or password, names a hostname (never an IP literal or
+a restricted name such as `localhost`), and that hostname matches one of
+`patterns` as [`host_matches`](#host_matches) matches allowlist entries.
+
+#### Arguments
+
+* `url` - The untrusted URL; surrounding whitespace is ignored.
+* `patterns` - Exact hosts or `*.` wildcard patterns the host may fetch from.
+
+#### Returns
+
+The URL as the parser serialized it, which is what the caller must fetch
+so the request goes where this check looked, or `None` when it is refused.
+
+#### Examples
+
+```rust
+use bookclerk_plugin_manifest::https_url_on_hosts;
+
+let cdn = ["*.media-amazon.com"];
+assert!(https_url_on_hosts("https://m.media-amazon.com/i.jpg", &cdn).is_some());
+assert!(https_url_on_hosts("http://m.media-amazon.com/i.jpg", &cdn).is_none());
+assert!(https_url_on_hosts("https://127.0.0.1/i.jpg", &cdn).is_none());
+```
+
 ## Constants
 
 ### DEFAULT_MAX_REDIRECTS
@@ -489,3 +526,11 @@ Included in consent UI lists and [`EgressPolicy`](#egresspolicy) domain allowlis
 workerd guest is Python **and** [`NetworkMode::Outbound`](types.md#networkmode). See Cloudflare
 Python packages docs. Values:
 `cdn.jsdelivr.net`, `pypi.org`, `files.pythonhosted.org`.
+
+### MAX_FETCH_URL_BYTES
+
+```rust
+pub const MAX_FETCH_URL_BYTES: usize = 4096;
+```
+
+Longest URL [`https_url_on_hosts`](#https_url_on_hosts) accepts, in bytes.

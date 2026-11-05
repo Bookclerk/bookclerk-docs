@@ -3,19 +3,27 @@
 Source-agnostic Audible metadata enrichment.
 
 Matches library rows that lack an Audible ASIN using public Audible catalog
-search + Audnexus (AudioBookshelf-style confidence scoring). Intended for
-Libro.fm, Chirp, GraphicAudio, and any future non-Audible sources.
+search and the deployed metadata-provider plugins (AudioBookshelf-style
+confidence scoring). Intended for Libro.fm, Chirp, GraphicAudio, and any
+future non-Audible sources.
 
 A confident match stores the Audible ASIN and catalog fields on the row;
-acquire then overlays Audible chapter trees (and related tags) onto plain
-audio that lacks Audible brand intro/outro.
+acquire then overlays the provider's chapter layout (and related tags) onto
+plain audio that lacks Audible brand intro/outro.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`Enrichment`](#enrichment) | struct | Metadata pulled from Audible / Audnexus for a confident match. |
+| [`MetadataProviders`](#metadataproviders) | trait | Deployed metadata providers the host asks for bibliographic records. |
+| [`Enrichment`](#enrichment) | struct | Metadata pulled from the Audible catalog and a metadata provider for a confident match. |
 | [`ScoredMatch`](#scoredmatch) | struct | A scored Audible match candidate. |
 | [`MatchQuery`](#matchquery) | struct | Owned-title (e.g. Libro) metadata used as the match query. |
 | [`ScoreInput`](#scoreinput) | struct | Candidate metadata used for confidence scoring. |
+| [`ChaptersAnswer`](#chaptersanswer) | struct | The first chapter layout any deployed provider had for one edition. |
+| [`MetadataAnswer`](#metadataanswer) | struct | What every deployed provider answered for one lookup or search. |
+| [`NoMetadataProviders`](#nometadataproviders) | struct | No providers: every answer is empty. For callers with no plugin host. |
+| [`ProvidedChapters`](#providedchapters) | struct | A chapter layout and the provider plugin that returned it. |
+| [`ProvidedRecord`](#providedrecord) | struct | One record and the provider plugin that returned it. |
+| [`ProviderFailure`](#providerfailure) | struct | A provider call that failed, so its records are missing from the answer. |
 | [`CatalogProduct`](#catalogproduct) | struct | One Audible catalog product (public search hit). |
 | [`CatalogRating`](#catalograting) | struct | Community ratings from a single Audible catalog product (`response_groups=rating`). |
 | [`CatalogReview`](#catalogreview) | struct | One customer review from Audible's public catalog reviews endpoint. |
@@ -24,11 +32,11 @@ audio that lacks Audible brand intro/outro.
 | [`CatalogReviewsSort`](#catalogreviewssort) | enum | Audible catalog reviews sort (`MostHelpful` or `MostRecent`). |
 | [`apply_enrichment_to_book`](#apply_enrichment_to_book) | function | Apply a confident Audible catalog match onto a non-Audible ownership row. |
 | [`confidence_percent_to_fraction`](#confidence_percent_to_fraction) | function | Convert a 0–100 percent threshold to a 0.0–1.0 fraction. |
-| [`enrich_books_from_audible`](#enrich_books_from_audible) | function | Enrich library rows that lack an ASIN via public Audible catalog + Audnexus. |
-| [`enrichment_for_asin`](#enrichment_for_asin) | function | Fetch Audnexus metadata for a known ASIN (no confidence scoring). |
-| [`enrichment_for_asin_with_client`](#enrichment_for_asin_with_client) | function | Same as `enrichment_for_asin` with a shared HTTP client. |
-| [`lookup_by_metadata`](#lookup_by_metadata) | function | Look up the best Audible match for the given query metadata via public APIs. |
-| [`lookup_by_metadata_with_client`](#lookup_by_metadata_with_client) | function | Catalog + Audnexus lookup against an already-built HTTP client. |
+| [`enrich_books_from_audible`](#enrich_books_from_audible) | function | Enrich library rows that lack an ASIN via the public Audible catalog and the deployed metadata providers. |
+| [`enrichment_for_asin`](#enrichment_for_asin) | function | Provider metadata for a known ASIN (no confidence scoring). |
+| [`enrichment_from_record`](#enrichment_from_record) | function | Maps a provider record into enrichment fields. |
+| [`lookup_by_metadata`](#lookup_by_metadata) | function | Look up the best Audible match for the given query metadata. |
+| [`lookup_by_metadata_with_client`](#lookup_by_metadata_with_client) | function | Catalog search + provider lookup against an already-built HTTP client. |
 | [`calculate_match_confidence`](#calculate_match_confidence) | function | Calculate match confidence in `[0.0, 1.0]`. |
 | [`canonicalize_isbn`](#canonicalize_isbn) | function | Normalize then convert ISBN-10 → ISBN-13 (`978…`) when possible. |
 | [`clean_author_for_compares`](#clean_author_for_compares) | function | Clean an author string for fuzzy compares (AudioBookshelf `cleanAuthorForCompares`). |
@@ -39,14 +47,15 @@ audio that lacks Audible brand intro/outro.
 | [`levenshtein_distance`](#levenshtein_distance) | function | Levenshtein distance (case-insensitive by default, matching ABS). |
 | [`levenshtein_similarity`](#levenshtein_similarity) | function | Similarity in `[0.0, 1.0]` from Levenshtein distance. |
 | [`normalize_isbn`](#normalize_isbn) | function | Digits-only ISBN for exact matching (strips hyphens / spaces / `ISBN` prefix). |
+| [`asin_identifier`](#asin_identifier) | function | An ASIN identifier scoped to `marketplace`. |
+| [`chapter_info_from_layout`](#chapter_info_from_layout) | function | Rebuilds a provider's flat pre-order chapter list as the nested Audible `chapter_info` object the acquire pipeline reads. |
+| [`isbn_identifier`](#isbn_identifier) | function | An ISBN identifier. |
+| [`record_identifier`](#record_identifier) | function | The first value of `scheme` among a record's identifiers. |
 | [`fetch_audible_catalog_rating`](#fetch_audible_catalog_rating) | function | Fetch Audible community ratings for one ASIN (public catalog; no account). |
 | [`fetch_audible_catalog_reviews`](#fetch_audible_catalog_reviews) | function | Fetch a short list of helpful Audible customer reviews (public; no account). |
 | [`fetch_audible_catalog_reviews_page`](#fetch_audible_catalog_reviews_page) | function | Paginated Audible catalog reviews (`page` is 1-based). |
-| [`fetch_audnexus_book`](#fetch_audnexus_book) | function | Fetch book metadata from Audnexus (no Audible account). |
-| [`fetch_audnexus_chapters`](#fetch_audnexus_chapters) | function | Fetch chapter metadata from Audnexus and normalize to Audible `chapter_info` shape. |
-| [`fetch_public_chapter_info`](#fetch_public_chapter_info) | function | Convenience: public chapter fetch with a fresh HTTP client. |
 | [`is_audible_podcast_product`](#is_audible_podcast_product) | function | True for Audible podcast shows / episodes (`content_type` / delivery type). |
-| [`normalize_region`](#normalize_region) | function | Normalize a marketplace string to an Audnexus `region` query value. |
+| [`normalize_region`](#normalize_region) | function | Normalize a marketplace string to an Audible / Audnexus `region` value. |
 | [`normalize_review_body`](#normalize_review_body) | function | Normalize review text for clients: decode HTML entities and preserve Audible guided questionnaire JSON (`[{ type, question, id, answer }, …]`) so the UI can render Q&A sections. Unrelated JSON arrays are left unchanged. |
 | [`public_http_client`](#public_http_client) | function | Shared HTTP client for public metadata calls. |
 | [`region_tld`](#region_tld) | function | Map marketplace / region code to Audible API TLD (AudioBookshelf `regionMap`). |
@@ -65,10 +74,121 @@ audio that lacks Audible brand intro/outro.
 | [`search_catalog_storefront`](#search_catalog_storefront) | function | Storefront catalog search (`GET /1.0/catalog/search`) — the same index the Storefront catalog search (`GET /1.0/catalog/search`) — the same index the Audible website uses. |
 | [`Result`](#result) | type alias | Result alias for this crate's error type. |
 | [`DEFAULT_ENRICH_MIN_CONFIDENCE`](#default_enrich_min_confidence) | constant | Default minimum confidence percent (AudioBookshelf-style 0–100 scale). |
+| [`MAX_CHAPTER_DEPTH`](#max_chapter_depth) | constant | Deepest chapter nesting `chapter_info_from_layout` builds. A provider's layout is plugin output and the tree is later walked recursively, so a deeper `depth` is clamped to this level. Audible itself nests at most a few levels. |
 
 ## Re-exports
 
 - [`bookclerk_library::decode_html_entities`](../bookclerk_library/index.md#decode_html_entities)
+
+## Traits
+
+### MetadataProviders
+
+```rust
+pub trait MetadataProviders: Send + Sync {
+    fn lookup<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        params: &'life1 MetadataLookupParams,
+    ) -> Pin<Box<dyn Future<Output = MetadataAnswer> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn search<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        params: &'life1 MetadataSearchParams,
+    ) -> Pin<Box<dyn Future<Output = MetadataAnswer> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn chapters<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        params: &'life1 MetadataChaptersParams,
+    ) -> Pin<Box<dyn Future<Output = ChaptersAnswer> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+}
+```
+
+Deployed metadata providers the host asks for bibliographic records.
+
+Implementations ask every provider in a stable order. A provider that
+fails is reported in the answer's `failures` and does not stop the others.
+
+#### MetadataProviders::lookup
+
+```rust
+fn lookup<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    params: &'life1 MetadataLookupParams,
+) -> Pin<Box<dyn Future<Output = MetadataAnswer> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Records for a set of identifiers.
+
+##### Arguments
+
+* `params` - Identifiers (never empty), marketplace and limit.
+
+##### Returns
+
+Every provider's records plus the providers that failed.
+
+#### MetadataProviders::search
+
+```rust
+fn search<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    params: &'life1 MetadataSearchParams,
+) -> Pin<Box<dyn Future<Output = MetadataAnswer> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Records matching a title and author.
+
+##### Arguments
+
+* `params` - Title (never empty), author, language, marketplace and limit.
+
+##### Returns
+
+Every provider's records plus the providers that failed.
+
+#### MetadataProviders::chapters
+
+```rust
+fn chapters<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    params: &'life1 MetadataChaptersParams,
+) -> Pin<Box<dyn Future<Output = ChaptersAnswer> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+The chapter layout of one edition.
+
+##### Arguments
+
+* `params` - Identifiers of the edition (never empty) and marketplace.
+
+##### Returns
+
+The first layout a provider found, plus the providers that failed
+before it.
+
+Implemented by: `NoMetadataProviders`
 
 ## Structs
 
@@ -96,7 +216,7 @@ pub struct Enrichment {
 }
 ```
 
-Metadata pulled from Audible / Audnexus for a confident match.
+Metadata pulled from the Audible catalog and a metadata provider for a confident match.
 
 **Fields**
 
@@ -189,6 +309,116 @@ Candidate metadata used for confidence scoring.
 - `duration_minutes`: Runtime in minutes (Audible / Audnexus `runtimeLengthMin`).
 
 Implements: `Clone`, `Debug`
+
+### ChaptersAnswer
+
+```rust
+pub struct ChaptersAnswer {
+    pub found: Option<ProvidedChapters>,
+    pub failures: Vec<ProviderFailure>,
+}
+```
+
+The first chapter layout any deployed provider had for one edition.
+
+**Fields**
+
+- `found`: The first `found` layout in provider order, if any.
+- `failures`: Providers whose call failed before a layout was found.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### MetadataAnswer
+
+```rust
+pub struct MetadataAnswer {
+    pub records: Vec<ProvidedRecord>,
+    pub failures: Vec<ProviderFailure>,
+}
+```
+
+What every deployed provider answered for one lookup or search.
+
+**Fields**
+
+- `records`: Records in provider order, each provider's own relevance order kept.
+- `failures`: Providers whose call failed. A caller that caches "nothing found"
+  should not do so while this is non-empty, since the missing provider
+  may have had a record.
+
+#### MetadataAnswer::incomplete
+
+```rust
+pub fn incomplete(&self) -> bool
+```
+
+True when at least one provider failed.
+
+Implements: `Clone`, `Debug`, `Default`, `PartialEq`
+
+### NoMetadataProviders
+
+```rust
+pub struct NoMetadataProviders;
+```
+
+No providers: every answer is empty. For callers with no plugin host.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `MetadataProviders`
+
+### ProvidedChapters
+
+```rust
+pub struct ProvidedChapters {
+    pub provider: String,
+    pub chapters: MetadataChapters,
+}
+```
+
+A chapter layout and the provider plugin that returned it.
+
+**Fields**
+
+- `provider`: PluginKey of the provider that answered.
+- `chapters`: The layout; always `found`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ProvidedRecord
+
+```rust
+pub struct ProvidedRecord {
+    pub provider: String,
+    pub record: MetadataRecord,
+}
+```
+
+One record and the provider plugin that returned it.
+
+**Fields**
+
+- `provider`: PluginKey of the provider that answered.
+- `record`: The record as the provider described it.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
+### ProviderFailure
+
+```rust
+pub struct ProviderFailure {
+    pub provider: String,
+    pub message: String,
+}
+```
+
+A provider call that failed, so its records are missing from the answer.
+
+**Fields**
+
+- `provider`: PluginKey of the provider that failed.
+- `message`: Error text from the plugin call.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### CatalogProduct
 
@@ -444,20 +674,24 @@ Convert a 0–100 percent threshold to a 0.0–1.0 fraction.
 ```rust
 pub async fn enrich_books_from_audible(
     library: &LibraryStore,
+    providers: &dyn MetadataProviders,
     min_confidence_percent: u8,
 ) -> Result<usize>
 ```
 
-Enrich library rows that lack an ASIN via public Audible catalog + Audnexus.
+Enrich library rows that lack an ASIN via the public Audible catalog and
+the deployed metadata providers.
 
 Source-agnostic: any non-`audible` row with title and/or ISBN is considered.
 Uses title, author, narrator, subtitle, ISBN, and duration when present.
 `min_confidence_percent` is 0–100 (default [`DEFAULT_ENRICH_MIN_CONFIDENCE`](#default_enrich_min_confidence)).
+With no provider that answers ASIN lookups, nothing matches.
 
 #### Arguments
 
 * `library` - Open library store used for reads/writes.
-* `min_confidence_percent` - `min_confidence_percent` input for this call.
+* `providers` - Deployed metadata providers asked for each candidate ASIN.
+* `min_confidence_percent` - Minimum match confidence, 0–100.
 
 #### Returns
 
@@ -470,108 +704,109 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 ### enrichment_for_asin
 
 ```rust
-pub async fn enrichment_for_asin(asin: &str, region: &str) -> Result<Option<Enrichment>>
+pub async fn enrichment_for_asin(
+    providers: &dyn MetadataProviders,
+    asin: &str,
+    region: &str,
+) -> Option<Enrichment>
 ```
 
-Fetch Audnexus metadata for a known ASIN (no confidence scoring).
+Provider metadata for a known ASIN (no confidence scoring).
 
 Used by Discover / Wishlist / Library detail views to surface description,
 runtime, publisher, and related fields without requiring a library row.
+The first provider record that carries a title wins.
 
 #### Arguments
 
-* `asin` - Optional Audible / Amazon ASIN.
+* `providers` - Deployed metadata providers.
+* `asin` - Audible / Amazon ASIN.
 * `region` - Marketplace / region code (`us`, `uk`, …).
 
 #### Returns
 
-On success, the inner `Option<Enrichment>` value.
+The record's fields, or `None` when the ASIN is malformed or no provider
+has a record. A provider failure is logged and treated as no record.
 
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### enrichment_for_asin_with_client
+### enrichment_from_record
 
 ```rust
-pub async fn enrichment_for_asin_with_client(
-    http: &Client,
-    asin: &str,
-    region: &str,
-) -> Result<Option<Enrichment>>
+pub fn enrichment_from_record(record: &MetadataRecord, asin: &str) -> Option<Enrichment>
 ```
 
-Same as [`enrichment_for_asin`](#enrichment_for_asin) with a shared HTTP client.
+Maps a provider record into enrichment fields.
 
 #### Arguments
 
-* `http` - `http` input for this call.
-* `asin` - Optional Audible / Amazon ASIN.
-* `region` - Marketplace / region code (`us`, `uk`, …).
+* `record` - The provider's record.
+* `asin` - ASIN asked for; used when the record does not name one.
 
 #### Returns
 
-On success, the inner `Option<Enrichment>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+`None` when the record has no title.
 
 ### lookup_by_metadata
 
 ```rust
 pub async fn lookup_by_metadata(
+    providers: &dyn MetadataProviders,
     query: &MatchQuery<'_>,
     region: &str,
     min_confidence: f64,
 ) -> Result<Option<ScoredMatch>>
 ```
 
-Look up the best Audible match for the given query metadata via public APIs.
+Look up the best Audible match for the given query metadata.
 
-Returns `None` when no candidate meets `min_confidence` (0.0–1.0).
+Candidate ASINs come from the public Audible catalog search; each one's
+record comes from the deployed metadata providers. Returns `None` when
+no candidate meets `min_confidence` (0.0–1.0), or when no provider has a
+record for any candidate.
 
 #### Arguments
 
-* `query` - Query vector or free-text search string.
+* `providers` - Deployed metadata providers asked for each candidate.
+* `query` - Title, author, ISBN and runtime of the row to match.
 * `region` - Marketplace / region code (`us`, `uk`, …).
 * `min_confidence` - Minimum match confidence in `[0.0, 1.0]` to apply enrichment.
 
 #### Returns
 
-On success, the inner `Option<ScoredMatch>` value.
+The highest-scoring candidate at or above `min_confidence`.
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when the HTTP client cannot be built or a catalog search fails.
 
 ### lookup_by_metadata_with_client
 
 ```rust
 pub async fn lookup_by_metadata_with_client(
     http: &Client,
+    providers: &dyn MetadataProviders,
     query: &MatchQuery<'_>,
     region: &str,
     min_confidence: f64,
 ) -> Result<Option<ScoredMatch>>
 ```
 
-Catalog + Audnexus lookup against an already-built HTTP client.
+Catalog search + provider lookup against an already-built HTTP client.
 
 #### Arguments
 
-* `http` - `http` input for this call.
-* `query` - Query vector or free-text search string.
+* `http` - Client for the public Audible catalog search.
+* `providers` - Deployed metadata providers asked for each candidate.
+* `query` - Title, author, ISBN and runtime of the row to match.
 * `region` - Marketplace / region code (`us`, `uk`, …).
 * `min_confidence` - Minimum match confidence in `[0.0, 1.0]` to apply enrichment.
 
 #### Returns
 
-On success, the inner `Option<ScoredMatch>` value.
+The highest-scoring candidate at or above `min_confidence`.
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when a catalog search fails.
 
 ### calculate_match_confidence
 
@@ -770,6 +1005,72 @@ Digits-only ISBN for exact matching (strips hyphens / spaces / `ISBN` prefix).
 
 String result for this operation.
 
+### asin_identifier
+
+```rust
+pub fn asin_identifier(asin: &str, marketplace: &str) -> Identifier
+```
+
+An ASIN identifier scoped to `marketplace`.
+
+#### Arguments
+
+* `asin` - The ASIN as the library stores it.
+* `marketplace` - Marketplace code (`us`, `uk`, …); blank means none.
+
+### chapter_info_from_layout
+
+```rust
+pub fn chapter_info_from_layout(layout: &MetadataChapters) -> Value
+```
+
+Rebuilds a provider's flat pre-order chapter list as the nested Audible
+`chapter_info` object the acquire pipeline reads.
+
+Each node carries both the camelCase keys Audnexus uses and the
+snake_case keys of Audible's own API, as the pipeline accepts either.
+A chapter whose `depth` skips a level is attached to the deepest open
+shallower chapter, so a malformed list still nests without losing a
+chapter, chapters of equal depth stay siblings, and
+nesting stops at [`MAX_CHAPTER_DEPTH`](#max_chapter_depth) levels.
+
+#### Arguments
+
+* `layout` - The provider's chapter layout.
+
+#### Returns
+
+An object with `chapters`, the brand intro/outro and runtime lengths when
+known, and `isAccurate`.
+
+### isbn_identifier
+
+```rust
+pub fn isbn_identifier(isbn: &str) -> Identifier
+```
+
+An ISBN identifier.
+
+#### Arguments
+
+* `isbn` - ISBN-10 or ISBN-13, already normalized by the caller.
+
+### record_identifier
+
+```rust
+pub fn record_identifier(
+    record: &MetadataRecord,
+    scheme: IdentifierScheme,
+) -> Option<&str>
+```
+
+The first value of `scheme` among a record's identifiers.
+
+#### Arguments
+
+* `record` - The provider record.
+* `scheme` - The scheme wanted.
+
 ### fetch_audible_catalog_rating
 
 ```rust
@@ -859,83 +1160,6 @@ On success, the inner `CatalogReviewsPage` value.
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
-### fetch_audnexus_book
-
-```rust
-pub async fn fetch_audnexus_book(
-    http: &Client,
-    asin: &str,
-    region: &str,
-) -> Result<Option<Value>>
-```
-
-Fetch book metadata from Audnexus (no Audible account).
-
-#### Arguments
-
-* `http` - `http` input for this call.
-* `asin` - Optional Audible / Amazon ASIN.
-* `region` - Marketplace / region code (`us`, `uk`, …).
-
-#### Returns
-
-On success, the inner `Option<Value>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### fetch_audnexus_chapters
-
-```rust
-pub async fn fetch_audnexus_chapters(
-    http: &Client,
-    asin: &str,
-    region: &str,
-) -> Result<Option<Value>>
-```
-
-Fetch chapter metadata from Audnexus and normalize to Audible `chapter_info` shape.
-
-Audnexus uses camelCase (`startOffsetMs`, `brandIntroDurationMs`). Callers that
-already accept both casings can use the raw body; this helper also mirrors
-snake_case keys for code that only reads Audible API field names.
-
-#### Arguments
-
-* `http` - `http` input for this call.
-* `asin` - Optional Audible / Amazon ASIN.
-* `region` - Marketplace / region code (`us`, `uk`, …).
-
-#### Returns
-
-On success, the inner `Option<Value>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### fetch_public_chapter_info
-
-```rust
-pub async fn fetch_public_chapter_info(asin: &str, region: &str) -> Result<Option<Value>>
-```
-
-Convenience: public chapter fetch with a fresh HTTP client.
-
-#### Arguments
-
-* `asin` - Optional Audible / Amazon ASIN.
-* `region` - Marketplace / region code (`us`, `uk`, …).
-
-#### Returns
-
-On success, the inner `Option<Value>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
 ### is_audible_podcast_product
 
 ```rust
@@ -958,7 +1182,7 @@ True for Audible podcast shows / episodes (`content_type` / delivery type).
 pub fn normalize_region(region: &str) -> String
 ```
 
-Normalize a marketplace string to an Audnexus `region` query value.
+Normalize a marketplace string to an Audible / Audnexus `region` value.
 
 #### Arguments
 
@@ -1468,3 +1692,14 @@ pub const DEFAULT_ENRICH_MIN_CONFIDENCE: u8 = 90;
 ```
 
 Default minimum confidence percent (AudioBookshelf-style 0–100 scale).
+
+### MAX_CHAPTER_DEPTH
+
+```rust
+pub const MAX_CHAPTER_DEPTH: usize = 8;
+```
+
+Deepest chapter nesting [`chapter_info_from_layout`](#chapter_info_from_layout) builds. A provider's
+layout is plugin output and the tree is later walked recursively, so a
+deeper `depth` is clamped to this level. Audible itself nests at most a few
+levels.

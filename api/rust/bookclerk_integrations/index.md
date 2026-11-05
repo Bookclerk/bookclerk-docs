@@ -146,6 +146,29 @@ pub trait Integration: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
+    fn supports_metadata(&self) -> bool;
+    fn metadata_lookup<'life0, 'async_trait>(
+        &'life0 self,
+        _params: MetadataLookupParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<MetadataRecord>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn metadata_search<'life0, 'async_trait>(
+        &'life0 self,
+        _params: MetadataSearchParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<MetadataRecord>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn metadata_chapters<'life0, 'async_trait>(
+        &'life0 self,
+        _params: MetadataChaptersParams,
+    ) -> Pin<Box<dyn Future<Output = Result<MetadataChapters>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn metadata_unsupported(&self) -> IntegrationError;
     fn diagnose<'life0, 'async_trait>(
         &'life0 self,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + Send + 'async_trait>>
@@ -460,6 +483,73 @@ so one or more integrations can contribute.
 
 Default: unsupported.
 
+#### Integration::supports_metadata
+
+```rust
+fn supports_metadata(&self) -> bool
+```
+
+Whether this integration exports the `metadata` entrypoint
+(bibliographic lookups, searches and chapter layouts).
+
+Default: `false`.
+
+#### Integration::metadata_lookup
+
+```rust
+fn metadata_lookup<'life0, 'async_trait>(
+    &'life0 self,
+    _params: MetadataLookupParams,
+) -> Pin<Box<dyn Future<Output = Result<Vec<MetadataRecord>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Edition records for a set of identifiers (`MetadataProvider.lookup`).
+
+Default: unsupported.
+
+#### Integration::metadata_search
+
+```rust
+fn metadata_search<'life0, 'async_trait>(
+    &'life0 self,
+    _params: MetadataSearchParams,
+) -> Pin<Box<dyn Future<Output = Result<Vec<MetadataRecord>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Edition records matching a title and author (`MetadataProvider.search`).
+
+Default: unsupported.
+
+#### Integration::metadata_chapters
+
+```rust
+fn metadata_chapters<'life0, 'async_trait>(
+    &'life0 self,
+    _params: MetadataChaptersParams,
+) -> Pin<Box<dyn Future<Output = Result<MetadataChapters>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Chapter layout of one edition (`MetadataProvider.chapters`).
+
+Default: unsupported.
+
+#### Integration::metadata_unsupported
+
+```rust
+fn metadata_unsupported(&self) -> IntegrationError
+```
+
+The error the default metadata methods return.
+
 #### Integration::diagnose
 
 ```rust
@@ -703,6 +793,14 @@ pub fn listening_sync_providers(&self) -> Vec<Arc<dyn Integration>>
 
 Integrations that can sync listening / progress.
 
+#### IntegrationRegistry::metadata_providers
+
+```rust
+pub fn metadata_providers(&self) -> Vec<Arc<dyn Integration>>
+```
+
+Integrations that export the `metadata` entrypoint, in registration order.
+
 #### IntegrationRegistry::sync_listening_progress_all
 
 ```rust
@@ -724,7 +822,7 @@ Individual failures are recorded in the summary and do not abort siblings.
 
 `crate::types::SyncListeningSummary` result.
 
-Implements: `Clone`, `Default`
+Implements: `Clone`, `Default`, `MetadataProviders`
 
 ### MintedClaimTicket
 

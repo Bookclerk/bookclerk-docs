@@ -16,6 +16,7 @@ content-source plugins; this crate never sees license keys. See
 | [`MatchStorageOptions`](#matchstorageoptions) | struct | Options for `match_storage_to_library`. |
 | [`MatchStorageSummary`](#matchstoragesummary) | struct | Summary of a storage→library match run. |
 | [`NamingContext`](#namingcontext) | struct | Metadata available to naming templates. |
+| [`AcquireMetadata`](#acquiremetadata) | struct | The deployed metadata providers an acquire asks for the plain-audio overlay (catalog tags, cover and chapter layout of an enriched ASIN). |
 | [`AcquireRequest`](#acquirerequest) | struct | Request to acquire a single title. |
 | [`AcquireResult`](#acquireresult) | struct | Result after a successful acquire. |
 | [`PlannedTitleNames`](#plannedtitlenames) | struct | The names an acquire of one title writes on one destination, as the owner plans them, to bound a host's upload of that title. |
@@ -320,6 +321,37 @@ Metadata available to naming templates.
 
 Implements: `Clone`, `Debug`, `Default`
 
+### AcquireMetadata
+
+```rust
+pub struct AcquireMetadata(/* private */);
+```
+
+The deployed metadata providers an acquire asks for the plain-audio
+overlay (catalog tags, cover and chapter layout of an enriched ASIN).
+
+#### AcquireMetadata::new
+
+```rust
+pub fn new(providers: Arc<dyn MetadataProviders>) -> Self
+```
+
+Wraps the providers an acquire should ask.
+
+##### Arguments
+
+* `providers` - Usually the daemon's or CLI's integration registry.
+
+#### AcquireMetadata::providers
+
+```rust
+pub fn providers(&self) -> &dyn MetadataProviders
+```
+
+The wrapped providers.
+
+Implements: `Clone`, `Debug`, `Default`
+
 ### AcquireRequest
 
 ```rust
@@ -340,6 +372,7 @@ pub struct AcquireRequest {
     pub write_destinations: Option<Vec<OutputBackendKind>>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
+    pub metadata: AcquireMetadata,
 }
 ```
 
@@ -364,6 +397,8 @@ Request to acquire a single title.
   (`output.multi_destination = refetch_missing`).
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
+- `metadata`: Metadata providers asked for the plain-audio catalog and chapter
+  overlay. The default has none, so plain audio keeps its store tags.
 
 Implements: `Clone`, `Debug`
 

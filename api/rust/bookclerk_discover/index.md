@@ -24,7 +24,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`OnnxEmbedder`](#onnxembedder) | struct | ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM. |
 | [`StoreEdition`](#storeedition) | struct | One storefront edition of a work (for multi-store purchase links). |
 | [`WorkIdentity`](#workidentity) | struct | Bibliographic identity slice used for merge decisions. |
-| [`OpenLibraryOptions`](#openlibraryoptions) | struct | Options for a polite Open Library enrichment pass. |
+| [`MetadataEnrichOptions`](#metadataenrichoptions) | struct | Pacing for one enrichment run. |
 | [`PurchaseHint`](#purchasehint) | struct | A purchase / catalog availability hint (optionally priced at view time). |
 | [`PurchaseHintsQuery`](#purchasehintsquery) | struct | Inputs for view-time catalog + pricing lookup. |
 | [`PurchaseHintsResponse`](#purchasehintsresponse) | struct | Priced catalog matches for one title, sorted best-first. |
@@ -63,8 +63,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`soft_work_key`](#soft_work_key) | function | Soft key from cleaned title + primary author (exact string match only). |
 | [`work_map_key`](#work_map_key) | function | Best stable map key for a recommendation / candidate. |
 | [`works_match`](#works_match) | function | Whether two titles should be treated as the same work. |
-| [`enrich_books_from_openlibrary`](#enrich_books_from_openlibrary) | function | Fill missing description/subjects/cover/language from Open Library. |
-| [`enrich_books_from_openlibrary_with`](#enrich_books_from_openlibrary_with) | function | Same as `enrich_books_from_openlibrary` with explicit politeness options. |
+| [`enrich_books_from_metadata`](#enrich_books_from_metadata) | function | Fills missing description, subjects, cover and language from the deployed metadata providers. |
 | [`best_purchase_hint`](#best_purchase_hint) | function | Pick the lowest-priced hint (ties keep earlier order). Unpriced sort after priced. |
 | [`best_purchase_hint_preferring`](#best_purchase_hint_preferring) | function | Pick the offer the caller would actually pay least for. |
 | [`format_money_label`](#format_money_label) | function | Formats integer cents into a storefront-style money label for `currency`. |
@@ -87,6 +86,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
 | [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
+| [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
+| [`METADATA_ENRICH_SOURCE_PREFIX`](#metadata_enrich_source_prefix) | constant | `enrich_source` prefix marking a title filled by a metadata provider; the provider's plugin key follows it. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 
 ## Re-exports
@@ -612,23 +613,21 @@ Updated `Self` for chaining.
 
 Implements: `Clone`, `Copy`, `Debug`
 
-### OpenLibraryOptions
+### MetadataEnrichOptions
 
 ```rust
-pub struct OpenLibraryOptions {
-    pub contact_email: Option<String>,
+pub struct MetadataEnrichOptions {
     pub min_interval: Duration,
     pub max_requests: usize,
 }
 ```
 
-Options for a polite Open Library enrichment pass.
+Pacing for one enrichment run.
 
 **Fields**
 
-- `contact_email`: Contact email embedded in User-Agent (required for identified rate limit).
-- `min_interval`: Minimum delay between Open Library HTTP calls.
-- `max_requests`: Hard cap on Open Library HTTP requests for one enrich pass.
+- `min_interval`: Pause before each provider ask.
+- `max_requests`: Most provider asks in one run; titles past the cap wait for the next run.
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -1627,54 +1626,35 @@ Whether two titles should be treated as the same work.
 
 `true` when the predicate holds.
 
-### enrich_books_from_openlibrary
+### enrich_books_from_metadata
 
 ```rust
-pub async fn enrich_books_from_openlibrary(
+pub async fn enrich_books_from_metadata(
     library: &LibraryStore,
+    providers: &dyn MetadataProviders,
+    opts: &MetadataEnrichOptions,
 ) -> Result<usize, DiscoverError>
 ```
 
-Fill missing description/subjects/cover/language from Open Library.
+Fills missing description, subjects, cover and language from the
+deployed metadata providers.
 
-Skips rows already enriched from Open Library. Caps remote calls per run and
-spaces requests to respect Open Library rate guidelines.
-
-#### Arguments
-
-* `library` - Open library store used for reads/writes.
-
-#### Returns
-
-On success, the inner `usize` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### enrich_books_from_openlibrary_with
-
-```rust
-pub async fn enrich_books_from_openlibrary_with(
-    library: &LibraryStore,
-    opts: &OpenLibraryOptions,
-) -> Result<usize, DiscoverError>
-```
-
-Same as [`enrich_books_from_openlibrary`](#enrich_books_from_openlibrary) with explicit politeness options.
+Skips titles a provider already filled. With no provider deployed, every
+answer is empty and nothing changes.
 
 #### Arguments
 
-* `library` - Open library store used for reads/writes.
-* `opts` - Options struct for this operation.
+* `library` - Library store read and written.
+* `providers` - Deployed metadata providers.
+* `opts` - Pacing for this run.
 
 #### Returns
 
-On success, the inner `usize` value.
+The number of titles filled.
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when a library read or write fails.
 
 ### best_purchase_hint
 
@@ -2053,6 +2033,7 @@ Shelf kinds Discover can emit (for config / UI ignore lists).
 ```rust
 pub async fn resolve_title_meta(
     query: &TitleMetaQuery,
+    providers: Arc<dyn MetadataProviders>,
     sources: Option<&SourceRegistry>,
 ) -> Result<Option<TitleMeta>, DiscoverError>
 ```
@@ -2065,6 +2046,7 @@ from storefront `bookclerk_source::ContentSource::catalog_detail` (Libro ISBN de
 #### Arguments
 
 * `query` - Query vector or free-text search string.
+* `providers` - Deployed metadata providers asked for records.
 * `sources` - String `sources` for this call.
 
 #### Returns
@@ -2081,6 +2063,7 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 pub async fn resolve_title_meta_batch(
     queries: &[TitleMetaQuery],
     max_concurrent: usize,
+    providers: Arc<dyn MetadataProviders>,
     sources: Option<&SourceRegistry>,
 ) -> Vec<Result<Option<TitleMeta>, DiscoverError>>
 ```
@@ -2091,6 +2074,7 @@ Resolve many title-meta queries with bounded concurrency (order preserved).
 
 * `queries` - Batch of purchase-hint or title-meta queries.
 * `max_concurrent` - Numeric `max_concurrent` value for this call.
+* `providers` - Deployed metadata providers asked for records.
 * `sources` - String `sources` for this call.
 
 #### Returns
@@ -2140,6 +2124,23 @@ pub const MODEL_LOCAL_HASH_V1: &str = "local-hash-v1";
 ```
 
 Local hash embedder id used when ONNX is unavailable / disabled.
+
+### DEFAULT_MAX_REQUESTS_PER_RUN
+
+```rust
+pub const DEFAULT_MAX_REQUESTS_PER_RUN: usize = 25;
+```
+
+Default cap on provider asks in one run.
+
+### METADATA_ENRICH_SOURCE_PREFIX
+
+```rust
+pub const METADATA_ENRICH_SOURCE_PREFIX: &str = "metadata:";
+```
+
+`enrich_source` prefix marking a title filled by a metadata provider; the
+provider's plugin key follows it.
 
 ### WISH_COUNT_WEIGHT
 

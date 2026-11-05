@@ -1800,9 +1800,6 @@ pub struct DiscoveryConfig {
     pub embeddings_enabled: bool,
     pub embedding_model: String,
     pub embed_intra_threads: usize,
-    pub openlibrary_enabled: bool,
-    pub openlibrary_contact_email: Option<String>,
-    pub openlibrary_max_requests_per_run: usize,
     pub worldcat_enabled: bool,
     pub storefront_candidates: bool,
     pub storefront_seed_limit: usize,
@@ -1820,9 +1817,6 @@ Discovery / recommendations / embeddings settings.
 - `embeddings_enabled`: Run local embeddings for similarity scoring of storefront candidates.
 - `embedding_model`: Model id (`all-minilm-l6-v2-q` preferred; runtime may fall back to `local-hash-v1`).
 - `embed_intra_threads`: ONNX intra-op threads (keep at 1 on small VPSes).
-- `openlibrary_enabled`: Fill metadata gaps via Open Library (low-volume, cached; not for bulk).
-- `openlibrary_contact_email`: Contact email for Open Library User-Agent (API guidelines).
-- `openlibrary_max_requests_per_run`: Max Open Library HTTP calls per enrich run.
 - `worldcat_enabled`: Reserved for a future WorldCat provider (requires API key).
 - `storefront_candidates`: Expand recommendations from storefront catalogs (unowned titles).
 - `storefront_seed_limit`: Max local taste seeds used for storefront expansion.
@@ -1860,7 +1854,8 @@ Library / scan related settings.
 - `import_plus_titles`: Import Audible Plus titles during scan (`ImportPlusTitles`).
 - `download_episodes`: Acquire podcast episodes (`DownloadEpisodes`; distinct from `ImportEpisodes`).
 - `save_podcasts_to_parent_folder`: Save podcast episodes into the parent show's folder (`SavePodcastsToParentFolder`).
-- `enrich_from_audible`: After scan, enrich non-Audible rows (e.g. Libro.fm) from public Audible/Audnexus metadata.
+- `enrich_from_audible`: After scan, match non-Audible rows (e.g. Libro.fm) to Audible ASINs via the public
+  Audible catalog and the deployed metadata providers (the Audnexus plugin).
 - `enrich_min_confidence`: Minimum match confidence (0–100) to accept an Audible ASIN enrichment.
   Uses AudioBookshelf-style duration/title/author scoring (default 90).
 - `fix_storage_layout`: When matching storage to the library, relocate matched audio (and

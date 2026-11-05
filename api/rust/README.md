@@ -42,7 +42,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_db_guest`](bookclerk_db_guest/index.md) | First-party database guest session workers (SeaORM proxy, host IR envelopes) |
 | [`bookclerk_demo_seed`](bookclerk_demo_seed/index.md) | Fills a fresh hosted-demo library with a second member, their books, wishlist and offline branch |
 | [`bookclerk_discover`](bookclerk_discover/index.md) | Recommendations, embeddings, listening sync, and title request helpers |
-| [`bookclerk_enrich`](bookclerk_enrich/index.md) | Source-agnostic Audible metadata enrichment (catalog + Audnexus + confidence scoring) |
+| [`bookclerk_enrich`](bookclerk_enrich/index.md) | Source-agnostic Audible metadata enrichment (catalog search, metadata providers, confidence scoring) |
 | [`bookclerk_integrations`](bookclerk_integrations/index.md) | Outbound integration framework (traits, registry, portal, claim tickets) |
 | [`bookclerk_library`](bookclerk_library/index.md) | Library database schema, migrations, and book records |
 | [`bookclerk_media`](bookclerk_media/index.md) | Clear-media packaging: remux, metadata fix-up, and MP3 encode (no DRM) |
