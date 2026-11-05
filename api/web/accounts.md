@@ -718,7 +718,7 @@ Status `200`: Deployed content sources.
         "bg": "#1F4E3D",
         "fg": "#F4F1EA",
         "accent": "#2F6B53",
-        "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
+        "logo": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
       }
     }
   ]
@@ -838,8 +838,8 @@ Schema:
               },
               "logo": {
                 "type": "string",
-                "description": "Logo image href (often a favicon URL).",
-                "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
+                "description": "Same-origin logo image (a 128 px copy of the brand's icon), or empty\nwhen there is none.",
+                "example": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
               }
             }
           }
@@ -1898,7 +1898,7 @@ Status `200`: Store accounts linked to the caller.
         "bg": "#1F4E3D",
         "fg": "#F4F1EA",
         "accent": "#2F6B53",
-        "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
+        "logo": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
       }
     }
   ]
@@ -1990,8 +1990,8 @@ Schema:
                   },
                   "logo": {
                     "type": "string",
-                    "description": "Logo image href (often a favicon URL).",
-                    "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=128"
+                    "description": "Same-origin logo image (a 128 px copy of the brand's icon), or empty\nwhen there is none.",
+                    "example": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
                   }
                 }
               },

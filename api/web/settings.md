@@ -96,7 +96,7 @@ Status `200`: The settings.
       "family": "source",
       "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
       "provenance": "platform_bundled",
-      "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64",
+      "logo": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ",
       "settings": [
         {
           "key": "container",
@@ -227,8 +227,8 @@ Schema:
               "string",
               "null"
             ],
-            "description": "Google favicon (or portal brand) URL for Settings list rows.",
-            "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64"
+            "description": "Same-origin logo for Settings list rows: the plugin's embedded logo,\nor a 128 px copy of the remote logo its manifest names.",
+            "example": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
           },
           "settings": {
             "type": "array",
@@ -794,7 +794,7 @@ Status `200`: The settings after the change.
       "family": "source",
       "plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro",
       "provenance": "platform_bundled",
-      "logo": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64",
+      "logo": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ",
       "settings": [
         {
           "key": "container",
@@ -925,8 +925,8 @@ Schema:
               "string",
               "null"
             ],
-            "description": "Google favicon (or portal brand) URL for Settings list rows.",
-            "example": "https://www.google.com/s2/favicons?domain=libro.fm&sz=64"
+            "description": "Same-origin logo for Settings list rows: the plugin's embedded logo,\nor a 128 px copy of the remote logo its manifest names.",
+            "example": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
           },
           "settings": {
             "type": "array",

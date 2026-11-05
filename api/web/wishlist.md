@@ -2829,7 +2829,8 @@ Status `200`: Open requests, ranked.
         "has_avatar": true,
         "avatar_source": "upload",
         "gravatar_hash": "84d2a1a1d9ba6a4c2f4b9d0e7a7c6b5f3e2d1c0b9a8f7e6d5c4b3a2918f7e6d5",
-        "picture_url": "https://accounts.example.com/u/dana/picture.png"
+        "picture_url": "https://accounts.example.com/u/dana/picture.png",
+        "picture_path": "/api/images/aHR0cHM6Ly9hY2NvdW50cy5leGFtcGxlLmNvbS91L2RhbmEvcGljdHVyZS5wbmc.N14rqh66Bok9-eCqJKBNoQ"
       }
     ],
     "sample_uuids": [
@@ -2996,6 +2997,14 @@ Schema:
               ],
               "description": "HTTPS picture from the wishing identity, when any.",
               "example": "https://accounts.example.com/u/dana/picture.png"
+            },
+            "picture_path": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Same-origin 128 px copy of `picture_url` for the web app to show\n(filled by the daemon; never stored).",
+              "example": "/api/images/aHR0cHM6Ly9hY2NvdW50cy5leGFtcGxlLmNvbS91L2RhbmEvcGljdHVyZS5wbmc.N14rqh66Bok9-eCqJKBNoQ"
             }
           }
         },

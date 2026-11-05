@@ -1894,6 +1894,7 @@ pub struct BookRecord {
     pub description: Option<String>,
     pub language: Option<String>,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub subjects: Option<String>,
     pub enrich_source: Option<String>,
     pub enrich_confidence: Option<f64>,
@@ -1943,6 +1944,10 @@ Book / library item (one ownership row per store product per account).
 - `description`: Blurb / synopsis text (may contain HTML).
 - `language`: BCP-47 or storefront language code when known.
 - `cover_url`: HTTPS URL for cover art when known.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL; never stored. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `subjects`: Subject / topic tags (often from Open Library; `;`- or `,`-separated).
 - `enrich_source`: Plugin or catalog that last enriched bibliographic fields.
 - `enrich_confidence`: 0–1 confidence score for the last enrichment pass.
@@ -2994,6 +2999,7 @@ pub struct QueueWisher {
     pub avatar_source: Option<String>,
     pub gravatar_hash: Option<String>,
     pub picture_url: Option<String>,
+    pub picture_path: Option<String>,
 }
 ```
 
@@ -3010,6 +3016,8 @@ Compact wisher shown on the global queue (avatar + label).
 - `avatar_source`: Explicit picture choice when the user has set one.
 - `gravatar_hash`: SHA-256 hex of the contact email for Gravatar.
 - `picture_url`: HTTPS picture from the wishing identity, when any.
+- `picture_path`: Same-origin 128 px copy of `picture_url` for the web app to show
+  (filled by the daemon; never stored).
 
 #### QueueWisher::same_person
 

@@ -1067,6 +1067,7 @@ Status `200`: Who the caller is (operator, portal user, or impersonation).
         "identity_id": 3,
         "provider": "oidc:google",
         "picture_url": "https://lh3.googleusercontent.com/a/example=s96-c",
+        "picture_path": "/api/images/aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvZXhhbXBsZT1zOTYtYw.N14rqh66Bok9-eCqJKBNoQ",
         "last_used_at": "2026-10-29T08:15:00Z"
       }
     ]
@@ -1282,6 +1283,14 @@ Schema:
                     "type": "string",
                     "description": "HTTPS URL to display.",
                     "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+                  },
+                  "picture_path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Same-origin 128 px copy of `picture_url` for the web app to show,\nwhen this node can sign it.",
+                    "example": "/api/images/aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvZXhhbXBsZT1zOTYtYw.N14rqh66Bok9-eCqJKBNoQ"
                   },
                   "last_used_at": {
                     "type": [
@@ -1560,6 +1569,14 @@ Schema:
                     "type": "string",
                     "description": "HTTPS URL to display.",
                     "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+                  },
+                  "picture_path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Same-origin 128 px copy of `picture_url` for the web app to show,\nwhen this node can sign it.",
+                    "example": "/api/images/aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvZXhhbXBsZT1zOTYtYw.N14rqh66Bok9-eCqJKBNoQ"
                   },
                   "last_used_at": {
                     "type": [
@@ -6575,6 +6592,7 @@ Status `200`: The profile after the change.
         "identity_id": 3,
         "provider": "oidc:google",
         "picture_url": "https://lh3.googleusercontent.com/a/example=s96-c",
+        "picture_path": "/api/images/aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvZXhhbXBsZT1zOTYtYw.N14rqh66Bok9-eCqJKBNoQ",
         "last_used_at": "2026-10-29T08:15:00Z"
       }
     ]
@@ -6685,6 +6703,14 @@ Schema:
                 "type": "string",
                 "description": "HTTPS URL to display.",
                 "example": "https://lh3.googleusercontent.com/a/example=s96-c"
+              },
+              "picture_path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Same-origin 128 px copy of `picture_url` for the web app to show,\nwhen this node can sign it.",
+                "example": "/api/images/aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvZXhhbXBsZT1zOTYtYw.N14rqh66Bok9-eCqJKBNoQ"
               },
               "last_used_at": {
                 "type": [

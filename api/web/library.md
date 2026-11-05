@@ -1530,6 +1530,7 @@ Status `200`: A page of titles.
       "description": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender.",
       "language": "en",
       "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+      "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
       "subjects": "Androgyny; Interplanetary voyages; Fiction",
       "enrich_source": "openlibrary",
       "enrich_confidence": 0.92,
@@ -1848,6 +1849,14 @@ Schema:
             "description": "HTTPS URL for cover art when known.",
             "example": "https://images.example.com/covers/9780441478125.jpg"
           },
+          "cover_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL; never stored. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+            "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
+          },
           "subjects": {
             "type": [
               "string",
@@ -2157,6 +2166,7 @@ Returns one title by UUID, or 404 when it is absent.
   - `description` *string or null* — Blurb / synopsis text (may contain HTML).
   - `language` *string or null* — BCP-47 or storefront language code when known.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL; never stored. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `subjects` *string or null* — Subject / topic tags (often from Open Library; `;`- or `,`-separated).
   - `enrich_source` *string or null* — Plugin or catalog that last enriched bibliographic fields.
   - `enrich_confidence` *number (double) or null* — 0–1 confidence score for the last enrichment pass.
@@ -2262,6 +2272,7 @@ Status `200`: The title.
   "description": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender.",
   "language": "en",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+  "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "subjects": "Androgyny; Interplanetary voyages; Fiction",
   "enrich_source": "openlibrary",
   "enrich_confidence": 0.92,
@@ -2562,6 +2573,14 @@ Schema:
       ],
       "description": "HTTPS URL for cover art when known.",
       "example": "https://images.example.com/covers/9780441478125.jpg"
+    },
+    "cover_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL; never stored. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+      "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
     },
     "subjects": {
       "type": [

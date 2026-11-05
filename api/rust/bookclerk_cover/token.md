@@ -14,10 +14,12 @@ runs.
 | --- | --- | --- |
 | [`TokenKey`](#tokenkey) | struct | A node's secret for signing cover tokens; never printed. |
 | [`is_coverable`](#is_coverable) | function | Whether `url` may get a token: an absolute `https` URL with a host, at most `MAX_URL_BYTES` long. |
+| [`gravatar_url`](#gravatar_url) | function | The Gravatar address the avatar route may fetch for a hash taken from a request path. |
 | [`sign`](#sign) | function | The token for `url`. |
 | [`open`](#open) | function | The URL a token names, when `key` signed it. |
 | [`MAX_URL_BYTES`](#max_url_bytes) | constant | Longest cover URL that gets a token, in bytes. |
 | [`MAC_BYTES`](#mac_bytes) | constant | Bytes of the HMAC-SHA256 tag a token carries (128 bits). |
+| [`GRAVATAR_HASH_LEN`](#gravatar_hash_len) | constant | Hex digits in a Gravatar hash: the SHA-256 of an email address. |
 
 ## Structs
 
@@ -57,6 +59,24 @@ pub fn is_coverable(url: &str) -> bool
 
 Whether `url` may get a token: an absolute `https` URL with a host, at
 most [`MAX_URL_BYTES`](#max_url_bytes) long.
+
+### gravatar_url
+
+```rust
+pub fn gravatar_url(hash: &str) -> Option<String>
+```
+
+The Gravatar address the avatar route may fetch for a hash taken from a
+request path.
+
+`d=404` makes Gravatar answer 404 for an email with no picture, and
+`s=360` asks for enough pixels for the 128 px copy.
+
+#### Returns
+
+`None` unless `hash` is exactly [`GRAVATAR_HASH_LEN`](#gravatar_hash_len) lowercase hex
+digits, so the URL is always on `www.gravatar.com` with nothing else in
+it.
 
 ### sign
 
@@ -100,3 +120,11 @@ pub const MAC_BYTES: usize = 16;
 ```
 
 Bytes of the HMAC-SHA256 tag a token carries (128 bits).
+
+### GRAVATAR_HASH_LEN
+
+```rust
+pub const GRAVATAR_HASH_LEN: usize = 64;
+```
+
+Hex digits in a Gravatar hash: the SHA-256 of an email address.

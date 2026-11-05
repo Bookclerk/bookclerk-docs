@@ -109,6 +109,7 @@ HTTPS picture from a linked identity provider.
 - `identity_id` *integer (int64)*, **required** — `portal_identities.id`.
 - `provider` *string*, **required** — Identity-broker id (`oidc:google`, …).
 - `picture_url` *string*, **required** — HTTPS URL to display.
+- `picture_path` *string or null* — Same-origin 128 px copy of `picture_url` for the web app to show, when this node can sign it.
 - `last_used_at` *string or null* — RFC 3339 last portal-session activity for this identity, when any.
 
 ## AvatarChanged
@@ -173,6 +174,7 @@ Book / library item (one ownership row per store product per account).
 - `description` *string or null* — Blurb / synopsis text (may contain HTML).
 - `language` *string or null* — BCP-47 or storefront language code when known.
 - `cover_url` *string or null* — HTTPS URL for cover art when known.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL; never stored. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `subjects` *string or null* — Subject / topic tags (often from Open Library; `;`- or `,`-separated).
 - `enrich_source` *string or null* — Plugin or catalog that last enriched bibliographic fields.
 - `enrich_confidence` *number (double) or null* — 0–1 confidence score for the last enrichment pass.
@@ -300,7 +302,7 @@ CSS colors and logo href for a storefront or integration brand.
 - `bg` *string*, **required** — Background color (`#RRGGBB`).
 - `fg` *string*, **required** — Foreground / text color (`#RRGGBB`).
 - `accent` *string*, **required** — Accent color (`#RRGGBB`).
-- `logo` *string*, **required** — Logo image href (often a favicon URL).
+- `logo` *string*, **required** — Same-origin logo image (a 128 px copy of the brand's icon), or empty when there is none.
 
 ## CallbackBody
 
@@ -1770,7 +1772,7 @@ Optional branding shown on the plugin consent dialog.
 - `bg` *string or null* — Background CSS color from the portal brand, when known.
 - `fg` *string or null* — Foreground CSS color from the portal brand, when known.
 - `accent` *string or null* — Accent CSS color from the portal brand, when known.
-- `logo` *string or null* — Logo URL or host-served embed path.
+- `logo` *string or null* — Same-origin logo: the host-served embed path, or a 128 px copy of the remote logo the plugin names.
 
 ## PluginConsentLimits
 
@@ -1994,7 +1996,7 @@ Settings UI group for one discovered or loaded plugin.
 - `family` *string*, **required** — Handler family wire label (`source`, `integration`, `output`, `database`).
 - `plugin_key` *string or null* — Provenance-qualified PluginKey when this row came from a discovered install.
 - `provenance` *string or null* — Host-evaluated provenance (`platform_bundled`, `verified_staged`, `installed`, …).
-- `logo` *string or null* — Google favicon (or portal brand) URL for Settings list rows.
+- `logo` *string or null* — Same-origin logo for Settings list rows: the plugin's embedded logo, or a 128 px copy of the remote logo its manifest names.
 - `settings` *array of [`PluginSettingOption`](#pluginsettingoption)*, **required** — Editable options for this plugin, including `.enabled`.
 - `plugin_instance_id` *string or null* — Plugin instance this group edits; absent for a bootstrap database adapter.
 - `display_name` *string or null* — Operator-facing instance name, when the operator set one.
@@ -2279,6 +2281,7 @@ Compact wisher shown on the global queue (avatar + label).
 - `avatar_source` *string or null* — Explicit picture choice when the user has set one.
 - `gravatar_hash` *string or null* — SHA-256 hex of the contact email for Gravatar.
 - `picture_url` *string or null* — HTTPS picture from the wishing identity, when any.
+- `picture_path` *string or null* — Same-origin 128 px copy of `picture_url` for the web app to show (filled by the daemon; never stored).
 
 ## RankedQueueEntry
 
@@ -3017,6 +3020,7 @@ A profile picture an identity provider supplied for a user.
 - `identity_id` *integer (int64)*, **required** — The linked identity the picture came from.
 - `provider` *string*, **required** — Identity-broker id (`oidc:google`, `oidc:github`, …).
 - `picture_url` *string*, **required** — HTTPS URL of the picture at the provider or its CDN.
+- `picture_path` *string or null* — Same-origin 128 px copy of `picture_url` for the web app to show, when this node can sign it.
 - `last_used_at` *string or null* — RFC 3339 time the identity last signed in, when it has.
 
 ## UserStatus

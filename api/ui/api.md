@@ -209,6 +209,14 @@ identity_id: number;
 last_used_at?: string | null;
 ```
 
+###### picture\_path?
+
+```ts
+picture_path?: string | null;
+```
+
+Same-origin 128 px copy of `picture_url`, when the server signed one.
+
 ###### picture\_url
 
 ```ts
@@ -379,6 +387,14 @@ content_kind: string;
 ```
 
 Content kind slug (`audiobook`, `podcast`, …).
+
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
 
 ##### cover\_url
 
@@ -755,6 +771,14 @@ asin: string | null;
 ```ts
 authors: string | null;
 ```
+
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
 
 ##### cover\_url?
 
@@ -1506,6 +1530,14 @@ asin: string | null;
 authors: string | null;
 ```
 
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
+
 ##### cover\_url?
 
 ```ts
@@ -2025,6 +2057,14 @@ identity_id: number;
 ```ts
 last_used_at?: string | null;
 ```
+
+###### picture\_path?
+
+```ts
+picture_path?: string | null;
+```
+
+Same-origin 128 px copy of `picture_url`, when the server signed one.
 
 ###### picture\_url
 
@@ -3617,7 +3657,7 @@ True when a bare plugin key or alias routes to this instance.
 logo?: string;
 ```
 
-Google favicon (or portal brand) URL for Settings list rows.
+Same-origin logo for Settings list rows (embedded, or a copy of the remote logo).
 
 ##### placement?
 
@@ -4053,13 +4093,21 @@ operator?: boolean;
 
 True when the wish came from the operator token.
 
+##### picture\_path?
+
+```ts
+picture_path?: string | null;
+```
+
+Same-origin 128 px copy of `picture_url`, when the server signed one.
+
 ##### picture\_url?
 
 ```ts
 picture_url?: string | null;
 ```
 
-HTTPS picture from the wishing identity, when any.
+HTTPS picture from the wishing identity, when any; never loaded directly.
 
 ##### user\_id?
 
@@ -4108,6 +4156,14 @@ categories?: string[];
 ```
 
 Stable shelf-kind tags (`finish_series`, `author`, `requests`, …).
+
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
 
 ##### cover\_url?
 
@@ -4821,6 +4877,14 @@ authors?: string | null;
 categories?: string | null;
 ```
 
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
+
 ##### cover\_url?
 
 ```ts
@@ -4965,6 +5029,14 @@ asin: string | null;
 ```ts
 authors: string | null;
 ```
+
+##### cover\_path?
+
+```ts
+cover_path?: string | null;
+```
+
+Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
 
 ##### cover\_url?
 
@@ -5399,6 +5471,16 @@ Ascending or descending catalog sort direction.
 
 ***
 
+### CoverSize
+
+```ts
+type CoverSize = 128 | 360 | "full";
+```
+
+A processed cover size the daemon serves: thumbnail, card, or full size.
+
+***
+
 ### OidcProvisionMode
 
 ```ts
@@ -5778,6 +5860,32 @@ Requests cancel of a pending job or cooperative stop of a running job.
 `Promise`\<[`ActionResponse`](#actionresponse)\>
 
 Action ack including the job id.
+
+***
+
+### coverSrc()
+
+```ts
+function coverSrc(path, size): string | null;
+```
+
+The same-origin URL of one processed size of a remote cover.
+
+The daemon hands out `cover_path` (`/api/covers/<token>`) for every remote
+`https` cover, so the web app never loads `cover_url` from another site.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `path` | `string` \| `null` \| `undefined` | A `cover_path` from an API response. |
+| `size` | [`CoverSize`](#coversize) | The size to load. |
+
+#### Returns
+
+`string` \| `null`
+
+The image URL, or `null` when there is no usable path.
 
 ***
 

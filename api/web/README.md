@@ -110,6 +110,7 @@ Library users and their claim tickets.
 | [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login for a first-party user (provisioner). |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
+| [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |
 | [`GET /api/users/{id}/avatar`](users.md#get-apiusersidavatar) | Serves a stored avatar JPEG for any authenticated household member. |
 
 ### [Library](library.md)
@@ -132,6 +133,8 @@ Recommendations, catalog search and title metadata.
 | --- | --- |
 | [`POST /api/discover/sync-listening`](discover.md#post-apidiscoversync-listening) | Enqueues a listening-progress sync; 400 when no capable integrations are loaded. |
 | [`GET /api/covers/{token}/{size}`](discover.md#get-apicoverstokensize) | Serves one size of a cover the API linked to. |
+| [`GET /api/images/{token}`](discover.md#get-apiimagestoken) | Serves a signed image that is not a cover as a 128 px JPEG. |
+| [`GET /api/stores/{id}/icon`](discover.md#get-apistoresidicon) | Serves a storefront's or integration's icon as a 128 px JPEG through the cover service. |
 | [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Builds the Discover recommendation feed, skipping embed work on an empty library. |
 | [`POST /api/discover/purchase-hints`](discover.md#post-apidiscoverpurchase-hints) | Resolves storefront price/availability for one title, forcing server-side preferred stores. |
 | [`POST /api/discover/purchase-hints/batch`](discover.md#post-apidiscoverpurchase-hintsbatch) | Resolves up to 24 purchase-hint queries with caller-derived preferred stores. |

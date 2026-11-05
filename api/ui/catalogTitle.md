@@ -54,6 +54,14 @@ asin: string | null;
 authors: string | null;
 ```
 
+##### cover\_path
+
+```ts
+cover_path: string | null;
+```
+
+Same-origin path of the processed cover (see `coverSrc`).
+
 ##### cover\_url
 
 ```ts
@@ -825,28 +833,6 @@ Display string, or `null` when no prices.
 
 ***
 
-### googleFaviconUrl()
-
-```ts
-function googleFaviconUrl(domain): string;
-```
-
-Builds a Google S2 favicon URL for a domain.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `domain` | `string` | Hostname such as `audible.com`. |
-
-#### Returns
-
-`string`
-
-Favicon image URL.
-
-***
-
 ### pickBetterDescription()
 
 ```ts
@@ -991,13 +977,17 @@ Trimmed non-empty parts.
 
 ***
 
-### storeFaviconUrl()
+### storeIconSrc()
 
 ```ts
-function storeFaviconUrl(source): string | undefined;
+function storeIconSrc(source): string | undefined;
 ```
 
-Favicon URL for a storefront id (`audible`, `libro`, …), if known.
+Same-origin icon for a storefront or integration id (`audible`, `libro`, …).
+
+Bookclerk downloads the icon the plugin names and serves a 128 px copy; the
+route fails when no deployed plugin has that id, so callers fall back to a
+monogram on error.
 
 #### Parameters
 
@@ -1009,7 +999,7 @@ Favicon URL for a storefront id (`audible`, `libro`, …), if known.
 
 `string` \| `undefined`
 
-Favicon URL, or `undefined` when the domain is unknown.
+Icon path, or `undefined` for an id that cannot name a plugin.
 
 ***
 

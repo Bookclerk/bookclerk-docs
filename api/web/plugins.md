@@ -6150,7 +6150,7 @@ Status `200`: What the plugin asks for and what is granted.
     "bg": "#0f2a3f",
     "fg": "#ffffff",
     "accent": "#f4b400",
-    "logo": "/api/plugins/libro/logo"
+    "logo": "/api/plugins/source/libro/logo"
   },
   "limits": {
     "cpu_ms": 30000,
@@ -6986,8 +6986,8 @@ Schema:
                 "string",
                 "null"
               ],
-              "description": "Logo URL or host-served embed path.",
-              "example": "/api/plugins/libro/logo"
+              "description": "Same-origin logo: the host-served embed path, or a 128 px copy of\nthe remote logo the plugin names.",
+              "example": "/api/plugins/source/libro/logo"
             }
           }
         },
@@ -7604,7 +7604,7 @@ Status `200`: The grant was stored.
     "bg": "#0f2a3f",
     "fg": "#ffffff",
     "accent": "#f4b400",
-    "logo": "/api/plugins/libro/logo"
+    "logo": "/api/plugins/source/libro/logo"
   },
   "limits": {
     "cpu_ms": 30000,
@@ -8440,8 +8440,8 @@ Schema:
                 "string",
                 "null"
               ],
-              "description": "Logo URL or host-served embed path.",
-              "example": "/api/plugins/libro/logo"
+              "description": "Same-origin logo: the host-served embed path, or a 128 px copy of\nthe remote logo the plugin names.",
+              "example": "/api/plugins/source/libro/logo"
             }
           }
         },

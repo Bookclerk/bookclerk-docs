@@ -44,6 +44,7 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`session_for_identity_with_client`](#session_for_identity_with_client) | function | Create a portal session for an identity with optional client metadata. |
 | [`ticket_portal_url`](#ticket_portal_url) | function | Build a shareable SPA claim URL when `public_origin` is configured. |
 | [`Result`](#result) | type alias | Result alias for this crate. |
+| [`ImageSrc`](#imagesrc) | type alias | See `PortalState::image_src`. |
 | [`MAX_REGISTERED_INTEGRATIONS`](#max_registered_integrations) | constant | Hard ceiling on registered integrations (plugin discovery is user-influenced). |
 
 ## Re-exports
@@ -676,6 +677,7 @@ pub struct PortalState {
     pub library: Arc<RwLock<LibraryStore>>,
     pub integrations: Arc<RwLock<IntegrationRegistry>>,
     pub sources: Arc<RwLock<SourceRegistry>>,
+    pub image_src: ImageSrc,
 }
 ```
 
@@ -687,6 +689,9 @@ Shared state for portal handlers.
 - `library`: Open library store used for identity / ticket / session rows.
 - `integrations`: Configured outbound integration registry.
 - `sources`: Content-source registry used for portal store connect / OAuth.
+- `image_src`: Turns a brand's remote logo URL into a source the web app may load
+  from its own origin, or `None` when it cannot; the daemon signs it
+  through its cover service.
 
 Implements: `Clone`
 
@@ -1633,6 +1638,14 @@ pub type Result<T> = Result<T, IntegrationError>;
 ```
 
 Result alias for this crate.
+
+### ImageSrc
+
+```rust
+pub type ImageSrc = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
+```
+
+See [`PortalState::image_src`](#portalstate).
 
 ## Constants
 
