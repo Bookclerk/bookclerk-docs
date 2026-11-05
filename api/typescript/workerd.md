@@ -394,6 +394,12 @@ Typed struct value.
 
 ## References
 
+### Abridgement
+
+Re-exports [Abridgement](index.md#abridgement-3)
+
+***
+
 ### AdapterDatabaseSession
 
 Re-exports [AdapterDatabaseSession](index.md#adapterdatabasesession)
@@ -481,6 +487,24 @@ Re-exports [CopyResult](index.md#copyresult)
 ### createDatabaseBinding
 
 Re-exports [createDatabaseBinding](index.md#createdatabasebinding)
+
+***
+
+### Credit
+
+Re-exports [Credit](index.md#credit)
+
+***
+
+### CreditLevel
+
+Re-exports [CreditLevel](index.md#creditlevel-1)
+
+***
+
+### CreditRole
+
+Re-exports [CreditRole](index.md#creditrole-1)
 
 ***
 
@@ -700,6 +724,12 @@ Re-exports [ExecuteRequest](index.md#executerequest)
 
 ***
 
+### ExpressionKind
+
+Re-exports [ExpressionKind](index.md#expressionkind-3)
+
+***
+
 ### ExtensibleConfig
 
 Re-exports [ExtensibleConfig](index.md#extensibleconfig)
@@ -739,6 +769,18 @@ Re-exports [GrantedDatabaseTransport](index.md#granteddatabasetransport)
 ### HealthOk
 
 Re-exports [HealthOk](index.md#healthok)
+
+***
+
+### Identifier
+
+Re-exports [Identifier](index.md#identifier)
+
+***
+
+### IdentifierScheme
+
+Re-exports [IdentifierScheme](index.md#identifierscheme-1)
 
 ***
 
@@ -922,9 +964,51 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](index.md#max_stream_window_bytes)
 
 ***
 
+### MediaKind
+
+Re-exports [MediaKind](index.md#mediakind-3)
+
+***
+
+### MetadataChapter
+
+Re-exports [MetadataChapter](index.md#metadatachapter)
+
+***
+
+### MetadataChapters
+
+Re-exports [MetadataChapters](index.md#metadatachapters)
+
+***
+
+### MetadataChaptersParams
+
+Re-exports [MetadataChaptersParams](index.md#metadatachaptersparams)
+
+***
+
 ### MetadataEntrypoint
 
 Re-exports [MetadataEntrypoint](index.md#metadataentrypoint)
+
+***
+
+### MetadataLookupParams
+
+Re-exports [MetadataLookupParams](index.md#metadatalookupparams)
+
+***
+
+### MetadataRecord
+
+Re-exports [MetadataRecord](index.md#metadatarecord)
+
+***
+
+### MetadataSearchParams
+
+Re-exports [MetadataSearchParams](index.md#metadatasearchparams)
 
 ***
 
@@ -1132,6 +1216,12 @@ Re-exports [schemaMigrationOp](index.md#schemamigrationop)
 
 ***
 
+### SeriesEntry
+
+Re-exports [SeriesEntry](index.md#seriesentry)
+
+***
+
 ### Source
 
 Re-exports [Source](index.md#source-2)
@@ -1183,6 +1273,12 @@ Re-exports [TypedDbStatement](index.md#typeddbstatement)
 ### WireQueueBatch
 
 Re-exports [WireQueueBatch](index.md#wirequeuebatch)
+
+***
+
+### WorkKind
+
+Re-exports [WorkKind](index.md#workkind-3)
 
 ***
 
