@@ -347,7 +347,7 @@ See `docs/adr/control-plane.md`.
 | [`names_book`](#names_book) | function | True when `book` is one of the titles `title` names. |
 | [`record_upload_file`](#record_upload_file) | function | Records that file `index` reached every destination and extends the upload's token. Answers false when the upload is no longer open (it was aborted meanwhile: the caller deletes the copies it just wrote). |
 | [`upload_fence_live`](#upload_fence_live) | function | True while the upload's fence is the job's live lease for its node and the node is still trusted with the job. |
-| [`upload_owns_key`](#upload_owns_key) | function | True while `key` on `destination` is still `session`'s own: its recorded latest writer is this upload. A later upload of the title, an acquire run on this node, or another title may have written the key since; the receiving node then leaves the file alone when it cleans up after `session`, so a stale abort never deletes a replacement's file. |
+| [`upload_owns_key`](#upload_owns_key) | function | True while `key` on `destination` is still `session`'s own: its recorded latest writer is this upload (an upload id is unique, and claims keys for its own title only). A later upload of the title, an acquire run on this node, or another title may have written the key since; the receiving node then leaves the file alone when it cleans up after `session`, so a stale abort never deletes a replacement's file. |
 | [`activate_version`](#activate_version) | function | Moves the active pointer of `plugin_key` to `version` (first install, update, or rollback), pins the version's settings schema, and wakes every node. Pointing at the version that is already active is a no-op. |
 | [`add_plugin_version`](#add_plugin_version) | function | Records a version. Installing the same `(plugin_key, version)` again with the same artifact digests is a no-op (`AddVersion::Existing`); different digests under an installed version are refused, so a version never changes content behind a node's cache. |
 | [`approve_version_grant`](#approve_version_grant) | function | Records the operator-approved consent grant on a version. |
@@ -4420,7 +4420,7 @@ recorded manifest, no key is one another title here already uses
 sidecars), and no key lies in or below a folder holding another title's
 audio (`folder_of_another_book`: a library book's, or another branch's
 delivered title's). The keys are then claimed for this upload
-in `title_files`, refused when another title holds one there.
+in `edition_files`, refused when another title holds one there.
 
 #### Errors
 
@@ -8292,7 +8292,8 @@ pub async fn upload_owns_key(
 ```
 
 True while `key` on `destination` is still `session`'s own: its
-recorded latest writer is this upload. A later upload of the title, an
+recorded latest writer is this upload (an upload id is unique, and
+claims keys for its own title only). A later upload of the title, an
 acquire run on this node, or another title may have written the key
 since; the receiving node then leaves the file alone when it cleans up
 after `session`, so a stale abort never deletes a replacement's file.

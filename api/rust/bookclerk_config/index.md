@@ -2164,9 +2164,8 @@ set.
 **Variants**
 
 - `Audiobookshelf`: [Audiobookshelf](https://audiobookshelf.org/docs/documentation/libraries/book-library/directory-structure/)
-  recommended layout: `{Author}/{Series}/{Book}` or `{Author}/{Book}`,
-  with series sequence, publish year, short title, and narrator braces in
-  the book folder when available; file is full title with ASIN/ISBN.
+  layout: `{Author}/{Series}/{N} - {Book}` or `{Author}/{Book}`; the
+  file is the full title with the edition's library id.
 - `Classic`: Previous Libation desktop defaults (`Templates.*.DefaultTemplate`).
 
 #### NamingProfile::all

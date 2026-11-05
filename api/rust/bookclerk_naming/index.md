@@ -53,6 +53,7 @@ assert_eq!(out, "Arthur Conan Doyle - A Study in Scarlet [B00X]");
 | [`expand_filename`](#expand_filename) | function | Evaluate `template` into a single sanitised filename component. |
 | [`expand_folder`](#expand_folder) | function | Evaluate a folder `template` into its sanitised path segments. |
 | [`property_tag_names`](#property_tag_names) | function | Returns `(tag_name, supports_format_specifier)` for every Chardonnay property tag. |
+| [`require_library_id`](#require_library_id) | function | Checks that templates name every edition apart: the folder template, or both the file and the chapter-file templates, always write `<library id>`. Two editions of a title (an abridged and an unabridged recording, two narrators' readings) would otherwise share one path. |
 | [`Result`](#result) | type alias | A convenient result alias for this crate. |
 
 ## Re-exports
@@ -66,6 +67,7 @@ assert_eq!(out, "Arthur Conan Doyle - A Study in Scarlet [B00X]");
 ```rust
 pub struct BookContext {
     pub isbn: String,
+    pub library_id: String,
     pub title: Option<String>,
     pub subtitle: Option<String>,
     pub title_with_subtitle: Option<String>,
@@ -100,6 +102,9 @@ All data required to evaluate a naming template for a book.
 **Fields**
 
 - `isbn`: Canonical title id (ISBN / ASIN fallback) — used by `<id>`.
+- `library_id`: The edition's short Bookclerk id — used by `<library id>`. Unique per
+  edition in the library, and shared by every store copy of it, so a
+  path that carries it never names two editions.
 - `title`: Audible title (no subtitle) — used by `<audible title>` and `<title short>`.
 - `subtitle`: Audible subtitle — used by `<audible subtitle>`.
 - `title_with_subtitle`: Full title with subtitle — used by `<title>`. Falls back to [`Self::title`](#bookcontext).
@@ -299,6 +304,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 ```rust
 pub enum NamingError {
     Parse(String),
+    MissingLibraryId,
 }
 ```
 
@@ -307,6 +313,8 @@ Errors produced while parsing or evaluating a template.
 **Variants**
 
 - `Parse`: The template string could not be parsed.
+- `MissingLibraryId`: Neither the folder template nor both file templates always write
+  `<library id>` ([`require_library_id`](#require_library_id)).
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
@@ -404,6 +412,27 @@ pub fn property_tag_names() -> &'static [(&'static str, bool)]
 ```
 
 Returns `(tag_name, supports_format_specifier)` for every Chardonnay property tag.
+
+### require_library_id
+
+```rust
+pub fn require_library_id(folder: &str, file: &str, chapter_file: &str) -> Result<()>
+```
+
+Checks that templates name every edition apart: the folder template, or
+both the file and the chapter-file templates, always write
+`<library id>`. Two editions of a title (an abridged and an unabridged
+recording, two narrators' readings) would otherwise share one path.
+
+#### Arguments
+
+* `folder`, `file`, `chapter_file` - The resolved folder, file and
+  chapter-file templates.
+
+#### Errors
+
+Returns [`NamingError::MissingLibraryId`](#namingerror) when no such placement holds,
+and [`NamingError::Parse`](#namingerror) when a template does not parse.
 
 ## Type aliases
 

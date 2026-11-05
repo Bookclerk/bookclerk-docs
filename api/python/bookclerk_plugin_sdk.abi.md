@@ -109,6 +109,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
 | [`Oidc`](#oidc) | class | `oidc` entrypoint: relying-party client templates and credential verification on behalf of the host authorization server. |
 | [`MetadataProvider`](#metadataprovider) | class | `metadata` entrypoint: bibliographic lookups against a public catalog (OpenLibrary, Audnexus, ...). A provider describes what it finds as edition records; the host decides identity and never trusts a record to name an existing library row. Network access is limited to the domains the manifest's `[capabilities.network]` declares. |
+| [`CoverFetcher`](#coverfetcher) | class | `covers` entrypoint: downloads cover images on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The fetcher only transports bytes: the host sniffs, decodes and re-encodes every image in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
 | [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
 | [`Brand`](#brand) | class | Portal brand crossing the RPC boundary. Distinct from `plugin.toml` `logo`: `iconUrl` is the live URL or data URI the SPA renders. |
@@ -229,6 +230,11 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataChapters`](#metadatachapters) | class | Success payload of `MetadataProvider.chapters`. |
 | [`MetadataChaptersReplyOk`](#metadatachaptersreplyok) | class | `MetadataChaptersReply` member `ok`. |
 | [`MetadataChaptersReplyErr`](#metadatachaptersreplyerr) | class | `MetadataChaptersReply` member `err`. |
+| [`CoverFetchParams`](#coverfetchparams) | class | Params of `CoverFetcher.fetchCovers`. |
+| [`CoverImage`](#coverimage) | class | What happened to one requested URL. |
+| [`CoverImages`](#coverimages) | class | Success payload of `CoverFetcher.fetchCovers`. |
+| [`CoverImagesReplyOk`](#coverimagesreplyok) | class | `CoverImagesReply` member `ok`. |
+| [`CoverImagesReplyErr`](#coverimagesreplyerr) | class | `CoverImagesReply` member `err`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -349,6 +355,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`KvListReply`](#kvlistreply) | constant | Result union of `KvNamespace.list`. |
 | [`MetadataRecordsReply`](#metadatarecordsreply) | constant | Result union of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChaptersReply`](#metadatachaptersreply) | constant | Result union of `MetadataProvider.chapters`. |
+| [`CoverImagesReply`](#coverimagesreply) | constant | Result union of `CoverFetcher.fetchCovers`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
@@ -662,6 +669,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `queueConsumer`: `[[queues.consumers]]` trigger: `queue(batch)` handler. Null when the guest does not export this capability.
 - `scheduledHandler`: `[triggers] crons` trigger: `scheduled(controller)` handler. Null when the guest does not export this capability.
 - `metadata`: `metadata` entrypoint. Null when the guest does not export this capability.
+- `covers`: `covers` entrypoint. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -2541,6 +2549,54 @@ Chapter layout of the edition the given identifiers name.
 
 `MetadataChaptersReply`
 
+### CoverFetcher
+
+```python
+class CoverFetcher(Protocol)
+```
+
+`covers` entrypoint: downloads cover images on the host's behalf, so the
+host itself never makes an outbound request to a URL a plugin or a store
+supplied. The fetcher only transports bytes: the host sniffs, decodes and
+re-encodes every image in its media worker before anything stores or
+serves it. Network access is limited to what the manifest's
+`[capabilities.network]` declares.
+
+#### CoverFetcher.health
+
+```python
+async def health(self) -> HealthReply
+```
+
+Liveness / readiness probe.
+
+**Returns**
+
+`HealthReply`
+
+#### CoverFetcher.fetch_covers
+
+```python
+async def fetch_covers(
+    self,
+    params: CoverFetchParams,
+    sink: Destination,
+) -> CoverImagesReply
+```
+
+Fetches every URL concurrently and streams each body into `sink` under
+its index in `params.urls` (`"0"`, `"1"`, ...). The reply says, per URL,
+whether its body was stored.
+
+**Args**
+
+- `params`: URLs and the per-image byte cap.
+- `sink`: Host-served store that accepts only those keys.
+
+**Returns**
+
+`CoverImagesReply`
+
 ### EventConsumerSpec
 
 ```python
@@ -4415,6 +4471,76 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### CoverFetchParams
+
+```python
+class CoverFetchParams(TypedDict)
+```
+
+Params of `CoverFetcher.fetchCovers`.
+
+**Attributes**
+
+- `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty. The host has already checked each one against its URL policy.
+- `maxBytes`: Largest body, in bytes, the host accepts for one image; at most `maxCoverBytes`. The sink refuses a larger body, which fails that URL only.
+
+### CoverImage
+
+```python
+class CoverImage(TypedDict)
+```
+
+What happened to one requested URL.
+
+**Attributes**
+
+- `url`: The requested URL, verbatim.
+- `stored`: Whether the body was put into the sink under this URL's index.
+- `contentType`: `Content-Type` the server sent. Advisory: the host sniffs the bytes. Omitted when absent (wire zero value).
+- `error`: Why nothing was stored (HTTP status, size cap, timeout, refused host). Omitted when absent (wire zero value).
+
+### CoverImages
+
+```python
+class CoverImages(TypedDict)
+```
+
+Success payload of `CoverFetcher.fetchCovers`.
+
+**Attributes**
+
+- `images`: One entry per requested URL, in request order.
+
+### CoverImagesReplyOk
+
+```python
+class CoverImagesReplyOk(TypedDict)
+```
+
+`CoverImagesReply` member `ok`.
+
+Success: one entry per requested URL.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: one entry per requested URL.
+
+### CoverImagesReplyErr
+
+```python
+class CoverImagesReplyErr(TypedDict)
+```
+
+`CoverImagesReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### DbValueNull
 
 ```python
@@ -6032,6 +6158,14 @@ MetadataChaptersReply = Union[MetadataChaptersReplyOk, MetadataChaptersReplyErr]
 ```
 
 Result union of `MetadataProvider.chapters`.
+
+### CoverImagesReply
+
+```python
+CoverImagesReply = Union[CoverImagesReplyOk, CoverImagesReplyErr]
+```
+
+Result union of `CoverFetcher.fetchCovers`.
 
 ### DbValue
 

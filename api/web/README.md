@@ -131,6 +131,7 @@ Recommendations, catalog search and title metadata.
 | Route | Summary |
 | --- | --- |
 | [`POST /api/discover/sync-listening`](discover.md#post-apidiscoversync-listening) | Enqueues a listening-progress sync; 400 when no capable integrations are loaded. |
+| [`GET /api/covers/{token}/{size}`](discover.md#get-apicoverstokensize) | Serves one size of a cover the API linked to. |
 | [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Builds the Discover recommendation feed, skipping embed work on an empty library. |
 | [`POST /api/discover/purchase-hints`](discover.md#post-apidiscoverpurchase-hints) | Resolves storefront price/availability for one title, forcing server-side preferred stores. |
 | [`POST /api/discover/purchase-hints/batch`](discover.md#post-apidiscoverpurchase-hintsbatch) | Resolves up to 24 purchase-hint queries with caller-derived preferred stores. |

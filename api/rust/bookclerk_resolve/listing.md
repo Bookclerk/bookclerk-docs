@@ -18,6 +18,7 @@ that are empty or too large. The resolver only ever sees a [`Listing`](#listing)
 | [`Holder`](#holder) | enum | Who owns a listing (`holdings.holder`). |
 | [`ListingError`](#listingerror) | enum | Why a draft listing was refused. |
 | [`stored_marketplace`](#stored_marketplace) | function | The stored spelling of a marketplace a source reported: trimmed, lower-cased, and `DEFAULT_MARKETPLACE` when blank. |
+| [`stored_product_id`](#stored_product_id) | function | The stored spelling of a product id a source reported: its words joined by single spaces, as a listing keeps it, so a title row holding the raw value still finds its listing. |
 | [`work_match_key`](#work_match_key) | function | The work matcher's key for a title and its authors. |
 | [`DEFAULT_MARKETPLACE`](#default_marketplace) | constant | The marketplace a listing that names none is sold in. |
 | [`MAX_TEXT_BYTES`](#max_text_bytes) | constant | Longest text field accepted, in bytes. |
@@ -368,6 +369,16 @@ pub fn stored_marketplace(raw: &str) -> String
 
 The stored spelling of a marketplace a source reported: trimmed,
 lower-cased, and [`DEFAULT_MARKETPLACE`](#default_marketplace) when blank.
+
+### stored_product_id
+
+```rust
+pub fn stored_product_id(raw: &str) -> String
+```
+
+The stored spelling of a product id a source reported: its words
+joined by single spaces, as a listing keeps it, so a title row holding
+the raw value still finds its listing.
 
 ### work_match_key
 

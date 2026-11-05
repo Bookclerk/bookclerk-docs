@@ -28,6 +28,7 @@ Lists open wishlist rows for the caller (portal identity or operator-owned).
   - `work_id` *string or null* — Canonical work id this edition or request resolves to.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
   - `description` *string or null* — Blurb / synopsis text (may contain HTML).
   - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
@@ -113,6 +114,7 @@ Status `200`: The caller's open requests.
     "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
     "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
     "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+    "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
     "sources": [
       {
         "id": 88,
@@ -294,6 +296,14 @@ Schema:
         ],
         "description": "HTTPS URL for cover art when known.",
         "example": "https://images.example.com/covers/9780441478125.jpg"
+      },
+      "cover_path": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+        "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
       },
       "sources": {
         "type": "array",
@@ -921,6 +931,7 @@ Creates a wishlist / title-request row for the authenticated caller.
   - `work_id` *string or null* — Canonical work id this edition or request resolves to.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
   - `description` *string or null* — Blurb / synopsis text (may contain HTML).
   - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
@@ -1018,6 +1029,7 @@ Status `200`: The new request.
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
   "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+  "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "sources": [
     {
       "id": 88,
@@ -1196,6 +1208,14 @@ Schema:
       ],
       "description": "HTTPS URL for cover art when known.",
       "example": "https://images.example.com/covers/9780441478125.jpg"
+    },
+    "cover_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+      "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
     },
     "sources": {
       "type": "array",
@@ -1832,6 +1852,7 @@ Cancels an open wishlist item the caller owns; others get 403.
   - `work_id` *string or null* — Canonical work id this edition or request resolves to.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
   - `description` *string or null* — Blurb / synopsis text (may contain HTML).
   - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
@@ -1921,6 +1942,7 @@ Status `200`: The cancelled request.
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
   "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+  "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "sources": [
     {
       "id": 88,
@@ -2099,6 +2121,14 @@ Schema:
       ],
       "description": "HTTPS URL for cover art when known.",
       "example": "https://images.example.com/covers/9780441478125.jpg"
+    },
+    "cover_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+      "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
     },
     "sources": {
       "type": "array",
@@ -2714,6 +2744,7 @@ Ranks the shared open-request queue without warming ONNX embeddings.
   - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
   - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
   - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `wish_count` *integer (int64)*, **required** — Number of distinct users who wishlisted this title.
   - `wishers` *array of [`QueueWisher`](schemas.md#queuewisher)* — Distinct people who have this title on an open wishlist.
   - `sample_uuids` *array of string*, **required** — Sample Bookclerk user UUIDs who requested this title (privacy-capped).
@@ -2786,6 +2817,7 @@ Status `200`: Open requests, ranked.
     "asin": "B002V0QK4C",
     "isbn": "9780441478125",
     "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+    "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
     "wish_count": 3,
     "wishers": [
       {
@@ -2876,6 +2908,14 @@ Schema:
         ],
         "description": "HTTPS URL for cover art when the catalog exposes one.",
         "example": "https://images.example.com/covers/9780441478125.jpg"
+      },
+      "cover_path": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+        "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
       },
       "wish_count": {
         "type": "integer",

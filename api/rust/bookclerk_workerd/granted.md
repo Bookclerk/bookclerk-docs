@@ -12,7 +12,7 @@ vat thread via a command channel.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`GrantedListener`](#grantedlistener) | trait | Accept loop abstraction (unix or tcp). |
-| [`GrantedSlot`](#grantedslot) | struct | One grant token's host stubs (vat-thread only): a `JobRunner.job` invocation, a named database binding, or an `EVENTS` publisher. |
+| [`GrantedSlot`](#grantedslot) | struct | One grant token's host stubs (vat-thread only): a `JobRunner.job` invocation, a `CoverFetcher.fetchCovers` sink, a named database binding, or an `EVENTS` publisher. |
 | [`spawn_granted`](#spawn_granted) | function | Starts the Send HTTP accept loop and the vat-thread command dispatcher. |
 | [`GrantedTable`](#grantedtable) | type alias | Invocation-id → granted stubs. |
 | [`MAX_EVENT_PUBLISH_BODY_BYTES`](#max_event_publish_body_bytes) | constant | Largest `/events/publish` request body: a base64 payload at `MAX_EVENT_PAYLOAD_BYTES` plus the envelope fields. |
@@ -57,7 +57,7 @@ Implemented by: `TcpListener`, `UnixListener`
 ```rust
 pub struct GrantedSlot {
     pub input: Option<Box<dyn Source>>,
-    pub output: Option<Box<dyn Destination>>,
+    pub output: Option<Rc<dyn Destination>>,
     pub progress: Option<Box<dyn ProgressSink>>,
     pub cancel: Option<Box<dyn Cancellation>>,
     pub expires: Instant,
@@ -75,12 +75,15 @@ pub struct GrantedSlot {
 ```
 
 One grant token's host stubs (vat-thread only): a `JobRunner.job`
-invocation, a named database binding, or an `EVENTS` publisher.
+invocation, a `CoverFetcher.fetchCovers` sink, a named database binding,
+or an `EVENTS` publisher.
 
 **Fields**
 
 - `input`: Host-granted input source.
-- `output`: Host-granted output destination.
+- `output`: Host-granted output destination. Shared, so several `PUT /put`
+  requests on one grant may stream at once (a cover fetcher puts each
+  image as it arrives).
 - `progress`: Progress sink.
 - `cancel`: Host cancellation stub behind the `/cancel` long poll.
 - `expires`: Absolute expiry; dispatch fails closed after this instant.
@@ -105,6 +108,15 @@ pub fn kv_only(kv: Rc<dyn KvNamespace>, expires: Instant) -> Self
 
 A grant that only reaches one KV namespace over `/kv/*` (no streams,
 no database, no events).
+
+#### GrantedSlot::output_only
+
+```rust
+pub fn output_only(output: Rc<dyn Destination>, expires: Instant) -> Self
+```
+
+A grant that only streams bodies into one host destination over
+`PUT /put` (no source, progress, database, events or KV).
 
 #### GrantedSlot::queue_only
 

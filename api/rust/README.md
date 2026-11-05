@@ -38,6 +38,7 @@ The crates the hosts are built from. Not a stable API.
 | --- | --- |
 | [`bookclerk_acquire`](bookclerk_acquire/index.md) | End-to-end acquire pipeline: license, download, decrypt, store |
 | [`bookclerk_config`](bookclerk_config/index.md) | Bookclerk settings, paths, and naming template config |
+| [`bookclerk_cover`](bookclerk_cover/index.md) | Cover image pipeline: sniff, decode under limits, resize and re-encode untrusted cover art as JPEG |
 | [`bookclerk_db_exec`](bookclerk_db_exec/index.md) | Neutral SQL executor and transaction injects for database guests |
 | [`bookclerk_db_guest`](bookclerk_db_guest/index.md) | First-party database guest session workers (SeaORM proxy, host IR envelopes) |
 | [`bookclerk_demo_seed`](bookclerk_demo_seed/index.md) | Fills a fresh hosted-demo library with a second member, their books, wishlist and offline branch |

@@ -59,6 +59,8 @@ the worker itself calls.
 | [`remux_trimmed_async`](#remux_trimmed_async) | function | Copy/trim a progressive M4B/M4A into a new file (chapter split helper). |
 | [`align_chapter_starts_async`](#align_chapter_starts_async) | function | Snap chapter starts to spoken-title onsets by local waveform analysis. |
 | [`Result`](#result) | type alias | Result alias for media packaging and worker operations in this crate. |
+| [`COVER_THREADS_ENV`](#cover_threads_env) | constant | Environment variable carrying the cover worker's decode thread count. |
+| [`COVER_WORKER_ARG`](#cover_worker_arg) | constant | First worker argument that selects the cover server. |
 | [`BOOKCLERK_TOOL_NAME`](#bookclerk_tool_name) | constant | Product / CLI name written into tool attribution tags. |
 | [`JAIL_BIN_ENV`](#jail_bin_env) | constant | Environment variable naming the jail launcher (shared with plugin hosts). |
 | [`JAIL_BIN_NAME`](#jail_bin_name) | constant | File name of the jail launcher when it sits beside the host / worker. |
@@ -68,6 +70,8 @@ the worker itself calls.
 
 ## Re-exports
 
+- [`bookclerk_cover::CoverSet`](../bookclerk_cover/index.md#coverset)
+- [`bookclerk_cover::CoverSize`](../bookclerk_cover/index.md#coversize)
 - [`bookclerk_mp4::extract_mp4a_config`](../bookclerk_mp4/index.md#extract_mp4a_config)
 - [`bookclerk_mp4::parse_mp4`](../bookclerk_mp4/index.md#parse_mp4)
 - [`bookclerk_mp4::track_duration_ms`](../bookclerk_mp4/index.md#track_duration_ms)
@@ -279,6 +283,32 @@ pub fn summary(&self) -> String
 
 One-line summary for startup logs and `bookclerk doctor`.
 
+#### MediaPool::process_cover
+
+```rust
+pub async fn process_cover(&self, cover: Vec<u8>) -> Result<CoverSet>
+```
+
+Turns one untrusted downloaded cover image into the JPEG sizes the
+host serves.
+
+Covers do not take a job slot: they run on one long-lived worker
+(jailed to no path and no network) that decodes on as many threads as
+this pool has workers, so search results do not queue behind an
+acquire.
+
+##### Arguments
+
+* `cover` - The downloaded bytes, at most
+  [`bookclerk_cover::MAX_INPUT_BYTES`](../bookclerk_cover/index.md#max_input_bytes).
+
+##### Errors
+
+[`MediaError::Cover`](#mediaerror) when the image is refused or takes longer than
+30 s, [`MediaError::NotIsolated`](#mediaerror) when isolation is required but no
+worker was found, and [`MediaError::Worker`](#mediaerror) when the worker cannot be
+started or dies.
+
 #### MediaPool::run
 
 ```rust
@@ -346,6 +376,7 @@ pub enum MediaError {
     Native(String),
     Worker { job: &'static str, detail: String },
     NotIsolated { job: &'static str, detail: String },
+    Cover(String),
     Io(Error),
     Other(Error),
 }
@@ -369,6 +400,8 @@ Errors from in-process codecs, MP4 plumbing, and confined media workers.
   nothing went wrong at runtime — the host is misconfigured.
   - `job`: Which operation was refused.
   - `detail`: Why isolation is unavailable.
+- `Cover`: A cover image was refused: not a supported image, too large, or
+  undecodable. The message comes from the cover pipeline.
 - `Io`: Local filesystem I/O failure.
 - `Other`: Catch-all for wrapped media failures.
 
@@ -898,6 +931,22 @@ pub type Result<T> = Result<T, MediaError>;
 Result alias for media packaging and worker operations in this crate.
 
 ## Constants
+
+### COVER_THREADS_ENV
+
+```rust
+pub const COVER_THREADS_ENV: &str = "BOOKCLERK_COVER_THREADS";
+```
+
+Environment variable carrying the cover worker's decode thread count.
+
+### COVER_WORKER_ARG
+
+```rust
+pub const COVER_WORKER_ARG: &str = "covers";
+```
+
+First worker argument that selects the cover server.
 
 ### BOOKCLERK_TOOL_NAME
 

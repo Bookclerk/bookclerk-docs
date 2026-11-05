@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -31,6 +31,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`GuestDatabase`](#guestdatabase) | class | Host-granted SQL transport behind a named `[[databases]]` binding. |
 | [`JobController`](#jobcontroller) | class | Everything one job invocation may touch. |
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
+| [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
 | [`OidcEntrypoint`](#oidcentrypoint) | class | `oidc` entrypoint: relying-party client templates and credential verification. |
@@ -749,6 +750,38 @@ List keys in lexical order, one page at a time.
 **Returns**
 
 `{"keys": [{"name", "expiration"?, "metadata"?}], "list_complete": bool, "cursor"?: str}`.
+
+### CoverEntrypoint
+
+```python
+class CoverEntrypoint(NamedEntrypoint)
+```
+
+`covers` entrypoint: downloads cover images for the host.
+
+The host passes a `sink` destination; put the body for `urls[i]` under
+the key `str(i)` and return one `CoverImage` per URL, in request
+order. The host sniffs, decodes and re-encodes every body.
+
+#### CoverEntrypoint.health
+
+```python
+async def health(self) -> abi.HealthOk
+```
+
+Liveness / readiness probe (`HealthOk`).
+
+#### CoverEntrypoint.fetchCovers
+
+```python
+async def fetchCovers(
+    self,
+    _params: abi.CoverFetchParams,
+    _sink: Any,
+) -> list[abi.CoverImage]
+```
+
+Fetch each URL into `_sink` under its index (list of `CoverImage`).
 
 ### MetadataEntrypoint
 

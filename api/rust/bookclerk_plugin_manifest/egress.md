@@ -6,8 +6,9 @@ Semantics match `bookclerk-workerd` bridge `egress.js` and the product rules
 in `docs/plugins/README.md`:
 
 - **Initial** request hosts must match [`EgressPolicy::domains`](#egresspolicydomains) (`*.`
-  prefix wildcards). Hosts and patterns are IDNA ToASCII–normalized;
-  percent-encoded hosts fail closed.
+  prefix wildcards, or [`ANY_PUBLIC_HOST`](#any_public_host) for every public hostname).
+  Hosts and patterns are IDNA ToASCII–normalized; percent-encoded hosts
+  fail closed.
 - **Redirect** hops must stay on the fetch allowlist unless the operator
   grants [`EgressPolicy::allow_undeclared_public_redirects`](#egresspolicy). That flag
   never implies loopback, RFC1918, link-local, or metadata.
@@ -28,10 +29,12 @@ CONNECT mux; ambient `AF_INET`/`AF_INET6` is denied by the sibling jail. See
 | [`with_python_runtime_hosts`](#with_python_runtime_hosts) | function | Appends `PYODIDE_EGRESS_HOSTS` when `needs_python` and mode is outbound. |
 | [`consent_domains_for`](#consent_domains_for) | function | Builds the consent / egress domain list for a manifest. |
 | [`normalize_hostname`](#normalize_hostname) | function | Normalizes a hostname with IDNA ToASCII (fail closed). |
-| [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com` or exact host) via IDNA. |
+| [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com`, exact host, or `ANY_PUBLIC_HOST`) via IDNA. |
+| [`normalize_tcp_host`](#normalize_tcp_host) | function | Normalizes a TCP grant host: an exact host or `*.` wildcard, never `ANY_PUBLIC_HOST` (raw sockets are granted host by host). |
 | [`host_matches`](#host_matches) | function | True when an IDNA-normalized request host is covered by an allowlist pattern. |
 | [`https_url_on_hosts`](#https_url_on_hosts) | function | Checks a URL from untrusted output (a plugin's record, for example) before the host fetches it itself, outside any guest's egress policy. |
 | [`DEFAULT_MAX_REDIRECTS`](#default_max_redirects) | constant | Default redirect budget injected when building policy from network caps. |
+| [`ANY_PUBLIC_HOST`](#any_public_host) | constant | The `domains` entry that grants every public hostname (`"*"`). |
 | [`PYODIDE_EGRESS_HOSTS`](#pyodide_egress_hosts) | constant | Hosts Pyodide / Cloudflare Python Workers commonly fetch on first boot (runtime index + micropip). |
 | [`MAX_FETCH_URL_BYTES`](#max_fetch_url_bytes) | constant | Longest URL `https_url_on_hosts` accepts, in bytes. |
 
@@ -417,10 +420,12 @@ percent-encoded / empty.
 pub fn normalize_domain_pattern(pattern: &str) -> Option<String>
 ```
 
-Normalizes an allowlist pattern (`*.example.com` or exact host) via IDNA.
+Normalizes an allowlist pattern (`*.example.com`, exact host, or
+[`ANY_PUBLIC_HOST`](#any_public_host)) via IDNA.
 
-The `*.` prefix is preserved; only the suffix is ToASCII-normalized.
-Percent-encoded patterns and empty patterns return `None`.
+The `*.` prefix is preserved; only the suffix is ToASCII-normalized. A bare
+`*` stays [`ANY_PUBLIC_HOST`](#any_public_host). Percent-encoded patterns and empty patterns
+return `None`.
 
 #### Arguments
 
@@ -431,6 +436,23 @@ Percent-encoded patterns and empty patterns return `None`.
 
 Normalized pattern suitable for storage on [`EgressPolicy::domains`](#egresspolicydomains), or
 `None` on failure.
+
+### normalize_tcp_host
+
+```rust
+pub fn normalize_tcp_host(host: &str) -> Option<String>
+```
+
+Normalizes a TCP grant host: an exact host or `*.` wildcard, never
+[`ANY_PUBLIC_HOST`](#any_public_host) (raw sockets are granted host by host).
+
+#### Arguments
+
+* `host` - Author-supplied `capabilities.network.tcp` host.
+
+#### Returns
+
+The normalized pattern, or `None` when it is invalid or `*`.
 
 ### host_matches
 
@@ -512,6 +534,20 @@ Default redirect budget injected when building policy from network caps.
 
 Matches workerd policy injection (`maxRedirects = 10`). Wire JSON uses
 camelCase `maxRedirects`.
+
+### ANY_PUBLIC_HOST
+
+```rust
+pub const ANY_PUBLIC_HOST: &str = "*";
+```
+
+The `domains` entry that grants every public hostname (`"*"`).
+
+It matches any hostname but never an IP literal, and never a restricted
+name such as `localhost` without an address grant. The resolved-address
+layer still refuses private, loopback, link-local and metadata addresses,
+so a public name that resolves to a private address stays unreachable.
+It is a fetch grant only: a TCP grant cannot use it.
 
 ### PYODIDE_EGRESS_HOSTS
 

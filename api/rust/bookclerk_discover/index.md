@@ -306,6 +306,7 @@ pub struct CatalogSearchHit {
     pub asin: Option<String>,
     pub isbn: Option<String>,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub store_editions: Vec<StoreEdition>,
     pub sources: Vec<String>,
     pub subtitle: Option<String>,
@@ -336,6 +337,10 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `asin`: Audible / Amazon ASIN when this edition is sold on Audible.
 - `isbn`: Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url`: HTTPS URL for cover art when the catalog exposes one.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `store_editions`: Per-storefront edition ids that collapsed into this work card.
 - `sources`: Storefronts that matched (deduped source ids).
 - `subtitle`: Optional subtitle when the catalog distinguishes it from the title.
@@ -754,6 +759,7 @@ pub struct RankedQueueEntry {
     pub asin: Option<String>,
     pub isbn: Option<String>,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub wish_count: i64,
     pub wishers: Vec<QueueWisher>,
     pub sample_uuids: Vec<String>,
@@ -776,6 +782,10 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 - `asin`: Audible / Amazon ASIN when this edition is sold on Audible.
 - `isbn`: Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url`: HTTPS URL for cover art when the catalog exposes one.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `wish_count`: Number of distinct users who wishlisted this title.
 - `wishers`: Distinct people who have this title on an open wishlist.
 - `sample_uuids`: Sample Bookclerk user UUIDs who requested this title (privacy-capped).
@@ -859,6 +869,7 @@ pub struct Recommendation {
     pub categories: Vec<String>,
     pub work_key: String,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub subtitle: Option<String>,
     pub description: Option<String>,
     pub publisher: Option<String>,
@@ -896,6 +907,10 @@ One ranked recommendation (typically an unowned storefront title).
   Dynamic shelf titles stay in `build_discover_feed`; membership uses these.
 - `work_key`: Stable bibliographic key for wishlist / merge (`isbn:` / `asin:` / `soft:`…).
 - `cover_url`: Cover art URL when known from a storefront catalog hit or wishlist row.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `subtitle`: Optional bibliographic extras from storefront catalog / Audnexus.
 - `description`: Publisher or storefront synopsis; may be truncated for embeddings.
 - `publisher`: Publisher imprint as reported by the catalog.
@@ -1003,6 +1018,7 @@ pub struct TitleMeta {
     pub series_index: Option<String>,
     pub isbn: Option<String>,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub description: Option<String>,
     pub publisher: Option<String>,
     pub length_minutes: Option<i64>,
@@ -1032,6 +1048,10 @@ Bibliographic fields suitable for an Audible-style detail panel.
 - `series_index`: Position within the series (e.g. `1`, `1.5`) when known.
 - `isbn`: Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url`: HTTPS URL for cover art when the catalog exposes one.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `description`: Publisher or storefront synopsis; may be truncated for embeddings.
 - `publisher`: Publisher imprint as reported by the catalog.
 - `length_minutes`: Audiobook runtime in whole minutes when known.

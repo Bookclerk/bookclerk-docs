@@ -35,6 +35,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_CONFIG_PAYLOAD_BYTES`](#max_config_payload_bytes) | constant |  |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant |  |
 | [`MAX_KV_VALUE_BYTES`](#max_kv_value_bytes) | constant |  |
+| [`MAX_COVER_URLS`](#max_cover_urls) | constant |  |
+| [`MAX_COVER_BYTES`](#max_cover_bytes) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
@@ -121,6 +123,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`plugin_cli`](plugin_capnp/plugin_cli.md)
 - [`oidc`](plugin_capnp/oidc.md)
 - [`metadata_provider`](plugin_capnp/metadata_provider.md)
+- [`cover_fetcher`](plugin_capnp/cover_fetcher.md)
 - [`json_enum`](plugin_capnp/json_enum.md)
 - [`event_consumer_spec`](plugin_capnp/event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capnp/plugin_capabilities.md)
@@ -218,6 +221,10 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_chapter`](plugin_capnp/metadata_chapter.md)
 - [`metadata_chapters`](plugin_capnp/metadata_chapters.md)
 - [`metadata_chapters_reply`](plugin_capnp/metadata_chapters_reply.md)
+- [`cover_fetch_params`](plugin_capnp/cover_fetch_params.md)
+- [`cover_image`](plugin_capnp/cover_image.md)
+- [`cover_images`](plugin_capnp/cover_images.md)
+- [`cover_images_reply`](plugin_capnp/cover_images_reply.md)
 - [`db_value`](plugin_capnp/db_value.md)
 - [`db_column`](plugin_capnp/db_column.md)
 - [`db_row`](plugin_capnp/db_row.md)
@@ -294,6 +301,7 @@ pub enum Entrypoint {
     Cli = 4,
     Oidc = 5,
     Metadata = 6,
+    Covers = 7,
 }
 ```
 
@@ -587,6 +595,18 @@ pub const MAX_EVENT_PAYLOAD_BYTES: u32 = 65536;
 
 ```rust
 pub const MAX_KV_VALUE_BYTES: u32 = 1048576;
+```
+
+### MAX_COVER_URLS
+
+```rust
+pub const MAX_COVER_URLS: u32 = 32;
+```
+
+### MAX_COVER_BYTES
+
+```rust
+pub const MAX_COVER_BYTES: u32 = 10485760;
 ```
 
 ### MAX_KV_KEY_BYTES

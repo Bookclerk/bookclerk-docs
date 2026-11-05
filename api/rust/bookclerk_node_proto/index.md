@@ -71,6 +71,7 @@ bytes.
 | [`Frame`](#frame) | struct | One frame: the envelope and its body. |
 | [`HeldFence`](#heldfence) | struct | A lease the host still holds when it reconnects (`hello.resume`). |
 | [`JobStatusEntry`](#jobstatusentry) | struct | One job's state in `Body::JobStatuses`. |
+| [`LibraryId`](#libraryid) | struct | A title's short library id as the owner names it: 1 to `MAX_LIBRARY_ID_BYTES` ASCII letters and digits, so it is safe in any storage key segment. Deserializing anything else fails, which refuses the whole frame. |
 | [`PlanDestination`](#plandestination) | struct | One output destination of the owner node that answered an acquire plan (`Body::AcquireTargets`). |
 | [`RemoteArtifact`](#remoteartifact) | struct | One downloadable artifact of a `RemoteVersion`. |
 | [`RemoteDeployment`](#remotedeployment) | struct | One deployment that targets a host (`deployments.items`). |
@@ -149,6 +150,7 @@ bytes.
 | [`DEK_LEN`](#dek_len) | constant | Length of the data-encryption key. |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
+| [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
 | [`MAX_SCAN_BATCH_ROWS`](#max_scan_batch_rows) | constant | Most rows one `Body::ScanResults` batch may carry. |
 | [`MAX_SCAN_ROW_BYTES`](#max_scan_row_bytes) | constant | Largest serialized row in a `Body::ScanResults` batch. |
 | [`MAX_STATUS_JOBS`](#max_status_jobs) | constant | Most job ids one `Body::JobStatus` may ask about. |
@@ -368,6 +370,8 @@ pub struct AcquireTarget {
     pub account_id: String,
     pub book: Value,
     pub parent: Option<Value>,
+    pub library_id: Option<LibraryId>,
+    pub parent_library_id: Option<LibraryId>,
 }
 ```
 
@@ -384,6 +388,12 @@ One title an acquire job should fetch on a host
   title is an episode whose parent is in the owner's library: a
   destination that saves episodes to the parent's folder names them
   from it, as an acquire on the owner would.
+- `library_id`: The title's library id on the owner (the short id of its edition
+  there), which the `<library id>` naming tag writes. A host acquires
+  into a scratch library whose edition ids differ, so it names with
+  this one to plan the same keys the owner grants.
+- `parent_library_id`: The podcast parent's library id on the owner, for a destination that
+  saves episodes to the parent's folder.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -517,6 +527,27 @@ One job's state in [`Body::JobStatuses`](#body).
 - `error_message`: Error text when it failed or was cancelled.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### LibraryId
+
+```rust
+pub struct LibraryId(/* private */);
+```
+
+A title's short library id as the owner names it: 1 to
+[`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) ASCII letters and digits, so it is safe in any
+storage key segment. Deserializing anything else fails, which refuses
+the whole frame.
+
+#### LibraryId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as text.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `From<LibraryId>`, `PartialEq`, `Serialize`, `TryFrom<String>`
 
 ### PlanDestination
 
@@ -2103,6 +2134,14 @@ pub const MAX_DESTINATION_ID_BYTES: usize = 64;
 ```
 
 Longest destination id.
+
+### MAX_LIBRARY_ID_BYTES
+
+```rust
+pub const MAX_LIBRARY_ID_BYTES: usize = 16;
+```
+
+Longest library id (see [`LibraryId`](#libraryid)).
 
 ### MAX_SCAN_BATCH_ROWS
 

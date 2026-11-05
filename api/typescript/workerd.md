@@ -40,7 +40,7 @@ new InvokeError(
 
 ###### Overrides
 
-[`PluginError`](index.md#pluginerror).[`constructor`](index.md#constructor-11)
+[`PluginError`](index.md#pluginerror).[`constructor`](index.md#constructor-12)
 
 #### Properties
 
@@ -484,6 +484,30 @@ Re-exports [CopyResult](index.md#copyresult)
 
 ***
 
+### CoverEntrypoint
+
+Re-exports [CoverEntrypoint](index.md#coverentrypoint)
+
+***
+
+### CoverFetchParams
+
+Re-exports [CoverFetchParams](index.md#coverfetchparams)
+
+***
+
+### CoverImage
+
+Re-exports [CoverImage](index.md#coverimage)
+
+***
+
+### CoverImages
+
+Re-exports [CoverImages](index.md#coverimages)
+
+***
+
 ### createDatabaseBinding
 
 Re-exports [createDatabaseBinding](index.md#createdatabasebinding)
@@ -792,7 +816,7 @@ Re-exports [Instant](index.md#instant)
 
 ### Invocation
 
-Re-exports [Invocation](index.md#invocation-12)
+Re-exports [Invocation](index.md#invocation-13)
 
 ***
 

@@ -82,6 +82,9 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`MetadataRecords`](#metadatarecords) | struct | Success payload of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChapter`](#metadatachapter) | struct | One chapter in a provider's chapter layout. Chapters are listed in pre-order: a chapter with `depth` n + 1 is nested under the nearest earlier chapter with `depth` n. |
 | [`MetadataChapters`](#metadatachapters) | struct | Success payload of `MetadataProvider.chapters`. |
+| [`CoverFetchParams`](#coverfetchparams) | struct | Params of `CoverFetcher.fetchCovers`. |
+| [`CoverImage`](#coverimage) | struct | What happened to one requested URL. |
+| [`CoverImages`](#coverimages) | struct | Success payload of `CoverFetcher.fetchCovers`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -288,6 +291,14 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_metadata_chapters`](#read_metadata_chapters) | function | Decode a `MetadataChapters` from a Cap'n Proto reader. |
 | [`write_metadata_chapters_reply`](#write_metadata_chapters_reply) | function | Encode a `MetadataChaptersReply` union from a typed result. |
 | [`read_metadata_chapters_reply`](#read_metadata_chapters_reply) | function | Decode a `MetadataChaptersReply` union into a typed result. |
+| [`write_cover_fetch_params`](#write_cover_fetch_params) | function | Encode a `CoverFetchParams` onto a Cap'n Proto builder. |
+| [`read_cover_fetch_params`](#read_cover_fetch_params) | function | Decode a `CoverFetchParams` from a Cap'n Proto reader. |
+| [`write_cover_image`](#write_cover_image) | function | Encode a `CoverImage` onto a Cap'n Proto builder. |
+| [`read_cover_image`](#read_cover_image) | function | Decode a `CoverImage` from a Cap'n Proto reader. |
+| [`write_cover_images`](#write_cover_images) | function | Encode a `CoverImages` onto a Cap'n Proto builder. |
+| [`read_cover_images`](#read_cover_images) | function | Decode a `CoverImages` from a Cap'n Proto reader. |
+| [`write_cover_images_reply`](#write_cover_images_reply) | function | Encode a `CoverImagesReply` union from a typed result. |
+| [`read_cover_images_reply`](#read_cover_images_reply) | function | Decode a `CoverImagesReply` union into a typed result. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -2132,6 +2143,67 @@ Success payload of `MetadataProvider.chapters`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### CoverFetchParams
+
+```rust
+pub struct CoverFetchParams {
+    pub urls: Vec<String>,
+    pub max_bytes: u32,
+}
+```
+
+Params of `CoverFetcher.fetchCovers`.
+
+**Fields**
+
+- `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty.
+  The host has already checked each one against its URL policy.
+- `max_bytes`: Largest body, in bytes, the host accepts for one image; at most
+  `maxCoverBytes`. The sink refuses a larger body, which fails that URL
+  only.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CoverImage
+
+```rust
+pub struct CoverImage {
+    pub url: String,
+    pub stored: bool,
+    pub content_type: Option<String>,
+    pub error: Option<String>,
+}
+```
+
+What happened to one requested URL.
+
+**Fields**
+
+- `url`: The requested URL, verbatim.
+- `stored`: Whether the body was put into the sink under this URL's index.
+- `content_type`: `Content-Type` the server sent. Advisory: the host sniffs the bytes.
+  `None` when absent (wire zero value).
+- `error`: Why nothing was stored (HTTP status, size cap, timeout, refused host).
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CoverImages
+
+```rust
+pub struct CoverImages {
+    pub images: Vec<CoverImage>,
+}
+```
+
+Success payload of `CoverFetcher.fetchCovers`.
+
+**Fields**
+
+- `images`: One entry per requested URL, in request order.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### Entrypoint
@@ -2145,6 +2217,7 @@ pub enum Entrypoint {
     Cli,
     Oidc,
     Metadata,
+    Covers,
 }
 ```
 
@@ -2163,6 +2236,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `Oidc`: OIDC bridge: relying-party client templates and `authenticateUser`.
 - `Metadata`: Metadata provider: `lookup`, `search` and `chapters`
   (`MetadataProvider`).
+- `Covers`: Cover fetcher: `fetchCovers` (`CoverFetcher`).
 
 #### Entrypoint::wire_name
 
@@ -5065,6 +5139,105 @@ Decode a `MetadataChaptersReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_cover_fetch_params
+
+```rust
+pub fn write_cover_fetch_params(b: Builder<'_>, v: &CoverFetchParams) -> Result<()>
+```
+
+Encode a [`CoverFetchParams`](#coverfetchparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_cover_fetch_params
+
+```rust
+pub fn read_cover_fetch_params(r: Reader<'_>) -> Result<CoverFetchParams>
+```
+
+Decode a [`CoverFetchParams`](#coverfetchparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_cover_image
+
+```rust
+pub fn write_cover_image(b: Builder<'_>, v: &CoverImage) -> Result<()>
+```
+
+Encode a [`CoverImage`](#coverimage) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_cover_image
+
+```rust
+pub fn read_cover_image(r: Reader<'_>) -> Result<CoverImage>
+```
+
+Decode a [`CoverImage`](#coverimage) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_cover_images
+
+```rust
+pub fn write_cover_images(b: Builder<'_>, v: &CoverImages) -> Result<()>
+```
+
+Encode a [`CoverImages`](#coverimages) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_cover_images
+
+```rust
+pub fn read_cover_images(r: Reader<'_>) -> Result<CoverImages>
+```
+
+Decode a [`CoverImages`](#coverimages) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_cover_images_reply
+
+```rust
+pub fn write_cover_images_reply(
+    b: Builder<'_>,
+    v: &Result<CoverImages, PluginError>,
+) -> Result<()>
+```
+
+Encode a `CoverImagesReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_cover_images_reply
+
+```rust
+pub fn read_cover_images_reply(r: Reader<'_>) -> Result<Result<CoverImages, PluginError>>
+```
+
+Decode a `CoverImagesReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### read_any_message
 
 ```rust
@@ -5117,7 +5290,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 96;
+pub const READ_ANY_COUNT: u8 = 100;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

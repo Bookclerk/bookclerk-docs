@@ -27,6 +27,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`contributors`](entities/contributors.md): SeaORM entity for the `contributors` table (text primary key).
 - [`credits`](entities/credits.md): SeaORM entity for the `credits` table (composite primary key).
 - [`domain_events`](entities/domain_events.md): SeaORM entity for the durable `domain_events` outbox.
+- [`edition_files`](entities/edition_files.md): SeaORM entity for `edition_files`: every file key an acquire or a host upload wrote, per output destination, and the edition it belongs to (library data model ADR, `docs/adr/library-data-model.md`, section 3). Written by the acquire pipeline (`crate::LibraryStore::record_edition_file`) and by `control_plane::uploads`, which refuses an upload a key another edition holds and deletes an aborted upload's copy only while the key is still its own.
 - [`edition_identifiers`](entities/edition_identifiers.md): SeaORM entity for the `edition_identifiers` table (composite primary key).
 - [`editions`](entities/editions.md): SeaORM entity for the `editions` table (text primary key).
 - [`embeddings`](entities/embeddings.md): SeaORM entity for the `embeddings` table.
@@ -74,7 +75,6 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`storage_scan_generations`](entities/storage_scan_generations.md): Ownership row for one durable storage-scan generation.
 - [`storage_scan_rows`](entities/storage_scan_rows.md): SeaORM entity for paged storage-scan rows.
 - [`store_listings`](entities/store_listings.md): SeaORM entity for the `store_listings` table (text primary key).
-- [`title_files`](entities/title_files.md): SeaORM entity for `title_files`: every file key a title's acquire or host upload wrote, per output destination (H-4 design, section 6). Written by the acquire pipeline (`crate::LibraryStore::record_title_file`) and by `control_plane::uploads`, which refuses an upload a key another title holds and deletes an aborted upload's copy only while the key is still its own.
 - [`title_request_sources`](entities/title_request_sources.md): SeaORM entity for the `title_request_sources` — per-storefront catalog/pricing snapshot for a wish.
 - [`title_requests`](entities/title_requests.md): SeaORM entity for the `title_requests` table.
 - [`user_invites`](entities/user_invites.md): SeaORM entity for the `user_invites` table entity — admin/operator invite tickets with role.

@@ -9,6 +9,7 @@ content-source plugins; this crate never sees license keys. See
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`CoverImages`](#coverimages) | trait | Turns a cover URL a metadata provider named into an image the acquire can embed, without the acquire itself requesting the URL. |
 | [`ConvertRequest`](#convertrequest) | struct | Options for `convert_book`. |
 | [`ConvertSummary`](#convertsummary) | struct | Summary of a batch convert run. |
 | [`AcquireDestination`](#acquiredestination) | struct | One configured output destination for an acquire run. |
@@ -16,7 +17,7 @@ content-source plugins; this crate never sees license keys. See
 | [`MatchStorageOptions`](#matchstorageoptions) | struct | Options for `match_storage_to_library`. |
 | [`MatchStorageSummary`](#matchstoragesummary) | struct | Summary of a storage→library match run. |
 | [`NamingContext`](#namingcontext) | struct | Metadata available to naming templates. |
-| [`AcquireMetadata`](#acquiremetadata) | struct | The deployed metadata providers an acquire asks for the plain-audio overlay (catalog tags, cover and chapter layout of an enriched ASIN). |
+| [`AcquireMetadata`](#acquiremetadata) | struct | The deployed metadata providers an acquire asks for the plain-audio overlay (catalog tags, cover and chapter layout of an enriched ASIN), and what turns the overlay's cover URL into an image. |
 | [`AcquireRequest`](#acquirerequest) | struct | Request to acquire a single title. |
 | [`AcquireResult`](#acquireresult) | struct | Result after a successful acquire. |
 | [`PlannedTitleNames`](#plannedtitlenames) | struct | The names an acquire of one title writes on one destination, as the owner plans them, to bound a host's upload of that title. |
@@ -26,7 +27,7 @@ content-source plugins; this crate never sees license keys. See
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
-| [`destination_id`](#destination_id) | function | The id of the output destination of `kind`, as plans, upload manifests and `title_files` name it: its lowercase kind name (a node deploys at most one destination per kind). |
+| [`destination_id`](#destination_id) | function | The id of the output destination of `kind`, as plans, upload manifests and `edition_files` name it: its lowercase kind name (a node deploys at most one destination per kind). |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
 | [`audio_basename`](#audio_basename) | function | Basename of the acquired audio file (for `.cue` `FILE` lines). |
@@ -42,11 +43,13 @@ content-source plugins; this crate never sees license keys. See
 | [`acquire_book`](#acquire_book) | function | Run the acquire pipeline for one book. |
 | [`acquire_book_indexed`](#acquire_book_indexed) | function | Acquire with an optional pre-built `StorageIndex` (avoids re-listing storage when liberating many titles). On success, newly written keys are inserted into the index so later books in the same batch can match them. |
 | [`acquire_pdf_only`](#acquire_pdf_only) | function | Download and store companion PDF only (classic `acquire --pdf`). |
+| [`library_id_of`](#library_id_of) | function | The short Bookclerk id of the edition `book_uuid` resolves to, for `<library id>` (`bookclerk_library::library_id`). |
 | [`planned_storage_key`](#planned_storage_key) | function | Compute the storage key that would be used (for dry-run / set-status). |
 | [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`. |
 | [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | Like `planned_storage_key_for` but with an explicit replacement-rule set (used by reconcile to probe wildcard patterns across sanitization profiles). |
 | [`planned_title_folders`](#planned_title_folders) | function | The folders an acquire of `req` writes the title's files under on a destination with `req.options`: the folder of its planned audio key, which its sidecars, chapter files and parts share. When podcast episodes are saved to the parent's folder, the episode's own folder is included too, since a library without the parent's row names it so. An empty string is the destination's root (a template with no folder). |
 | [`planned_title_names`](#planned_title_names) | function | The title's planned names on the destination `req.options` describe: `PlannedTitleNames`. |
+| [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of another book of its edition, when one is already acquired and every destination holds its copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
 | [`extract_asins_from_key`](#extract_asins_from_key) | function | Extract Audible-like ASINs and ISBN-13 tokens from a storage key / file path. |
 | [`find_existing_for_book`](#find_existing_for_book) | function | Find an existing acquired file for a book (planned path or ASIN-in-path). |
 | [`find_existing_for_request`](#find_existing_for_request) | function | Same as `find_existing_for_book` but for a acquire request before DB status is Acquired. |
@@ -55,6 +58,46 @@ content-source plugins; this crate never sees license keys. See
 | [`Result`](#result) | type alias | Result alias for `AcquireError`. |
 | [`NAME_WILDCARD`](#name_wildcard) | constant | In a `PlannedTitleNames` pattern: one or more characters of a file name (no `/`), where the source's part or chapter title goes; the marker the owner's upload scope matches (`bookclerk_library::control_plane::TitleNames`). |
 | [`NUMBER_WILDCARD`](#number_wildcard) | constant | In a `PlannedTitleNames` pattern: one or more ASCII digits, where a part or chapter number goes (the owner's upload scope matches it too). |
+
+## Traits
+
+### CoverImages
+
+```rust
+pub trait CoverImages: Send + Sync {
+    fn full_cover<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        url: &'life1 str,
+    ) -> Pin<Box<dyn Future<Output = Option<Vec<u8>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+}
+```
+
+Turns a cover URL a metadata provider named into an image the acquire can
+embed, without the acquire itself requesting the URL.
+
+The daemon implements this with its cover service: a `covers` plugin
+downloads the image and the confined media worker re-encodes it, so what
+reaches the tagger is a JPEG the host produced.
+
+#### CoverImages::full_cover
+
+```rust
+fn full_cover<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    url: &'life1 str,
+) -> Pin<Box<dyn Future<Output = Option<Vec<u8>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+The full-size JPEG for `url`, or `None` when it cannot be fetched or
+is not an image.
 
 ## Structs
 
@@ -283,6 +326,7 @@ pub struct NamingContext {
     pub codec: Option<String>,
     pub is_abridged: bool,
     pub content_kind: Option<String>,
+    pub library_id: Option<String>,
     pub chapter_number: Option<u32>,
     pub chapter_count: Option<u32>,
     pub chapter_title: Option<String>,
@@ -315,6 +359,8 @@ Metadata available to naming templates.
 - `codec`: Audio codec label for naming templates, when known.
 - `is_abridged`: Whether the edition is abridged (template boolean).
 - `content_kind`: Title kind (`book`, `episode`, …) for naming templates.
+- `library_id`: The edition's short Bookclerk id for `<library id>`; `None` for a
+  title with no edition, which then names by its product id.
 - `chapter_number`: Chapter-specific: 1-based index.
 - `chapter_count`: Total chapter count when naming a split chapter file.
 - `chapter_title`: Chapter title when naming a split chapter file.
@@ -324,11 +370,14 @@ Implements: `Clone`, `Debug`, `Default`
 ### AcquireMetadata
 
 ```rust
-pub struct AcquireMetadata(/* private */);
+pub struct AcquireMetadata {
+    /* private fields */
+}
 ```
 
 The deployed metadata providers an acquire asks for the plain-audio
-overlay (catalog tags, cover and chapter layout of an enriched ASIN).
+overlay (catalog tags, cover and chapter layout of an enriched ASIN), and
+what turns the overlay's cover URL into an image.
 
 #### AcquireMetadata::new
 
@@ -341,6 +390,14 @@ Wraps the providers an acquire should ask.
 ##### Arguments
 
 * `providers` - Usually the daemon's or CLI's integration registry.
+
+#### AcquireMetadata::with_covers
+
+```rust
+pub fn with_covers(self, covers: Arc<dyn CoverImages>) -> Self
+```
+
+The same providers, with `covers` fetching the overlay's cover.
 
 #### AcquireMetadata::providers
 
@@ -372,6 +429,8 @@ pub struct AcquireRequest {
     pub write_destinations: Option<Vec<OutputBackendKind>>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
+    pub library_id: Option<String>,
+    pub parent_library_id: Option<String>,
     pub metadata: AcquireMetadata,
 }
 ```
@@ -397,6 +456,11 @@ Request to acquire a single title.
   (`output.multi_destination = refetch_missing`).
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
+- `library_id`: The `<library id>` to name the title by instead of its edition in
+  `library`: a host acquiring for an owner node names the title as the
+  owner does, since its scratch library's edition ids are its own.
+- `parent_library_id`: Likewise for the title's podcast parent, whose folder an episode
+  may be saved in.
 - `metadata`: Metadata providers asked for the plain-audio catalog and chapter
   overlay. The default has none, so plain audio keeps its store tags.
 
@@ -692,7 +756,7 @@ pub fn destination_id(kind: OutputBackendKind) -> &'static str
 ```
 
 The id of the output destination of `kind`, as plans, upload manifests
-and `title_files` name it: its lowercase kind name (a node deploys at
+and `edition_files` name it: its lowercase kind name (a node deploys at
 most one destination per kind).
 
 ### match_storage_to_library
@@ -912,9 +976,13 @@ Fetch always goes through `ContentSource::fetch_title` (Plain only;
 Audible decrypts Adrm/CENC inside the plugin before returning).
 
 Every key the run writes on a destination (audio, chapter or part
-files, sidecars, the companion PDF) is recorded for the title in the
-library's `title_files` just before it is written, so a host upload of
-another title is never granted it.
+files, sidecars, the companion PDF) is recorded for the book's edition
+in the library's `edition_files`, with its role, just before it is
+written, so a host upload of another edition is never granted it.
+
+A book whose edition another book has already acquired (the same
+edition bought on two accounts, say) is marked acquired at that book's
+key without fetching it again.
 
 #### Errors
 
@@ -934,11 +1002,31 @@ pub async fn acquire_pdf_only(
 Download and store companion PDF only (classic `acquire --pdf`).
 
 Fetches via `ContentSource::fetch_title`; requires `PlainFetch.pdf_url`, then HTTP GETs that URL.
-Each PDF key written is recorded for the title in `title_files`.
+Each PDF key written is recorded for the book's edition in `edition_files`.
 
 #### Errors
 
 Returns an error when the operation fails.
+
+### library_id_of
+
+```rust
+pub async fn library_id_of(
+    library: &LibraryStore,
+    book_uuid: &str,
+) -> Result<Option<String>>
+```
+
+The short Bookclerk id of the edition `book_uuid` resolves to, for
+`<library id>` ([`bookclerk_library::library_id`](../bookclerk_library/index.md#library_id)).
+
+#### Returns
+
+`None` when the title has no edition.
+
+#### Errors
+
+Returns an error when the edition cannot be read.
 
 ### planned_storage_key
 
@@ -1005,6 +1093,46 @@ pub async fn planned_title_names(
 
 The title's planned names on the destination `req.options` describe:
 [`PlannedTitleNames`](#plannedtitlenames).
+
+### share_acquired_sibling
+
+```rust
+pub async fn share_acquired_sibling(
+    library: &LibraryStore,
+    destinations: &[(&str, &dyn StorageBackend)],
+    book: &BookRecord,
+) -> Result<Option<String>>
+```
+
+Marks `book` acquired at the files of another book of its edition, when
+one is already acquired and every destination holds its copy, so the
+edition is not fetched again. The edition's companion PDF is shared too
+when that book has one.
+
+A destination holds the copy when the sibling's primary key there is
+the edition's own (unrecorded, as storage matching adopts it, or
+recorded for this edition, never another's: a listing that moved
+editions leaves its old files with the old one) and every audio key
+recorded for the edition there (parts, chapters) is present.
+
+#### Arguments
+
+* `destinations` - Each destination's id ([`destination_id`](#destination_id)) and
+  backend.
+* `book` - The book to mark acquired.
+
+#### Returns
+
+The shared primary key; `None` when the book has no edition yet, or no
+other book of its edition is acquired with a copy every destination
+holds (a destination deployed since, another node's layout, or a file
+removed since). The acquire then plans as usual and syncs or fetches
+what is missing.
+
+#### Errors
+
+Returns an error when a library lookup or write, or a backend probe,
+fails.
 
 ### extract_asins_from_key
 

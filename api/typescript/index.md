@@ -614,7 +614,7 @@ new CliEntrypoint<Env>(ctx, env): CliEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -626,7 +626,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -636,7 +636,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -648,7 +648,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -660,7 +660,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -694,7 +694,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### describe()
 
@@ -732,7 +732,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### invoke()
 
@@ -756,13 +756,195 @@ Exit code, captured output, optional structured payload.
 
 ***
 
+### CoverEntrypoint
+
+`covers` entrypoint (`CoverFetcher`): downloads cover images for the host.
+The host passes a `sink` [Destination](#destination); put the body for `urls[i]`
+under the key `String(i)` and return one [CoverImage](#coverimage) per URL, in
+request order. The host sniffs, decodes and re-encodes every body, so the
+bytes stay untrusted. Export it as `export class Covers extends CoverEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env-2"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new CoverEntrypoint<Env>(ctx, env): CoverEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`CoverEntrypoint`](#coverentrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
+
+##### fetchCovers()
+
+```ts
+fetchCovers(_params, _sink): Promise<CoverImage[]>;
+```
+
+Fetches each URL and streams its body into `sink` under its index.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`CoverFetchParams`](#coverfetchparams) | URLs (absolute `https://`) and the per-body byte cap. |
+| `_sink` | [`Destination`](#destination) | Host destination; accepts `put` for keys `0..urls.length`. |
+
+###### Returns
+
+`Promise`\<[`CoverImage`](#coverimage)[]\>
+
+One entry per URL, in request order.
+
+##### health()
+
+```ts
+health(): Promise<HealthOk>;
+```
+
+Reports whether the fetcher can answer.
+
+###### Returns
+
+`Promise`\<[`HealthOk`](#healthok)\>
+
+Health flag plus detail.
+
+***
+
 ### DatabaseAdapterEntrypoint
 
 `databaseAdapter` entrypoint: opens typed SQL sessions for the host
 library. Export it as `export class DatabaseAdapter extends DatabaseAdapterEntrypoint`.
 
 The adapter isolate drives sessions through two dispatch verbs on
-[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-1): `openSession` returns a
+[DatabaseAdapterEntrypoint.bookclerkInvoke](#bookclerkinvoke-2): `openSession` returns a
 fresh session id, and `session(id, method, ...params)` calls `method` on
 the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases the entry.
 
@@ -774,7 +956,7 @@ the retained [AdapterDatabaseSession](#adapterdatabasesession); `close` releases
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-2"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -797,7 +979,7 @@ new DatabaseAdapterEntrypoint<Env>(ctx, env): DatabaseAdapterEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -809,7 +991,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -819,7 +1001,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -831,7 +1013,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -843,7 +1025,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -878,7 +1060,7 @@ Session id for `openSession`, else the session method result.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### dropUnit()
 
@@ -922,7 +1104,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### openSession()
 
@@ -1156,7 +1338,7 @@ new EventBatch(events, invocation?): EventBatch;
 | Parameter | Type |
 | ------ | ------ |
 | `events` | readonly `Partial`\<[`DomainEvent`](#domainevent)\>[] \| `undefined` |
-| `invocation?` | [`Invocation`](#invocation-12) |
+| `invocation?` | [`Invocation`](#invocation-13) |
 
 ###### Returns
 
@@ -1789,7 +1971,7 @@ Export it as `export class Metadata extends MetadataEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-3"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -1812,7 +1994,7 @@ new MetadataEntrypoint<Env>(ctx, env): MetadataEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -1824,7 +2006,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -1834,7 +2016,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -1846,7 +2028,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -1858,7 +2040,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -1892,7 +2074,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### chapters()
 
@@ -1936,7 +2118,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### health()
 
@@ -2008,6 +2190,7 @@ which installs the granted bindings on `env` before dispatching.
 
 - [`CliEntrypoint`](#clientrypoint)
 - [`DatabaseAdapterEntrypoint`](#databaseadapterentrypoint)
+- [`CoverEntrypoint`](#coverentrypoint)
 - [`MetadataEntrypoint`](#metadataentrypoint)
 - [`OidcEntrypoint`](#oidcentrypoint)
 - [`RemoteLibraryEntrypoint`](#remotelibraryentrypoint)
@@ -2018,7 +2201,7 @@ which installs the granted bindings on `env` before dispatching.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-4"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2146,7 +2329,7 @@ verification. Export it as `export class Oidc extends OidcEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-5"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2169,7 +2352,7 @@ new OidcEntrypoint<Env>(ctx, env): OidcEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -2181,7 +2364,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -2191,7 +2374,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -2203,7 +2386,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -2215,7 +2398,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -2269,7 +2452,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### clients()
 
@@ -2308,7 +2491,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ***
 
@@ -2464,7 +2647,7 @@ new QueueBatch(
 | ------ | ------ |
 | `queue` | `string` \| `undefined` |
 | `messages` | readonly `Partial`\<`QueueMessage`\>[] \| `undefined` |
-| `invocation?` | [`Invocation`](#invocation-12) |
+| `invocation?` | [`Invocation`](#invocation-13) |
 
 ###### Returns
 
@@ -2715,7 +2898,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-6"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -2738,7 +2921,7 @@ new RemoteLibraryEntrypoint<Env>(ctx, env): RemoteLibraryEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -2750,7 +2933,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -2760,7 +2943,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -2772,7 +2955,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -2784,7 +2967,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -2818,7 +3001,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### diagnose()
 
@@ -2856,7 +3039,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### health()
 
@@ -3012,7 +3195,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -3035,7 +3218,7 @@ new StorageEntrypoint<Env>(ctx, env): StorageEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -3047,7 +3230,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -3057,7 +3240,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -3069,7 +3252,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -3081,7 +3264,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -3136,7 +3319,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### commit()
 
@@ -3222,7 +3405,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### get()
 
@@ -3327,7 +3510,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
+| <a id="type-parameter-env-9"></a> `Env` *extends* [`BookclerkEnv`](#bookclerkenv) | [`BookclerkEnv`](#bookclerkenv) |
 
 #### Constructors
 
@@ -3350,7 +3533,7 @@ new StorefrontEntrypoint<Env>(ctx, env): StorefrontEntrypoint<Env>;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-9)
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-10)
 
 #### Properties
 
@@ -3362,7 +3545,7 @@ readonly ctx: ExecutionContext;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-4)
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-5)
 
 ##### env
 
@@ -3372,7 +3555,7 @@ readonly env: Env;
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-4)
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-5)
 
 ##### invocation
 
@@ -3384,7 +3567,7 @@ Invocation identity of the current call (set by `bookclerkInvoke`).
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-5)
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-6)
 
 ##### bookclerkMethods
 
@@ -3396,7 +3579,7 @@ Methods the adapter may dispatch on this entrypoint.
 
 ###### Overrides
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-4)
 
 #### Methods
 
@@ -3430,7 +3613,7 @@ Method result.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-3)
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-4)
 
 ##### catalogDetail()
 
@@ -3508,7 +3691,7 @@ Always a 404 empty response.
 
 ###### Inherited from
 
-[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-4)
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-5)
 
 ##### fetchTitle()
 
@@ -5273,6 +5456,141 @@ bytesCopied: number;
 
 ***
 
+### CoverFetcher
+
+`covers` entrypoint: downloads cover images on the host's behalf, so the
+host itself never makes an outbound request to a URL a plugin or a store
+supplied. The fetcher only transports bytes: the host sniffs, decodes and
+re-encodes every image in its media worker before anything stores or
+serves it. Network access is limited to what the manifest's
+`[capabilities.network]` declares.
+
+#### Methods
+
+##### fetchCovers()
+
+```ts
+fetchCovers(params, sink): Promise<CoverImagesReply>;
+```
+
+Fetches every URL concurrently and streams each body into `sink` under
+its index in `params.urls` (`"0"`, `"1"`, ...). The reply says, per URL,
+whether its body was stored.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`CoverFetchParams`](#coverfetchparams) | URLs and the per-image byte cap. |
+| `sink` | `Destination` | Host-served store that accepts only those keys. |
+
+###### Returns
+
+`Promise`\<[`CoverImagesReply`](#coverimagesreply)\>
+
+[CoverImagesReply](#coverimagesreply)
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+***
+
+### CoverFetchParams
+
+Params of `CoverFetcher.fetchCovers`.
+
+#### Properties
+
+##### maxBytes
+
+```ts
+maxBytes: number;
+```
+
+Largest body, in bytes, the host accepts for one image; at most
+`maxCoverBytes`. The sink refuses a larger body, which fails that URL
+only.
+
+##### urls
+
+```ts
+urls: string[];
+```
+
+Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty.
+The host has already checked each one against its URL policy.
+
+***
+
+### CoverImage
+
+What happened to one requested URL.
+
+#### Properties
+
+##### contentType?
+
+```ts
+contentType?: string;
+```
+
+`Content-Type` the server sent. Advisory: the host sniffs the bytes.
+Omitted when absent (wire zero value).
+
+##### error?
+
+```ts
+error?: string;
+```
+
+Why nothing was stored (HTTP status, size cap, timeout, refused host).
+Omitted when absent (wire zero value).
+
+##### stored
+
+```ts
+stored: boolean;
+```
+
+Whether the body was put into the sink under this URL's index.
+
+##### url
+
+```ts
+url: string;
+```
+
+The requested URL, verbatim.
+
+***
+
+### CoverImages
+
+Success payload of `CoverFetcher.fetchCovers`.
+
+#### Properties
+
+##### images
+
+```ts
+images: CoverImage[];
+```
+
+One entry per requested URL, in request order.
+
+***
+
 ### CreateTableSchema
 
 Parsed `CREATE TABLE` (canonical SQL v1). Per-column lists align with `columns`.
@@ -6289,6 +6607,15 @@ cli?: PluginCli | null;
 ```
 
 `cli` entrypoint.
+Null when the guest does not export this capability.
+
+##### covers?
+
+```ts
+covers?: CoverFetcher | null;
+```
+
+`covers` entrypoint.
 Null when the guest does not export this capability.
 
 ##### databaseAdapter?
@@ -7892,7 +8219,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-11)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-12)
 
 ##### jobId?
 
@@ -9999,7 +10326,8 @@ entrypoints: (
   | "remoteLibrary"
   | "cli"
   | "oidc"
-  | "metadata")[];
+  | "metadata"
+  | "covers")[];
 ```
 
 Named entrypoints the guest exports.
@@ -10254,7 +10582,7 @@ bindings. Entrypoints the manifest does not export are null.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `invocation` | [`Invocation`](#invocation-12) | Host-issued invocation identity. |
+| `invocation` | [`Invocation`](#invocation-13) | Host-issued invocation identity. |
 | `bindings` | [`Bindings`](#bindings) | Granted `env` bindings. |
 
 ###### Returns
@@ -10918,7 +11246,7 @@ Body encoding: `json` (default; the body is JSON-encoded), `text`
 
 ###### Inherited from
 
-[`QueueSendOptions`](#queuesendoptions).[`contentType`](#contenttype-4)
+[`QueueSendOptions`](#queuesendoptions).[`contentType`](#contenttype-5)
 
 ##### delaySeconds?
 
@@ -12575,6 +12903,24 @@ Result union of `Destination.copy`.
 
 ***
 
+### CoverImagesReply
+
+```ts
+type CoverImagesReply = 
+  | {
+  kind: "ok";
+  value: CoverImages;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `CoverFetcher.fetchCovers`.
+
+***
+
 ### CreditLevel
 
 ```ts
@@ -12772,7 +13118,8 @@ type EntrypointName =
   | "remoteLibrary"
   | "cli"
   | "oidc"
-  | "metadata";
+  | "metadata"
+  | "covers";
 ```
 
 Wire name of each named entrypoint (`plugin.toml` `entrypoints`).
@@ -14295,7 +14642,7 @@ Invocation envelope (`Invocation` struct) with zero values normalized.
 
 #### Returns
 
-[`Invocation`](#invocation-12)
+[`Invocation`](#invocation-13)
 
 Frozen invocation identity.
 

@@ -19,7 +19,7 @@ replay test and the store all drive the same code.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`IdSource`](#idsource) | trait | Mints ids for new rows; the store uses random UUIDs, tests use counters. |
+| [`IdSource`](#idsource) | trait | Mints ids for new rows; the store uses UUIDs, tests use counters. |
 | [`EntityKind`](#entitykind) | enum | The kind of row a new id is minted for. |
 | [`resolve`](#resolve) | function | Resolves one listing against a snapshot of the stored rows. |
 
@@ -37,6 +37,7 @@ replay test and the store all drive the same code.
 - [`kinds::Strength`](kinds.md#strength)
 - [`kinds::WorkKind`](kinds.md#workkind)
 - [`listing::stored_marketplace`](listing.md#stored_marketplace)
+- [`listing::stored_product_id`](listing.md#stored_product_id)
 - [`listing::work_match_key`](listing.md#work_match_key)
 - [`listing::Credit`](listing.md#credit)
 - [`listing::Holder`](listing.md#holder)
@@ -83,10 +84,11 @@ replay test and the store all drive the same code.
 ```rust
 pub trait IdSource {
     fn next_id(&mut self, kind: EntityKind) -> String;
+    fn edition_id(&mut self, key: &ListingKey) -> String;
 }
 ```
 
-Mints ids for new rows; the store uses random UUIDs, tests use counters.
+Mints ids for new rows; the store uses UUIDs, tests use counters.
 
 #### IdSource::next_id
 
@@ -95,6 +97,21 @@ fn next_id(&mut self, kind: EntityKind) -> String
 ```
 
 A fresh id, never returned before, for a new row of `kind`.
+
+#### IdSource::edition_id
+
+```rust
+fn edition_id(&mut self, key: &ListingKey) -> String
+```
+
+The id for a new edition first seen through the listing `key`.
+
+The store derives it from `key`, so every node that resolves the same
+listing first mints the same edition id. The resolver mints an
+edition only for a listing with no stored edition, but that
+listing's first edition can outlive it (holding other listings), so
+a caller deriving ids must check the id is free; the store mints a
+random one when it is not. The default is [`IdSource::next_id`](#idsourcenext_id).
 
 Implemented by: `CounterIds`
 

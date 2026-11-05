@@ -812,7 +812,10 @@ The summary has two figures:
 Floors ratchet. After every successful merge group run, which measures
 every area in full,
 [`coverage-floors.yml`](../../.github/workflows/coverage-floors.yml) reads
-that run's coverage and runs `scripts/coverage_gate.py --ratchet`:
+that run's coverage and runs `scripts/coverage_gate.py --ratchet` on `main`
+once `main` contains the commit that run measured. It waits up to five minutes
+for that commit to land and skips the run if it does not. Only code already on
+`main` runs in the job, because the job also holds the automation App token:
 
 1. Each floor rises to the area's measured coverage rounded down, less one
    point, so noise does not fail a run.
@@ -1230,7 +1233,10 @@ workflow does the same for the Python plugin SDK
    `@staticmethod` or `@classmethod`) or an enum's methods. The summary
    names the changed functions it skipped for that reason.
 5. Each mutant runs the tests that cover its function. A mutant no test
-   runs counts as missed.
+   runs counts as missed. mutmut picks those tests by node id, and pytest
+   cannot find a node id again once it has escaped a backslash or a
+   non-ASCII character in it, so `tests/conftest.py` refuses such test ids.
+   Give a parametrized case an ASCII id instead of `repr` of its input.
 6. The run stops after 60 minutes. mutmut records each result as it lands,
    so the summary then counts the mutants tested before the limit and says
    the run was stopped. If mutmut fails or stops before testing any

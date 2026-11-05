@@ -19,6 +19,7 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`QueueSubscription`](#queuesubscription) | struct | Declared `[[queues.consumers]]` row (mirrors `plugin.toml`): the queue the integration's `queue(batch)` trigger consumes and its redelivery policy. |
 | [`ScheduledInvocation`](#scheduledinvocation) | struct | One fire of a `[triggers] crons` schedule, as the host delivers it to the `scheduled(controller)` trigger. |
 | [`ExternalUser`](#externaluser) | struct | External user resolved via integration credential login or watcher. |
+| [`FetchedCover`](#fetchedcover) | struct | One image a `covers` plugin downloaded, or why it could not. |
 | [`IntegrationHealth`](#integrationhealth-1) | struct | Health snapshot for one integration. |
 | [`ListeningProgressSnapshot`](#listeningprogresssnapshot) | struct | One listening / progress row from any integration (ABS, plugins, …). |
 | [`SyncListeningProviderResult`](#synclisteningproviderresult) | struct | Per-integration outcome from `crate::IntegrationRegistry::sync_listening_progress_all`. |
@@ -169,6 +170,15 @@ pub trait Integration: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,;
     fn metadata_unsupported(&self) -> IntegrationError;
+    fn supports_covers(&self) -> bool;
+    fn fetch_covers<'life0, 'async_trait>(
+        &'life0 self,
+        _urls: Vec<String>,
+        _max_bytes: u32,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn diagnose<'life0, 'async_trait>(
         &'life0 self,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + Send + 'async_trait>>
@@ -550,6 +560,38 @@ fn metadata_unsupported(&self) -> IntegrationError
 
 The error the default metadata methods return.
 
+#### Integration::supports_covers
+
+```rust
+fn supports_covers(&self) -> bool
+```
+
+Whether this integration exports the `covers` entrypoint (downloads
+cover images on the host's behalf).
+
+Default: `false`.
+
+#### Integration::fetch_covers
+
+```rust
+fn fetch_covers<'life0, 'async_trait>(
+    &'life0 self,
+    _urls: Vec<String>,
+    _max_bytes: u32,
+) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Downloads `urls` through the `covers` entrypoint
+(`CoverFetcher.fetchCovers`), refusing any body over `max_bytes`.
+
+Returns one [`FetchedCover`](#fetchedcover) per URL, in request order; a URL that
+failed carries `error` instead of failing the call.
+
+Default: unsupported.
+
 #### Integration::diagnose
 
 ```rust
@@ -801,6 +843,14 @@ pub fn metadata_providers(&self) -> Vec<Arc<dyn Integration>>
 
 Integrations that export the `metadata` entrypoint, in registration order.
 
+#### IntegrationRegistry::cover_fetchers
+
+```rust
+pub fn cover_fetchers(&self) -> Vec<Arc<dyn Integration>>
+```
+
+Integrations that export the `covers` entrypoint, in registration order.
+
 #### IntegrationRegistry::sync_listening_progress_all
 
 ```rust
@@ -993,6 +1043,32 @@ External user resolved via integration credential login or watcher.
 - `access_token`: Ephemeral token from the remote system (e.g. ABS JWT). Never persisted.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### FetchedCover
+
+```rust
+pub struct FetchedCover {
+    pub url: String,
+    pub body: Option<Vec<u8>>,
+    pub content_type: Option<String>,
+    pub error: Option<String>,
+}
+```
+
+One image a `covers` plugin downloaded, or why it could not.
+
+The body is untrusted bytes as the remote server sent them: callers must
+sniff, decode and re-encode it before storing or serving it.
+
+**Fields**
+
+- `url`: The requested URL, verbatim.
+- `body`: Response body, at most the `max_bytes` the call asked for; `None` when
+  nothing was stored.
+- `content_type`: `Content-Type` the server sent. Advisory only.
+- `error`: Why there is no body, as the plugin or the host sink reported it.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### IntegrationHealth
 

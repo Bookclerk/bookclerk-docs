@@ -90,6 +90,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
+| [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
 | [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
@@ -97,7 +98,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
-| [`TitleFile`](#titlefile) | struct | Who holds a recorded file key. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishlistIdentity`](#wishlistidentity) | struct | Bibliographic slice used for wishlist dedupe. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
@@ -120,6 +120,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
+| [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
+| [`FileRole`](#filerole) | enum | What a recorded file is. |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy all library tables from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
 | [`library_ddl_for_schema_state`](#library_ddl_for_schema_state) | function | Library DDL that matches `state`, not necessarily this binary's latest pack. |
@@ -201,7 +203,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
 | [`inject_dispatch_page_failures`](#inject_dispatch_page_failures) | function | Fail after the next `n` successful dispatch pages (tests only). |
+| [`edition_id_for_listing`](#edition_id_for_listing) | function | The id of an edition first seen through the store listing `key`: a version 5 UUID over its plugin key, marketplace and product id. Two nodes (or one library rebuilt from a fresh scan) that resolve the same listing first give its edition the same id, and so the same `<library id>` in file names. |
 | [`holding_from_book`](#holding_from_book) | function | The holding a flat library row describes. |
+| [`library_id`](#library_id) | function | The `<library id>` of edition `edition_id`: its first 40 bits as 8 lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id that is not a UUID falls back to its first 8 ASCII letters and digits. Returns `None` when that leaves nothing. |
 | [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
@@ -3088,6 +3092,7 @@ pub struct TitleRequestRecord {
     pub work_id: Option<String>,
     pub resolved_book_uuid: Option<String>,
     pub cover_url: Option<String>,
+    pub cover_path: Option<String>,
     pub sources: Vec<TitleRequestSourceRecord>,
     pub description: Option<String>,
     pub subtitle: Option<String>,
@@ -3123,6 +3128,10 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `work_id`: Canonical work id this edition or request resolves to.
 - `resolved_book_uuid`: Library `books.uuid` once the wishlist item is fulfilled.
 - `cover_url`: HTTPS URL for cover art when known.
+- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
+  when `cover_url` is an `https` URL. Append `/128`
+  (thumbnail), `/360` (card) or `/full`, so a client can show covers
+  without loading `cover_url` from another site.
 - `sources`: Per-storefront snapshots (empty for legacy rows).
 - `description`: Blurb / synopsis text (may contain HTML).
 - `subtitle`: Optional subtitle from bibliographic metadata.
@@ -3742,6 +3751,28 @@ Durable catalog enrichment fields (blurbs, subjects, provenance).
 
 Implements: `Clone`, `Debug`, `Default`
 
+### EditionFile
+
+```rust
+pub struct EditionFile {
+    pub owner: FileOwner,
+    pub writer: String,
+    pub role: FileRole,
+    pub sha256: Option<String>,
+}
+```
+
+Who holds a recorded file key, and what the file is.
+
+**Fields**
+
+- `owner`: The edition (or branch title) the file belongs to.
+- `writer`: The host upload id that claimed the key last, or [`ACQUIRE_WRITER`](#acquire_writer).
+- `role`: What the file is.
+- `sha256`: Lowercase hex SHA-256 of the content, when known (host uploads).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### LibraryStore
 
 ```rust
@@ -3769,6 +3800,235 @@ Plugin-scoped view — first-party and third-party sources use this.
 
 `plugin_key` isolates rows; `source_id` is the display alias written
 to the `source` column.
+
+#### LibraryStore::edition_of_book
+
+```rust
+pub async fn edition_of_book(&self, book_uuid: &str) -> Result<Option<String>>
+```
+
+The edition a library title (`books.uuid`) resolves to, through its
+store listing; `None` when the title is unknown or not resolved yet.
+
+##### Errors
+
+Returns an error when a read fails.
+
+#### LibraryStore::file_owner_of_book
+
+```rust
+pub async fn file_owner_of_book(&self, book_uuid: &str) -> Result<Option<FileOwner>>
+```
+
+The file owner of a library title: its edition
+([`Self::edition_of_book`](#librarystoreedition_of_book)).
+
+##### Errors
+
+Returns an error when a read fails.
+
+#### LibraryStore::books_of_edition
+
+```rust
+pub async fn books_of_edition(&self, edition_id: &str) -> Result<BTreeSet<String>>
+```
+
+Every library title (`books.uuid`) whose listing sells `edition_id`:
+the account rows that share the edition's files.
+
+##### Errors
+
+Returns an error when a read fails.
+
+#### LibraryStore::record_edition_file
+
+```rust
+pub async fn record_edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    role: FileRole,
+) -> Result<bool>
+```
+
+Records that `owner` writes `key` on `destination` (an acquire run
+on this node, just before the write).
+
+The record is taken when the key is unrecorded, already `owner`'s,
+or held by an owner no longer live (a removed edition, or a title a
+branch shares here, whose keys an acquire on this node takes over).
+Another live edition's key is refused, changing nothing: two
+editions whose short ids collide can plan one chapter or sidecar
+name the audio-name check does not see, and the write must not
+replace that edition's file. Each record is one conditional write,
+so of two acquires racing for one key only one wins.
+
+##### Returns
+
+`true` when the key is now `owner`'s; `false` when another live
+edition holds it.
+
+##### Errors
+
+Returns an error when a write fails.
+
+#### LibraryStore::claim_edition_file
+
+```rust
+pub async fn claim_edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    writer: &str,
+    role: FileRole,
+    sha256: Option<&str>,
+    expected: Option<&EditionFile>,
+    branch_titles_hold: bool,
+    title: Option<&str>,
+) -> Result<bool>
+```
+
+Claims `key` on `destination` for `owner`, with `writer` (a host
+upload id) as its latest writer.
+
+The claim succeeds when the key is unrecorded, already the owner's
+(any account's row of the same edition), or recorded for an owner
+that holds no key against this claim; answers false, changing
+nothing, when another edition holds it. An edition holds its keys
+against every claim while it exists. A title a branch shares here
+holds its keys only against another branch title's claim
+(`branch_titles_hold`, a catalog upload): a Host job's upload of a
+book takes them over, as an acquire on this node would. Each claim
+is one conditional write, so of two uploads of different editions
+racing for one key only one wins.
+
+`expected` is the record the caller read before
+([`Self::edition_file`](#librarystoreedition_file); `None` when unrecorded), which a refused
+claim's release restores: the claim also answers false, changing
+nothing, when the record is no longer that one (an acquire recorded
+the key in between), so a release never removes a record the claim
+did not replace.
+
+##### Arguments
+
+* `destination`, `key` - The file's place.
+* `owner` - Who claims it.
+* `writer` - The host upload id.
+* `role`, `sha256` - What the file is and its declared digest.
+* `expected` - The record read before the claim.
+* `branch_titles_hold` - True for a catalog upload's claim.
+* `title` - The library title (`books.uuid`) a job upload writes
+  for. A key its edition already holds is taken over only when this
+  upload or an earlier upload of the same title wrote it, never one
+  an acquire or another account's upload wrote: the edition's files
+  are shared, so one account's node cannot replace them. `None` for
+  a catalog upload, whose branch title holds its keys alone.
+
+##### Errors
+
+Returns an error when a write fails.
+
+#### LibraryStore::release_edition_file
+
+```rust
+pub async fn release_edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+    writer: &str,
+    prior: Option<&EditionFile>,
+) -> Result<()>
+```
+
+Gives back a claim `writer` made on `key` on `destination`: the
+record returns to `prior` (who held it before the claim), or is
+removed when `prior` is `None` (the claim created it). Changes
+nothing once someone else has written the key since (its writer is
+no longer `writer`), so a release never takes a key from a later
+claim or acquire.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### LibraryStore::count_edition_files_by
+
+```rust
+pub async fn count_edition_files_by(&self, writer: &str) -> Result<u64>
+```
+
+How many keys `writer` (a host upload id) holds, on every
+destination together. An upload id is unique and claims keys for one
+owner only, so this is how many keys that upload's title still holds
+through it.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::edition_file
+
+```rust
+pub async fn edition_file(
+    &self,
+    destination: &str,
+    key: &str,
+) -> Result<Option<EditionFile>>
+```
+
+Who holds `key` on `destination`; `None` when it is unrecorded.
+
+A row naming an owner kind this build does not know reads as held
+by an edition no claim matches, so it is never taken over.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::audio_keys_of
+
+```rust
+pub async fn audio_keys_of(
+    &self,
+    destination: &str,
+    owner: &FileOwner,
+) -> Result<Vec<String>>
+```
+
+The audio keys (primary audio, parts and chapters) recorded for
+`owner` on `destination`, in key order: every file a copy of the
+edition's recording there needs.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::name_held_by_another_owner
+
+```rust
+pub async fn name_held_by_another_owner(
+    &self,
+    stem: &str,
+    owner: &FileOwner,
+) -> Result<bool>
+```
+
+True when another live edition's file is recorded, on any
+destination, at the name `stem` (a planned key without its
+extension): the key `stem` itself, `stem` with an extension in the
+same folder (`stem.cue`), or one of its part files
+(`stem — Part 1.m4b`). Another edition's files already live under
+that name, so an acquire of `owner` is refused rather than overwrite
+them. A longer name that only starts with `stem` (`stem Peaks.m4b`)
+is not the same name. A branch title's file, or a file of an edition
+no longer in the library, does not count: an acquire takes those
+keys over, as [`LibraryStore::claim_edition_file`](#librarystoreclaim_edition_file) does.
+
+##### Errors
+
+Returns an error when the read fails.
 
 #### LibraryStore::publish_domain_event
 
@@ -5095,112 +5355,6 @@ catalog ends.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
 than the result cap, or when a single row still exceeds the cap.
-
-#### LibraryStore::record_title_file
-
-```rust
-pub async fn record_title_file(
-    &self,
-    destination: &str,
-    key: &str,
-    book_uuid: &str,
-) -> Result<()>
-```
-
-Records that the title `book_uuid` writes `key` on `destination`
-(an acquire run on this node, just before the write).
-
-The record is replaced unconditionally: the file is this title's
-once written, whichever title held the key before.
-
-##### Errors
-
-Returns an error when the write fails.
-
-#### LibraryStore::claim_title_file
-
-```rust
-pub async fn claim_title_file(
-    &self,
-    destination: &str,
-    key: &str,
-    book_uuid: &str,
-    writer: &str,
-    expected: Option<&TitleFile>,
-    branch_titles_hold: bool,
-) -> Result<bool>
-```
-
-Claims `key` on `destination` for the title `book_uuid`, with
-`writer` (a host upload id) as its latest writer.
-
-The claim succeeds when the key is unrecorded, already the title's,
-or recorded for a title that holds no key against this claim;
-answers false, changing nothing, when another library title holds
-it. A book holds its keys against every claim. A title a branch
-shares here (`branch_titles`) holds its keys only against another
-branch title's claim (`branch_titles_hold`, a catalog upload): a
-Host job's upload of a book takes them over, as an acquire on this
-node would. Each claim is one conditional write, so of two uploads
-of different titles racing for one key only one wins.
-
-`expected` is the record the caller read before ([`Self::title_file`](#librarystoretitle_file);
-`None` when unrecorded), which a refused claim's release restores: the
-claim also answers false, changing nothing, when the record is no
-longer that one (an acquire recorded the key in between), so a
-release never removes a record the claim did not replace.
-
-##### Errors
-
-Returns an error when a write fails.
-
-#### LibraryStore::release_title_file
-
-```rust
-pub async fn release_title_file(
-    &self,
-    destination: &str,
-    key: &str,
-    writer: &str,
-    prior: Option<&TitleFile>,
-) -> Result<()>
-```
-
-Gives back a claim `writer` made on `key` on `destination`: the
-record returns to `prior` (who held it before the claim), or is
-removed when `prior` is `None` (the claim created it). Changes
-nothing once someone else has written the key since (its writer is
-no longer `writer`), so a release never takes a key from a later
-claim or acquire.
-
-##### Errors
-
-Returns an error when the write fails.
-
-#### LibraryStore::count_title_files_of
-
-```rust
-pub async fn count_title_files_of(&self, book_uuid: &str, writer: &str) -> Result<u64>
-```
-
-How many keys `writer` (a host upload id) holds for the title
-`book_uuid`, on every destination together.
-
-##### Errors
-
-Returns an error when the read fails.
-
-#### LibraryStore::title_file
-
-```rust
-pub async fn title_file(&self, destination: &str, key: &str) -> Result<Option<TitleFile>>
-```
-
-Who holds `key` on `destination`; `None` when it is unrecorded.
-
-##### Errors
-
-Returns an error when the read fails.
 
 #### LibraryStore::enqueue_job
 
@@ -8940,24 +9094,6 @@ One title a storefront scan reported.
 
 Implements: `Clone`, `Debug`, `From<NewBook>`
 
-### TitleFile
-
-```rust
-pub struct TitleFile {
-    pub book_uuid: String,
-    pub writer: String,
-}
-```
-
-Who holds a recorded file key.
-
-**Fields**
-
-- `book_uuid`: Library id of the title the file belongs to.
-- `writer`: The host upload id that claimed the key last, or [`ACQUIRE_WRITER`](#acquire_writer).
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
 ### UserBookFields
 
 ```rust
@@ -9855,6 +9991,112 @@ Why a write was refused, so the binding can map it onto a wire code.
   - `max`: Namespace cap.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### FileOwner
+
+```rust
+pub enum FileOwner {
+    Edition(String),
+    BranchTitle(String),
+}
+```
+
+Who a recorded file key belongs to.
+
+**Variants**
+
+- `Edition`: An edition (`editions.id`): every account row that holds it shares
+  the file.
+- `BranchTitle`: A title a branch shares here (`branch_titles.uuid`), which has no
+  edition until branch titles become holdings.
+
+#### FileOwner::kind
+
+```rust
+pub fn kind(&self) -> &'static str
+```
+
+The stored `owner_kind`.
+
+#### FileOwner::id
+
+```rust
+pub fn id(&self) -> &str
+```
+
+The stored `owner_id`.
+
+Implements: `Clone`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
+
+### FileRole
+
+```rust
+pub enum FileRole {
+    Audio,
+    Part,
+    Chapter,
+    Pdf,
+    Cover,
+    Sidecar,
+    Transcript,
+    Epub,
+}
+```
+
+What a recorded file is.
+
+**Variants**
+
+- `Audio`: The edition's primary audio file.
+- `Part`: Another audio file of the edition: a part or a chapter file.
+- `Chapter`: A chapter file of a title split by chapter.
+- `Pdf`: The companion PDF.
+- `Cover`: Cover art.
+- `Sidecar`: Any other file beside the audio (`.cue`, chapter JSON, metadata).
+- `Transcript`: A transcript or lyrics file.
+- `Epub`: An EPUB.
+
+#### FileRole::ALL
+
+```rust
+pub const ALL: [Self; 8] = _
+```
+
+Every role, in stored order (the `edition_files.role` CHECK list).
+
+#### FileRole::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### FileRole::parse
+
+```rust
+pub fn parse(stored: &str) -> Self
+```
+
+The role a stored spelling names; [`Self::Sidecar`](#filerole) for an unknown
+one, the role that gates nothing.
+
+#### FileRole::for_key
+
+```rust
+pub fn for_key(key: &str, primary: Option<&str>) -> Self
+```
+
+The role of the file at `key`, from its extension.
+
+##### Arguments
+
+* `key` - The storage key.
+* `primary` - The edition's primary audio key, when known: another
+  audio file is then a [`Self::Part`](#filerole). Without it every audio file
+  is [`Self::Audio`](#filerole).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
 
 ## Functions
 
@@ -11079,6 +11321,18 @@ pub fn inject_dispatch_page_failures(n: u32)
 
 Fail after the next `n` successful dispatch pages (tests only).
 
+### edition_id_for_listing
+
+```rust
+pub fn edition_id_for_listing(key: &ListingKey) -> String
+```
+
+The id of an edition first seen through the store listing `key`: a
+version 5 UUID over its plugin key, marketplace and product id. Two
+nodes (or one library rebuilt from a fresh scan) that resolve the same
+listing first give its edition the same id, and so the same
+`<library id>` in file names.
+
 ### holding_from_book
 
 ```rust
@@ -11086,6 +11340,17 @@ pub fn holding_from_book(book: &NewBook) -> HoldingDraft
 ```
 
 The holding a flat library row describes.
+
+### library_id
+
+```rust
+pub fn library_id(edition_id: &str) -> Option<String>
+```
+
+The `<library id>` of edition `edition_id`: its first 40 bits as 8
+lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id
+that is not a UUID falls back to its first 8 ASCII letters and digits.
+Returns `None` when that leaves nothing.
 
 ### listing_from_book
 

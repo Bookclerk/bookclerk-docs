@@ -451,6 +451,330 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/covers/{token}/{size}`
+
+Serves one size of a cover the API linked to.
+
+The path comes from a `cover_path` field in a Discover or catalog
+response; append `/128`, `/360` or `/full`. The first request fetches the
+image through the `covers` plugin and re-encodes it in the confined media
+worker; later ones are served from the node's cover cache. Responses are
+immutable: a path always names the same image.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `token` (path) *string*, **required** — Signed cover token from a `cover_path` field.
+- `size` (path) *string*, **required** — `128` (thumbnail), `360` (card) or `full`.
+
+### Responses
+
+- `200` — The cover as a JPEG. Body: binary (`image/jpeg`)
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — The token was not issued by this node, or the size is unknown. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `502` — The image could not be downloaded or is not a supported image. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `503` — This node cannot fetch or process covers right now. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/covers/<token>/<size>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/covers/<token>/<size>' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/covers/<token>/<size>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/covers/<token>/<size>", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/covers/<token>/<size>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The cover as a JPEG. The body is binary (`image/jpeg`).
+
+Schema:
+
+A `image/jpeg` body: binary bytes.
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: The token was not issued by this node, or the size is unknown.
+
+```json
+{
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `502`: The image could not be downloaded or is not a supported image.
+
+```json
+{
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `503`: This node cannot fetch or process covers right now.
+
+```json
+{
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/discover/recommendations`
 
 Builds the Discover recommendation feed, skipping embed work on an empty library.
@@ -871,6 +1195,14 @@ Schema:
                   ],
                   "description": "Cover art URL when known from a storefront catalog hit or wishlist row.",
                   "example": "https://images.example.com/covers/9780441478125.jpg"
+                },
+                "cover_path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+                  "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
                 },
                 "subtitle": {
                   "type": [
@@ -2233,6 +2565,7 @@ Status `200`: A page of catalog results.
       "asin": "B002V0QK4C",
       "isbn": "9780441478125",
       "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+      "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
       "store_editions": [
         {
           "source": "libro",
@@ -2360,6 +2693,14 @@ Schema:
             ],
             "description": "HTTPS URL for cover art when the catalog exposes one.",
             "example": "https://images.example.com/covers/9780441478125.jpg"
+          },
+          "cover_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+            "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
           },
           "store_editions": {
             "type": "array",
@@ -2764,6 +3105,7 @@ Resolves Audnexus-style title metadata for one query.
   - `series_index` *string or null* — Position within the series (e.g. `1`, `1.5`) when known.
   - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
   - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+  - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `description` *string or null* — Publisher or storefront synopsis; may be truncated for embeddings.
   - `publisher` *string or null* — Publisher imprint as reported by the catalog.
   - `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
@@ -2854,6 +3196,7 @@ Status `200`: The metadata, or null when nothing matched.
   "series_index": "4",
   "isbn": "9780441478125",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+  "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "description": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender.",
   "publisher": "Blackstone Publishing",
   "length_minutes": 560,
@@ -2961,6 +3304,14 @@ Schema:
           ],
           "description": "HTTPS URL for cover art when the catalog exposes one.",
           "example": "https://images.example.com/covers/9780441478125.jpg"
+        },
+        "cover_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+          "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
         },
         "description": {
           "type": [
@@ -3375,6 +3726,7 @@ Status `200`: One result per query, in order.
       "series_index": "4",
       "isbn": "9780441478125",
       "cover_url": "https://images.example.com/covers/9780441478125.jpg",
+      "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
       "description": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender.",
       "publisher": "Blackstone Publishing",
       "length_minutes": 560,
@@ -3486,6 +3838,14 @@ Schema:
                 ],
                 "description": "HTTPS URL for cover art when the catalog exposes one.",
                 "example": "https://images.example.com/covers/9780441478125.jpg"
+              },
+              "cover_path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Same-origin path of this cover's processed images, set by the daemon\nwhen `cover_url` is an `https` URL. Append `/128`\n(thumbnail), `/360` (card) or `/full`, so a client can show covers\nwithout loading `cover_url` from another site.",
+                "example": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA"
               },
               "description": {
                 "type": [

@@ -333,6 +333,7 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
 - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `store_editions` *array of [`StoreEdition`](#storeedition)*, **required** — Per-storefront edition ids that collapsed into this work card.
 - `sources` *array of string*, **required** — Storefronts that matched (deduped source ids).
 - `subtitle` *string or null* — Optional subtitle when the catalog distinguishes it from the title.
@@ -2290,6 +2291,7 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
 - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `wish_count` *integer (int64)*, **required** — Number of distinct users who wishlisted this title.
 - `wishers` *array of [`QueueWisher`](#queuewisher)* — Distinct people who have this title on an open wishlist.
 - `sample_uuids` *array of string*, **required** — Sample Bookclerk user UUIDs who requested this title (privacy-capped).
@@ -2323,6 +2325,7 @@ One ranked recommendation (typically an unowned storefront title).
 - `categories` *array of string* — Stable shelf-kind tags for prefs (`finish_series`, `author`, `chirp_deals`, …). Dynamic shelf titles stay in `build_discover_feed`; membership uses these.
 - `work_key` *string* — Stable bibliographic key for wishlist / merge (`isbn:` / `asin:` / `soft:`…).
 - `cover_url` *string or null* — Cover art URL when known from a storefront catalog hit or wishlist row.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `subtitle` *string or null* — Optional bibliographic extras from storefront catalog / Audnexus.
 - `description` *string or null* — Publisher or storefront synopsis; may be truncated for embeddings.
 - `publisher` *string or null* — Publisher imprint as reported by the catalog.
@@ -2660,6 +2663,7 @@ Bibliographic fields suitable for an Audible-style detail panel.
 - `series_index` *string or null* — Position within the series (e.g. `1`, `1.5`) when known.
 - `isbn` *string or null* — Canonical ISBN-13 (or ISBN-10 normalized) when published.
 - `cover_url` *string or null* — HTTPS URL for cover art when the catalog exposes one.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `description` *string or null* — Publisher or storefront synopsis; may be truncated for embeddings.
 - `publisher` *string or null* — Publisher imprint as reported by the catalog.
 - `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
@@ -2715,6 +2719,7 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `work_id` *string or null* — Canonical work id this edition or request resolves to.
 - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
 - `cover_url` *string or null* — HTTPS URL for cover art when known.
+- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `sources` *array of [`TitleRequestSourceRecord`](#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
 - `description` *string or null* — Blurb / synopsis text (may contain HTML).
 - `subtitle` *string or null* — Optional subtitle from bibliographic metadata.

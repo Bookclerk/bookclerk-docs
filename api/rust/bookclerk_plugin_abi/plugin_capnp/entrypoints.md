@@ -169,6 +169,18 @@ pub fn get_metadata(self) -> Result<Client>
 pub fn has_metadata(&self) -> bool
 ```
 
+#### Reader::get_covers
+
+```rust
+pub fn get_covers(self) -> Result<Client>
+```
+
+#### Reader::has_covers
+
+```rust
+pub fn has_covers(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -401,6 +413,24 @@ pub fn set_metadata(&mut self, value: Client)
 pub fn has_metadata(&self) -> bool
 ```
 
+#### Builder::get_covers
+
+```rust
+pub fn get_covers(self) -> Result<Client>
+```
+
+#### Builder::set_covers
+
+```rust
+pub fn set_covers(&mut self, value: Client)
+```
+
+#### Builder::has_covers
+
+```rust
+pub fn has_covers(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -475,6 +505,12 @@ pub fn get_scheduled_handler(&self) -> Client
 
 ```rust
 pub fn get_metadata(&self) -> Client
+```
+
+#### Pipeline::get_covers
+
+```rust
+pub fn get_covers(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`
