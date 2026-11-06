@@ -3768,6 +3768,7 @@ pub enum LiveTopic {
     Consents,
     Clusters,
     Users,
+    Discover,
 }
 ```
 
@@ -3783,11 +3784,13 @@ A topic of the live socket.
 - `Consents`: Owner-plugin consent on this host (`remote_plugin_consents`).
 - `Clusters`: Owner clusters this host joined, and their state (`cluster_links`).
 - `Users`: Users (`users`).
+- `Discover`: Stored Discover shelves (`discover_feeds`): a ranking job wrote or
+  dropped someone's shelves.
 
 #### LiveTopic::ALL
 
 ```rust
-pub const ALL: [Self; 8] = _
+pub const ALL: [Self; 9] = _
 ```
 
 Every topic.

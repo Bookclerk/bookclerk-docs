@@ -73,7 +73,7 @@
   "internals/crates/bookclerk_integrations/README": "2026-11-06T09:50:55Z",
   "internals/crates/bookclerk_library/README": "2026-11-06T09:45:25Z",
   "internals/crates/bookclerk_library/atomic_status": "2026-11-06T01:24:45Z",
-  "internals/crates/bookclerk_library/control_plane": "2026-11-06T01:24:45Z",
+  "internals/crates/bookclerk_library/control_plane": "2026-11-06T12:47:33Z",
   "internals/crates/bookclerk_library/email": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_library/entities/README": "2026-11-06T04:44:02Z",
   "internals/crates/bookclerk_library/entities/account_links": "2026-11-06T01:24:45Z",
@@ -695,10 +695,10 @@
   "internals/crates/bookclerk_workerd/pin": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_workerd/socket_proxy": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_workerd/unix_bind": "2026-11-06T01:24:45Z",
-  "internals/discovery": "2026-11-06T08:59:44Z",
+  "internals/discovery": "2026-11-06T11:58:50Z",
   "internals/guest-jail": "2026-10-26T09:17:14Z",
   "internals/jobs": "2026-11-06T08:59:44Z",
-  "internals/node-api": "2026-10-26T09:17:14Z",
+  "internals/node-api": "2026-11-06T11:58:50Z",
   "internals/storage-bounds": "2026-10-15T05:47:38Z",
   "internals/windows-appcontainer": "2026-10-26T06:25:36Z",
   "internals/workerd-bridge": "2026-11-05T11:03:19Z",
@@ -779,7 +779,7 @@
   "server/output": "2026-11-05T10:10:13Z",
   "server/plugins": "2026-10-27T08:03:27Z",
   "server/security": "2026-11-05T21:29:14Z",
-  "server/sign-in": "2026-11-06T10:55:54Z",
+  "server/sign-in": "2026-11-06T11:58:50Z",
   "server/stores": "2026-11-04T04:36:15Z"
  }
 }
