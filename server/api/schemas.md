@@ -1267,6 +1267,7 @@ Budgets are shares of the capacity the node detects at heartbeat
 - `cpu_budget_percent` *integer (int32)* — Share of detected CPU cores the scheduler may commit to plugin guests on this node (1..=100). At least 1; at most 100.
 - `memory_budget_percent` *integer (int32)* — Share of detected memory the scheduler may commit (1..=100). At least 1; at most 100.
 - `schedulable` *boolean* — False drains the node: the scheduler places nothing new here and moves its replicas elsewhere. Hand-managed deployments still run.
+- `cache_budget_bytes` *integer (int64) or null* — Disk space, in bytes, this node's image caches may use together, overriding the cluster's `core.cache` budget (16 MiB to 1 TiB). Absent means the cluster budget applies. At least 16777216; at most 1099511627776.
 
 ## NodeScope
 
@@ -2238,6 +2239,7 @@ node's runtime document.
 - `cpu_budget_percent` *integer (int32) or null* — Share of detected CPU the scheduler may commit (1..=100). At least 0.
 - `memory_budget_percent` *integer (int32) or null* — Share of detected memory the scheduler may commit (1..=100). At least 0.
 - `schedulable` *boolean or null* — False drains the node.
+- `cache_budget_bytes` *integer (int64) or null* — This node's image cache budget in bytes (16 MiB to 1 TiB), overriding the cluster's `cache.budget_bytes`. `null` removes the override; leaving the field out keeps it as it is. At least 0.
 
 ## PutOutputDomainRequest
 

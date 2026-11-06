@@ -27,6 +27,7 @@ use so a missing jail can never pass silently.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`CgroupSample`](#cgroupsample) | struct | Parsed cgroup v2 files for the process that is actually running. |
+| [`FilesystemSpace`](#filesystemspace) | struct | Space on the filesystem holding a path, in bytes. |
 | [`SystemMemory`](#systemmemory) | struct | Whole-machine memory figures for heartbeats. |
 | [`DuplexHalf`](#duplexhalf) | struct | One unidirectional pipe end (stdio). |
 | [`DuplexLink`](#duplexlink) | struct | One end of a host-created duplex IPC link (socketpair / overlapped pipe). |
@@ -50,6 +51,7 @@ use so a missing jail can never pass silently.
 | [`cgroup_sample_is_low_resource`](#cgroup_sample_is_low_resource) | function | True when `memory.max` is at most 1 GiB or `cpu.max` is at most one core. |
 | [`cpu_used_millicores`](#cpu_used_millicores) | function | CPU in use between two samples, in millicores (1000 = one core busy). |
 | [`filesystem_free_bytes`](#filesystem_free_bytes) | function | Free bytes available to unprivileged callers. |
+| [`filesystem_space`](#filesystem_space) | function | Free and total bytes of the filesystem holding `path`. |
 | [`logical_cpu_count`](#logical_cpu_count) | function | Logical CPUs from `std::thread::available_parallelism`, or empty on failure. |
 | [`macos_cpu_ticks`](#macos_cpu_ticks) | function | macOS `HOST_CPU_LOAD_INFO` ticks (`user`, `system`, `idle`, `nice`, summed over all CPUs) as `CpuTimes::System`. |
 | [`macos_vm_memory`](#macos_vm_memory) | function | macOS available memory from `HOST_VM_INFO64` page counts. |
@@ -147,6 +149,25 @@ Unlimited (`max`) and missing files are `None`.
 - `memory_anon_bytes`: `memory.stat` field `anon`.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### FilesystemSpace
+
+```rust
+pub struct FilesystemSpace {
+    pub available: u64,
+    pub total: u64,
+}
+```
+
+Space on the filesystem holding a path, in bytes.
+
+**Fields**
+
+- `available`: Free bytes available to unprivileged callers (quotas count on
+  Windows).
+- `total`: Size of the filesystem.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### SystemMemory
 
@@ -1251,6 +1272,19 @@ Free bytes available to unprivileged callers.
 `statvfs` `f_bavail` on Linux and macOS; `GetDiskFreeSpaceExW` (free bytes
 available to the caller, so quotas count) on Windows. Returns `None`
 when the path cannot be stated or on other platforms.
+
+### filesystem_space
+
+```rust
+pub fn filesystem_space(path: &Path) -> Option<FilesystemSpace>
+```
+
+Free and total bytes of the filesystem holding `path`.
+
+`statvfs` (`f_bavail` and `f_blocks` times `f_frsize`) on Linux and
+macOS; `GetDiskFreeSpaceExW` on Windows, where the total is what the
+caller may use. Returns `None` when the path cannot be stated or on
+other platforms.
 
 ### logical_cpu_count
 

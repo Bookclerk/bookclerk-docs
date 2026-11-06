@@ -14,6 +14,7 @@ See `docs/adr/control-plane.md`.
 | [`BranchTitle`](#branchtitle) | struct | One title a branch shared, as the owner's Settings → Branches lists it. |
 | [`BranchTitleCounts`](#branchtitlecounts) | struct | Counts of one branch's shared titles. |
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
+| [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
@@ -139,6 +140,9 @@ See `docs/adr/control-plane.md`.
 | [`list_branch_titles`](#list_branch_titles) | function | Titles branches shared, of one branch or all, oldest first, at most `limit`. |
 | [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since). |
 | [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Removes detached entries ("from a branch that left" and the like), of one branch or of every one; answers how many. Only the library entries go: files already delivered stay in this library's outputs. |
+| [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
+| [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
+| [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
 | [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its clerks) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
@@ -377,6 +381,9 @@ See `docs/adr/control-plane.md`.
 | [`DETACHED_STOPPED_SHARING`](#detached_stopped_sharing) | constant | Detach reason: the branch turned "Share this branch's books" off. |
 | [`DETACHED_WITHDRAWN`](#detached_withdrawn) | constant | Detach reason: a full pass of the branch's catalog no longer named it. |
 | [`FULL_CATALOG_PASS_EVERY`](#full_catalog_pass_every) | constant | How long a branch's catalog sync resumes incrementally before the library asks for a full pass again, so titles a branch no longer has (removed, or from a sub-branch that left) are withdrawn within a day. |
+| [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
+| [`CACHE_SCHEMA_VERSION`](#cache_schema_version) | constant | Schema version of `CacheSettingsV1`. |
+| [`CACHE_SETTING_KEYS`](#cache_setting_keys) | constant | Settings keys the cache document owns, in display order. |
 | [`CLUSTER_LINK_ACTIVE`](#cluster_link_active) | constant | `cluster_links.state` of a link the host client connects. |
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
@@ -457,6 +464,14 @@ See `docs/adr/control-plane.md`.
 | [`MAX_EVENTS_CONCURRENCY`](#max_events_concurrency) | constant | Upper bound for `[events].concurrency`. |
 | [`DEFAULT_CPU_BUDGET_PERCENT`](#default_cpu_budget_percent) | constant | Default CPU budget: leave a fifth of the cores to the rest of the node. |
 | [`DEFAULT_MEMORY_BUDGET_PERCENT`](#default_memory_budget_percent) | constant | Default memory budget: leave a quarter of the memory to the rest of the node. |
+
+## Re-exports
+
+- [`cache::DEFAULT_CACHE_BUDGET_BYTES`](../bookclerk_config/README.md#default_cache_budget_bytes)
+- [`cache::DEFAULT_CACHE_UNVIEWED_DAYS`](../bookclerk_config/README.md#default_cache_unviewed_days)
+- [`cache::MAX_CACHE_BUDGET_BYTES`](../bookclerk_config/README.md#max_cache_budget_bytes)
+- [`cache::MAX_CACHE_UNVIEWED_DAYS`](../bookclerk_config/README.md#max_cache_unviewed_days)
+- [`cache::MIN_CACHE_BUDGET_BYTES`](../bookclerk_config/README.md#min_cache_budget_bytes)
 
 ## Structs
 
@@ -539,6 +554,84 @@ An opened catalog session ([`begin_catalog`](#begin_catalog)).
 - `wanted`: Titles recorded earlier whose files have not arrived.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CacheSettingsV1
+
+```rust
+pub struct CacheSettingsV1 {
+    pub budget_bytes: u64,
+    pub unviewed_days: u32,
+}
+```
+
+Typed `core.cache` document, schema version 1.
+
+**Fields**
+
+- `budget_bytes`: Disk space, in bytes, each node's image caches may use together
+  unless the node overrides it (16 MiB to 1 TiB).
+- `unviewed_days`: Days an entry may go unviewed before the sweep evicts it (1 to 3650).
+
+#### CacheSettingsV1::validate
+
+```rust
+pub fn validate(&self) -> Result<()>
+```
+
+Rejects values outside the domain bounds.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when a field is out of range.
+
+#### CacheSettingsV1::get
+
+```rust
+pub fn get(&self, key: &str) -> Option<String>
+```
+
+The value of one settings key, as text.
+
+##### Arguments
+
+* `key` - One of [`CACHE_SETTING_KEYS`](#cache_setting_keys).
+
+##### Returns
+
+The value, or `None` for a key this document does not own.
+
+#### CacheSettingsV1::set
+
+```rust
+pub fn set(&mut self, key: &str, value: &str) -> Result<()>
+```
+
+Parses `value` into the field `key` names and validates the result.
+
+##### Arguments
+
+* `key` - One of [`CACHE_SETTING_KEYS`](#cache_setting_keys).
+* `value` - The new value as text: a whole number.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for an unknown key, a value that is
+not a whole number, or one outside the field's range.
+
+#### CacheSettingsV1::budget_for
+
+```rust
+pub fn budget_for(&self, node: &NodeRuntimeSettingsV1) -> u64
+```
+
+The budget that applies on a node: its own override, else the
+cluster budget.
+
+##### Arguments
+
+* `node` - The node's runtime document.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### LibraryContents
 
@@ -3261,6 +3354,7 @@ pub struct NodeRuntimeSettingsV1 {
     pub cpu_budget_percent: u8,
     pub memory_budget_percent: u8,
     pub schedulable: bool,
+    pub cache_budget_bytes: Option<u64>,
 }
 ```
 
@@ -3279,6 +3373,9 @@ Budgets are shares of the capacity the node detects at heartbeat
 - `memory_budget_percent`: Share of detected memory the scheduler may commit (1..=100).
 - `schedulable`: False drains the node: the scheduler places nothing new here and
   moves its replicas elsewhere. Hand-managed deployments still run.
+- `cache_budget_bytes`: Disk space, in bytes, this node's image caches may use together,
+  overriding the cluster's `core.cache` budget (16 MiB to 1 TiB).
+  Absent means the cluster budget applies.
 
 #### NodeRuntimeSettingsV1::new
 
@@ -3294,8 +3391,8 @@ Empty label, default budgets, schedulable.
 pub fn validate(&self) -> Result<()>
 ```
 
-Rejects control characters, labels longer than 64 bytes, and budgets
-outside 1..=100.
+Rejects control characters, labels longer than 64 bytes, budgets
+outside 1..=100, and a cache budget outside 16 MiB..=1 TiB.
 
 ##### Errors
 
@@ -4479,6 +4576,64 @@ go: files already delivered stay in this library's outputs.
 #### Errors
 
 Returns the write error.
+
+### is_cache_setting_key
+
+```rust
+pub fn is_cache_setting_key(key: &str) -> bool
+```
+
+True when `key` is one of [`CACHE_SETTING_KEYS`](#cache_setting_keys).
+
+#### Arguments
+
+* `key` - A dotted settings key such as `cache.budget_bytes`.
+
+### load_cache_settings
+
+```rust
+pub async fn load_cache_settings(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<CacheSettingsV1>>>
+```
+
+Loads the cluster cache document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one yet: the
+defaults of `CacheSettingsV1::default` then apply.
+
+#### Errors
+
+Returns an error when the database read fails or the stored document is
+unsupported or invalid.
+
+### update_cache_settings
+
+```rust
+pub async fn update_cache_settings(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    edit: impl Fn(&mut CacheSettingsV1) -> Result<()>,
+) -> Result<ConfigurationDocument<CacheSettingsV1>>
+```
+
+Applies `edit` to the cluster cache document under compare-and-swap,
+creating it with the defaults when absent and retrying a few times on a
+concurrent edit. Nodes pick the change up at their next heartbeat.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `edit` - Changes the body; an error aborts without writing.
+
+#### Errors
+
+Returns the error `edit` returned, an error when the edited body is
+invalid or the actor may not write, or [`LibraryError::Conflict`](README.md#libraryerror) when
+the document keeps changing underneath.
 
 ### library_contents
 
@@ -8737,6 +8892,30 @@ pub const FULL_CATALOG_PASS_EVERY: Duration = _;
 How long a branch's catalog sync resumes incrementally before the
 library asks for a full pass again, so titles a branch no longer has
 (removed, or from a sub-branch that left) are withdrawn within a day.
+
+### CACHE_NAMESPACE
+
+```rust
+pub const CACHE_NAMESPACE: &str = "core.cache";
+```
+
+Namespace of the cluster cache document.
+
+### CACHE_SCHEMA_VERSION
+
+```rust
+pub const CACHE_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`CacheSettingsV1`](#cachesettingsv1).
+
+### CACHE_SETTING_KEYS
+
+```rust
+pub const CACHE_SETTING_KEYS: &[&str] = _;
+```
+
+Settings keys the cache document owns, in display order.
 
 ### CLUSTER_LINK_ACTIVE
 

@@ -51,6 +51,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`LibraryConfig`](#libraryconfig) | struct | Library / scan related settings. |
 | [`NodeApiConfig`](#nodeapiconfig) | struct | `[daemon.node_api]`: transport policy for host nodes. |
 | [`ProcessEnvGuard`](#processenvguard) | struct | Process-wide lock around `BOOKCLERK_*` environment reads and test writes. |
+| [`CacheSettingError`](#cachesettingerror) | enum | Why a `cache.*` value was refused. |
+| [`CacheSettingKey`](#cachesettingkey) | enum | A `cache.*` settings key. |
 | [`DatabasePluginKind`](#databasepluginkind) | enum | Which first-party database plugin is active. |
 | [`ConfigError`](#configerror) | enum | Errors produced while loading or validating configuration. |
 | [`FileTimestampMode`](#filetimestampmode) | enum | Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`). |
@@ -70,6 +72,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`NodeApiMode`](#nodeapimode) | enum | How host nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
+| [`parse_cache_setting`](#parse_cache_setting) | function | Parses one `cache.*` setting. |
 | [`cookie_secure_suffix`](#cookie_secure_suffix) | function | Append `; Secure` when the configured public origin is HTTPS. |
 | [`oidc_transaction_cookie_flags`](#oidc_transaction_cookie_flags) | function | Cookie flags for the OIDC login transaction (`state` binding). |
 | [`session_cookie_flags`](#session_cookie_flags) | function | Build common session cookie attributes (`HttpOnly; SameSite=Lax` + optional Secure). |
@@ -127,6 +130,11 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`unregister_secret`](#unregister_secret) | function | Forget a secret `register_secret` registered, with its encoded forms, once nothing in the process holds it any more (a short-lived bearer token whose holder was dropped), so per-request credentials do not pile up in the registry every log line is checked against. Lines captured while it was registered were scrubbed then. Only for values unique to one holder: the registry keeps no count, so a value two holders share would stop being scrubbed for both. |
 | [`read_node_api_spki_pin`](#read_node_api_spki_pin) | function | The SPKI pin of the daemon's self-signed node API certificate, once the daemon has generated it. Enrollment links carry it in `[daemon.node_api] mode = "self_signed"`. |
 | [`Result`](#result) | type alias | Result alias for configuration load and validation helpers in this crate. |
+| [`DEFAULT_CACHE_BUDGET_BYTES`](#default_cache_budget_bytes) | constant | Default disk budget for one node's image caches: 1 GiB. |
+| [`DEFAULT_CACHE_UNVIEWED_DAYS`](#default_cache_unviewed_days) | constant | Default days an entry may go unviewed before it is evicted. |
+| [`MAX_CACHE_BUDGET_BYTES`](#max_cache_budget_bytes) | constant | Largest accepted cache budget: 1 TiB. |
+| [`MAX_CACHE_UNVIEWED_DAYS`](#max_cache_unviewed_days) | constant | Largest accepted `unviewed_days`, about ten years. |
+| [`MIN_CACHE_BUDGET_BYTES`](#min_cache_budget_bytes) | constant | Smallest accepted cache budget: 16 MiB, room for a few hundred covers. |
 | [`RECONCILE_WILDCARD`](#reconcile_wildcard) | constant | Sentinel placed in reconcile path *patterns* where a sanitizable character appeared in metadata. Matches any single character in an on-disk key. |
 | [`DEFAULT_MAX_FILENAME_LENGTH`](#default_max_filename_length) | constant | Classic Libation `LongPath.MaxFilenameLength` — per path component. |
 | [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) | constant | AWS S3 maximum object key length (UTF-8 bytes), including any prefix. |
@@ -1947,6 +1955,87 @@ Implements: `Drop`
 
 ## Enums
 
+### CacheSettingError
+
+```rust
+pub enum CacheSettingError {
+    UnknownKey(String),
+    NotANumber(&'static str),
+    OutOfRange { key: &'static str, min: u64, max: u64 },
+}
+```
+
+Why a `cache.*` value was refused.
+
+**Variants**
+
+- `UnknownKey`: The key is not a `cache.*` key.
+- `NotANumber`: The value is not a whole number without sign or separators.
+- `OutOfRange`: The value is a whole number outside the key's range.
+  - `key`: The dotted key.
+  - `min`: Smallest accepted value.
+  - `max`: Largest accepted value.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### CacheSettingKey
+
+```rust
+pub enum CacheSettingKey {
+    BudgetBytes,
+    UnviewedDays,
+}
+```
+
+A `cache.*` settings key.
+
+**Variants**
+
+- `BudgetBytes`: `cache.budget_bytes`: bytes one node's image caches may hold.
+- `UnviewedDays`: `cache.unviewed_days`: days an entry may go unviewed.
+
+#### CacheSettingKey::ALL
+
+```rust
+pub const ALL: [Self; 2] = _
+```
+
+Every key, in display order.
+
+#### CacheSettingKey::as_str
+
+```rust
+pub const fn as_str(self) -> &'static str
+```
+
+The dotted key, such as `cache.budget_bytes`.
+
+#### CacheSettingKey::parse
+
+```rust
+pub fn parse(key: &str) -> Option<Self>
+```
+
+The key `key` names, matched exactly.
+
+##### Arguments
+
+* `key` - A dotted settings key.
+
+##### Returns
+
+`None` for anything but a `cache.*` key.
+
+#### CacheSettingKey::range
+
+```rust
+pub const fn range(self) -> (u64, u64)
+```
+
+The smallest and largest value the key accepts.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### DatabasePluginKind
 
 ```rust
@@ -2548,6 +2637,34 @@ lands as a `0600` target.
 #### Errors
 
 Returns an I/O error when the platform replace operation fails.
+
+### parse_cache_setting
+
+```rust
+pub fn parse_cache_setting(
+    key: &str,
+    value: &str,
+) -> Result<(CacheSettingKey, u64), CacheSettingError>
+```
+
+Parses one `cache.*` setting.
+
+The value may have surrounding ASCII whitespace; inside, it must be one
+or more ASCII digits, no sign, and within the key's [`CacheSettingKey::range`](#cachesettingkeyrange).
+
+#### Arguments
+
+* `key` - The dotted key.
+* `value` - The value as text.
+
+#### Returns
+
+The key and the value.
+
+#### Errors
+
+[`CacheSettingError`](#cachesettingerror) for an unknown key, a value that is not a whole
+number, or one out of range.
 
 ### cookie_secure_suffix
 
@@ -3185,6 +3302,46 @@ pub type Result<T> = Result<T, ConfigError>;
 Result alias for configuration load and validation helpers in this crate.
 
 ## Constants
+
+### DEFAULT_CACHE_BUDGET_BYTES
+
+```rust
+pub const DEFAULT_CACHE_BUDGET_BYTES: u64 = _;
+```
+
+Default disk budget for one node's image caches: 1 GiB.
+
+### DEFAULT_CACHE_UNVIEWED_DAYS
+
+```rust
+pub const DEFAULT_CACHE_UNVIEWED_DAYS: u32 = 90;
+```
+
+Default days an entry may go unviewed before it is evicted.
+
+### MAX_CACHE_BUDGET_BYTES
+
+```rust
+pub const MAX_CACHE_BUDGET_BYTES: u64 = _;
+```
+
+Largest accepted cache budget: 1 TiB.
+
+### MAX_CACHE_UNVIEWED_DAYS
+
+```rust
+pub const MAX_CACHE_UNVIEWED_DAYS: u32 = 3650;
+```
+
+Largest accepted `unviewed_days`, about ten years.
+
+### MIN_CACHE_BUDGET_BYTES
+
+```rust
+pub const MIN_CACHE_BUDGET_BYTES: u64 = _;
+```
+
+Smallest accepted cache budget: 16 MiB, room for a few hundred covers.
 
 ### RECONCILE_WILDCARD
 

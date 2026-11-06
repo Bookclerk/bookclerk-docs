@@ -594,7 +594,8 @@ Status `200`: Cluster-wide node health.
         "label": "Living-room server",
         "cpu_budget_percent": 80,
         "memory_budget_percent": 75,
-        "schedulable": true
+        "schedulable": true,
+        "cache_budget_bytes": 536870912
       },
       "status": {
         "node_id": "node-7f3a9c",
@@ -975,6 +976,17 @@ Schema:
                 "type": "boolean",
                 "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
                 "example": true
+              },
+              "cache_budget_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+                "example": 536870912,
+                "maximum": 1099511627776,
+                "minimum": 16777216
               }
             }
           },

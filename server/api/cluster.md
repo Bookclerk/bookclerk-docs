@@ -138,7 +138,8 @@ Status `200`: The node after the change.
     "label": "Living-room server",
     "cpu_budget_percent": 80,
     "memory_budget_percent": 75,
-    "schedulable": true
+    "schedulable": true,
+    "cache_budget_bytes": 536870912
   },
   "status": {
     "node_id": "node-7f3a9c",
@@ -297,6 +298,17 @@ Schema:
           "type": "boolean",
           "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
           "example": true
+        },
+        "cache_budget_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+          "example": 536870912,
+          "maximum": 1099511627776,
+          "minimum": 16777216
         }
       }
     },
@@ -7036,7 +7048,8 @@ Status `200`: The nodes the caller administers.
         "label": "Living-room server",
         "cpu_budget_percent": 80,
         "memory_budget_percent": 75,
-        "schedulable": true
+        "schedulable": true,
+        "cache_budget_bytes": 536870912
       },
       "status": {
         "node_id": "node-7f3a9c",
@@ -7219,6 +7232,17 @@ Schema:
                 "type": "boolean",
                 "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
                 "example": true
+              },
+              "cache_budget_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+                "example": 536870912,
+                "maximum": 1099511627776,
+                "minimum": 16777216
               }
             }
           },
@@ -8146,7 +8170,8 @@ Status `200`: This node and its clerks.
         "label": "Living-room server",
         "cpu_budget_percent": 80,
         "memory_budget_percent": 75,
-        "schedulable": true
+        "schedulable": true,
+        "cache_budget_bytes": 536870912
       },
       "status": {
         "node_id": "node-7f3a9c",
@@ -8322,6 +8347,17 @@ Schema:
                 "type": "boolean",
                 "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
                 "example": true
+              },
+              "cache_budget_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+                "example": 536870912,
+                "maximum": 1099511627776,
+                "minimum": 16777216
               }
             }
           },
@@ -8765,6 +8801,7 @@ edit only the nodes it owns.
 - `cpu_budget_percent` *integer (int32) or null* — Share of detected CPU the scheduler may commit (1..=100). At least 0.
 - `memory_budget_percent` *integer (int32) or null* — Share of detected memory the scheduler may commit (1..=100). At least 0.
 - `schedulable` *boolean or null* — False drains the node.
+- `cache_budget_bytes` *integer (int64) or null* — This node's image cache budget in bytes (16 MiB to 1 TiB), overriding the cluster's `cache.budget_bytes`. `null` removes the override; leaving the field out keeps it as it is. At least 0.
 
 ### Responses
 
@@ -8854,7 +8891,8 @@ Status `200`: The node's runtime settings after the change.
     "label": "Living-room server",
     "cpu_budget_percent": 80,
     "memory_budget_percent": 75,
-    "schedulable": true
+    "schedulable": true,
+    "cache_budget_bytes": 536870912
   }
 }
 ```
@@ -8914,6 +8952,17 @@ Schema:
           "type": "boolean",
           "description": "False drains the node: the scheduler places nothing new here and\nmoves its replicas elsewhere. Hand-managed deployments still run.",
           "example": true
+        },
+        "cache_budget_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64",
+          "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+          "example": 536870912,
+          "maximum": 1099511627776,
+          "minimum": 16777216
         }
       }
     }
