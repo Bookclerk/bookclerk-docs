@@ -18,6 +18,7 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`ProvidedOidcClient`](#providedoidcclient) | struct | Host-side copy of a guest `oidcClients` template (no ABI crate dependency). |
 | [`QueueSubscription`](#queuesubscription) | struct | Declared `[[queues.consumers]]` row (mirrors `plugin.toml`): the queue the integration's `queue(batch)` trigger consumes and its redelivery policy. |
 | [`ScheduledInvocation`](#scheduledinvocation) | struct | One fire of a `[triggers] crons` schedule, as the host delivers it to the `scheduled(controller)` trigger. |
+| [`CoverHeaders`](#coverheaders) | struct | The caching headers an image server sent with one answer, verbatim as the `covers` plugin passed them on (each at most the ABI's `maxCoverHeaderBytes`); `None` for a header it did not send. |
 | [`ExternalUser`](#externaluser) | struct | External user resolved via integration credential login or watcher. |
 | [`FetchedCover`](#fetchedcover) | struct | One image a `covers` plugin downloaded, or why it could not. |
 | [`IntegrationHealth`](#integrationhealth-1) | struct | Health snapshot for one integration. |
@@ -174,8 +175,7 @@ pub trait Integration: Send + Sync {
     fn supports_covers(&self) -> bool;
     fn fetch_covers<'life0, 'async_trait>(
         &'life0 self,
-        _urls: Vec<String>,
-        _max_bytes: u32,
+        _params: CoverFetchParams,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
@@ -577,19 +577,21 @@ Default: `false`.
 ```rust
 fn fetch_covers<'life0, 'async_trait>(
     &'life0 self,
-    _urls: Vec<String>,
-    _max_bytes: u32,
+    _params: CoverFetchParams,
 ) -> Pin<Box<dyn Future<Output = Result<Vec<FetchedCover>>> + Send + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
-Downloads `urls` through the `covers` entrypoint
-(`CoverFetcher.fetchCovers`), refusing any body over `max_bytes`.
+Downloads `params.urls` through the `covers` entrypoint
+(`CoverFetcher.fetchCovers`), refusing any body over
+`params.max_bytes` and sending each URL's conditions, when it has
+any, as conditional request headers.
 
 Returns one [`FetchedCover`](#fetchedcover) per URL, in request order; a URL that
-failed carries `error` instead of failing the call.
+failed carries `error` instead of failing the call, and one the
+server answered `304 Not Modified` carries `not_modified`.
 
 Default: unsupported.
 
@@ -1027,6 +1029,34 @@ the `scheduled(controller)` trigger.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CoverHeaders
+
+```rust
+pub struct CoverHeaders {
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+    pub cache_control: Option<String>,
+    pub expires: Option<String>,
+    pub date: Option<String>,
+    pub age: Option<String>,
+}
+```
+
+The caching headers an image server sent with one answer, verbatim as
+the `covers` plugin passed them on (each at most the ABI's
+`maxCoverHeaderBytes`); `None` for a header it did not send.
+
+**Fields**
+
+- `etag`: `ETag`.
+- `last_modified`: `Last-Modified`.
+- `cache_control`: `Cache-Control`.
+- `expires`: `Expires`.
+- `date`: `Date`.
+- `age`: `Age`.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### ExternalUser
 
 ```rust
@@ -1057,6 +1087,8 @@ pub struct FetchedCover {
     pub body: Option<Vec<u8>>,
     pub content_type: Option<String>,
     pub error: Option<String>,
+    pub not_modified: bool,
+    pub headers: CoverHeaders,
 }
 ```
 
@@ -1071,7 +1103,12 @@ sniff, decode and re-encode it before storing or serving it.
 - `body`: Response body, at most the `max_bytes` the call asked for; `None` when
   nothing was stored.
 - `content_type`: `Content-Type` the server sent. Advisory only.
-- `error`: Why there is no body, as the plugin or the host sink reported it.
+- `error`: Why there is no body, as the plugin or the host sink reported it;
+  `None` when there is a body or the image was not modified.
+- `not_modified`: The server answered `304 Not Modified` to the URL's conditions:
+  there is no body and the caller's copy is still current.
+- `headers`: Upstream's caching headers, verbatim and untrusted: the caller parses
+  and bounds them.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 

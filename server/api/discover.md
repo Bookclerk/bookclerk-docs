@@ -787,7 +787,9 @@ The path comes from a `picture_path` or `logo` field: a sign-in
 provider's profile picture or a plugin's remote logo. It is fetched and
 processed like a cover, but answers with an hour-long browser cache
 header instead of `immutable`, because the remote image can change at the
-same address. Bookclerk keeps serving its cached copy until it is evicted.
+same address. Once upstream's freshness lifetime (one hour to seven
+days) runs out, Bookclerk serves its cached copy while it checks with the
+image host in the background.
 
 **Access:** The operator, or any library session.
 
