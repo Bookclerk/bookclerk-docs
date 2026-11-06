@@ -98,6 +98,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
+| [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject. |
+| [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishlistIdentity`](#wishlistidentity) | struct | Bibliographic slice used for wishlist dedupe. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
@@ -120,8 +122,10 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
+| [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
+| [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy all library tables from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
 | [`library_ddl_for_schema_state`](#library_ddl_for_schema_state) | function | Library DDL that matches `state`, not necessarily this binary's latest pack. |
@@ -2595,6 +2599,7 @@ pub struct JobPayload {
     pub requires_unsettled_since_ms: Option<i64>,
     pub cron: Option<String>,
     pub scheduled_time_ms: Option<i64>,
+    pub subject: Option<String>,
 }
 ```
 
@@ -2644,6 +2649,8 @@ JSON command envelope stored on a job row.
   schedule that fired.
 - `scheduled_time_ms`: For [`JobKind::PluginScheduled`]: the fire time the handler sees as
   `scheduledTime`, in Unix milliseconds (always a whole UTC minute).
+- `subject`: For [`JobKind::DiscoverCandidates`](#jobkind) and [`JobKind::DiscoverFeed`]: the
+  Discover subject key (`operator`, `user:<id>`, `portal:<id>`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3808,6 +3815,233 @@ Plugin-scoped view — first-party and third-party sources use this.
 
 `plugin_key` isolates rows; `source_id` is the display alias written
 to the `source` column.
+
+#### LibraryStore::replace_discover_candidates
+
+```rust
+pub async fn replace_discover_candidates(
+    &self,
+    subject: &DiscoverSubject,
+    source: &str,
+    scope: SeedScope,
+    rows: &[(String, String)],
+) -> Result<()>
+```
+
+Replaces every candidate one store returned for one subject.
+
+The delete and inserts run in one transaction, so a reader sees the
+store's old rows or its new rows, never a mix, and other stores'
+rows for the subject are untouched.
+
+##### Arguments
+
+* `subject` - Whose candidates these are.
+* `source` - Storefront plugin id that returned them.
+* `scope` - Seeds that produced them.
+* `rows` - `(candidate_key, candidate_json)` pairs; duplicate keys keep the last.
+
+##### Errors
+
+Returns the database error; nothing is changed then.
+
+#### LibraryStore::list_discover_candidates
+
+```rust
+pub async fn list_discover_candidates(
+    &self,
+    subject: &DiscoverSubject,
+) -> Result<Vec<StoredCandidate>>
+```
+
+Lists every stored candidate of one subject, oldest store fetch first.
+
+Rows whose scope text is unknown (written by a newer release) are skipped.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::discover_subject_exists
+
+```rust
+pub async fn discover_subject_exists(&self, subject: &DiscoverSubject) -> Result<bool>
+```
+
+Reports whether a Discover subject still exists.
+
+The operator always exists; a user or portal subject exists while
+its `users` or `portal_identities` row does. Jobs check this so a
+fetch or ranking queued before the subject was deleted does not
+write its rows back.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::forget_discover_subject
+
+```rust
+pub async fn forget_discover_subject(&self, subject: &DiscoverSubject) -> Result<()>
+```
+
+Deletes every stored Discover row of one subject (candidates, feed
+and fetch marker).
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::mark_discover_fetch
+
+```rust
+pub async fn mark_discover_fetch(
+    &self,
+    subject: &DiscoverSubject,
+    at: DateTime<Utc>,
+) -> Result<()>
+```
+
+Records that one subject's candidate fetch finished at `at`.
+
+Recorded separately from the candidate rows, so a fetch that found
+nothing new still counts as fresh for a day.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::newest_discover_candidate_fetch
+
+```rust
+pub async fn newest_discover_candidate_fetch(
+    &self,
+    subject: &DiscoverSubject,
+) -> Result<Option<DateTime<Utc>>>
+```
+
+Returns when one subject's last candidate fetch finished.
+
+##### Returns
+
+`None` when no fetch has finished for the subject yet.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::get_discover_store_call
+
+```rust
+pub async fn get_discover_store_call(
+    &self,
+    call_key: &str,
+    max_age: Duration,
+) -> Result<Option<String>>
+```
+
+Returns a cached storefront answer no older than `max_age`.
+
+##### Arguments
+
+* `call_key` - Key the caller derived from the store, call kind and query.
+* `max_age` - Oldest answer still worth reusing.
+
+##### Returns
+
+The cached JSON, or `None` when absent or too old.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::put_discover_store_call
+
+```rust
+pub async fn put_discover_store_call(
+    &self,
+    call_key: &str,
+    source: &str,
+    response_json: &str,
+) -> Result<()>
+```
+
+Stores (or refreshes) one cached storefront answer.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::prune_discover_store_calls
+
+```rust
+pub async fn prune_discover_store_calls(&self, cutoff: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes cached storefront answers fetched before `cutoff`.
+
+##### Returns
+
+How many answers were deleted.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::put_discover_feed
+
+```rust
+pub async fn put_discover_feed(
+    &self,
+    subject: &DiscoverSubject,
+    feed_json: &str,
+    scope: SeedScope,
+    candidates_fetched_at: Option<DateTime<Utc>>,
+) -> Result<()>
+```
+
+Stores (or replaces) one subject's ranked feed.
+
+##### Arguments
+
+* `subject` - Whose feed it is.
+* `feed_json` - The feed, before hidden shelves are filtered out.
+* `scope` - Seeds it was ranked from.
+* `candidates_fetched_at` - Newest candidate fetch it used, when any.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::get_discover_feed
+
+```rust
+pub async fn get_discover_feed(
+    &self,
+    subject: &DiscoverSubject,
+) -> Result<Option<StoredFeed>>
+```
+
+Returns one subject's stored feed, when it has one.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::list_discover_feed_subjects
+
+```rust
+pub async fn list_discover_feed_subjects(&self) -> Result<Vec<DiscoverSubject>>
+```
+
+Lists every subject that has a stored feed, so a shared change (the
+request queue) can re-rank them all.
+
+Keys that do not parse as a [`DiscoverSubject`](#discoversubject) are skipped.
+
+##### Errors
+
+Returns the database error.
 
 #### LibraryStore::edition_of_book
 
@@ -9102,6 +9336,52 @@ One title a storefront scan reported.
 
 Implements: `Clone`, `Debug`, `From<NewBook>`
 
+### StoredCandidate
+
+```rust
+pub struct StoredCandidate {
+    pub source: String,
+    pub candidate_key: String,
+    pub seed_scope: SeedScope,
+    pub candidate_json: String,
+    pub fetched_at: DateTime<Utc>,
+}
+```
+
+One stored storefront candidate of a subject.
+
+**Fields**
+
+- `source`: Storefront plugin id that returned the title.
+- `candidate_key`: Identity key of the candidate within its subject and store.
+- `seed_scope`: Seeds that produced the row.
+- `candidate_json`: The candidate as JSON, written by `bookclerk-discover`.
+- `fetched_at`: When the store fetch that produced the row ran.
+
+Implements: `Clone`, `Debug`
+
+### StoredFeed
+
+```rust
+pub struct StoredFeed {
+    pub feed_json: String,
+    pub seed_scope: SeedScope,
+    pub candidates_fetched_at: Option<DateTime<Utc>>,
+    pub computed_at: DateTime<Utc>,
+}
+```
+
+One subject's stored, ranked Discover feed.
+
+**Fields**
+
+- `feed_json`: The feed as JSON, before hidden shelves are filtered out.
+- `seed_scope`: Seeds the feed was ranked from.
+- `candidates_fetched_at`: Newest candidate fetch the feed used, when it used any.
+- `computed_at`: When the feed was ranked.
+
+Implements: `Clone`, `Debug`
+
 ### UserBookFields
 
 ```rust
@@ -9545,6 +9825,8 @@ pub enum JobKind {
     IntegrationScan,
     PluginCopy,
     PluginScheduled,
+    DiscoverCandidates,
+    DiscoverFeed,
     Invalid,
 }
 ```
@@ -9561,6 +9843,10 @@ Kind of durable daemon work stored in the `jobs` table.
 - `PluginScheduled`: One fire of a plugin's `[triggers] crons` schedule
   (`plugin_scheduled`), delivered to its `scheduled(controller)`
   handler on a node that runs the instance.
+- `DiscoverCandidates`: Fetch storefront candidates from one Discover subject's own seeds
+  (`discover_candidates`), store by store.
+- `DiscoverFeed`: Rank one Discover subject's stored candidates into shelves
+  (`discover_feed`); no network.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::as_str
@@ -10000,6 +10286,49 @@ Why a write was refused, so the binding can map it onto a wire code.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### DiscoverSubject
+
+```rust
+pub enum DiscoverSubject {
+    Operator,
+    User(i64),
+    Portal(i64),
+}
+```
+
+Whose Discover shelves a stored row belongs to.
+
+The same key as `user_preferences.subject_key`: the operator, a
+first-party user, or a portal identity with no user.
+
+**Variants**
+
+- `Operator`: The operator (token, session, or auth disabled); seeded from the household.
+- `User`: A first-party user, by `users.id`.
+- `Portal`: A portal identity that has no first-party user, by `portal_identities.id`.
+
+#### DiscoverSubject::parse
+
+```rust
+pub fn parse(key: &str) -> Option<Self>
+```
+
+Parses a stored subject key (`operator`, `user:<id>`, `portal:<id>`).
+
+##### Returns
+
+`None` for any other text, including a non-numeric or negative id.
+
+#### DiscoverSubject::key
+
+```rust
+pub fn key(&self) -> String
+```
+
+The subject's stored key, the inverse of [`Self::parse`](#discoversubjectparse).
+
+Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
 ### FileOwner
 
 ```rust
@@ -10105,6 +10434,41 @@ The role of the file at `key`, from its extension.
   is [`Self::Audio`](#filerole).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
+
+### SeedScope
+
+```rust
+pub enum SeedScope {
+    Own,
+    Household,
+}
+```
+
+Which seeds a subject's candidates and feed were built from.
+
+**Variants**
+
+- `Own`: The subject's own books, listening, ratings and wishlist.
+- `Household`: The whole household library, used while the subject has no taste of
+  their own (and always for the operator).
+
+#### SeedScope::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Wire and column text (`own`, `household`).
+
+#### SeedScope::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses [`Self::as_str`](#seedscopeas_str) text; anything else is `None`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 

@@ -1294,6 +1294,14 @@ Discover recommendations feed payload.
 
 #### Properties
 
+##### computed\_at?
+
+```ts
+computed_at?: string;
+```
+
+RFC 3339 time the stored shelves were ranked.
+
 ##### shelf\_kinds?
 
 ```ts
@@ -1305,6 +1313,15 @@ shelf_kinds?: ShelfKindInfo[];
 ```ts
 shelves: DiscoverShelf[];
 ```
+
+##### state?
+
+```ts
+state?: DiscoverFeedState;
+```
+
+How current the stored shelves are: `preparing` (none stored yet),
+`refreshing` (newer ones queued) or `ready`.
 
 ***
 
@@ -5481,6 +5498,16 @@ A processed cover size the daemon serves: thumbnail, card, or full size.
 
 ***
 
+### DiscoverFeedState
+
+```ts
+type DiscoverFeedState = "ready" | "refreshing" | "preparing";
+```
+
+How current a stored Discover feed is.
+
+***
+
 ### OidcProvisionMode
 
 ```ts
@@ -6224,22 +6251,16 @@ Cluster summary, visible nodes, and the caller's capabilities.
 ### fetchDiscoverFeed()
 
 ```ts
-function fetchDiscoverFeed(limit?): Promise<DiscoverFeed>;
+function fetchDiscoverFeed(): Promise<DiscoverFeed>;
 ```
 
-Loads Discover recommendation shelves.
-
-#### Parameters
-
-| Parameter | Type | Default value | Description |
-| ------ | ------ | ------ | ------ |
-| `limit?` | `number` | `36` | Max items per shelf (default 36). Seed URLs only; live prices load later. |
+Loads the caller's stored Discover shelves.
 
 #### Returns
 
 `Promise`\<[`DiscoverFeed`](#discoverfeed)\>
 
-Discover feed payload.
+Discover feed payload; `state` says whether shelves are still being prepared.
 
 ***
 

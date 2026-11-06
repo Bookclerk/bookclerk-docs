@@ -135,7 +135,8 @@ Recommendations, catalog search and title metadata.
 | [`GET /api/covers/{token}/{size}`](discover.md#get-apicoverstokensize) | Serves one size of a cover the API linked to. |
 | [`GET /api/images/{token}`](discover.md#get-apiimagestoken) | Serves a signed image that is not a cover as a 128 px JPEG. |
 | [`GET /api/stores/{id}/icon`](discover.md#get-apistoresidicon) | Serves a storefront's or integration's icon as a 128 px JPEG through the cover service. |
-| [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Builds the Discover recommendation feed, skipping embed work on an empty library. |
+| [`GET /api/discover/status`](discover.md#get-apidiscoverstatus) | Reports whether the caller's Discover shelves are stored yet, so provisioning can wait for a new visitor's shelves before sending them in. |
+| [`GET /api/discover/recommendations`](discover.md#get-apidiscoverrecommendations) | Returns the caller's stored Discover shelves; never builds them on the request. |
 | [`POST /api/discover/purchase-hints`](discover.md#post-apidiscoverpurchase-hints) | Resolves storefront price/availability for one title, forcing server-side preferred stores. |
 | [`POST /api/discover/purchase-hints/batch`](discover.md#post-apidiscoverpurchase-hintsbatch) | Resolves up to 24 purchase-hint queries with caller-derived preferred stores. |
 | [`GET /api/discover/search`](discover.md#get-apidiscoversearch) | Runs a multi-store catalog search with a 15s wall budget and empty-query short circuit. |

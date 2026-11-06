@@ -1044,6 +1044,8 @@ Schema:
           "integration_scan",
           "plugin_copy",
           "plugin_scheduled",
+          "discover_candidates",
+          "discover_feed",
           "invalid"
         ]
       },

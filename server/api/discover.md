@@ -1419,38 +1419,236 @@ Schema:
 
 A `text/plain` body: a string.
 
-## `GET /api/discover/recommendations`
+## `GET /api/discover/status`
 
-Builds the Discover recommendation feed, skipping embed work on an empty library.
+Reports whether the caller's Discover shelves are stored yet, so
+provisioning can wait for a new visitor's shelves before sending them in.
+
+It also queues the caller's fetch or ranking when the stored data is
+missing or stale, exactly as the Discover page read does.
 
 **Access:** The operator, or any library session.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
-### Parameters
-
-- `limit` (query) *integer* — Maximum recommendations to return.
-- `user` (query) *string* — Optional external user id used to bias the feed.
-- `no_purchase_hints` (query) *boolean* — When true, skip storefront price/availability enrichment.
-- `no_listening` (query) *boolean* — When true, ignore listening_progress (owned-library taste only).
-- `listening_providers` (query) *string* — Comma-separated integration ids; empty = all listening providers.
-
 ### Responses
 
-- `200` — The Discover feed. Body: [`DiscoverFeed`](schemas.md#discoverfeed) (`application/json`)
-  - `shelves` *array of [`DiscoverShelf`](schemas.md#discovershelf)*, **required** — Ordered horizontal shelves that make up the Discover page.
-  - `shelf_kinds` *array of [`ShelfKindInfo`](schemas.md#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
-- `400` — The query is malformed or too large. Body: string (`text/plain`)
-- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `200` — Stored Discover state of the caller's shelves. Body: [`DiscoverStatusResponse`](schemas.md#discoverstatusresponse) (`application/json`)
+  - `subject` *string*, **required** — The caller's subject key (`operator`, `user:<id>`, `portal:<id>`).
+  - `ready` *boolean*, **required** — True once the caller has stored shelves to show.
+  - `scope` *string or null* — Seeds the stored feed was ranked from (`own` or `household`), when ranked.
+  - `feed_computed_at` *string or null* — RFC 3339 time the stored feed was ranked, when ranked.
+  - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
+- `401` — The caller has no portal identity. Body: string (`text/plain`)
 - `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The lookup failed. Body: string (`text/plain`)
-- `503` — Discover is shutting down; try again. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/status' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/discover/status' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/discover/status",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/discover/status", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/discover/status")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Stored Discover state of the caller's shelves.
+
+```json
+{
+  "subject": "user:2",
+  "ready": true,
+  "scope": "own",
+  "feed_computed_at": "2026-11-06T00:30:00+00:00",
+  "candidates_fetched_at": "2026-11-06T00:29:41+00:00"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Stored Discover state of the caller's shelves.",
+  "required": [
+    "subject",
+    "ready"
+  ],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "description": "The caller's subject key (`operator`, `user:<id>`, `portal:<id>`).",
+      "example": "user:2"
+    },
+    "ready": {
+      "type": "boolean",
+      "description": "True once the caller has stored shelves to show.",
+      "example": true
+    },
+    "scope": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Seeds the stored feed was ranked from (`own` or `household`), when ranked.",
+      "example": "own"
+    },
+    "feed_computed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RFC 3339 time the stored feed was ranked, when ranked.",
+      "example": "2026-11-06T00:30:00+00:00"
+    },
+    "candidates_fetched_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RFC 3339 time the caller's last storefront fetch finished, when any.",
+      "example": "2026-11-06T00:29:41+00:00"
+    }
+  }
+}
+```
+
+Status `401`: The caller has no portal identity.
+
+```text
+Unauthorized
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The lookup failed.
+
+```text
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/discover/recommendations`
+
+Returns the caller's stored Discover shelves; never builds them on the request.
+
+Shelves are ranked by queued `discover_candidates` and `discover_feed`
+jobs. This route reads the stored feed, drops the caller's hidden shelves,
+and queues a fetch or ranking when the stored data is missing or stale:
+`state` is `preparing` (no shelves yet), `refreshing` (stored shelves,
+newer ones queued) or `ready`.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The caller's stored Discover feed. Body: [`DiscoverFeed`](schemas.md#discoverfeed) (`application/json`)
+  - `shelves` *array of [`DiscoverShelf`](schemas.md#discovershelf)*, **required** — Ordered horizontal shelves that make up the Discover page.
+  - `shelf_kinds` *array of [`ShelfKindInfo`](schemas.md#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
+  - `state` *[`FeedState`](schemas.md#feedstate) or null* — Whether these are the caller's current shelves, set by the daemon's read of the stored feed. Absent in a stored feed and from the CLI.
+  - `computed_at` *string or null* — RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
+- `401` — The caller has no portal identity. Body: string (`text/plain`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The lookup failed. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1494,7 +1692,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The Discover feed.
+Status `200`: The caller's stored Discover feed.
 
 ```json
 {
@@ -1522,7 +1720,9 @@ Status `200`: The Discover feed.
       "id": "finish_series",
       "label": "Finish these series"
     }
-  ]
+  ],
+  "state": "ready",
+  "computed_at": "2026-11-06T00:30:00Z"
 }
 ```
 
@@ -2028,65 +2228,44 @@ Schema:
         }
       },
       "description": "Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on)."
+    },
+    "state": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Whether these are the caller's current shelves, set by the daemon's\nread of the stored feed. Absent in a stored feed and from the CLI.",
+          "enum": [
+            "ready",
+            "refreshing",
+            "preparing"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "computed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.",
+      "example": "2026-11-06T00:30:00Z"
     }
   }
 }
 ```
 
-Status `400`: The query is malformed or too large.
+Status `401`: The caller has no portal identity.
 
 ```text
-Failed to deserialize query string: invalid digit found in string
+Unauthorized
 ```
 
 Schema:
 
 A `text/plain` body: a string.
-
-Status `401`: The caller is not signed in, or the credential is wrong.
-
-```json
-{
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
-    }
-  }
-}
-```
 
 Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
 
@@ -2135,16 +2314,6 @@ Status `500`: The lookup failed.
 
 ```text
 ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `503`: Discover is shutting down; try again.
-
-```text
-discover gate closed
 ```
 
 Schema:

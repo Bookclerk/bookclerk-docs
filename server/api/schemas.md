@@ -632,6 +632,8 @@ Full Discover page payload: ordered shelves of personalized candidates.
 
 - `shelves` *array of [`DiscoverShelf`](#discovershelf)*, **required** — Ordered horizontal shelves that make up the Discover page.
 - `shelf_kinds` *array of [`ShelfKindInfo`](#shelfkindinfo)* — Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
+- `state` *[`FeedState`](#feedstate) or null* — Whether these are the caller's current shelves, set by the daemon's read of the stored feed. Absent in a stored feed and from the CLI.
+- `computed_at` *string or null* — RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
 
 ## DiscoverShelf
 
@@ -641,6 +643,16 @@ One horizontal Discover row (series to finish, more by author, …).
 - `title` *string*, **required** — Display title as shown on the storefront or library card.
 - `subtitle` *string or null* — Optional subtitle when the catalog distinguishes it from the title.
 - `items` *array of [`Recommendation`](#recommendation)*, **required** — Ordered collection of child entries for this response.
+
+## DiscoverStatusResponse
+
+Stored Discover state of the caller's shelves.
+
+- `subject` *string*, **required** — The caller's subject key (`operator`, `user:<id>`, `portal:<id>`).
+- `ready` *boolean*, **required** — True once the caller has stored shelves to show.
+- `scope` *string or null* — Seeds the stored feed was ranked from (`own` or `household`), when ranked.
+- `feed_computed_at` *string or null* — RFC 3339 time the stored feed was ranked, when ranked.
+- `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
 
 ## DiscoveryDocument
 
@@ -838,6 +850,12 @@ Typed `[events]` document, schema version 1.
 - `dead_letter_retention_days` *integer (int64)*, **required** — Days to keep dead-lettered deliveries. At least 0.
 - `concurrency` *integer (int32)*, **required** — Local delivery workers and the cluster in-flight cap. At least 0.
 
+## FeedState
+
+How current a stored Discover feed is.
+
+Type: one of `ready`, `refreshing`, `preparing`
+
 ## FileTimestampMode
 
 Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
@@ -981,7 +999,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `invalid`
 
 ## JobState
 

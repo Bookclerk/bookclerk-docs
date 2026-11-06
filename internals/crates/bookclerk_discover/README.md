@@ -14,6 +14,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | --- | --- | --- |
 | [`Embedder`](#embedder) | trait | Produce dense vectors for recommendation / similarity search. |
 | [`CandidateFetchOptions`](#candidatefetchoptions) | struct | Options for storefront candidate expansion. |
+| [`SeedTitle`](#seedtitle) | struct | One taste seed for storefront expansion: a book the subject has, or a title on their wishlist. |
 | [`StorefrontCandidate`](#storefrontcandidate) | struct | A purchase candidate discovered from a storefront catalog (not owned locally). |
 | [`CatalogSearchFilters`](#catalogsearchfilters) | struct | Include / exclude filters applied after identity merge. |
 | [`CatalogSearchHit`](#catalogsearchhit) | struct | One autocomplete / results-page hit (possibly spanning multiple storefronts). |
@@ -25,6 +26,10 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`StoreEdition`](#storeedition) | struct | One storefront edition of a work (for multi-store purchase links). |
 | [`WorkIdentity`](#workidentity) | struct | Bibliographic identity slice used for merge decisions. |
 | [`MetadataEnrichOptions`](#metadataenrichoptions) | struct | Pacing for one enrichment run. |
+| [`FetchReport`](#fetchreport) | struct | What one candidate fetch did. |
+| [`RankReport`](#rankreport) | struct | What one ranking did. |
+| [`StoredSubjectFeed`](#storedsubjectfeed) | struct | One subject's stored feed, ready for the page. |
+| [`SubjectTaste`](#subjecttaste) | struct | One subject's taste: whose seeds Discover uses and what they read. |
 | [`PurchaseHint`](#purchasehint) | struct | A purchase / catalog availability hint (optionally priced at view time). |
 | [`PurchaseHintsQuery`](#purchasehintsquery) | struct | Inputs for view-time catalog + pricing lookup. |
 | [`PurchaseHintsResponse`](#purchasehintsresponse) | struct | Priced catalog matches for one title, sorted best-first. |
@@ -40,6 +45,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReview`](#titlereview) | struct | One Audible customer review for the title detail panel. |
 | [`TitleReviewsPage`](#titlereviewspage) | struct | One page of title reviews for infinite scroll. |
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
+| [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
 | [`gather_storefront_candidates`](#gather_storefront_candidates) | function | Expand storefront catalogs from local taste seeds; drop already-owned ids. |
 | [`select_taste_seeds`](#select_taste_seeds) | function | Pick local seed books for storefront expansion (finished / high-rated first). |
 | [`catalog_search`](#catalog_search) | function | Search every configured storefront catalog and merge by work identity. |
@@ -64,6 +70,10 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`work_map_key`](#work_map_key) | function | Best stable map key for a recommendation / candidate. |
 | [`works_match`](#works_match) | function | Whether two titles should be treated as the same work. |
 | [`enrich_books_from_metadata`](#enrich_books_from_metadata) | function | Fills missing description, subjects, cover and language from the deployed metadata providers. |
+| [`fetch_subject_candidates`](#fetch_subject_candidates) | function | Fetches one subject's storefront candidates and stores them store by store. |
+| [`load_subject_taste`](#load_subject_taste) | function | Loads one subject's taste. |
+| [`rank_subject_feed`](#rank_subject_feed) | function | Ranks one subject's stored candidates into shelves and stores the feed. |
+| [`stored_subject_feed`](#stored_subject_feed) | function | Reads one subject's stored feed and drops their hidden shelves. |
 | [`best_purchase_hint`](#best_purchase_hint) | function | Pick the lowest-priced hint (ties keep earlier order). Unpriced sort after priced. |
 | [`best_purchase_hint_preferring`](#best_purchase_hint_preferring) | function | Pick the offer the caller would actually pay least for. |
 | [`format_money_label`](#format_money_label) | function | Formats integer cents into a storefront-style money label for `currency`. |
@@ -88,6 +98,9 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
 | [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
 | [`METADATA_ENRICH_SOURCE_PREFIX`](#metadata_enrich_source_prefix) | constant | `enrich_source` prefix marking a title filled by a metadata provider; the provider's plugin key follows it. |
+| [`STORE_CALL_MAX_AGE`](#store_call_max_age) | constant | How long a cached storefront answer is reused (the daily refresh). |
+| [`STORE_CALL_TIMEOUT`](#store_call_timeout) | constant | Longest one storefront call may take before its store moves on. |
+| [`STORE_FETCH_DEADLINE`](#store_fetch_deadline) | constant | How long one store may keep starting new calls in a fetch. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 
 ## Re-exports
@@ -177,6 +190,47 @@ Options for storefront candidate expansion.
   Default is false (sets are kept).
 
 Implements: `Clone`, `Debug`, `Default`
+
+### SeedTitle
+
+```rust
+pub struct SeedTitle {
+    pub seed: ExpandSeed,
+    pub categories: Option<String>,
+}
+```
+
+One taste seed for storefront expansion: a book the subject has, or a
+title on their wishlist.
+
+**Fields**
+
+- `seed`: What the storefront is asked about.
+- `categories`: The seed's genres or subjects, copied onto candidates that lack their own.
+
+#### SeedTitle::from_book
+
+```rust
+pub fn from_book(book: &BookRecord, region: &str) -> Self
+```
+
+A seed from a library book.
+
+#### SeedTitle::from_wish
+
+```rust
+pub fn from_wish(
+    title: &str,
+    authors: Option<String>,
+    asin: Option<String>,
+    isbn: Option<String>,
+) -> Self
+```
+
+A seed from an open wishlist title (no store of its own; stores
+expand it by title, author and identifiers).
+
+Implements: `Clone`, `Debug`
 
 ### StorefrontCandidate
 
@@ -636,6 +690,92 @@ Pacing for one enrichment run.
 
 Implements: `Clone`, `Debug`, `Default`
 
+### FetchReport
+
+```rust
+pub struct FetchReport {
+    pub seeds: usize,
+    pub stores_saved: usize,
+    pub candidates: usize,
+    pub stores_failed: Vec<String>,
+}
+```
+
+What one candidate fetch did.
+
+**Fields**
+
+- `seeds`: Seeds the subject's taste offered (books, then wishlist titles).
+- `stores_saved`: Stores whose answers were stored.
+- `candidates`: Candidates stored across those stores.
+- `stores_failed`: Stores whose fetch failed outright, by plugin id.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### RankReport
+
+```rust
+pub struct RankReport {
+    pub scope: SeedScope,
+    pub shelves: usize,
+    pub candidates: usize,
+}
+```
+
+What one ranking did.
+
+**Fields**
+
+- `scope`: Seeds the feed was ranked against.
+- `shelves`: Shelves stored.
+- `candidates`: Stored candidates read.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### StoredSubjectFeed
+
+```rust
+pub struct StoredSubjectFeed {
+    pub feed: DiscoverFeed,
+    pub scope: SeedScope,
+    pub computed_at: DateTime<Utc>,
+    pub candidates_fetched_at: Option<DateTime<Utc>>,
+}
+```
+
+One subject's stored feed, ready for the page.
+
+**Fields**
+
+- `feed`: The shelves, without the subject's hidden ones.
+- `scope`: Seeds the feed was ranked from.
+- `computed_at`: When it was ranked.
+- `candidates_fetched_at`: Newest storefront fetch it used, when any.
+
+Implements: `Clone`, `Debug`
+
+### SubjectTaste
+
+```rust
+pub struct SubjectTaste {
+    pub scope: SeedScope,
+    pub books: Vec<BookRecord>,
+    pub listening: Vec<ListeningProgressRecord>,
+    pub wishlist: Vec<SeedTitle>,
+}
+```
+
+One subject's taste: whose seeds Discover uses and what they read.
+
+**Fields**
+
+- `scope`: Whether the taste is the subject's own or the household's.
+- `books`: Books whose finishes, ratings, series and authors shape the taste.
+- `listening`: The subject's listening rows (all rows for the household).
+- `wishlist`: The subject's open wishlist titles, used as extra seeds.
+
+Implements: `Clone`, `Debug`
+
 ### PurchaseHint
 
 ```rust
@@ -929,6 +1069,8 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `S
 pub struct DiscoverFeed {
     pub shelves: Vec<DiscoverShelf>,
     pub shelf_kinds: Vec<ShelfKindInfo>,
+    pub state: Option<FeedState>,
+    pub computed_at: Option<String>,
 }
 ```
 
@@ -938,6 +1080,9 @@ Full Discover page payload: ordered shelves of personalized candidates.
 
 - `shelves`: Ordered horizontal shelves that make up the Discover page.
 - `shelf_kinds`: Catalog of shelf kinds for ignore prefs (empty `disabled_shelves` = all on).
+- `state`: Whether these are the caller's current shelves, set by the daemon's
+  read of the stored feed. Absent in a stored feed and from the CLI.
+- `computed_at`: RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1176,6 +1321,28 @@ Query for a page of Audible customer reviews.
 - `sort_by`: `MostHelpful` (default) or `MostRecent`.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
+
+## Enums
+
+### FeedState
+
+```rust
+pub enum FeedState {
+    Ready,
+    Refreshing,
+    Preparing,
+}
+```
+
+How current a stored Discover feed is.
+
+**Variants**
+
+- `Ready`: The stored shelves are current.
+- `Refreshing`: Stored shelves are shown while a newer fetch or ranking is queued.
+- `Preparing`: No shelves are stored yet; a fetch is queued and the page shows placeholders.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ## Functions
 
@@ -1676,6 +1843,118 @@ The number of titles filled.
 
 Returns an error when a library read or write fails.
 
+### fetch_subject_candidates
+
+```rust
+pub async fn fetch_subject_candidates(
+    library: &LibraryStore,
+    registry: &SourceRegistry,
+    subject: &DiscoverSubject,
+    opts: &RecommendOptions,
+) -> Result<FetchReport, DiscoverError>
+```
+
+Fetches one subject's storefront candidates and stores them store by store.
+
+Every deployed storefront is asked, whether or not the subject has an
+account there. Stores run concurrently; within a store each seed's call
+has [`STORE_CALL_TIMEOUT`](#store_call_timeout), each store stops starting calls after
+[`STORE_FETCH_DEADLINE`](#store_fetch_deadline), and the store's share of
+`opts.storefront_max_remote_calls` bounds how many calls it makes. A
+store's rows replace its previous rows only when it finishes, so a store
+that fails keeps what it returned last time.
+
+#### Arguments
+
+* `library` - Library store (taste, cache, candidate rows).
+* `registry` - The deployed storefronts.
+* `subject` - Whose candidates to fetch.
+* `opts` - Seed limit, call budget, region and series-set filter.
+
+#### Errors
+
+Returns a library error from loading the taste. Store failures are
+reported in [`FetchReport::stores_failed`](#fetchreport), not as errors.
+
+### load_subject_taste
+
+```rust
+pub async fn load_subject_taste(
+    library: &LibraryStore,
+    subject: &DiscoverSubject,
+    opts: &RecommendOptions,
+) -> Result<SubjectTaste, DiscoverError>
+```
+
+Loads one subject's taste.
+
+A user or portal identity uses the books held by store accounts linked to
+them plus the household books they have listened to, the listening rows
+recorded for them (by identity id, or by provider and external user id on
+rows recorded before the identity was known), and their open wishlist. When
+all three are empty (a new member, or a visitor who has connected no store
+yet), and always for the operator, the household library is used instead.
+
+#### Arguments
+
+* `library` - Library store.
+* `subject` - Whose taste to load.
+* `opts` - `include_listening` and `listening_providers` apply as on the page.
+
+#### Errors
+
+Returns the library read error.
+
+### rank_subject_feed
+
+```rust
+pub async fn rank_subject_feed(
+    library: &LibraryStore,
+    registry: &SourceRegistry,
+    subject: &DiscoverSubject,
+    opts: &RecommendOptions,
+) -> Result<RankReport, DiscoverError>
+```
+
+Ranks one subject's stored candidates into shelves and stores the feed.
+
+No storefront is called (`include_purchase_hints` is ignored: cards fetch
+live prices when they scroll into view). Owned titles are filtered again,
+so a title bought since the fetch drops out.
+
+#### Arguments
+
+* `library` - Library store.
+* `registry` - Unused for network; passed through to ranking.
+* `subject` - Whose feed to rank.
+* `opts` - Ranking options; `disabled_shelves` is ignored (applied on read).
+
+#### Errors
+
+Returns the library read or write error.
+
+### stored_subject_feed
+
+```rust
+pub async fn stored_subject_feed(
+    library: &LibraryStore,
+    subject: &DiscoverSubject,
+    disabled_shelves: &[String],
+) -> Result<Option<StoredSubjectFeed>, DiscoverError>
+```
+
+Reads one subject's stored feed and drops their hidden shelves.
+
+#### Returns
+
+`None` when the subject has no stored feed yet, or it does not decode
+(written by another release); the caller then shows placeholders and
+queues a ranking.
+
+#### Errors
+
+Returns the library read error.
+
 ### best_purchase_hint
 
 ```rust
@@ -2161,6 +2440,34 @@ pub const METADATA_ENRICH_SOURCE_PREFIX: &str = "metadata:";
 
 `enrich_source` prefix marking a title filled by a metadata provider; the
 provider's plugin key follows it.
+
+### STORE_CALL_MAX_AGE
+
+```rust
+pub const STORE_CALL_MAX_AGE: Duration = _;
+```
+
+How long a cached storefront answer is reused (the daily refresh).
+
+### STORE_CALL_TIMEOUT
+
+```rust
+pub const STORE_CALL_TIMEOUT: Duration = _;
+```
+
+Longest one storefront call may take before its store moves on.
+
+### STORE_FETCH_DEADLINE
+
+```rust
+pub const STORE_FETCH_DEADLINE: Duration = _;
+```
+
+How long one store may keep starting new calls in a fetch.
+
+A store that is slow on every call stops asking once this has passed
+and saves what it has, so it delays the subject's ranking by at most
+this plus one [`STORE_CALL_TIMEOUT`](#store_call_timeout).
 
 ### WISH_COUNT_WEIGHT
 
