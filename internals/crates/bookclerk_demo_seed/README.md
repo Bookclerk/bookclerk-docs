@@ -16,7 +16,9 @@ add a second library user, Sam, who:
 
 The titles are real audiobooks. Before seeding, the binary looks each one
 up in its storefront's public catalog through the storefront plugin, the
-search Discover uses, and the seed writes the record the store returned:
+search Discover uses, then fetches the matched title's full record (the
+details call title dialogs use), and the seed writes the record the store
+returned:
 its product id, cover art, description and the rest, as a scan and
 enrichment would. A title whose lookup fails (store unreachable, no
 confident match) keeps the fields listed here under a made-up product id
@@ -43,6 +45,7 @@ credential keys are placeholders that never verify a signature.
 | [`best_match`](#best_match) | function | The search hit that is the wanted title by the wanted author, or `None`. |
 | [`distinct_records`](#distinct_records) | function | `records` without entries whose product id another title already took, so two sample titles never become one book (the first, in `lookups` order, keeps it). |
 | [`seed`](#seed) | function | Adds the sample library user, their books, wishlist and offline branch. |
+| [`with_details`](#with_details) | function | Replaces a search hit with its storefront's full catalog record (the details call Discover makes for title dialogs), so a store whose search rows are lean, such as Libro.fm, still seeds a description, publisher, genres and price. |
 | [`records_path`](#records_path) | function | The `--write-records <path>` argument the seed binary was given, if any. |
 | [`StoreRecords`](#storerecords) | type alias | Storefront records found for the sample titles, by `Lookup::key`. |
 | [`SAMPLE_LOGIN`](#sample_login) | constant | Login name of the sample library user; its presence marks a seeded library. |
@@ -277,6 +280,34 @@ What was written, or [`Seeded::AlreadySeeded`](#seeded).
 
 Returns an error when a write fails or the branch catalog refuses the
 branch, which means the library code changed what makes a branch trusted.
+
+### with_details
+
+```rust
+pub async fn with_details(
+    source: &dyn ContentSource,
+    hit: CatalogHit,
+    deadline: Instant,
+) -> CatalogHit
+```
+
+Replaces a search hit with its storefront's full catalog record (the
+details call Discover makes for title dialogs), so a store whose search
+rows are lean, such as Libro.fm, still seeds a description, publisher,
+genres and price.
+
+#### Arguments
+
+* `source` - The storefront the hit came from.
+* `hit` - The search row [`best_match`](#best_match) chose.
+* `deadline` - When the lookup budget runs out.
+
+#### Returns
+
+The full record under `hit`'s product id, or `hit` unchanged when the
+details call fails, times out, finds nothing, or returns a different
+product than the search matched (neither the same product id nor the
+same ISBN).
 
 ### records_path
 

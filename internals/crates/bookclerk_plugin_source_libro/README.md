@@ -45,8 +45,13 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 
 - [`catalog::catalog_detail`](catalog.md#catalog_detail)
 - [`catalog::expand_candidates` as `catalog_expand_candidates`](catalog.md#expand_candidates)
+- [`catalog::explore_search_path`](catalog.md#explore_search_path)
+- [`catalog::parse_details` as `parse_catalog_details`](catalog.md#parse_details)
+- [`catalog::parse_search_page` as `parse_catalog_search_page`](catalog.md#parse_search_page)
 - [`catalog::purchase_hint` as `catalog_purchase_hint`](catalog.md#purchase_hint)
 - [`catalog::search_catalog` as `catalog_search`](catalog.md#search_catalog)
+- [`catalog::LibroDetails`](catalog.md#librodetails)
+- [`catalog::CATALOG_USER_AGENT`](catalog.md#catalog_user_agent)
 - [`db::delete_auth_from_db`](db.md#delete_auth_from_db)
 - [`db::list_auth_from_db`](db.md#list_auth_from_db)
 - [`db::load_auth_from_db`](db.md#load_auth_from_db)
@@ -62,7 +67,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 
 ## Modules
 
-- [`catalog`](catalog.md): Public Libro.fm explore catalog helpers for Discover.
+- [`catalog`](catalog.md): Libro.fm catalog search, detail, related titles and purchase links.
 - [`db`](db.md): DB-backed credential storage for Libro.fm accounts.
 - [`guest`](guest.md): Guest-process helpers for the external Libro.fm source plugin.
 
