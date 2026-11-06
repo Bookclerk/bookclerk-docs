@@ -979,9 +979,12 @@ Tunables for [`recommend`](#recommend).
 - `exclude_graphicaudio_series_sets`: Drop GraphicAudio Magento series-set SKUs from discovery candidates.
 - `disabled_shelves`: Shelf kinds / ids to hide (`finish_series`, `author`, `genre`, `from_store`, …).
   Empty = offer every shelf Discover can build.
-- `models_dir`: Models dir for on-the-fly candidate embedding (optional; empty = skip).
+- `models_dir`: Where the ONNX model lives. `Some` means candidates are embedded with
+  ONNX MiniLM when it loads (local-hash when it doesn't); `None` means
+  local-hash only, without trying ONNX.
 - `embed_intra_threads`: ONNX intra-op thread count for the embedder (clamped ≥ 1).
 - `embeddings_enabled`: When false, skip embedding similarity and use heuristic ranking only.
+  Which embedder scores similarity is chosen by [`Self::models_dir`](#recommendoptions).
 
 Implements: `Clone`, `Debug`, `Default`
 
