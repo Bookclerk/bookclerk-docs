@@ -459,7 +459,8 @@ The path comes from a `cover_path` field in a Discover or catalog
 response; append `/128`, `/360` or `/full`. The first request fetches the
 image through the `covers` plugin and re-encodes it in the confined media
 worker; later ones are served from the node's cover cache. Responses are
-immutable: a path always names the same image.
+immutable, since a path always names the same image, and carry an `ETag`
+so a client revalidating anyway gets `304 Not Modified`.
 
 **Access:** The operator, or any library session.
 
@@ -473,6 +474,7 @@ immutable: a path always names the same image.
 ### Responses
 
 - `200` — The cover as a JPEG. Body: binary (`image/jpeg`)
+- `304` — `If-None-Match` names the current `ETag`; no body. No body.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -541,6 +543,8 @@ Status `200`: The cover as a JPEG. The body is binary (`image/jpeg`).
 Schema:
 
 A `image/jpeg` body: binary bytes.
+
+Status `304`: `If-None-Match` names the current `ETag`; no body. No body.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -781,9 +785,9 @@ Serves a signed image that is not a cover as a 128 px JPEG.
 
 The path comes from a `picture_path` or `logo` field: a sign-in
 provider's profile picture or a plugin's remote logo. It is fetched and
-processed like a cover, but answers with a daily browser cache header
-instead of `immutable`, because the remote image can change at the same
-address. Bookclerk keeps serving its cached copy until it is evicted.
+processed like a cover, but answers with an hour-long browser cache
+header instead of `immutable`, because the remote image can change at the
+same address. Bookclerk keeps serving its cached copy until it is evicted.
 
 **Access:** The operator, or any library session.
 
@@ -796,6 +800,7 @@ address. Bookclerk keeps serving its cached copy until it is evicted.
 ### Responses
 
 - `200` — The image as a JPEG. Body: binary (`image/jpeg`)
+- `304` — `If-None-Match` names the current `ETag`; no body. No body.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -864,6 +869,8 @@ Status `200`: The image as a JPEG. The body is binary (`image/jpeg`).
 Schema:
 
 A `image/jpeg` body: binary bytes.
+
+Status `304`: `If-None-Match` names the current `ETag`; no body. No body.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
@@ -1117,6 +1124,7 @@ that is not deployed on this node, or names no icon, is a 404.
 ### Responses
 
 - `200` — The icon as a JPEG. Body: binary (`image/jpeg`)
+- `304` — `If-None-Match` names the current `ETag`; no body. No body.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1185,6 +1193,8 @@ Status `200`: The icon as a JPEG. The body is binary (`image/jpeg`).
 Schema:
 
 A `image/jpeg` body: binary bytes.
+
+Status `304`: `If-None-Match` names the current `ETag`; no body. No body.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 

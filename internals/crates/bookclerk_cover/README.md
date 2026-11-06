@@ -19,8 +19,9 @@ bytes into a fixed set of JPEGs the host can store and serve:
 
 Every codec here is pure Rust, and the function works on a byte slice with
 no I/O, so the fuzzer and the tests drive exactly what the media worker
-runs. [`wire`](wire.md) is the frame format the host and the worker exchange, and
-[`token`](token.md) signs the cover URLs the daemon serves.
+runs. [`wire`](wire.md) is the frame format the host and the worker exchange,
+[`token`](token.md) signs the cover URLs the daemon serves, and [`http_cache`](http_cache.md)
+holds the validators those answers carry.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -39,6 +40,7 @@ runs. [`wire`](wire.md) is the frame format the host and the worker exchange, an
 
 ## Modules
 
+- [`http_cache`](http_cache.md): HTTP cache validators for the images the daemon serves.
 - [`token`](token.md): Signed cover tokens: the remote URL of a cover plus a truncated HMAC-SHA256 under a per-node key, so the cover route only fetches URLs the API itself handed out.
 - [`wire`](wire.md): Frames the host and the cover worker exchange over the worker's stdio.
 

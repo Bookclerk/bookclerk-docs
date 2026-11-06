@@ -97,6 +97,7 @@
     "internals/crates/bookclerk_acquire/README",
     "internals/crates/bookclerk_config/README",
     "internals/crates/bookclerk_cover/README",
+    "internals/crates/bookclerk_cover/http_cache",
     "internals/crates/bookclerk_cover/token",
     "internals/crates/bookclerk_cover/wire",
     "internals/crates/bookclerk_db_exec/README",

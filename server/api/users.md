@@ -2203,6 +2203,7 @@ browser never contacts Gravatar.
 ### Responses
 
 - `200` — The picture as a JPEG. Body: binary (`image/jpeg`)
+- `304` — `If-None-Match` names the current `ETag`; no body. No body.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -2271,6 +2272,8 @@ Status `200`: The picture as a JPEG. The body is binary (`image/jpeg`).
 Schema:
 
 A `image/jpeg` body: binary bytes.
+
+Status `304`: `If-None-Match` names the current `ETag`; no body. No body.
 
 Status `401`: The caller is not signed in, or the credential is wrong.
 
