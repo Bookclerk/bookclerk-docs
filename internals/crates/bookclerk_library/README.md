@@ -3833,9 +3833,13 @@ pub async fn replace_discover_candidates(
 
 Replaces every candidate one store returned for one subject.
 
-The delete and inserts run in one transaction, so a reader sees the
-store's old rows or its new rows, never a mix, and other stores'
-rows for the subject are untouched.
+Each row is upserted with this call's fetch time, then the store's
+rows for the subject that this call did not write are deleted. Other
+stores' rows for the subject are untouched. No interactive
+transaction is used: the external database adapters only take
+single statements and atomic batches, so `begin` is refused there.
+A reader between the two steps can see the store's new rows next to
+its old ones, never fewer than either set.
 
 ##### Arguments
 
@@ -3846,7 +3850,8 @@ rows for the subject are untouched.
 
 ##### Errors
 
-Returns the database error; nothing is changed then.
+Returns the database error. Rows written before it stay; the old rows
+are only deleted once every new row is stored.
 
 #### LibraryStore::list_discover_candidates
 
@@ -3859,7 +3864,10 @@ pub async fn list_discover_candidates(
 
 Lists every stored candidate of one subject, oldest store fetch first.
 
-Rows whose scope text is unknown (written by a newer release) are skipped.
+Rows are read in id pages, then ordered by fetch time (ties keep id
+order). A refreshed candidate keeps its id, so id order alone would
+not be fetch order. Rows whose scope text is unknown (written by a
+newer release) are skipped.
 
 ##### Errors
 
