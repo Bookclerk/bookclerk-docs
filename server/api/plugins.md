@@ -5597,6 +5597,7 @@ Status `200`: The version's grant was approved.
     "operatorDeniedCidrs": [],
     "operatorDeniedDomains": [],
     "operatorDeniedTcp": [],
+    "ownUserAgentHosts": [],
     "pluginId": "libro",
     "pluginKey": "cargo:https://crates.io#bookclerk-plugin-source-libro",
     "producers": [],
@@ -5681,6 +5682,7 @@ Schema:
           "operatorDeniedCidrs": [],
           "operatorDeniedDomains": [],
           "operatorDeniedTcp": [],
+          "ownUserAgentHosts": [],
           "pluginId": "libro",
           "pluginKey": "cargo:https://crates.io#bookclerk-plugin-source-libro",
           "producers": [],
@@ -5907,6 +5909,7 @@ Loads the consent dialog for one plugin, including coverage against the stored g
   - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+  - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -6039,6 +6042,10 @@ Status `200`: What the plugin asks for and what is granted.
     ],
     "operatorDeniedCidrs": [],
     "allowUndeclaredPublicRedirects": false,
+    "ownUserAgentHosts": [
+      "*.libro.fm"
+    ],
+    "ownUserAgentReason": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app.",
     "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
     "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
@@ -6128,6 +6135,10 @@ Status `200`: What the plugin asks for and what is granted.
     ],
     "operatorDeniedCidrs": [],
     "allowUndeclaredPublicRedirects": false,
+    "ownUserAgentHosts": [
+      "*.libro.fm"
+    ],
+    "ownUserAgentReason": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app.",
     "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
     "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
@@ -6173,7 +6184,8 @@ Status `200`: What the plugin asks for and what is granted.
       "work_fs",
       "oauth"
     ]
-  }
+  },
+  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
 }
 ```
 
@@ -6191,7 +6203,8 @@ Schema:
     "request",
     "covered",
     "summary",
-    "limits"
+    "limits",
+    "host_user_agent"
   ],
   "properties": {
     "plugin_id": {
@@ -6468,6 +6481,27 @@ Schema:
           "type": "boolean",
           "description": "Undeclared public redirect permission.",
           "example": false
+        },
+        "ownUserAgentHosts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Hosts (exact or `*.` wildcard) that receive the plugin's own\n`User-Agent`; every other request carries the host's agent. Absent on\na grant approved before this permission existed, which keeps the hosts\nthe plugin's manifest declares.",
+          "example": [
+            "*.libro.fm"
+          ]
+        },
+        "ownUserAgentReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The plugin's reason for [`Self::own_user_agent_hosts`], from\n`plugin.toml`.",
+          "example": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app."
         },
         "grantRevision": {
           "type": "string",
@@ -6841,6 +6875,27 @@ Schema:
               "description": "Undeclared public redirect permission.",
               "example": false
             },
+            "ownUserAgentHosts": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "description": "Hosts (exact or `*.` wildcard) that receive the plugin's own\n`User-Agent`; every other request carries the host's agent. Absent on\na grant approved before this permission existed, which keeps the hosts\nthe plugin's manifest declares.",
+              "example": [
+                "*.libro.fm"
+              ]
+            },
+            "ownUserAgentReason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The plugin's reason for [`Self::own_user_agent_hosts`], from\n`plugin.toml`.",
+              "example": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app."
+            },
             "grantRevision": {
               "type": "string",
               "description": "SHA-256 of persisted operator consent (no host overlays).",
@@ -7121,6 +7176,11 @@ Schema:
           ]
         }
       }
+    },
+    "host_user_agent": {
+      "type": "string",
+      "description": "The `User-Agent` this host sends for the plugin's requests, except to\nthe request's `ownUserAgentHosts`.",
+      "example": "bookclerk/0.1.0 (+https://bookclerk.app)"
     }
   }
 }
@@ -7345,6 +7405,7 @@ Persists an approved plugin grant after validating operator overrides.
   - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+  - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
 - `400` — An override is not allowed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -7493,6 +7554,10 @@ Status `200`: The grant was stored.
     ],
     "operatorDeniedCidrs": [],
     "allowUndeclaredPublicRedirects": false,
+    "ownUserAgentHosts": [
+      "*.libro.fm"
+    ],
+    "ownUserAgentReason": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app.",
     "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
     "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
@@ -7582,6 +7647,10 @@ Status `200`: The grant was stored.
     ],
     "operatorDeniedCidrs": [],
     "allowUndeclaredPublicRedirects": false,
+    "ownUserAgentHosts": [
+      "*.libro.fm"
+    ],
+    "ownUserAgentReason": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app.",
     "grantRevision": "9b74c9897bac770ffc029102a200c5de3a9c4a1d6c2f1e0b5a7d8c9e0f1a2b3c",
     "authorityRevision": "1f3870be274f6c49b3e31a0c6728957f4e1d5b2c7a8d9e0f1a2b3c4d5e6f7a8b",
     "bindings": [
@@ -7627,7 +7696,8 @@ Status `200`: The grant was stored.
       "work_fs",
       "oauth"
     ]
-  }
+  },
+  "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
 }
 ```
 
@@ -7645,7 +7715,8 @@ Schema:
     "request",
     "covered",
     "summary",
-    "limits"
+    "limits",
+    "host_user_agent"
   ],
   "properties": {
     "plugin_id": {
@@ -7922,6 +7993,27 @@ Schema:
           "type": "boolean",
           "description": "Undeclared public redirect permission.",
           "example": false
+        },
+        "ownUserAgentHosts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Hosts (exact or `*.` wildcard) that receive the plugin's own\n`User-Agent`; every other request carries the host's agent. Absent on\na grant approved before this permission existed, which keeps the hosts\nthe plugin's manifest declares.",
+          "example": [
+            "*.libro.fm"
+          ]
+        },
+        "ownUserAgentReason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The plugin's reason for [`Self::own_user_agent_hosts`], from\n`plugin.toml`.",
+          "example": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app."
         },
         "grantRevision": {
           "type": "string",
@@ -8295,6 +8387,27 @@ Schema:
               "description": "Undeclared public redirect permission.",
               "example": false
             },
+            "ownUserAgentHosts": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "description": "Hosts (exact or `*.` wildcard) that receive the plugin's own\n`User-Agent`; every other request carries the host's agent. Absent on\na grant approved before this permission existed, which keeps the hosts\nthe plugin's manifest declares.",
+              "example": [
+                "*.libro.fm"
+              ]
+            },
+            "ownUserAgentReason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The plugin's reason for [`Self::own_user_agent_hosts`], from\n`plugin.toml`.",
+              "example": "Libro.fm's sign-in, library and download API answers the HTTP client of the Libro.fm Android app."
+            },
             "grantRevision": {
               "type": "string",
               "description": "SHA-256 of persisted operator consent (no host overlays).",
@@ -8575,6 +8688,11 @@ Schema:
           ]
         }
       }
+    },
+    "host_user_agent": {
+      "type": "string",
+      "description": "The `User-Agent` this host sends for the plugin's requests, except to\nthe request's `ownUserAgentHosts`.",
+      "example": "bookclerk/0.1.0 (+https://bookclerk.app)"
     }
   }
 }

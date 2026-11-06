@@ -2804,6 +2804,7 @@ A `text/plain` body: a string.
 - `request_digest` *string*, **required** — The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one).
 - `deny_domains` *array of string* — Domains to take out of the request. No duplicates.
 - `deny_bindings` *array of string* — Bindings to take out of the request. No duplicates.
+- `deny_own_user_agent_hosts` *array of string* — Requested hosts to refuse the plugin's own User-Agent on; requests to them carry Bookclerk's agent instead. No duplicates.
 - `deny_network` *boolean* — Deny all network access.
 
 ### Responses

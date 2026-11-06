@@ -16,6 +16,7 @@ authoring tools that do not ship the Rust `bookclerk-workerd` binary.
 | [`module_field_for`](#module_field_for) | function | Map a module filename to its Cap'n Proto embed field. |
 | [`collect_modules`](#collect_modules) | function | Collect embeddable module files under `directory`. |
 | [`plugin_global_outbound`](#plugin_global_outbound) | function | Map network mode to the plugin worker `globalOutbound` service name. |
+| [`own_user_agent_hosts_for`](#own_user_agent_hosts_for) | function | Put own-agent host patterns into the ASCII form the egress worker matches. |
 | [`egress_domains_for`](#egress_domains_for) | function | Build the egress allow-list, adding Pyodide hosts when needed. |
 | [`allocate_workerd_state_dir`](#allocate_workerd_state_dir) | function | Allocate a unique writable session directory for workerd generated embeds. |
 | [`materialize_config`](#materialize_config) | function | Write bridge assets and Cap'n Proto under a host session directory. |
@@ -172,6 +173,25 @@ Map network mode to the plugin worker `globalOutbound` service name.
 **Returns**
 
 `"egress"` for outbound mode, otherwise `"blocked"`.
+
+### own_user_agent_hosts_for
+
+```python
+def own_user_agent_hosts_for(hosts: list[Any]) -> list[str]
+```
+
+Put own-agent host patterns into the ASCII form the egress worker matches.
+
+As the host's policy does: UTS 46 IDNA for the name, the `*.` prefix
+kept; a host it would refuse is left out.
+
+**Args**
+
+- `hosts`: `capabilities.network.own_user_agent.hosts` as written.
+
+**Returns**
+
+The patterns that normalize, lowercased and in A-label form.
 
 ### egress_domains_for
 

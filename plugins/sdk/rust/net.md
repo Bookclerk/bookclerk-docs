@@ -26,6 +26,8 @@ be rebuilt against this SDK; there is no ambient TCP fallback.
 | [`SOCKET_PROXY_ENV`](#socket_proxy_env) | constant | Env var set by `bookclerk-workerd` for native-behind-workerd guests. |
 | [`SOCKET_PROXY_WRITE_ENV`](#socket_proxy_write_env) | constant | Windows write half of the inherited socket-proxy mux (`handle:<n>`). |
 | [`NESTED_NATIVE_JAIL_ENV`](#nested_native_jail_env) | constant | Optional fail-closed flag: deny ambient TCP when `SOCKET_PROXY_ENV` is unset. |
+| [`USER_AGENT_ENV`](#user_agent_env) | constant | The `User-Agent` the host sends for this guest (`bookclerk/<version> (+https://bookclerk.app)`). |
+| [`OWN_USER_AGENT_HOSTS_ENV`](#own_user_agent_hosts_env) | constant | Comma-separated hosts (exact or `*.` wildcard) where the guest keeps its own `User-Agent`: the operator-approved `[capabilities.network.own_user_agent]` hosts. Empty or unset keeps none. |
 | [`GUEST_IPC_DIR_ENV`](#guest_ipc_dir_env) | constant | Host-created directory for guest pathname sockets. |
 | [`SESSION_CHALLENGE_ENV`](#session_challenge_env) | constant | Hex-encoded 32-byte secret for the inherited proxy mux. |
 | [`SESSION_CHALLENGE_LEN`](#session_challenge_len) | constant | Length of `SESSION_CHALLENGE_ENV` before hex encoding. |
@@ -261,6 +263,31 @@ The host no longer sets this (sibling Deny + inherited `SOCKET_PROXY` is
 the production contract). SDK HTTP and native TCP still fail closed when
 this is `1` without a proxy, so tests and older launchers cannot fall
 through to `socket(AF_INET)`.
+
+### USER_AGENT_ENV
+
+```rust
+pub const USER_AGENT_ENV: &str = "BOOKCLERK_USER_AGENT";
+```
+
+The `User-Agent` the host sends for this guest
+(`bookclerk/<version> (+https://bookclerk.app)`).
+
+Set by the host on native guests. While it is set, [`crate::http::Client`](http/README.md#client)
+replaces the guest's agent with this value on every request hop, except
+on hosts listed in [`OWN_USER_AGENT_HOSTS_ENV`](#own_user_agent_hosts_env). Native guests own their
+TLS, so this rule lives in the SDK; workerd guests get it from the host's
+egress bridge instead.
+
+### OWN_USER_AGENT_HOSTS_ENV
+
+```rust
+pub const OWN_USER_AGENT_HOSTS_ENV: &str = "BOOKCLERK_OWN_USER_AGENT_HOSTS";
+```
+
+Comma-separated hosts (exact or `*.` wildcard) where the guest keeps its
+own `User-Agent`: the operator-approved
+`[capabilities.network.own_user_agent]` hosts. Empty or unset keeps none.
 
 ### GUEST_IPC_DIR_ENV
 

@@ -582,6 +582,7 @@ pub struct PendingStructural {
     pub jobs: BTreeSet<String>,
     pub bindings: BTreeSet<String>,
     pub compatibility_flags: BTreeSet<String>,
+    pub own_user_agent_hosts: BTreeSet<String>,
 }
 ```
 
@@ -595,6 +596,8 @@ Newly requested structural capabilities awaiting operator consent.
 - `jobs`: Job triggers declared by the current manifest but not granted.
 - `bindings`: Host / database bindings declared by the current manifest but not granted.
 - `compatibility_flags`: Compatibility flags declared by the current manifest but not granted.
+- `own_user_agent_hosts`: Hosts where the current manifest asks to keep its own `User-Agent`
+  but the grant does not allow it yet.
 
 #### PendingStructural::is_empty
 
@@ -640,6 +643,10 @@ pub struct PluginGrant {
     pub operator_denied_cidrs: BTreeSet<String>,
     pub allow_undeclared_public_redirects: bool,
     pub operator_allow_undeclared_public_redirects: Option<bool>,
+    pub own_user_agent_hosts: Option<BTreeSet<String>>,
+    pub own_user_agent_reason: Option<String>,
+    pub own_user_agent_refused_hosts: BTreeSet<String>,
+    pub declared_own_user_agent_hosts: Option<BTreeSet<String>>,
     pub bindings: BTreeSet<String>,
     pub compatibility_flags: BTreeSet<String>,
     pub cpu_ms: Option<u32>,
@@ -695,6 +702,29 @@ One approved grant snapshot for a provenance-qualified plugin.
   still add CIDRs from operator config after this set is applied.
 - `allow_undeclared_public_redirects`: Effective undeclared-public-redirect permission.
 - `operator_allow_undeclared_public_redirects`: Explicit operator override for undeclared public redirects (`None` = follow manifest).
+- `own_user_agent_hosts`: Hosts (exact or `*.` wildcard) where the guest keeps its own `User-Agent`.
+  
+  Every other request carries the host's agent
+  ([`bookclerk_plugin_manifest::host_user_agent`](../bookclerk_plugin_manifest/egress.md#host_user_agent)). `None` marks a grant
+  approved before this permission existed, when every guest sent its
+  own agent everywhere; [`effective_grant`](#effective_grant) then keeps the hosts the
+  current manifest declares, which never widens what that grant allowed.
+  `Some` is the operator's approval and narrows the manifest request.
+- `own_user_agent_reason`: The manifest's reason for [`Self::own_user_agent_hosts`](#plugingrant), shown on the
+  consent form. Display only; it grants nothing.
+- `own_user_agent_refused_hosts`: Declared own-agent hosts the operator reviewed and left unticked.
+  
+  They are not pending (the operator answered), and they grant nothing.
+  Not part of any revision.
+- `declared_own_user_agent_hosts`: Own-agent hosts the current manifest declares, once this grant has
+  been resolved against it ([`consent_request`](#consent_request), [`effective_grant`](#effective_grant)).
+  
+  Never stored and not part of any revision. The run-time set is
+  [`Self::own_user_agent_hosts`](#plugingrant) narrowed to these (all of them for a
+  legacy `None` grant), so an effective grant keeps the stored grant's
+  own field and hashes to the same revisions: a grants write or a config
+  reload doesn't fence its session when the manifest drops a host.
+  `None` on a grant read from storage.
 - `bindings`: Approved host binding names (`config`, `secrets`, `oauth`, …).
 - `compatibility_flags`: Approved workerd compatibility flags from the consent snapshot.
 - `cpu_ms`: Optional workerd CPU budget override in milliseconds.
@@ -771,6 +801,31 @@ pub fn egress_policy(&self) -> EgressPolicy
 ```
 
 Canonical typed network policy for workerd and the native socket proxy.
+
+#### PluginGrant::approved_own_user_agent_hosts
+
+```rust
+pub fn approved_own_user_agent_hosts(&self) -> BTreeSet<String>
+```
+
+Approved own-agent hosts; a legacy `None` grant approves none here.
+
+Revisions hash this set, so a legacy grant and its effective grant
+agree. [`Self::effective_own_user_agent_hosts`](#plugingranteffective_own_user_agent_hosts) is what a guest gets.
+
+#### PluginGrant::effective_own_user_agent_hosts
+
+```rust
+pub fn effective_own_user_agent_hosts(&self) -> BTreeSet<String>
+```
+
+Hosts where the guest keeps its own agent at run time.
+
+##### Returns
+
+The approved hosts the current manifest still declares; for a legacy
+`None` grant, every declared host. Without a declared set (a grant
+read from storage) the approved set as is, or none.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -2329,6 +2384,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `PartialEq`, 
 pub struct RemoteNarrowing {
     pub deny_domains: BTreeSet<String>,
     pub deny_bindings: BTreeSet<String>,
+    pub deny_own_user_agent_hosts: BTreeSet<String>,
     pub deny_network: bool,
 }
 ```
@@ -2339,6 +2395,8 @@ What a host operator takes out of an owner plugin's request.
 
 - `deny_domains`: Outbound domain patterns to deny.
 - `deny_bindings`: Host bindings to deny (`secrets`, `oauth`, `kv`, ...).
+- `deny_own_user_agent_hosts`: Requested own-agent hosts to refuse: requests to them carry
+  Bookclerk's agent. The hosts stay reachable.
 - `deny_network`: Turn outbound network off altogether.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
@@ -5884,8 +5942,8 @@ The consent an operator gives to `requested` with `narrowing` applied.
 
 #### Errors
 
-Returns an error when the narrowing names a domain or binding the
-request does not ask for (it would deny nothing, and a typo must not
+Returns an error when the narrowing names a domain, binding or own-agent
+host the request does not ask for (it would deny nothing, and a typo must not
 read as a narrowing that did not happen).
 
 ### remote_consent_state

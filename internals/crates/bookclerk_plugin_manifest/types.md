@@ -11,6 +11,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | --- | --- | --- |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
 | [`NetworkCapabilities`](#networkcapabilities) | struct | `[capabilities.network]` — mode plus optional workerd host allowlist. |
+| [`OwnUserAgent`](#ownuseragent) | struct | `[capabilities.network.own_user_agent]`: where a plugin keeps its own `User-Agent`. |
 | [`BindingCapabilities`](#bindingcapabilities) | struct | Host bindings a plugin declared, resolved from the v3 manifest tables. |
 | [`DatabaseBindingManifest`](#databasebindingmanifest) | struct | One `[[databases]]` row — an isolated plugin-owned database binding. |
 | [`NamedBinding`](#namedbinding) | struct | A named host binding (`[secrets]`, `[work_fs]`, `[oauth]`, `[[kv_namespaces]]`). |
@@ -41,6 +42,8 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`is_reserved_queue_name`](#is_reserved_queue_name) | function | True when `name` starts with a `RESERVED_QUEUE_PREFIXES` entry. |
 | [`ALL_ENTRYPOINTS`](#all_entrypoints) | constant | Every entrypoint in declaration order (mirrors the Cap'n Proto enum). |
 | [`REGISTRY_ENTRYPOINTS`](#registry_entrypoints) | constant | Entrypoints the host loads into their own registry (sources, destinations, database adapters) rather than the integration registry. |
+| [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) | constant | Longest `OwnUserAgent::reason` a manifest may declare, in characters. |
+| [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) | constant | Most hosts one `OwnUserAgent` table may list. |
 | [`MAX_DATABASE_BINDINGS`](#max_database_bindings) | constant | Maximum named database bindings one plugin may declare. |
 | [`MAX_DATABASE_BINDING_NAME_LEN`](#max_database_binding_name_len) | constant | Maximum length of one database binding name. |
 | [`DEFAULT_KV_MAX_VALUE_BYTES`](#default_kv_max_value_bytes) | constant | Default `max_value_bytes` for `[[kv_namespaces]]`: 64 KiB. |
@@ -100,6 +103,7 @@ pub struct NetworkCapabilities {
     pub tcp: Vec<TcpCapability>,
     pub allow_undeclared_public_redirects: bool,
     pub address_cidrs: Vec<String>,
+    pub own_user_agent: Option<OwnUserAgent>,
 }
 ```
 
@@ -121,8 +125,41 @@ Defaults to deny with an empty domain list. Unknown keys are rejected.
   Address-space policy still applies: loopback / RFC1918 / link-local /
   metadata never piggy-back on this flag.
 - `address_cidrs`: Explicit CIDR grants beyond the public Internet (no blanket `private`).
+- `own_user_agent`: Hosts that receive the plugin's own `User-Agent` instead of the host's.
+  
+  Every other request carries the host's honest agent
+  ([`crate::host_user_agent`](egress.md#host_user_agent)). Declaring this table asks the operator
+  for permission on the consent form, which shows the hosts and reason.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### OwnUserAgent
+
+```rust
+pub struct OwnUserAgent {
+    pub hosts: Vec<String>,
+    pub reason: String,
+}
+```
+
+`[capabilities.network.own_user_agent]`: where a plugin keeps its own
+`User-Agent`.
+
+By default the host replaces every guest request's `User-Agent` with
+`bookclerk/<version> (+https://bookclerk.app)`. A plugin that talks to a
+store's app API, which answers only the store's own app, lists those hosts
+here with a reason. The operator sees both on the consent form and may
+refuse; refused or unlisted hosts get the host's agent.
+
+**Fields**
+
+- `hosts`: Exact hosts or `*.` wildcards (never `*`), IDNA-normalized at
+  validate time. Between 1 and [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) entries.
+- `reason`: One sentence for the operator on why these hosts need the plugin's own
+  agent, such as the app API contract it follows. Non-empty, at most
+  [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) characters, no control characters.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### BindingCapabilities
 
@@ -1357,6 +1394,22 @@ destinations, database adapters) rather than the integration registry.
 
 Crons are rejected beside these, and job triggers beside them stay on
 that registry's session instead of making the plugin an integration.
+
+### MAX_OWN_USER_AGENT_REASON_CHARS
+
+```rust
+pub const MAX_OWN_USER_AGENT_REASON_CHARS: usize = 300;
+```
+
+Longest [`OwnUserAgent::reason`](#ownuseragent) a manifest may declare, in characters.
+
+### MAX_OWN_USER_AGENT_HOSTS
+
+```rust
+pub const MAX_OWN_USER_AGENT_HOSTS: usize = 32;
+```
+
+Most hosts one [`OwnUserAgent`](#ownuseragent) table may list.
 
 ### MAX_DATABASE_BINDINGS
 

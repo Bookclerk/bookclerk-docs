@@ -25,17 +25,20 @@ CONNECT mux; ambient `AF_INET`/`AF_INET6` is denied by the sibling jail. See
 | --- | --- | --- |
 | [`EgressPolicy`](#egresspolicy) | struct | Initial-host allowlist with redirect, TCP, and address-space policy. |
 | [`TcpGrant`](#tcpgrant) | struct | One TCP grant in the injected policy (`host` + `ports`). |
+| [`host_user_agent`](#host_user_agent) | function | The honest `User-Agent` hosts send for guest requests: `bookclerk/<version> (+https://bookclerk.app)`. |
 | [`manifest_needs_python`](#manifest_needs_python) | function | Returns `true` when the manifest declares a Python workerd guest. |
 | [`with_python_runtime_hosts`](#with_python_runtime_hosts) | function | Appends `PYODIDE_EGRESS_HOSTS` when `needs_python` and mode is outbound. |
 | [`consent_domains_for`](#consent_domains_for) | function | Builds the consent / egress domain list for a manifest. |
 | [`normalize_hostname`](#normalize_hostname) | function | Normalizes a hostname with IDNA ToASCII (fail closed). |
 | [`normalize_domain_pattern`](#normalize_domain_pattern) | function | Normalizes an allowlist pattern (`*.example.com`, exact host, or `ANY_PUBLIC_HOST`) via IDNA. |
 | [`normalize_tcp_host`](#normalize_tcp_host) | function | Normalizes a TCP grant host: an exact host or `*.` wildcard, never `ANY_PUBLIC_HOST` (raw sockets are granted host by host). |
+| [`normalize_own_user_agent_host`](#normalize_own_user_agent_host) | function | Normalizes a host that may keep a guest's own `User-Agent`: a `normalize_tcp_host` pattern with no comma once normalized. |
 | [`host_matches`](#host_matches) | function | True when an IDNA-normalized request host is covered by an allowlist pattern. |
 | [`https_url_on_hosts`](#https_url_on_hosts) | function | Checks a URL from untrusted output (a plugin's record, for example) before the host fetches it itself, outside any guest's egress policy. |
 | [`DEFAULT_MAX_REDIRECTS`](#default_max_redirects) | constant | Default redirect budget injected when building policy from network caps. |
 | [`ANY_PUBLIC_HOST`](#any_public_host) | constant | The `domains` entry that grants every public hostname (`"*"`). |
 | [`PYODIDE_EGRESS_HOSTS`](#pyodide_egress_hosts) | constant | Hosts Pyodide / Cloudflare Python Workers commonly fetch on first boot (runtime index + micropip). |
+| [`HOST_USER_AGENT_URL`](#host_user_agent_url) | constant | Home page named in `host_user_agent`, so a site operator who sees the agent in their logs can find out what sent it. |
 | [`MAX_FETCH_URL_BYTES`](#max_fetch_url_bytes) | constant | Longest URL `https_url_on_hosts` accepts, in bytes. |
 
 ## Structs
@@ -51,6 +54,8 @@ pub struct EgressPolicy {
     pub allow_undeclared_public_redirects: bool,
     pub tcp: Vec<TcpGrant>,
     pub address_cidrs: Vec<String>,
+    pub user_agent: Option<String>,
+    pub own_user_agent_hosts: Vec<String>,
 }
 ```
 
@@ -91,6 +96,14 @@ Serialized as camelCase for injection into workerd `EGRESS_POLICY`.
   an address-space grant.
 - `tcp`: Raw TCP grants (`connect`). Fetch allowlists do not imply these.
 - `address_cidrs`: Explicit CIDR grants beyond the public Internet.
+- `user_agent`: The `User-Agent` the host sends on the guest's behalf.
+  
+  `None` means [`host_user_agent`](#host_user_agent) (this build's version). Hosts set it
+  when they inject the policy so every hop names the same build. Wire
+  name: `userAgent`.
+- `own_user_agent_hosts`: Approved hosts (exact or `*.` wildcard, never `*`) where the guest's
+  own `User-Agent` is kept; see [`Self::keeps_own_user_agent`](#egresspolicykeeps_own_user_agent). Wire
+  name: `ownUserAgentHosts`.
 
 #### EgressPolicy::from_network
 
@@ -205,6 +218,52 @@ subrequest cap).
 Used when allowlist normalization fails (`from_*` helpers) or when
 network mode is deny.
 
+#### EgressPolicy::effective_user_agent
+
+```rust
+pub fn effective_user_agent(&self) -> String
+```
+
+The agent the host sends: [`Self::user_agent`](#egresspolicy) or [`host_user_agent`](#host_user_agent).
+
+#### EgressPolicy::keeps_own_user_agent
+
+```rust
+pub fn keeps_own_user_agent(&self, host: &str) -> bool
+```
+
+Whether a request to `host` keeps the guest's own `User-Agent`.
+
+True only when `host` normalizes and matches an approved
+[`Self::own_user_agent_hosts`](#egresspolicy) pattern. A `*` entry (however it is
+spelled) never matches, so a tampered policy cannot exempt every host.
+
+##### Arguments
+
+* `host` - Request hostname (Unicode or Punycode; trailing dot ok).
+
+##### Returns
+
+`true` when the guest's agent may be sent to `host`.
+
+#### EgressPolicy::user_agent_for
+
+```rust
+pub fn user_agent_for(&self, host: &str, requested: Option<&str>) -> String
+```
+
+The `User-Agent` to put on a request to `host`.
+
+##### Arguments
+
+* `host` - Request hostname of this hop.
+* `requested` - The agent the guest set, if any.
+
+##### Returns
+
+`requested` when the guest set one and [`Self::keeps_own_user_agent`](#egresspolicykeeps_own_user_agent)
+allows it for `host`; otherwise [`Self::effective_user_agent`](#egresspolicyeffective_user_agent).
+
 #### EgressPolicy::mode
 
 ```rust
@@ -316,6 +375,19 @@ One TCP grant in the injected policy (`host` + `ports`).
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ## Functions
+
+### host_user_agent
+
+```rust
+pub fn host_user_agent() -> String
+```
+
+The honest `User-Agent` hosts send for guest requests:
+`bookclerk/<version> (+https://bookclerk.app)`.
+
+#### Returns
+
+The agent naming this build's workspace version.
 
 ### manifest_needs_python
 
@@ -454,6 +526,28 @@ Normalizes a TCP grant host: an exact host or `*.` wildcard, never
 
 The normalized pattern, or `None` when it is invalid or `*`.
 
+### normalize_own_user_agent_host
+
+```rust
+pub fn normalize_own_user_agent_host(host: &str) -> Option<String>
+```
+
+Normalizes a host that may keep a guest's own `User-Agent`: a
+[`normalize_tcp_host`](#normalize_tcp_host) pattern with no comma once normalized.
+
+The comma check runs on the normalized form because IDNA maps some
+Unicode commas (such as U+FF0C) to `,`, and native guests receive the
+approved hosts as one comma-separated list.
+
+#### Arguments
+
+* `host` - Author-supplied `capabilities.network.own_user_agent` host.
+
+#### Returns
+
+The normalized pattern, or `None` when it is invalid, `*`, or would hold a
+comma.
+
 ### host_matches
 
 ```rust
@@ -562,6 +656,15 @@ Included in consent UI lists and [`EgressPolicy`](#egresspolicy) domain allowlis
 workerd guest is Python **and** [`NetworkMode::Outbound`](types.md#networkmode). See Cloudflare
 Python packages docs. Values:
 `cdn.jsdelivr.net`, `pypi.org`, `files.pythonhosted.org`.
+
+### HOST_USER_AGENT_URL
+
+```rust
+pub const HOST_USER_AGENT_URL: &str = "https://bookclerk.app";
+```
+
+Home page named in [`host_user_agent`](#host_user_agent), so a site operator who sees the
+agent in their logs can find out what sent it.
 
 ### MAX_FETCH_URL_BYTES
 

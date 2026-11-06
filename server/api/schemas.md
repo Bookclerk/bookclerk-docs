@@ -56,6 +56,7 @@ An error. `error` is a stable slug; bodies the error middleware writes also carr
 - `request_digest` *string*, **required** — The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one).
 - `deny_domains` *array of string* — Domains to take out of the request. No duplicates.
 - `deny_bindings` *array of string* — Bindings to take out of the request. No duplicates.
+- `deny_own_user_agent_hosts` *array of string* — Requested hosts to refuse the plugin's own User-Agent on; requests to them carry Bookclerk's agent instead. No duplicates.
 - `deny_network` *boolean* — Deny all network access.
 
 ## AuthMeImpersonating
@@ -1825,6 +1826,7 @@ Consent dialog payload for one plugin.
 - `existing` *[`PluginGrantView`](#plugingrantview) or null* — Previously approved grant, when one is stored.
 - `brand` *[`PluginConsentBrand`](#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
 - `limits` *[`PluginConsentLimits`](#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
+- `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
 
 ## PluginDeploymentChanged
 
@@ -1859,6 +1861,7 @@ Operator-supplied grant fields that replace matching request values.
 - `tcp` *array of [`TcpGrantView`](#tcpgrantview) or null* — Override raw TCP grants when set.
 - `addressCidrs` *array of string or null* — Override address-space CIDRs when set.
 - `allowUndeclaredPublicRedirects` *boolean or null* — Override undeclared-public-redirect permission when set.
+- `ownUserAgentHosts` *array of string or null* — Override the hosts that keep the plugin's own `User-Agent` when set. Each entry must be one the request lists; leaving one out sends the host's agent there instead.
 - `bindings` *array of string or null* — Override approved bindings when set. Entries are host binding names (`config`, `secrets`, `plugin_kv`, `work_fs`, `oauth`) and the manifest tokens the consent request lists (`database:<NAME>`, `queue:<BINDING>`, `queue_consumer:<queue>`, `cron:<schedule>`). A manifest token must match one in the request exactly; leaving one out narrows the grant.
 - `compatibilityFlags` *array of string or null* — Override compatibility flags when set.
 - `cpuMs` *integer (int32) or null* — Override workerd CPU milliseconds when set. At least 0.
@@ -1890,6 +1893,8 @@ Operator-facing grant JSON: CPU as cores (not Spec percent).
 - `operatorAddedCidrs` *array of string*, **required** — Operator-added CIDRs.
 - `operatorDeniedCidrs` *array of string*, **required** — Operator-denied CIDRs still listed by the manifest.
 - `allowUndeclaredPublicRedirects` *boolean*, **required** — Undeclared public redirect permission.
+- `ownUserAgentHosts` *array of string or null* — Hosts (exact or `*.` wildcard) that receive the plugin's own `User-Agent`; every other request carries the host's agent. Absent on a grant approved before this permission existed, which keeps the hosts the plugin's manifest declares.
+- `ownUserAgentReason` *string or null* — The plugin's reason for [`Self::own_user_agent_hosts`], from `plugin.toml`.
 - `grantRevision` *string*, **required** — SHA-256 of persisted operator consent (no host overlays).
 - `authorityRevision` *string*, **required** — SHA-256 of the canonical effective authority.
 - `bindings` *array of string*, **required** — Host bindings the operator approved.

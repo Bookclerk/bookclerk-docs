@@ -3012,6 +3012,14 @@ covered: boolean;
 existing?: PluginGrant;
 ```
 
+##### host\_user\_agent?
+
+```ts
+host_user_agent?: string;
+```
+
+The `User-Agent` the host sends, except to the request's `ownUserAgentHosts`.
+
 ##### limits
 
 ```ts
@@ -3321,6 +3329,24 @@ host: string;
 ```ts
 ports: number[];
 ```
+
+##### ownUserAgentHosts?
+
+```ts
+ownUserAgentHosts?: string[];
+```
+
+Hosts that receive the plugin's own `User-Agent`; every other request
+carries the host's. Absent on a grant approved before this permission
+existed, which keeps whatever the plugin declares.
+
+##### ownUserAgentReason?
+
+```ts
+ownUserAgentReason?: string;
+```
+
+The plugin's reason for `ownUserAgentHosts`, from `plugin.toml`.
 
 ##### pluginId
 
@@ -4373,6 +4399,14 @@ deny_network?: boolean;
 
 True turns outbound network off altogether (no domains, TCP or CIDRs).
 
+##### deny\_own\_user\_agent\_hosts?
+
+```ts
+deny_own_user_agent_hosts?: string[];
+```
+
+Requested hosts refused the plugin's own User-Agent; they get Bookclerk's agent.
+
 ##### plugin\_key
 
 ```ts
@@ -4647,6 +4681,22 @@ networkMode?: string;
 ```
 
 `deny` (no egress) or `outbound`; anything else is treated as `deny`.
+
+##### ownUserAgentHosts?
+
+```ts
+ownUserAgentHosts?: string[] | null;
+```
+
+Hosts that receive the plugin's own `User-Agent` instead of the host's.
+
+##### ownUserAgentReason?
+
+```ts
+ownUserAgentReason?: string | null;
+```
+
+The plugin's reason for `ownUserAgentHosts`.
 
 ##### pluginId?
 
@@ -5780,7 +5830,7 @@ Approves network consent for a plugin.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `id` | `string` | Display alias from Settings. |
-| `grant?` | \{ `addressCidrs?`: `string`[]; `allowUndeclaredPublicRedirects?`: `boolean`; `bindings`: `string`[]; `compatibilityFlags`: `string`[]; `cpuCores?`: `number`; `cpuMs?`: `number`; `diskMib?`: `number`; `domains`: `string`[]; `extraProcesses?`: `number`; `memoryMib?`: `number`; `networkMode`: `string`; `subrequests?`: `number`; `tcp?`: `object`[]; \} | Operator-approved grant overlay; omitted fields keep defaults. |
+| `grant?` | \{ `addressCidrs?`: `string`[]; `allowUndeclaredPublicRedirects?`: `boolean`; `bindings`: `string`[]; `compatibilityFlags`: `string`[]; `cpuCores?`: `number`; `cpuMs?`: `number`; `diskMib?`: `number`; `domains`: `string`[]; `extraProcesses?`: `number`; `memoryMib?`: `number`; `networkMode`: `string`; `ownUserAgentHosts?`: `string`[]; `subrequests?`: `number`; `tcp?`: `object`[]; \} | Operator-approved grant overlay; omitted fields keep defaults. |
 | `grant.addressCidrs?` | `string`[] | - |
 | `grant.allowUndeclaredPublicRedirects?` | `boolean` | - |
 | `grant.bindings` | `string`[] | - |
@@ -5792,6 +5842,7 @@ Approves network consent for a plugin.
 | `grant.extraProcesses?` | `number` | - |
 | `grant.memoryMib?` | `number` | - |
 | `grant.networkMode` | `string` | - |
+| `grant.ownUserAgentHosts?` | `string`[] | - |
 | `grant.subrequests?` | `number` | - |
 | `grant.tcp?` | `object`[] | - |
 | `pluginKey?` | `string` | Provenance-qualified PluginKey when the alias is ambiguous. |

@@ -9,6 +9,10 @@ named-pipe proxy — nested `NetPolicy::Deny` guests must not call
 `socket(AF_INET)`. When [`crate::NESTED_NATIVE_JAIL_ENV`](../net.md#nested_native_jail_env) is `1` without a
 proxy, construction fails closed rather than falling back to ambient TCP.
 
+While the host sets [`crate::USER_AGENT_ENV`](../net.md#user_agent_env), every request hop carries
+the host's `User-Agent` unless its host is one the operator approved in
+[`crate::OWN_USER_AGENT_HOSTS_ENV`](../net.md#own_user_agent_hosts_env) and the guest set its own agent.
+
 Fetch domain grants do **not** imply TCP. Native manifests must declare
 `capabilities.network.tcp` (or rely on a host overlay) for each
 `host:port` this client dials.

@@ -24,6 +24,7 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`workerd_module_is_embedded`](#workerd_module_is_embedded) | function | True when the walk embeds this filename. |
 | [`validate_logo`](#validate_logo) | function | Classify and validate a `plugin.toml` logo value. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate a plugin id against the strict `[a-z0-9_]{2,32}` grammar. |
+| [`own_user_agent_host_ascii`](#own_user_agent_host_ascii) | function | Normalize an own-agent host to the form the host's policy holds. |
 | [`validate_manifest`](#validate_manifest) | function | Validate a parsed `plugin.toml` mapping. |
 | [`check_main_module_source`](#check_main_module_source) | function | Check a workerd main module against the v3 author model. |
 | [`check_plugin`](#check_plugin) | function | Validate a plugin directory and its `plugin.toml`. |
@@ -42,6 +43,8 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`MAX_KV_NAMESPACE_VALUE_BYTES`](#max_kv_namespace_value_bytes) | constant | Largest `max_value_bytes` a `[[kv_namespaces]]` row may declare (1 MiB). |
 | [`MAX_KV_NAMESPACE_KEYS`](#max_kv_namespace_keys) | constant | Largest `max_keys` a `[[kv_namespaces]]` row may declare. |
 | [`LOGO_EXTENSIONS`](#logo_extensions) | constant | Allowed file extensions for embedded `plugin.toml` logo paths. |
+| [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) | constant | Most hosts one `[capabilities.network.own_user_agent]` table may list. |
+| [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) | constant | Longest `own_user_agent.reason`, in characters. |
 | [`ENTRYPOINT_NAMES`](#entrypoint_names) | constant | Entrypoint wire names accepted in `entrypoints`. |
 | [`ENTRYPOINT_EXPORT_CLASSES`](#entrypoint_export_classes) | constant | Exported class name the launcher binds for each `entrypoints` wire name. |
 | [`TYPES_OUTPUT_FILE`](#types_output_file) | constant | Default `types` output filename next to `plugin.toml`. |
@@ -280,6 +283,27 @@ stripped.
 **Raises**
 
 - `ValueError`: If the id fails length, charset, or underscore rules.
+
+### own_user_agent_host_ascii
+
+```python
+def own_user_agent_host_ascii(raw: str) -> str | None
+```
+
+Normalize an own-agent host to the form the host's policy holds.
+
+Trimmed, trailing dots dropped, the `*.` prefix kept, and every label
+in lowercase A-label form. The result has no `*` name, no forbidden
+host character (IDNA can map a fullwidth comma to `,`) and no invalid
+`xn--` label.
+
+**Args**
+
+- `raw`: Host as written in `plugin.toml`.
+
+**Returns**
+
+The normalized pattern, or `None` when the host would refuse it.
 
 ### validate_manifest
 
@@ -588,6 +612,22 @@ LOGO_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico')
 ```
 
 Allowed file extensions for embedded `plugin.toml` logo paths.
+
+### MAX_OWN_USER_AGENT_HOSTS
+
+```python
+MAX_OWN_USER_AGENT_HOSTS = 32
+```
+
+Most hosts one `[capabilities.network.own_user_agent]` table may list.
+
+### MAX_OWN_USER_AGENT_REASON_CHARS
+
+```python
+MAX_OWN_USER_AGENT_REASON_CHARS = 300
+```
+
+Longest `own_user_agent.reason`, in characters.
 
 ### ENTRYPOINT_NAMES
 
