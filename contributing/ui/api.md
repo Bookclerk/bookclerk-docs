@@ -5812,11 +5812,57 @@ function authMe(): Promise<AuthSession>;
 
 Loads the current session from `GET /api/auth/me`.
 
+A 503 with `Retry-After` (the session could not be checked yet) is asked
+again a few times; only a 401 means signed out.
+
 #### Returns
 
 `Promise`\<[`AuthSession`](#authsession)\>
 
 Anonymous session when the response is 401.
+
+#### Throws
+
+When the check fails or times out, which is not a
+  sign-out.
+
+***
+
+### authMeUntilAnswered()
+
+```ts
+function authMeUntilAnswered(
+   stopped, 
+   check?, 
+   sleep?
+): Promise<AuthSession | null>;
+```
+
+Asks [authMe](#authme) until it answers, backing off between attempts.
+
+A check that timed out, could not reach the server, or found it busy
+(502, 503 or 504) is not a sign-out, so the app keeps its loading screen
+and asks again rather than showing the sign-in page to someone whose
+session is fine. Waits 1 s, 2 s, 4 s … up to 10 s. Any other failure is
+thrown to the caller.
+
+#### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `stopped` | () => `boolean` | `undefined` | True once the caller no longer wants the answer. |
+| `check?` | () => `Promise`\<[`AuthSession`](#authsession)\> | `authMe` | Performs one session check (defaults to [authMe](#authme)). |
+| `sleep?` | (`ms`) => `Promise`\<`void`\> | `...` | Waits the given milliseconds (defaults to a timer). |
+
+#### Returns
+
+`Promise`\<[`AuthSession`](#authsession) \| `null`\>
+
+The session, or null when `stopped` turned true first.
+
+#### Throws
+
+When the check fails in a way asking again cannot fix.
 
 ***
 
@@ -6437,6 +6483,42 @@ Loads the global request queue (shared demand).
 `Promise`\<[`GlobalQueueEntry`](#globalqueueentry)[]\>
 
 Aggregated queue entries.
+
+***
+
+### fetchRetryingBusy()
+
+```ts
+function fetchRetryingBusy(
+   input, 
+   init, 
+   fetcher?, 
+   sleep?
+): Promise<Response>;
+```
+
+Fetches a read, asking again while the daemon answers 503 with
+`Retry-After`.
+
+The daemon answers that way when it could not check the session yet (a
+busy library, as on a small server that is still starting), which is not
+the same as being signed out. Only for GET requests, which are safe to
+repeat.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `input` | `string` | Request URL. |
+| `init` | `RequestInit` \| `undefined` | Request options; the method must be GET. |
+| `fetcher?` | (`input`, `init?`) => `Promise`\<`Response`\> | Performs one request (defaults to `fetch`). |
+| `sleep?` | (`ms`) => `Promise`\<`void`\> | Waits the given milliseconds (defaults to a timer). |
+
+#### Returns
+
+`Promise`\<`Response`\>
+
+The first response that is not such a 503, or the last 503.
 
 ***
 

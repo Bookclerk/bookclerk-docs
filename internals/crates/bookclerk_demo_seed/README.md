@@ -34,11 +34,16 @@ credential keys are placeholders that never verify a signature.
 | [`Lookup`](#lookup) | struct | One title to look up in a storefront's public catalog. |
 | [`SeedReport`](#seedreport) | struct | What `seed` wrote, for the log and for tests. |
 | [`Seeded`](#seeded) | enum | Outcome of `seed`. |
+| [`committed_records`](#committed_records) | function | The committed storefront records (`records.json`) for the current sample titles; entries for titles no longer sampled are dropped. |
+| [`parse_records`](#parse_records) | function | Parses a records file: a JSON object from `Lookup::key` to a catalog record, keeping only keys of current sample titles. |
+| [`merge_records`](#merge_records) | function | Live lookups over the committed records: a title the live lookup found keeps that record, and one it missed falls back to `committed` unless a live record already holds that product id, so a stale committed record never pushes out a fresh one. No two titles share a product id. |
+| [`records_json`](#records_json) | function | `records` as the pretty-printed JSON `records.json` holds, one key per title in sorted order, so a refresh diffs cleanly. |
 | [`lookups`](#lookups) | function | Every title the seed writes, as catalog lookups: the library, the branch and the wishlist. |
 | [`search_query`](#search_query) | function | The catalog search text for `lookup`: the title up to any `(…)` part, then the author's surname. |
 | [`best_match`](#best_match) | function | The search hit that is the wanted title by the wanted author, or `None`. |
 | [`distinct_records`](#distinct_records) | function | `records` without entries whose product id another title already took, so two sample titles never become one book (the first, in `lookups` order, keeps it). |
 | [`seed`](#seed) | function | Adds the sample library user, their books, wishlist and offline branch. |
+| [`records_path`](#records_path) | function | The `--write-records <path>` argument the seed binary was given, if any. |
 | [`StoreRecords`](#storerecords) | type alias | Storefront records found for the sample titles, by `Lookup::key`. |
 | [`SAMPLE_LOGIN`](#sample_login) | constant | Login name of the sample library user; its presence marks a seeded library. |
 | [`STOREFRONTS`](#storefronts) | constant | Every storefront Sam has an account at, in the order the accounts are added. |
@@ -130,6 +135,57 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
+### committed_records
+
+```rust
+pub fn committed_records() -> Result<StoreRecords>
+```
+
+The committed storefront records (`records.json`) for the current
+sample titles; entries for titles no longer sampled are dropped.
+
+#### Errors
+
+Returns an error when `records.json` is not a JSON object of catalog
+records.
+
+### parse_records
+
+```rust
+pub fn parse_records(json: &str) -> Result<StoreRecords>
+```
+
+Parses a records file: a JSON object from [`Lookup::key`](#lookup) to a catalog
+record, keeping only keys of current sample titles.
+
+#### Errors
+
+Returns an error when `json` is not such an object.
+
+### merge_records
+
+```rust
+pub fn merge_records(live: StoreRecords, committed: StoreRecords) -> StoreRecords
+```
+
+Live lookups over the committed records: a title the live lookup found
+keeps that record, and one it missed falls back to `committed` unless a
+live record already holds that product id, so a stale committed record
+never pushes out a fresh one. No two titles share a product id.
+
+### records_json
+
+```rust
+pub fn records_json(records: &StoreRecords) -> Result<String>
+```
+
+`records` as the pretty-printed JSON `records.json` holds, one key per
+title in sorted order, so a refresh diffs cleanly.
+
+#### Errors
+
+Returns an error when a record cannot be serialized.
+
 ### lookups
 
 ```rust
@@ -155,7 +211,11 @@ listing of the whole catalog. Its query is the title's words alone.
 ### best_match
 
 ```rust
-pub fn best_match<'a>(lookup: &Lookup, hits: &'a [CatalogHit]) -> Option<&'a CatalogHit>
+pub fn best_match<'a>(
+    lookup: &Lookup,
+    hits: &'a [CatalogHit],
+    now: DateTime<Utc>,
+) -> Option<&'a CatalogHit>
 ```
 
 The search hit that is the wanted title by the wanted author, or `None`.
@@ -164,7 +224,9 @@ A hit that lists authors must list the wanted one (same surname and
 first initial). A GraphicAudio hit without authors is judged on its
 title alone, because that store never returns them; any other store's
 authorless hit is refused. Among
-matching hits the closest title wins, then the store's own ranking.
+matching hits the closest title wins, then one already released (a
+pre-order of a new recording is not the edition a listener owns, by
+`now`), then the store's own ranking.
 
 ### distinct_records
 
@@ -215,6 +277,26 @@ What was written, or [`Seeded::AlreadySeeded`](#seeded).
 
 Returns an error when a write fails or the branch catalog refuses the
 branch, which means the library code changed what makes a branch trusted.
+
+### records_path
+
+```rust
+pub fn records_path(args: impl Iterator<Item = String>) -> Result<Option<PathBuf>>
+```
+
+The `--write-records <path>` argument the seed binary was given, if any.
+
+#### Arguments
+
+* `args` - The command-line arguments after the program name.
+
+#### Returns
+
+Where to write the store records, or `None` to seed the library.
+
+#### Errors
+
+Returns an error for any other argument, or a missing path.
 
 ## Type aliases
 
