@@ -211,6 +211,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `super::Destination::copy`. |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `crate::roles::ByteRange` / `ByteSource` streams. |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant | Largest image body one `CoverFetcher.fetchCovers` URL may return. |
+| [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant | Longest cache header value one `CoverFetcher.fetchCovers` call carries in either direction, in bytes. |
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant | Most URLs in one `CoverFetcher.fetchCovers` call. |
 | [`MAX_CRON_BYTES`](#max_cron_bytes) | constant | Longest `[triggers] crons` source in bytes (`ScheduledController.cron`). |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant | Maximum decoded size of a domain-event scalar payload (not a stream). |
@@ -439,6 +440,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::MetadataChapter`](generated.md#metadatachapter)
 - [`generated::MetadataChapters`](generated.md#metadatachapters)
 - [`generated::CoverFetchParams`](generated.md#coverfetchparams)
+- [`generated::CoverCondition`](generated.md#covercondition)
 - [`generated::CoverImage`](generated.md#coverimage)
 - [`generated::CoverImages`](generated.md#coverimages)
 - [`generated::write_event_consumer_spec`](generated.md#write_event_consumer_spec)
@@ -635,6 +637,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_metadata_chapters_reply`](generated.md#read_metadata_chapters_reply)
 - [`generated::write_cover_fetch_params`](generated.md#write_cover_fetch_params)
 - [`generated::read_cover_fetch_params`](generated.md#read_cover_fetch_params)
+- [`generated::write_cover_condition`](generated.md#write_cover_condition)
+- [`generated::read_cover_condition`](generated.md#read_cover_condition)
 - [`generated::write_cover_image`](generated.md#write_cover_image)
 - [`generated::read_cover_image`](generated.md#read_cover_image)
 - [`generated::write_cover_images`](generated.md#write_cover_images)
@@ -5676,6 +5680,15 @@ pub const MAX_COVER_BYTES: u32 = crate::plugin_capnp::MAX_COVER_BYTES;
 ```
 
 Largest image body one `CoverFetcher.fetchCovers` URL may return.
+
+### MAX_COVER_HEADER_BYTES
+
+```rust
+pub const MAX_COVER_HEADER_BYTES: u32 = crate::plugin_capnp::MAX_COVER_HEADER_BYTES;
+```
+
+Longest cache header value one `CoverFetcher.fetchCovers` call carries in
+either direction, in bytes.
 
 ### MAX_COVER_URLS
 

@@ -79,6 +79,84 @@ pub fn get_error(self) -> Result<Reader<'a>>
 pub fn has_error(&self) -> bool
 ```
 
+#### Reader::get_not_modified
+
+```rust
+pub fn get_not_modified(self) -> bool
+```
+
+#### Reader::get_etag
+
+```rust
+pub fn get_etag(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_etag
+
+```rust
+pub fn has_etag(&self) -> bool
+```
+
+#### Reader::get_last_modified
+
+```rust
+pub fn get_last_modified(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_last_modified
+
+```rust
+pub fn has_last_modified(&self) -> bool
+```
+
+#### Reader::get_cache_control
+
+```rust
+pub fn get_cache_control(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_cache_control
+
+```rust
+pub fn has_cache_control(&self) -> bool
+```
+
+#### Reader::get_expires
+
+```rust
+pub fn get_expires(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_expires
+
+```rust
+pub fn has_expires(&self) -> bool
+```
+
+#### Reader::get_date
+
+```rust
+pub fn get_date(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_date
+
+```rust
+pub fn has_date(&self) -> bool
+```
+
+#### Reader::get_age
+
+```rust
+pub fn get_age(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_age
+
+```rust
+pub fn has_age(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -195,6 +273,162 @@ pub fn init_error(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_error(&self) -> bool
+```
+
+#### Builder::get_not_modified
+
+```rust
+pub fn get_not_modified(self) -> bool
+```
+
+#### Builder::set_not_modified
+
+```rust
+pub fn set_not_modified(&mut self, value: bool)
+```
+
+#### Builder::get_etag
+
+```rust
+pub fn get_etag(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_etag
+
+```rust
+pub fn set_etag(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_etag
+
+```rust
+pub fn init_etag(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_etag
+
+```rust
+pub fn has_etag(&self) -> bool
+```
+
+#### Builder::get_last_modified
+
+```rust
+pub fn get_last_modified(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_last_modified
+
+```rust
+pub fn set_last_modified(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_last_modified
+
+```rust
+pub fn init_last_modified(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_last_modified
+
+```rust
+pub fn has_last_modified(&self) -> bool
+```
+
+#### Builder::get_cache_control
+
+```rust
+pub fn get_cache_control(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_cache_control
+
+```rust
+pub fn set_cache_control(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_cache_control
+
+```rust
+pub fn init_cache_control(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_cache_control
+
+```rust
+pub fn has_cache_control(&self) -> bool
+```
+
+#### Builder::get_expires
+
+```rust
+pub fn get_expires(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_expires
+
+```rust
+pub fn set_expires(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_expires
+
+```rust
+pub fn init_expires(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_expires
+
+```rust
+pub fn has_expires(&self) -> bool
+```
+
+#### Builder::get_date
+
+```rust
+pub fn get_date(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_date
+
+```rust
+pub fn set_date(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_date
+
+```rust
+pub fn init_date(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_date
+
+```rust
+pub fn has_date(&self) -> bool
+```
+
+#### Builder::get_age
+
+```rust
+pub fn get_age(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_age
+
+```rust
+pub fn set_age(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_age
+
+```rust
+pub fn init_age(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_age
+
+```rust
+pub fn has_age(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

@@ -55,6 +55,18 @@ pub fn has_urls(&self) -> bool
 pub fn get_max_bytes(self) -> u32
 ```
 
+#### Reader::get_conditions
+
+```rust
+pub fn get_conditions(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_conditions
+
+```rust
+pub fn has_conditions(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -123,6 +135,30 @@ pub fn get_max_bytes(self) -> u32
 
 ```rust
 pub fn set_max_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_conditions
+
+```rust
+pub fn get_conditions(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_conditions
+
+```rust
+pub fn set_conditions(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_conditions
+
+```rust
+pub fn init_conditions(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_conditions
+
+```rust
+pub fn has_conditions(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

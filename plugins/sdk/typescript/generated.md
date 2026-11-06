@@ -1530,6 +1530,35 @@ Bytes copied.
 
 ***
 
+### CoverCondition
+
+Validators the host already holds for one URL, sent as conditional request
+headers so an unchanged image costs a `304` instead of its body.
+
+#### Properties
+
+##### ifModifiedSince?
+
+```ts
+ifModifiedSince?: string;
+```
+
+`If-Modified-Since` value: the `Last-Modified` the host stored,
+verbatim; empty for none.
+Omitted when absent (wire zero value).
+
+##### ifNoneMatch?
+
+```ts
+ifNoneMatch?: string;
+```
+
+`If-None-Match` value: the `ETag` the host stored, verbatim; empty for
+none.
+Omitted when absent (wire zero value).
+
+***
+
 ### CoverFetcher
 
 `covers` entrypoint: downloads cover images on the host's behalf, so the
@@ -1586,6 +1615,16 @@ Params of `CoverFetcher.fetchCovers`.
 
 #### Properties
 
+##### conditions
+
+```ts
+conditions: CoverCondition[];
+```
+
+Conditional request headers per URL, in the same order as `urls`, from
+the host's cached copy. Empty, or shorter than `urls`, means the
+remaining URLs are fetched unconditionally.
+
 ##### maxBytes
 
 ```ts
@@ -1613,6 +1652,25 @@ What happened to one requested URL.
 
 #### Properties
 
+##### age?
+
+```ts
+age?: string;
+```
+
+`Age` the server (or a cache in front of it) sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### cacheControl?
+
+```ts
+cacheControl?: string;
+```
+
+`Cache-Control` the server sent, verbatim (several lines joined with
+`, `).
+Omitted when absent (wire zero value).
+
 ##### contentType?
 
 ```ts
@@ -1620,6 +1678,15 @@ contentType?: string;
 ```
 
 `Content-Type` the server sent. Advisory: the host sniffs the bytes.
+Omitted when absent (wire zero value).
+
+##### date?
+
+```ts
+date?: string;
+```
+
+`Date` the server sent, verbatim.
 Omitted when absent (wire zero value).
 
 ##### error?
@@ -1630,6 +1697,42 @@ error?: string;
 
 Why nothing was stored (HTTP status, size cap, timeout, refused host).
 Omitted when absent (wire zero value).
+
+##### etag?
+
+```ts
+etag?: string;
+```
+
+`ETag` the server sent, verbatim. Advisory: the host parses and caps it.
+Omitted when absent (wire zero value).
+
+##### expires?
+
+```ts
+expires?: string;
+```
+
+`Expires` the server sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### lastModified?
+
+```ts
+lastModified?: string;
+```
+
+`Last-Modified` the server sent, verbatim.
+Omitted when absent (wire zero value).
+
+##### notModified
+
+```ts
+notModified: boolean;
+```
+
+The server answered `304 Not Modified` to the URL's conditions: nothing
+was put into the sink and the host's copy is still current.
 
 ##### stored
 

@@ -40,7 +40,7 @@ holds the validators those answers carry.
 
 ## Modules
 
-- [`http_cache`](http_cache.md): HTTP cache validators for the images the daemon serves.
+- [`http_cache`](http_cache.md): HTTP caching for the images the daemon serves and the ones it fetches.
 - [`token`](token.md): Signed cover tokens: the remote URL of a cover plus a truncated HMAC-SHA256 under a per-node key, so the cover route only fetches URLs the API itself handed out.
 - [`wire`](wire.md): Frames the host and the cover worker exchange over the worker's stdio.
 

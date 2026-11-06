@@ -37,6 +37,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_KV_VALUE_BYTES`](#max_kv_value_bytes) | constant |  |
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant |  |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant |  |
+| [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
@@ -222,6 +223,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_chapters`](metadata_chapters.md)
 - [`metadata_chapters_reply`](metadata_chapters_reply.md)
 - [`cover_fetch_params`](cover_fetch_params.md)
+- [`cover_condition`](cover_condition.md)
 - [`cover_image`](cover_image.md)
 - [`cover_images`](cover_images.md)
 - [`cover_images_reply`](cover_images_reply.md)
@@ -607,6 +609,12 @@ pub const MAX_COVER_URLS: u32 = 32;
 
 ```rust
 pub const MAX_COVER_BYTES: u32 = 10485760;
+```
+
+### MAX_COVER_HEADER_BYTES
+
+```rust
+pub const MAX_COVER_HEADER_BYTES: u32 = 1024;
 ```
 
 ### MAX_KV_KEY_BYTES

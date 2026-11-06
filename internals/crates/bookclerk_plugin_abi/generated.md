@@ -83,6 +83,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`MetadataChapter`](#metadatachapter) | struct | One chapter in a provider's chapter layout. Chapters are listed in pre-order: a chapter with `depth` n + 1 is nested under the nearest earlier chapter with `depth` n. |
 | [`MetadataChapters`](#metadatachapters) | struct | Success payload of `MetadataProvider.chapters`. |
 | [`CoverFetchParams`](#coverfetchparams) | struct | Params of `CoverFetcher.fetchCovers`. |
+| [`CoverCondition`](#covercondition) | struct | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
 | [`CoverImage`](#coverimage) | struct | What happened to one requested URL. |
 | [`CoverImages`](#coverimages) | struct | Success payload of `CoverFetcher.fetchCovers`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
@@ -293,6 +294,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_metadata_chapters_reply`](#read_metadata_chapters_reply) | function | Decode a `MetadataChaptersReply` union into a typed result. |
 | [`write_cover_fetch_params`](#write_cover_fetch_params) | function | Encode a `CoverFetchParams` onto a Cap'n Proto builder. |
 | [`read_cover_fetch_params`](#read_cover_fetch_params) | function | Decode a `CoverFetchParams` from a Cap'n Proto reader. |
+| [`write_cover_condition`](#write_cover_condition) | function | Encode a `CoverCondition` onto a Cap'n Proto builder. |
+| [`read_cover_condition`](#read_cover_condition) | function | Decode a `CoverCondition` from a Cap'n Proto reader. |
 | [`write_cover_image`](#write_cover_image) | function | Encode a `CoverImage` onto a Cap'n Proto builder. |
 | [`read_cover_image`](#read_cover_image) | function | Decode a `CoverImage` from a Cap'n Proto reader. |
 | [`write_cover_images`](#write_cover_images) | function | Encode a `CoverImages` onto a Cap'n Proto builder. |
@@ -2149,6 +2152,7 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct CoverFetchParams {
     pub urls: Vec<String>,
     pub max_bytes: u32,
+    pub conditions: Vec<CoverCondition>,
 }
 ```
 
@@ -2161,6 +2165,32 @@ Params of `CoverFetcher.fetchCovers`.
 - `max_bytes`: Largest body, in bytes, the host accepts for one image; at most
   `maxCoverBytes`. The sink refuses a larger body, which fails that URL
   only.
+- `conditions`: Conditional request headers per URL, in the same order as `urls`, from
+  the host's cached copy. Empty, or shorter than `urls`, means the
+  remaining URLs are fetched unconditionally.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CoverCondition
+
+```rust
+pub struct CoverCondition {
+    pub if_none_match: Option<String>,
+    pub if_modified_since: Option<String>,
+}
+```
+
+Validators the host already holds for one URL, sent as conditional request
+headers so an unchanged image costs a `304` instead of its body.
+
+**Fields**
+
+- `if_none_match`: `If-None-Match` value: the `ETag` the host stored, verbatim; empty for
+  none.
+  `None` when absent (wire zero value).
+- `if_modified_since`: `If-Modified-Since` value: the `Last-Modified` the host stored,
+  verbatim; empty for none.
+  `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -2172,6 +2202,13 @@ pub struct CoverImage {
     pub stored: bool,
     pub content_type: Option<String>,
     pub error: Option<String>,
+    pub not_modified: bool,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+    pub cache_control: Option<String>,
+    pub expires: Option<String>,
+    pub date: Option<String>,
+    pub age: Option<String>,
 }
 ```
 
@@ -2184,6 +2221,21 @@ What happened to one requested URL.
 - `content_type`: `Content-Type` the server sent. Advisory: the host sniffs the bytes.
   `None` when absent (wire zero value).
 - `error`: Why nothing was stored (HTTP status, size cap, timeout, refused host).
+  `None` when absent (wire zero value).
+- `not_modified`: The server answered `304 Not Modified` to the URL's conditions: nothing
+  was put into the sink and the host's copy is still current.
+- `etag`: `ETag` the server sent, verbatim. Advisory: the host parses and caps it.
+  `None` when absent (wire zero value).
+- `last_modified`: `Last-Modified` the server sent, verbatim.
+  `None` when absent (wire zero value).
+- `cache_control`: `Cache-Control` the server sent, verbatim (several lines joined with
+  `, `).
+  `None` when absent (wire zero value).
+- `expires`: `Expires` the server sent, verbatim.
+  `None` when absent (wire zero value).
+- `date`: `Date` the server sent, verbatim.
+  `None` when absent (wire zero value).
+- `age`: `Age` the server (or a cache in front of it) sent, verbatim.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -5163,6 +5215,30 @@ Decode a [`CoverFetchParams`](#coverfetchparams) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_cover_condition
+
+```rust
+pub fn write_cover_condition(b: Builder<'_>, v: &CoverCondition) -> Result<()>
+```
+
+Encode a [`CoverCondition`](#covercondition) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_cover_condition
+
+```rust
+pub fn read_cover_condition(r: Reader<'_>) -> Result<CoverCondition>
+```
+
+Decode a [`CoverCondition`](#covercondition) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### write_cover_image
 
 ```rust
@@ -5290,7 +5366,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 100;
+pub const READ_ANY_COUNT: u8 = 101;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

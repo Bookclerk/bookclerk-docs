@@ -231,6 +231,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataChaptersReplyOk`](#metadatachaptersreplyok) | class | `MetadataChaptersReply` member `ok`. |
 | [`MetadataChaptersReplyErr`](#metadatachaptersreplyerr) | class | `MetadataChaptersReply` member `err`. |
 | [`CoverFetchParams`](#coverfetchparams) | class | Params of `CoverFetcher.fetchCovers`. |
+| [`CoverCondition`](#covercondition) | class | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
 | [`CoverImage`](#coverimage) | class | What happened to one requested URL. |
 | [`CoverImages`](#coverimages) | class | Success payload of `CoverFetcher.fetchCovers`. |
 | [`CoverImagesReplyOk`](#coverimagesreplyok) | class | `CoverImagesReply` member `ok`. |
@@ -4483,6 +4484,21 @@ Params of `CoverFetcher.fetchCovers`.
 
 - `urls`: Absolute `https://` URLs to fetch, at most `maxCoverUrls`; never empty. The host has already checked each one against its URL policy.
 - `maxBytes`: Largest body, in bytes, the host accepts for one image; at most `maxCoverBytes`. The sink refuses a larger body, which fails that URL only.
+- `conditions`: Conditional request headers per URL, in the same order as `urls`, from the host's cached copy. Empty, or shorter than `urls`, means the remaining URLs are fetched unconditionally.
+
+### CoverCondition
+
+```python
+class CoverCondition(TypedDict)
+```
+
+Validators the host already holds for one URL, sent as conditional request
+headers so an unchanged image costs a `304` instead of its body.
+
+**Attributes**
+
+- `ifNoneMatch`: `If-None-Match` value: the `ETag` the host stored, verbatim; empty for none. Omitted when absent (wire zero value).
+- `ifModifiedSince`: `If-Modified-Since` value: the `Last-Modified` the host stored, verbatim; empty for none. Omitted when absent (wire zero value).
 
 ### CoverImage
 
@@ -4498,6 +4514,13 @@ What happened to one requested URL.
 - `stored`: Whether the body was put into the sink under this URL's index.
 - `contentType`: `Content-Type` the server sent. Advisory: the host sniffs the bytes. Omitted when absent (wire zero value).
 - `error`: Why nothing was stored (HTTP status, size cap, timeout, refused host). Omitted when absent (wire zero value).
+- `notModified`: The server answered `304 Not Modified` to the URL's conditions nothing was put into the sink and the host's copy is still current.
+- `etag`: `ETag` the server sent, verbatim. Advisory: the host parses and caps it. Omitted when absent (wire zero value).
+- `lastModified`: `Last-Modified` the server sent, verbatim. Omitted when absent (wire zero value).
+- `cacheControl`: `Cache-Control` the server sent, verbatim (several lines joined with `, `). Omitted when absent (wire zero value).
+- `expires`: `Expires` the server sent, verbatim. Omitted when absent (wire zero value).
+- `date`: `Date` the server sent, verbatim. Omitted when absent (wire zero value).
+- `age`: `Age` the server (or a cache in front of it) sent, verbatim. Omitted when absent (wire zero value).
 
 ### CoverImages
 

@@ -448,6 +448,7 @@
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_chapters",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_chapters_reply",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/cover_fetch_params",
+    "internals/crates/bookclerk_plugin_abi/plugin_capnp/cover_condition",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/cover_image",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/cover_images",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/cover_images_reply",

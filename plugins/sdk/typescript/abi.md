@@ -426,6 +426,18 @@ Largest image body `CoverFetcher.fetchCovers` may return for one URL.
 
 ***
 
+### MAX\_COVER\_HEADER\_BYTES
+
+```ts
+const MAX_COVER_HEADER_BYTES: 1024;
+```
+
+Longest cache header value, in bytes, `CoverFetcher.fetchCovers` carries in
+either direction (a condition the host sends, a header the server sent).
+The host ignores a longer header the fetcher returns.
+
+***
+
 ### MAX\_COVER\_URLS
 
 ```ts

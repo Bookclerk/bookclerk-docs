@@ -582,6 +582,12 @@ Re-exports [CopyResult](plugin.md#copyresult)
 
 ***
 
+### CoverCondition
+
+Re-exports [CoverCondition](generated.md#covercondition)
+
+***
+
 ### CoverEntrypoint
 
 Re-exports [CoverEntrypoint](plugin.md#coverentrypoint)
