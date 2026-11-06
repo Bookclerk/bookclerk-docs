@@ -748,7 +748,7 @@
   "server/README": "2026-11-06T00:46:07Z",
   "server/api/README": "2026-11-06T04:44:02Z",
   "server/api/accounts": "2026-11-06T01:24:45Z",
-  "server/api/auth": "2026-11-06T11:33:59Z",
+  "server/api/auth": "2026-11-06T13:07:11Z",
   "server/api/cluster": "2026-11-06T11:33:59Z",
   "server/api/configuration": "2026-11-06T01:24:45Z",
   "server/api/discover": "2026-11-06T11:33:59Z",
@@ -779,7 +779,7 @@
   "server/output": "2026-11-05T10:10:13Z",
   "server/plugins": "2026-10-27T08:03:27Z",
   "server/security": "2026-11-05T21:29:14Z",
-  "server/sign-in": "2026-11-06T11:58:50Z",
+  "server/sign-in": "2026-11-06T12:15:05Z",
   "server/stores": "2026-11-04T04:36:15Z"
  }
 }

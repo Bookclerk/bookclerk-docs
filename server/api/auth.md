@@ -3896,7 +3896,7 @@ Clear impersonation on the current operator session.
 
 ### Responses
 
-- `200` — Impersonation ended. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
+- `200` — Impersonation ended. An elevated Owner's own portal session cookie is set again; otherwise the impersonation's portal cookie is cleared. Body: [`OkResponse`](schemas.md#okresponse) (`application/json`)
   - `ok` *boolean*, **required** — Always `true`: a failure answers with an error status instead.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -3961,7 +3961,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Impersonation ended.
+Status `200`: Impersonation ended. An elevated Owner's own portal session cookie is set again; otherwise the impersonation's portal cookie is cleared.
 
 ```json
 {
