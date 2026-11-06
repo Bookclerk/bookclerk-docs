@@ -241,6 +241,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EVENT_RESOURCE_CLASS_NETWORK`](#event_resource_class_network) | constant | Default delivery resource class (`network`). |
 | [`EVENT_SUBSCRIBER_HEARTBEAT_TTL_SECS`](#event_subscriber_heartbeat_ttl_secs) | constant | Live catalog rows quieter than this many seconds are ignored at dispatch. |
 | [`JOB_PAYLOAD_VERSION`](#job_payload_version) | constant | Current job command envelope version stored in `JobPayload::v`. |
+| [`LISTENING_SYNCED`](#listening_synced) | constant | Host event published when a listening sync changed what Discover reads from a stored row: its owner, matched book or work, authors, or how far they got (started, quarter, finished). |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Longest queue name. |
 | [`MAX_QUEUE_WISHERS`](#max_queue_wishers) | constant | Maximum distinct people serialized on a global-queue or Discover card. |
 | [`NODE_QUEUE_PREFIX`](#node_queue_prefix) | constant | Prefix of the per-node queues (`node.<node_id>`) node subsystems consume. |
@@ -248,6 +249,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`QUEUE_CONTENT_TYPE_BYTES`](#queue_content_type_bytes) | constant | Queue message body is raw bytes stored as base64 text. |
 | [`QUEUE_CONTENT_TYPE_JSON`](#queue_content_type_json) | constant | Queue message body is UTF-8 JSON text. |
 | [`QUEUE_CONTENT_TYPE_TEXT`](#queue_content_type_text) | constant | Queue message body is plain UTF-8 text. |
+| [`WISHLIST_CHANGED`](#wishlist_changed) | constant | Host event published when a wishlist entry is added or changes status, or an open entry is deleted with its user. |
 | [`SCHEMA_STATE_FROZEN`](#schema_state_frozen) | constant | On-disk `bookclerk_schema_migrations.state` for a frozen plan version. |
 | [`SCHEMA_STATE_UNRELEASED`](#schema_state_unreleased) | constant | On-disk `bookclerk_schema_migrations.state` for an unreleased development pack. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
@@ -924,7 +926,8 @@ Host-interpreted result of a named atomic operation.
 **Fields**
 
 - `status`: Application outcome (`ok`, `empty`, `notFound`, `lastOwner`, …).
-- `payload`: Op-specific record when `status` is `ok`.
+- `payload`: Op-specific record when `status` is `ok`, or the existing record a
+  `duplicate` folded into (`enqueueJob`, `publishDomainEvent`).
 - `operation_id`: Echo of the request `operationId`.
 - `replayed`: True when this result was loaded from a durable receipt.
 - `receipt_created_at`: RFC 3339 timestamp when the receipt was first written.
@@ -6138,6 +6141,32 @@ Count pending + running jobs (admission cap).
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
+#### LibraryStore::job_admitted_since
+
+```rust
+pub async fn job_admitted_since(
+    &self,
+    dedup_key: &str,
+    since: DateTime<Utc>,
+) -> Result<bool>
+```
+
+True when a job with `dedup_key` was admitted at or after `since`
+and is waiting, running or has succeeded.
+
+Such a job started after `since`, so it read whatever had changed by
+then. A retrying event consumer uses this to skip work an earlier
+attempt already queued instead of admitting it again.
+
+##### Arguments
+
+* `dedup_key` - The [`JobKind::dedup_key`](#jobkinddedup_key) of the job.
+* `since` - The moment the job must have been admitted after.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
 #### LibraryStore::list_books_filtered_page
 
 ```rust
@@ -6769,7 +6798,9 @@ Delete a first-party user and personal data.
 
 Removes portal identities, account links, wishlist rows, claim tickets,
 sessions, and prefs for the user. Acquired library books are retained.
-Refuses to delete the last active owner.
+Refuses to delete the last active owner. Publishes `wishlist_changed`
+(status `deleted`) for each open wish removed with the user, so
+Discover stops counting it for everyone else.
 
 ##### Errors
 
@@ -12062,6 +12093,20 @@ pub const JOB_PAYLOAD_VERSION: u32 = 1;
 
 Current job command envelope version stored in [`JobPayload::v`](#jobpayload).
 
+### LISTENING_SYNCED
+
+```rust
+pub const LISTENING_SYNCED: &str = "listening_synced";
+```
+
+Host event published when a listening sync changed what Discover reads
+from a stored row: its owner, matched book or work, authors, or how far
+they got (started, quarter, finished).
+
+Payload: `provider` (the integration that synced) and `identityIds` (the
+portal identities whose rows changed, before or after; rows not tied to
+an identity are not listed).
+
 ### MAX_QUEUE_NAME_LEN
 
 ```rust
@@ -12117,6 +12162,19 @@ pub const QUEUE_CONTENT_TYPE_TEXT: &str = "text";
 ```
 
 Queue message body is plain UTF-8 text.
+
+### WISHLIST_CHANGED
+
+```rust
+pub const WISHLIST_CHANGED: &str = "wishlist_changed";
+```
+
+Host event published when a wishlist entry is added or changes status, or
+an open entry is deleted with its user.
+
+Payload: `requestId` (the entry's uuid), `identityId` (the portal identity
+that wished for it, or null) and `status` after the write (`open`,
+`cancelled`, or `deleted`).
 
 ### SCHEMA_STATE_FROZEN
 

@@ -1351,6 +1351,10 @@ pub async fn upsert_listening_snapshots(
 Upsert provider-agnostic listening snapshots into `listening_progress`.
 
 `provider` should be the integration id (`audiobookshelf`, plugin id, …).
+When the sync changes what Discover reads from any stored row (see
+`TasteState`: who the row belongs to, which owned book and work it matched,
+its authors, and how far they got), publishes one `listening_synced`; a sync that changes
+nothing Discover reads queues no refresh.
 
 #### Arguments
 
