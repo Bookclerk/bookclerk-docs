@@ -3875,8 +3875,10 @@ Lists every stored candidate of one subject, oldest store fetch first.
 
 Rows are read in id pages, then ordered by fetch time (ties keep id
 order). A refreshed candidate keeps its id, so id order alone would
-not be fetch order. Rows whose scope text is unknown (written by a
-newer release) are skipped.
+not be fetch order. A page whose result would exceed the database
+plugin's `maxResultBytes` is halved and read again; the smaller width
+is kept for the rest of the walk. Rows whose scope text is unknown
+(written by a newer release) are skipped.
 
 ##### Errors
 
@@ -4021,6 +4023,9 @@ pub async fn put_discover_feed(
 ```
 
 Stores (or replaces) one subject's ranked feed.
+
+One upsert writes the row without reading the old one first, so a
+stored feed too large to read back cannot block its replacement.
 
 ##### Arguments
 
