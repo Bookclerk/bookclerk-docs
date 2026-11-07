@@ -1000,7 +1000,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `cache_sweep`, `invalid`
 
 ## JobState
 
@@ -1305,6 +1305,9 @@ A node's latest heartbeat with budget, accounting, and availability.
 - `running_guests` *integer (int64)*, **required** — Guests running here.
 - `availability_ppm` *integer (int64)*, **required** — Recent online fraction in parts per million.
 - `online_since_ms` *integer (int64)*, **required** — Unix milliseconds the current online stretch began.
+- `cache_bytes` *integer (int64) or null* — Bytes the node's image caches hold; `None` from a node that keeps none.
+- `cache_budget_bytes` *integer (int64) or null* — Bytes the node's image caches may hold.
+- `cache_swept_ms` *integer (int64) or null* — When the node's last cache sweep finished, in Unix milliseconds.
 
 ## NodeView
 

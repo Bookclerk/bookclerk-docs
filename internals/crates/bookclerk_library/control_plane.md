@@ -53,6 +53,7 @@ See `docs/adr/control-plane.md`.
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: its row count and newest change stamp. |
+| [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
 | [`NodeHeartbeat`](#nodeheartbeat) | struct | One heartbeat's measurements, before budget and accounting are applied. |
 | [`NodeSampler`](#nodesampler) | struct | Samples capacity and measured use for heartbeats. Keeps the previous CPU counters so each sample reports utilization since the last one. |
@@ -1826,6 +1827,28 @@ One topic's revision: its row count and newest change stamp.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### CacheUsage
+
+```rust
+pub struct CacheUsage {
+    pub bytes: i64,
+    pub budget_bytes: i64,
+    pub swept_ms: Option<i64>,
+}
+```
+
+What a node's image caches hold, as its daemon reports them.
+
+**Fields**
+
+- `bytes`: Bytes the caches hold now.
+- `budget_bytes`: Bytes they may hold: the cluster's `cache.budget_bytes` or the
+  node's override.
+- `swept_ms`: When the last eviction sweep finished, in Unix milliseconds; `None`
+  before the first since the daemon started.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### GuestReservation
 
 ```rust
@@ -1881,6 +1904,7 @@ pub struct NodeHeartbeat {
     pub cpu_used_millicores: Option<i64>,
     pub memory_available_bytes: Option<i64>,
     pub files_dir_free_bytes: Option<i64>,
+    pub cache: Option<CacheUsage>,
 }
 ```
 
@@ -1896,6 +1920,7 @@ One heartbeat's measurements, before budget and accounting are applied.
 - `cpu_used_millicores`: Measured CPU in use, in millicores.
 - `memory_available_bytes`: Measured memory available to new work.
 - `files_dir_free_bytes`: Free bytes on the files directory's filesystem.
+- `cache`: The image caches' use; `None` from a node that keeps none (a Host).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -1960,6 +1985,9 @@ pub struct NodeStatus {
     pub running_guests: i64,
     pub availability_ppm: i64,
     pub online_since_ms: i64,
+    pub cache_bytes: Option<i64>,
+    pub cache_budget_bytes: Option<i64>,
+    pub cache_swept_ms: Option<i64>,
 }
 ```
 
@@ -1985,6 +2013,10 @@ A node's latest heartbeat with budget, accounting, and availability.
 - `running_guests`: Guests running here.
 - `availability_ppm`: Recent online fraction in parts per million.
 - `online_since_ms`: Unix milliseconds the current online stretch began.
+- `cache_bytes`: Bytes the node's image caches hold; `None` from a node that keeps
+  none.
+- `cache_budget_bytes`: Bytes the node's image caches may hold.
+- `cache_swept_ms`: When the node's last cache sweep finished, in Unix milliseconds.
 
 #### NodeStatus::is_live
 
@@ -6107,7 +6139,8 @@ Claims the best ready job this node can run, under the cluster semaphores.
 
 Pages through the ready pending jobs of the class, best first
 ([`ROUTED_CLAIM_CANDIDATES`](#routed_claim_candidates) per page); skips those the node is not
-trusted with ([`super::node_trust`](#node_trust)), those whose requirements this node
+trusted with ([`super::node_trust`](#node_trust)), those pinned to another node
+([`crate::JobPayload::node_id`](README.md#jobpayload)), those whose requirements this node
 does not meet, and those whose account or instance semaphore is full;
 takes the permits of the first one left and claims it with
 [`LibraryStore::claim_job_by_id`](README.md#librarystoreclaim_job_by_id) at the lease generation of the record

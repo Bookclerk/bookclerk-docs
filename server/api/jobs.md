@@ -134,6 +134,7 @@ Schema:
           "plugin_scheduled",
           "discover_candidates",
           "discover_feed",
+          "cache_sweep",
           "invalid"
         ]
       },

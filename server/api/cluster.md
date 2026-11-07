@@ -162,7 +162,10 @@ Status `200`: The node after the change.
     },
     "running_guests": 2,
     "availability_ppm": 998500,
-    "online_since_ms": 1793167200000
+    "online_since_ms": 1793167200000,
+    "cache_bytes": 734003200,
+    "cache_budget_bytes": 1073741824,
+    "cache_swept_ms": 1793212800000
   },
   "this_node": true,
   "kind": "owner",
@@ -466,6 +469,33 @@ Schema:
               "format": "int64",
               "description": "Unix milliseconds the current online stretch began.",
               "example": 1793167200000
+            },
+            "cache_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Bytes the node's image caches hold; `None` from a node that keeps\nnone.",
+              "example": 734003200
+            },
+            "cache_budget_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "Bytes the node's image caches may hold.",
+              "example": 1073741824
+            },
+            "cache_swept_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "When the node's last cache sweep finished, in Unix milliseconds.",
+              "example": 1793212800000
             }
           }
         },
@@ -7072,7 +7102,10 @@ Status `200`: The nodes the caller administers.
         },
         "running_guests": 2,
         "availability_ppm": 998500,
-        "online_since_ms": 1793167200000
+        "online_since_ms": 1793167200000,
+        "cache_bytes": 734003200,
+        "cache_budget_bytes": 1073741824,
+        "cache_swept_ms": 1793212800000
       },
       "this_node": true,
       "kind": "owner",
@@ -7400,6 +7433,33 @@ Schema:
                     "format": "int64",
                     "description": "Unix milliseconds the current online stretch began.",
                     "example": 1793167200000
+                  },
+                  "cache_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Bytes the node's image caches hold; `None` from a node that keeps\nnone.",
+                    "example": 734003200
+                  },
+                  "cache_budget_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Bytes the node's image caches may hold.",
+                    "example": 1073741824
+                  },
+                  "cache_swept_ms": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "When the node's last cache sweep finished, in Unix milliseconds.",
+                    "example": 1793212800000
                   }
                 }
               },
@@ -8194,7 +8254,10 @@ Status `200`: This node and its clerks.
         },
         "running_guests": 2,
         "availability_ppm": 998500,
-        "online_since_ms": 1793167200000
+        "online_since_ms": 1793167200000,
+        "cache_bytes": 734003200,
+        "cache_budget_bytes": 1073741824,
+        "cache_swept_ms": 1793212800000
       },
       "this_node": true,
       "kind": "owner",
@@ -8515,6 +8578,33 @@ Schema:
                     "format": "int64",
                     "description": "Unix milliseconds the current online stretch began.",
                     "example": 1793167200000
+                  },
+                  "cache_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Bytes the node's image caches hold; `None` from a node that keeps\nnone.",
+                    "example": 734003200
+                  },
+                  "cache_budget_bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Bytes the node's image caches may hold.",
+                    "example": 1073741824
+                  },
+                  "cache_swept_ms": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "When the node's last cache sweep finished, in Unix milliseconds.",
+                    "example": 1793212800000
                   }
                 }
               },

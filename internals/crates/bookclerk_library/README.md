@@ -2603,6 +2603,7 @@ pub struct JobPayload {
     pub cron: Option<String>,
     pub scheduled_time_ms: Option<i64>,
     pub subject: Option<String>,
+    pub node_id: Option<String>,
 }
 ```
 
@@ -2654,6 +2655,14 @@ JSON command envelope stored on a job row.
   `scheduledTime`, in Unix milliseconds (always a whole UTC minute).
 - `subject`: For [`JobKind::DiscoverCandidates`](#jobkind) and [`JobKind::DiscoverFeed`]: the
   Discover subject key (`operator`, `user:<id>`, `portal:<id>`).
+- `node_id`: The one node that may claim this job, for work on that node's own
+  disk ([`JobKind::CacheSweep`](#jobkind)).
+  
+  `None` lets any node that meets [`Self::requires`](#jobpayload) claim it. The
+  routed claim (`control_plane::claim_routed_job`) skips a job pinned
+  to another node, the unrouted [`crate::LibraryStore::claim_next_job`](#librarystoreclaim_next_job)
+  never claims a pinned job, and the requirements sweep fails one whose
+  node has stopped heartbeating (`control_plane::sweep_job_requirements`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -9866,6 +9875,7 @@ pub enum JobKind {
     PluginScheduled,
     DiscoverCandidates,
     DiscoverFeed,
+    CacheSweep,
     Invalid,
 }
 ```
@@ -9886,6 +9896,9 @@ Kind of durable daemon work stored in the `jobs` table.
   (`discover_candidates`), store by store.
 - `DiscoverFeed`: Rank one Discover subject's stored candidates into shelves
   (`discover_feed`); no network.
+- `CacheSweep`: Sweep one node's image caches and its orphaned job scratch
+  (`cache_sweep`); only the node named by [`JobPayload::node_id`](#jobpayload)
+  claims it.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::as_str
