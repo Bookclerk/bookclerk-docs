@@ -20,9 +20,9 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`CatalogSearchHit`](#catalogsearchhit) | struct | One autocomplete / results-page hit (possibly spanning multiple storefronts). |
 | [`CatalogSearchPage`](#catalogsearchpage) | struct | Paged catalog-search response. |
 | [`CatalogSearchPageOpts`](#catalogsearchpageopts) | struct | Options for `catalog_search_page`. |
+| [`OnnxEmbedder`](#onnxembedder) | struct | ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM. |
 | [`CosineHit`](#cosinehit) | struct | One cosine-similarity neighbor from an embedding query. |
 | [`HashEmbedder`](#hashembedder) | struct | Deterministic offline embedder for discovery similarity. |
-| [`OnnxEmbedder`](#onnxembedder) | struct | ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM. |
 | [`StoreEdition`](#storeedition) | struct | One storefront edition of a work (for multi-store purchase links). |
 | [`WorkIdentity`](#workidentity) | struct | Bibliographic identity slice used for merge decisions. |
 | [`MetadataEnrichOptions`](#metadataenrichoptions) | struct | Pacing for one enrichment run. |
@@ -472,6 +472,41 @@ Options for [`catalog_search_page`](#catalog_search_page).
 
 Implements: `Clone`, `Debug`
 
+### OnnxEmbedder
+
+```rust
+pub struct OnnxEmbedder {
+    /* private fields */
+}
+```
+
+ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM.
+
+Only built with the `onnx` feature (the hosts' `onnx-embeddings`).
+
+#### OnnxEmbedder::open
+
+```rust
+pub fn open(cache_dir: &Path, intra_threads: usize) -> Result<Self, DiscoverError>
+```
+
+Download (if needed) and load quantized MiniLM into `cache_dir`.
+
+##### Arguments
+
+* `cache_dir` - Directory used to cache downloaded model weights.
+* `intra_threads` - ONNX intra-op thread count (clamped to at least 1).
+
+##### Returns
+
+On success, the inner `Self` value.
+
+##### Errors
+
+Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+Implements: `Embedder`
+
 ### CosineHit
 
 ```rust
@@ -521,39 +556,6 @@ Creates a hash embedder with the given vector length (clamped to 8..=384).
 Embedder that maps text to deterministic unit vectors of length `dims`.
 
 Implements: `Debug`, `Default`, `Embedder`
-
-### OnnxEmbedder
-
-```rust
-pub struct OnnxEmbedder {
-    /* private fields */
-}
-```
-
-ONNX MiniLM embedder (fastembed). Loaded on demand; drop to free RAM.
-
-#### OnnxEmbedder::open
-
-```rust
-pub fn open(cache_dir: &Path, intra_threads: usize) -> Result<Self, DiscoverError>
-```
-
-Download (if needed) and load quantized MiniLM into `cache_dir`.
-
-##### Arguments
-
-* `cache_dir` - Directory used to cache downloaded model weights.
-* `intra_threads` - ONNX intra-op thread count (clamped to at least 1).
-
-##### Returns
-
-On success, the inner `Self` value.
-
-##### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-Implements: `Embedder`
 
 ### StoreEdition
 

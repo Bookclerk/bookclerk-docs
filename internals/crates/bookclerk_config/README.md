@@ -1826,7 +1826,9 @@ Discovery / recommendations / embeddings settings.
   
   Off by default: the shelves rank with the built-in local-hash
   embedder. The ONNX path stays for opt-in experiments until
-  AI-assisted recommendations are designed.
+  AI-assisted recommendations are designed, and needs a host built with
+  the `onnx-embeddings` feature; without it, this warns and uses
+  local-hash.
 - `embedding_model`: Model id (`all-minilm-l6-v2-q` preferred; runtime may fall back to `local-hash-v1`).
 - `embed_intra_threads`: ONNX intra-op threads (keep at 1 on small VPSes).
 - `worldcat_enabled`: Reserved for a future WorldCat provider (requires API key).
