@@ -4299,6 +4299,59 @@ Same batch as [AtomicTransport.execute](db-execute.md#execute), as Cap'n Proto b
 
 Unpacked `ExecuteResultReply` message.
 
+##### executeStreamed()?
+
+```ts
+executeStreamed?(request): Promise<
+  | Uint8Array<ArrayBufferLike>
+| ReadableStream<Uint8Array<ArrayBufferLike>>>;
+```
+
+Same batch as [AtomicTransport.executeStreamed](db-execute.md#executestreamed): the reply as
+`ExecuteStreamFrame` bytes (`POST /db/execute-streamed`), read under the
+session's streamed budget. A transport that predates the streamed read
+leaves it out; the binding then reads inline.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ExecuteRequest`](db-execute.md#executerequest) | Structured `ExecuteRequest`. |
+
+###### Returns
+
+`Promise`\<
+  \| `Uint8Array`\<`ArrayBufferLike`\>
+  \| `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
+
+The frame sequence as the channel delivers it.
+
+###### Overrides
+
+[`AtomicTransport`](db-execute.md#atomictransport).[`executeStreamed`](db-execute.md#executestreamed)
+
+##### executeStreamedBytes()?
+
+```ts
+executeStreamedBytes?(bytes): Promise<Uint8Array<ArrayBufferLike>>;
+```
+
+Same frames as [GrantedDatabaseTransport.executeStreamed](#executestreamed-1), whole,
+from Cap'n request bytes (Python authors decode locally). Optional like
+[GrantedDatabaseTransport.executeStreamed](#executestreamed-1).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Unpacked `ExecuteRequest` message. |
+
+###### Returns
+
+`Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+
+Every `ExecuteStreamFrame`, concatenated.
+
 ##### limits()
 
 ```ts
@@ -4331,6 +4384,34 @@ bytes (`DbCapabilitiesReply`) for Python authors.
 `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
 Unpacked `DbCapabilitiesReply` message.
+
+##### openStreamedBytes()?
+
+```ts
+openStreamedBytes?(bytes): Promise<
+  | Uint8Array<ArrayBufferLike>
+| ReadableStream<Uint8Array<ArrayBufferLike>>>;
+```
+
+Same frames as [GrantedDatabaseTransport.executeStreamedBytes](#executestreamedbytes),
+as the channel delivers them: a `ReadableStream` when it streams, so an
+author's `iterate()` can decode frames as they arrive instead of holding
+the reply whole. Optional like
+[GrantedDatabaseTransport.executeStreamed](#executestreamed-1).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Unpacked `ExecuteRequest` message. |
+
+###### Returns
+
+`Promise`\<
+  \| `Uint8Array`\<`ArrayBufferLike`\>
+  \| `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
+
+The frame sequence, streamed when the channel streams it.
 
 ***
 

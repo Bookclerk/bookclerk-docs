@@ -97,7 +97,12 @@ binding. A binding's `await limits()` returns the `DbCapabilities` its
 session negotiated; a request or result over one of them raises a
 `PluginError` whose `code` is `limit_exceeded` and whose `limit` names
 the cap. On a host that predates `limits()` the call raises
-`unsupported`. Generate a typed `Env` protocol from `plugin.toml`:
+`unsupported`. `all()` reads through the session's streamed budget when
+it advertises one, `prepare(sql).iterate()` yields rows one at a time
+from the same read, and `db.chunk(statements)` splits a long list into
+batches that each fit one request; see
+[Working within database limits](../../database-limits.md). Generate a
+typed `Env` protocol from `plugin.toml`:
 
 ```bash
 python -m bookclerk_plugin_sdk types .   # writes bookclerk_configuration.py
@@ -184,6 +189,8 @@ source of truth.
 - [`D1Result`](db_value.md#d1result) from `bookclerk_plugin_sdk.db_value`
 - [`DatabaseBinding`](db_value.md#databasebinding) from `bookclerk_plugin_sdk.db_value`
 - [`DiagnoseResult`](abi.md#diagnoseresult) from `bookclerk_plugin_sdk.abi`
+- [`ExecuteStreamDecoder`](db_value.md#executestreamdecoder) from `bookclerk_plugin_sdk.db_value`
+- [`ExecuteStreamLimits`](db_value.md#executestreamlimits) from `bookclerk_plugin_sdk.db_value`
 - [`FetchTitleParams`](abi.md#fetchtitleparams) from `bookclerk_plugin_sdk.abi`
 - [`HealthOk`](abi.md#healthok) from `bookclerk_plugin_sdk.abi`
 - [`Invocation`](abi.md#invocation) from `bookclerk_plugin_sdk.abi`
@@ -193,11 +200,13 @@ source of truth.
 - [`RetryToken`](db_value.md#retrytoken) from `bookclerk_plugin_sdk.db_value`
 - [`ScanParams`](abi.md#scanparams) from `bookclerk_plugin_sdk.abi`
 - [`canonical_execute_request_hash`](db_value.md#canonical_execute_request_hash) from `bookclerk_plugin_sdk.db_value`
+- [`chunk_indexes`](db_value.md#chunk_indexes) from `bookclerk_plugin_sdk.db_value`
 - [`create_database_binding`](db_value.md#create_database_binding) from `bookclerk_plugin_sdk.db_value`
 - [`decode_db_value`](db_value.md#decode_db_value) from `bookclerk_plugin_sdk.db_value`
 - [`decode_execute_request`](db_value.md#decode_execute_request) from `bookclerk_plugin_sdk.db_value`
 - [`decode_db_capabilities_reply`](db_value.md#decode_db_capabilities_reply) from `bookclerk_plugin_sdk.db_value`
 - [`decode_execute_result_reply`](db_value.md#decode_execute_result_reply) from `bookclerk_plugin_sdk.db_value`
+- [`decode_execute_stream`](db_value.md#decode_execute_stream) from `bookclerk_plugin_sdk.db_value`
 - [`encode_db_capabilities_reply`](db_value.md#encode_db_capabilities_reply) from `bookclerk_plugin_sdk.db_value`
 - [`LimitExceeded`](limits.md#limitexceeded) from `bookclerk_plugin_sdk.limits`
 - [`limit_exceeded_message`](limits.md#limit_exceeded_message) from `bookclerk_plugin_sdk.limits`
@@ -206,6 +215,9 @@ source of truth.
 - [`encode_execute_request`](db_value.md#encode_execute_request) from `bookclerk_plugin_sdk.db_value`
 - [`encode_execute_result_reply`](db_value.md#encode_execute_result_reply) from `bookclerk_plugin_sdk.db_value`
 - [`execute_reply_to_d1_results`](db_value.md#execute_reply_to_d1_results) from `bookclerk_plugin_sdk.db_value`
+- [`execute_stream_limits`](db_value.md#execute_stream_limits) from `bookclerk_plugin_sdk.db_value`
+- [`raw_stream_ceiling`](db_value.md#raw_stream_ceiling) from `bookclerk_plugin_sdk.db_value`
+- [`streams_results`](db_value.md#streams_results) from `bookclerk_plugin_sdk.db_value`
 - [`parse_db_value`](db_value.md#parse_db_value) from `bookclerk_plugin_sdk.db_value`
 - [`statement_result_to_d1_result`](db_value.md#statement_result_to_d1_result) from `bookclerk_plugin_sdk.db_value`
 

@@ -36,6 +36,15 @@ crate root re-exports the DTOs and helpers a guest needs; prefer
 Identity (`apiVersion`, `id`, capabilities) comes from `plugin.toml`;
 `describe` only refines `displayName` and similar fields.
 
+A `[[databases]]` binding is taken from the `open` bindings with
+`DatabaseBinding::take_named_from_bindings` and used as on D1
+(`prepare`, `bind`, `all`, `first`, `batch`). Its `limits()` returns the
+session's `DbCapabilities`; `all()` reads through the session's streamed
+budget when it advertises one, and `chunk()` splits a long statement list
+into batches that each fit one request. Any cap that is hit is a
+`PluginError` with `PluginErrorCode::LimitExceeded` and a typed `limit()`;
+see [Working within database limits](../../database-limits.md).
+
 ## The socket proxy
 
 A native guest has no ambient network. It receives an inherited link
@@ -111,6 +120,7 @@ submodules unless you need module-level docs.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`ChunkCaps`](#chunkcaps) | struct | Caps `DatabaseBinding::chunk` splits a batch by when the session's limits are not to be used. |
 | [`D1ExecResult`](#d1execresult) | struct | Cloudflare `D1ExecResult`. |
 | [`D1Meta`](#d1meta) | struct | Cloudflare `D1Result::meta` shape. |
 | [`D1Result`](#d1result) | struct | Cloudflare `D1Result` projection. |
@@ -123,6 +133,7 @@ submodules unless you need module-level docs.
 | [`SdkError`](#sdkerror) | enum | Errors from the guest stdio loop and SDK helpers (not plugin business logic). |
 | [`db_value_from_sea`](#db_value_from_sea) | function | Fallible SeaORM → `bookclerk_plugin_abi::DbValue` bridge. |
 | [`proxy_rows_from_typed`](#proxy_rows_from_typed) | function | Builds SeaORM proxy rows from a typed statement result. |
+| [`chunk_indexes`](#chunk_indexes) | function | Greedy split of `typed` into index runs that each fit one request. |
 | [`execute_reply_to_d1_results`](#execute_reply_to_d1_results) | function | Maps a typed execute reply to Cloudflare `D1Result` per statement. |
 | [`statement_result_to_d1_result`](#statement_result_to_d1_result) | function | Maps one typed statement result to Cloudflare `D1Result`. |
 | [`fetch_work_dir`](#fetch_work_dir) | function | Resolves the directory a `fetchTitle` call should write into. |
@@ -392,6 +403,25 @@ submodules unless you need module-level docs.
 
 ## Structs
 
+### ChunkCaps
+
+```rust
+pub struct ChunkCaps {
+    pub max_statements: u32,
+    pub max_request_bytes: u32,
+}
+```
+
+Caps [`DatabaseBinding::chunk`](#databasebindingchunk) splits a batch by when the session's
+limits are not to be used.
+
+**Fields**
+
+- `max_statements`: Statements per request (`0` = no cap).
+- `max_request_bytes`: Encoded request bytes per request (`0` = no cap).
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### D1ExecResult
 
 ```rust
@@ -466,6 +496,11 @@ pub struct DatabaseBinding {
 
 Host-mediated typed SQL surface for plugin guests.
 
+Row-returning reads go through `GuestDatabase.executeStreamed` whenever
+the session advertises a streamed budget (`limits()`, fetched once per
+binding), so a result past the inline caps still arrives whole; sessions
+that do not stream, or answer `unsupported`, are read inline.
+
 #### DatabaseBinding::from_session
 
 ```rust
@@ -515,6 +550,34 @@ Use it to size a batch or a read before sending: `max_request_bytes`,
 
 Returns `unsupported` when the host session predates
 `GuestDatabase.limits`.
+
+#### DatabaseBinding::chunk
+
+```rust
+pub async fn chunk(
+    &self,
+    statements: Vec<PreparedStatement>,
+    caps: Option<ChunkCaps>,
+) -> Result<Vec<Vec<PreparedStatement>>>
+```
+
+Splits `statements` into batches that each fit one request.
+
+`for batch in db.chunk(stmts, None).await? { db.batch(batch, None).await?; }`.
+Each batch is atomic; the loop is not. The caps come from the
+session's limits (`max_statements`, and the tighter of the session's
+and the binding's `max_request_bytes`) unless `caps` is given; zero
+caps given explicitly mean one batch. A single statement larger than
+the request cap is yielded alone, so [`Self::batch`](#databasebindingbatch) reports the
+typed error. Batches are sized with the UUID-shaped retry id the
+binding mints; a caller-chosen retry id that is longer leaves that
+much less room.
+
+##### Errors
+
+Returns `unsupported` when neither the session's limits nor `caps`
+are available, and `PluginError::invalid_params` when a statement
+is missing terminal intent.
 
 #### DatabaseBinding::prepare
 
@@ -915,6 +978,27 @@ Builds SeaORM proxy rows from a typed statement result.
 #### Errors
 
 Returns when the result is not positional.
+
+### chunk_indexes
+
+```rust
+pub fn chunk_indexes(
+    typed: &[TypedDbStatement],
+    max_statements: u32,
+    max_request_bytes: u32,
+) -> Result<Vec<Vec<usize>>>
+```
+
+Greedy split of `typed` into index runs that each fit one request.
+
+Sizes are estimated per statement against one probe statement and each
+run is verified by one exact encode; a run the estimate let through is
+halved until it fits, and a lone statement over the cap is yielded on
+its own. `0` lifts a cap.
+
+#### Errors
+
+Returns when a statement cannot be encoded (U+0000 in SQL or TEXT).
 
 ### execute_reply_to_d1_results
 

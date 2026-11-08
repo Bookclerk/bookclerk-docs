@@ -554,6 +554,26 @@ async def execute(self, _request: ExecuteRequest) -> ExecuteReply
 
 Host-mediated typed batch (`ExecuteRequest` → `ExecuteReply`).
 
+#### GuestDatabase.execute_streamed
+
+```python
+async def execute_streamed(self, _request: ExecuteRequest) -> bytes | AsyncIterable[bytes]
+```
+
+The same batch answered as `ExecuteStreamFrame` bytes.
+
+The reply is counted against the session's `maxStreamedResultBytes`
+/ `maxStreamedResultRows` instead of the inline caps, so a result
+past them still arrives whole.
+
+**Returns**
+
+Every frame, concatenated, or the frames as a byte stream.
+
+**Raises**
+
+- `PluginError`: `unsupported` on a host that predates the method.
+
 #### GuestDatabase.close
 
 ```python
@@ -1681,7 +1701,7 @@ Wrap an adapter `GrantedDatabaseTransport` stub as a [`DatabaseBinding`](db_valu
 
 **Args**
 
-- `transport`: Stub exposing `executeBytes(bytes) -> bytes` and `limitsBytes() -> bytes`.
+- `transport`: Stub exposing `executeBytes(bytes) -> bytes`, `executeStreamedBytes(bytes) -> bytes` and `limitsBytes() -> bytes`.
 
 **Returns**
 

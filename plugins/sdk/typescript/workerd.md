@@ -40,7 +40,7 @@ new InvokeError(
 
 ###### Overrides
 
-[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor)
+[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-1)
 
 #### Properties
 
@@ -489,6 +489,12 @@ Re-exports [Checkpoint](plugin.md#checkpoint-4)
 
 ***
 
+### chunkIndexes
+
+Re-exports [chunkIndexes](db-execute.md#chunkindexes)
+
+***
+
 ### cliArgs
 
 Re-exports [cliArgs](plugin.md#cliargs)
@@ -516,6 +522,12 @@ Re-exports [CliInvokeResult](generated.md#cliinvokeresult)
 ### CliSchema
 
 Re-exports [CliSchema](generated.md#clischema)
+
+***
+
+### collectExecuteStream
+
+Re-exports [collectExecuteStream](README.md#collectexecutestream)
 
 ***
 
@@ -675,6 +687,12 @@ Re-exports [decodeExecuteResultReply](db-execute.md#decodeexecuteresultreply)
 
 ***
 
+### decodeExecuteStream
+
+Re-exports [decodeExecuteStream](README.md#decodeexecutestream)
+
+***
+
 ### decodeExtensibleConfig
 
 Re-exports [decodeExtensibleConfig](plugin.md#decodeextensibleconfig)
@@ -786,6 +804,24 @@ Re-exports [executeReplyToD1Results](db-execute.md#executereplytod1results)
 ### ExecuteRequest
 
 Re-exports [ExecuteRequest](db-execute.md#executerequest)
+
+***
+
+### ExecuteStreamDecoder
+
+Re-exports [ExecuteStreamDecoder](README.md#executestreamdecoder)
+
+***
+
+### executeStreamLimits
+
+Re-exports [executeStreamLimits](README.md#executestreamlimits-1)
+
+***
+
+### ExecuteStreamLimits
+
+Re-exports [ExecuteStreamLimits](README.md#executestreamlimits)
 
 ***
 
@@ -1251,6 +1287,12 @@ Re-exports [QueueSendOptions](env.md#queuesendoptions)
 
 ***
 
+### rawStreamCeiling
+
+Re-exports [rawStreamCeiling](README.md#rawstreamceiling)
+
+***
+
 ### ReadOptions
 
 Re-exports [ReadOptions](plugin.md#readoptions)
@@ -1332,6 +1374,12 @@ Re-exports [StorageEntrypoint](plugin.md#storageentrypoint)
 ### StorefrontEntrypoint
 
 Re-exports [StorefrontEntrypoint](plugin.md#storefrontentrypoint)
+
+***
+
+### streamsResults
+
+Re-exports [streamsResults](README.md#streamsresults)
 
 ***
 

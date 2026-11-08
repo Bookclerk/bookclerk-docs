@@ -32,6 +32,33 @@ Runs one typed atomic batch.
 
 Structured `ExecuteReply`.
 
+##### executeStreamed()?
+
+```ts
+executeStreamed?(request): Promise<
+  | Uint8Array<ArrayBufferLike>
+| ReadableStream<Uint8Array<ArrayBufferLike>>>;
+```
+
+Runs the same typed atomic batch as [AtomicTransport.execute](#execute) but
+answered as `ExecuteStreamFrame` bytes (`GuestDatabase.executeStreamed`),
+so the result may grow to the session's streamed budget. Transports
+that predate it leave it out; the binding then reads inline.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ExecuteRequest`](#executerequest) | Structured Cap'n `ExecuteRequest`. |
+
+###### Returns
+
+`Promise`\<
+  \| `Uint8Array`\<`ArrayBufferLike`\>
+  \| `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
+
+The frame sequence, whole or as a byte stream.
+
 ##### limits()?
 
 ```ts
@@ -199,6 +226,34 @@ Ordinary bound prepared statements use Cloudflare `run()` semantics
 ###### Returns
 
 `Promise`\<[`D1Result`](#d1result)\<`Record`\<`string`, [`DbValue`](db-value.md#dbvalue)\>\>[]\>
+
+##### chunk()
+
+```ts
+chunk(statements, options?): AsyncIterable<PreparedStatement[]>;
+```
+
+Splits `statements` into batches that each fit one request
+(`maxStatements` of the session and the tighter of the session's and
+the binding's `maxRequestBytes`, or the caps in `options`):
+`for await (const b of db.chunk(stmts)) await db.batch(b)`. Each batch
+is atomic; the loop is not. A single statement larger than the request
+cap is yielded alone, so `batch()` reports the typed error. Batches are
+sized with the UUID-shaped retry id the binding mints; a caller-chosen
+retry id that is longer leaves that much less room.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `statements` | [`PreparedStatement`](#preparedstatement)[] | Prepared statements (binds and intent already applied). |
+| `options?` | \{ `maxRequestBytes?`: `number`; `maxStatements?`: `number`; \} | Caps to split by instead of the session's limits; `0` given explicitly means no cap (one batch when both are `0`). |
+| `options.maxRequestBytes?` | `number` | - |
+| `options.maxStatements?` | `number` | - |
+
+###### Returns
+
+`AsyncIterable`\<[`PreparedStatement`](#preparedstatement)[]\>
 
 ##### exec()
 
@@ -585,6 +640,29 @@ First row as a name→value map, or one column when `colName` is set.
   \| `Record`\<`string`, [`DbValue`](db-value.md#dbvalue)\>
   \| `null`\>
 
+##### iterate()
+
+```ts
+iterate(options?): AsyncIterable<Record<string, DbValue>>;
+```
+
+Rows one at a time from the same single-snapshot streamed read as
+[PreparedStatement.all](#all), without holding the whole result:
+`for await (const row of stmt.iterate()) …`. The read still fails closed
+(`limit_exceeded`) past the session's streamed budget. On a session that
+does not stream the rows come from one inline `all()`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options?` | \{ `retry?`: [`RetryToken`](#retrytoken); \} | Optional retry token. |
+| `options.retry?` | [`RetryToken`](#retrytoken) | - |
+
+###### Returns
+
+`AsyncIterable`\<`Record`\<`string`, [`DbValue`](db-value.md#dbvalue)\>\>
+
 ##### raw()
 
 ```ts
@@ -748,6 +826,38 @@ SHA-256 hex of the Cap'n request with id and hash cleared.
 `Promise`\<`string`\>
 
 Hex digest matching the host canonical hash.
+
+***
+
+### chunkIndexes()
+
+```ts
+function chunkIndexes(
+   typed, 
+   maxStatements, 
+   maxRequestBytes
+): number[][];
+```
+
+Greedy split of `typed` into index runs whose encoded request stays within
+`maxRequestBytes` and whose length stays within `maxStatements` (`0` lifts
+a cap). Sizes are estimated per statement and each run is verified by one
+exact encode; a run the estimate let through is halved until it fits, and
+a lone statement over the cap is yielded on its own.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `typed` | [`TypedDbStatement`](#typeddbstatement)[] | Statements to split. |
+| `maxStatements` | `number` | Statements per request (`0` = no cap). |
+| `maxRequestBytes` | `number` | Encoded request bytes (`0` = no cap). |
+
+#### Returns
+
+`number`[][]
+
+Index runs in order, covering every statement once.
 
 ***
 

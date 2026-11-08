@@ -114,6 +114,11 @@ A binding's `limits()` returns the `DbCapabilities` its session negotiated
 …); a request or result over one of them rejects with a `PluginError`
 whose `code` is `limit_exceeded` and whose `limit` names the cap. On a
 host that predates `limits()` the call rejects with `unsupported`.
+`all()` reads through the session's streamed budget when it advertises
+one, `prepare(sql).iterate()` yields rows one at a time from the same
+read, and `db.chunk(statements)` splits a long list into batches that
+each fit one request; see
+[Working within database limits](../../database-limits.md).
 Generate the `Env` type from `plugin.toml`:
 
 ```bash
@@ -179,6 +184,117 @@ See `docs/plugins/README.md` and `docs/contributing/code-documentation.md`.
 - [workerd](workerd.md)
 
 ## Classes
+
+### ExecuteStreamDecoder
+
+Sans-IO decoder of a streamed execute reply: feed it bytes in any split,
+then take the reassembled [ExecuteReply](db-execute.md#executereply).
+
+It fails closed on more raw bytes than the budget allows, on a statement
+with more rows than the row cap, and on any frame out of sequence.
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new ExecuteStreamDecoder(limits, options?): ExecuteStreamDecoder;
+```
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limits` | [`ExecuteStreamLimits`](#executestreamlimits) | Budget the stream is held to. |
+| `options?` | \{ `retainRows?`: `boolean`; \} | `retainRows: false` counts rows against the budget but drops them from the collected reply (for `iterate()`). |
+| `options.retainRows?` | `boolean` | - |
+
+###### Returns
+
+[`ExecuteStreamDecoder`](#executestreamdecoder)
+
+#### Accessors
+
+##### columns
+
+###### Get Signature
+
+```ts
+get columns(): DbColumn[];
+```
+
+Columns of the statement whose rows are arriving.
+
+###### Returns
+
+[`DbColumn`](generated.md#dbcolumn)[]
+
+The open statement's columns, or an empty list between statements.
+
+##### finished
+
+###### Get Signature
+
+```ts
+get finished(): boolean;
+```
+
+Whether the final frame (`end` or `err`) has been decoded.
+
+###### Returns
+
+`boolean`
+
+True once the stream is complete.
+
+#### Methods
+
+##### finish()
+
+```ts
+finish(): ExecuteReply;
+```
+
+Takes the reassembled reply once the stream has ended.
+
+###### Returns
+
+[`ExecuteReply`](db-execute.md#executereply)
+
+The reply the frames described.
+
+###### Throws
+
+The adapter's `PluginError` when the stream ended with `err`, and
+  `unavailable` when it ended before its final frame.
+
+##### push()
+
+```ts
+push(bytes): ExecuteStreamFrame[];
+```
+
+Feeds the next bytes of the stream.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Any slice of the frame sequence. |
+
+###### Returns
+
+[`ExecuteStreamFrame`](generated.md#executestreamframe)[]
+
+The frames completed by these bytes, in order.
+
+###### Throws
+
+`PluginError` `limit_exceeded` when the stream exceeds the byte
+  or row budget, `invalid_params` when a frame is malformed or out of
+  sequence or bytes follow the final frame.
+
+***
 
 ### PluginError
 
@@ -335,6 +451,46 @@ Typed plugin error.
 
 ## Interfaces
 
+### ExecuteStreamLimits
+
+What a receiver lets a streamed reply grow to.
+
+#### Properties
+
+##### bytesLimit
+
+```ts
+bytesLimit: "maxStreamedResultBytes" | "maxAtomicResultBytes";
+```
+
+Capability field `maxBytes` came from, for the error it raises.
+
+##### maxBytes
+
+```ts
+maxBytes: number;
+```
+
+Encoded reply budget in bytes (`0` = only the framing slack).
+
+##### maxRows
+
+```ts
+maxRows: number;
+```
+
+Rows one statement may return (`0` = unlimited).
+
+##### rowsLimit
+
+```ts
+rowsLimit: "maxStreamedResultRows" | "maxResultRows";
+```
+
+Capability field `maxRows` came from, for the error it raises.
+
+***
+
 ### LimitExceeded
 
 A negotiated SQL-v1 cap that a request or its result exceeded
@@ -367,6 +523,79 @@ used: number;
 The observed value that exceeded `cap`.
 
 ## Functions
+
+### collectExecuteStream()
+
+```ts
+function collectExecuteStream(chunks, limits): Promise<ExecuteReply>;
+```
+
+Collects an async chunk source into one reply under `limits`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `chunks` | `AsyncIterable`\<`Uint8Array`\<`ArrayBufferLike`\>\> | Frame bytes as the transport delivers them. |
+| `limits` | [`ExecuteStreamLimits`](#executestreamlimits) | Budget the stream is held to. |
+
+#### Returns
+
+`Promise`\<[`ExecuteReply`](db-execute.md#executereply)\>
+
+The reassembled reply.
+
+***
+
+### decodeExecuteStream()
+
+```ts
+function decodeExecuteStream(bytes, limits): ExecuteReply;
+```
+
+Decodes a whole frame sequence under `limits`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Every frame, concatenated. |
+| `limits` | [`ExecuteStreamLimits`](#executestreamlimits) | Budget the stream is held to. |
+
+#### Returns
+
+[`ExecuteReply`](db-execute.md#executereply)
+
+The reassembled reply.
+
+#### Throws
+
+See [ExecuteStreamDecoder.push](#push) and [ExecuteStreamDecoder.finish](#finish).
+
+***
+
+### executeStreamLimits()
+
+```ts
+function executeStreamLimits(caps): ExecuteStreamLimits;
+```
+
+The streamed budget of `caps`, or its inline caps when the session does
+not stream.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `caps` | [`DbCapabilities`](generated.md#dbcapabilities) | Session capabilities (`limits()`). |
+
+#### Returns
+
+[`ExecuteStreamLimits`](#executestreamlimits)
+
+Limits for an [ExecuteStreamDecoder](#executestreamdecoder).
+
+***
 
 ### limitExceededMessage()
 
@@ -413,6 +642,29 @@ The exceeded cap, or `undefined` when the text is not a limit error.
 
 ***
 
+### rawStreamCeiling()
+
+```ts
+function rawStreamCeiling(limits): number;
+```
+
+Raw frame bytes a receiver accepts before failing closed: the reply budget
+plus one eighth for frame headers and one window of slack.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limits` | [`ExecuteStreamLimits`](#executestreamlimits) | Budget. |
+
+#### Returns
+
+`number`
+
+Byte ceiling on the whole frame sequence and on any one frame.
+
+***
+
 ### requirePluginMigrationRegistration()
 
 ```ts
@@ -436,6 +688,28 @@ The same array when within limits.
 #### Throws
 
 Error with `code` / `wireCode` `payload_too_large` when a limit is exceeded.
+
+***
+
+### streamsResults()
+
+```ts
+function streamsResults(caps): boolean;
+```
+
+True when `caps` advertises a streamed result budget.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `caps` | [`DbCapabilities`](generated.md#dbcapabilities) | Session capabilities (`limits()`). |
+
+#### Returns
+
+`boolean`
+
+Whether `executeStreamed` is worth calling on this session.
 
 ## References
 
@@ -628,6 +902,12 @@ Re-exports [ChapterMarker](generated.md#chaptermarker)
 ### Checkpoint
 
 Re-exports [Checkpoint](plugin.md#checkpoint-4)
+
+***
+
+### chunkIndexes
+
+Re-exports [chunkIndexes](db-execute.md#chunkindexes)
 
 ***
 

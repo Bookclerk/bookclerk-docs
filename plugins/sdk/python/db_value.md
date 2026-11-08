@@ -27,6 +27,8 @@ always uses the domain types.
 | [`DatabaseBinding`](#databasebinding) | class | Host-mediated Cloudflare-style SQL binding for plugin guests. |
 | [`RetryToken`](#retrytoken) | class | Explicit retry identity: reuse both `operationId` and `requestHash`. |
 | [`PreparedStatement`](#preparedstatement) | class | Cloudflare-style prepared statement over a `DatabaseBinding`. |
+| [`ExecuteStreamLimits`](#executestreamlimits) | class | What a receiver lets a streamed reply grow to. |
+| [`ExecuteStreamDecoder`](#executestreamdecoder) | class | Sans-IO decoder of a streamed execute reply. |
 | [`parse_db_value`](#parse_db_value) | function | Parse a JSON `DbValue`. Unknown union members raise `ValueError`. |
 | [`encode_db_value`](#encode_db_value) | function | Encode a standalone unpacked Cap'n `DbValue` message. |
 | [`decode_db_value`](#decode_db_value) | function | Decode a standalone unpacked Cap'n `DbValue` message. |
@@ -39,6 +41,11 @@ always uses the domain types.
 | [`statement_result_to_d1_result`](#statement_result_to_d1_result) | function | Map one statement result to Cloudflare `D1Result`. |
 | [`execute_reply_to_d1_results`](#execute_reply_to_d1_results) | function | Map an execute reply to one Cloudflare `D1Result` per statement. |
 | [`create_database_binding`](#create_database_binding) | function | Build a host-mediated `DatabaseBinding` over an async transport. |
+| [`streams_results`](#streams_results) | function | Whether `caps` advertises a streamed result budget. |
+| [`execute_stream_limits`](#execute_stream_limits) | function | The streamed budget of `caps`, or its inline caps when it does not stream. |
+| [`raw_stream_ceiling`](#raw_stream_ceiling) | function | Raw frame bytes a receiver accepts before failing closed. |
+| [`decode_execute_stream`](#decode_execute_stream) | function | Decode a whole frame sequence under `limits`. |
+| [`chunk_indexes`](#chunk_indexes) | function | Greedy split of `typed` into index runs that each fit one request. |
 | [`canonical_execute_request_hash`](#canonical_execute_request_hash) | function | SHA-256 hex of the Cap'n request with transport metadata cleared. |
 | [`KINDS`](#kinds) | constant |  |
 | [`TYPES`](#types) | constant |  |
@@ -49,6 +56,7 @@ always uses the domain types.
 | [`DbResultSelection`](#dbresultselection) | constant |  |
 | [`AtomicTransport`](#atomictransport) | constant |  |
 | [`LimitsTransport`](#limitstransport) | constant |  |
+| [`StreamedTransport`](#streamedtransport) | constant | `GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked. |
 
 ## Classes
 
@@ -269,6 +277,7 @@ def __init__(
     execute: AtomicTransport,
     *,
     limits: LimitsTransport | None=None,
+    execute_streamed: StreamedTransport | None=None,
     max_request_bytes: int=0,
     max_result_rows: int=0,
     operation_id: str | None=None,
@@ -283,6 +292,7 @@ Create a binding over a host `execute` transport.
 
 - `execute`: Host session projection.
 - `limits`: `GuestDatabase.limits` projection; `None` on a host that predates it ([`limits`](limits.md) then raises `unsupported`).
+- `execute_streamed`: `GuestDatabase.executeStreamed` projection the same batch answered as `ExecuteStreamFrame` bytes. When set and the session advertises a streamed budget, every row-returning read goes through it; `None` reads inline.
 - `max_request_bytes`: Negotiated cap (`0` = unlimited).
 - `max_result_rows`: Default `maxRows` for [`PreparedStatement.all`](#preparedstatementall).
 - `operation_id`: Default retry id; omitted calls mint a UUID.
@@ -324,6 +334,44 @@ The adapter's capability advertisement for this session.
 **Raises**
 
 - `PluginError`: `unsupported` on a host that predates `GuestDatabase.limits`.
+
+#### DatabaseBinding.chunk
+
+```python
+def chunk(
+    self,
+    statements: list[PreparedStatement],
+    *,
+    max_statements: int | None=None,
+    max_request_bytes: int | None=None,
+) -> AsyncIterator[list[PreparedStatement]]
+```
+
+Split `statements` into batches that each fit one request.
+
+`async for b in db.chunk(stmts): await db.batch(b)`. Each batch is
+atomic; the loop is not. The caps come from the session's limits
+(`maxStatements`, and the tighter of the session's and the
+binding's `maxRequestBytes`) unless given here; zero caps given
+explicitly mean one batch. A single statement larger than the
+request cap is yielded alone, so [`batch`](#databasebindingbatch) reports the typed
+error. Batches are sized with the UUID-shaped retry id the binding
+mints; a caller-chosen retry id that is longer leaves that much less
+room.
+
+**Args**
+
+- `statements`: Prepared statements (binds and intent already applied).
+- `max_statements`: Statements per batch (`0` = no cap); the session's `maxStatements` when `None`.
+- `max_request_bytes`: Encoded request bytes per batch (`0` = no cap); the tighter of the session's and the binding's cap when `None`.
+
+**Returns**
+
+Batches in order, together covering every statement once.
+
+**Raises**
+
+- `PluginError`: `unsupported` when neither the session's limits nor explicit caps are available.
 
 #### DatabaseBinding.batch
 
@@ -467,6 +515,132 @@ async def all(self, *, retry: RetryToken | None=None) -> D1Result
 ```
 
 Execute as a row-returning query. Returns a Cloudflare-shaped [`D1Result`](#d1result).
+
+#### PreparedStatement.iterate
+
+```python
+def iterate(self, *, retry: RetryToken | None=None) -> AsyncIterator[dict[str, Any]]
+```
+
+Rows one at a time from the same single-snapshot read as [`all`](#preparedstatementall).
+
+`async for row in stmt.iterate(): ...` decodes the streamed reply
+frame by frame without holding the whole result. The read still fails
+closed (`limit_exceeded`) past the session's streamed budget. On a
+session that does not stream the rows come from one inline `all()`.
+
+**Args**
+
+- `retry`: Optional retry token.
+
+**Returns**
+
+Column name → typed cell, one mapping per row, in order.
+
+### ExecuteStreamLimits
+
+```python
+@dataclass(frozen=True)
+class ExecuteStreamLimits
+```
+
+What a receiver lets a streamed reply grow to.
+
+**Attributes**
+
+- `max_bytes`: Encoded reply budget in bytes (`0` = only the framing slack).
+- `bytes_limit`: Capability field `max_bytes` came from, named by the error it raises (`maxStreamedResultBytes` or `maxAtomicResultBytes`).
+- `max_rows`: Rows one statement may return (`0` = unlimited).
+- `rows_limit`: Capability field `max_rows` came from (`maxStreamedResultRows` or `maxResultRows`).
+
+### ExecuteStreamDecoder
+
+```python
+class ExecuteStreamDecoder
+```
+
+Sans-IO decoder of a streamed execute reply.
+
+Feed it bytes in any split with [`push`](#executestreamdecoderpush), then take the reassembled
+`ExecuteReply` with [`finish`](#executestreamdecoderfinish). It fails closed on more raw bytes
+than the budget allows, on a statement with more rows than the row cap,
+and on any frame out of sequence; fed in any split it yields the same
+reply as one push.
+
+#### ExecuteStreamDecoder.__init__
+
+```python
+def __init__(self, limits: ExecuteStreamLimits, *, retain_rows: bool=True) -> None
+```
+
+Create a decoder held to `limits`.
+
+**Args**
+
+- `limits`: Budget the stream is held to.
+- `retain_rows`: `False` counts rows against the budget but drops them from the collected reply (for `iterate()`).
+
+#### ExecuteStreamDecoder.finished
+
+```python
+@property
+def finished(self) -> bool
+```
+
+Whether the final frame (`end` or `err`) has been decoded.
+
+**Returns**
+
+True once the stream is complete.
+
+#### ExecuteStreamDecoder.columns
+
+```python
+@property
+def columns(self) -> list[dict[str, Any]]
+```
+
+Columns of the statement whose rows are arriving.
+
+**Returns**
+
+The open statement's `DbColumn` list, empty between statements.
+
+#### ExecuteStreamDecoder.push
+
+```python
+def push(self, data: bytes) -> list[dict[str, Any]]
+```
+
+Feed the next bytes of the stream.
+
+**Args**
+
+- `data`: Any slice of the frame sequence.
+
+**Returns**
+
+The `ExecuteStreamFrame` dicts completed by these bytes, in order.
+
+**Raises**
+
+- `PluginError`: `limit_exceeded` when the stream exceeds the byte or row budget; `invalid_params` when a frame is malformed or out of sequence or bytes follow the final frame.
+
+#### ExecuteStreamDecoder.finish
+
+```python
+def finish(self) -> ExecuteReply
+```
+
+Take the reassembled reply once the stream has ended.
+
+**Returns**
+
+The reply the frames described.
+
+**Raises**
+
+- `PluginError`: The adapter's error when the stream ended with `err`; `unavailable` when it ended before its final frame.
 
 ## Functions
 
@@ -645,6 +819,7 @@ def create_database_binding(
     transport: AtomicTransport,
     *,
     limits: LimitsTransport | None=None,
+    execute_streamed: StreamedTransport | None=None,
     max_request_bytes: int=0,
     max_result_rows: int=0,
     operation_id: str | None=None,
@@ -659,6 +834,7 @@ Build a host-mediated [`DatabaseBinding`](#databasebinding) over an async transp
 
 - `transport`: Host `execute` projection.
 - `limits`: Host `limits` projection, when the host offers one.
+- `execute_streamed`: Host `executeStreamed` projection, when the host offers one; reads then stream on sessions that advertise a streamed budget.
 - `max_request_bytes`: Negotiated cap (`0` = unlimited).
 - `max_result_rows`: Default `maxRows` for `all()`.
 - `operation_id`: Default retry id; omitted calls mint a UUID.
@@ -668,6 +844,104 @@ Build a host-mediated [`DatabaseBinding`](#databasebinding) over an async transp
 **Returns**
 
 A binding whose terminal methods route through `transport`.
+
+### streams_results
+
+```python
+def streams_results(caps: DbCapabilities) -> bool
+```
+
+Whether `caps` advertises a streamed result budget.
+
+**Args**
+
+- `caps`: Session capabilities (`limits()`).
+
+**Returns**
+
+True when `executeStreamed` is worth calling on this session.
+
+### execute_stream_limits
+
+```python
+def execute_stream_limits(caps: DbCapabilities) -> ExecuteStreamLimits
+```
+
+The streamed budget of `caps`, or its inline caps when it does not stream.
+
+**Args**
+
+- `caps`: Session capabilities (`limits()`).
+
+**Returns**
+
+Limits for an [`ExecuteStreamDecoder`](#executestreamdecoder).
+
+### raw_stream_ceiling
+
+```python
+def raw_stream_ceiling(limits: ExecuteStreamLimits) -> int
+```
+
+Raw frame bytes a receiver accepts before failing closed.
+
+The reply budget plus one eighth for frame headers and one window of slack.
+
+**Args**
+
+- `limits`: Budget.
+
+**Returns**
+
+Byte ceiling on the whole frame sequence and on any one frame.
+
+### decode_execute_stream
+
+```python
+def decode_execute_stream(data: bytes, limits: ExecuteStreamLimits) -> ExecuteReply
+```
+
+Decode a whole frame sequence under `limits`.
+
+**Args**
+
+- `data`: Every frame, concatenated.
+- `limits`: Budget the stream is held to.
+
+**Returns**
+
+The reassembled reply.
+
+**Raises**
+
+- `PluginError`: See [`ExecuteStreamDecoder.push`](#executestreamdecoderpush) and [`ExecuteStreamDecoder.finish`](#executestreamdecoderfinish).
+
+### chunk_indexes
+
+```python
+def chunk_indexes(
+    typed: list[TypedDbStatement],
+    max_statements: int,
+    max_request_bytes: int,
+) -> list[list[int]]
+```
+
+Greedy split of `typed` into index runs that each fit one request.
+
+Sizes are estimated per statement against one probe statement and each
+run is verified by one exact encode; a run the estimate let through is
+halved until it fits, and a lone statement over the cap is yielded on
+its own.
+
+**Args**
+
+- `typed`: Statements to split.
+- `max_statements`: Statements per request (`0` = no cap).
+- `max_request_bytes`: Encoded request bytes per request (`0` = no cap).
+
+**Returns**
+
+Index runs in order, covering every statement once.
 
 ### canonical_execute_request_hash
 
@@ -735,3 +1009,11 @@ AtomicTransport = Callable[[ExecuteRequest], Awaitable[ExecuteReply]]
 ```python
 LimitsTransport = Callable[[], Awaitable['DbCapabilities']]
 ```
+
+### StreamedTransport
+
+```python
+StreamedTransport = Callable[[ExecuteRequest], Awaitable['bytes | AsyncIterable[bytes]']]
+```
+
+`GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked.
