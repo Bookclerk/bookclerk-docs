@@ -3854,8 +3854,8 @@ candidates cost a handful of round trips instead of one per row. No
 interactive transaction is used: the external database adapters only
 take single statements and atomic batches, so `begin` is refused
 there. The delete rides in the last batch. A reader between two
-batches can see the store's new rows next to its old ones, never
-fewer than either set.
+batches can see part of the new set next to old rows that are not
+deleted yet.
 
 ##### Arguments
 
