@@ -27,7 +27,6 @@ the worker itself calls.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`BrandDurations`](#branddurations) | struct | Brand intro/outro durations from Audible `chapter_info`. |
 | [`ChapterAlignOptions`](#chapteralignoptions) | struct | Tunables for silence / speech-onset chapter snapping. |
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
@@ -40,10 +39,6 @@ the worker itself calls.
 | [`MediaJobReply`](#mediajobreply) | enum | Wire form of a finished job. `Result` is not `Serialize`, so the worker and the pool exchange this instead. |
 | [`Confinement`](#confinement) | enum | How strictly a worker must be confined before it will process a job. |
 | [`write_output_within_budget`](#write_output_within_budget) | function | Appends `data` only when the result stays within `max`. |
-| [`brand_durations_from_chapter_info`](#brand_durations_from_chapter_info) | function | Read brand intro/outro durations from chapter_info JSON. |
-| [`brand_trim_range`](#brand_trim_range) | function | Build a media trim window that drops Audible branding audio. |
-| [`rebase_chapters_after_brand_trim`](#rebase_chapters_after_brand_trim) | function | Adjust flat chapter start offsets after brand trim so cues/metadata stay aligned. |
-| [`runtime_length_ms_from_chapter_info`](#runtime_length_ms_from_chapter_info) | function | Read `runtime_length_ms` / `runtimeLengthMs` from chapter_info JSON. |
 | [`align_chapter_starts`](#align_chapter_starts) | function | Snap chapter starts just before nearby speech onsets (spoken chapter titles). |
 | [`scale_chapters_to_duration`](#scale_chapters_to_duration) | function | Scale rebased chapter starts so they span the probed plain-audio duration. |
 | [`bookclerk_tool_tag`](#bookclerk_tool_tag) | function | `bookclerk <version>` string embedded in encoder / freeform TOOL tags. |
@@ -72,6 +67,11 @@ the worker itself calls.
 
 - [`bookclerk_cover::CoverSet`](../bookclerk_cover/README.md#coverset)
 - [`bookclerk_cover::CoverSize`](../bookclerk_cover/README.md#coversize)
+- [`bookclerk_mp4::brand_durations_from_chapter_info`](../bookclerk_mp4/README.md#brand_durations_from_chapter_info)
+- [`bookclerk_mp4::brand_trim_range`](../bookclerk_mp4/README.md#brand_trim_range)
+- [`bookclerk_mp4::rebase_chapters_after_brand_trim`](../bookclerk_mp4/README.md#rebase_chapters_after_brand_trim)
+- [`bookclerk_mp4::runtime_length_ms_from_chapter_info`](../bookclerk_mp4/README.md#runtime_length_ms_from_chapter_info)
+- [`bookclerk_mp4::BrandDurations`](../bookclerk_mp4/README.md#branddurations)
 - [`bookclerk_mp4::extract_mp4a_config`](../bookclerk_mp4/README.md#extract_mp4a_config)
 - [`bookclerk_mp4::parse_mp4`](../bookclerk_mp4/README.md#parse_mp4)
 - [`bookclerk_mp4::track_duration_ms`](../bookclerk_mp4/README.md#track_duration_ms)
@@ -80,32 +80,6 @@ the worker itself calls.
 - [`bookclerk_mp4::TrimRange`](../bookclerk_mp4/README.md#trimrange)
 
 ## Structs
-
-### BrandDurations
-
-```rust
-pub struct BrandDurations {
-    pub intro_ms: u64,
-    pub outro_ms: u64,
-}
-```
-
-Brand intro/outro durations from Audible `chapter_info`.
-
-**Fields**
-
-- `intro_ms`: Brand intro (pre-roll) duration in milliseconds.
-- `outro_ms`: Brand outro (post-roll) duration in milliseconds.
-
-#### BrandDurations::is_empty
-
-```rust
-pub fn is_empty(self) -> bool
-```
-
-True when both intro and outro are zero (nothing to trim).
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### ChapterAlignOptions
 
@@ -634,59 +608,6 @@ The failing call writes nothing, so the file length never passes the budget.
 
 Returns [`MediaError::Native`](#mediaerror) when `written + data.len()` would exceed
 `max`. Returns [`MediaError::Io`](#mediaerror) when the accepted bytes cannot be written.
-
-### brand_durations_from_chapter_info
-
-```rust
-pub fn brand_durations_from_chapter_info(info: &Value) -> BrandDurations
-```
-
-Read brand intro/outro durations from chapter_info JSON.
-
-Accepts both snake_case (`brand_intro_duration_ms`) and camelCase
-(`brandIntroDurationMs`) — Audible's live API uses camelCase.
-
-### brand_trim_range
-
-```rust
-pub fn brand_trim_range(
-    brand: BrandDurations,
-    runtime_length_ms: Option<u64>,
-) -> Option<TrimRange>
-```
-
-Build a media trim window that drops Audible branding audio.
-
-Classic Libation: shift the first chapter start by `intro_ms` and shorten the
-last chapter by `outro_ms`, then remux only the remaining media. We express
-the same idea as an absolute `[start_ms, end_ms)` window on the full file.
-
-When `outro_ms > 0` but `runtime_length_ms` is missing, returns `None` so we
-do not silently leave branding on the tail while trimming only the intro.
-Callers should supply runtime (from chapter_info or a media probe) first.
-
-### rebase_chapters_after_brand_trim
-
-```rust
-pub fn rebase_chapters_after_brand_trim(
-    chapters: &[(String, u64)],
-    brand: BrandDurations,
-    runtime_length_ms: Option<u64>,
-) -> Vec<(String, u64)>
-```
-
-Adjust flat chapter start offsets after brand trim so cues/metadata stay aligned.
-
-Drops chapters that fall entirely inside the stripped intro, rebases survivors
-so the first kept chapter starts at 0, and shortens the implied end by `outro_ms`.
-
-### runtime_length_ms_from_chapter_info
-
-```rust
-pub fn runtime_length_ms_from_chapter_info(info: &Value) -> Option<u64>
-```
-
-Read `runtime_length_ms` / `runtimeLengthMs` from chapter_info JSON.
 
 ### align_chapter_starts
 

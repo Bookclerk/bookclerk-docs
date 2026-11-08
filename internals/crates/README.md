@@ -25,7 +25,7 @@ First-party plugins: databases, destinations, sources and integrations.
 | [`bookclerk_plugin_destination_local`](bookclerk_plugin_destination_local/README.md) | Local filesystem output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_destination_s3`](bookclerk_plugin_destination_s3/README.md) | S3 / MinIO output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_integration_audiobookshelf`](bookclerk_plugin_integration_audiobookshelf/README.md) | Audiobookshelf integration plugin: in-process Integration + Workers RPC guest binary |
-| [`bookclerk_plugin_source_audible`](bookclerk_plugin_source_audible/README.md) | Audible source plugin: in-process ContentSource + Workers RPC guest binary |
+| [`bookclerk_plugin_source_audible`](bookclerk_plugin_source_audible/README.md) | Audible storefront plugin guest (jailed native binary) |
 | [`bookclerk_plugin_source_chirp`](bookclerk_plugin_source_chirp/README.md) | Chirp source plugin: native storefront guest binary |
 | [`bookclerk_plugin_source_graphicaudio`](bookclerk_plugin_source_graphicaudio/README.md) | GraphicAudio source plugin: native storefront guest binary |
 | [`bookclerk_plugin_source_libro`](bookclerk_plugin_source_libro/README.md) | Libro.fm source plugin: native storefront guest binary |
@@ -37,6 +37,7 @@ The crates the hosts are built from. Not a stable API.
 | Crate | Description |
 | --- | --- |
 | [`bookclerk_acquire`](bookclerk_acquire/README.md) | End-to-end acquire pipeline: license, download, decrypt, store |
+| [`bookclerk_audible_catalog`](bookclerk_audible_catalog/README.md) | Unauthenticated Audible catalog HTTP (search, genres, ratings, reviews) shared by the Audible guest and host enrichment |
 | [`bookclerk_config`](bookclerk_config/README.md) | Bookclerk settings, paths, and naming template config |
 | [`bookclerk_cover`](bookclerk_cover/README.md) | Cover image pipeline: sniff, decode under limits, resize and re-encode untrusted cover art as JPEG |
 | [`bookclerk_db_exec`](bookclerk_db_exec/README.md) | Neutral SQL executor and transaction injects for database guests |

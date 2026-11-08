@@ -96,6 +96,7 @@
    "landing": false,
    "pages": [
     "internals/crates/bookclerk_acquire/README",
+    "internals/crates/bookclerk_audible_catalog/README",
     "internals/crates/bookclerk_config/README",
     "internals/crates/bookclerk_cover/README",
     "internals/crates/bookclerk_cover/http_cache",
@@ -704,7 +705,6 @@
     "internals/crates/bookclerk_plugin_manifest/workerd_contract",
     "internals/crates/bookclerk_plugin_source_audible/README",
     "internals/crates/bookclerk_plugin_source_audible/catalog",
-    "internals/crates/bookclerk_plugin_source_audible/db",
     "internals/crates/bookclerk_plugin_source_chirp/README",
     "internals/crates/bookclerk_plugin_source_chirp/guest",
     "internals/crates/bookclerk_plugin_source_graphicaudio/README",
@@ -777,6 +777,7 @@
  ],
  "sources": {
   "internals/crates/bookclerk_acquire": "crates/bookclerk-acquire",
+  "internals/crates/bookclerk_audible_catalog": "crates/bookclerk-audible-catalog",
   "internals/crates/bookclerk_config": "crates/bookclerk-config",
   "internals/crates/bookclerk_cover": "crates/bookclerk-cover",
   "internals/crates/bookclerk_db_exec": "crates/bookclerk-db-exec",

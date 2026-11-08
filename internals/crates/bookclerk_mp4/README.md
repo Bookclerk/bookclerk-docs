@@ -19,6 +19,7 @@ why the boundary is where it is.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`SampleTransform`](#sampletransform) | trait | Rewrites sample payloads as they stream from input to output. |
+| [`BrandDurations`](#branddurations) | struct | Brand intro/outro durations from Audible `chapter_info`. |
 | [`AudioTrack`](#audiotrack) | struct | Parsed audio track summary (timescale, samples, codec). |
 | [`Mp4File`](#mp4file) | struct | Parsed progressive (non-fragmented) MP4 relevant to remux. |
 | [`Mp4aConfig`](#mp4aconfig) | struct | Clear AAC (`mp4a`) decoder config extracted from a progressive MP4/M4A/M4B. |
@@ -32,6 +33,10 @@ why the boundary is where it is.
 | [`SampleInfo`](#sampleinfo) | struct | One audio sample, located and timed. |
 | [`Mp4Error`](#mp4error) | enum | Errors from MP4 parse, remux, and in-place patch operations. |
 | [`SampleEntryKind`](#sampleentrykind) | enum | Codec or encryption FourCC found in the track's sample description. |
+| [`brand_durations_from_chapter_info`](#brand_durations_from_chapter_info) | function | Read brand intro/outro durations from chapter_info JSON. |
+| [`brand_trim_range`](#brand_trim_range) | function | Build a media trim window that drops Audible branding audio. |
+| [`rebase_chapters_after_brand_trim`](#rebase_chapters_after_brand_trim) | function | Adjust flat chapter start offsets after brand trim so cues/metadata stay aligned. |
+| [`runtime_length_ms_from_chapter_info`](#runtime_length_ms_from_chapter_info) | function | Read `runtime_length_ms` / `runtimeLengthMs` from chapter_info JSON. |
 | [`extract_mp4a_config`](#extract_mp4a_config) | function | Read sample-rate / channel count / ASC from a clear `mp4a` sample entry. |
 | [`parse_mp4`](#parse_mp4) | function | Parses top-level boxes and the primary audio track from an MP4/M4A/M4B file. |
 | [`track_duration_ms`](#track_duration_ms) | function | Absolute duration of the audio track in milliseconds. |
@@ -104,6 +109,32 @@ Returns an error when the operation fails.
 Implemented by: `CopySamples`
 
 ## Structs
+
+### BrandDurations
+
+```rust
+pub struct BrandDurations {
+    pub intro_ms: u64,
+    pub outro_ms: u64,
+}
+```
+
+Brand intro/outro durations from Audible `chapter_info`.
+
+**Fields**
+
+- `intro_ms`: Brand intro (pre-roll) duration in milliseconds.
+- `outro_ms`: Brand outro (post-roll) duration in milliseconds.
+
+#### BrandDurations::is_empty
+
+```rust
+pub fn is_empty(self) -> bool
+```
+
+True when both intro and outro are zero (nothing to trim).
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### AudioTrack
 
@@ -484,6 +515,60 @@ Codec or encryption FourCC found in the track's sample description.
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### brand_durations_from_chapter_info
+
+```rust
+pub fn brand_durations_from_chapter_info(info: &Value) -> BrandDurations
+```
+
+Read brand intro/outro durations from chapter_info JSON.
+
+Accepts both snake_case (`brand_intro_duration_ms`) and camelCase
+(`brandIntroDurationMs`) — Audible's live API uses camelCase.
+
+### brand_trim_range
+
+```rust
+pub fn brand_trim_range(
+    brand: BrandDurations,
+    runtime_length_ms: Option<u64>,
+) -> Option<TrimRange>
+```
+
+Build a media trim window that drops Audible branding audio.
+
+Classic Libation: shift the first chapter start by `intro_ms` and shorten the
+last chapter by `outro_ms`, then remux only the remaining media. We express
+the same idea as an absolute `[start_ms, end_ms)` window on the full file.
+
+When `outro_ms > 0` but `runtime_length_ms` is missing, returns `None` so we
+do not silently leave branding on the tail while trimming only the intro.
+Callers should supply runtime (from chapter_info or a media probe) first,
+and log when they still get `None` for a non-empty brand.
+
+### rebase_chapters_after_brand_trim
+
+```rust
+pub fn rebase_chapters_after_brand_trim(
+    chapters: &[(String, u64)],
+    brand: BrandDurations,
+    runtime_length_ms: Option<u64>,
+) -> Vec<(String, u64)>
+```
+
+Adjust flat chapter start offsets after brand trim so cues/metadata stay aligned.
+
+Drops chapters that fall entirely inside the stripped intro, rebases survivors
+so the first kept chapter starts at 0, and shortens the implied end by `outro_ms`.
+
+### runtime_length_ms_from_chapter_info
+
+```rust
+pub fn runtime_length_ms_from_chapter_info(info: &Value) -> Option<u64>
+```
+
+Read `runtime_length_ms` / `runtimeLengthMs` from chapter_info JSON.
 
 ### extract_mp4a_config
 

@@ -2,7 +2,7 @@
 
 Public Audible catalog helpers for Discover (`search_catalog` / expand / purchase).
 
-Uses [`bookclerk_enrich`](../bookclerk_enrich/README.md) public catalog HTTP — no account required.
+Uses [`bookclerk_audible_catalog`](../bookclerk_audible_catalog/README.md) public catalog HTTP — no account required.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
