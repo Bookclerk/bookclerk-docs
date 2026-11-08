@@ -274,6 +274,16 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`ExecuteReply`](#executereply) | class | Success payload of `execute`. |
 | [`ExecuteResultReplyOk`](#executeresultreplyok) | class | `ExecuteResultReply` member `ok`. |
 | [`ExecuteResultReplyErr`](#executeresultreplyerr) | class | `ExecuteResultReply` member `err`. |
+| [`ExecuteStreamHead`](#executestreamhead) | class | First frame of a streamed execute reply: what the reply is about. |
+| [`ExecuteStreamStatement`](#executestreamstatement) | class | Opens one statement result inside a streamed execute reply. Its rows, if any, follow in `rows` frames until the next `statement`, `end` or `err`. |
+| [`ExecuteStreamFrameHead`](#executestreamframehead) | class | `ExecuteStreamFrame` member `head`. |
+| [`ExecuteStreamFrameStatement`](#executestreamframestatement) | class | `ExecuteStreamFrame` member `statement`. |
+| [`ExecuteStreamFrameRows`](#executestreamframerows) | class | `ExecuteStreamFrame` member `rows`. |
+| [`ExecuteStreamFrameEnd`](#executestreamframeend) | class | `ExecuteStreamFrame` member `end`. |
+| [`ExecuteStreamFrameErr`](#executestreamframeerr) | class | `ExecuteStreamFrame` member `err`. |
+| [`ExecuteStreamReplyInline`](#executestreamreplyinline) | class | `ExecuteStreamReply` member `inline`. |
+| [`ExecuteStreamReplyStream`](#executestreamreplystream) | class | `ExecuteStreamReply` member `stream`. |
+| [`ExecuteStreamReplyErr`](#executestreamreplyerr) | class | `ExecuteStreamReply` member `err`. |
 | [`DbCapabilities`](#dbcapabilities) | class | Semantic SQL-contract advertisement. Diagnostic engine identity is not part of the capability plane — see `DbBootstrap`. |
 | [`DbBootstrapReplyOk`](#dbbootstrapreplyok) | class | `DbBootstrapReply` member `ok`. |
 | [`DbBootstrapReplyErr`](#dbbootstrapreplyerr) | class | `DbBootstrapReply` member `err`. |
@@ -362,6 +372,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
 | [`SchemaAction`](#schemaaction) | constant | CREATE/DROP action recorded on a proof. |
 | [`ExecuteResultReply`](#executeresultreply) | constant | Result union of `execute`. |
+| [`ExecuteStreamFrame`](#executestreamframe) | constant | One frame of a streamed execute reply (`executeStreamed`). Frames are consecutive unpacked single-segment Cap'n Proto messages, each at most `maxScalarBytes` unless it carries one row that alone exceeds it. The sequence is `head`, then for each statement `statement` followed by its `rows` frames in order, then `end`; `err` ends the sequence early. |
+| [`ExecuteStreamReply`](#executestreamreply) | constant | Result union of `executeStreamed`. The frames (`ExecuteStreamFrame`) travel inline when they fit one scalar, otherwise as a transferred byte stream in `maxStreamWindowBytes` windows. The adapter counts the reply against `maxStreamedResultBytes` and `maxStreamedResultRows` before it commits, so results still fail closed and are never truncated. |
 | [`DbBootstrapReply`](#dbbootstrapreply) | constant | Result union of `AdapterDatabaseSession.bootstrap`. |
 | [`DbCapabilitiesReply`](#dbcapabilitiesreply) | constant | Result union of `AdapterDatabaseSession.capabilities`. |
 | [`IdentityExportReply`](#identityexportreply) | constant | Result union of `AdapterDatabaseSession.exportIdentity`. |
@@ -5125,6 +5137,154 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### ExecuteStreamHead
+
+```python
+class ExecuteStreamHead(TypedDict)
+```
+
+First frame of a streamed execute reply: what the reply is about.
+
+**Attributes**
+
+- `operationId`: Echo of the request `operationId`.
+- `statementCount`: Number of `statement` frames that follow, one per request statement.
+
+### ExecuteStreamStatement
+
+```python
+class ExecuteStreamStatement(TypedDict)
+```
+
+Opens one statement result inside a streamed execute reply. Its rows, if
+any, follow in `rows` frames until the next `statement`, `end` or `err`.
+
+**Attributes**
+
+- `index`: Request statement index, `0`-based and increasing by one per frame.
+- `columns`: Result column descriptors.
+- `rowsAffected`: Rows changed by a mutation.
+
+### ExecuteStreamFrameHead
+
+```python
+class ExecuteStreamFrameHead(TypedDict)
+```
+
+`ExecuteStreamFrame` member `head`.
+
+First frame.
+
+**Attributes**
+
+- `kind`: Always `"head"`.
+- `value`: First frame.
+
+### ExecuteStreamFrameStatement
+
+```python
+class ExecuteStreamFrameStatement(TypedDict)
+```
+
+`ExecuteStreamFrame` member `statement`.
+
+Opens the next statement result.
+
+**Attributes**
+
+- `kind`: Always `"statement"`.
+- `value`: Opens the next statement result.
+
+### ExecuteStreamFrameRows
+
+```python
+class ExecuteStreamFrameRows(TypedDict)
+```
+
+`ExecuteStreamFrame` member `rows`.
+
+Rows of the open statement, in order.
+
+**Attributes**
+
+- `kind`: Always `"rows"`.
+- `value`: Rows of the open statement, in order.
+
+### ExecuteStreamFrameEnd
+
+```python
+class ExecuteStreamFrameEnd(TypedDict)
+```
+
+`ExecuteStreamFrame` member `end`.
+
+Last frame: the batch committed; engine timing.
+
+**Attributes**
+
+- `kind`: Always `"end"`.
+- `value`: Last frame: the batch committed; engine timing.
+
+### ExecuteStreamFrameErr
+
+```python
+class ExecuteStreamFrameErr(TypedDict)
+```
+
+`ExecuteStreamFrame` member `err`.
+
+Last frame: the batch failed; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Last frame: the batch failed; `code` is a `PluginErrorCode` wire string.
+
+### ExecuteStreamReplyInline
+
+```python
+class ExecuteStreamReplyInline(TypedDict)
+```
+
+`ExecuteStreamReply` member `inline`.
+
+Success: every frame, concatenated, at most `maxScalarBytes`.
+
+**Attributes**
+
+- `kind`: Always `"inline"`.
+- `value`: Success: every frame, concatenated, at most `maxScalarBytes`.
+
+### ExecuteStreamReplyStream
+
+```python
+class ExecuteStreamReplyStream(TypedDict)
+```
+
+`ExecuteStreamReply` member `stream`.
+
+Success: the frames as a byte stream.
+
+**Attributes**
+
+- `kind`: Always `"stream"`.
+- `value`: Success: the frames as a byte stream.
+
+### ExecuteStreamReplyErr
+
+```python
+class ExecuteStreamReplyErr(TypedDict)
+```
+
+`ExecuteStreamReply` member `err`.
+
+Typed failure before any frame; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure before any frame; `code` is a `PluginErrorCode` wire string.
+
 ### DbCapabilities
 
 ```python
@@ -5158,6 +5318,8 @@ part of the capability plane — see `DbBootstrap`.
 - `maxLoweredStatementBytes`: Maximum UTF-8 bytes of sqlite-family lowered SQL the adapter can realize for one statement (INTEGER overflow wraps, LIKE→GLOB, NULLIF, INSERT OR IGNORE, query LIMIT wrap, bytes-placeholder expansion). `0` is unspecified: the host does not enforce a lowered-size ceiling. First- party D1 advertises 100000. Hosts compare a standardized Bookclerk lowering upper bound against this number and must not branch on engine identity.
 - `consistentBackupRead`: Adapter can expose one stable logical database state while the host reads schema, rows, and identity.
 - `atomicUnitRestore`: Adapter can destructively replace one logical database unit so an ordinary restore failure does not leave that unit partially replaced.
+- `maxStreamedResultBytes`: Maximum encoded bytes of one `ExecuteReply` answered through `executeStreamed` (the sum of its frames' statement results). `0` means the adapter does not stream and callers stay under the inline caps. When set it is at least `maxAtomicResultBytes`.
+- `maxStreamedResultRows`: Maximum rows one statement may return through `executeStreamed`. `0` means the adapter does not stream. When set it is at least `maxResultRows`.
 
 ### DbBootstrapReplyOk
 
@@ -5481,6 +5643,25 @@ Verify constraints hold after restore rows were written.
 
 `EmptyReply`
 
+#### AdapterDatabaseSession.execute_streamed
+
+```python
+async def execute_streamed(self, request: AdapterExecuteRequest) -> ExecuteStreamReply
+```
+
+`execute` whose reply is framed (`ExecuteStreamFrame`) and counted against
+`maxStreamedResultBytes` / `maxStreamedResultRows` instead of the inline
+caps. One transaction, one snapshot; `unsupported` when the adapter
+advertises no streamed budget.
+
+**Args**
+
+- `request`: Proven statements plus isolation and receipt.
+
+**Returns**
+
+`ExecuteStreamReply`
+
 ### GuestDatabase
 
 ```python
@@ -5532,6 +5713,25 @@ before sending instead of discovering caps from errors.
 **Returns**
 
 `DbCapabilitiesReply`
+
+#### GuestDatabase.execute_streamed
+
+```python
+async def execute_streamed(self, request: ExecuteRequest) -> ExecuteStreamReply
+```
+
+`execute` whose reply is framed (`ExecuteStreamFrame`) and counted against
+the session's `maxStreamedResultBytes` / `maxStreamedResultRows`, so a
+result past the inline caps still arrives whole. `unsupported` when the
+session advertises no streamed budget.
+
+**Args**
+
+- `request`: Statements, binds, and deadline.
+
+**Returns**
+
+`ExecuteStreamReply`
 
 ### PluginMigrationOpSchema
 
@@ -6243,6 +6443,30 @@ ExecuteResultReply = Union[ExecuteResultReplyOk, ExecuteResultReplyErr]
 ```
 
 Result union of `execute`.
+
+### ExecuteStreamFrame
+
+```python
+ExecuteStreamFrame = Union[ExecuteStreamFrameHead, ExecuteStreamFrameStatement, ExecuteStreamFrame...
+```
+
+One frame of a streamed execute reply (`executeStreamed`). Frames are
+consecutive unpacked single-segment Cap'n Proto messages, each at most
+`maxScalarBytes` unless it carries one row that alone exceeds it. The
+sequence is `head`, then for each statement `statement` followed by its
+`rows` frames in order, then `end`; `err` ends the sequence early.
+
+### ExecuteStreamReply
+
+```python
+ExecuteStreamReply = Union[ExecuteStreamReplyInline, ExecuteStreamReplyStream, ExecuteStreamReplyErr]
+```
+
+Result union of `executeStreamed`. The frames (`ExecuteStreamFrame`) travel
+inline when they fit one scalar, otherwise as a transferred byte stream in
+`maxStreamWindowBytes` windows. The adapter counts the reply against
+`maxStreamedResultBytes` and `maxStreamedResultRows` before it commits, so
+results still fail closed and are never truncated.
 
 ### DbBootstrapReply
 

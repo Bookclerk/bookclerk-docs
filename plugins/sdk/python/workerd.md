@@ -96,6 +96,24 @@ async def execute(self, _request: ExecuteRequest) -> ExecuteReply
 
 Typed atomic batch (`ExecuteRequest` → `ExecuteReply`).
 
+#### AdapterDatabaseSession.executeStreamed
+
+```python
+async def executeStreamed(self, _request: abi.AdapterExecuteRequest) -> bytes
+```
+
+The same atomic batch as `execute`, answered as `ExecuteStreamFrame` bytes.
+
+The frames are counted against the advertised `maxStreamedResultBytes`
+/ `maxStreamedResultRows`; adapters that advertise `0` for both
+keep this default, which answers `unsupported`. The request carries
+the proven statements plus `isolation` and `receipt`, like the
+adapter-side `execute` envelope.
+
+**Returns**
+
+Every frame of the committed reply, concatenated.
+
 #### AdapterDatabaseSession.close
 
 ```python

@@ -84,6 +84,28 @@ host cancel flag, so engine retry loops can stop when it is raised.
 * `query_row_cap` - Advertised query row cap (`0` = unlimited).
 * `cancel` - Host cancel flag of the atomic session, if any.
 
+#### ExecBudget::with_result_caps
+
+```rust
+pub fn with_result_caps(
+    deadline_unix_ms: Option<u64>,
+    query_row_cap: u32,
+    query_byte_cap: u32,
+    cancel: Option<Arc<AtomicBool>>,
+) -> Arc<Self>
+```
+
+Builds a budget for one atomic attempt with both result caps.
+
+##### Arguments
+
+* `deadline_unix_ms` - Guest-visible deadline (`None` = none).
+* `query_row_cap` - Advertised query row cap (`0` = unlimited).
+* `query_byte_cap` - Advertised per-statement result byte cap (`0` =
+  unlimited); an inline attempt passes `maxResultBytes`, a streamed
+  attempt `maxStreamedResultBytes`.
+* `cancel` - Host cancel flag of the atomic session, if any.
+
 #### ExecBudget::unlimited
 
 ```rust
@@ -139,6 +161,22 @@ pub fn raw_query_row_cap(&self) -> usize
 ```
 
 Raw cap including `0` for unlimited.
+
+#### ExecBudget::raw_query_byte_cap
+
+```rust
+pub fn raw_query_byte_cap(&self) -> u32
+```
+
+Per-statement result byte cap, `0` for unlimited.
+
+#### ExecBudget::set_query_byte_cap
+
+```rust
+pub fn set_query_byte_cap(&self, cap: u32)
+```
+
+Sets the per-statement result byte cap (`0` = unlimited).
 
 #### ExecBudget::reset_rows_seen
 

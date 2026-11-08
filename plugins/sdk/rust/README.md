@@ -284,6 +284,8 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::EventResult`](../../../internals/crates/bookclerk_plugin_abi/README.md#eventresult)
 - [`bookclerk_plugin_abi::ExecuteReply`](../../../internals/crates/bookclerk_plugin_abi/db_execute.md#executereply)
 - [`bookclerk_plugin_abi::ExecuteRequest`](../../../internals/crates/bookclerk_plugin_abi/db_execute.md#executerequest)
+- [`bookclerk_plugin_abi::ExecuteStream`](../../../internals/crates/bookclerk_plugin_abi/db_stream.md#executestream)
+- [`bookclerk_plugin_abi::ExecuteStreamLimits`](../../../internals/crates/bookclerk_plugin_abi/db_stream.md#executestreamlimits)
 - [`bookclerk_plugin_abi::ExtensibleConfig`](../../../internals/crates/bookclerk_plugin_abi/README.md#extensibleconfig)
 - [`bookclerk_plugin_abi::GuestDatabase`](../../../internals/crates/bookclerk_plugin_abi/README.md#guestdatabase)
 - [`bookclerk_plugin_abi::HealthOk`](../../../internals/crates/bookclerk_plugin_abi/README.md#healthok)

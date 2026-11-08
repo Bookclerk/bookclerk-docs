@@ -7,6 +7,7 @@ Host wrap lives in `bookclerk-library`; adapters run
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`guest_batch_is_read_only`](#guest_batch_is_read_only) | function | True when every guest statement inside the receipt wrap of `req` is a read-only `SELECT`. |
 | [`is_guest_receipt_result_lost`](#is_guest_receipt_result_lost) | function | True when `err` is `GUEST_RECEIPT_RESULT_LOST`. |
 | [`is_guest_receipt_stub_insert`](#is_guest_receipt_stub_insert) | function | True when `sql` is the guest-receipt claim stub (`INSERT … WHERE NOT EXISTS`). |
 | [`strip_guest_receipt_write_gate`](#strip_guest_receipt_write_gate) | function | Removes the **host-appended** `GUEST_RECEIPT_WRITE_GATE` predicate. |
@@ -15,10 +16,12 @@ Host wrap lives in `bookclerk-library`; adapters run
 | [`prior_receipt_is_claimed`](#prior_receipt_is_claimed) | function | True when `stmt` is an in-flight `GUEST_RECEIPT_STATUS_CLAIMED` receipt. |
 | [`receipt_hash_from`](#receipt_hash_from) | function | Reads `request_hash` from a prior-receipt select result, if any row exists. |
 | [`prior_receipt_should_resume_guest`](#prior_receipt_should_resume_guest) | function | True when a claimed prior receipt belongs to `guest_hash` (resume ungated DDL). |
+| [`prior_receipt_is_read_only_replay`](#prior_receipt_is_read_only_replay) | function | True when a prior receipt for `guest_hash` recorded a read-only batch (`GUEST_READ_ONLY_REPLAY_PAYLOAD`), whose reads run again on replay. |
 | [`should_skip_remaining_guest_work`](#should_skip_remaining_guest_work) | function | True when wrap prefix results show a completed prior receipt (skip guest SQL). |
 | [`pad_skipped_guest_results`](#pad_skipped_guest_results) | function | Pads skipped guest + stub results so the wrap shape stays intact. |
 | [`guest_receipt_finalize_stmts`](#guest_receipt_finalize_stmts) | function | Builds finalize statements to persist a guest reply before COMMIT. |
 | [`GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES`](#guest_typed_replay_payload_max_bytes) | constant | Maximum UTF-8 bytes stored in `bookclerk_receipts.payload` for guest replay. |
+| [`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload) | constant | Payload stored for a read-only guest batch instead of its results. |
 | [`GUEST_RECEIPT_RESULT_LOST`](#guest_receipt_result_lost) | constant | Error text when a receipt committed but the caller-visible payload was lost. |
 | [`GUEST_RECEIPT_STATUS_CLAIMED`](#guest_receipt_status_claimed) | constant | In-flight guest-receipt claim (D1 commits the stub INSERT before DDL). |
 | [`GUEST_RECEIPT_STATUS_OK`](#guest_receipt_status_ok) | constant | Finalized guest-receipt row; payload is the durable replay body. |
@@ -28,6 +31,19 @@ Host wrap lives in `bookclerk-library`; adapters run
 | [`GUEST_RECEIPT_STUB_SUFFIX`](#guest_receipt_stub_suffix) | constant | Same-batch receipt stub INSERT after gated guest statements. |
 
 ## Functions
+
+### guest_batch_is_read_only
+
+```rust
+pub fn guest_batch_is_read_only(req: &ExecuteRequest, guest_len: usize) -> bool
+```
+
+True when every guest statement inside the receipt wrap of `req` is a
+read-only `SELECT`.
+
+`guest_len` is the wrap hint's guest statement count; the guest slice
+starts after [`GUEST_RECEIPT_WRAP_PREFIX`](#guest_receipt_wrap_prefix). An empty or malformed slice
+is not read-only, so a write batch never skips its replay payload.
 
 ### is_guest_receipt_result_lost
 
@@ -101,6 +117,15 @@ pub fn prior_receipt_should_resume_guest(stmt: &StatementResult, guest_hash: &st
 
 True when a claimed prior receipt belongs to `guest_hash` (resume ungated DDL).
 
+### prior_receipt_is_read_only_replay
+
+```rust
+pub fn prior_receipt_is_read_only_replay(stmt: &StatementResult, guest_hash: &str) -> bool
+```
+
+True when a prior receipt for `guest_hash` recorded a read-only batch
+([`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload)), whose reads run again on replay.
+
 ### should_skip_remaining_guest_work
 
 ```rust
@@ -116,7 +141,9 @@ True when wrap prefix results show a completed prior receipt (skip guest SQL).
 An in-flight [`GUEST_RECEIPT_STATUS_CLAIMED`](#guest_receipt_status_claimed) row with the same hash must
 **not** skip remaining work: D1 commits the stub INSERT before ungated
 DDL, so a crash between those HTTP batches has to re-run idempotent DDL
-and then finalize. A claimed row with a **different** hash still skips
+and then finalize. A read-only receipt with the same hash does not skip
+either: it stored no rows, so the reads run again and this attempt's
+results are the reply. A prior row with a **different** hash still skips
 (unwrap reports conflict).
 
 ### pad_skipped_guest_results
@@ -134,12 +161,16 @@ pub fn guest_receipt_finalize_stmts(
     partial: &ExecuteReply,
     guest_len: usize,
     guest_hash: &str,
+    guest_read_only: bool,
 ) -> Result<Vec<TypedDbStatement>, DbErr>
 ```
 
 Builds finalize statements to persist a guest reply before COMMIT.
 
 Returns an empty list when the prior receipt row already carries payload.
+When `guest_read_only` is true (see [`guest_batch_is_read_only`](#guest_batch_is_read_only)) the
+receipt stores [`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload) instead of the rows, so
+a large read is not bounded by the payload cap.
 
 #### Errors
 
@@ -155,6 +186,20 @@ pub const GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES: usize = 65536;
 ```
 
 Maximum UTF-8 bytes stored in `bookclerk_receipts.payload` for guest replay.
+
+### GUEST_READ_ONLY_REPLAY_PAYLOAD
+
+```rust
+pub const GUEST_READ_ONLY_REPLAY_PAYLOAD: &str = "{\"readOnly\":true}";
+```
+
+Payload stored for a read-only guest batch instead of its results.
+
+A batch of `SELECT`s re-runs on replay (nothing is gated), so its rows
+are not persisted and its result size is bounded by the result budget
+the batch was read under, not by [`GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES`](#guest_typed_replay_payload_max_bytes).
+The host sees this marker on a prior receipt and returns the attempt's
+own rows.
 
 ### GUEST_RECEIPT_RESULT_LOST
 

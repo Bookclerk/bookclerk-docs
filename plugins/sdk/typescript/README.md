@@ -1201,6 +1201,30 @@ Re-exports [ExecuteResultReply](generated.md#executeresultreply)
 
 ***
 
+### ExecuteStreamFrame
+
+Re-exports [ExecuteStreamFrame](generated.md#executestreamframe)
+
+***
+
+### ExecuteStreamHead
+
+Re-exports [ExecuteStreamHead](generated.md#executestreamhead)
+
+***
+
+### ExecuteStreamReply
+
+Re-exports [ExecuteStreamReply](generated.md#executestreamreply)
+
+***
+
+### ExecuteStreamStatement
+
+Re-exports [ExecuteStreamStatement](generated.md#executestreamstatement)
+
+***
+
 ### ExpandCandidatesParams
 
 Re-exports [ExpandCandidatesParams](generated.md#expandcandidatesparams)

@@ -34,6 +34,8 @@ D1 guests use this crate for host-mediated session and transaction workers.
 | [`guest_execute_atomic_on_txn`](#guest_execute_atomic_on_txn) | function | Typed `Transaction.executeAtomic` on an already-open guest transaction. |
 | [`guest_execute_request`](#guest_execute_request) | function | First-party adapter execute: proofs required (`require_stamped=true`). |
 | [`guest_execute_request_on`](#guest_execute_request_on) | function | First-party adapter execute on an explicit connection. |
+| [`guest_execute_streamed_request`](#guest_execute_streamed_request) | function | `guest_execute_atomic` answered as a streamed reply: the batch runs under the advertised streamed budget and its reply is framed. |
+| [`guest_execute_streamed_request_on`](#guest_execute_streamed_request_on) | function | `guest_execute_atomic_on` answered as a streamed reply (per-binding sessions). |
 | [`guest_export_identity`](#guest_export_identity) | function | Identity high-water on the process-wide connection. |
 | [`guest_export_identity_on`](#guest_export_identity_on) | function | Identity high-water on `conn`. |
 | [`guest_export_identity_on_txn`](#guest_export_identity_on_txn) | function | Identity high-water on an open guest transaction. |
@@ -425,6 +427,39 @@ First-party adapter execute on an explicit connection.
 #### Errors
 
 Returns when proofs are missing or the engine rejects the work.
+
+### guest_execute_streamed_request
+
+```rust
+pub async fn guest_execute_streamed_request(
+    envelope: AdapterExecuteRequest,
+) -> Result<ExecuteStream, PluginError>
+```
+
+[`guest_execute_atomic`](#guest_execute_atomic) answered as a streamed reply: the batch runs
+under the advertised streamed budget and its reply is framed.
+
+#### Errors
+
+Returns `unsupported` when this engine advertises no streamed budget, and
+otherwise what [`guest_execute_atomic`](#guest_execute_atomic) returns.
+
+### guest_execute_streamed_request_on
+
+```rust
+pub async fn guest_execute_streamed_request_on(
+    conn: &DatabaseConnection,
+    envelope: AdapterExecuteRequest,
+) -> Result<ExecuteStream, PluginError>
+```
+
+[`guest_execute_atomic_on`](#guest_execute_atomic_on) answered as a streamed reply (per-binding
+sessions).
+
+#### Errors
+
+Returns `unsupported` when this engine advertises no streamed budget, and
+otherwise what [`guest_execute_atomic_on`](#guest_execute_atomic_on) returns.
 
 ### guest_export_identity
 

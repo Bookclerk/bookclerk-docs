@@ -50,6 +50,12 @@ Hosts call `AdapterDatabaseSession.capabilities` and
 | [`HOST_MIN_RESULT_BYTES`](#host_min_result_bytes) | constant | Host refuses guests that do not bound JSON bytes of one statement's rows. |
 | [`HOST_MIN_CELL_BYTES`](#host_min_cell_bytes) | constant | Host refuses guests that do not bound one result cell (`0` is unspecified). |
 | [`FIRST_PARTY_MAX_RESULT_BYTES`](#first_party_max_result_bytes) | constant | First-party JSON-byte budget for one statement's rows and for one atomic request/result scalar. Must stay at or below `crate::MAX_SCALAR_BYTES`. |
+| [`FIRST_PARTY_MAX_STREAMED_RESULT_BYTES`](#first_party_max_streamed_result_bytes) | constant | First-party budget for one `executeStreamed` reply (all statements' encoded results together): 64 MiB. The adapter holds up to this much before it commits, so a result above the inline scalar ceiling still arrives whole instead of failing closed. |
+| [`FIRST_PARTY_MAX_STREAMED_RESULT_ROWS`](#first_party_max_streamed_result_rows) | constant | First-party row budget for one statement answered through `executeStreamed`. |
+| [`HOST_MAX_STREAMED_RESULT_BYTES`](#host_max_streamed_result_bytes) | constant | Largest streamed result byte budget the host accepts from an adapter (the first-party budget): the host holds a streamed reply in memory while it reassembles it, so the ceiling is the host's, not the adapter's. |
+| [`HOST_MAX_STREAMED_RESULT_ROWS`](#host_max_streamed_result_rows) | constant | Largest streamed per-statement row budget the host accepts from an adapter. |
+| [`D1_MAX_STREAMED_RESULT_BYTES`](#d1_max_streamed_result_bytes) | constant | Cloudflare D1 budget for one `executeStreamed` reply: 8 MiB. D1 answers one HTTP request with the whole result, so the adapter stays well under what one REST reply carries. |
+| [`D1_MAX_STREAMED_RESULT_ROWS`](#d1_max_streamed_result_rows) | constant | Cloudflare D1 row budget for one statement answered through `executeStreamed`. |
 | [`SQL_CONTRACT_VERSION`](#sql_contract_version) | constant | Bookclerk SQL contract version advertised by first-party adapters. |
 
 ## Structs
@@ -329,6 +335,8 @@ pub struct DbCapabilities {
     pub max_lowered_statement_bytes: u32,
     pub consistent_backup_read: bool,
     pub atomic_unit_restore: bool,
+    pub max_streamed_result_bytes: u32,
+    pub max_streamed_result_rows: u32,
 }
 ```
 
@@ -367,6 +375,11 @@ not on this typed capability plane.
   reads schema, rows, and identity.
 - `atomic_unit_restore`: Adapter can destructively replace one logical database unit so an
   ordinary restore failure does not leave that unit partially replaced.
+- `max_streamed_result_bytes`: Maximum encoded bytes of one `ExecuteReply` answered through
+  `executeStreamed` (every statement result together). `0` means the
+  adapter does not stream; otherwise at least `max_atomic_result_bytes`.
+- `max_streamed_result_rows`: Maximum rows one statement may return through `executeStreamed`. `0`
+  means the adapter does not stream; otherwise at least `max_result_rows`.
 
 #### DbCapabilities::meets_host_minimums
 
@@ -401,6 +414,29 @@ pub fn supports_atomic_unit_restore(&self) -> bool
 
 True when the adapter can replace one logical unit completely
 (`atomicUnitRestore`).
+
+#### DbCapabilities::streams_results
+
+```rust
+pub fn streams_results(&self) -> bool
+```
+
+True when the adapter answers `executeStreamed` (a non-zero streamed
+budget).
+
+#### DbCapabilities::streamed
+
+```rust
+pub fn streamed(&self) -> Option<Self>
+```
+
+The caps a streamed reply is validated against: this advertisement
+with the result byte caps raised to `max_streamed_result_bytes` and
+the row cap to `max_streamed_result_rows`.
+
+##### Returns
+
+`None` when the adapter does not stream.
 
 #### DbCapabilities::advertised_sqlite
 
@@ -868,6 +904,63 @@ pub const FIRST_PARTY_MAX_RESULT_BYTES: u32 = MAX_SCALAR_BYTES;
 
 First-party JSON-byte budget for one statement's rows and for one atomic
 request/result scalar. Must stay at or below [`crate::MAX_SCALAR_BYTES`](README.md#max_scalar_bytes).
+
+### FIRST_PARTY_MAX_STREAMED_RESULT_BYTES
+
+```rust
+pub const FIRST_PARTY_MAX_STREAMED_RESULT_BYTES: u32 = _;
+```
+
+First-party budget for one `executeStreamed` reply (all statements'
+encoded results together): 64 MiB. The adapter holds up to this much
+before it commits, so a result above the inline scalar ceiling still
+arrives whole instead of failing closed.
+
+### FIRST_PARTY_MAX_STREAMED_RESULT_ROWS
+
+```rust
+pub const FIRST_PARTY_MAX_STREAMED_RESULT_ROWS: u32 = 250_000;
+```
+
+First-party row budget for one statement answered through
+`executeStreamed`.
+
+### HOST_MAX_STREAMED_RESULT_BYTES
+
+```rust
+pub const HOST_MAX_STREAMED_RESULT_BYTES: u32 = FIRST_PARTY_MAX_STREAMED_RESULT_BYTES;
+```
+
+Largest streamed result byte budget the host accepts from an adapter
+(the first-party budget): the host holds a streamed reply in memory while
+it reassembles it, so the ceiling is the host's, not the adapter's.
+
+### HOST_MAX_STREAMED_RESULT_ROWS
+
+```rust
+pub const HOST_MAX_STREAMED_RESULT_ROWS: u32 = FIRST_PARTY_MAX_STREAMED_RESULT_ROWS;
+```
+
+Largest streamed per-statement row budget the host accepts from an adapter.
+
+### D1_MAX_STREAMED_RESULT_BYTES
+
+```rust
+pub const D1_MAX_STREAMED_RESULT_BYTES: u32 = _;
+```
+
+Cloudflare D1 budget for one `executeStreamed` reply: 8 MiB. D1 answers
+one HTTP request with the whole result, so the adapter stays well under
+what one REST reply carries.
+
+### D1_MAX_STREAMED_RESULT_ROWS
+
+```rust
+pub const D1_MAX_STREAMED_RESULT_ROWS: u32 = 50_000;
+```
+
+Cloudflare D1 row budget for one statement answered through
+`executeStreamed`.
 
 ### SQL_CONTRACT_VERSION
 

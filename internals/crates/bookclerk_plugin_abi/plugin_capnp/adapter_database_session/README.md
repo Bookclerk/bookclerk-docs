@@ -26,6 +26,8 @@
 | [`DropUserRelationsResults`](#dropuserrelationsresults) | type alias |  |
 | [`AssertRestoreConstraintsParams`](#assertrestoreconstraintsparams) | type alias |  |
 | [`AssertRestoreConstraintsResults`](#assertrestoreconstraintsresults) | type alias |  |
+| [`ExecuteStreamedParams`](#executestreamedparams) | type alias |  |
+| [`ExecuteStreamedResults`](#executestreamedresults) | type alias |  |
 
 ## Modules
 
@@ -49,6 +51,8 @@
 - [`drop_user_relations_results`](drop_user_relations_results.md)
 - [`assert_restore_constraints_params`](assert_restore_constraints_params.md)
 - [`assert_restore_constraints_results`](assert_restore_constraints_results.md)
+- [`execute_streamed_params`](execute_streamed_params.md)
+- [`execute_streamed_results`](execute_streamed_results.md)
 
 ## Traits
 
@@ -105,6 +109,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: AssertRestoreConstraintsParams,
         _: AssertRestoreConstraintsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn execute_streamed(
+        self: Rc<Self>,
+        _: ExecuteStreamedParams,
+        _: ExecuteStreamedResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -209,6 +218,16 @@ fn assert_restore_constraints(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::execute_streamed
+
+```rust
+fn execute_streamed(
+    self: Rc<Self>,
+    _: ExecuteStreamedParams,
+    _: ExecuteStreamedResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -277,6 +296,12 @@ pub fn drop_user_relations_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn assert_restore_constraints_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::execute_streamed_request
+
+```rust
+pub fn execute_streamed_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -430,4 +455,16 @@ pub type AssertRestoreConstraintsParams = Params<Owned>;
 
 ```rust
 pub type AssertRestoreConstraintsResults = Results<Owned>;
+```
+
+### ExecuteStreamedParams
+
+```rust
+pub type ExecuteStreamedParams = Params<Owned>;
+```
+
+### ExecuteStreamedResults
+
+```rust
+pub type ExecuteStreamedResults = Results<Owned>;
 ```

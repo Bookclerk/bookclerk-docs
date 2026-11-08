@@ -3172,6 +3172,27 @@ Typed execute on a named plugin database binding session.
 Returns a plugin error when the binding is not open or the guest
 rejects the call.
 
+#### PluginSession::db_execute_streamed_binding_request
+
+```rust
+pub async fn db_execute_streamed_binding_request(
+    &self,
+    name: &str,
+    request: AdapterExecuteRequest,
+    limits: ExecuteStreamLimits,
+    cancel: Arc<AtomicBool>,
+) -> Result<ExecuteReply>
+```
+
+Typed `AdapterDatabaseSession.executeStreamed` on a named plugin
+database binding, collected into one reply under `limits`.
+
+##### Errors
+
+Returns a plugin error when the binding is not open, the adapter rejects
+the call or does not implement streaming, the frames break the budget,
+or `cancel` is set.
+
 #### PluginSession::db_execute_binding_envelope_request
 
 ```rust
@@ -3232,6 +3253,29 @@ Typed `AdapterDatabaseSession.execute`.
 ##### Errors
 
 Returns a plugin error when the guest rejects the call or `cancel` is set.
+
+#### PluginSession::db_execute_streamed_request
+
+```rust
+pub async fn db_execute_streamed_request(
+    &self,
+    request: AdapterExecuteRequest,
+    limits: ExecuteStreamLimits,
+    cancel: Arc<AtomicBool>,
+) -> Result<ExecuteReply>
+```
+
+Typed `AdapterDatabaseSession.executeStreamed`, collected into one
+reply.
+
+The vat thread decodes the adapter's frames as they arrive and stops
+with `limit_exceeded` as soon as the collected rows or bytes pass
+`limits`, so a runaway result never fully lands in host memory.
+
+##### Errors
+
+Returns a plugin error when the adapter rejects the call or does not
+implement streaming, the frames break the budget, or `cancel` is set.
 
 #### PluginSession::db_execute_envelope_request
 

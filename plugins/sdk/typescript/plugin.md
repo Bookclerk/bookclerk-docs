@@ -124,6 +124,32 @@ Typed atomic batch (`ExecuteRequest` → `ExecuteReply`).
 
 `ExecuteReply`.
 
+##### executeStreamed()
+
+```ts
+executeStreamed(_request): Promise<Uint8Array<ArrayBufferLike>>;
+```
+
+The same atomic batch as [AdapterDatabaseSession.execute](#execute), answered
+as concatenated `ExecuteStreamFrame` messages counted against the
+advertised `maxStreamedResultBytes` / `maxStreamedResultRows`; optional.
+Adapters that advertise `0` for both leave the default, which answers
+`unsupported`. An isolate adapter's frames travel inside one invoke
+reply, so its streamed budget is clamped to `MAX_SCALAR_BYTES` (256 KiB)
+and larger frames are a `limit_exceeded` (`maxScalarBytes`) error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request` | [`AdapterExecuteRequest`](generated.md#adapterexecuterequest) | Proven statements plus isolation and receipt. |
+
+###### Returns
+
+`Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+
+Every frame of the committed reply, concatenated.
+
 ##### exportIdentity()
 
 ```ts

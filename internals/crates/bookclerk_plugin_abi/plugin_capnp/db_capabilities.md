@@ -169,6 +169,18 @@ pub fn get_consistent_backup_read(self) -> bool
 pub fn get_atomic_unit_restore(self) -> bool
 ```
 
+#### Reader::get_max_streamed_result_bytes
+
+```rust
+pub fn get_max_streamed_result_bytes(self) -> u32
+```
+
+#### Reader::get_max_streamed_result_rows
+
+```rust
+pub fn get_max_streamed_result_rows(self) -> u32
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -465,6 +477,30 @@ pub fn get_atomic_unit_restore(self) -> bool
 
 ```rust
 pub fn set_atomic_unit_restore(&mut self, value: bool)
+```
+
+#### Builder::get_max_streamed_result_bytes
+
+```rust
+pub fn get_max_streamed_result_bytes(self) -> u32
+```
+
+#### Builder::set_max_streamed_result_bytes
+
+```rust
+pub fn set_max_streamed_result_bytes(&mut self, value: u32)
+```
+
+#### Builder::get_max_streamed_result_rows
+
+```rust
+pub fn get_max_streamed_result_rows(self) -> u32
+```
+
+#### Builder::set_max_streamed_result_rows
+
+```rust
+pub fn set_max_streamed_result_rows(&mut self, value: u32)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

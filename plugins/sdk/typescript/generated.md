@@ -139,6 +139,29 @@ Canonical SQL + required structured proofs (not JSON).
 
 [ExecuteResultReply](#executeresultreply)
 
+##### executeStreamed()
+
+```ts
+executeStreamed(request): Promise<ExecuteStreamReply>;
+```
+
+`execute` whose reply is framed (`ExecuteStreamFrame`) and counted against
+`maxStreamedResultBytes` / `maxStreamedResultRows` instead of the inline
+caps. One transaction, one snapshot; `unsupported` when the adapter
+advertises no streamed budget.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`AdapterExecuteRequest`](#adapterexecuterequest) | Proven statements plus isolation and receipt. |
+
+###### Returns
+
+`Promise`\<[`ExecuteStreamReply`](#executestreamreply)\>
+
+[ExecuteStreamReply](#executestreamreply)
+
 ##### exportIdentity()
 
 ```ts
@@ -2172,6 +2195,27 @@ maxStatements: number;
 
 Maximum statements in one atomic batch.
 
+##### maxStreamedResultBytes
+
+```ts
+maxStreamedResultBytes: number;
+```
+
+Maximum encoded bytes of one `ExecuteReply` answered through
+`executeStreamed` (the sum of its frames' statement results). `0` means
+the adapter does not stream and callers stay under the inline caps.
+When set it is at least `maxAtomicResultBytes`.
+
+##### maxStreamedResultRows
+
+```ts
+maxStreamedResultRows: number;
+```
+
+Maximum rows one statement may return through `executeStreamed`. `0`
+means the adapter does not stream. When set it is at least
+`maxResultRows`.
+
 ##### pluginDatabases
 
 ```ts
@@ -3097,6 +3141,63 @@ Statements in execution order; at most `maxStatements`.
 
 ***
 
+### ExecuteStreamHead
+
+First frame of a streamed execute reply: what the reply is about.
+
+#### Properties
+
+##### operationId
+
+```ts
+operationId: string;
+```
+
+Echo of the request `operationId`.
+
+##### statementCount
+
+```ts
+statementCount: number;
+```
+
+Number of `statement` frames that follow, one per request statement.
+
+***
+
+### ExecuteStreamStatement
+
+Opens one statement result inside a streamed execute reply. Its rows, if
+any, follow in `rows` frames until the next `statement`, `end` or `err`.
+
+#### Properties
+
+##### columns
+
+```ts
+columns: DbColumn[];
+```
+
+Result column descriptors.
+
+##### index
+
+```ts
+index: number;
+```
+
+Request statement index, `0`-based and increasing by one per frame.
+
+##### rowsAffected
+
+```ts
+rowsAffected: number;
+```
+
+Rows changed by a mutation.
+
+***
+
 ### ExpandCandidatesParams
 
 Params of `ContentSource.expandCandidates`. Seed fields identify a known
@@ -3558,6 +3659,29 @@ Run one typed statement batch.
 `Promise`\<[`ExecuteResultReply`](#executeresultreply)\>
 
 [ExecuteResultReply](#executeresultreply)
+
+##### executeStreamed()
+
+```ts
+executeStreamed(request): Promise<ExecuteStreamReply>;
+```
+
+`execute` whose reply is framed (`ExecuteStreamFrame`) and counted against
+the session's `maxStreamedResultBytes` / `maxStreamedResultRows`, so a
+result past the inline caps still arrives whole. `unsupported` when the
+session advertises no streamed budget.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ExecuteRequest`](#executerequest) | Statements, binds, and deadline. |
+
+###### Returns
+
+`Promise`\<[`ExecuteStreamReply`](#executestreamreply)\>
+
+[ExecuteStreamReply](#executestreamreply)
 
 ##### limits()
 
@@ -8096,6 +8220,66 @@ type ExecuteResultReply =
 ```
 
 Result union of `execute`.
+
+***
+
+### ExecuteStreamFrame
+
+```ts
+type ExecuteStreamFrame = 
+  | {
+  kind: "head";
+  value: ExecuteStreamHead;
+}
+  | {
+  kind: "statement";
+  value: ExecuteStreamStatement;
+}
+  | {
+  kind: "rows";
+  value: DbRow[];
+}
+  | {
+  kind: "end";
+  value: DbTiming;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+One frame of a streamed execute reply (`executeStreamed`). Frames are
+consecutive unpacked single-segment Cap'n Proto messages, each at most
+`maxScalarBytes` unless it carries one row that alone exceeds it. The
+sequence is `head`, then for each statement `statement` followed by its
+`rows` frames in order, then `end`; `err` ends the sequence early.
+
+***
+
+### ExecuteStreamReply
+
+```ts
+type ExecuteStreamReply = 
+  | {
+  kind: "inline";
+  value: Uint8Array;
+}
+  | {
+  kind: "stream";
+  value: ByteSource;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `executeStreamed`. The frames (`ExecuteStreamFrame`) travel
+inline when they fit one scalar, otherwise as a transferred byte stream in
+`maxStreamWindowBytes` windows. The adapter counts the reply against
+`maxStreamedResultBytes` and `maxStreamedResultRows` before it commits, so
+results still fail closed and are never truncated.
 
 ***
 

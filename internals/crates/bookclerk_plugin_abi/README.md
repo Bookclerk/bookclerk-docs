@@ -182,11 +182,13 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`decode_db_value_bytes`](#decode_db_value_bytes) | function | Decodes a standalone Cap'n `DbValue` message. |
 | [`decode_execute_request_bytes`](#decode_execute_request_bytes) | function | Decodes a standalone Cap'n `ExecuteRequest` message. |
 | [`decode_execute_result_reply_bytes`](#decode_execute_result_reply_bytes) | function | Decodes a standalone Cap'n `ExecuteAtomicReply` message. |
+| [`decode_execute_stream_frame_bytes`](#decode_execute_stream_frame_bytes) | function | Decodes one standalone `ExecuteStreamFrame` message whose traversal is capped at `max_bytes` (at least the scalar ceiling). |
 | [`encoded_db_capabilities_reply_bytes`](#encoded_db_capabilities_reply_bytes) | function | Encodes a standalone Cap'n `DbCapabilitiesReply` (`ok` or `err`). |
 | [`encoded_db_value_bytes`](#encoded_db_value_bytes) | function | Encodes a standalone Cap'n `DbValue` message (unpacked stream). |
 | [`encoded_execute_reply_bytes`](#encoded_execute_reply_bytes) | function | Encodes a standalone Cap'n `ExecuteReply` message (unpacked stream). |
 | [`encoded_execute_request_bytes`](#encoded_execute_request_bytes) | function | Encodes a standalone Cap'n `ExecuteRequest` message (unpacked stream). |
 | [`encoded_execute_result_reply_bytes`](#encoded_execute_result_reply_bytes) | function | Encodes a standalone Cap'n `ExecuteAtomicReply` (`ok` or `err`). |
+| [`encoded_execute_stream_frame_bytes`](#encoded_execute_stream_frame_bytes) | function | Encodes one standalone `ExecuteStreamFrame` message (unpacked stream, one segment). |
 | [`encoded_statement_result_bytes`](#encoded_statement_result_bytes) | function | Encodes a standalone Cap'n `StatementResult` message (unpacked stream). |
 | [`negotiate_rpc_features`](#negotiate_rpc_features) | function | Intersects host-offered and guest-accepted feature lists. |
 | [`read_all`](#read_all) | function | Reads a small transferred body, stopping at `crate::MAX_SCALAR_BYTES`. |
@@ -263,9 +265,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_execute::D1_MAX_PAYLOAD_BYTES`](db_execute.md#d1_max_payload_bytes)
 - [`db_execute::D1_MAX_SCHEMA_COLUMNS`](db_execute.md#d1_max_schema_columns)
 - [`db_execute::D1_MAX_SQL_STATEMENT_BYTES`](db_execute.md#d1_max_sql_statement_bytes)
+- [`db_execute::D1_MAX_STREAMED_RESULT_BYTES`](db_execute.md#d1_max_streamed_result_bytes)
+- [`db_execute::D1_MAX_STREAMED_RESULT_ROWS`](db_execute.md#d1_max_streamed_result_rows)
 - [`db_execute::FIRST_PARTY_MAX_RESULT_BYTES`](db_execute.md#first_party_max_result_bytes)
 - [`db_execute::FIRST_PARTY_MAX_RESULT_ROWS`](db_execute.md#first_party_max_result_rows)
 - [`db_execute::FIRST_PARTY_MAX_STATEMENTS`](db_execute.md#first_party_max_statements)
+- [`db_execute::FIRST_PARTY_MAX_STREAMED_RESULT_BYTES`](db_execute.md#first_party_max_streamed_result_bytes)
+- [`db_execute::FIRST_PARTY_MAX_STREAMED_RESULT_ROWS`](db_execute.md#first_party_max_streamed_result_rows)
+- [`db_execute::HOST_MAX_STREAMED_RESULT_BYTES`](db_execute.md#host_max_streamed_result_bytes)
+- [`db_execute::HOST_MAX_STREAMED_RESULT_ROWS`](db_execute.md#host_max_streamed_result_rows)
 - [`db_execute::HOST_MIN_BINDS`](db_execute.md#host_min_binds)
 - [`db_execute::HOST_MIN_CELL_BYTES`](db_execute.md#host_min_cell_bytes)
 - [`db_execute::HOST_MIN_FUNCTION_ARGS`](db_execute.md#host_min_function_args)
@@ -348,6 +356,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`sql_types::catalog_companions_for_action`](sql_types.md#catalog_companions_for_action)
 - [`sql_types::sql_schema_create_table_sql`](sql_types.md#sql_schema_create_table_sql)
 - [`sql_types::typecheck_execute_request_proofs`](sql_types.md#typecheck_execute_request_proofs)
+- [`db_stream::decode_execute_stream`](db_stream.md#decode_execute_stream)
+- [`db_stream::encode_execute_stream`](db_stream.md#encode_execute_stream)
+- [`db_stream::encode_execute_stream_error`](db_stream.md#encode_execute_stream_error)
+- [`db_stream::ExecuteStream`](db_stream.md#executestream)
+- [`db_stream::ExecuteStreamBody`](db_stream.md#executestreambody)
+- [`db_stream::ExecuteStreamDecoder`](db_stream.md#executestreamdecoder)
+- [`db_stream::ExecuteStreamFrame`](db_stream.md#executestreamframe)
+- [`db_stream::ExecuteStreamLimits`](db_stream.md#executestreamlimits)
+- [`db_stream::STREAM_FRAME_TARGET_BYTES`](db_stream.md#stream_frame_target_bytes)
 - [`settings_schema::is_valid_setting_key`](settings_schema.md#is_valid_setting_key)
 - [`settings_schema::EffectiveConfig`](settings_schema.md#effectiveconfig)
 - [`settings_schema::SettingKind`](settings_schema.md#settingkind)
@@ -661,6 +678,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`backup_ops`](backup_ops.md): Host-facing backup/restore primitives (Send + Sync).
 - [`db`](db.md): Database-adapter binding payloads (host connect params + public adapter config).
 - [`db_execute`](db_execute.md): Typed Cap'n database data-plane (`ExecuteRequest` / `ExecuteReply`) and control-plane (`DbCapabilities`) mirrors of `plugin.capnp`.
+- [`db_stream`](db_stream.md): Streamed execute replies (`executeStreamed`).
 - [`db_value`](db_value.md): Universal Cap'n database value domain (`DbValue`).
 - [`error`](error.md): Plugin error model shared by host and guests.
 - [`generated`](generated.md): GENERATED FILE - do not edit. Run `python3 scripts/gen-plugin-abi.py --write` after changing crates/bookclerk-plugin-abi/schema/plugin.capnp.
@@ -945,6 +963,13 @@ pub trait AdapterDatabaseSession {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn execute_streamed<'life0, 'async_trait>(
+        &'life0 self,
+        request: AdapterExecuteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<ExecuteStream>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn close<'life0, 'async_trait>(
         &'life0 self,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
@@ -1035,6 +1060,27 @@ where
 ```
 
 Typed atomic batch (`execute`). Canonical SQL plus required 1:1 proofs.
+
+#### AdapterDatabaseSession::execute_streamed
+
+```rust
+fn execute_streamed<'life0, 'async_trait>(
+    &'life0 self,
+    request: AdapterExecuteRequest,
+) -> Pin<Box<dyn Future<Output = Result<ExecuteStream>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+`execute` whose reply is framed and counted against the streamed
+budget (`maxStreamedResultBytes` / `maxStreamedResultRows`) instead
+of the inline caps. One transaction, one snapshot.
+
+##### Errors
+
+The default fails with `unsupported`; adapters that advertise a
+streamed budget answer with the framed reply.
 
 #### AdapterDatabaseSession::close
 
@@ -1923,6 +1969,13 @@ pub trait GuestDatabase {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn execute_streamed<'life0, 'async_trait>(
+        &'life0 self,
+        request: ExecuteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<ExecuteStream>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -1973,6 +2026,26 @@ size requests and reads before sending.
 
 Hosts answer with the adapter's advertisement; the default fails with
 `unsupported` for sessions that predate the method.
+
+#### GuestDatabase::execute_streamed
+
+```rust
+fn execute_streamed<'life0, 'async_trait>(
+    &'life0 self,
+    request: ExecuteRequest,
+) -> Pin<Box<dyn Future<Output = Result<ExecuteStream>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+`execute` whose reply is framed and counted against the session's
+streamed budget, so a result past the inline caps still arrives whole.
+
+##### Errors
+
+The default fails with `unsupported` for sessions that predate the
+method or advertise no streamed budget.
 
 ### JobRunner
 
@@ -5357,6 +5430,22 @@ Decodes a standalone Cap'n `ExecuteAtomicReply` message.
 
 Returns the guest [`PluginError`](error.md#pluginerror) on `err`, or a decode failure on `ok`.
 
+### decode_execute_stream_frame_bytes
+
+```rust
+pub fn decode_execute_stream_frame_bytes(
+    bytes: &[u8],
+    max_bytes: u32,
+) -> Result<ExecuteStreamFrame>
+```
+
+Decodes one standalone `ExecuteStreamFrame` message whose traversal is
+capped at `max_bytes` (at least the scalar ceiling).
+
+#### Errors
+
+Returns when the buffer is not one valid unpacked frame.
+
 ### encoded_db_capabilities_reply_bytes
 
 ```rust
@@ -5426,6 +5515,20 @@ Encodes a standalone Cap'n `ExecuteAtomicReply` (`ok` or `err`).
 #### Errors
 
 Returns [`PluginError::internal`](error.md#pluginerrorinternal) when the message cannot be serialized.
+
+### encoded_execute_stream_frame_bytes
+
+```rust
+pub fn encoded_execute_stream_frame_bytes(frame: &ExecuteStreamFrame) -> Result<Vec<u8>>
+```
+
+Encodes one standalone `ExecuteStreamFrame` message (unpacked stream, one
+segment).
+
+#### Errors
+
+Returns [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a TEXT cell contains U+0000,
+or [`PluginError::internal`](error.md#pluginerrorinternal) when the message cannot be serialized.
 
 ### encoded_statement_result_bytes
 

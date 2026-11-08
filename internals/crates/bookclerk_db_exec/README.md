@@ -88,6 +88,7 @@ those lowerers.
 - [`bookclerk_plugin_abi::DbPlanStatementKind`](../bookclerk_plugin_abi/db_execute.md#dbplanstatementkind)
 - [`bookclerk_plugin_abi::AdapterExecuteRequest`](../bookclerk_plugin_abi/README.md#adapterexecuterequest)
 - [`bookclerk_plugin_abi::GuestReceiptPersist`](../bookclerk_plugin_abi/README.md#guestreceiptpersist)
+- [`guest_receipt::guest_batch_is_read_only`](guest_receipt.md#guest_batch_is_read_only)
 - [`guest_receipt::guest_receipt_applied_stmt`](guest_receipt.md#guest_receipt_applied_stmt)
 - [`guest_receipt::guest_receipt_finalize_stmts`](guest_receipt.md#guest_receipt_finalize_stmts)
 - [`guest_receipt::is_guest_receipt_result_lost`](guest_receipt.md#is_guest_receipt_result_lost)
@@ -95,10 +96,12 @@ those lowerers.
 - [`guest_receipt::pad_skipped_guest_results`](guest_receipt.md#pad_skipped_guest_results)
 - [`guest_receipt::prior_receipt_exists`](guest_receipt.md#prior_receipt_exists)
 - [`guest_receipt::prior_receipt_is_claimed`](guest_receipt.md#prior_receipt_is_claimed)
+- [`guest_receipt::prior_receipt_is_read_only_replay`](guest_receipt.md#prior_receipt_is_read_only_replay)
 - [`guest_receipt::prior_receipt_should_resume_guest`](guest_receipt.md#prior_receipt_should_resume_guest)
 - [`guest_receipt::receipt_hash_from`](guest_receipt.md#receipt_hash_from)
 - [`guest_receipt::should_skip_remaining_guest_work`](guest_receipt.md#should_skip_remaining_guest_work)
 - [`guest_receipt::strip_guest_receipt_write_gate`](guest_receipt.md#strip_guest_receipt_write_gate)
+- [`guest_receipt::GUEST_READ_ONLY_REPLAY_PAYLOAD`](guest_receipt.md#guest_read_only_replay_payload)
 - [`guest_receipt::GUEST_RECEIPT_RESULT_LOST`](guest_receipt.md#guest_receipt_result_lost)
 - [`guest_receipt::GUEST_RECEIPT_STATUS_APPLIED`](guest_receipt.md#guest_receipt_status_applied)
 - [`guest_receipt::GUEST_RECEIPT_STATUS_CLAIMED`](guest_receipt.md#guest_receipt_status_claimed)
@@ -106,6 +109,7 @@ those lowerers.
 - [`guest_receipt::GUEST_RECEIPT_STUB_SUFFIX`](guest_receipt.md#guest_receipt_stub_suffix)
 - [`guest_receipt::GUEST_RECEIPT_WRAP_PREFIX`](guest_receipt.md#guest_receipt_wrap_prefix)
 - [`guest_receipt::GUEST_RECEIPT_WRITE_GATE`](guest_receipt.md#guest_receipt_write_gate)
+- [`guest_receipt::GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES`](guest_receipt.md#guest_typed_replay_payload_max_bytes)
 - [`proxy_txn::arm_exec_budget`](proxy_txn.md#arm_exec_budget)
 - [`proxy_txn::clear_exec_budget`](proxy_txn.md#clear_exec_budget)
 - [`proxy_txn::consume_atomic_interrupt`](proxy_txn.md#consume_atomic_interrupt)
@@ -215,6 +219,19 @@ pub fn from_capabilities(caps: &DbCapabilities) -> Self
 ```
 
 Copies negotiated capability limits into the executor.
+
+#### ExecCaps::streamed_from_capabilities
+
+```rust
+pub fn streamed_from_capabilities(caps: &DbCapabilities) -> Option<Self>
+```
+
+The caps an `executeStreamed` batch runs under: the streamed byte and
+row budgets in place of the inline result caps.
+
+##### Returns
+
+`None` when `caps` advertises no streamed budget.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `From<u32>`
 

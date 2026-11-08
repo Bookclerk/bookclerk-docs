@@ -3,7 +3,8 @@
 Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job`
 streams (`Source` / `Destination` / `ProgressSink`), the job's
 `Cancellation` long poll (`/cancel`), named database sessions
-(`/db/execute`), and the `EVENTS` outbox publisher (`/events/publish`).
+(`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox publisher
+(`/events/publish`).
 
 HTTP accept/read/write runs on the multi-thread runtime (`tokio::spawn`) so
 it is not starved by the Cap'n Proto vat `LocalSet`. Stub calls stay on the

@@ -38,7 +38,7 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`egress`](egress.md): Host egress policy for workerd guests (wraps shared `EgressPolicy`).
 - [`ensure`](ensure.md): Download / refresh the pinned Cloudflare `workerd` binary.
 - [`grant`](grant.md): Operator consent grant overrides delivered to `bookclerk-workerd` via env.
-- [`granted`](granted.md): Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job` streams (`Source` / `Destination` / `ProgressSink`), the job's `Cancellation` long poll (`/cancel`), named database sessions (`/db/execute`), and the `EVENTS` outbox publisher (`/events/publish`).
+- [`granted`](granted.md): Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job` streams (`Source` / `Destination` / `ProgressSink`), the job's `Cancellation` long poll (`/cancel`), named database sessions (`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox publisher (`/events/publish`).
 - [`granted_http`](granted_http.md): Sans-IO HTTP/1.1 parsing for the granted reverse channel.
 - [`inherited_link`](inherited_link.md): Open a host-inherited sibling link (`fd:<n>` / `handle:<n>`) as a Tokio stream.
 - [`invoke`](invoke.md): `POST /invoke`: the Cap'n Proto data plane between the launcher and the adapter isolate.

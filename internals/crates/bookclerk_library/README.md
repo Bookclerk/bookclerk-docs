@@ -203,6 +203,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`compile_named_request`](#compile_named_request) | function | Compiles a named atomic request into canonical Bookclerk SQL. |
 | [`interpret_typed_exec`](#interpret_typed_exec) | function | Maps a typed `ExecuteReply` onto a host `DbAtomicResult`. |
 | [`validate_execute_reply`](#validate_execute_reply) | function | Rejects a guest `ExecuteReply` that does not echo the sent request or exceeds negotiated caps. |
+| [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) | function | `validate_execute_reply` for a reply reassembled from `executeStreamed` frames. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
@@ -5622,16 +5623,18 @@ pub async fn list_books_page(
 
 Pages books by surrogate id so a scan does not load the catalog at once.
 
-`limit` is clamped to 1..=64. The read starts at that width and halves
-when the guest result would exceed `maxResultBytes` (256 KiB). A full
-page of enriched `books` rows is larger than that cap. The smaller
-width that fits is reused until `limit` rows are collected or the
-catalog ends.
+`limit` is clamped to 1..=64. A full page of enriched `books` rows is
+larger than the inline result cap (256 KiB); an adapter that streams
+results returns it as one read. When the guest result would exceed
+the byte budget it is read under (`maxResultBytes` on an adapter that
+only answers inline, or `maxStreamedResultBytes`), the read halves,
+and the smaller width that fits is reused until `limit` rows are
+collected or the catalog ends.
 
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
-than the result cap, or when a single row still exceeds the cap.
+than a result byte cap, or when a single row still exceeds it.
 
 #### LibraryStore::enqueue_job
 
@@ -6216,11 +6219,15 @@ Pages books by account, acquire status, and title.
 `status` is the wire string from [`crate::AcquireStatus::as_str`](#acquirestatusas_str).
 `limit` is clamped to 1..=500. `total` uses the same `WHERE` as the page.
 
-The page is read in pieces of at most 64 rows so a requested limit of
-256 stays under the guest result-byte cap. A piece is halved when that
-result would exceed the cap, and later pieces keep that smaller width.
-`limit`, `offset`, and `total` are the caller's page, not one of those
-pieces. `total` is counted once.
+Against an adapter that streams results the page is one guest read: a
+full page of enriched rows is larger than the inline result cap but
+well under the streamed budget. When a page does not fit the budget
+it was read under (an adapter that only answers inline, or rows wide
+enough to pass even the streamed budget), the page is read in pieces
+of at most 64 rows, a piece is halved when its result would exceed
+the cap, and later pieces keep that smaller width. `limit`, `offset`,
+and `total` are the caller's page, not one of those pieces. `total`
+is counted once.
 
 ##### Errors
 
@@ -11743,7 +11750,30 @@ Returns [`LibraryError::Unavailable`](#libraryerror) when the echo, statement co
 result selection shape does not match the request, and
 [`LibraryError::LimitExceeded`](#libraryerror) when a statement result or the whole
 reply exceeds a negotiated cap (`maxResultRows`, `maxCellBytes`,
-`maxResultBytes`, `maxAtomicResultBytes`).
+`maxResultBytes`, `maxAtomicResultBytes`). A reply read as a stream is
+validated with [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) instead.
+
+### validate_streamed_execute_reply
+
+```rust
+pub fn validate_streamed_execute_reply(
+    req: &ExecuteRequest,
+    reply: &ExecuteReply,
+    caps: &DbCapabilities,
+) -> Result<()>
+```
+
+[`validate_execute_reply`](#validate_execute_reply) for a reply reassembled from
+`executeStreamed` frames.
+
+`caps` are the streamed caps (`DbCapabilities::streamed`), so the
+byte budgets are the streamed budget and an exceeded one is reported
+as `maxStreamedResultBytes` whatever its size, which keeps a caller
+from retrying the same read in inline pieces.
+
+#### Errors
+
+As [`validate_execute_reply`](#validate_execute_reply).
 
 ### deliver_after_for
 
