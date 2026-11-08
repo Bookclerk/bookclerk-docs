@@ -9742,6 +9742,7 @@ pub enum LibraryError {
     Conflict(String),
     Forbidden(String),
     Invalid(String),
+    LimitExceeded(LimitExceeded),
     Other(Error),
 }
 ```
@@ -9766,6 +9767,11 @@ Failures from library store, schema apply, secrets, or config.
 - `Forbidden`: The caller may not perform this write (for example a configuration
   write without operator authority).
 - `Invalid`: The request or stored document failed validation.
+- `LimitExceeded`: A request or its result exceeded a negotiated SQL-v1 cap
+  (`maxResultBytes`, `maxResultRows`, `maxRequestBytes`, ...).
+  
+  Not retryable as is: the caller narrows the request (fewer rows, fewer
+  statements) or switches to a transport that fits.
 - `Other`: Catch-all for otherwise unclassified failures.
 
 #### LibraryError::from_db_err
@@ -9779,6 +9785,32 @@ Maps a SeaORM / adapter [`sea_orm::DbErr`](https://docs.rs/sea_orm/latest/sea_or
 Busy, deadlock, and lost-commit tokens become [`Self::Unavailable`](#libraryerror).
 Unique/duplicate-object tokens become [`Self::Conflict`](#libraryerror). Foreign-key,
 CHECK, and NOT NULL stay [`Self::Orm`](#libraryerror). Everything else stays [`Self::Orm`](#libraryerror).
+
+#### LibraryError::from_abi_err
+
+```rust
+pub fn from_abi_err(err: PluginError) -> Self
+```
+
+Maps an ABI [`bookclerk_plugin_abi::PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) from an adapter or
+admission check onto a typed library error.
+
+A `limit_exceeded` error becomes [`Self::LimitExceeded`](#libraryerror); everything
+else is [`Self::Other`](#libraryerror) with the same message.
+
+#### LibraryError::limit
+
+```rust
+pub fn limit(&self) -> Option<LimitExceeded>
+```
+
+The exceeded cap when this error is (or wraps the message of) a
+SQL-v1 limit error.
+
+Matches [`Self::LimitExceeded`](#libraryerror) directly and parses the canonical
+`limit exceeded: <name> is <cap>; used <n>` text out of
+[`Self::Orm`](#libraryerror), [`Self::Unavailable`](#libraryerror) and [`Self::Other`](#libraryerror), so a limit
+error survives a string hop through the adapter boundary.
 
 #### LibraryError::is_schema_apply_retryable
 
@@ -11697,8 +11729,11 @@ rather than interpreting a truncated or mismatched envelope.
 
 #### Errors
 
-Returns [`LibraryError::Unavailable`](#libraryerror) when the echo, statement count,
-result selection shape, or byte/row bounds do not match the request.
+Returns [`LibraryError::Unavailable`](#libraryerror) when the echo, statement count or
+result selection shape does not match the request, and
+[`LibraryError::LimitExceeded`](#libraryerror) when a statement result or the whole
+reply exceeds a negotiated cap (`maxResultRows`, `maxCellBytes`,
+`maxResultBytes`, `maxAtomicResultBytes`).
 
 ### deliver_after_for
 

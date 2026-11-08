@@ -4273,6 +4273,39 @@ Same batch as [AtomicTransport.execute](db-execute.md#execute), as Cap'n Proto b
 
 Unpacked `ExecuteResultReply` message.
 
+##### limits()
+
+```ts
+limits(): Promise<DbCapabilities>;
+```
+
+Negotiated limits of the granted session (`GuestDatabase.limits`).
+
+###### Returns
+
+`Promise`\<[`DbCapabilities`](generated.md#dbcapabilities)\>
+
+The adapter's `DbCapabilities` for this binding.
+
+###### Overrides
+
+[`AtomicTransport`](db-execute.md#atomictransport).[`limits`](db-execute.md#limits)
+
+##### limitsBytes()
+
+```ts
+limitsBytes(): Promise<Uint8Array<ArrayBufferLike>>;
+```
+
+Same answer as [GrantedDatabaseTransport.limits](#limits), as Cap'n Proto
+bytes (`DbCapabilitiesReply`) for Python authors.
+
+###### Returns
+
+`Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+
+Unpacked `DbCapabilitiesReply` message.
+
 ***
 
 ### GrantedFetcher

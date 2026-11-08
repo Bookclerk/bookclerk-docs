@@ -32,6 +32,22 @@ Runs one typed atomic batch.
 
 Structured `ExecuteReply`.
 
+##### limits()?
+
+```ts
+limits?(): Promise<DbCapabilities>;
+```
+
+Negotiated limits of the session (`DbCapabilities`). Transports that
+predate `GuestDatabase.limits` leave it out; the binding then throws
+`unsupported`.
+
+###### Returns
+
+`Promise`\<[`DbCapabilities`](generated.md#dbcapabilities)\>
+
+The adapter's capability advertisement for this session.
+
 ***
 
 ### D1ExecResult
@@ -223,6 +239,25 @@ Internal typed-batch transport. Prefer [DatabaseBinding.prepare](#prepare).
 ###### Returns
 
 `Promise`\<[`ExecuteReply`](#executereply)\>
+
+##### limits()
+
+```ts
+limits(): Promise<DbCapabilities>;
+```
+
+The negotiated limits of this binding's session (`DbCapabilities`):
+`maxRequestBytes`, `maxStatements`, `maxResultBytes`, `maxResultRows`
+and the rest. Use them to size a batch or a read before sending.
+
+###### Returns
+
+`Promise`\<[`DbCapabilities`](generated.md#dbcapabilities)\>
+
+###### Throws
+
+`PluginError` with code `unsupported` on a host that predates
+`GuestDatabase.limits`.
 
 ##### prepare()
 
@@ -739,6 +774,32 @@ Binding whose `execute(batch)` encodes Cap'n then calls the host.
 
 ***
 
+### decodeDbCapabilitiesReply()
+
+```ts
+function decodeDbCapabilitiesReply(bytes): DbCapabilities;
+```
+
+Decodes a standalone `DbCapabilitiesReply`. `err` is thrown as `PluginError`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `bytes` | `Uint8Array` | Unpacked Cap'n stream. |
+
+#### Returns
+
+[`DbCapabilities`](generated.md#dbcapabilities)
+
+The session's `DbCapabilities`.
+
+#### Throws
+
+When the union is `err` or the buffer is invalid.
+
+***
+
 ### decodeExecuteRequest()
 
 ```ts
@@ -788,6 +849,29 @@ Structured `ExecuteReply`.
 #### Throws
 
 When the union is `err` or the buffer is invalid.
+
+***
+
+### encodeDbCapabilitiesReply()
+
+```ts
+function encodeDbCapabilitiesReply(outcome): Uint8Array;
+```
+
+Encodes a standalone `DbCapabilitiesReply` (`ok` or `err`), the answer of
+`GuestDatabase.limits` on the granted channel (`GET /db/limits`).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `outcome` | \| \{ `ok`: [`DbCapabilities`](generated.md#dbcapabilities); \} \| \{ `err`: \{ `code`: `string`; `details?`: `string`; `message`: `string`; \}; \} | Capability advertisement or a wire `PluginError`. |
+
+#### Returns
+
+`Uint8Array`
+
+Unpacked Cap'n stream bytes.
 
 ***
 
@@ -851,7 +935,7 @@ Encodes `ExecuteResultReply` (`ok` or `err`).
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `outcome` | \| \{ `ok`: [`ExecuteReply`](#executereply); \} \| \{ `err`: \{ `code`: `string`; `message`: `string`; \}; \} | Successful reply or a wire `PluginError`. |
+| `outcome` | \| \{ `ok`: [`ExecuteReply`](#executereply); \} \| \{ `err`: \{ `code`: `string`; `details?`: `string`; `message`: `string`; \}; \} | Successful reply or a wire `PluginError`. |
 
 #### Returns
 

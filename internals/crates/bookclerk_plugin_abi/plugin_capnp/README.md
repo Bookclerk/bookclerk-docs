@@ -287,6 +287,7 @@ pub enum PluginErrorCode {
     InvalidCursor = 9,
     Cancelled = 10,
     Conflict = 11,
+    LimitExceeded = 12,
 }
 ```
 

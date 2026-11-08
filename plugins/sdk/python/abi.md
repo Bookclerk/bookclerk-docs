@@ -399,6 +399,7 @@ while retaining the raw wire code.
 
 - `code`: Stable snake_case error code (see `PluginErrorCode`).
 - `message`: Human-readable detail; never contains secrets.
+- `details`: Structured extras as one JSON object (`limitExceeded` carries `limit`, `cap` and `used`; engine failures carry `engineCode`). Empty when none.
 
 ### ObjectMetadata
 
@@ -5518,6 +5519,19 @@ Release the session; further calls fail.
 **Returns**
 
 `EmptyReply`
+
+#### GuestDatabase.limits
+
+```python
+async def limits(self) -> DbCapabilitiesReply
+```
+
+Negotiated limits of this session, so guests size requests and reads
+before sending instead of discovering caps from errors.
+
+**Returns**
+
+`DbCapabilitiesReply`
 
 ### PluginMigrationOpSchema
 

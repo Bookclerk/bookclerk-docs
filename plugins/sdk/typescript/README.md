@@ -109,6 +109,11 @@ The host grants bindings per invocation on `this.env`: `CONFIG` (`[vars]`
 plus operator settings), `SECRETS` (`[secrets]`), `EVENTS`
 (`[[events.producers]]`), `WORK_FS` (`[work_fs]`), and one
 `DatabaseBinding` per `[[databases]]` entry under its `binding` name.
+A binding's `limits()` returns the `DbCapabilities` its session negotiated
+(`maxRequestBytes`, `maxStatements`, `maxResultBytes`, `maxResultRows`,
+…); a request or result over one of them rejects with a `PluginError`
+whose `code` is `limit_exceeded` and whose `limit` names the cap. On a
+host that predates `limits()` the call rejects with `unsupported`.
 Generate the `Env` type from `plugin.toml`:
 
 ```bash
@@ -192,15 +197,20 @@ Thrown by the SDK when a wire union carries `err`. Unknown codes are kept.
 ##### Constructor
 
 ```ts
-new PluginError(code, message): PluginError;
+new PluginError(
+   code, 
+   message, 
+   details?
+): PluginError;
 ```
 
 ###### Parameters
 
-| Parameter | Type |
-| ------ | ------ |
-| `code` | `string` |
-| `message` | `string` |
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `code` | `string` | Wire error code. |
+| `message` | `string` | Operator-facing error text. |
+| `details?` | `string` \| `Readonly`\<`Record`\<`string`, `unknown`\>\> | Detail object, or its JSON text as carried on the wire. |
 
 ###### Returns
 
@@ -220,6 +230,14 @@ readonly code: string;
 
 Known `PluginErrorCode` wire string, or `unknown`.
 
+##### details
+
+```ts
+readonly details: Readonly<Record<string, unknown>> | undefined;
+```
+
+Structured detail object from the wire (`details` JSON), when the error carries one.
+
 ##### wireCode
 
 ```ts
@@ -228,12 +246,51 @@ readonly wireCode: string;
 
 Raw wire code, including codes this SDK does not know.
 
+#### Accessors
+
+##### detailsText
+
+###### Get Signature
+
+```ts
+get detailsText(): string;
+```
+
+`details` as the JSON text the wire carries.
+
+###### Returns
+
+`string`
+
+JSON object text, or an empty string when the error has none.
+
+##### limit
+
+###### Get Signature
+
+```ts
+get limit(): LimitExceeded | undefined;
+```
+
+The exceeded cap when this is a `limit_exceeded` error.
+
+###### Returns
+
+[`LimitExceeded`](#limitexceeded-1) \| `undefined`
+
+The cap from `details` first, then from the canonical message;
+`undefined` for every other code.
+
 #### Methods
 
 ##### fromWire()
 
 ```ts
-static fromWire(code, message): PluginError;
+static fromWire(
+   code, 
+   message, 
+   details?
+): PluginError;
 ```
 
 Construct a [PluginError](#pluginerror) from a Cap'n Proto / JSON wire code.
@@ -243,10 +300,11 @@ Unknown codes become `unknown` on [PluginError.code](#code) while
 
 ###### Parameters
 
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `code` | `string` | Wire error code (known or unknown). |
-| `message` | `string` | Operator-facing error text. |
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `code` | `string` | `undefined` | Wire error code (known or unknown). |
+| `message` | `string` | `undefined` | Operator-facing error text. |
+| `details?` | `string` | `""` | `details` JSON text from the wire (empty when none). |
 
 ###### Returns
 
@@ -254,7 +312,106 @@ Unknown codes become `unknown` on [PluginError.code](#code) while
 
 Typed plugin error.
 
+##### limitExceeded()
+
+```ts
+static limitExceeded(limit): PluginError;
+```
+
+Builds a `limit_exceeded` error whose message and `details` both carry
+the exceeded cap.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limit` | [`LimitExceeded`](#limitexceeded-1) | Exceeded cap. |
+
+###### Returns
+
+[`PluginError`](#pluginerror)
+
+Typed plugin error.
+
+## Interfaces
+
+### LimitExceeded
+
+A negotiated SQL-v1 cap that a request or its result exceeded
+(`limit_exceeded` errors).
+
+#### Properties
+
+##### cap
+
+```ts
+cap: number;
+```
+
+The negotiated cap.
+
+##### limit
+
+```ts
+limit: string;
+```
+
+Capability field name as advertised (`maxResultBytes`, `maxRequestBytes`, ...).
+
+##### used
+
+```ts
+used: number;
+```
+
+The observed value that exceeded `cap`.
+
 ## Functions
+
+### limitExceededMessage()
+
+```ts
+function limitExceededMessage(limit): string;
+```
+
+Canonical message for a limit error: `limit exceeded: maxResultBytes is 262144; used 300000`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limit` | [`LimitExceeded`](#limitexceeded-1) | Exceeded cap. |
+
+#### Returns
+
+`string`
+
+Message text the host and every SDK parse back with [parseLimitExceeded](#parselimitexceeded).
+
+***
+
+### parseLimitExceeded()
+
+```ts
+function parseLimitExceeded(message): LimitExceeded | undefined;
+```
+
+Parses a message produced by [limitExceededMessage](#limitexceededmessage), possibly wrapped
+in further text.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `message` | `string` | Error text. |
+
+#### Returns
+
+[`LimitExceeded`](#limitexceeded-1) \| `undefined`
+
+The exceeded cap, or `undefined` when the text is not a limit error.
+
+***
 
 ### requirePluginMigrationRegistration()
 
@@ -780,6 +937,12 @@ Re-exports [DbValue](db-value.md#dbvalue)
 
 ***
 
+### decodeDbCapabilitiesReply
+
+Re-exports [decodeDbCapabilitiesReply](db-execute.md#decodedbcapabilitiesreply)
+
+***
+
 ### decodeDbValue
 
 Re-exports [decodeDbValue](db-value.md#decodedbvalue)
@@ -843,6 +1006,12 @@ Re-exports [DomainEvent](generated.md#domainevent)
 ### EmptyReply
 
 Re-exports [EmptyReply](generated.md#emptyreply)
+
+***
+
+### encodeDbCapabilitiesReply
+
+Re-exports [encodeDbCapabilitiesReply](db-execute.md#encodedbcapabilitiesreply)
 
 ***
 

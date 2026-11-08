@@ -93,7 +93,11 @@ returns to complete, raises to reject, or calls `job.suspend(...)` or
 
 Granted bindings arrive on `self.env` per invocation: `CONFIG`,
 `SECRETS`, `EVENTS`, `WORK_FS`, and one entry per `[[databases]]`
-binding. Generate a typed `Env` protocol from `plugin.toml`:
+binding. A binding's `await limits()` returns the `DbCapabilities` its
+session negotiated; a request or result over one of them raises a
+`PluginError` whose `code` is `limit_exceeded` and whose `limit` names
+the cap. On a host that predates `limits()` the call raises
+`unsupported`. Generate a typed `Env` protocol from `plugin.toml`:
 
 ```bash
 python -m bookclerk_plugin_sdk types .   # writes bookclerk_configuration.py
@@ -134,6 +138,7 @@ module, and what the package itself exports.
 | [`bookclerk_plugin_sdk.cli`](cli.md) | CLI entry: `bookclerk-plugin` / `python -m bookclerk_plugin_sdk`. |
 | [`bookclerk_plugin_sdk.db_value`](db_value.md) | Universal Cap'n database value domain (`DbValue`) and unpacked codec. |
 | [`bookclerk_plugin_sdk.guest_sql`](guest_sql.md) | Guest SQL classification — must match host `guest_statement_kind`. |
+| [`bookclerk_plugin_sdk.limits`](limits.md) | Typed `limit_exceeded` errors: the SQL-v1 cap a request or result broke. |
 | [`bookclerk_plugin_sdk.path_guard`](path_guard.md) | Path containment helpers for authoring tools and sparse workerd launchers. |
 | [`bookclerk_plugin_sdk.plugin_migration`](plugin_migration.md) | Resource bounds for plugin-owned `databaseMigrations` registration. |
 | [`bookclerk_plugin_sdk.sparse_workerd`](sparse_workerd/README.md) | Sparse out-of-tree workerd launcher (no Rust `bookclerk-workerd` binary). |
@@ -191,7 +196,12 @@ source of truth.
 - [`create_database_binding`](db_value.md#create_database_binding) from `bookclerk_plugin_sdk.db_value`
 - [`decode_db_value`](db_value.md#decode_db_value) from `bookclerk_plugin_sdk.db_value`
 - [`decode_execute_request`](db_value.md#decode_execute_request) from `bookclerk_plugin_sdk.db_value`
+- [`decode_db_capabilities_reply`](db_value.md#decode_db_capabilities_reply) from `bookclerk_plugin_sdk.db_value`
 - [`decode_execute_result_reply`](db_value.md#decode_execute_result_reply) from `bookclerk_plugin_sdk.db_value`
+- [`encode_db_capabilities_reply`](db_value.md#encode_db_capabilities_reply) from `bookclerk_plugin_sdk.db_value`
+- [`LimitExceeded`](limits.md#limitexceeded) from `bookclerk_plugin_sdk.limits`
+- [`limit_exceeded_message`](limits.md#limit_exceeded_message) from `bookclerk_plugin_sdk.limits`
+- [`parse_limit_exceeded`](limits.md#parse_limit_exceeded) from `bookclerk_plugin_sdk.limits`
 - [`encode_db_value`](db_value.md#encode_db_value) from `bookclerk_plugin_sdk.db_value`
 - [`encode_execute_request`](db_value.md#encode_execute_request) from `bookclerk_plugin_sdk.db_value`
 - [`encode_execute_result_reply`](db_value.md#encode_execute_result_reply) from `bookclerk_plugin_sdk.db_value`

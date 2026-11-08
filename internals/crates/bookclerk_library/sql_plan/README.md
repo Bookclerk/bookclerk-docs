@@ -323,7 +323,9 @@ Rejects a typed [`ExecuteRequest`](../../bookclerk_plugin_abi/db_execute.md#exec
 
 #### Errors
 
-Returns [`crate::LibraryError::Other`](../README.md#libraryerror) when the request cannot be sent.
+Returns [`crate::LibraryError::LimitExceeded`](../README.md#libraryerror) when a negotiated cap is
+exceeded and [`crate::LibraryError::Other`](../README.md#libraryerror) when the request cannot be
+sent for another reason.
 
 ### validate_proven_execute_request
 
@@ -345,7 +347,8 @@ catalog, so INTEGER column arithmetic is charged here.
 #### Errors
 
 Returns [`crate::LibraryError::Other`](../README.md#libraryerror) when proofs are missing/mismatched
-or the standardized lowering upper bound exceeds the advertised ceiling.
+and [`crate::LibraryError::LimitExceeded`](../README.md#libraryerror) when the standardized lowering
+upper bound exceeds the advertised ceiling.
 
 ### authorize_typed_request
 
@@ -394,7 +397,9 @@ database (which needs its own `bookclerk_receipts` table — see
 #### Errors
 
 Returns `bookclerk_plugin_abi::PluginError::invalid_params` when the SQL
-is outside the guest grammar or `policy`, and the executor's error or a
+is outside the guest grammar or `policy`,
+`bookclerk_plugin_abi::PluginError::limit_exceeded` when the request or
+its result exceeds a negotiated cap, and the executor's error or a
 validation error when the batch fails.
 
 ### authorize_guest_typed_request

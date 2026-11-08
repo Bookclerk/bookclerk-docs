@@ -61,6 +61,18 @@ pub fn get_message(self) -> Result<Reader<'a>>
 pub fn has_message(&self) -> bool
 ```
 
+#### Reader::get_details
+
+```rust
+pub fn get_details(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_details
+
+```rust
+pub fn has_details(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -141,6 +153,30 @@ pub fn init_message(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_message(&self) -> bool
+```
+
+#### Builder::get_details
+
+```rust
+pub fn get_details(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_details
+
+```rust
+pub fn set_details(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_details
+
+```rust
+pub fn init_details(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_details
+
+```rust
+pub fn has_details(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

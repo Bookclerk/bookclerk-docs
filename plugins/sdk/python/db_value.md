@@ -32,8 +32,10 @@ always uses the domain types.
 | [`decode_db_value`](#decode_db_value) | function | Decode a standalone unpacked Cap'n `DbValue` message. |
 | [`encode_execute_request`](#encode_execute_request) | function | Encode a standalone unpacked Cap'n `ExecuteRequest` message. |
 | [`decode_execute_request`](#decode_execute_request) | function | Decode a standalone unpacked Cap'n `ExecuteRequest` message. |
-| [`encode_execute_result_reply`](#encode_execute_result_reply) | function | Encode `ExecuteResultReply` (`ok` reply or `(code, message)` err). |
+| [`encode_execute_result_reply`](#encode_execute_result_reply) | function | Encode `ExecuteResultReply`. |
 | [`decode_execute_result_reply`](#decode_execute_result_reply) | function | Decode `ExecuteResultReply`. `err` is raised as `PluginError`. |
+| [`encode_db_capabilities_reply`](#encode_db_capabilities_reply) | function | Encode `DbCapabilitiesReply`, the `GuestDatabase.limits` answer. |
+| [`decode_db_capabilities_reply`](#decode_db_capabilities_reply) | function | Decode `DbCapabilitiesReply`. `err` is raised as `PluginError`. |
 | [`statement_result_to_d1_result`](#statement_result_to_d1_result) | function | Map one statement result to Cloudflare `D1Result`. |
 | [`execute_reply_to_d1_results`](#execute_reply_to_d1_results) | function | Map an execute reply to one Cloudflare `D1Result` per statement. |
 | [`create_database_binding`](#create_database_binding) | function | Build a host-mediated `DatabaseBinding` over an async transport. |
@@ -46,6 +48,7 @@ always uses the domain types.
 | [`DbStatementKind`](#dbstatementkind) | constant |  |
 | [`DbResultSelection`](#dbresultselection) | constant |  |
 | [`AtomicTransport`](#atomictransport) | constant |  |
+| [`LimitsTransport`](#limitstransport) | constant |  |
 
 ## Classes
 
@@ -265,6 +268,7 @@ def __init__(
     self,
     execute: AtomicTransport,
     *,
+    limits: LimitsTransport | None=None,
     max_request_bytes: int=0,
     max_result_rows: int=0,
     operation_id: str | None=None,
@@ -278,6 +282,7 @@ Create a binding over a host `execute` transport.
 **Args**
 
 - `execute`: Host session projection.
+- `limits`: `GuestDatabase.limits` projection; `None` on a host that predates it ([`limits`](limits.md) then raises `unsupported`).
 - `max_request_bytes`: Negotiated cap (`0` = unlimited).
 - `max_result_rows`: Default `maxRows` for [`PreparedStatement.all`](#preparedstatementall).
 - `operation_id`: Default retry id; omitted calls mint a UUID.
@@ -299,6 +304,26 @@ Prepare one canonical-SQL statement (`?` placeholders).
 **Returns**
 
 A statement that can be bound and executed.
+
+#### DatabaseBinding.limits
+
+```python
+async def limits(self) -> DbCapabilities
+```
+
+The negotiated limits of this binding's session (`DbCapabilities`).
+
+`maxRequestBytes`, `maxStatements`, `maxResultBytes`,
+`maxResultRows` and the rest: use them to size a batch or a read
+before sending.
+
+**Returns**
+
+The adapter's capability advertisement for this session.
+
+**Raises**
+
+- `PluginError`: `unsupported` on a host that predates `GuestDatabase.limits`.
 
 #### DatabaseBinding.batch
 
@@ -535,10 +560,20 @@ Structured request.
 ### encode_execute_result_reply
 
 ```python
-def encode_execute_result_reply(outcome: ExecuteReply | tuple[str, str]) -> bytes
+def encode_execute_result_reply(
+    outcome: ExecuteReply | tuple[str, str] | tuple[str, str, str],
+) -> bytes
 ```
 
-Encode `ExecuteResultReply` (`ok` reply or `(code, message)` err).
+Encode `ExecuteResultReply`.
+
+**Args**
+
+- `outcome`: The `ok` reply, or an `err` as `(code, message)` or `(code, message, details_json)`.
+
+**Returns**
+
+Unpacked Cap'n stream bytes.
 
 ### decode_execute_result_reply
 
@@ -547,6 +582,45 @@ def decode_execute_result_reply(data: bytes) -> ExecuteReply
 ```
 
 Decode `ExecuteResultReply`. `err` is raised as `PluginError`.
+
+### encode_db_capabilities_reply
+
+```python
+def encode_db_capabilities_reply(
+    outcome: DbCapabilities | tuple[str, str] | tuple[str, str, str],
+) -> bytes
+```
+
+Encode `DbCapabilitiesReply`, the `GuestDatabase.limits` answer.
+
+**Args**
+
+- `outcome`: The `ok` capabilities, or an `err` as `(code, message)` or `(code, message, details_json)`.
+
+**Returns**
+
+Unpacked Cap'n stream bytes (the `GET /db/limits` body).
+
+### decode_db_capabilities_reply
+
+```python
+def decode_db_capabilities_reply(data: bytes) -> DbCapabilities
+```
+
+Decode `DbCapabilitiesReply`. `err` is raised as `PluginError`.
+
+**Args**
+
+- `data`: Unpacked Cap'n stream.
+
+**Returns**
+
+The session's `DbCapabilities`.
+
+**Raises**
+
+- `PluginError`: When the union is `err`.
+- `ValueError`: When the buffer is not a `DbCapabilitiesReply`.
 
 ### statement_result_to_d1_result
 
@@ -570,6 +644,7 @@ Map an execute reply to one Cloudflare [`D1Result`](#d1result) per statement.
 def create_database_binding(
     transport: AtomicTransport,
     *,
+    limits: LimitsTransport | None=None,
     max_request_bytes: int=0,
     max_result_rows: int=0,
     operation_id: str | None=None,
@@ -579,6 +654,20 @@ def create_database_binding(
 ```
 
 Build a host-mediated [`DatabaseBinding`](#databasebinding) over an async transport.
+
+**Args**
+
+- `transport`: Host `execute` projection.
+- `limits`: Host `limits` projection, when the host offers one.
+- `max_request_bytes`: Negotiated cap (`0` = unlimited).
+- `max_result_rows`: Default `maxRows` for `all()`.
+- `operation_id`: Default retry id; omitted calls mint a UUID.
+- `request_hash`: Default retry hash; empty lets the host stamp one.
+- `deadline_unix_ms`: Guest-visible deadline (unix ms).
+
+**Returns**
+
+A binding whose terminal methods route through `transport`.
 
 ### canonical_execute_request_hash
 
@@ -639,4 +728,10 @@ DbResultSelection = Literal['discard', 'affectedRows', 'rows']
 
 ```python
 AtomicTransport = Callable[[ExecuteRequest], Awaitable[ExecuteReply]]
+```
+
+### LimitsTransport
+
+```python
+LimitsTransport = Callable[[], Awaitable['DbCapabilities']]
 ```

@@ -56,6 +56,18 @@ Known `PluginErrorCode` wire string, or `unknown`.
 
 [`PluginError`](README.md#pluginerror).[`code`](README.md#code)
 
+##### details
+
+```ts
+readonly details: Readonly<Record<string, unknown>> | undefined;
+```
+
+Structured detail object from the wire (`details` JSON), when the error carries one.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`details`](README.md#details)
+
 ##### status
 
 ```ts
@@ -76,12 +88,59 @@ Raw wire code, including codes this SDK does not know.
 
 [`PluginError`](README.md#pluginerror).[`wireCode`](README.md#wirecode)
 
+#### Accessors
+
+##### detailsText
+
+###### Get Signature
+
+```ts
+get detailsText(): string;
+```
+
+`details` as the JSON text the wire carries.
+
+###### Returns
+
+`string`
+
+JSON object text, or an empty string when the error has none.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`detailsText`](README.md#detailstext)
+
+##### limit
+
+###### Get Signature
+
+```ts
+get limit(): LimitExceeded | undefined;
+```
+
+The exceeded cap when this is a `limit_exceeded` error.
+
+###### Returns
+
+[`LimitExceeded`](README.md#limitexceeded-1) \| `undefined`
+
+The cap from `details` first, then from the canonical message;
+`undefined` for every other code.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`limit`](README.md#limit)
+
 #### Methods
 
 ##### fromWire()
 
 ```ts
-static fromWire(code, message): PluginError;
+static fromWire(
+   code, 
+   message, 
+   details?
+): PluginError;
 ```
 
 Construct a [PluginError](README.md#pluginerror) from a Cap'n Proto / JSON wire code.
@@ -91,10 +150,11 @@ Unknown codes become `unknown` on [PluginError.code](README.md#code) while
 
 ###### Parameters
 
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `code` | `string` | Wire error code (known or unknown). |
-| `message` | `string` | Operator-facing error text. |
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `code` | `string` | `undefined` | Wire error code (known or unknown). |
+| `message` | `string` | `undefined` | Operator-facing error text. |
+| `details?` | `string` | `""` | `details` JSON text from the wire (empty when none). |
 
 ###### Returns
 
@@ -105,6 +165,31 @@ Typed plugin error.
 ###### Inherited from
 
 [`PluginError`](README.md#pluginerror).[`fromWire`](README.md#fromwire)
+
+##### limitExceeded()
+
+```ts
+static limitExceeded(limit): PluginError;
+```
+
+Builds a `limit_exceeded` error whose message and `details` both carry
+the exceeded cap.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limit` | [`LimitExceeded`](README.md#limitexceeded-1) | Exceeded cap. |
+
+###### Returns
+
+[`PluginError`](README.md#pluginerror)
+
+Typed plugin error.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`limitExceeded`](README.md#limitexceeded)
 
 ## Interfaces
 

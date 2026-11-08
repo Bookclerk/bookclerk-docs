@@ -3559,6 +3559,21 @@ Run one typed statement batch.
 
 [ExecuteResultReply](#executeresultreply)
 
+##### limits()
+
+```ts
+limits(): Promise<DbCapabilitiesReply>;
+```
+
+Negotiated limits of this session, so guests size requests and reads
+before sending instead of discovering caps from errors.
+
+###### Returns
+
+`Promise`\<[`DbCapabilitiesReply`](#dbcapabilitiesreply)\>
+
+[DbCapabilitiesReply](#dbcapabilitiesreply)
+
 ***
 
 ### HeadOk
@@ -5844,6 +5859,15 @@ code: string;
 ```
 
 Stable snake_case error code (see `PluginErrorCode`).
+
+##### details
+
+```ts
+details: string;
+```
+
+Structured extras as one JSON object (`limitExceeded` carries `limit`,
+`cap` and `used`; engine failures carry `engineCode`). Empty when none.
 
 ##### message
 

@@ -178,9 +178,11 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`sqlite_family_mechanical_len_upper_bound`](#sqlite_family_mechanical_len_upper_bound) | function | Mechanical sqlite-family length bound for one canonical statement, counting actual `LIKE` occurrences, `/` `%` operators in code spans, and at most one `INSERT OR IGNORE` rewrite. |
 | [`text_contains_nul`](#text_contains_nul) | function | True when `text` contains U+0000. |
 | [`canonical_execute_request_hash`](#canonical_execute_request_hash) | function | SHA-256 hex of the Cap'n-encoded request with transport metadata cleared. |
+| [`decode_db_capabilities_reply_bytes`](#decode_db_capabilities_reply_bytes) | function | Decodes a standalone Cap'n `DbCapabilitiesReply` message. |
 | [`decode_db_value_bytes`](#decode_db_value_bytes) | function | Decodes a standalone Cap'n `DbValue` message. |
 | [`decode_execute_request_bytes`](#decode_execute_request_bytes) | function | Decodes a standalone Cap'n `ExecuteRequest` message. |
 | [`decode_execute_result_reply_bytes`](#decode_execute_result_reply_bytes) | function | Decodes a standalone Cap'n `ExecuteAtomicReply` message. |
+| [`encoded_db_capabilities_reply_bytes`](#encoded_db_capabilities_reply_bytes) | function | Encodes a standalone Cap'n `DbCapabilitiesReply` (`ok` or `err`). |
 | [`encoded_db_value_bytes`](#encoded_db_value_bytes) | function | Encodes a standalone Cap'n `DbValue` message (unpacked stream). |
 | [`encoded_execute_reply_bytes`](#encoded_execute_reply_bytes) | function | Encodes a standalone Cap'n `ExecuteReply` message (unpacked stream). |
 | [`encoded_execute_request_bytes`](#encoded_execute_request_bytes) | function | Encodes a standalone Cap'n `ExecuteRequest` message (unpacked stream). |
@@ -285,6 +287,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_value::normalize_db_value_for_column`](db_value.md#normalize_db_value_for_column)
 - [`db_value::DbType`](db_value.md#dbtype)
 - [`db_value::DbValue`](db_value.md#dbvalue)
+- [`error::LimitExceeded`](error.md#limitexceeded)
 - [`error::PluginError`](error.md#pluginerror)
 - [`error::PluginErrorCode`](error.md#pluginerrorcode)
 - [`error::Result`](error.md#result)
@@ -1914,6 +1917,12 @@ pub trait GuestDatabase {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn limits<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<DbCapabilities>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -1945,6 +1954,25 @@ where
 ```
 
 Close the grant.
+
+#### GuestDatabase::limits
+
+```rust
+fn limits<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<DbCapabilities>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Negotiated limits of this session (`DbCapabilities`), so a guest can
+size requests and reads before sending.
+
+##### Errors
+
+Hosts answer with the adapter's advertisement; the default fails with
+`unsupported` for sessions that predate the method.
 
 ### JobRunner
 
@@ -5124,8 +5152,9 @@ portable maximum is already [`crate::SQL_V1_JSON_OBJECT_MAX_ARGS`](sql_types.md#
 
 #### Errors
 
-Returns [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a non-chunkable call exceeds
-the cap or the cap is unspecified.
+Returns a typed `limit_exceeded` error (see [`crate::LimitExceeded`](error.md#limitexceeded)) when
+a non-chunkable call exceeds the cap, and [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params)
+when the cap is unspecified.
 
 ### require_like_patterns_within
 
@@ -5141,8 +5170,10 @@ Enforces [`crate::DbCapabilities::max_pattern_bytes`](db_execute.md#dbcapabiliti
 
 #### Errors
 
-Returns [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a proven pattern exceeds the
-cap or a LIKE pattern length cannot be proven.
+Returns a typed `limit_exceeded` error (see [`crate::LimitExceeded`](error.md#limitexceeded)) when
+a literal or TEXT-bound pattern exceeds the cap, and
+[`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when the cap is unspecified, a LIKE bind
+is not TEXT or missing, or a pattern length cannot be proven.
 
 ### require_portable_text
 
@@ -5278,6 +5309,18 @@ so guests cannot collide unrelated mutations on one idempotency key.
 
 Returns [`PluginError::internal`](error.md#pluginerrorinternal) when the message cannot be serialized.
 
+### decode_db_capabilities_reply_bytes
+
+```rust
+pub fn decode_db_capabilities_reply_bytes(bytes: &[u8]) -> Result<DbCapabilities>
+```
+
+Decodes a standalone Cap'n `DbCapabilitiesReply` message.
+
+#### Errors
+
+Returns the guest [`PluginError`](error.md#pluginerror) on `err`, or a decode failure on `ok`.
+
 ### decode_db_value_bytes
 
 ```rust
@@ -5313,6 +5356,23 @@ Decodes a standalone Cap'n `ExecuteAtomicReply` message.
 #### Errors
 
 Returns the guest [`PluginError`](error.md#pluginerror) on `err`, or a decode failure on `ok`.
+
+### encoded_db_capabilities_reply_bytes
+
+```rust
+pub fn encoded_db_capabilities_reply_bytes(
+    outcome: Result<DbCapabilities>,
+) -> Result<Vec<u8>>
+```
+
+Encodes a standalone Cap'n `DbCapabilitiesReply` (`ok` or `err`).
+
+Carries a `GuestDatabase.limits` answer over the workerd granted HTTP
+channel (`GET /db/limits`).
+
+#### Errors
+
+Returns [`PluginError::internal`](error.md#pluginerrorinternal) when the message cannot be serialized.
 
 ### encoded_db_value_bytes
 

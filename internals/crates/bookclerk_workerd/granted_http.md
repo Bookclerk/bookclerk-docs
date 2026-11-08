@@ -36,6 +36,7 @@ rejected and answered with `400 Bad Request` instead of being guessed at.
 | [`transfer_encoding_is_chunked`](#transfer_encoding_is_chunked) | function | True when a `Transfer-Encoding` header lists the `chunked` coding as a token (so `chunkedx` or `notchunked` do not count). |
 | [`body_framing`](#body_framing) | function | Decides the body framing from the headers. |
 | [`declared_content_length_over_cap`](#declared_content_length_over_cap) | function | True when a well-formed `Content-Length` declares more than `cap` bytes. A malformed one is left for `body_framing` to reject. |
+| [`declared_content_length_past_cap`](#declared_content_length_past_cap) | function | The declared `Content-Length` when it is past `cap`, in bytes. |
 | [`query_param`](#query_param) | function | The percent-decoded value of the first `name=` pair in `query`. |
 | [`percent_decode`](#percent_decode) | function | Decodes `%HH` escapes and `+` (as space); malformed escapes are kept as written, and the result is UTF-8 with replacement characters. |
 | [`MAX_HEAD_BYTES`](#max_head_bytes) | constant | Largest request head (request line plus headers plus the blank line) accepted before the connection is dropped. |
@@ -367,7 +368,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `From<ChunkedErr
 pub enum BodyError {
     Framing(FramingError),
     Chunked(ChunkedError),
-    TooLarge { cap: usize },
+    TooLarge { cap: usize, used: usize },
     Truncated,
 }
 ```
@@ -380,6 +381,7 @@ Why a request body was rejected or cut short.
 - `Chunked`: The chunked framing was malformed.
 - `TooLarge`: The body (declared or received) exceeds the route's byte cap.
   - `cap`: The cap the body ran past, in bytes.
+  - `used`: The declared or received size that ran past it, in bytes.
 - `Truncated`: The stream ended before the declared `Content-Length` or the
   terminating chunk.
 
@@ -454,6 +456,17 @@ pub fn declared_content_length_over_cap(headers: &[(String, String)], cap: u32) 
 
 True when a well-formed `Content-Length` declares more than `cap` bytes.
 A malformed one is left for [`body_framing`](#body_framing) to reject.
+
+### declared_content_length_past_cap
+
+```rust
+pub fn declared_content_length_past_cap(
+    headers: &[(String, String)],
+    cap: u32,
+) -> Option<usize>
+```
+
+The declared `Content-Length` when it is past `cap`, in bytes.
 
 ### query_param
 

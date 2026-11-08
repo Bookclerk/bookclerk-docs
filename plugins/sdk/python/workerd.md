@@ -544,6 +544,22 @@ async def close(self) -> None
 
 Close the grant.
 
+#### GuestDatabase.limits
+
+```python
+async def limits(self) -> DbCapabilities
+```
+
+Negotiated limits of this session (`DbCapabilities`).
+
+**Returns**
+
+The adapter's capability advertisement for this session.
+
+**Raises**
+
+- `PluginError`: `unsupported` on a host that predates the method.
+
 ### JobController
 
 ```python
@@ -902,17 +918,23 @@ class PluginError(RuntimeError)
 
 SDK-thrown failure. Unknown wire codes stay on `wire_code`.
 
+**Attributes**
+
+- `code`: Known `PluginErrorCode` wire string, or `unknown`.
+- `wire_code`: Raw wire code, including codes this SDK does not know.
+- `details`: Structured detail object from the wire (`details` JSON), or `None` when the error carries none.
+
 #### PluginError.__init__
 
 ```python
-def __init__(self, code: str, message: str)
+def __init__(self, code: str, message: str, details: dict[str, Any] | str | None=None)
 ```
 
 #### PluginError.from_wire
 
 ```python
 @classmethod
-def from_wire(cls, code: str, message: str) -> PluginError
+def from_wire(cls, code: str, message: str, details: str='') -> PluginError
 ```
 
 Build a `PluginError` from a wire `code` string.
@@ -921,10 +943,55 @@ Build a `PluginError` from a wire `code` string.
 
 - `code`: Snake_case wire code (unknown codes are kept on `wire_code`).
 - `message`: Operator-facing error text.
+- `details`: `details` JSON object text from the wire (empty when none).
 
 **Returns**
 
 A `PluginError` whose `code` is a known variant or `unknown`.
+
+#### PluginError.limit_exceeded
+
+```python
+@classmethod
+def limit_exceeded(cls, limit: LimitExceeded) -> PluginError
+```
+
+Build a `limit_exceeded` error carrying `limit` in message and details.
+
+**Args**
+
+- `limit`: Exceeded cap.
+
+**Returns**
+
+A `PluginError` with code `limit_exceeded`.
+
+#### PluginError.limit
+
+```python
+@property
+def limit(self) -> LimitExceeded | None
+```
+
+The exceeded cap when this is a `limit_exceeded` error.
+
+**Returns**
+
+The cap from `details` first, then from the canonical message;
+`None` for every other code.
+
+#### PluginError.details_text
+
+```python
+@property
+def details_text(self) -> str
+```
+
+`details` as the JSON text the wire carries.
+
+**Returns**
+
+JSON object text, or an empty string when the error has none.
 
 ### QueueBatch
 
@@ -1596,7 +1663,7 @@ Wrap an adapter `GrantedDatabaseTransport` stub as a [`DatabaseBinding`](db_valu
 
 **Args**
 
-- `transport`: Stub exposing `executeBytes(bytes) -> bytes`.
+- `transport`: Stub exposing `executeBytes(bytes) -> bytes` and `limitsBytes() -> bytes`.
 
 **Returns**
 

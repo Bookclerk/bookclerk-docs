@@ -454,8 +454,11 @@ check). Canonical `maxPayloadBytes` is unchanged.
 
 ##### Errors
 
-Returns [`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a statement exceeds
-schema-column, LIKE-pattern, TEXT-domain, or lowered-statement limits.
+Returns a typed `limit_exceeded` error (see [`crate::LimitExceeded`](error.md#limitexceeded))
+when a statement exceeds the `maxPatternBytes`, `maxFunctionArgs`,
+`maxSchemaColumns` or `maxLoweredStatementBytes` cap, and
+[`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when it leaves the portable TEXT
+domain or a LIKE pattern length cannot be proven.
 
 #### DbCapabilities::admit_statement_proven
 
@@ -472,9 +475,11 @@ pub fn admit_statement_proven(
 
 ##### Errors
 
-Returns [`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a statement exceeds
-negotiated limits, or [`crate::PluginError::internal`](error.md#pluginerrorinternal) when overflow
-wrapping fails.
+Returns a typed `limit_exceeded` error (see [`crate::LimitExceeded`](error.md#limitexceeded))
+when a statement exceeds a negotiated cap,
+[`crate::PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when it leaves the portable TEXT
+domain or a LIKE pattern length cannot be proven, or
+[`crate::PluginError::internal`](error.md#pluginerrorinternal) when overflow wrapping fails.
 
 #### DbCapabilities::admit_proven_execute
 

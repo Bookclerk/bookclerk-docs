@@ -10,6 +10,8 @@
 | [`ExecuteResults`](#executeresults) | type alias |  |
 | [`CloseParams`](#closeparams) | type alias |  |
 | [`CloseResults`](#closeresults) | type alias |  |
+| [`LimitsParams`](#limitsparams) | type alias |  |
+| [`LimitsResults`](#limitsresults) | type alias |  |
 
 ## Modules
 
@@ -17,6 +19,8 @@
 - [`execute_results`](execute_results.md)
 - [`close_params`](close_params.md)
 - [`close_results`](close_results.md)
+- [`limits_params`](limits_params.md)
+- [`limits_results`](limits_results.md)
 
 ## Traits
 
@@ -33,6 +37,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: CloseParams,
         _: CloseResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn limits(
+        self: Rc<Self>,
+        _: LimitsParams,
+        _: LimitsResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -57,6 +66,16 @@ fn close(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::limits
+
+```rust
+fn limits(
+    self: Rc<Self>,
+    _: LimitsParams,
+    _: LimitsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -77,6 +96,12 @@ pub fn execute_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn close_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::limits_request
+
+```rust
+pub fn limits_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -134,4 +159,16 @@ pub type CloseParams = Params<Owned>;
 
 ```rust
 pub type CloseResults = Results<Owned>;
+```
+
+### LimitsParams
+
+```rust
+pub type LimitsParams = Params<Owned>;
+```
+
+### LimitsResults
+
+```rust
+pub type LimitsResults = Results<Owned>;
 ```

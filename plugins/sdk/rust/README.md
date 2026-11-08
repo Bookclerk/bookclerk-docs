@@ -306,6 +306,7 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::KvNamespaceClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#kvnamespaceclient)
 - [`bookclerk_plugin_abi::KvPutOk`](../../../internals/crates/bookclerk_plugin_abi/generated.md#kvputok)
 - [`bookclerk_plugin_abi::KvPutOptions`](../../../internals/crates/bookclerk_plugin_abi/generated.md#kvputoptions)
+- [`bookclerk_plugin_abi::LimitExceeded`](../../../internals/crates/bookclerk_plugin_abi/error.md#limitexceeded)
 - [`bookclerk_plugin_abi::ListOptions`](../../../internals/crates/bookclerk_plugin_abi/README.md#listoptions)
 - [`bookclerk_plugin_abi::ListPage`](../../../internals/crates/bookclerk_plugin_abi/README.md#listpage)
 - [`bookclerk_plugin_abi::MetadataChapter`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatachapter)
@@ -496,6 +497,22 @@ approval: each is an isolated plugin-owned database (full DML plus
 idempotent `CREATE`/`DROP` `TABLE`/`INDEX` with `IF [NOT] EXISTS`),
 physically separate from the Bookclerk library and from every other
 plugin. Production invocations never inject the host library.
+
+#### DatabaseBinding::limits
+
+```rust
+pub async fn limits(&self) -> Result<DbCapabilities>
+```
+
+The negotiated limits of the granted session (`DbCapabilities`).
+
+Use it to size a batch or a read before sending: `max_request_bytes`,
+`max_statements`, `max_result_bytes`, `max_result_rows` and the rest.
+
+##### Errors
+
+Returns `unsupported` when the host session predates
+`GuestDatabase.limits`.
 
 #### DatabaseBinding::prepare
 
