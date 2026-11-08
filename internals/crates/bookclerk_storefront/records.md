@@ -1,4 +1,4 @@
-# bookclerk_source::records
+# bookclerk_storefront::records
 
 Builders and flat views for the structured bibliographic records that
 `ScanBook` and `CatalogHit` carry on the plugin ABI.

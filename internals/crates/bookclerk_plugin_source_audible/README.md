@@ -64,8 +64,8 @@ keeps stable naming. All credentials live in the `encrypted_secrets` DB table.
 ## Re-exports
 
 - [`audible_rs::models::content::DownloadLicense`](https://docs.rs/audible_rs/latest/audible_rs/models/content/struct.DownloadLicense.html)
-- [`bookclerk_source::ScanOptions`](../bookclerk_source/README.md#scanoptions)
-- [`bookclerk_source::ScanSummary`](../bookclerk_source/README.md#scansummary)
+- [`bookclerk_source::ScanOptions`](../bookclerk_storefront/README.md#scanoptions)
+- [`bookclerk_source::ScanSummary`](../bookclerk_storefront/README.md#scansummary)
 - [`catalog::expand_candidates` as `catalog_expand_candidates`](catalog.md#expand_candidates)
 - [`catalog::purchase_hint` as `catalog_purchase_hint`](catalog.md#purchase_hint)
 - [`catalog::search_catalog` as `catalog_search`](catalog.md#search_catalog)

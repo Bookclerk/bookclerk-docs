@@ -105,12 +105,12 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 
 ## Re-exports
 
-- [`bookclerk_source::default_preferred_language`](../bookclerk_source/README.md#default_preferred_language)
-- [`bookclerk_source::language_rank`](../bookclerk_source/README.md#language_rank)
-- [`bookclerk_source::normalize_language`](../bookclerk_source/README.md#normalize_language)
-- [`bookclerk_source::CatalogSearchField`](../bookclerk_source/README.md#catalogsearchfield)
-- [`bookclerk_source::CatalogSearchSort`](../bookclerk_source/README.md#catalogsearchsort)
-- [`bookclerk_source::CatalogSortDir`](../bookclerk_source/README.md#catalogsortdir)
+- [`bookclerk_source::default_preferred_language`](../bookclerk_storefront/README.md#default_preferred_language)
+- [`bookclerk_source::language_rank`](../bookclerk_storefront/README.md#language_rank)
+- [`bookclerk_source::normalize_language`](../bookclerk_storefront/README.md#normalize_language)
+- [`bookclerk_source::CatalogSearchField`](../bookclerk_storefront/README.md#catalogsearchfield)
+- [`bookclerk_source::CatalogSearchSort`](../bookclerk_storefront/README.md#catalogsearchsort)
+- [`bookclerk_source::CatalogSortDir`](../bookclerk_storefront/README.md#catalogsortdir)
 
 ## Traits
 

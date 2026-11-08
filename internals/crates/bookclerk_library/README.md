@@ -184,8 +184,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`event_matches_wake_grants`](#event_matches_wake_grants) | function | True when an event matches persisted wake grants, or legacy type+filter rows. |
 | [`intersect_event_filters`](#intersect_event_filters) | function | Merge declared and requested payload filters; `None` on a same-key conflict. |
 | [`is_downloadable`](#is_downloadable) | function | True when the title can be downloaded (classic `WithoutParents`). |
-| [`is_episode`](#is_episode) | function | True when `content_kind` is a podcast episode. |
-| [`is_podcast_parent`](#is_podcast_parent) | function | True when `content_kind` is a podcast parent / show (no audio to acquire). |
 | [`is_valid_queue_name`](#is_valid_queue_name) | function | True when `name` is `a-z0-9*` and at most `MAX_QUEUE_NAME_LEN` chars. |
 | [`job_backoff_run_after`](#job_backoff_run_after) | function | Next `run_after` after a failed attempt, exponential from a 5s base (capped). |
 | [`normalize_theme`](#normalize_theme) | function | Canonical appearance preference; unknown values become `system`. |
@@ -215,12 +213,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
 | [`wishlist_identities_match`](#wishlist_identities_match) | function | Whether two wishlist rows refer to the same work despite differing keys. |
-| [`decode_html_entities`](#decode_html_entities) | function | Owned decode (allocates even when unchanged — prefer `decode_html_entities_cow` or `decode_html_entities_in_place` on hot paths). |
-| [`decode_html_entities_cow`](#decode_html_entities_cow) | function | Decode HTML entities in storefront metadata (`Memory&#39;s Blade` → `Memory's Blade`). |
-| [`decode_html_entities_in_place`](#decode_html_entities_in_place) | function | Decode in place when the value contains `&`; otherwise leave untouched. |
-| [`decode_html_entities_opt`](#decode_html_entities_opt) | function | Decode when present; leave `None` unchanged. |
-| [`decode_html_entities_opt_in_place`](#decode_html_entities_opt_in_place) | function | Decode an optional string in place. |
-| [`str_maybe_html_entity`](#str_maybe_html_entity) | function | True when any human-readable field may contain an HTML entity. |
 | [`derive_claim_password_fingerprint`](#derive_claim_password_fingerprint) | function | Stable, non-secret fingerprint of an invite/reset password for idempotency. |
 | [`derive_claim_session_token`](#derive_claim_session_token) | function | Derive the portal session token for a claim ticket plus browser nonce. |
 | [`hash_token`](#hash_token) | function | SHA-256 hex digest of a raw ticket/session token for durable storage. |
@@ -264,6 +256,12 @@ the external guest RPC. This crate owns the greenfield schema
 - [`bookclerk_plugin_abi::AdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#adapterbackupops)
 - [`bookclerk_plugin_abi::GuestSqlPolicy`](../bookclerk_plugin_abi/guest_sql.md#guestsqlpolicy)
 - [`bookclerk_plugin_abi::SharedAdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#sharedadapterbackupops)
+- [`bookclerk_storefront::text::decode_html_entities`](../bookclerk_storefront/text.md#decode_html_entities)
+- [`bookclerk_storefront::text::decode_html_entities_cow`](../bookclerk_storefront/text.md#decode_html_entities_cow)
+- [`bookclerk_storefront::text::decode_html_entities_in_place`](../bookclerk_storefront/text.md#decode_html_entities_in_place)
+- [`bookclerk_storefront::text::decode_html_entities_opt`](../bookclerk_storefront/text.md#decode_html_entities_opt)
+- [`bookclerk_storefront::text::decode_html_entities_opt_in_place`](../bookclerk_storefront/text.md#decode_html_entities_opt_in_place)
+- [`bookclerk_storefront::text::str_maybe_html_entity`](../bookclerk_storefront/text.md#str_maybe_html_entity)
 - [`email::gravatar_hash`](email.md#gravatar_hash)
 - [`master_key::configure_master_key`](master_key.md#configure_master_key)
 - [`master_key::configure_master_key_with`](master_key.md#configure_master_key_with)
@@ -289,6 +287,8 @@ the external guest RPC. This crate owns the greenfield schema
 - [`migrations::CLUSTER_LEASES_DDL`](migrations.md#cluster_leases_ddl)
 - [`migrations::SCHEMA_MIGRATIONS_DDL`](migrations.md#schema_migrations_ddl)
 - [`migrations::SCHEMA_VERSION`](migrations.md#schema_version)
+- [`models::is_episode`](../bookclerk_storefront/content_kind.md#is_episode)
+- [`models::is_podcast_parent`](../bookclerk_storefront/content_kind.md#is_podcast_parent)
 - [`operator_token::read_or_create_operator_token`](operator_token.md#read_or_create_operator_token)
 - [`operator_token::resolve_operator_token`](operator_token.md#resolve_operator_token)
 - [`operator_token::rotate_operator_token`](operator_token.md#rotate_operator_token)
@@ -9837,7 +9837,7 @@ pub fn is_schema_apply_retryable(&self) -> bool
 
 True when host schema apply may retry after re-reading durable state.
 
-Implements: `Debug`, `Display`, `Error`, `From<ConfigError>`, `From<DbErr>`, `From<Error>`
+Implements: `Debug`, `Display`, `Error`, `From<ConfigError>`, `From<DbErr>`, `From<Error>`, `From<LibraryError>`
 
 ### AcquireStatus
 
@@ -11486,22 +11486,6 @@ pub fn is_downloadable(content_kind: &str) -> bool
 
 True when the title can be downloaded (classic `WithoutParents`).
 
-### is_episode
-
-```rust
-pub fn is_episode(content_kind: &str) -> bool
-```
-
-True when `content_kind` is a podcast episode.
-
-### is_podcast_parent
-
-```rust
-pub fn is_podcast_parent(content_kind: &str) -> bool
-```
-
-True when `content_kind` is a podcast parent / show (no audio to acquire).
-
 ### is_valid_queue_name
 
 ```rust
@@ -11894,60 +11878,6 @@ pub fn wishlist_identities_match(a: WishlistIdentity<'_>, b: WishlistIdentity<'_
 ```
 
 Whether two wishlist rows refer to the same work despite differing keys.
-
-### decode_html_entities
-
-```rust
-pub fn decode_html_entities(raw: &str) -> String
-```
-
-Owned decode (allocates even when unchanged — prefer [`decode_html_entities_cow`](#decode_html_entities_cow)
-or [`decode_html_entities_in_place`](#decode_html_entities_in_place) on hot paths).
-
-### decode_html_entities_cow
-
-```rust
-pub fn decode_html_entities_cow(raw: &str) -> Cow<'_, str>
-```
-
-Decode HTML entities in storefront metadata (`Memory&#39;s Blade` → `Memory's Blade`).
-
-Libro.fm (and occasionally other catalogs) emit entity-encoded titles and
-descriptions. Decode before display, persistence, and soft identity matching.
-
-Fast path: strings without `&` are returned borrowed (no allocation).
-
-### decode_html_entities_in_place
-
-```rust
-pub fn decode_html_entities_in_place(value: &mut String)
-```
-
-Decode in place when the value contains `&`; otherwise leave untouched.
-
-### decode_html_entities_opt
-
-```rust
-pub fn decode_html_entities_opt(raw: Option<&str>) -> Option<String>
-```
-
-Decode when present; leave `None` unchanged.
-
-### decode_html_entities_opt_in_place
-
-```rust
-pub fn decode_html_entities_opt_in_place(value: &mut Option<String>)
-```
-
-Decode an optional string in place.
-
-### str_maybe_html_entity
-
-```rust
-pub fn str_maybe_html_entity(raw: &str) -> bool
-```
-
-True when any human-readable field may contain an HTML entity.
 
 ### derive_claim_password_fingerprint
 

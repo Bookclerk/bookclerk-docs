@@ -1,4 +1,4 @@
-# bookclerk_source::listing
+# bookclerk_storefront::listing
 
 Plugin ABI records as resolver listing drafts.
 

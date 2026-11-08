@@ -3,7 +3,7 @@
 GraphicAudio content source: auth, library sync, and DRM-free download.
 
 Access paths (see `docs/contributing/research/source-candidates.md`), selected by
-`[sources.graphicaudio] access` (default `web`):
+the `access` plugin setting (default `web`):
 1. Browser Player (`/library`) — Magento session + CloudFront cookies
 2. Magento ZIP (`My Downloadable Products`) — opt-in (`access = "zip"`)
 3. Access App Retrofit API (`/access`) — opt-in device activation (`access = "device"`)
@@ -19,12 +19,10 @@ Access paths (see `docs/contributing/research/source-candidates.md`), selected b
 | [`DownloadableProduct`](#downloadableproduct) | struct | One row from My Downloadable Products. |
 | [`LibraryItem`](#libraryitem) | struct | One owned title from Browser Player `content_library` HTML. |
 | [`MagentoClient`](#magentoclient) | struct | Magento customer session + cookie jar (including Browser Player CloudFront cookies). |
-| [`GraphicAudioSource`](#graphicaudiosource) | struct | GraphicAudio storefront adapter implementing `ContentSource`. |
-| [`ScanContext`](#scancontext) | struct | Runtime context for `scan_library` (Access App vs Magento). |
-| [`ScanOptions`](#scanoptions) | struct | Options for a GraphicAudio library scan. |
+| [`GraphicAudioSource`](#graphicaudiosource) | struct | GraphicAudio catalog client used by the guest's discovery entrypoints. |
 | [`GraphicAudioError`](#graphicaudioerror) | enum | Failures from Magento / Access App auth, library listing, or download. |
-| [`GraphicAudioAccess`](#graphicaudioaccess) | enum | How GraphicAudio fetches owned audio (`[sources.graphicaudio] access`). |
-| [`GraphicAudioBitrate`](#graphicaudiobitrate) | enum | GraphicAudio device encode preference (`[sources.graphicaudio] bitrate`). |
+| [`GraphicAudioAccess`](#graphicaudioaccess) | enum | How GraphicAudio fetches owned audio (the `access` plugin setting). |
+| [`GraphicAudioBitrate`](#graphicaudiobitrate) | enum | GraphicAudio device encode preference (the `bitrate` plugin setting). |
 | [`GraphicAudioContainer`](#graphicaudiocontainer) | enum | Preferred GraphicAudio ZIP SKU when `GraphicAudioAccess::Zip`. |
 | [`catalog_http_client`](#catalog_http_client) | function | Shared HTTP client for public Magento catalog pages. |
 | [`expand_from_product_id`](#expand_from_product_id) | function | Expand a owned Magento product id into related + series siblings. |
@@ -39,7 +37,6 @@ Access paths (see `docs/contributing/research/source-candidates.md`), selected b
 | [`fetch_title_with_mode`](#fetch_title_with_mode) | function | Fetch owned audio for one product using the configured access path only (no ZIP→web→device cascade). |
 | [`collect_account_books`](#collect_account_books) | function | Collect owned titles for one account (no DB writes). |
 | [`product_to_scan_book`](#product_to_scan_book) | function | Map a GraphicAudio product JSON object to a structured scan row. |
-| [`scan_library`](#scan_library) | function | Sync GraphicAudio libraries for configured accounts into `library`. |
 | [`Result`](#result) | type alias | Result alias for GraphicAudio auth, sync, and download operations. |
 | [`DEFAULT_BASE_URL`](#default_base_url) | constant | Default API origin (no trailing slash after `/access`). |
 | [`LOGIN_PATH`](#login_path) | constant | Device activation / password login. |
@@ -48,14 +45,10 @@ Access paths (see `docs/contributing/research/source-candidates.md`), selected b
 | [`GA_ACCESS_ENV`](#ga_access_env) | constant | Preferred env override (`BOOKCLERK_GA_ACCESS`); falls back to `GA_FETCH_ENV`. |
 | [`GA_FETCH_ENV`](#ga_fetch_env) | constant | Env override for which GraphicAudio access path to use (legacy name). |
 | [`DEFAULT_STORE_URL`](#default_store_url) | constant | Default Magento storefront origin (no `/access` suffix). |
-| [`GRAPHICAUDIO_SOURCE_ID`](#graphicaudio_source_id) | constant | Describe / config id for this store (`graphicaudio` in `[sources.graphicaudio]`). |
+| [`GRAPHICAUDIO_SOURCE_ID`](#graphicaudio_source_id) | constant | Describe / config id for this store (`graphicaudio`). |
 
 ## Re-exports
 
-- [`db::delete_auth_from_db`](db.md#delete_auth_from_db)
-- [`db::list_auth_from_db`](db.md#list_auth_from_db)
-- [`db::load_auth_from_db`](db.md#load_auth_from_db)
-- [`db::save_auth_to_db`](db.md#save_auth_to_db)
 - [`guest::guest_fetch_title`](guest.md#guest_fetch_title)
 - [`guest::guest_fetch_title_rpc`](guest.md#guest_fetch_title_rpc)
 - [`guest::guest_login`](guest.md#guest_login)
@@ -70,7 +63,6 @@ Access paths (see `docs/contributing/research/source-candidates.md`), selected b
 
 ## Modules
 
-- [`db`](db.md): DB-backed credential storage for GraphicAudio accounts.
 - [`guest`](guest.md): Guest-process helpers for the external GraphicAudio source plugin.
 
 ## Structs
@@ -89,7 +81,8 @@ pub struct GraphicAudioAuthFile {
 
 Credential envelope for one GraphicAudio account.
 
-Persisted as JSON in `encrypted_secrets` (see [`crate::db`](db.md)); never written
+The guest returns it from login; the host seals it into `encrypted_secrets`
+and passes it back on scan and fetch. Never written
 to disk under `Accounts/`.
 
 **Fields**
@@ -613,22 +606,14 @@ Implements: `Clone`, `Debug`
 
 ```rust
 pub struct GraphicAudioSource {
-    pub access: GraphicAudioAccess,
-    pub bitrate: GraphicAudioBitrate,
-    pub container: GraphicAudioContainer,
     /* private fields */
 }
 ```
 
-GraphicAudio storefront adapter implementing [`ContentSource`](../bookclerk_source/README.md#contentsource).
+GraphicAudio catalog client used by the guest's discovery entrypoints.
 
-Access path (`web` / `zip` / `device`) comes from config; see crate-level docs.
-
-**Fields**
-
-- `access`: Configured access path (login + default fetch). Env may still override fetch.
-- `bitrate`: Device encode bitrate (`[sources.graphicaudio] bitrate`).
-- `container`: ZIP SKU container preference (`[sources.graphicaudio] container`).
+The catalog lives on the public Magento storefront, so no account or
+access path is involved.
 
 #### GraphicAudioSource::new
 
@@ -636,15 +621,7 @@ Access path (`web` / `zip` / `device`) comes from config; see crate-level docs.
 pub fn new() -> Self
 ```
 
-Production GraphicAudio Access API + storefront origins (access=`web`).
-
-#### GraphicAudioSource::with_base_url
-
-```rust
-pub fn with_base_url(base_url: impl Into<String>) -> Self
-```
-
-Override Access API base (wiremock / staging).
+Production GraphicAudio storefront origin.
 
 #### GraphicAudioSource::with_store_url
 
@@ -652,130 +629,58 @@ Override Access API base (wiremock / staging).
 pub fn with_store_url(self, store_url: impl Into<String>) -> Self
 ```
 
-Override Magento storefront base (wiremock).
+Override Magento storefront base (wiremock / staging).
 
-#### GraphicAudioSource::with_access
+#### GraphicAudioSource::search_catalog
 
 ```rust
-pub fn with_access(self, access: GraphicAudioAccess) -> Self
+pub async fn search_catalog(&self, opts: &CatalogSearchOpts) -> Result<Vec<CatalogHit>>
 ```
 
-Set the configured access path (`[sources.graphicaudio] access`).
+Searches the public catalog.
 
-#### GraphicAudioSource::with_bitrate
+##### Errors
 
-```rust
-pub fn with_bitrate(self, bitrate: GraphicAudioBitrate) -> Self
-```
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Some lookups fail soft and only yield fewer
+results (or none), so an empty result does not prove the store has none.
 
-Sets the Access App encode bitrate preference.
-
-#### GraphicAudioSource::with_container
+#### GraphicAudioSource::expand_candidates
 
 ```rust
-pub fn with_container(self, container: GraphicAudioContainer) -> Self
-```
-
-Sets the Magento ZIP container preference (`mp3` / `m4b` / auto).
-
-#### GraphicAudioSource::with_fetch_mode
-
-```rust
-pub fn with_fetch_mode(self, mode: GraphicAudioAccess) -> Self
-```
-
-Force a fetch path (bypasses config / env).
-
-#### GraphicAudioSource::with_magento_password
-
-```rust
-pub fn with_magento_password(self, password: impl Into<String>) -> Self
-```
-
-Magento password for ZIP / Browser Player.
-
-#### GraphicAudioSource::shared
-
-```rust
-pub fn shared() -> Arc<Self>
-```
-
-Arc-wrapped instance for [`bookclerk_source::SourceRegistry`](../bookclerk_source/README.md#sourceregistry).
-
-#### GraphicAudioSource::login_account
-
-```rust
-pub async fn login_account(
+pub async fn expand_candidates(
     &self,
-    library: &SourceScope,
-    opts: LoginOptions,
-) -> Result<SourceAccount>
+    seed: &ExpandSeed,
+    limit: usize,
+) -> Result<Vec<CatalogHit>>
 ```
 
-Login and persist credentials to the DB.
-
-- `access=web|zip`: Magento customer login only (no Access App device slot).
-- `access=device`: Access App `activation/login` (registers a device).
+Finds up to `limit` titles related to `seed` (same author, series, …).
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Some lookups fail soft and only yield fewer
+results (or none), so an empty result does not prove the store has none.
 
-#### GraphicAudioSource::delete_account
+#### GraphicAudioSource::purchase_hint
 
 ```rust
-pub async fn delete_account(&self, library: &SourceScope, account_id: &str) -> Result<()>
+pub async fn purchase_hint(
+    &self,
+    opts: &PurchaseHintOpts,
+) -> Result<Option<SourcePurchaseHint>>
 ```
 
-Delete a GraphicAudio account from the DB.
+Resolves the storefront price and link for a title; `None` when not sold.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Failed lookups are soft, so `Ok(None)` can also
+mean the store could not be reached, not only that the title is not sold.
 
-Implements: `Clone`, `ContentSource`, `Debug`, `Default`
-
-### ScanContext
-
-```rust
-pub struct ScanContext<'a> {
-    pub access_base_url: Option<&'a str>,
-    pub store_base_url: Option<&'a str>,
-    pub access: GraphicAudioAccess,
-    pub magento_password: Option<&'a str>,
-}
-```
-
-Runtime context for [`scan_library`](#scan_library) (Access App vs Magento).
-
-**Fields**
-
-- `access_base_url`: Access base URL.
-- `store_base_url`: Store base URL.
-- `access`: Access.
-- `magento_password`: Magento password.
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`
-
-### ScanOptions
-
-```rust
-pub struct ScanOptions {
-    pub accounts: Vec<String>,
-    pub include_samples: bool,
-    pub page_size: u32,
-}
-```
-
-Options for a GraphicAudio library scan.
-
-**Fields**
-
-- `accounts`: Limit to specific account emails / labels / ids. Empty = all accounts.
-- `include_samples`: When true, also import promotional `Type=sample` entries (default: false).
-- `page_size`: Page size.
-
-Implements: `Clone`, `Debug`, `Default`, `From<&ScanOptions>`
+Implements: `Clone`, `Debug`, `Default`
 
 ## Enums
 
@@ -789,7 +694,6 @@ pub enum GraphicAudioError {
     Api(String),
     Download(String),
     Io(Error),
-    Library(LibraryError),
     Other(Error),
 }
 ```
@@ -804,7 +708,6 @@ Failures from Magento / Access App auth, library listing, or download.
 - `Api`: Upstream Magento, Access App, or CloudFront API error.
 - `Download`: Browser-player / ZIP / device download or packaging failed.
 - `Io`: Local filesystem I/O while reading or writing cache files.
-- `Library`: Library database upsert / secret storage failure.
 - `Other`: Unexpected failure wrapped from `anyhow`.
 
 #### GraphicAudioError::auth
@@ -839,7 +742,7 @@ pub fn download(msg: impl Into<String>) -> Self
 
 Builds a [`Self::Download`](#graphicaudioerror) error from a displayable message.
 
-Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<GraphicAudioError>`, `From<LibraryError>`
+Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<GraphicAudioError>`
 
 ### GraphicAudioAccess
 
@@ -851,7 +754,7 @@ pub enum GraphicAudioAccess {
 }
 ```
 
-How GraphicAudio fetches owned audio (`[sources.graphicaudio] access`).
+How GraphicAudio fetches owned audio (the `access` plugin setting).
 
 Default is [`Self::Web`](#graphicaudioaccess) (Browser Player). ZIP downloads and Access App
 device registration are opt-in — do not assume the user purchased a ZIP
@@ -890,7 +793,7 @@ pub enum GraphicAudioBitrate {
 }
 ```
 
-GraphicAudio device encode preference (`[sources.graphicaudio] bitrate`).
+GraphicAudio device encode preference (the `bitrate` plugin setting).
 
 **Variants**
 
@@ -1156,25 +1059,6 @@ Map a GraphicAudio product JSON object to a structured scan row.
 Every GraphicAudio production is a full-cast dramatisation of the work,
 so the expression kind is `ExpressionKind::Dramatisation`.
 
-### scan_library
-
-```rust
-pub async fn scan_library(
-    library: &SourceScope,
-    options: ScanOptions,
-    ctx: ScanContext<'_>,
-) -> Result<ScanSummary>
-```
-
-Sync GraphicAudio libraries for configured accounts into `library`.
-
-Accounts are resolved from `encrypted_secrets` (DB-backed); no
-`Accounts/*.ga.auth` files are read.
-
-#### Errors
-
-Returns an error when the operation fails.
-
 ## Type aliases
 
 ### Result
@@ -1249,4 +1133,4 @@ Default Magento storefront origin (no `/access` suffix).
 pub const GRAPHICAUDIO_SOURCE_ID: &str = "graphicaudio";
 ```
 
-Describe / config id for this store (`graphicaudio` in `[sources.graphicaudio]`).
+Describe / config id for this store (`graphicaudio`).

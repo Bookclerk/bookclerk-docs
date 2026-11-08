@@ -20,25 +20,18 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 | [`SeriesCatalog`](#seriescatalog) | struct | Series page expansion result. |
 | [`Track`](#track) | struct | One downloadable / playable track. |
 | [`TypeaheadCatalog`](#typeaheadcatalog) | struct | Typeahead hits. |
-| [`ChirpSource`](#chirpsource) | struct | Chirp storefront adapter implementing `ContentSource`. |
-| [`ScanOptions`](#scanoptions) | struct | Options for a Chirp library scan. |
+| [`ChirpSource`](#chirpsource) | struct | Chirp catalog client used by the guest's discovery entrypoints. |
 | [`ChirpError`](#chirperror) | enum | Failures from Chirp GraphQL sign-in, library listing, or DRM-free download. |
 | [`chirp_slug_candidates`](#chirp_slug_candidates) | function | Slug guesses for Chirp `series(slug:)` / `author(slug:)`. |
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs. |
 | [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Chirp audiobook to a structured scan row. Chirp returns one display string per role, so names are split with `records::credits_from_display`. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
-| [`scan_account_into_library`](#scan_account_into_library) | function | Fetch all library pages for one client and upsert books. |
-| [`scan_library`](#scan_library) | function | Sync Chirp libraries for configured accounts into `library`. |
 | [`Result`](#result) | type alias | Result alias for Chirp auth, sync, and download operations. |
 | [`DEFAULT_GRAPHQL_URL`](#default_graphql_url) | constant | Android Mockingjay GraphQL endpoint. |
-| [`CHIRP_SOURCE_ID`](#chirp_source_id) | constant | Describe / config id for this store (`chirp` in `[sources.chirp]`). |
+| [`CHIRP_SOURCE_ID`](#chirp_source_id) | constant | Describe / config id for this store (`chirp`). |
 
 ## Re-exports
 
-- [`db::delete_auth_from_db`](db.md#delete_auth_from_db)
-- [`db::list_auth_from_db`](db.md#list_auth_from_db)
-- [`db::load_auth_from_db`](db.md#load_auth_from_db)
-- [`db::save_auth_to_db`](db.md#save_auth_to_db)
 - [`guest::guest_fetch_title`](guest.md#guest_fetch_title)
 - [`guest::guest_fetch_title_rpc`](guest.md#guest_fetch_title_rpc)
 - [`guest::guest_login`](guest.md#guest_login)
@@ -49,7 +42,6 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 
 ## Modules
 
-- [`db`](db.md): DB-backed credential storage for Chirp accounts.
 - [`guest`](guest.md): Guest-process helpers for the external Chirp source plugin.
 
 ## Structs
@@ -69,7 +61,8 @@ pub struct ChirpAuthFile {
 
 Credential envelope for one Chirp account.
 
-Persisted as JSON in `encrypted_secrets` (see [`crate::db`](db.md)); never written
+The guest returns it from login; the host seals it into `encrypted_secrets`
+and passes it back on scan and fetch. Never written
 to disk under `Accounts/`.
 
 **Fields**
@@ -620,7 +613,7 @@ pub struct ChirpSource {
 }
 ```
 
-Chirp storefront adapter implementing [`ContentSource`](../bookclerk_source/README.md#contentsource).
+Chirp catalog client used by the guest's discovery entrypoints.
 
 Construct with [`ChirpSource::new`](#chirpsourcenew); use [`ChirpSource::with_graphql_url`](#chirpsourcewith_graphql_url)
 for wiremock / staging.
@@ -641,61 +634,70 @@ pub fn with_graphql_url(graphql_url: impl Into<String>) -> Self
 
 Overrides the GraphQL endpoint (tests / staging).
 
-#### ChirpSource::shared
+#### ChirpSource::search_catalog
 
 ```rust
-pub fn shared() -> Arc<Self>
+pub async fn search_catalog(&self, opts: &CatalogSearchOpts) -> Result<Vec<CatalogHit>>
 ```
 
-Arc-wrapped instance for [`bookclerk_source::SourceRegistry`](../bookclerk_source/README.md#sourceregistry).
+Searches the public catalog.
 
-#### ChirpSource::login_account
+##### Errors
+
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Some lookups fail soft and only yield fewer
+results (or none), so an empty result does not prove the store has none.
+
+#### ChirpSource::expand_candidates
 
 ```rust
-pub async fn login_account(
+pub async fn expand_candidates(
     &self,
-    library: &SourceScope,
-    opts: LoginOptions,
-) -> Result<SourceAccount>
+    seed: &ExpandSeed,
+    limit: usize,
+) -> Result<Vec<CatalogHit>>
 ```
 
-Logs in with email/password and seals credentials into `encrypted_secrets`.
+Finds up to `limit` titles related to `seed` (same author, series, …).
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Some lookups fail soft and only yield fewer
+results (or none), so an empty result does not prove the store has none.
 
-#### ChirpSource::delete_account
+#### ChirpSource::purchase_hint
 
 ```rust
-pub async fn delete_account(&self, library: &SourceScope, account_id: &str) -> Result<()>
+pub async fn purchase_hint(
+    &self,
+    opts: &PurchaseHintOpts,
+) -> Result<Option<SourcePurchaseHint>>
 ```
 
-Delete a Chirp account from the DB.
+Resolves the storefront price and link for a title; `None` when not sold.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Failed lookups are soft, so `Ok(None)` can also
+mean the store could not be reached, not only that the title is not sold.
 
-Implements: `Clone`, `ContentSource`, `Debug`, `Default`
-
-### ScanOptions
+#### ChirpSource::list_deals
 
 ```rust
-pub struct ScanOptions {
-    pub accounts: Vec<String>,
-    pub page_size: u32,
-}
+pub async fn list_deals(&self, limit: usize) -> Result<Vec<CatalogHit>>
 ```
 
-Options for a Chirp library scan.
+Lists up to `limit` titles on the storefront's current deals shelf.
 
-**Fields**
+##### Errors
 
-- `accounts`: Accounts.
-- `page_size`: Page size.
+Returns an error when a storefront request or its parse fails and the
+method cannot fall back. Some lookups fail soft and only yield fewer
+results (or none), so an empty result does not prove the store has none.
 
-Implements: `Clone`, `Debug`, `Default`, `From<&ScanOptions>`
+Implements: `Clone`, `Debug`, `Default`
 
 ## Enums
 
@@ -709,7 +711,6 @@ pub enum ChirpError {
     Api(String),
     Download(String),
     Io(Error),
-    Library(LibraryError),
     Other(Error),
 }
 ```
@@ -724,7 +725,6 @@ Failures from Chirp GraphQL sign-in, library listing, or DRM-free download.
 - `Api`: Upstream GraphQL / HTTP API error.
 - `Download`: Title download or packaging failed.
 - `Io`: Local filesystem I/O while reading or writing cache files.
-- `Library`: Library database upsert / secret storage failure.
 - `Other`: Unexpected failure wrapped from `anyhow`.
 
 #### ChirpError::auth
@@ -759,7 +759,7 @@ pub fn download(msg: impl Into<String>) -> Self
 
 Builds a [`Self::Download`](#chirperror) error from a displayable message.
 
-Implements: `Debug`, `Display`, `Error`, `From<ChirpError>`, `From<Error>`, `From<LibraryError>`
+Implements: `Debug`, `Display`, `Error`, `From<ChirpError>`, `From<Error>`
 
 ## Functions
 
@@ -798,7 +798,7 @@ pub fn audiobook_to_scan_book(
 ```
 
 Map a Chirp audiobook to a structured scan row. Chirp returns one display
-string per role, so names are split with [`records::credits_from_display`](../bookclerk_source/records.md#credits_from_display).
+string per role, so names are split with [`records::credits_from_display`](../bookclerk_storefront/records.md#credits_from_display).
 
 ### collect_account_books
 
@@ -812,43 +812,6 @@ pub async fn collect_account_books(
 ```
 
 Fetch all library pages for one client and collect books (no DB writes).
-
-#### Errors
-
-Returns an error when the operation fails.
-
-### scan_account_into_library
-
-```rust
-pub async fn scan_account_into_library(
-    library: &SourceScope,
-    client: &ChirpClient,
-    account_id: &str,
-    marketplace: &str,
-    page_size: u32,
-) -> Result<(usize, u32)>
-```
-
-Fetch all library pages for one client and upsert books.
-
-#### Errors
-
-Returns an error when the operation fails.
-
-### scan_library
-
-```rust
-pub async fn scan_library(
-    library: &SourceScope,
-    options: ScanOptions,
-    graphql_url: Option<&str>,
-) -> Result<ScanSummary>
-```
-
-Sync Chirp libraries for configured accounts into `library`.
-
-Accounts are resolved from `encrypted_secrets` (DB-backed); no
-`Accounts/*.chirp.auth` files are read.
 
 #### Errors
 
@@ -880,4 +843,4 @@ Android Mockingjay GraphQL endpoint.
 pub const CHIRP_SOURCE_ID: &str = "chirp";
 ```
 
-Describe / config id for this store (`chirp` in `[sources.chirp]`).
+Describe / config id for this store (`chirp`).

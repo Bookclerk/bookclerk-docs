@@ -4,7 +4,7 @@ Guest-process helpers for the external GraphicAudio source plugin.
 
 These APIs do **not** open the library DB — the host seals credentials and
 upserts scan rows via `bookclerk_plugin_host::ExternalSource`. Conversions
-between storefront types and the typed ABI live in [`bookclerk_source::abi`](../bookclerk_source/abi.md).
+between storefront types and the typed ABI live in [`bookclerk_storefront::abi`](../bookclerk_storefront/abi.md).
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -14,11 +14,11 @@ between storefront types and the typed ABI live in [`bookclerk_source::abi`](../
 | [`guest_scan_rpc`](#guest_scan_rpc) | function | RPC scan: return the typed `ScanSummary` (host upserts books). |
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download one title into `cache_dir` using host-injected credentials. |
 | [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) | function | RPC fetch: return the typed plain fetch result. |
-| [`resolve_access_base_url`](#resolve_access_base_url) | function | Resolve Access App API base URL from `[sources.graphicaudio]` JSON. |
-| [`resolve_store_base_url`](#resolve_store_base_url) | function | Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON. |
+| [`resolve_access_base_url`](#resolve_access_base_url) | function | Resolve Access App API base URL from the plugin settings document. |
+| [`resolve_store_base_url`](#resolve_store_base_url) | function | Resolve Magento storefront base URL from the plugin settings document. |
 | [`resolve_access`](#resolve_access) | function | Resolve download access path from granted `CONFIG`. |
-| [`resolve_bitrate`](#resolve_bitrate) | function | Resolve device bitrate preference from `[sources.graphicaudio]` JSON. |
-| [`resolve_container`](#resolve_container) | function | Resolve ZIP container preference from `[sources.graphicaudio]` JSON. |
+| [`resolve_bitrate`](#resolve_bitrate) | function | Resolve device bitrate preference from the plugin settings document. |
+| [`resolve_container`](#resolve_container) | function | Resolve ZIP container preference from the plugin settings document. |
 | [`source_id`](#source_id) | function | Source id returned in describe(); must match `crate::source::ID`. |
 
 ## Functions
@@ -56,7 +56,7 @@ pub async fn guest_login_rpc(
 ) -> Result<LoginResult>
 ```
 
-RPC login: build [`LoginOptions`](../bookclerk_source/README.md#loginoptions) from typed params and return the ABI result.
+RPC login: build [`LoginOptions`](../bookclerk_storefront/README.md#loginoptions) from typed params and return the ABI result.
 
 #### Errors
 
@@ -151,7 +151,7 @@ Returns an error when the operation fails.
 pub fn resolve_access_base_url(source_config: &Value) -> String
 ```
 
-Resolve Access App API base URL from `[sources.graphicaudio]` JSON.
+Resolve Access App API base URL from the plugin settings document.
 
 ### resolve_store_base_url
 
@@ -159,7 +159,7 @@ Resolve Access App API base URL from `[sources.graphicaudio]` JSON.
 pub fn resolve_store_base_url(source_config: &Value) -> String
 ```
 
-Resolve Magento storefront base URL from `[sources.graphicaudio]` JSON.
+Resolve Magento storefront base URL from the plugin settings document.
 
 ### resolve_access
 
@@ -179,7 +179,7 @@ that omits `access` must not fall back to the process environment.
 pub fn resolve_bitrate(source_config: &Value) -> GraphicAudioBitrate
 ```
 
-Resolve device bitrate preference from `[sources.graphicaudio]` JSON.
+Resolve device bitrate preference from the plugin settings document.
 
 ### resolve_container
 
@@ -187,7 +187,7 @@ Resolve device bitrate preference from `[sources.graphicaudio]` JSON.
 pub fn resolve_container(source_config: &Value) -> GraphicAudioContainer
 ```
 
-Resolve ZIP container preference from `[sources.graphicaudio]` JSON.
+Resolve ZIP container preference from the plugin settings document.
 
 ### source_id
 

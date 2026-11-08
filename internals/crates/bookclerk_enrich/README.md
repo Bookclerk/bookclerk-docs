@@ -78,7 +78,7 @@ plain audio that lacks Audible brand intro/outro.
 
 ## Re-exports
 
-- [`bookclerk_library::decode_html_entities`](../bookclerk_library/README.md#decode_html_entities)
+- [`bookclerk_library::decode_html_entities`](../bookclerk_storefront/text.md#decode_html_entities)
 
 ## Traits
 

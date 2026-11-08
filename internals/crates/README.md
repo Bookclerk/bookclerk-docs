@@ -26,9 +26,9 @@ First-party plugins: databases, destinations, sources and integrations.
 | [`bookclerk_plugin_destination_s3`](bookclerk_plugin_destination_s3/README.md) | S3 / MinIO output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_integration_audiobookshelf`](bookclerk_plugin_integration_audiobookshelf/README.md) | Audiobookshelf integration plugin: in-process Integration + Workers RPC guest binary |
 | [`bookclerk_plugin_source_audible`](bookclerk_plugin_source_audible/README.md) | Audible source plugin: in-process ContentSource + Workers RPC guest binary |
-| [`bookclerk_plugin_source_chirp`](bookclerk_plugin_source_chirp/README.md) | Chirp source plugin: in-process ContentSource + Workers RPC guest binary |
-| [`bookclerk_plugin_source_graphicaudio`](bookclerk_plugin_source_graphicaudio/README.md) | GraphicAudio source plugin: in-process ContentSource + Workers RPC guest binary |
-| [`bookclerk_plugin_source_libro`](bookclerk_plugin_source_libro/README.md) | Libro.fm source plugin: in-process ContentSource + Workers RPC guest binary |
+| [`bookclerk_plugin_source_chirp`](bookclerk_plugin_source_chirp/README.md) | Chirp source plugin: native storefront guest binary |
+| [`bookclerk_plugin_source_graphicaudio`](bookclerk_plugin_source_graphicaudio/README.md) | GraphicAudio source plugin: native storefront guest binary |
+| [`bookclerk_plugin_source_libro`](bookclerk_plugin_source_libro/README.md) | Libro.fm source plugin: native storefront guest binary |
 
 ## Host internals
 
@@ -57,8 +57,9 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_resolve`](bookclerk_resolve/README.md) | Sans-IO resolver that maps store listings to FRBR works, expressions and editions |
 | [`bookclerk_sandbox`](bookclerk_sandbox/README.md) | Portable, unprivileged process confinement (Landlock/seccomp, Seatbelt, AppContainer) |
 | [`bookclerk_search`](bookclerk_search/README.md) | Full-text library search (Tantivy; classic Lucene parity) |
-| [`bookclerk_source`](bookclerk_source/README.md) | ContentSource trait and shared types for multi-source library providers |
+| [`bookclerk_source`](bookclerk_source/README.md) | Host-side ContentSource trait and source registry; re-exports the storefront types guests share |
 | [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local and S3 storage backends for acquired audiobooks |
+| [`bookclerk_storefront`](bookclerk_storefront/README.md) | Types storefront guests share with the host: DTOs, ABI conversions and listing helpers, with no database, ORM or OpenAPI dependencies |
 | [`bookclerk_tray`](bookclerk_tray/README.md) | In-process system tray for bookclerkd (opens the web UI in a browser) |
 | [`bookclerk_workerd`](bookclerk_workerd/README.md) | Jailed workerd isolate launcher for Bookclerk script plugins |
 

@@ -1,60 +1,66 @@
 # bookclerk_source
 
-Shared traits and DTOs for Bookclerk content-source plugins.
+Host-side content-source traits plus the storefront types guests share.
 
 ## Audience
 
-Host registration code and first-party / third-party **source plugin**
-authors implementing [`ContentSource`](#contentsource). Native guests and the plugin host
-map these types onto the typed Cap'n Proto ABI through [`abi`](abi.md); workerd
-guests use the generated TypeScript / Python SDK types instead.
+Host registration code and the plugin host adapter implementing
+[`ContentSource`](#contentsource). The types a storefront guest also needs (DTOs, ABI
+conversions, listing / record helpers) live in the slim
+[`bookclerk_storefront`](../bookclerk_storefront/README.md) crate and are re-exported here unchanged, so host
+code keeps importing them from `bookclerk_source`. Guests depend on
+`bookclerk-storefront` directly and never link this crate, which pulls in
+the library store and host configuration.
 
 Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-documentation.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`ContentSource`](#contentsource) | trait | Pluggable audiobook storefront (auth, scan, fetch, catalog). |
-| [`SourceBrand`](#sourcebrand) | struct | Visual identity for a content source in the connect portal. |
+| [`FetchOptions`](#fetchoptions) | struct | Options passed to `crate::ContentSource::fetch_title`. |
 | [`DownloadOptions`](#downloadoptions) | struct | Options for acquire / fetch packaging and naming. |
 | [`SourceRegistry`](#sourceregistry) | struct | Maps a registry address to an installed `ContentSource`. |
-| [`CatalogHit`](#cataloghit) | struct | Neutral catalog / candidate hit (no store crate types). |
-| [`CatalogSearchOpts`](#catalogsearchopts) | struct | Options for `crate::ContentSource::search_catalog`. |
-| [`ConfigOptionValue`](#configoptionvalue) | struct | One allowed value for a `SourceConfigOption`. |
-| [`ExpandSeed`](#expandseed) | struct | Seed for related / series / author expansion. |
-| [`FetchOptions`](#fetchoptions) | struct | Options passed to `crate::ContentSource::fetch_title`. |
-| [`ImportCredentialsOptions`](#importcredentialsoptions) | struct | Options for `crate::ContentSource::import_credentials`. |
-| [`LoginOptions`](#loginoptions) | struct | Options for interactive / CLI login. |
-| [`PlainAudioPart`](#plainaudiopart) | struct | One DRM-free audio part (chapter file or single book). |
-| [`PlainFetch`](#plainfetch) | struct | DRM-free fetch result. Sources that use DRM decrypt inside the plugin and return clear media here — the host never sees ciphertext or keys. |
-| [`PurchaseHintOpts`](#purchasehintopts) | struct | Options for `crate::ContentSource::purchase_hint`. |
-| [`ScanOptions`](#scanoptions) | struct | Options for a library scan. |
-| [`ScanSummary`](#scansummary) | struct | Summary of a scan run. |
-| [`SourceAccount`](#sourceaccount) | struct | Account discovered or created by a content source. |
-| [`SourceConfigOption`](#sourceconfigoption) | struct | One source-native config knob under `[sources.<id>]`. |
-| [`SourcePurchaseHint`](#sourcepurchasehint) | struct | URL + optional live price for one storefront edition. |
-| [`SourceError`](#sourceerror) | enum | Errors from content-source auth, scan, or fetch. |
 | [`PortalAuthMode`](#portalauthmode) | enum | How the connect portal authenticates this source. |
-| [`CatalogSearchField`](#catalogsearchfield) | enum | Optional role / facet for `crate::ContentSource::search_catalog`. |
-| [`CatalogSearchSort`](#catalogsearchsort) | enum | Sort mode for `crate::ContentSource::search_catalog`. |
-| [`CatalogSortDir`](#catalogsortdir) | enum | Ascending / descending for catalog search host re-rank. |
-| [`OAuthProgress`](#oauthprogress) | enum | Progress events for interactive OAuth login (portal / CLI). |
-| [`default_preferred_language`](#default_preferred_language) | function | Preferred language for Discover when the client omits one. |
-| [`language_rank`](#language_rank) | function | Rank a hit's language relative to the preferred code. |
-| [`normalize_language`](#normalize_language) | function | Normalize a language tag or display name to a primary ISO-ish code. |
-| [`audio_extension`](#audio_extension) | function | Prefer byte sniffing, then `Content-Type`, then URL path; `default` when all fail. |
-| [`extension_from_bytes`](#extension_from_bytes) | function | Guess an audio extension from magic bytes (`infer`), with AAC/MP3 fallbacks. |
-| [`extension_from_content_type`](#extension_from_content_type) | function | Map a `Content-Type` header (parameters stripped) to an audio extension. |
-| [`extension_from_url`](#extension_from_url) | function | Guess an audio file extension from a URL path (query/fragment stripped). |
 | [`revoke_credentials_default`](#revoke_credentials_default) | function | Shared revoke path for plugins that seal as `.plugin.auth` (and legacy names). |
 | [`source_scope`](#source_scope) | function | Opens the `SourceScope` for `source`: rows are isolated by its `ContentSource::plugin_key` and labelled with its `ContentSource::id`. |
-| [`Result`](#result) | type alias | Result alias for content-source operations. |
-| [`SourceFetch`](#sourcefetch) | type alias | Result of fetching a title for acquire (always clear media). |
+
+## Re-exports
+
+- [`bookclerk_storefront::audio_extension`](../bookclerk_storefront/README.md#audio_extension)
+- [`bookclerk_storefront::default_preferred_language`](../bookclerk_storefront/README.md#default_preferred_language)
+- [`bookclerk_storefront::extension_from_bytes`](../bookclerk_storefront/README.md#extension_from_bytes)
+- [`bookclerk_storefront::extension_from_content_type`](../bookclerk_storefront/README.md#extension_from_content_type)
+- [`bookclerk_storefront::extension_from_url`](../bookclerk_storefront/README.md#extension_from_url)
+- [`bookclerk_storefront::language_rank`](../bookclerk_storefront/README.md#language_rank)
+- [`bookclerk_storefront::listing`](../bookclerk_storefront/listing.md)
+- [`bookclerk_storefront::normalize_language`](../bookclerk_storefront/README.md#normalize_language)
+- [`bookclerk_storefront::records`](../bookclerk_storefront/records.md)
+- [`bookclerk_storefront::CatalogHit`](../bookclerk_storefront/README.md#cataloghit)
+- [`bookclerk_storefront::CatalogSearchField`](../bookclerk_storefront/README.md#catalogsearchfield)
+- [`bookclerk_storefront::CatalogSearchOpts`](../bookclerk_storefront/README.md#catalogsearchopts)
+- [`bookclerk_storefront::CatalogSearchSort`](../bookclerk_storefront/README.md#catalogsearchsort)
+- [`bookclerk_storefront::CatalogSortDir`](../bookclerk_storefront/README.md#catalogsortdir)
+- [`bookclerk_storefront::ConfigOptionValue`](../bookclerk_storefront/README.md#configoptionvalue)
+- [`bookclerk_storefront::ExpandSeed`](../bookclerk_storefront/README.md#expandseed)
+- [`bookclerk_storefront::ImportCredentialsOptions`](../bookclerk_storefront/README.md#importcredentialsoptions)
+- [`bookclerk_storefront::LoginOptions`](../bookclerk_storefront/README.md#loginoptions)
+- [`bookclerk_storefront::OAuthProgress`](../bookclerk_storefront/README.md#oauthprogress)
+- [`bookclerk_storefront::PlainAudioPart`](../bookclerk_storefront/README.md#plainaudiopart)
+- [`bookclerk_storefront::PlainFetch`](../bookclerk_storefront/README.md#plainfetch)
+- [`bookclerk_storefront::PurchaseHintOpts`](../bookclerk_storefront/README.md#purchasehintopts)
+- [`bookclerk_storefront::Result`](../bookclerk_storefront/README.md#result)
+- [`bookclerk_storefront::ScanOptions`](../bookclerk_storefront/README.md#scanoptions)
+- [`bookclerk_storefront::ScanSummary`](../bookclerk_storefront/README.md#scansummary)
+- [`bookclerk_storefront::SourceAccount`](../bookclerk_storefront/README.md#sourceaccount)
+- [`bookclerk_storefront::SourceBrand`](../bookclerk_storefront/README.md#sourcebrand)
+- [`bookclerk_storefront::SourceConfigOption`](../bookclerk_storefront/README.md#sourceconfigoption)
+- [`bookclerk_storefront::SourceError`](../bookclerk_storefront/README.md#sourceerror)
+- [`bookclerk_storefront::SourceFetch`](../bookclerk_storefront/README.md#sourcefetch)
+- [`bookclerk_storefront::SourcePurchaseHint`](../bookclerk_storefront/README.md#sourcepurchasehint)
 
 ## Modules
 
-- [`abi`](abi.md): Conversions between host storefront types and the typed Cap'n Proto plugin ABI (`bookclerk_plugin_abi`).
-- [`listing`](listing.md): Plugin ABI records as resolver listing drafts.
-- [`records`](records.md): Builders and flat views for the structured bibliographic records that `ScanBook` and `CatalogHit` carry on the plugin ABI.
+- [`abi`](abi.md): Host-side conversions between storefront types and the typed plugin ABI.
 
 ## Traits
 
@@ -544,39 +550,45 @@ Default: empty.
 
 ## Structs
 
-### SourceBrand
+### FetchOptions
 
 ```rust
-pub struct SourceBrand {
-    pub id: &'static str,
-    pub name: &'static str,
-    pub bg: &'static str,
-    pub fg: &'static str,
-    pub accent: &'static str,
-    pub icon_url: &'static str,
+pub struct FetchOptions {
+    pub download: DownloadOptions,
+    pub cache_dir: PathBuf,
+    pub files_dir: PathBuf,
+    pub max_cache_bytes: Option<u64>,
+    pub cancel: Option<Arc<AtomicBool>>,
 }
 ```
 
-Visual identity for a content source in the connect portal.
+Options passed to [`crate::ContentSource::fetch_title`](#contentsourcefetch_title).
 
 **Fields**
 
-- `id`: Stable plugin id matching [`crate::ContentSource::id`](#contentsourceid) (`audible`, …).
-- `name`: Human-facing store name shown on the connect button.
-- `bg`: CSS background color (hex) for the portal button.
-- `fg`: CSS foreground / text color (hex) for the portal button.
-- `accent`: CSS accent color (hex) for focus / highlights.
-- `icon_url`: Remote favicon / app-icon URL (not stored in-repo).
+- `download`: Packaging / naming knobs for this acquire (from `[output]` + destination).
+- `cache_dir`: Absolute directory for scratch downloads for this fetch.
+- `files_dir`: Root files directory (`BOOKCLERK_FILES_DIR`). Used for CDM / Widevine path
+  resolution by Audible. Non-auth operations only; auth is loaded from the
+  [`bookclerk_library::LibraryStore`](../bookclerk_library/README.md#librarystore) passed directly to the trait method.
+- `max_cache_bytes`: Optional on-disk budget for `cache_dir` (bytes). Sources should call
+  [`Self::enforce_cache_budget`](#fetchoptionsenforce_cache_budget) between chunks.
+- `cancel`: Cooperative cancel for mid-fetch quota or a lost job fence.
 
-#### SourceBrand::logo_href
+#### FetchOptions::enforce_cache_budget
 
 ```rust
-pub fn logo_href(&self) -> &'static str
+pub fn enforce_cache_budget(&self) -> Result<()>
 ```
 
-Favicon / app-icon URL used as the portal button logo (`href`).
+Fails when cancel is set or `cache_dir` exceeds [`Self::max_cache_bytes`](#fetchoptions).
 
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+##### Errors
+
+Returns `SourceError::Other` when the fetch was cancelled or the
+cache directory is over the remaining scratch quota.
+
+Implements: `Clone`, `Debug`
 
 ### DownloadOptions
 
@@ -886,7 +898,7 @@ pub fn route(
 pub fn require(&self, id_or_alias: &str) -> Result<Arc<dyn ContentSource>>
 ```
 
-Look up a source or return [`crate::SourceError::Api`](#sourceerror) when missing.
+Look up a source or return `crate::SourceError::Api` when missing.
 
 ##### Errors
 
@@ -952,7 +964,7 @@ Scan every registered plugin once (honoring per-source account filters).
 When `opts.accounts` is non-empty, each source only receives the subset of
 account needles that resolve to an account on that source. Sources with no
 matching accounts are skipped instead of failing the whole multi-source scan.
-[`ScanOptions::cancel`](#scanoptions) is checked between sources.
+`ScanOptions::cancel` is checked between sources.
 
 ##### Errors
 
@@ -979,601 +991,7 @@ Returns an error when the scan fails or no account matches.
 
 Implements: `Clone`, `Default`
 
-### CatalogHit
-
-```rust
-pub struct CatalogHit {
-    pub product_id: String,
-    pub title: String,
-    pub url: Option<String>,
-    pub cover_url: Option<String>,
-    pub origin: String,
-    pub subtitle: Option<String>,
-    pub description: Option<String>,
-    pub publisher: Option<String>,
-    pub length_minutes: Option<i64>,
-    pub published_at: Option<String>,
-    pub categories: Option<String>,
-    pub language: Option<String>,
-    pub price_cents: Option<i64>,
-    pub currency: Option<String>,
-    pub price_label: Option<String>,
-    pub rating_overall: Option<f64>,
-    pub rating_count: Option<i64>,
-    pub is_abridged: Option<bool>,
-    pub work_kind: WorkKind,
-    pub expression_kind: ExpressionKind,
-    pub media_kind: MediaKind,
-    pub identifiers: Vec<Identifier>,
-    pub credits: Vec<Credit>,
-    pub series_entries: Vec<SeriesEntry>,
-    pub parent_product_id: Option<String>,
-}
-```
-
-Neutral catalog / candidate hit (no store crate types).
-
-Identity fields are required; bibliographic extras and list price are filled
-when a storefront’s search/expand payload already includes them (avoids a
-second Audnexus / purchase-hint round-trip for Discover detail).
-
-**Fields**
-
-- `product_id`: Store-native product / title id (ASIN, ISBN, UUID, …).
-- `title`: Display title for the work.
-- `url`: Canonical storefront product URL when available.
-- `cover_url`: Public cover image URL when the storefront provides one.
-- `origin`: How this was found (`related`, `series`, `author`, `search`, `top_deals`, …).
-- `subtitle`: Subtitle / secondary title line when the storefront provides one.
-- `description`: Marketing / synopsis text from the storefront.
-- `publisher`: Publisher imprint name when known.
-- `length_minutes`: Runtime in whole minutes when the storefront reports duration.
-- `published_at`: ISO-8601 / store release date string when known.
-- `categories`: Genre / subject labels (`;`-separated).
-- `language`: Content language (BCP-47 or storefront display name).
-- `price_cents`: List / deal price from the same catalog payload (optional).
-- `currency`: ISO 4217 currency code for [`Self::price_cents`](#cataloghit) when priced.
-- `price_label`: Pre-formatted price string for UI (e.g. `$14.95`).
-- `rating_overall`: Community overall rating (0–5) when the storefront returned it.
-- `rating_count`: Number of star ratings backing [`Self::rating_overall`](#cataloghit) when known.
-- `is_abridged`: `Some(true)` when the storefront marks the title abridged; `Some(false)`
-  for unabridged; `None` when unknown.
-- `work_kind`: Kind of work the hit is.
-- `expression_kind`: How the work is realised in this edition.
-- `media_kind`: Form of this edition; print and ebook hits are never acquired.
-- `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
-- `credits`: Credited contributors in billing order.
-- `series_entries`: Series the work belongs to.
-- `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
-
-#### CatalogHit::decode_html_entities
-
-```rust
-pub fn decode_html_entities(self) -> Self
-```
-
-Decode HTML entities in human-readable metadata fields.
-
-Storefronts (notably Libro.fm) sometimes return `Memory&#39;s Blade`-style
-titles; normalize before discover merge / UI display.
-
-No-op (no allocations) when no field contains `&`.
-
-#### CatalogHit::authors
-
-```rust
-pub fn authors(&self) -> Option<String>
-```
-
-Author names joined for the flat view; `None` when none is credited.
-
-#### CatalogHit::narrators
-
-```rust
-pub fn narrators(&self) -> Option<String>
-```
-
-Narrator names joined for the flat view; `None` when none is credited.
-
-#### CatalogHit::asin
-
-```rust
-pub fn asin(&self) -> Option<String>
-```
-
-Amazon ASIN when the hit carries one.
-
-#### CatalogHit::asin_in
-
-```rust
-pub fn asin_in(&self, marketplace: &str) -> Option<String>
-```
-
-ASIN for `marketplace`, falling back to an unscoped ASIN and then to
-any ASIN the hit carries.
-
-#### CatalogHit::isbn
-
-```rust
-pub fn isbn(&self) -> Option<String>
-```
-
-ISBN when the hit carries one.
-
-#### CatalogHit::series
-
-```rust
-pub fn series(&self) -> Option<String>
-```
-
-Name of the first series the hit belongs to.
-
-#### CatalogHit::series_index
-
-```rust
-pub fn series_index(&self) -> Option<String>
-```
-
-Position label in the first series the hit belongs to.
-
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<CatalogHit>`, `Serialize`
-
-### CatalogSearchOpts
-
-```rust
-pub struct CatalogSearchOpts {
-    pub query: String,
-    pub region: String,
-    pub limit: usize,
-    pub page: u32,
-    pub sort: CatalogSearchSort,
-    pub field: Option<CatalogSearchField>,
-    pub language: Option<String>,
-}
-```
-
-Options for [`crate::ContentSource::search_catalog`](#contentsourcesearch_catalog).
-
-**Fields**
-
-- `query`: Free-text or facet search string.
-- `region`: Marketplace / catalog region (`us`, `uk`, …); empty = plugin default.
-- `limit`: Maximum hits to return (`0` = plugin default).
-- `page`: 1-based page index for storefronts that support paging (default 1).
-- `sort`: Preferred upstream / merge sort.
-- `field`: When set, prefer storefront-native search for this facet.
-- `language`: Preferred content language (BCP-47 primary or display name); soft-prioritize.
-
-Implements: `Clone`, `Debug`, `Default`, `From<&CatalogSearchOpts>`, `From<SearchCatalogParams>`
-
-### ConfigOptionValue
-
-```rust
-pub struct ConfigOptionValue {
-    pub id: &'static str,
-    pub label: &'static str,
-}
-```
-
-One allowed value for a [`SourceConfigOption`](#sourceconfigoption).
-
-**Fields**
-
-- `id`: Wire / TOML id (`high`, `m4b`, `web`, …).
-- `label`: Operator-facing display name for this choice in Settings / CLI help.
-
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
-
-### ExpandSeed
-
-```rust
-pub struct ExpandSeed {
-    pub source: String,
-    pub product_id: String,
-    pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub series: Option<String>,
-    pub series_asin: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
-    pub region: String,
-}
-```
-
-Seed for related / series / author expansion.
-
-**Fields**
-
-- `source`: Source id of the seed title (`chirp`, `audible`, …).
-- `product_id`: Store-native product id of the owned / seed title.
-- `title`: Display title used for related/series/author expansion queries.
-- `authors`: Author names from the seed library row.
-- `narrators`: Narrator names from the seed library row.
-- `series`: Series name from the seed library row.
-- `series_asin`: Parent Audible series ASIN when known (from library metadata).
-- `asin`: Amazon ASIN when known for Audible-related expansion.
-- `isbn`: ISBN when known for cross-store matching.
-- `region`: Marketplace / catalog region (`us`, `uk`, …).
-
-Implements: `Clone`, `Debug`
-
-### FetchOptions
-
-```rust
-pub struct FetchOptions {
-    pub download: DownloadOptions,
-    pub cache_dir: PathBuf,
-    pub files_dir: PathBuf,
-    pub max_cache_bytes: Option<u64>,
-    pub cancel: Option<Arc<AtomicBool>>,
-}
-```
-
-Options passed to [`crate::ContentSource::fetch_title`](#contentsourcefetch_title).
-
-**Fields**
-
-- `download`: Packaging / naming knobs for this acquire (from `[output]` + destination).
-- `cache_dir`: Absolute directory for scratch downloads for this fetch.
-- `files_dir`: Root files directory (`BOOKCLERK_FILES_DIR`). Used for CDM / Widevine path
-  resolution by Audible. Non-auth operations only; auth is loaded from the
-  [`bookclerk_library::LibraryStore`](../bookclerk_library/README.md#librarystore) passed directly to the trait method.
-- `max_cache_bytes`: Optional on-disk budget for `cache_dir` (bytes). Sources should call
-  [`Self::enforce_cache_budget`](#fetchoptionsenforce_cache_budget) between chunks.
-- `cancel`: Cooperative cancel for mid-fetch quota or a lost job fence.
-
-#### FetchOptions::enforce_cache_budget
-
-```rust
-pub fn enforce_cache_budget(&self) -> Result<()>
-```
-
-Fails when cancel is set or `cache_dir` exceeds [`Self::max_cache_bytes`](#fetchoptions).
-
-##### Errors
-
-Returns [`SourceError::Other`](#sourceerror) when the fetch was cancelled or the
-cache directory is over the remaining scratch quota.
-
-Implements: `Clone`, `Debug`
-
-### ImportCredentialsOptions
-
-```rust
-pub struct ImportCredentialsOptions {
-    pub libation_accounts: bool,
-    pub mkb79: bool,
-    pub label: Option<String>,
-    pub force: bool,
-}
-```
-
-Options for [`crate::ContentSource::import_credentials`](#contentsourceimport_credentials).
-
-**Fields**
-
-- `libation_accounts`: Treat input as classic Libation `AccountsSettings.json`.
-- `mkb79`: Import mkb79 / audible-cli legacy auth JSON.
-- `label`: Destination display label / filename stem.
-- `force`: Overwrite an existing credential.
-
-Implements: `Clone`, `Debug`, `Default`
-
-### LoginOptions
-
-```rust
-pub struct LoginOptions {
-    pub marketplace: String,
-    pub label: Option<String>,
-    pub email: Option<String>,
-    pub password: Option<String>,
-    pub force: bool,
-    pub callback_bind: Option<String>,
-    pub external: bool,
-    pub response_url: Option<String>,
-    pub show_qr: bool,
-    pub timeout_secs: Option<u64>,
-    pub extra: Value,
-}
-```
-
-Options for interactive / CLI login.
-
-**Fields**
-
-- `marketplace`: Target marketplace / region for login (`us`, `uk`, …); empty = plugin default.
-- `label`: Optional nickname stored with the new account credentials.
-- `email`: Email/password sources; ignored for OAuth.
-- `password`: Email/password sources; ignored for OAuth.
-- `force`: When true, overwrite an existing credential blob for the same account.
-- `callback_bind`: Optional OAuth callback bind (`host:port`) for portal / reverse-proxy use.
-- `external`: External / paste-redirect OAuth instead of a local callback server.
-- `response_url`: Pre-supplied OAuth redirect URL (with [`Self::external`](#loginoptions)).
-- `show_qr`: Emit a terminal QR for the authorize URL when the source supports it.
-- `timeout_secs`: Seconds to wait for OAuth callback capture (source-defined default when `None`).
-- `extra`: Store-specific knobs (`audible_username`, `ascii_qr`, …). Guests may ignore unknowns.
-
-Implements: `Clone`, `Debug`, `Default`, `From<LoginParams>`
-
-### PlainAudioPart
-
-```rust
-pub struct PlainAudioPart {
-    pub path: PathBuf,
-    pub title: Option<String>,
-    pub duration_ms: Option<u64>,
-}
-```
-
-One DRM-free audio part (chapter file or single book).
-
-**Fields**
-
-- `path`: Absolute path to a clear (DRM-free) audio file on disk.
-- `title`: Optional chapter / part title for packaging and metadata.
-- `duration_ms`: Duration in milliseconds when known.
-
-Implements: `Clone`, `Debug`, `From<PlainAudioPart>`, `From<PlainPart>`
-
-### PlainFetch
-
-```rust
-pub struct PlainFetch {
-    pub parts: Vec<PlainAudioPart>,
-    pub m4b_path: Option<PathBuf>,
-    pub cover_path: Option<PathBuf>,
-    pub chapters: Vec<(String, u64)>,
-    pub pdf_url: Option<String>,
-}
-```
-
-DRM-free fetch result. Sources that use DRM decrypt inside the plugin and
-return clear media here — the host never sees ciphertext or keys.
-
-**Fields**
-
-- `parts`: Ordered clear audio parts (single file or per-chapter downloads).
-- `m4b_path`: Pre-built M4B from the store / plugin when available.
-- `cover_path`: Absolute path to a downloaded cover image when available.
-- `chapters`: Chapter titles paired with start offsets in milliseconds.
-- `pdf_url`: Companion PDF download URL when the store exposes one.
-
-Implements: `Clone`, `Debug`, `From<PlainFetch>`
-
-### PurchaseHintOpts
-
-```rust
-pub struct PurchaseHintOpts {
-    pub product_id: Option<String>,
-    pub title: Option<String>,
-    pub authors: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
-    pub region: String,
-    pub with_price: bool,
-}
-```
-
-Options for [`crate::ContentSource::purchase_hint`](#contentsourcepurchase_hint).
-
-**Fields**
-
-- `product_id`: Preferred store-native product id when already known.
-- `title`: Title used to disambiguate when `product_id` is absent.
-- `authors`: Author names used to disambiguate catalog lookups.
-- `asin`: Amazon ASIN used for Audible / cross-store hints.
-- `isbn`: ISBN used for cross-store hints.
-- `region`: Marketplace / catalog region (`us`, `uk`, …); empty = plugin default.
-- `with_price`: When true, resolve live price if the source can.
-
-Implements: `Clone`, `Debug`, `Default`, `From<&PurchaseHintOpts>`, `From<PurchaseHintParams>`
-
-### ScanOptions
-
-```rust
-pub struct ScanOptions {
-    pub accounts: Vec<String>,
-    pub page_size: u32,
-    pub import_episodes: bool,
-    pub import_plus_titles: bool,
-    pub cancel: Option<Arc<AtomicBool>>,
-}
-```
-
-Options for a library scan.
-
-**Fields**
-
-- `accounts`: Limit to specific account nicknames / ids.
-- `page_size`: Upstream library page size (titles per HTTP page; default 50).
-- `import_episodes`: Import podcast episodes — consumed by plugins that support it.
-- `import_plus_titles`: Import catalog Plus / non-owned titles — consumed by plugins that support it.
-- `cancel`: Cooperative cancel checked between sources and pages.
-
-#### ScanOptions::is_cancelled
-
-```rust
-pub fn is_cancelled(&self) -> bool
-```
-
-True when a job fence asked this scan to stop.
-
-Implements: `Clone`, `Debug`, `Default`
-
-### ScanSummary
-
-```rust
-pub struct ScanSummary {
-    pub accounts: usize,
-    pub books_upserted: usize,
-    pub pages: u32,
-    pub skipped_disabled: usize,
-    pub warnings: Vec<String>,
-}
-```
-
-Summary of a scan run.
-
-**Fields**
-
-- `accounts`: Number of accounts successfully scanned in this run.
-- `books_upserted`: Library rows inserted or updated.
-- `pages`: Upstream library pages fetched across all accounts.
-- `skipped_disabled`: Accounts skipped because [`crate::SourceAccount::scan_enabled`](#sourceaccount) was false.
-- `warnings`: Plugin keys skipped because more than one instance is registered.
-  
-  Other sources in the same scan still run. Accounts stay keyed by
-  storefront id, so those keys are not scanned twice.
-
-#### ScanSummary::merge
-
-```rust
-pub fn merge(&mut self, other: &Self)
-```
-
-Merge another source's summary into this one.
-
-Implements: `Clone`, `Debug`, `Default`
-
-### SourceAccount
-
-```rust
-pub struct SourceAccount {
-    pub account_id: String,
-    pub source: String,
-    pub marketplace: String,
-    pub label: Option<String>,
-    pub scan_enabled: bool,
-}
-```
-
-Account discovered or created by a content source.
-
-**Fields**
-
-- `account_id`: Stable account id stored in the library (often email or store user id).
-- `source`: Canonical plugin id (`audible`, `libro`, …).
-- `marketplace`: Store marketplace / region code (`us`, `uk`, …).
-- `label`: Optional operator-facing nickname for CLI / UI selection.
-- `scan_enabled`: When false, scheduled / bare scans skip this account (explicit
-  `--account` still includes it).
-
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `From<SourceAccount>`, `Serialize`
-
-### SourceConfigOption
-
-```rust
-pub struct SourceConfigOption {
-    pub key: &'static str,
-    pub label: &'static str,
-    pub values: &'static [ConfigOptionValue],
-}
-```
-
-One source-native config knob under `[sources.<id>]`.
-
-**Fields**
-
-- `key`: TOML key (`bitrate`, `container`, `access`).
-- `label`: Operator-facing display name for this knob in Settings.
-- `values`: Closed set of allowed wire values for [`Self::key`](#sourceconfigoption).
-
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
-
-### SourcePurchaseHint
-
-```rust
-pub struct SourcePurchaseHint {
-    pub product_id: String,
-    pub title: Option<String>,
-    pub url: Option<String>,
-    pub price_cents: Option<i64>,
-    pub currency: Option<String>,
-    pub price_label: Option<String>,
-    pub list_price_cents: Option<i64>,
-    pub list_price_label: Option<String>,
-    pub member_price_cents: Option<i64>,
-    pub member_price_label: Option<String>,
-}
-```
-
-URL + optional live price for one storefront edition.
-
-**Fields**
-
-- `product_id`: Store-native product id for the hinted edition.
-- `title`: Display title when the storefront returns one with the hint.
-- `url`: Deep link to buy / open the title on the storefront.
-- `price_cents`: Primary / best known sell price in minor units (prefer member when dual).
-- `currency`: ISO 4217 currency code for the primary price.
-- `price_label`: Pre-formatted primary price string for UI.
-- `list_price_cents`: Non-member / list / retail price when the storefront shows dual pricing.
-- `list_price_label`: Pre-formatted non-member / list price for dual-price storefronts.
-- `member_price_cents`: Member / subscriber price when distinct from list.
-- `member_price_label`: Pre-formatted member / subscriber price when distinct from list.
-
-#### SourcePurchaseHint::decode_html_entities
-
-```rust
-pub fn decode_html_entities(self) -> Self
-```
-
-Decode HTML entities in human-readable fields (no-op when no `&`).
-
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<PurchaseHint>`, `From<SourcePurchaseHint>`, `Serialize`
-
 ## Enums
-
-### SourceError
-
-```rust
-pub enum SourceError {
-    NoAccounts(String),
-    Auth(String),
-    Api(String),
-    Io(Error),
-    Library(LibraryError),
-    Other(Error),
-}
-```
-
-Errors from content-source auth, scan, or fetch.
-
-**Variants**
-
-- `NoAccounts`: No accounts are configured for this source (safe to skip in multi-source scan).
-- `Auth`: Authentication or credential failure (operator-facing message).
-- `Api`: Upstream store HTTP / protocol failure (operator-facing message).
-- `Io`: Local filesystem failure while caching or writing downloads.
-- `Library`: Library database / secret-store failure.
-- `Other`: Catch-all for plugin-internal failures wrapped as [`anyhow::Error`](https://docs.rs/anyhow/latest/anyhow/struct.Error.html).
-
-#### SourceError::no_accounts
-
-```rust
-pub fn no_accounts(msg: impl Into<String>) -> Self
-```
-
-Construct [`Self::NoAccounts`](#sourceerror) with an operator-facing message.
-
-#### SourceError::auth
-
-```rust
-pub fn auth(msg: impl Into<String>) -> Self
-```
-
-Construct [`Self::Auth`](#sourceerror) with an operator-facing message.
-
-#### SourceError::api
-
-```rust
-pub fn api(msg: impl Into<String>) -> Self
-```
-
-Construct [`Self::Api`](#sourceerror) with an operator-facing message.
-
-Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibraryError>`
 
 ### PortalAuthMode
 
@@ -1601,250 +1019,7 @@ Wire / portal id (`oauth` or `password`).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
-### CatalogSearchField
-
-```rust
-pub enum CatalogSearchField {
-    Author,
-    Narrator,
-    Series,
-    Genre,
-}
-```
-
-Optional role / facet for [`crate::ContentSource::search_catalog`](#contentsourcesearch_catalog).
-
-Free-text Discover typeahead leaves this unset. Meta links (author, narrator,
-series, genre) set it so storefronts that support scoped params (e.g. Audible
-`author=` / `narrator=`) can return the right catalog slice.
-
-**Variants**
-
-- `Author`: Scope search to titles by this author.
-- `Narrator`: Scope search to titles narrated by this person.
-- `Series`: Scope search to titles in this series.
-- `Genre`: Scope search to this genre / category facet.
-
-#### CatalogSearchField::from_wire
-
-```rust
-pub fn from_wire(raw: &str) -> Option<Self>
-```
-
-Parse a wire / query-string value (`author`, `narrators`, …).
-
-#### CatalogSearchField::as_wire
-
-```rust
-pub fn as_wire(self) -> &'static str
-```
-
-Serialize to the portal / query-string wire id.
-
-Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
-
-### CatalogSearchSort
-
-```rust
-pub enum CatalogSearchSort {
-    Relevance,
-    Popularity,
-    Rating,
-    Title,
-    Author,
-    Price,
-    Length,
-}
-```
-
-Sort mode for [`crate::ContentSource::search_catalog`](#contentsourcesearch_catalog).
-
-Storefronts that lack a matching upstream sort ignore this (caller merges).
-
-**Variants**
-
-- `Relevance`: Storefront relevance ranking (default).
-- `Popularity`: Audible `BestSellers` when available.
-- `Rating`: Audible `AvgRating` when available.
-- `Title`: Alphabetical by title (host or upstream).
-- `Author`: Alphabetical by primary author (often host re-rank).
-- `Price`: Catalog list/deal `price_cents` (host re-rank; sparse on some stores).
-- `Length`: `length_minutes` (host re-rank).
-
-#### CatalogSearchSort::from_wire
-
-```rust
-pub fn from_wire(raw: &str) -> Self
-```
-
-Parse a wire / query-string sort id (unknown → [`Self::Relevance`](#catalogsearchsort)).
-
-#### CatalogSearchSort::as_wire
-
-```rust
-pub fn as_wire(self) -> &'static str
-```
-
-Serialize to the portal / query-string wire id.
-
-#### CatalogSearchSort::audible_products_sort_by
-
-```rust
-pub fn audible_products_sort_by(self) -> &'static str
-```
-
-Audible `/1.0/catalog/products` `products_sort_by` value.
-
-#### CatalogSearchSort::audible_catalog_search_sort
-
-```rust
-pub fn audible_catalog_search_sort(self) -> &'static str
-```
-
-Audible `/1.0/catalog/search` `sort` (`sort_option_id`) value.
-
-Prefer this endpoint for Discover keyword browse — `/catalog/products`
-keyword/title filters often omit major titles that still resolve by ASIN.
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CatalogSearchSort>`, `From<CatalogSort>`, `PartialEq`, `Serialize`
-
-### CatalogSortDir
-
-```rust
-pub enum CatalogSortDir {
-    Asc,
-    Desc,
-}
-```
-
-Ascending / descending for catalog search host re-rank.
-
-**Variants**
-
-- `Asc`: Ascending order.
-- `Desc`: Descending order (default for popularity / rating / price).
-
-#### CatalogSortDir::from_wire
-
-```rust
-pub fn from_wire(raw: &str) -> Self
-```
-
-Parse a wire / query-string direction (`asc` / `desc`; unknown → [`Self::Desc`](#catalogsortdir)).
-
-#### CatalogSortDir::as_wire
-
-```rust
-pub fn as_wire(self) -> &'static str
-```
-
-Serialize to the portal / query-string wire id.
-
-#### CatalogSortDir::default_for_sort
-
-```rust
-pub fn default_for_sort(sort: CatalogSearchSort) -> Self
-```
-
-Default direction when the client omits `sort_dir`.
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
-
-### OAuthProgress
-
-```rust
-pub enum OAuthProgress {
-    LoginUrl { url: String, qr: Option<String> },
-    CallbackListening { addr: String },
-    WaitingForCallback,
-    Completed { account_id: String },
-}
-```
-
-Progress events for interactive OAuth login (portal / CLI).
-
-**Variants**
-
-- `LoginUrl`: Browser URL the operator should open (optional pre-rendered QR text).
-  - `url`: Absolute HTTPS URL for the browser / QR payload.
-  - `qr`: Optional pre-rendered QR text for terminal UIs.
-- `CallbackListening`: Local callback server is listening (SSH port-forward hint).
-  - `addr`: Listen address (host:port) of the local redirect receiver.
-- `WaitingForCallback`: Waiting for the OAuth redirect / callback.
-- `Completed`: Login finished; credentials are persisted for `account_id`.
-  - `account_id`: Account id stored after a successful login.
-
-Implements: `Clone`, `Debug`
-
 ## Functions
-
-### default_preferred_language
-
-```rust
-pub fn default_preferred_language() -> &'static str
-```
-
-Preferred language for Discover when the client omits one.
-
-### language_rank
-
-```rust
-pub fn language_rank(hit_language: Option<&str>, preferred: &str) -> u8
-```
-
-Rank a hit's language relative to the preferred code.
-
-- `0` — matches preferred
-- `1` — unknown / missing
-- `2` — other language
-
-### normalize_language
-
-```rust
-pub fn normalize_language(raw: &str) -> Option<String>
-```
-
-Normalize a language tag or display name to a primary ISO-ish code.
-
-Accepts BCP-47 (`en-US`), bare codes (`en`), and common Audible display
-names (`english`). Returns `None` for empty / unrecognized input.
-
-### audio_extension
-
-```rust
-pub fn audio_extension(
-    url: &str,
-    bytes: Option<&[u8]>,
-    content_type: Option<&str>,
-    default: &'static str,
-) -> &'static str
-```
-
-Prefer byte sniffing, then `Content-Type`, then URL path; `default` when all fail.
-
-### extension_from_bytes
-
-```rust
-pub fn extension_from_bytes(bytes: &[u8]) -> Option<&'static str>
-```
-
-Guess an audio extension from magic bytes (`infer`), with AAC/MP3 fallbacks.
-
-### extension_from_content_type
-
-```rust
-pub fn extension_from_content_type(content_type: &str) -> Option<&'static str>
-```
-
-Map a `Content-Type` header (parameters stripped) to an audio extension.
-
-### extension_from_url
-
-```rust
-pub fn extension_from_url(url: &str) -> Option<&'static str>
-```
-
-Guess an audio file extension from a URL path (query/fragment stripped).
 
 ### revoke_credentials_default
 
@@ -1872,24 +1047,3 @@ Opens the [`SourceScope`](../bookclerk_library/scope.md#sourcescope) for `source
 
 Every instance of one plugin shares this scope; accounts are not tied
 to a plugin instance.
-
-## Type aliases
-
-### Result
-
-```rust
-pub type Result<T> = Result<T, SourceError>;
-```
-
-Result alias for content-source operations.
-
-### SourceFetch
-
-```rust
-pub type SourceFetch = PlainFetch;
-```
-
-Result of fetching a title for acquire (always clear media).
-
-Historically a dual Encrypted/Plain enum; DRM is plugin-owned now, so this
-is an alias of [`PlainFetch`](#plainfetch). Prefer `PlainFetch` in new code.

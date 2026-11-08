@@ -72,7 +72,7 @@ pub async fn search_catalog(
 ) -> Result<Vec<CatalogHit>>
 ```
 
-Catalog search → [`CatalogHit`](../bookclerk_source/README.md#cataloghit)s keyed by ISBN.
+Catalog search → [`CatalogHit`](../bookclerk_storefront/README.md#cataloghit)s keyed by ISBN.
 
 #### Arguments
 
@@ -162,7 +162,9 @@ match then moves on to the next search row.
 #### Errors
 
 Currently never: a failed ISBN lookup or title search is logged and
-treated as no match. The `Result` keeps the `ContentSource` signature.
+treated as no match, so `Ok(None)` can also mean the lookup failed. The
+`Result` matches the guest `purchaseHint` entrypoint, which can fail for
+other storefronts.
 
 ### parse_details
 

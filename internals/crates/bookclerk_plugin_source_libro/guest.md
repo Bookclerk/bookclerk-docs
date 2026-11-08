@@ -4,7 +4,7 @@ Guest-process helpers for the external Libro.fm source plugin.
 
 These APIs do **not** open the library DB — the host seals credentials and
 upserts scan rows via `bookclerk_plugin_host::ExternalSource`. Conversions
-between storefront types and the typed ABI live in [`bookclerk_source::abi`](../bookclerk_source/abi.md).
+between storefront types and the typed ABI live in [`bookclerk_storefront::abi`](../bookclerk_storefront/abi.md).
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ between storefront types and the typed ABI live in [`bookclerk_source::abi`](../
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download one title into `cache_dir` using host-injected credentials. |
 | [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) | function | RPC fetch: return the typed plain fetch result. |
 | [`resolve_base_url`](#resolve_base_url) | function | Resolve API base URL (tests may override). |
-| [`resolve_container`](#resolve_container) | function | Resolve download container from `[sources.libro]` JSON. |
+| [`resolve_container`](#resolve_container) | function | Resolve download container from the plugin settings document. |
 | [`source_id`](#source_id) | function | Source id returned in describe(); must match `crate::source::ID`. |
 
 ## Functions
@@ -43,7 +43,7 @@ Returns an error when the operation fails.
 pub async fn guest_login_rpc(base_url: &str, params: LoginParams) -> Result<LoginResult>
 ```
 
-RPC login: build [`LoginOptions`](../bookclerk_source/README.md#loginoptions) from typed params and return the ABI result.
+RPC login: build [`LoginOptions`](../bookclerk_storefront/README.md#loginoptions) from typed params and return the ABI result.
 
 #### Errors
 
@@ -125,7 +125,7 @@ Resolve API base URL (tests may override).
 pub fn resolve_container(source_config: &Value) -> LibroContainer
 ```
 
-Resolve download container from `[sources.libro]` JSON.
+Resolve download container from the plugin settings document.
 
 ### source_id
 

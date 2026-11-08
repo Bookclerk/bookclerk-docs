@@ -19,8 +19,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 | [`ManifestTrack`](#manifesttrack) | struct | Manifest track. |
 | [`PackagedM4b`](#packagedm4b) | struct | Packaged m4b. |
 | [`TokenResponse`](#tokenresponse) | struct | Token response. |
-| [`LibroSource`](#librosource) | struct | Libro.fm storefront adapter implementing `ContentSource`. |
-| [`ScanOptions`](#scanoptions) | struct | Options for a Libro.fm library scan. |
+| [`LibroSource`](#librosource) | struct | Libro.fm catalog client used by the guest's discovery entrypoints. |
 | [`ManifestFormat`](#manifestformat) | enum | Android `MediaFormat` id for `download-manifest?format=…`. |
 | [`LibroContainer`](#librocontainer) | enum | Preferred Libro.fm download packaging. |
 | [`LibroError`](#libroerror) | enum | Failures from Libro.fm OAuth, library listing, or DRM-free download. |
@@ -28,8 +27,6 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one ISBN into `cache_dir`, preferring M4B when available. |
 | [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Libro.fm audiobook JSON object to a structured scan row. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
-| [`scan_account_into_library`](#scan_account_into_library) | function | Fetch all library pages for one client and upsert books. |
-| [`scan_library`](#scan_library) | function | Sync Libro.fm libraries for configured accounts into `library`. |
 | [`Result`](#result) | type alias | Result alias for Libro.fm auth, sync, and download operations. |
 | [`APP_VER`](#app_ver) | constant | Android app version header (`X-LibroFm-AppVer`). |
 | [`CLIENT_ID`](#client_id) | constant | Optional OAuth `client_id`. |
@@ -39,7 +36,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 | [`OAUTH_TOKEN_PATH`](#oauth_token_path) | constant | OAuth password-grant path. |
 | [`PACKAGED_M4B_PATH`](#packaged_m4b_path) | constant | Packaged single-file M4B when Libro.fm offers it. |
 | [`USER_AGENT_VALUE`](#user_agent_value) | constant | User-Agent matching the official Android HTTP stack. |
-| [`LIBRO_SOURCE_ID`](#libro_source_id) | constant | Describe / config id for this store (`libro` in `[sources.libro]`). |
+| [`LIBRO_SOURCE_ID`](#libro_source_id) | constant | Describe / config id for this store (`libro`). |
 
 ## Re-exports
 
@@ -52,10 +49,6 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 - [`catalog::search_catalog` as `catalog_search`](catalog.md#search_catalog)
 - [`catalog::LibroDetails`](catalog.md#librodetails)
 - [`catalog::CATALOG_USER_AGENT`](catalog.md#catalog_user_agent)
-- [`db::delete_auth_from_db`](db.md#delete_auth_from_db)
-- [`db::list_auth_from_db`](db.md#list_auth_from_db)
-- [`db::load_auth_from_db`](db.md#load_auth_from_db)
-- [`db::save_auth_to_db`](db.md#save_auth_to_db)
 - [`guest::guest_fetch_title`](guest.md#guest_fetch_title)
 - [`guest::guest_fetch_title_rpc`](guest.md#guest_fetch_title_rpc)
 - [`guest::guest_login`](guest.md#guest_login)
@@ -68,7 +61,6 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 ## Modules
 
 - [`catalog`](catalog.md): Libro.fm catalog search, detail, related titles and purchase links.
-- [`db`](db.md): DB-backed credential storage for Libro.fm accounts.
 - [`guest`](guest.md): Guest-process helpers for the external Libro.fm source plugin.
 
 ## Structs
@@ -89,7 +81,8 @@ pub struct LibroAuthFile {
 
 Credential envelope for one Libro.fm account.
 
-Persisted as JSON in `encrypted_secrets` (see [`crate::db`](db.md)); never written
+The guest returns it from login; the host seals it into `encrypted_secrets`
+and passes it back on scan and fetch. Never written
 to disk under `Accounts/`.
 
 **Fields**
@@ -414,19 +407,14 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
 ```rust
 pub struct LibroSource {
-    pub container: LibroContainer,
     /* private fields */
 }
 ```
 
-Libro.fm storefront adapter implementing [`ContentSource`](../bookclerk_source/README.md#contentsource).
+Libro.fm catalog client used by the guest's discovery entrypoints.
 
 Construct with [`LibroSource::new`](#librosourcenew); use [`LibroSource::with_base_url`](#librosourcewith_base_url)
 for wiremock / staging.
-
-**Fields**
-
-- `container`: Preferred download container (`[sources.libro] container`).
 
 #### LibroSource::new
 
@@ -444,72 +432,63 @@ pub fn with_base_url(base_url: impl Into<String>) -> Self
 
 Override API base (wiremock / staging).
 
-#### LibroSource::with_container
+#### LibroSource::search_catalog
 
 ```rust
-pub fn with_container(self, container: LibroContainer) -> Self
+pub async fn search_catalog(&self, opts: &CatalogSearchOpts) -> Result<Vec<CatalogHit>>
 ```
 
-Sets the preferred download container (`m4b` / track zip).
+Searches the public catalog.
 
-#### LibroSource::shared
+##### Errors
+
+Returns an error when the storefront request or its parse fails.
+
+#### LibroSource::catalog_detail
 
 ```rust
-pub fn shared() -> Arc<Self>
+pub async fn catalog_detail(&self, product_id: &str) -> Result<Option<CatalogHit>>
 ```
 
-Arc-wrapped instance for [`bookclerk_source::SourceRegistry`](../bookclerk_source/README.md#sourceregistry).
+Loads one catalog title by product id (ISBN); `None` when it is unknown.
 
-#### LibroSource::login_account
+##### Errors
+
+Returns an error when the storefront request or its parse fails.
+
+#### LibroSource::expand_candidates
 
 ```rust
-pub async fn login_account(
+pub async fn expand_candidates(
     &self,
-    library: &SourceScope,
-    opts: LoginOptions,
-) -> Result<SourceAccount>
+    seed: &ExpandSeed,
+    limit: usize,
+) -> Result<Vec<CatalogHit>>
 ```
 
-Logs in with email/password and seals credentials into `encrypted_secrets`.
-
-Call from Accounts connect or CLI helpers; the guest path returns
-credential JSON without writing secrets (see [`crate::guest::guest_login`](guest.md#guest_login)).
+Finds up to `limit` titles related to `seed` (same author, series, …).
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when the storefront request or its parse fails.
 
-#### LibroSource::delete_account
+#### LibroSource::purchase_hint
 
 ```rust
-pub async fn delete_account(&self, library: &SourceScope, account_id: &str) -> Result<()>
+pub async fn purchase_hint(
+    &self,
+    opts: &PurchaseHintOpts,
+) -> Result<Option<SourcePurchaseHint>>
 ```
 
-Delete a Libro.fm account from the DB.
+Resolves the storefront price and link for a title; `None` when not sold.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Currently never: a failed lookup is treated as no match, so `Ok(None)`
+can also mean the store could not be reached.
 
-Implements: `Clone`, `ContentSource`, `Debug`, `Default`
-
-### ScanOptions
-
-```rust
-pub struct ScanOptions {
-    pub accounts: Vec<String>,
-    pub page_size: u32,
-}
-```
-
-Options for a Libro.fm library scan.
-
-**Fields**
-
-- `accounts`: Limit to specific account emails / labels / ids. Empty = all accounts.
-- `page_size`: Page size is fixed by the Libro.fm API; kept for ContentSource parity.
-
-Implements: `Clone`, `Debug`, `Default`, `From<&ScanOptions>`
+Implements: `Clone`, `Debug`, `Default`
 
 ## Enums
 
@@ -578,7 +557,6 @@ pub enum LibroError {
     Api(String),
     Download(String),
     Io(Error),
-    Library(LibraryError),
     Other(Error),
 }
 ```
@@ -593,7 +571,6 @@ Failures from Libro.fm OAuth, library listing, or DRM-free download.
 - `Api`: Upstream mobile API or JSON payload error.
 - `Download`: Title download or packaging into the preferred container failed.
 - `Io`: Local filesystem I/O while reading or writing cache files.
-- `Library`: Library database upsert / secret storage failure.
 - `Other`: Unexpected failure wrapped from `anyhow`.
 
 #### LibroError::auth
@@ -628,7 +605,7 @@ pub fn download(msg: impl Into<String>) -> Self
 
 Builds a [`Self::Download`](#libroerror) error from a displayable message.
 
-Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibraryError>`, `From<LibroError>`
+Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibroError>`
 
 ## Functions
 
@@ -679,42 +656,6 @@ pub async fn collect_account_books(
 ```
 
 Fetch all library pages for one client and collect books (no DB writes).
-
-#### Errors
-
-Returns an error when the operation fails.
-
-### scan_account_into_library
-
-```rust
-pub async fn scan_account_into_library(
-    library: &SourceScope,
-    client: &LibroClient,
-    account_id: &str,
-    marketplace: &str,
-) -> Result<(usize, u32)>
-```
-
-Fetch all library pages for one client and upsert books.
-
-#### Errors
-
-Returns an error when the operation fails.
-
-### scan_library
-
-```rust
-pub async fn scan_library(
-    library: &SourceScope,
-    options: ScanOptions,
-    base_url: Option<&str>,
-) -> Result<ScanSummary>
-```
-
-Sync Libro.fm libraries for configured accounts into `library`.
-
-Accounts are resolved from `encrypted_secrets` (DB-backed); no
-`Accounts/*.libro.auth` files are read.
 
 #### Errors
 
@@ -814,4 +755,4 @@ User-Agent matching the official Android HTTP stack.
 pub const LIBRO_SOURCE_ID: &str = "libro";
 ```
 
-Describe / config id for this store (`libro` in `[sources.libro]`).
+Describe / config id for this store (`libro`).

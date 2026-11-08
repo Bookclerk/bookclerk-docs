@@ -284,11 +284,14 @@ branch, which means the library code changed what makes a branch trusted.
 ### with_details
 
 ```rust
-pub async fn with_details(
-    source: &dyn ContentSource,
+pub async fn with_details<F, Fut>(
+    details: F,
     hit: CatalogHit,
     deadline: Instant,
 ) -> CatalogHit
+where
+    F: FnOnce(String) -> Fut,
+    Fut: Future<Output = Result<Option<CatalogHit>>>,
 ```
 
 Replaces a search hit with its storefront's full catalog record (the
@@ -298,7 +301,8 @@ genres and price.
 
 #### Arguments
 
-* `source` - The storefront the hit came from.
+* `details` - The storefront's catalog-detail lookup for a product id
+  (the source's `catalog_detail`); only this call is made.
 * `hit` - The search row [`best_match`](#best_match) chose.
 * `deadline` - When the lookup budget runs out.
 
