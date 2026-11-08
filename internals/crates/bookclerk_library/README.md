@@ -3844,11 +3844,17 @@ Replaces every candidate one store returned for one subject.
 
 Each row is upserted with this call's fetch time, then the store's
 rows for the subject that this call did not write are deleted. Other
-stores' rows for the subject are untouched. No interactive
-transaction is used: the external database adapters only take
-single statements and atomic batches, so `begin` is refused there.
-A reader between the two steps can see the store's new rows next to
-its old ones, never fewer than either set.
+stores' rows for the subject are untouched.
+
+The writes go to the database plugin as canonical host batches, each
+one atomic request (one transaction) holding as many rows as the
+plugin's `maxStatements` and `maxRequestBytes` allow, so a few hundred
+candidates cost a handful of round trips instead of one per row. No
+interactive transaction is used: the external database adapters only
+take single statements and atomic batches, so `begin` is refused
+there. The delete rides in the last batch. A reader between two
+batches can see the store's new rows next to its old ones, never
+fewer than either set.
 
 ##### Arguments
 
@@ -3859,8 +3865,9 @@ its old ones, never fewer than either set.
 
 ##### Errors
 
-Returns the database error. Rows written before it stay; the old rows
-are only deleted once every new row is stored.
+Returns the database error, including when a single row is larger
+than one request may carry. Batches written before it stay; the old
+rows are only deleted once every new row is stored.
 
 #### LibraryStore::list_discover_candidates
 
@@ -3989,6 +3996,9 @@ pub async fn put_discover_store_call(
 ```
 
 Stores (or refreshes) one cached storefront answer.
+
+One upsert statement keyed on `call_key`, so a refresh costs one
+database round trip instead of a read and a write.
 
 ##### Errors
 
