@@ -31,13 +31,17 @@ for profile in TEST_DATABASE_PROFILES:
 
 The binary is found through the `BOOKCLERK_DB_TESTKIT` environment variable
 or the `binary` argument, else as `bookclerk-db-testkit` on `PATH`
-(`cargo build -p bookclerk-db-testkit` in the workspace builds it). This
+(`cargo build -p bookclerk-db-testkit` in the workspace builds it).
+`bookclerk-plugin test` (`cargo plugin -- test <dir>` in the workspace)
+runs a plugin's suite once per profile, setting both that variable and
+`BOOKCLERK_DB_TESTKIT_PROFILE`, which is the default `profile`. This
 module runs under CPython, not inside an isolate.
 
 | Name | Kind | Summary |
 | --- | --- | --- |
 | [`TestDatabase`](#testdatabase) | class | A served test binding and the process behind it. |
 | [`testkit_binary`](#testkit_binary) | function | Pick the kit binary. |
+| [`default_profile`](#default_profile) | function | Pick the profile a test runs under. |
 | [`create_test_database`](#create_test_database) | function | Spawn the kit under `profile` with `migrations` applied. |
 | [`TestDatabaseProfile`](#testdatabaseprofile) | constant | One of `TEST_DATABASE_PROFILES`. |
 | [`TEST_DATABASE_PROFILES`](#test_database_profiles) | constant |  |
@@ -108,11 +112,28 @@ Pick the kit binary.
 `binary`, else `BOOKCLERK_DB_TESTKIT` from the environment, else the
 bare `bookclerk-db-testkit` name resolved on `PATH`.
 
+### default_profile
+
+```python
+def default_profile(option: TestDatabaseProfile | None=None) -> TestDatabaseProfile
+```
+
+Pick the profile a test runs under.
+
+**Args**
+
+- `option`: The caller's `profile` argument.
+
+**Returns**
+
+`option` when given, else the profile `bookclerk-plugin test` names
+in `BOOKCLERK_DB_TESTKIT_PROFILE`, else `minimum`. Not validated.
+
 ### create_test_database
 
 ```python
 async def create_test_database(
-    profile: TestDatabaseProfile='minimum',
+    profile: TestDatabaseProfile | None=None,
     migrations: list[dict[str, Any]] | None=None,
     *,
     binary: str | None=None,
@@ -123,7 +144,7 @@ Spawn the kit under `profile` with `migrations` applied.
 
 **Args**
 
-- `profile`: Capability profile to enforce (default `minimum`, the strictest).
+- `profile`: Capability profile to enforce. Defaults to `BOOKCLERK_DB_TESTKIT_PROFILE` when `bookclerk-plugin test` sets it, else `minimum`, the strictest.
 - `migrations`: The plugin's `database_migrations` registration (each `{"id": ..., "operations": [{"schema": sql} | {"data": sql}, ...]}`), applied the way the host applies it at enrollment.
 - `binary`: Path of the `bookclerk-db-testkit` binary; see the module docs for the default.
 

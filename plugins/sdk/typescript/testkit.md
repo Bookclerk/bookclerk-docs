@@ -38,7 +38,10 @@ for (const profile of TEST_DATABASE_PROFILES) {
 
 The binary is found through the `BOOKCLERK_DB_TESTKIT` environment
 variable or `options.binary`, else as `bookclerk-db-testkit` on `PATH`
-(`cargo build -p bookclerk-db-testkit` in the workspace builds it). This
+(`cargo build -p bookclerk-db-testkit` in the workspace builds it).
+`bookclerk-plugin test` (`cargo plugin -- test <dir>` in the workspace)
+runs a plugin's suite once per profile, setting both that variable and
+`BOOKCLERK_DB_TESTKIT_PROFILE`, which is the default `profile`. This
 module runs under Node, not inside an isolate.
 
 ## Interfaces
@@ -126,7 +129,8 @@ binding is handed out the way the host applies it at enrollment.
 profile?: "first-party" | "d1" | "minimum";
 ```
 
-Capability profile to enforce (default `minimum`, the strictest).
+Capability profile to enforce. Defaults to `BOOKCLERK_DB_TESTKIT_PROFILE`
+when `bookclerk-plugin test` sets it, else `minimum`, the strictest.
 
 ## Type Aliases
 
@@ -175,6 +179,30 @@ The binding and its process; call `close()` when the test ends.
 
 Error when the binary cannot be started, refuses the profile or
   the registration (the kit's message is included), or exits early.
+
+***
+
+### defaultProfile()
+
+```ts
+function defaultProfile(option): "first-party" | "d1" | "minimum";
+```
+
+The profile a test runs under: the option, else the one
+`bookclerk-plugin test` names in `BOOKCLERK_DB_TESTKIT_PROFILE`, else
+`minimum`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `option` | `"first-party"` \| `"d1"` \| `"minimum"` \| `undefined` | The caller's `profile` option. |
+
+#### Returns
+
+`"first-party"` \| `"d1"` \| `"minimum"`
+
+The profile name, unchecked.
 
 ***
 

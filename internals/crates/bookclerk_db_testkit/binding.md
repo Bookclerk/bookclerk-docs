@@ -44,14 +44,17 @@ pub async fn open(
 
 Opens an empty in-memory unit under `profile` and applies
 `migrations` the way the host applies a plugin's
-`databaseMigrations` registration at enrollment.
+`databaseMigrations` registration at enrollment: one typed batch per
+migration, stamped with the binding's schema and held to the
+profile's advertisement, as the adapter holds it.
 
 ##### Errors
 
 Returns `invalid_params` when the registration fails the BookclerkSQL
 proof (an unsupported statement, a reserved table, a repeated id),
-and the engine's error when the unit cannot be opened or a migration
-cannot be applied.
+`limit_exceeded` when a migration's apply batch breaks one of the
+profile's caps, and the engine's error when the unit cannot be
+opened or a migration cannot be applied.
 
 #### BindingDatabase::profile
 

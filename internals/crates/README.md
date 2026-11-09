@@ -11,7 +11,7 @@ The plugin ABI, the `plugin.toml` manifest and the plugin author CLI.
 | --- | --- |
 | [`bookclerk_plugin_abi`](bookclerk_plugin_abi/README.md) | Authoritative Bookclerk plugin Workers RPC ABI (schema + shared types) |
 | [`bookclerk_plugin_manifest`](bookclerk_plugin_manifest/README.md) | plugin.toml parse, validate, and canonical format (no host deps) |
-| [`bookclerk_plugin_tools`](bookclerk_plugin_tools/README.md) | Bookclerk plugin author CLI (`bookclerk-plugin`: check / fmt / sync-embed / package / smoke) |
+| [`bookclerk_plugin_tools`](bookclerk_plugin_tools/README.md) | Bookclerk plugin author CLI (`bookclerk-plugin`: check / fmt / sync-embed / package / smoke / test) |
 
 ## Plugins
 

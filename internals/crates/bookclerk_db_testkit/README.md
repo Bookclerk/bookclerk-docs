@@ -22,6 +22,13 @@ that a paged listing returns what the full listing returns. Ordinary
 SeaORM reads through [`TestDatabase::connection`](#testdatabaseconnection) are held to the engine
 proxy's first-party caps, as on the shipped sqlite adapter.
 
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`UnknownProfile`](#unknownprofile) | struct | A `BOOKCLERK_DB_TESTKIT_PROFILE` value that names no profile. |
+| [`TestDatabase`](#testdatabase) | struct | An in-memory library that behaves like an external database plugin. |
+| [`selected_profile`](#selected_profile) | function | The profile of the current `bookclerk-plugin test` run, or `Profile::Minimum` when the suite runs on its own. |
+| [`PROFILE_ENV`](#profile_env) | constant | The environment variable `bookclerk-plugin test` sets to the profile of the current run. |
+
 ## Re-exports
 
 - [`binding::BindingDatabase`](binding.md#bindingdatabase)
@@ -35,6 +42,16 @@ proxy's first-party caps, as on the shipped sqlite adapter.
 - [`paging`](paging.md): Checks that a paged listing returns what the full listing returns.
 
 ## Structs
+
+### UnknownProfile
+
+```rust
+pub struct UnknownProfile(pub String);
+```
+
+A `BOOKCLERK_DB_TESTKIT_PROFILE` value that names no profile.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ### TestDatabase
 
@@ -163,3 +180,34 @@ The next `n` batches are refused with SQLite lock contention before
 anything is applied, the way a busy file lock answers.
 
 Implements: `Debug`
+
+## Functions
+
+### selected_profile
+
+```rust
+pub fn selected_profile() -> Result<Profile, UnknownProfile>
+```
+
+The profile of the current `bookclerk-plugin test` run, or
+`Profile::Minimum` when the suite runs on its own.
+
+A Rust suite opens its [`TestDatabase`](#testdatabase) or [`BindingDatabase`](binding.md#bindingdatabase) under
+this profile so each of the command's runs exercises a different
+advertisement, as the TypeScript and Python kits do by default.
+
+#### Errors
+
+Returns [`UnknownProfile`](#unknownprofile) when the variable is set to a name outside
+`Profile::ALL`.
+
+## Constants
+
+### PROFILE_ENV
+
+```rust
+pub const PROFILE_ENV: &str = "BOOKCLERK_DB_TESTKIT_PROFILE";
+```
+
+The environment variable `bookclerk-plugin test` sets to the profile of
+the current run.
