@@ -52,6 +52,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`extension_from_url`](#extension_from_url) | function | Guess an audio file extension from a URL path (query/fragment stripped). |
 | [`Result`](#result) | type alias | Result alias for content-source operations. |
 | [`SourceFetch`](#sourcefetch) | type alias | Result of fetching a title for acquire (always clear media). |
+| [`DEFAULT_CATALOG_SEARCH_LIMIT`](#default_catalog_search_limit) | constant | Hits a storefront returns from one catalog search when the caller leaves the limit at `0`. |
 
 ## Re-exports
 
@@ -267,11 +268,25 @@ Options for the host's `ContentSource::search_catalog`.
 
 - `query`: Free-text or facet search string.
 - `region`: Marketplace / catalog region (`us`, `uk`, …); empty = plugin default.
-- `limit`: Maximum hits to return (`0` = plugin default).
+- `limit`: Maximum hits to return; `0` means [`DEFAULT_CATALOG_SEARCH_LIMIT`](#default_catalog_search_limit)
+  (read it through [`CatalogSearchOpts::effective_limit`](#catalogsearchoptseffective_limit)).
 - `page`: 1-based page index for storefronts that support paging (default 1).
 - `sort`: Preferred upstream / merge sort.
 - `field`: When set, prefer storefront-native search for this facet.
 - `language`: Preferred content language (BCP-47 primary or display name); soft-prioritize.
+
+#### CatalogSearchOpts::effective_limit
+
+```rust
+pub fn effective_limit(&self) -> usize
+```
+
+The number of hits to return: [`CatalogSearchOpts::limit`](#catalogsearchopts), or
+[`DEFAULT_CATALOG_SEARCH_LIMIT`](#default_catalog_search_limit) when the caller left it at `0`.
+
+##### Returns
+
+A hit count of at least 1.
 
 Implements: `Clone`, `Debug`, `Default`, `From<&CatalogSearchOpts>`, `From<SearchCatalogParams>`
 
@@ -932,3 +947,14 @@ Result of fetching a title for acquire (always clear media).
 
 Historically a dual Encrypted/Plain enum; DRM is plugin-owned now, so this
 is an alias of [`PlainFetch`](#plainfetch). Prefer `PlainFetch` in new code.
+
+## Constants
+
+### DEFAULT_CATALOG_SEARCH_LIMIT
+
+```rust
+pub const DEFAULT_CATALOG_SEARCH_LIMIT: usize = 20;
+```
+
+Hits a storefront returns from one catalog search when the caller leaves
+the limit at `0`.

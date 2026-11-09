@@ -7538,7 +7538,7 @@ Omitted when absent (wire zero value).
 limit: number;
 ```
 
-Maximum hits to return; the host always sends an explicit value.
+Maximum hits to return; 0 means the storefront default (20 hits).
 
 ##### page
 

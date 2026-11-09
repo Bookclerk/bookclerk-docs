@@ -13,7 +13,7 @@ scan-enabled account for operators, Owners and Administrators, and
 limits anyone else to the accounts they own. `job_id` is the first
 accepted (or already queued) job and `job_ids` lists every one.
 
-**Access:** The operator, or a signed-in Administrator, Owner or user allowed to acquire.
+**Access:** The operator, or any signed-in user.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
@@ -711,7 +711,7 @@ not an Owner or Administrator to the accounts they own (one job per
 account when no title or account is named). `job_id` is the first
 accepted (or already queued) job and `job_ids` lists every one.
 
-**Access:** The operator, or a signed-in Administrator, Owner or user allowed to acquire.
+**Access:** The operator, or any signed-in user.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
