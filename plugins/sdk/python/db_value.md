@@ -29,6 +29,8 @@ always uses the domain types.
 | [`PreparedStatement`](#preparedstatement) | class | Cloudflare-style prepared statement over a `DatabaseBinding`. |
 | [`ExecuteStreamLimits`](#executestreamlimits) | class | What a receiver lets a streamed reply grow to. |
 | [`ExecuteStreamDecoder`](#executestreamdecoder) | class | Sans-IO decoder of a streamed execute reply. |
+| [`AdapterBatchRequest`](#adapterbatchrequest) | class | The parts of an `AdapterExecuteRequest` the batch runner reads. |
+| [`AdapterTransaction`](#adaptertransaction) | class | One open transaction on the adapter's engine. |
 | [`parse_db_value`](#parse_db_value) | function | Parse a JSON `DbValue`. Unknown union members raise `ValueError`. |
 | [`encode_db_value`](#encode_db_value) | function | Encode a standalone unpacked Cap'n `DbValue` message. |
 | [`decode_db_value`](#decode_db_value) | function | Decode a standalone unpacked Cap'n `DbValue` message. |
@@ -45,6 +47,14 @@ always uses the domain types.
 | [`execute_stream_limits`](#execute_stream_limits) | function | The streamed budget of `caps`, or its inline caps when it does not stream. |
 | [`raw_stream_ceiling`](#raw_stream_ceiling) | function | Raw frame bytes a receiver accepts before failing closed. |
 | [`decode_execute_stream`](#decode_execute_stream) | function | Decode a whole frame sequence under `limits`. |
+| [`execute_adapter_batch`](#execute_adapter_batch) | function | Run one host batch in a transaction and commit it with its replay receipt. |
+| [`execute_adapter_batch_streamed`](#execute_adapter_batch_streamed) | function | Run one host batch for `executeStreamed`; commit only when the host can take it. |
+| [`run_adapter_batch`](#run_adapter_batch) | function | Run the wrapped statements and the receipt finalize without committing. |
+| [`guest_batch_is_read_only`](#guest_batch_is_read_only) | function | True when every guest statement inside the receipt wrap is a `SELECT`. |
+| [`guest_receipt_finalize_statements`](#guest_receipt_finalize_statements) | function | Statements that persist the guest reply on the claimed receipt. |
+| [`should_skip_remaining_guest_work`](#should_skip_remaining_guest_work) | function | True when the prefix results show a completed prior receipt. |
+| [`guest_replay_payload`](#guest_replay_payload) | function | The replay payload for a guest reply, in the JSON form the host decodes. |
+| [`encode_execute_stream`](#encode_execute_stream) | function | Frame `reply` as the byte sequence `executeStreamed` answers. |
 | [`chunk_indexes`](#chunk_indexes) | function | Greedy split of `typed` into index runs that each fit one request. |
 | [`canonical_execute_request_hash`](#canonical_execute_request_hash) | function | SHA-256 hex of the Cap'n request with transport metadata cleared. |
 | [`KINDS`](#kinds) | constant |  |
@@ -57,6 +67,13 @@ always uses the domain types.
 | [`AtomicTransport`](#atomictransport) | constant |  |
 | [`LimitsTransport`](#limitstransport) | constant |  |
 | [`StreamedTransport`](#streamedtransport) | constant | `GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked. |
+| [`GUEST_RECEIPT_WRAP_PREFIX`](#guest_receipt_wrap_prefix) | constant | Prune + prior-receipt `SELECT` statements ahead of the guest statements. |
+| [`GUEST_RECEIPT_STUB_SUFFIX`](#guest_receipt_stub_suffix) | constant | Receipt stub `INSERT` after the guest statements. |
+| [`GUEST_REPLAY_PAYLOAD_MAX_BYTES`](#guest_replay_payload_max_bytes) | constant | Largest replay payload, in UTF-8 bytes, a receipt stores for a write batch. |
+| [`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload) | constant | Payload stored for a read-only guest batch instead of its rows (reads run again on replay). |
+| [`GUEST_RECEIPT_RESULT_LOST`](#guest_receipt_result_lost) | constant | Error text when a receipt committed but the reply it should hold was lost. |
+| [`GUEST_RECEIPT_CLAIM_LOST`](#guest_receipt_claim_lost) | constant | Error text when a concurrent attempt committed the receipt between this attempt's prior-receipt `SELECT` and its stub `INSERT`. |
+| [`STREAM_FRAME_TARGET_BYTES`](#stream_frame_target_bytes) | constant | Encoded size an encoder aims for per `rows` frame (one wider row may exceed it). |
 
 ## Classes
 
@@ -642,6 +659,65 @@ The reply the frames described.
 
 - `PluginError`: The adapter's error when the stream ended with `err`; `unavailable` when it ended before its final frame.
 
+### AdapterBatchRequest
+
+```python
+class AdapterBatchRequest(TypedDict)
+```
+
+The parts of an `AdapterExecuteRequest` the batch runner reads.
+
+**Attributes**
+
+- `operationId`: Host-chosen idempotency key, echoed on the reply and keyed on the receipt.
+- `statements`: Wrapped statements in execution order (proofs are not read).
+- `receipt`: `{"guestLen", "guestHash"}`; `guestLen` `0` means the batch carries no guest receipt.
+
+### AdapterTransaction
+
+```python
+class AdapterTransaction(Protocol)
+```
+
+One open transaction on the adapter's engine.
+
+The runner calls `run` once per statement in order, including the
+finalize statements it adds (canonical SQL with `?` placeholders, lowered
+by the adapter like any other statement), then `commit`, or
+[`rollback`](#adaptertransactionrollback) when any step failed.
+
+#### AdapterTransaction.run
+
+```python
+async def run(self, statement: TypedDbStatement) -> StatementResult
+```
+
+Run one statement inside the transaction.
+
+**Args**
+
+- `statement`: Canonical statement to lower and execute.
+
+**Returns**
+
+The statement's result (rows only when `resultSelection` is `rows`).
+
+#### AdapterTransaction.commit
+
+```python
+async def commit(self) -> None
+```
+
+Commit the transaction.
+
+#### AdapterTransaction.rollback
+
+```python
+async def rollback(self) -> None
+```
+
+Roll the transaction back.
+
 ## Functions
 
 ### parse_db_value
@@ -916,6 +992,229 @@ The reassembled reply.
 
 - `PluginError`: See [`ExecuteStreamDecoder.push`](#executestreamdecoderpush) and [`ExecuteStreamDecoder.finish`](#executestreamdecoderfinish).
 
+### execute_adapter_batch
+
+```python
+async def execute_adapter_batch(
+    request: AdapterBatchRequest,
+    begin: Callable[[], Awaitable[AdapterTransaction]],
+    timing_source: str,
+) -> ExecuteReply
+```
+
+Run one host batch in a transaction and commit it with its replay receipt.
+
+**Args**
+
+- `request`: The adapter request (`execute`).
+- `begin`: Opens a transaction on the adapter's engine.
+- `timing_source`: Observability source on the reply timing (`sqlite_txn`, …).
+
+**Returns**
+
+The committed reply, wrap statements included (the host unwraps it).
+
+**Raises**
+
+- `PluginError`: `unavailable` when a prior receipt committed without its reply, `internal` when the wrap shape is malformed or the payload is over [`GUEST_REPLAY_PAYLOAD_MAX_BYTES`](#guest_replay_payload_max_bytes).
+- `Exception`: Whatever a statement or `commit` raised, after the transaction was rolled back.
+
+### execute_adapter_batch_streamed
+
+```python
+async def execute_adapter_batch_streamed(
+    request: AdapterBatchRequest,
+    begin: Callable[[], Awaitable[AdapterTransaction]],
+    timing_source: str,
+    limits: ExecuteStreamLimits,
+) -> bytes
+```
+
+Run one host batch for `executeStreamed`; commit only when the host can take it.
+
+An isolate adapter's frames cross the invoke reply as one scalar. The
+frames are encoded inside the transaction: encoding stops with
+`limit_exceeded` (`maxScalarBytes`) as soon as they pass
+`MAX_SCALAR_BYTES`, the finished frames are decoded under `limits` the
+way the host decodes them, and the reassembled reply's encoded size is
+held to `limits.max_bytes` the way the host validates it (the decoder
+alone allows framing slack past the budget). Any failure rolls the batch
+back, so nothing commits that the host would refuse.
+
+**Args**
+
+- `request`: The adapter request (`executeStreamed`).
+- `begin`: Opens a transaction on the adapter's engine.
+- `timing_source`: Observability source on the reply timing.
+- `limits`: The streamed budget this adapter advertises (`execute_stream_limits(caps)`).
+
+**Returns**
+
+Every frame of the committed reply, concatenated.
+
+**Raises**
+
+- `PluginError`: `limit_exceeded` when the frames do not fit one scalar or `limits`, or what [`execute_adapter_batch`](#execute_adapter_batch) raises.
+
+### run_adapter_batch
+
+```python
+async def run_adapter_batch(
+    request: AdapterBatchRequest,
+    txn: AdapterTransaction,
+    timing_source: str,
+) -> ExecuteReply
+```
+
+Run the wrapped statements and the receipt finalize without committing.
+
+After the prior-receipt `SELECT`, a completed receipt for this operation
+skips the remaining guest work (its results are padded so the wrap shape
+stays intact) and the host replays the stored reply.
+
+**Args**
+
+- `request`: The adapter request.
+- `txn`: The open transaction (only [`AdapterTransaction.run`](#adaptertransactionrun) is used).
+- `timing_source`: Observability source on the reply timing.
+
+**Returns**
+
+The reply to deliver once the transaction commits.
+
+**Raises**
+
+- `PluginError`: See [`execute_adapter_batch`](#execute_adapter_batch); `invalid_params` when a result cell is not a valid `DbValue`.
+
+### guest_batch_is_read_only
+
+```python
+def guest_batch_is_read_only(statements: list[TypedDbStatement], guest_len: int) -> bool
+```
+
+True when every guest statement inside the receipt wrap is a `SELECT`.
+
+An empty or out-of-range guest slice is not read-only, so a write batch
+never skips its replay payload.
+
+**Args**
+
+- `statements`: The wrapped statements.
+- `guest_len`: Guest statement count from the receipt hint.
+
+**Returns**
+
+Whether the batch only reads.
+
+### guest_receipt_finalize_statements
+
+```python
+def guest_receipt_finalize_statements(
+    partial: ExecuteReply,
+    guest_len: int,
+    guest_hash: str,
+    read_only: bool,
+) -> list[TypedDbStatement]
+```
+
+Statements that persist the guest reply on the claimed receipt.
+
+Empty when the prior receipt already holds a payload, belongs to a
+different request (the host reports the conflict), or is an in-flight
+claim whose stub this attempt did not insert.
+
+**Args**
+
+- `partial`: The wrapped reply so far (prefix, guest and stub results).
+- `guest_len`: Guest statement count from the receipt hint.
+- `guest_hash`: Guest `requestHash` from the receipt hint.
+- `read_only`: Whether the guest slice only reads ([`guest_batch_is_read_only`](#guest_batch_is_read_only)).
+
+**Returns**
+
+The finalize statements to run before `COMMIT`.
+
+**Raises**
+
+- `PluginError`: `unavailable` when a prior receipt committed without its reply, `internal` when the wrap shape is malformed or the payload is over [`GUEST_REPLAY_PAYLOAD_MAX_BYTES`](#guest_replay_payload_max_bytes).
+
+### should_skip_remaining_guest_work
+
+```python
+def should_skip_remaining_guest_work(
+    results: list[StatementResult],
+    total: int,
+    guest_hash: str,
+) -> bool
+```
+
+True when the prefix results show a completed prior receipt.
+
+An in-flight claim with the same hash and a read-only receipt with the
+same hash do not skip; a receipt with a different hash does (the host
+reports the conflict).
+
+**Args**
+
+- `results`: Results so far.
+- `total`: Wrapped statement count.
+- `guest_hash`: Guest `requestHash` from the receipt hint.
+
+**Returns**
+
+Whether to pad the remaining results instead of running them.
+
+### guest_replay_payload
+
+```python
+def guest_replay_payload(reply: ExecuteReply) -> str
+```
+
+The replay payload for a guest reply, in the JSON form the host decodes.
+
+**Args**
+
+- `reply`: The guest slice of the reply.
+
+**Returns**
+
+`{"operation_id", "statements", "timing"}` with each value in the
+host's serde form.
+
+**Raises**
+
+- `PluginError`: `internal` when a cell does not encode or the payload is over [`GUEST_REPLAY_PAYLOAD_MAX_BYTES`](#guest_replay_payload_max_bytes).
+
+### encode_execute_stream
+
+```python
+def encode_execute_stream(
+    reply: ExecuteReply,
+    frame_target_bytes: int=STREAM_FRAME_TARGET_BYTES,
+    max_bytes: int | None=None,
+) -> bytes
+```
+
+Frame `reply` as the byte sequence `executeStreamed` answers.
+
+`head`, each statement with its rows split near `frame_target_bytes`,
+then `end`. A slice whose frame still exceeds one scalar is halved until
+each frame fits or holds one row.
+
+**Args**
+
+- `reply`: The committed reply.
+- `frame_target_bytes`: Estimated encoded size to aim for per `rows` frame.
+- `max_bytes`: Stop as soon as the frames pass this many bytes.
+
+**Returns**
+
+Every frame, concatenated.
+
+**Raises**
+
+- `PluginError`: `limit_exceeded` (`maxScalarBytes`) when the frames pass `max_bytes`.
+
 ### chunk_indexes
 
 ```python
@@ -1017,3 +1316,60 @@ StreamedTransport = Callable[[ExecuteRequest], Awaitable['bytes | AsyncIterable[
 ```
 
 `GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked.
+
+### GUEST_RECEIPT_WRAP_PREFIX
+
+```python
+GUEST_RECEIPT_WRAP_PREFIX = 2
+```
+
+Prune + prior-receipt `SELECT` statements ahead of the guest statements.
+
+### GUEST_RECEIPT_STUB_SUFFIX
+
+```python
+GUEST_RECEIPT_STUB_SUFFIX = 1
+```
+
+Receipt stub `INSERT` after the guest statements.
+
+### GUEST_REPLAY_PAYLOAD_MAX_BYTES
+
+```python
+GUEST_REPLAY_PAYLOAD_MAX_BYTES = 65536
+```
+
+Largest replay payload, in UTF-8 bytes, a receipt stores for a write batch.
+
+### GUEST_READ_ONLY_REPLAY_PAYLOAD
+
+```python
+GUEST_READ_ONLY_REPLAY_PAYLOAD = '{"readOnly":true}'
+```
+
+Payload stored for a read-only guest batch instead of its rows (reads run again on replay).
+
+### GUEST_RECEIPT_RESULT_LOST
+
+```python
+GUEST_RECEIPT_RESULT_LOST = 'guest receipt committed without payload; original response lost'
+```
+
+Error text when a receipt committed but the reply it should hold was lost.
+
+### GUEST_RECEIPT_CLAIM_LOST
+
+```python
+GUEST_RECEIPT_CLAIM_LOST = 'guest receipt claimed by a concurrent attempt; retry to replay it'
+```
+
+Error text when a concurrent attempt committed the receipt between this
+attempt's prior-receipt `SELECT` and its stub `INSERT`.
+
+### STREAM_FRAME_TARGET_BYTES
+
+```python
+STREAM_FRAME_TARGET_BYTES = 64 * 1024
+```
+
+Encoded size an encoder aims for per `rows` frame (one wider row may exceed it).

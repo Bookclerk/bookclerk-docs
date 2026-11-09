@@ -441,6 +441,30 @@ Re-exports [Abridgement](abi.md#abridgement)
 
 ***
 
+### AdapterBatchOptions
+
+Re-exports [AdapterBatchOptions](README.md#adapterbatchoptions)
+
+***
+
+### AdapterBatchRequest
+
+Re-exports [AdapterBatchRequest](README.md#adapterbatchrequest)
+
+***
+
+### AdapterBatchStatement
+
+Re-exports [AdapterBatchStatement](README.md#adapterbatchstatement)
+
+***
+
+### AdapterBatchStreamedOptions
+
+Re-exports [AdapterBatchStreamedOptions](README.md#adapterbatchstreamedoptions)
+
+***
+
 ### AdapterDatabaseSession
 
 Re-exports [AdapterDatabaseSession](plugin.md#adapterdatabasesession)
@@ -450,6 +474,12 @@ Re-exports [AdapterDatabaseSession](plugin.md#adapterdatabasesession)
 ### AdapterEnv
 
 Re-exports [AdapterEnv](plugin.md#adapterenv)
+
+***
+
+### AdapterTransaction
+
+Re-exports [AdapterTransaction](README.md#adaptertransaction)
 
 ***
 
@@ -735,6 +765,12 @@ Re-exports [encodeExecuteResultReply](db-execute.md#encodeexecuteresultreply)
 
 ***
 
+### encodeExecuteStream
+
+Re-exports [encodeExecuteStream](README.md#encodeexecutestream)
+
+***
+
 ### ENTRYPOINT\_BINDINGS
 
 Re-exports [ENTRYPOINT_BINDINGS](plugin.md#entrypoint_bindings)
@@ -786,6 +822,18 @@ Re-exports [EventPublisherBinding](env.md#eventpublisherbinding)
 ### EventSuspendOptions
 
 Re-exports [EventSuspendOptions](plugin.md#eventsuspendoptions)
+
+***
+
+### executeAdapterBatch
+
+Re-exports [executeAdapterBatch](README.md#executeadapterbatch)
+
+***
+
+### executeAdapterBatchStreamed
+
+Re-exports [executeAdapterBatchStreamed](README.md#executeadapterbatchstreamed)
 
 ***
 
@@ -870,6 +918,60 @@ Re-exports [GrantedContext](plugin.md#grantedcontext)
 ### GrantedDatabaseTransport
 
 Re-exports [GrantedDatabaseTransport](plugin.md#granteddatabasetransport)
+
+***
+
+### GUEST\_READ\_ONLY\_REPLAY\_PAYLOAD
+
+Re-exports [GUEST_READ_ONLY_REPLAY_PAYLOAD](README.md#guest_read_only_replay_payload)
+
+***
+
+### GUEST\_RECEIPT\_CLAIM\_LOST
+
+Re-exports [GUEST_RECEIPT_CLAIM_LOST](README.md#guest_receipt_claim_lost)
+
+***
+
+### GUEST\_RECEIPT\_RESULT\_LOST
+
+Re-exports [GUEST_RECEIPT_RESULT_LOST](README.md#guest_receipt_result_lost)
+
+***
+
+### GUEST\_RECEIPT\_STUB\_SUFFIX
+
+Re-exports [GUEST_RECEIPT_STUB_SUFFIX](README.md#guest_receipt_stub_suffix)
+
+***
+
+### GUEST\_RECEIPT\_WRAP\_PREFIX
+
+Re-exports [GUEST_RECEIPT_WRAP_PREFIX](README.md#guest_receipt_wrap_prefix)
+
+***
+
+### GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES
+
+Re-exports [GUEST_REPLAY_PAYLOAD_MAX_BYTES](README.md#guest_replay_payload_max_bytes)
+
+***
+
+### guestBatchIsReadOnly
+
+Re-exports [guestBatchIsReadOnly](README.md#guestbatchisreadonly)
+
+***
+
+### guestReceiptFinalizeStatements
+
+Re-exports [guestReceiptFinalizeStatements](README.md#guestreceiptfinalizestatements)
+
+***
+
+### guestReplayPayload
+
+Re-exports [guestReplayPayload](README.md#guestreplaypayload)
 
 ***
 
@@ -1329,6 +1431,12 @@ Re-exports [RetryToken](db-execute.md#retrytoken)
 
 ***
 
+### runAdapterBatch
+
+Re-exports [runAdapterBatch](README.md#runadapterbatch)
+
+***
+
 ### schemaMigrationOp
 
 Re-exports [schemaMigrationOp](plugin.md#schemamigrationop)
@@ -1338,6 +1446,12 @@ Re-exports [schemaMigrationOp](plugin.md#schemamigrationop)
 ### SeriesEntry
 
 Re-exports [SeriesEntry](generated.md#seriesentry)
+
+***
+
+### shouldSkipRemainingGuestWork
+
+Re-exports [shouldSkipRemainingGuestWork](README.md#shouldskipremainingguestwork)
 
 ***
 
@@ -1374,6 +1488,12 @@ Re-exports [StorageEntrypoint](plugin.md#storageentrypoint)
 ### StorefrontEntrypoint
 
 Re-exports [StorefrontEntrypoint](plugin.md#storefrontentrypoint)
+
+***
+
+### STREAM\_FRAME\_TARGET\_BYTES
+
+Re-exports [STREAM_FRAME_TARGET_BYTES](README.md#stream_frame_target_bytes)
 
 ***
 

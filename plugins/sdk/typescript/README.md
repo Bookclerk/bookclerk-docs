@@ -87,6 +87,13 @@ Identity (`apiVersion`, `id`, capabilities) comes from `plugin.toml`; an
 optional `describe()` on the default export only refines `displayName`
 and similar fields.
 
+A database adapter runs each host batch through `executeAdapterBatch` or
+`executeAdapterBatchStreamed`, which stores the guest's replay receipt
+before `COMMIT` and, for a streamed reply, rolls back when the frames do
+not fit one scalar or the adapter's advertised streamed budget
+(`executeStreamLimits(caps)`) (see
+[Isolate adapter batches](../../sql-contract/v1.md#isolate-adapter-batches-and-replay-receipts)).
+
 ## Triggers
 
 - `event(batch)` mirrors Workers `queue(batch)`. Each `EventMessage`
@@ -452,6 +459,152 @@ Typed plugin error.
 
 ## Interfaces
 
+### AdapterBatchOptions
+
+Options shared by the batch runners.
+
+#### Extended by
+
+- [`AdapterBatchStreamedOptions`](#adapterbatchstreamedoptions)
+
+#### Properties
+
+##### timingSource
+
+```ts
+timingSource: string;
+```
+
+Observability source on the reply timing (for example `sqlite_txn`).
+
+***
+
+### AdapterBatchRequest
+
+The parts of an `AdapterExecuteRequest` the batch runner reads.
+
+#### Properties
+
+##### operationId
+
+```ts
+operationId: string;
+```
+
+Host-chosen idempotency key, echoed on the reply and keyed on the receipt.
+
+##### receipt
+
+```ts
+receipt: AdapterReceipt;
+```
+
+Receipt hint; `guestLen` `0` means the batch carries no guest receipt.
+
+##### statements
+
+```ts
+statements: AdapterBatchStatement[];
+```
+
+Wrapped statements in execution order (proofs are not read).
+
+***
+
+### AdapterBatchStreamedOptions
+
+Options of [executeAdapterBatchStreamed](#executeadapterbatchstreamed).
+
+#### Extends
+
+- [`AdapterBatchOptions`](#adapterbatchoptions)
+
+#### Properties
+
+##### limits
+
+```ts
+limits: ExecuteStreamLimits;
+```
+
+The streamed budget this adapter advertises
+(`executeStreamLimits(caps)`); the host decodes the reply under it.
+
+##### timingSource
+
+```ts
+timingSource: string;
+```
+
+Observability source on the reply timing (for example `sqlite_txn`).
+
+###### Inherited from
+
+[`AdapterBatchOptions`](#adapterbatchoptions).[`timingSource`](#timingsource)
+
+***
+
+### AdapterTransaction
+
+One open transaction on the adapter's engine.
+
+The runner calls `run` once per statement in order, including the finalize
+statements it adds (canonical SQL with `?` placeholders, lowered by the
+adapter like any other statement), then `commit`, or `rollback` when any
+step failed.
+
+#### Methods
+
+##### commit()
+
+```ts
+commit(): Promise<void>;
+```
+
+Commits the transaction.
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once the batch is durable.
+
+##### rollback()
+
+```ts
+rollback(): Promise<void>;
+```
+
+Rolls the transaction back.
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves once nothing of the batch remains.
+
+##### run()
+
+```ts
+run(statement): Promise<StatementResult>;
+```
+
+Runs one statement inside the transaction.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `statement` | [`AdapterBatchStatement`](#adapterbatchstatement) | Canonical statement to lower and execute. |
+
+###### Returns
+
+`Promise`\<[`StatementResult`](db-execute.md#statementresult)\>
+
+The statement's result (rows only when `resultSelection` is `rows`).
+
+***
+
 ### ExecuteStreamLimits
 
 What a receiver lets a streamed reply grow to.
@@ -523,6 +676,88 @@ used: number;
 
 The observed value that exceeded `cap`.
 
+## Type Aliases
+
+### AdapterBatchStatement
+
+```ts
+type AdapterBatchStatement = Pick<AdapterStatement, "sql" | "parameters" | "kind" | "maxRows" | "resultSelection">;
+```
+
+The parts of an [AdapterStatement](generated.md#adapterstatement) an adapter executes.
+
+## Variables
+
+### GUEST\_READ\_ONLY\_REPLAY\_PAYLOAD
+
+```ts
+const GUEST_READ_ONLY_REPLAY_PAYLOAD: "{\"readOnly\":true}" = '{"readOnly":true}';
+```
+
+Payload stored for a read-only guest batch instead of its rows: reads are
+not gated, so they run again on replay and need no recorded result.
+
+***
+
+### GUEST\_RECEIPT\_CLAIM\_LOST
+
+```ts
+const GUEST_RECEIPT_CLAIM_LOST: "guest receipt claimed by a concurrent attempt; retry to replay it" = "guest receipt claimed by a concurrent attempt; retry to replay it";
+```
+
+`unavailable` message when a concurrent attempt committed the receipt
+between this attempt's prior-receipt `SELECT` and its stub `INSERT`.
+
+***
+
+### GUEST\_RECEIPT\_RESULT\_LOST
+
+```ts
+const GUEST_RECEIPT_RESULT_LOST: "guest receipt committed without payload; original response lost" = "guest receipt committed without payload; original response lost";
+```
+
+Error text when a receipt committed but the reply it should hold was lost.
+
+***
+
+### GUEST\_RECEIPT\_STUB\_SUFFIX
+
+```ts
+const GUEST_RECEIPT_STUB_SUFFIX: 1 = 1;
+```
+
+Receipt stub `INSERT` after the guest statements.
+
+***
+
+### GUEST\_RECEIPT\_WRAP\_PREFIX
+
+```ts
+const GUEST_RECEIPT_WRAP_PREFIX: 2 = 2;
+```
+
+Prune + prior-receipt `SELECT` statements ahead of the guest statements.
+
+***
+
+### GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES
+
+```ts
+const GUEST_REPLAY_PAYLOAD_MAX_BYTES: 65536 = 65536;
+```
+
+Largest replay payload, in UTF-8 bytes, a receipt stores for a write batch.
+
+***
+
+### STREAM\_FRAME\_TARGET\_BYTES
+
+```ts
+const STREAM_FRAME_TARGET_BYTES: number;
+```
+
+Encoded size an encoder aims for per `rows` frame (one wider row may exceed it).
+
 ## Functions
 
 ### collectExecuteStream()
@@ -575,6 +810,118 @@ See [ExecuteStreamDecoder.push](#push) and [ExecuteStreamDecoder.finish](#finish
 
 ***
 
+### encodeExecuteStream()
+
+```ts
+function encodeExecuteStream(
+   reply, 
+   frameTargetBytes?, 
+   maxBytes?
+): Uint8Array;
+```
+
+Frames `reply` as the byte sequence `executeStreamed` answers: `head`,
+each statement with its rows split near `frameTargetBytes`, then `end`. A
+slice whose frame still exceeds one scalar is halved until each frame fits
+or holds one row.
+
+#### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `reply` | [`ExecuteReply`](db-execute.md#executereply) | `undefined` | The committed reply. |
+| `frameTargetBytes?` | `number` | `STREAM_FRAME_TARGET_BYTES` | Estimated encoded size to aim for per `rows` frame. |
+| `maxBytes?` | `number` | `Number.POSITIVE_INFINITY` | Stop as soon as the frames pass this many bytes. |
+
+#### Returns
+
+`Uint8Array`
+
+Every frame, concatenated.
+
+#### Throws
+
+`PluginError` `limit_exceeded` (`maxScalarBytes`) when the frames
+  pass `maxBytes`.
+
+***
+
+### executeAdapterBatch()
+
+```ts
+function executeAdapterBatch(
+   request, 
+   begin, 
+   options
+): Promise<ExecuteReply>;
+```
+
+Runs one host batch in a transaction and commits it with its replay receipt.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`AdapterBatchRequest`](#adapterbatchrequest) | The adapter request (`execute`). |
+| `begin` | () => `Promise`\<[`AdapterTransaction`](#adaptertransaction)\> | Opens a transaction on the adapter's engine. |
+| `options` | [`AdapterBatchOptions`](#adapterbatchoptions) | Timing source. |
+
+#### Returns
+
+`Promise`\<[`ExecuteReply`](db-execute.md#executereply)\>
+
+The committed reply, wrap statements included (the host unwraps it).
+
+#### Throws
+
+Whatever a statement, the finalize or `commit` raised, after the
+  transaction was rolled back; `PluginError` `unavailable` when a prior
+  receipt committed without its reply.
+
+***
+
+### executeAdapterBatchStreamed()
+
+```ts
+function executeAdapterBatchStreamed(
+   request, 
+   begin, 
+   options
+): Promise<Uint8Array<ArrayBufferLike>>;
+```
+
+Runs one host batch for `executeStreamed` and commits it only when the
+host can receive its frames.
+
+The frames are encoded inside the transaction. Encoding stops with
+`limit_exceeded` (`maxScalarBytes`) as soon as they pass one invoke
+scalar, the finished frames are decoded under `options.limits` the way
+the host decodes them, and the reassembled reply's encoded size is held to
+`options.limits.maxBytes` the way the host validates it (the decoder alone
+allows framing slack past the budget). Any failure rolls the batch back,
+so nothing commits that the host would refuse.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`AdapterBatchRequest`](#adapterbatchrequest) | The adapter request (`executeStreamed`). |
+| `begin` | () => `Promise`\<[`AdapterTransaction`](#adaptertransaction)\> | Opens a transaction on the adapter's engine. |
+| `options` | [`AdapterBatchStreamedOptions`](#adapterbatchstreamedoptions) | Timing source and the advertised streamed budget. |
+
+#### Returns
+
+`Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+
+Every frame of the committed reply, concatenated.
+
+#### Throws
+
+`PluginError` `limit_exceeded` when the frames do not fit one
+  scalar or the budget, or whatever [executeAdapterBatch](#executeadapterbatch) throws.
+
+***
+
 ### executeStreamLimits()
 
 ```ts
@@ -595,6 +942,101 @@ not stream.
 [`ExecuteStreamLimits`](#executestreamlimits)
 
 Limits for an [ExecuteStreamDecoder](#executestreamdecoder).
+
+***
+
+### guestBatchIsReadOnly()
+
+```ts
+function guestBatchIsReadOnly(statements, guestLen): boolean;
+```
+
+True when every guest statement inside the receipt wrap is a `SELECT`.
+
+An empty or out-of-range guest slice is not read-only, so a write batch
+never skips its replay payload.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `statements` | readonly `Pick`\<[`AdapterBatchStatement`](#adapterbatchstatement), `"kind"`\>[] | The wrapped statements. |
+| `guestLen` | `number` | Guest statement count from the receipt hint. |
+
+#### Returns
+
+`boolean`
+
+Whether the batch only reads.
+
+***
+
+### guestReceiptFinalizeStatements()
+
+```ts
+function guestReceiptFinalizeStatements(
+   partial, 
+   guestLen, 
+   guestHash, 
+   readOnly
+): AdapterBatchStatement[];
+```
+
+Statements that persist the guest reply on the claimed receipt.
+
+Empty when the prior receipt already holds a payload, belongs to a
+different request (the host reports the conflict), or is an in-flight
+claim whose stub this attempt did not insert.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `partial` | [`ExecuteReply`](db-execute.md#executereply) | The wrapped reply so far (prefix, guest and stub results). |
+| `guestLen` | `number` | Guest statement count from the receipt hint. |
+| `guestHash` | `string` | Guest `requestHash` from the receipt hint. |
+| `readOnly` | `boolean` | Whether the guest slice only reads ([guestBatchIsReadOnly](#guestbatchisreadonly)). |
+
+#### Returns
+
+[`AdapterBatchStatement`](#adapterbatchstatement)[]
+
+The finalize statements to run before `COMMIT`.
+
+#### Throws
+
+`PluginError` `unavailable` when a prior receipt committed without
+  its reply, `internal` when the wrap shape is malformed or the payload is
+  over [GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES](#guest_replay_payload_max_bytes).
+
+***
+
+### guestReplayPayload()
+
+```ts
+function guestReplayPayload(reply): string;
+```
+
+The replay payload for a guest reply: the JSON envelope the host decodes,
+`{"operation_id", "statements", "timing"}` with each value in the host's
+serde form.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `reply` | [`ExecuteReply`](db-execute.md#executereply) | The guest slice of the reply. |
+
+#### Returns
+
+`string`
+
+The payload text.
+
+#### Throws
+
+`PluginError` `internal` when a cell does not encode or the
+  payload is over [GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES](#guest_replay_payload_max_bytes).
 
 ***
 
@@ -689,6 +1131,79 @@ The same array when within limits.
 #### Throws
 
 Error with `code` / `wireCode` `payload_too_large` when a limit is exceeded.
+
+***
+
+### runAdapterBatch()
+
+```ts
+function runAdapterBatch(
+   request, 
+   txn, 
+   options
+): Promise<ExecuteReply>;
+```
+
+Runs the wrapped statements and the receipt finalize on an open
+transaction, without committing.
+
+After the prior-receipt `SELECT`, a completed receipt for this operation
+skips the remaining guest work (its results are padded so the wrap shape
+stays intact) and the host replays the stored reply.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`AdapterBatchRequest`](#adapterbatchrequest) | The adapter request. |
+| `txn` | `Pick`\<[`AdapterTransaction`](#adaptertransaction), `"run"`\> | The open transaction. |
+| `options` | [`AdapterBatchOptions`](#adapterbatchoptions) | Timing source. |
+
+#### Returns
+
+`Promise`\<[`ExecuteReply`](db-execute.md#executereply)\>
+
+The reply to deliver once the transaction commits.
+
+#### Throws
+
+`PluginError` `unavailable` when a prior receipt committed without
+  its reply, `internal` when the wrap shape is malformed or the payload is
+  over [GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES](#guest_replay_payload_max_bytes), `invalid_params` when a
+  result cell is not a valid `DbValue`, or whatever `run` threw.
+
+***
+
+### shouldSkipRemainingGuestWork()
+
+```ts
+function shouldSkipRemainingGuestWork(
+   results, 
+   total, 
+   guestHash
+): boolean;
+```
+
+True when the prefix results show a completed prior receipt, so the guest
+statements must not run again.
+
+An in-flight claim with the same hash and a read-only receipt with the
+same hash do not skip; a receipt with a different hash does (the host
+reports the conflict).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `results` | readonly [`StatementResult`](db-execute.md#statementresult)[] | Results so far. |
+| `total` | `number` | Wrapped statement count. |
+| `guestHash` | `string` | Guest `requestHash` from the receipt hint. |
+
+#### Returns
+
+`boolean`
+
+Whether to pad the remaining results instead of running them.
 
 ***
 

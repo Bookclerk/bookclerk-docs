@@ -137,6 +137,8 @@ Adapters that advertise `0` for both leave the default, which answers
 `unsupported`. An isolate adapter's frames travel inside one invoke
 reply, so its streamed budget is clamped to `MAX_SCALAR_BYTES` (256 KiB)
 and larger frames are a `limit_exceeded` (`maxScalarBytes`) error.
+`executeAdapterBatchStreamed` runs the batch, stores the replay receipt
+and checks that bound before it commits.
 
 ###### Parameters
 
