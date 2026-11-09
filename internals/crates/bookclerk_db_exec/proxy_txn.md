@@ -10,7 +10,7 @@ Proxies record a per-task fault instead and refuse subsequent statements.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`ExecBudget`](#execbudget) | struct | Request-scoped deadline and query row cap for one atomic attempt. |
-| [`ExecuteRowCapGuard`](#executerowcapguard) | struct | Restores `ExecBudget::raw_query_row_cap` when dropped. |
+| [`ExecuteRowCapGuard`](#executerowcapguard) | struct | Restores `ExecBudget::raw_query_row_cap` and `ExecBudget::raw_query_byte_cap` when dropped. |
 | [`AtomicInterruptPhase`](#atomicinterruptphase) | enum | Phase at which an injected atomic interrupt fires. |
 | [`AtomicInterruptKind`](#atomicinterruptkind) | enum | Kind of injected atomic interrupt. |
 | [`note_begin_failed`](#note_begin_failed) | function | Record that `BEGIN` failed so later statements cannot autocommit. |
@@ -31,7 +31,7 @@ Proxies record a per-task fault instead and refuse subsequent statements.
 | [`consume_atomic_interrupt`](#consume_atomic_interrupt) | function | Consume an injected interrupt when the executor reaches `phase`. |
 | [`with_exec_budget`](#with_exec_budget) | function | Runs `fut` with `budget` as the request-scoped execution budget. |
 | [`current_exec_budget`](#current_exec_budget) | function | Request-scoped budget for the current Tokio task, if an atomic attempt armed one. |
-| [`suspend_execute_row_cap`](#suspend_execute_row_cap) | function | Suspends the execute-request row cap until the guard is dropped. |
+| [`suspend_execute_row_cap`](#suspend_execute_row_cap) | function | Suspends the execute-request row and result byte caps until the guard is dropped. |
 | [`record_query_rows_seen`](#record_query_rows_seen) | function | Records `seen` for `query_rows_seen` after an atomic attempt completes. |
 | [`arm_exec_budget`](#arm_exec_budget) | function | Legacy no-op. Budgets are request-scoped via `with_exec_budget`. |
 | [`clear_exec_budget`](#clear_exec_budget) | function | Legacy no-op. Budgets are request-scoped via `with_exec_budget`. |
@@ -228,7 +228,8 @@ pub struct ExecuteRowCapGuard {
 }
 ```
 
-Restores [`ExecBudget::raw_query_row_cap`](#execbudgetraw_query_row_cap) when dropped.
+Restores [`ExecBudget::raw_query_row_cap`](#execbudgetraw_query_row_cap) and
+[`ExecBudget::raw_query_byte_cap`](#execbudgetraw_query_byte_cap) when dropped.
 
 Implements: `Drop`
 
@@ -439,10 +440,13 @@ Request-scoped budget for the current Tokio task, if an atomic attempt armed one
 pub fn suspend_execute_row_cap() -> Option<ExecuteRowCapGuard>
 ```
 
-Suspends the execute-request row cap until the guard is dropped.
+Suspends the execute-request row and result byte caps until the guard is
+dropped.
 
 Catalog / `sqlite_master` loads are not guest result rows; they must not
-fail a tight `maxResultRows` on the surrounding execute.
+fail a tight `maxResultRows` or `maxResultBytes` on the surrounding
+execute. An adapter advertising the host minimum of 4,096 result bytes
+still has to read its own catalog, which is larger than that.
 
 ### record_query_rows_seen
 

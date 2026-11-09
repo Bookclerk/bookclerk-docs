@@ -140,6 +140,7 @@ those lowerers.
 
 ## Modules
 
+- [`begin_gate`](begin_gate.md): A SeaORM proxy wrapper that refuses interactive transactions the way an external database adapter does.
 - [`guest_receipt`](guest_receipt.md): Guest-typed durable receipt finalize (same-transaction payload capture).
 - [`proxy_txn`](proxy_txn.md): Fail-closed acknowledgements for SeaORM's infallible proxy transaction hooks.
 - [`sql_v1`](sql_v1.md): Shared Bookclerk SQL v1 execution vectors (binding DDL + portable helpers).

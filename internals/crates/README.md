@@ -42,6 +42,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_cover`](bookclerk_cover/README.md) | Cover image pipeline: sniff, decode under limits, resize and re-encode untrusted cover art as JPEG |
 | [`bookclerk_db_exec`](bookclerk_db_exec/README.md) | Neutral SQL executor and transaction injects for database guests |
 | [`bookclerk_db_guest`](bookclerk_db_guest/README.md) | First-party database guest session workers (SeaORM proxy, host IR envelopes) |
+| [`bookclerk_db_testkit`](bookclerk_db_testkit/README.md) | Contract conformance test kit: capability profiles, begin refusal and fault injection for database tests |
 | [`bookclerk_demo_seed`](bookclerk_demo_seed/README.md) | Fills a fresh hosted-demo library with a second member, their books, wishlist and offline branch |
 | [`bookclerk_discover`](bookclerk_discover/README.md) | Recommendations, embeddings, listening sync, and title request helpers |
 | [`bookclerk_enrich`](bookclerk_enrich/README.md) | Source-agnostic Audible metadata enrichment (catalog search, metadata providers, confidence scoring) |

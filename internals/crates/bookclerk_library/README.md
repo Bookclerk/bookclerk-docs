@@ -350,6 +350,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`scope`](scope.md): Plugin-scoped library access.
 - [`secrets`](secrets.md): Encrypted secrets store — DB-backed credential storage.
 - [`sql_plan`](sql_plan/README.md): Host-owned generic SQL atomic plans for database adapters. Host-owned SQL atomic plans for database plugins.
+- [`test_support`](test_support.md): A library store that behaves like one opened on an external database plugin, for tests.
 - [`atomic_status`](atomic_status.md): Application status strings produced by host plan interpretation.
 - [`secret_account_type`](secret_account_type.md): Ownership namespace for `encrypted_secrets.account_type`.
 - [`secret_kind`](secret_kind.md): Well-known `kind` values for the `encrypted_secrets` table.
@@ -906,6 +907,8 @@ Executes `req` as one typed atomic batch.
 
 Returns a plugin ABI error when validation, transport, or the engine
 rejects the batch.
+
+Implemented by: `ProfileExec`
 
 ## Structs
 
@@ -5481,12 +5484,13 @@ pub async fn storage_scan_delete(&self, scan_id: &str) -> Result<()>
 
 Deletes inventory rows and the generation ownership row for `scan_id`.
 
-Both deletes commit together. A failure leaves the generation and its
-rows in place so an apply checkpoint cannot adopt an empty inventory.
+Both deletes go to the database plugin as one atomic batch, so a
+failure leaves the generation and its rows in place and an apply
+checkpoint cannot adopt an empty inventory.
 
 ##### Errors
 
-Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+Returns the batch error when the delete fails.
 
 #### LibraryStore::storage_scan_register
 

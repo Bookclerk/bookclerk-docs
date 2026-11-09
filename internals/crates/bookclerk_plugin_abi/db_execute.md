@@ -397,6 +397,14 @@ pub fn capability_failure_reason(&self) -> String
 
 Operator-facing reason when [`Self::meets_host_minimums`](#dbcapabilitiesmeets_host_minimums) is false.
 
+#### DbCapabilities::capability_failure_reason_opt
+
+```rust
+pub fn capability_failure_reason_opt(&self) -> Option<String>
+```
+
+Failure reason, or `None` when the guest meets host minima.
+
 #### DbCapabilities::supports_consistent_backup_read
 
 ```rust
@@ -470,6 +478,20 @@ pub fn advertised_postgres() -> Self
 ```
 
 First-party PostgreSQL capability advertisement (`bookclerk_schema_migrations` rows).
+
+#### DbCapabilities::host_minimum
+
+```rust
+pub fn host_minimum() -> Self
+```
+
+The smallest advertisement the host connects to: every numeric cap at
+its `HOST_MIN_*` value, no streamed reads, no plugin databases, no
+consistent backup read or atomic unit restore.
+
+Test kits run host and plugin code under this profile so a write that
+works on the shipped adapters also works on a plugin that advertises
+only the minimums.
 
 #### DbCapabilities::admit_statement
 
