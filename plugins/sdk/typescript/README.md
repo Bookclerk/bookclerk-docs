@@ -181,6 +181,7 @@ See `docs/plugins/README.md` and `docs/contributing/code-documentation.md`.
 - [generated](generated.md)
 - [plugin](plugin.md)
 - [sparse-workerd](sparse-workerd.md)
+- [testkit](testkit.md)
 - [workerd](workerd.md)
 
 ## Classes

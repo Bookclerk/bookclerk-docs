@@ -18,6 +18,7 @@ opens it on in-memory SQLite and adds fixtures.
 | [`ProfileExec`](#profileexec) | struct | Stands in for a database adapter's `executeAtomic`. |
 | [`ProfileStore`](#profilestore) | struct | A library store opened on an engine proxy that behaves like an external database plugin under one `Profile`. |
 | [`Profile`](#profile) | enum | A capability advertisement a database plugin may present to the host. |
+| [`engine_error`](#engine_error) | function | Maps an engine error onto the error the guest would answer with: a typed `limit_exceeded` when the message carries one, `deadline_exceeded` when the batch's deadline elapsed, otherwise the adapter's classification of the failure. |
 
 ## Re-exports
 
@@ -271,3 +272,19 @@ pub fn capabilities(self) -> DbCapabilities
 The capability advertisement this profile enforces.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `PartialEq`
+
+## Functions
+
+### engine_error
+
+```rust
+pub fn engine_error(err: DbErr) -> PluginError
+```
+
+Maps an engine error onto the error the guest would answer with: a
+typed `limit_exceeded` when the message carries one, `deadline_exceeded`
+when the batch's deadline elapsed, otherwise the adapter's
+classification of the failure.
+
+`bookclerk-db-testkit` maps the engine errors of a plugin-owned binding
+database the same way.

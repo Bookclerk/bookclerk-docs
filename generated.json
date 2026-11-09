@@ -16,6 +16,7 @@
     "plugins/sdk/typescript/generated",
     "plugins/sdk/typescript/plugin",
     "plugins/sdk/typescript/sparse-workerd",
+    "plugins/sdk/typescript/testkit",
     "plugins/sdk/typescript/workerd"
    ]
   },
@@ -54,6 +55,7 @@
     "plugins/sdk/python/sparse_workerd/config",
     "plugins/sdk/python/sparse_workerd/ensure",
     "plugins/sdk/python/sparse_workerd/smoke",
+    "plugins/sdk/python/testkit",
     "plugins/sdk/python/tools",
     "plugins/sdk/python/workerd"
    ]
@@ -109,6 +111,7 @@
     "internals/crates/bookclerk_db_exec/sql_v1",
     "internals/crates/bookclerk_db_guest/README",
     "internals/crates/bookclerk_db_testkit/README",
+    "internals/crates/bookclerk_db_testkit/binding",
     "internals/crates/bookclerk_db_testkit/fixtures",
     "internals/crates/bookclerk_db_testkit/paging",
     "internals/crates/bookclerk_demo_seed/README",

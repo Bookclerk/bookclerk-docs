@@ -150,6 +150,7 @@ module, and what the package itself exports.
 | [`bookclerk_plugin_sdk.sparse_workerd.config`](sparse_workerd/config.md) | Materialize Cap'n Proto workerd config + bridge (mirrors config.rs). |
 | [`bookclerk_plugin_sdk.sparse_workerd.ensure`](sparse_workerd/ensure.md) | Download / refresh the pinned Cloudflare `workerd` binary (mirrors ensure.rs). |
 | [`bookclerk_plugin_sdk.sparse_workerd.smoke`](sparse_workerd/smoke.md) | Out-of-tree workerd plugin smoke: ensure → materialize → describe + health. |
+| [`bookclerk_plugin_sdk.testkit`](testkit.md) | Contract conformance test kit: a plugin database binding like the host's. |
 | [`bookclerk_plugin_sdk.tools`](tools.md) | check / fmt / types / package / sync-embed — mirrors Rust/TS author tools. |
 | [`bookclerk_plugin_sdk.workerd`](workerd.md) | Workerd author runtime — `BookclerkEntrypoint` and the named entrypoints. |
 
