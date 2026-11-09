@@ -7,8 +7,12 @@ Production hosts reach every database through an adapter guest that
 refuses interactive transactions and enforces the limits it advertised. A
 plain engine connection does neither, so a test that passes on one can
 still fail on the hosted demo. [`ProfileStore`](#profilestore) wraps an engine proxy in
-a [`BeginGate`](../bookclerk_db_exec/begin_gate.md#begingate) and routes every host batch through a [`ProfileExec`](#profileexec)
-that applies a [`Profile`](#profile)'s capability advertisement.
+a [`BeginGate`](../../bookclerk_db_exec/begin_gate.md#begingate) and routes every host batch through a [`ProfileExec`](#profileexec)
+that applies a [`Profile`](#profile)'s capability advertisement. Named atomic
+operations (job claims, outbox writes, user security changes) go the way
+the plugin host sends them to an adapter: compiled to one typed batch,
+validated against the profile and run through the same executor
+([`ProfileAtomic`](#profileatomic)).
 
 This module is the engine-neutral core; the `bookclerk-db-testkit` crate
 opens it on in-memory SQLite and adds fixtures.
@@ -16,13 +20,18 @@ opens it on in-memory SQLite and adds fixtures.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`ProfileExec`](#profileexec) | struct | Stands in for a database adapter's `executeAtomic`. |
+| [`ProfileAtomic`](#profileatomic) | struct | Runs named atomic operations the way the plugin host sends them to a database adapter, through a `ProfileExec`. |
 | [`ProfileStore`](#profilestore) | struct | A library store opened on an engine proxy that behaves like an external database plugin under one `Profile`. |
 | [`Profile`](#profile) | enum | A capability advertisement a database plugin may present to the host. |
 | [`engine_error`](#engine_error) | function | Maps an engine error onto the error the guest would answer with: a typed `limit_exceeded` when the message carries one, `deadline_exceeded` when the batch's deadline elapsed, otherwise the adapter's classification of the failure. |
 
 ## Re-exports
 
-- [`bookclerk_db_exec::begin_gate::INTERACTIVE_TRANSACTIONS_REFUSED`](../bookclerk_db_exec/begin_gate.md#interactive_transactions_refused)
+- [`bookclerk_db_exec::begin_gate::INTERACTIVE_TRANSACTIONS_REFUSED`](../../bookclerk_db_exec/begin_gate.md#interactive_transactions_refused)
+
+## Modules
+
+- [`paging`](paging.md): Checks that a paged listing returns what the full listing returns.
 
 ## Structs
 
@@ -78,6 +87,33 @@ sees `unavailable` naming `SQLITE_BUSY`.
 
 Implements: `Debug`, `TypedAtomicExec`
 
+### ProfileAtomic
+
+```rust
+pub struct ProfileAtomic {
+    /* private fields */
+}
+```
+
+Runs named atomic operations the way the plugin host sends them to a
+database adapter, through a [`ProfileExec`](#profileexec).
+
+Each compiled plan is validated against the profile's advertisement,
+authorized and stamped as the host does for a guest batch, run through
+the profile executor and interpreted from the typed reply. Nothing here
+reaches the engine another way, so a named operation that would exceed
+the profile fails closed in the test as it would on the hosted adapter.
+
+#### ProfileAtomic::new
+
+```rust
+pub fn new(exec: Arc<ProfileExec>, caps: DbCapabilities) -> Self
+```
+
+Wraps `exec` with `caps`.
+
+Implements: `Debug`, `NamedAtomicRunner`
+
 ### ProfileStore
 
 ```rust
@@ -100,7 +136,8 @@ pub async fn open(
 ```
 
 Opens `engine` behind a begin gate, applies the host schema and wires
-a store that enforces `profile`.
+a store that enforces `profile` on every host batch and every named
+atomic operation.
 
 `backend` is the SQL dialect the engine proxy speaks, which SeaORM
 needs to render statements; the kit opens sqlite-shaped engines.

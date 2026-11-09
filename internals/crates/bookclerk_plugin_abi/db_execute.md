@@ -45,9 +45,10 @@ Hosts call `AdapterDatabaseSession.capabilities` and
 | [`HOST_MIN_BINDS`](#host_min_binds) | constant | Host refuses guests that cannot bind at least this many parameters. |
 | [`HOST_MIN_STATEMENTS`](#host_min_statements) | constant | Host refuses guests that cannot run at least this many statements per batch. |
 | [`HOST_MIN_RESULT_ROWS`](#host_min_result_rows) | constant | Host refuses guests that do not bound result rows (`0` is unspecified). |
-| [`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) | constant | Host refuses guests that do not bound encoded statement payload bytes. |
+| [`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) | constant | Host refuses guests that bound encoded statement payload bytes below this, or not at all. |
 | [`D1_MAX_PAYLOAD_BYTES`](#d1_max_payload_bytes) | constant | Canonical SQL+binds cap advertised for D1. |
 | [`HOST_MIN_RESULT_BYTES`](#host_min_result_bytes) | constant | Host refuses guests that do not bound JSON bytes of one statement's rows. |
+| [`HOST_MIN_REQUEST_BYTES`](#host_min_request_bytes) | constant | Host refuses guests that bound one encoded request below this, or not at all. |
 | [`HOST_MIN_CELL_BYTES`](#host_min_cell_bytes) | constant | Host refuses guests that do not bound one result cell (`0` is unspecified). |
 | [`FIRST_PARTY_MAX_RESULT_BYTES`](#first_party_max_result_bytes) | constant | First-party JSON-byte budget for one statement's rows and for one atomic request/result scalar. Must stay at or below `crate::MAX_SCALAR_BYTES`. |
 | [`FIRST_PARTY_MAX_STREAMED_RESULT_BYTES`](#first_party_max_streamed_result_bytes) | constant | First-party budget for one `executeStreamed` reply (all statements' encoded results together): 64 MiB. The adapter holds up to this much before it commits, so a result above the inline scalar ceiling still arrives whole instead of failing closed. |
@@ -659,9 +660,9 @@ statement of `canonical_len` bytes: mechanical LIKE / `NULLIF` /
 advertised sqlite-family bind slot.
 
 This length-only formula does **not** include proof-directed INTEGER
-overflow CASE wraps: a worst-case `1+1+…` payload of
-[`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) already exceeds [`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes)
-after wrapping. Overflow is charged by proven preflight from
+overflow CASE wraps: a worst-case `1+1+…` payload of the 1,024-byte
+search floor already exceeds [`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes) after
+wrapping. Overflow is charged by proven preflight from
 `integer_arith_sites` (or a typecheck of literal-only SQL in
 [`DbCapabilities::admit_statement`](#dbcapabilitiesadmit_statement)). Hosts compare the proven bound to
 [`DbCapabilities::max_lowered_statement_bytes`](#dbcapabilities), not engine identity.
@@ -818,10 +819,15 @@ SQLite default `SQLITE_MAX_LIKE_PATTERN_LENGTH`.
 ### HOST_MIN_FUNCTION_ARGS
 
 ```rust
-pub const HOST_MIN_FUNCTION_ARGS: u32 = 8;
+pub const HOST_MIN_FUNCTION_ARGS: u32 = _;
 ```
 
 Host refuses guests that cannot accept at least this many function args.
+
+The host's own plans build result rows with `json_object` calls up to
+the SQL-v1 portable maximum
+([`crate::SQL_V1_JSON_OBJECT_MAX_ARGS`](sql_types.md#sql_v1_json_object_max_args), D1's physical ceiling), so a
+guest below it could not run a job claim or an outbox publish.
 
 ### HOST_MIN_SCHEMA_COLUMNS
 
@@ -884,10 +890,15 @@ Host refuses guests that do not bound result rows (`0` is unspecified).
 ### HOST_MIN_PAYLOAD_BYTES
 
 ```rust
-pub const HOST_MIN_PAYLOAD_BYTES: u32 = 1024;
+pub const HOST_MIN_PAYLOAD_BYTES: u32 = D1_MAX_PAYLOAD_BYTES;
 ```
 
-Host refuses guests that do not bound encoded statement payload bytes.
+Host refuses guests that bound encoded statement payload bytes below
+this, or not at all.
+
+The host's own named plans (job claims, outbox publish and dispatch,
+acquire status) are single statements sized for D1's proven cap, so a
+guest below it could not run them. The minimum is therefore D1's.
 
 ### D1_MAX_PAYLOAD_BYTES
 
@@ -897,7 +908,7 @@ pub const D1_MAX_PAYLOAD_BYTES: u32 = _;
 
 Canonical SQL+binds cap advertised for D1.
 
-Largest `n >= `[`HOST_MIN_PAYLOAD_BYTES`](#host_min_payload_bytes) such that
+Largest `n` at or above the 1,024-byte search floor such that
 [`lowered_statement_upper_bound_len`](#lowered_statement_upper_bound_len)`(n) <= `[`D1_MAX_SQL_STATEMENT_BYTES`](#d1_max_sql_statement_bytes).
 Host admission uses generic [`DbCapabilities::max_payload_bytes`](#dbcapabilities) plus
 [`DbCapabilities::max_lowered_statement_bytes`](#dbcapabilities); it does not name D1.
@@ -909,6 +920,20 @@ pub const HOST_MIN_RESULT_BYTES: u32 = 4_096;
 ```
 
 Host refuses guests that do not bound JSON bytes of one statement's rows.
+
+### HOST_MIN_REQUEST_BYTES
+
+```rust
+pub const HOST_MIN_REQUEST_BYTES: u32 = 65_536;
+```
+
+Host refuses guests that bound one encoded request below this, or not at
+all.
+
+The host's named plans are one request each: a job claim with its
+receipt encodes to about 5 KiB, and a dispatch page of `maxStatements`
+delivery inserts to tens of KiB. 64 KiB carries every one of them at the
+host-minimum statement and bind caps.
 
 ### HOST_MIN_CELL_BYTES
 

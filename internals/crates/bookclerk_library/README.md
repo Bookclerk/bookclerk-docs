@@ -13,6 +13,7 @@ the external guest RPC. This crate owns the greenfield schema
 | --- | --- | --- |
 | [`AtomicTxnBackend`](#atomictxnbackend) | trait | Backend that runs `crate::LibraryStore` named security operations as a single guest atomic batch. |
 | [`TypedAtomicExec`](#typedatomicexec) | trait | Runs a host-authorized typed `bookclerk_plugin_abi::ExecuteRequest` as one guest `executeAtomic`. |
+| [`NamedAtomicRunner`](#namedatomicrunner) | trait | Runs one compiled named plan as a single atomic batch. |
 | [`DbAtomicResult`](#dbatomicresult) | struct | Host-interpreted result of a named atomic operation. |
 | [`BackendMigrateOptions`](#backendmigrateoptions) | struct | Options for a backend-to-backend library copy. |
 | [`BackendMigrateSummary`](#backendmigratesummary) | struct | Per-table row counts copied (or that would be copied in dry-run mode). |
@@ -33,7 +34,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ValidatedBackup`](#validatedbackup) | struct | Recovery point whose objects, schema, and typed rows have been verified. |
 | [`SchemaApplyOptions`](#schemaapplyoptions) | struct | Options for `apply_host_schema_with_options`. |
 | [`SchemaBatch`](#schemabatch) | struct | Canonical schema apply batch: already-separate host statements plus marker. |
-| [`InProcessSqliteAtomic`](#inprocesssqliteatomic) | struct | Compiles named ops and runs them on a local SeaORM SQLite connection. |
+| [`InProcessSqlite`](#inprocesssqlite) | struct | Runs compiled named plans on a local SeaORM SQLite connection. |
 | [`PluginMigrationHistory`](#pluginmigrationhistory) | struct | Ordered durable plugin migration history. |
 | [`PluginMigrationSequence`](#pluginmigrationsequence) | struct | Proven, ordered plugin migration sequence. |
 | [`ProvenPluginMigration`](#provenpluginmigration) | struct | One proven registered migration. |
@@ -81,6 +82,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WishlistPurchaseHint`](#wishlistpurchasehint) | struct | Snapshotted purchase link/price for a wishlist title. |
 | [`WishlistStoreEdition`](#wishliststoreedition) | struct | Storefront edition key for wishlist / queue payloads. |
 | [`WorkRecord`](#workrecord) | struct | Canonical work spanning one or more ownership rows / editions. |
+| [`NamedAtomicBackend`](#namedatomicbackend) | struct | An `AtomicTxnBackend` that compiles every named operation and hands the plan to a `NamedAtomicRunner`. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
 | [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
@@ -220,6 +222,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`apply_merged_sources`](#apply_merged_sources) | function | Apply merged bib / editions / hints onto a wishlist row from its source snapshots. |
 | [`pick_better_description`](#pick_better_description) | function | Prefer HTML blurbs over plain text; otherwise the longer string wins. |
 | [`Result`](#result) | type alias | Result alias for `LibraryError`. |
+| [`InProcessSqliteAtomic`](#inprocesssqliteatomic) | type alias | The `crate::AtomicTxnBackend` over a local SQLite connection. |
 | [`CHUNK_TARGET_UNCOMPRESSED_BYTES`](#chunk_target_uncompressed_bytes) | constant | Target uncompressed JSON size for one table-data chunk. |
 | [`BACKUPS_DIR`](#backups_dir) | constant | Subdirectory of `$BOOKCLERK_FILES_DIR` holding the backup repository. |
 | [`BACKUP_FORMAT_VERSION`](#backup_format_version) | constant | Manifest format written by this binary. |
@@ -350,7 +353,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`scope`](scope.md): Plugin-scoped library access.
 - [`secrets`](secrets.md): Encrypted secrets store — DB-backed credential storage.
 - [`sql_plan`](sql_plan/README.md): Host-owned generic SQL atomic plans for database adapters. Host-owned SQL atomic plans for database plugins.
-- [`test_support`](test_support.md): A library store that behaves like one opened on an external database plugin, for tests.
+- [`test_support`](test_support/README.md): A library store that behaves like one opened on an external database plugin, for tests.
 - [`atomic_status`](atomic_status.md): Application status strings produced by host plan interpretation.
 - [`secret_account_type`](secret_account_type.md): Ownership namespace for `encrypted_secrets.account_type`.
 - [`secret_kind`](secret_kind.md): Well-known `kind` values for the `encrypted_secrets` table.
@@ -866,7 +869,7 @@ where
 
 CAS-claim one pending delivery after the host has filtered eligibility.
 
-Implemented by: `InProcessSqliteAtomic`
+Implemented by: `NamedAtomicBackend<R>`
 
 ### TypedAtomicExec
 
@@ -909,6 +912,54 @@ Returns a plugin ABI error when validation, transport, or the engine
 rejects the batch.
 
 Implemented by: `ProfileExec`
+
+### NamedAtomicRunner
+
+```rust
+pub trait NamedAtomicRunner: Send + Sync {
+    fn run_compiled<'life0, 'async_trait>(
+        &'life0 self,
+        compiled: CompiledAtomic,
+        operation_id: String,
+    ) -> Pin<Box<dyn Future<Output = Result<DbAtomicResult>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+Runs one compiled named plan as a single atomic batch.
+
+A runner is the transport under a [`NamedAtomicBackend`]: it receives the
+plan the backend compiled and answers with the interpreted result. It
+must apply the whole plan or none of it, and must return application
+outcomes (`notFound`, `lastOwner`, `empty`, …) as the result's status,
+not as errors.
+
+#### NamedAtomicRunner::run_compiled
+
+```rust
+fn run_compiled<'life0, 'async_trait>(
+    &'life0 self,
+    compiled: CompiledAtomic,
+    operation_id: String,
+) -> Pin<Box<dyn Future<Output = Result<DbAtomicResult>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Runs `compiled` under `operation_id`, the idempotency key a retry
+after a lost reply resumes.
+
+##### Errors
+
+Returns [`LibraryError::LimitExceeded`](#libraryerror) when the plan or its result
+exceeds a negotiated cap, [`LibraryError::Unavailable`](#libraryerror) when the reply
+was lost and the batch may have been applied, and another
+[`LibraryError`](#libraryerror) when the engine refused the batch.
+
+Implemented by: `InProcessSqlite`, `ProfileAtomic`
 
 ## Structs
 
@@ -1704,21 +1755,17 @@ Unreleased development pack plus `bookclerk_schema_migrations` unreleased row.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-### InProcessSqliteAtomic
+### InProcessSqlite
 
 ```rust
-pub struct InProcessSqliteAtomic {
-    pub db: DatabaseConnection,
+pub struct InProcessSqlite {
+    /* private fields */
 }
 ```
 
-Compiles named ops and runs them on a local SeaORM SQLite connection.
+Runs compiled named plans on a local SeaORM SQLite connection.
 
-**Fields**
-
-- `db`: Open library connection (already migrated).
-
-Implements: `AtomicTxnBackend`
+Implements: `Clone`, `Debug`, `NamedAtomicRunner`
 
 ### PluginMigrationHistory
 
@@ -3548,6 +3595,35 @@ Canonical work spanning one or more ownership rows / editions.
 - `updated_at`: When the row was last modified.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### NamedAtomicBackend
+
+```rust
+pub struct NamedAtomicBackend<R> {
+    /* private fields */
+}
+```
+
+An [`AtomicTxnBackend`](#atomictxnbackend) that compiles every named operation and hands the
+plan to a [`NamedAtomicRunner`](#namedatomicrunner).
+
+#### NamedAtomicBackend::on
+
+```rust
+pub fn on(db: DatabaseConnection) -> Self
+```
+
+The backend over `db`, an open and migrated library connection.
+
+#### NamedAtomicBackend::new
+
+```rust
+pub fn new(runner: R) -> Self
+```
+
+Wraps `runner`.
+
+Implements: `AtomicTxnBackend`, `Debug`
 
 ### SchemaWalk
 
@@ -6253,11 +6329,13 @@ pub async fn list_books_by_uuid_page(
 Pages books whose uuid is in `uuids`, then applies account and status.
 
 `uuids` is capped at [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) (the search-hit cap).
-Lists longer than 64 uuids are ordered from narrow `uuid, title` reads,
-then only the requested page is loaded. Shorter lists sort and page in
-SQL, in pieces that shrink when a result would exceed the guest byte
-cap. An empty uuid list is an empty page. Two stored uuids that differ
-only by ASCII case are different books and both hydrate.
+Lists longer than one `IN` list (64 uuids, fewer when the adapter's
+`maxPayloadBytes` or `maxBinds` holds fewer) are ordered from narrow
+`uuid, title` reads, then only the requested page is loaded. Shorter
+lists sort and page in SQL, in pieces that shrink when a result would
+exceed the guest byte cap. An empty uuid list is an empty page. Two
+stored uuids that differ only by ASCII case are different books and
+both hydrate.
 
 ##### Errors
 
@@ -9959,6 +10037,15 @@ Kind of durable daemon work stored in the `jobs` table.
   claims it.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
+#### JobKind::ALL
+
+```rust
+pub const ALL: [Self; 10] = _
+```
+
+Every kind, in declaration order; the SQL plans derive their kind
+lists from it so a new kind cannot be left unclaimable.
+
 #### JobKind::as_str
 
 ```rust
@@ -12001,6 +12088,14 @@ pub type Result<T> = Result<T, LibraryError>;
 ```
 
 Result alias for [`LibraryError`](#libraryerror).
+
+### InProcessSqliteAtomic
+
+```rust
+pub type InProcessSqliteAtomic = NamedAtomicBackend<InProcessSqlite>;
+```
+
+The [`crate::AtomicTxnBackend`](#atomictxnbackend) over a local SQLite connection.
 
 ## Constants
 

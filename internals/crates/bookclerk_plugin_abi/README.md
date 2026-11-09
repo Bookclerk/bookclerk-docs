@@ -279,6 +279,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_execute::HOST_MIN_FUNCTION_ARGS`](db_execute.md#host_min_function_args)
 - [`db_execute::HOST_MIN_PATTERN_BYTES`](db_execute.md#host_min_pattern_bytes)
 - [`db_execute::HOST_MIN_PAYLOAD_BYTES`](db_execute.md#host_min_payload_bytes)
+- [`db_execute::HOST_MIN_REQUEST_BYTES`](db_execute.md#host_min_request_bytes)
 - [`db_execute::HOST_MIN_RESULT_BYTES`](db_execute.md#host_min_result_bytes)
 - [`db_execute::HOST_MIN_RESULT_ROWS`](db_execute.md#host_min_result_rows)
 - [`db_execute::HOST_MIN_SCHEMA_COLUMNS`](db_execute.md#host_min_schema_columns)

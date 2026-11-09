@@ -8,7 +8,7 @@ authorizes the SQL against the binding-owned scope, wraps every batch in
 a receipt and holds it to the adapter's advertisement. The in-process
 fakes an author would otherwise test against do none of that.
 [`BindingDatabase`](#bindingdatabase) runs the same host path on an in-memory SQLite unit
-under one [`Profile`](../bookclerk_library/test_support.md#profile), so a plugin's queries meet the caps, the typed
+under one [`Profile`](../bookclerk_library/test_support/README.md#profile), so a plugin's queries meet the caps, the typed
 `limit_exceeded` error and the refused interactive transaction before
 they meet a real adapter.
 

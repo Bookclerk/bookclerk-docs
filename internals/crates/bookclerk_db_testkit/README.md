@@ -12,12 +12,12 @@ in-memory library whose connection behaves like the guest:
 - `begin()` on the connection is refused the way the adapter refuses it,
   and the refusal is counted ([`TestDatabase::refused_begins`](#testdatabaserefused_begins)).
 - Every host batch goes through an executor that applies the
-  [`Profile`](../bookclerk_library/test_support.md#profile)'s capability advertisement on the request and on the reply,
+  [`Profile`](../bookclerk_library/test_support/README.md#profile)'s capability advertisement on the request and on the reply,
   answering a typed `limit_exceeded` error.
 - Lost replies and lock contention can be injected
   ([`TestDatabase::lose_next_replies`](#testdatabaselose_next_replies), [`TestDatabase::lock_next_requests`](#testdatabaselock_next_requests)).
 
-[`fixtures`](fixtures.md) generates realistic rows near the caps, and [`paging`](paging.md) checks
+[`fixtures`](fixtures.md) generates realistic rows near the caps, and [`paging`](../bookclerk_library/test_support/paging.md) checks
 that a paged listing returns what the full listing returns. Ordinary
 SeaORM reads through [`TestDatabase::connection`](#testdatabaseconnection) are held to the engine
 proxy's first-party caps, as on the shipped sqlite adapter.
@@ -32,14 +32,14 @@ proxy's first-party caps, as on the shipped sqlite adapter.
 ## Re-exports
 
 - [`binding::BindingDatabase`](binding.md#bindingdatabase)
-- [`bookclerk_library::test_support::Profile`](../bookclerk_library/test_support.md#profile)
+- [`bookclerk_library::test_support::paging`](../bookclerk_library/test_support/paging.md)
+- [`bookclerk_library::test_support::Profile`](../bookclerk_library/test_support/README.md#profile)
 - [`bookclerk_library::test_support::INTERACTIVE_TRANSACTIONS_REFUSED`](../bookclerk_db_exec/begin_gate.md#interactive_transactions_refused)
 
 ## Modules
 
 - [`binding`](binding.md): A plugin-owned database that behaves like a granted `[[databases]]` binding on a deployed host.
 - [`fixtures`](fixtures.md): Realistic row contents sized against a capability advertisement.
-- [`paging`](paging.md): Checks that a paged listing returns what the full listing returns.
 
 ## Structs
 

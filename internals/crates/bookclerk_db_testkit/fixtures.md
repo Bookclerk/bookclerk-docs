@@ -82,4 +82,5 @@ insertion order.
 
 Panics when `count` rows of at most one cell each cannot exceed the
 result cap, so a test asking for too few rows fails at the fixture
-instead of passing on a listing that never reached the cap.
+instead of passing on a listing that never reached the cap, and when a
+generated row does not fit a cell after all.
