@@ -36,6 +36,7 @@ credential keys are placeholders that never verify a signature.
 | [`Lookup`](#lookup) | struct | One title to look up in a storefront's public catalog. |
 | [`SeedReport`](#seedreport) | struct | What `seed` wrote, for the log and for tests. |
 | [`Seeded`](#seeded) | enum | Outcome of `seed`. |
+| [`Mode`](#mode) | enum | What one run of the seed binary does, from its command line. |
 | [`committed_records`](#committed_records) | function | The committed storefront records (`records.json`) for the current sample titles; entries for titles no longer sampled are dropped. |
 | [`parse_records`](#parse_records) | function | Parses a records file: a JSON object from `Lookup::key` to a catalog record, keeping only keys of current sample titles. |
 | [`merge_records`](#merge_records) | function | Live lookups over the committed records: a title the live lookup found keeps that record, and one it missed falls back to `committed` unless a live record already holds that product id, so a stale committed record never pushes out a fresh one. No two titles share a product id. |
@@ -46,10 +47,13 @@ credential keys are placeholders that never verify a signature.
 | [`distinct_records`](#distinct_records) | function | `records` without entries whose product id another title already took, so two sample titles never become one book (the first, in `lookups` order, keeps it). |
 | [`seed`](#seed) | function | Adds the sample library user, their books, wishlist and offline branch. |
 | [`with_details`](#with_details) | function | Replaces a search hit with its storefront's full catalog record (the details call Discover makes for title dialogs), so a store whose search rows are lean, such as Libro.fm, still seeds a description, publisher, genres and price. |
-| [`records_path`](#records_path) | function | The `--write-records <path>` argument the seed binary was given, if any. |
+| [`parse_mode`](#parse_mode) | function | Parses the seed binary's arguments into a `Mode`. |
+| [`clear_install_files`](#clear_install_files) | function | Deletes the files a seeded files dir holds that every demo container must make for itself, so the dir can be baked into the image. |
+| [`deploy_on_node`](#deploy_on_node) | function | Deploys a plugin's default instance on `node_id` as the operator, as `plugins deploy` does; an instance already present is left alone. |
 | [`StoreRecords`](#storerecords) | type alias | Storefront records found for the sample titles, by `Lookup::key`. |
 | [`SAMPLE_LOGIN`](#sample_login) | constant | Login name of the sample library user; its presence marks a seeded library. |
 | [`STOREFRONTS`](#storefronts) | constant | Every storefront Sam has an account at, in the order the accounts are added. |
+| [`EXTRA_PLUGINS`](#extra_plugins) | constant | Plugins the demo runs besides the storefronts, by manifest id: what the demo Worker enables as optional (`OPTIONAL_PLUGINS` in `tools/demo/src/lifecycle.ts`). The seed enables them too, so a baked image already has them, and one missing from the image is skipped. |
 | [`SAMPLE_BRANCH`](#sample_branch) | constant | Node id of Sam's offline branch. |
 
 ## Structs
@@ -135,6 +139,29 @@ Outcome of [`seed`](#seed).
 - `AlreadySeeded`: The library already has the sample user; nothing was written.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### Mode
+
+```rust
+pub enum Mode {
+    Seed,
+    WriteRecords(PathBuf),
+    BakeFinish,
+}
+```
+
+What one run of the seed binary does, from its command line.
+
+**Variants**
+
+- `Seed`: No arguments: seed the library.
+- `WriteRecords`: `--write-records <path>`: look the sample titles up and write the
+  records found to the path, seeding nothing.
+- `BakeFinish`: `--bake-finish`: turn the seeded files dir into the template a demo
+  image ships (`packaging/demo/bake-seed.sh`), removing every secret
+  and runtime file a container must make for itself.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
@@ -313,13 +340,13 @@ details call fails, times out, finds nothing, or returns a different
 product than the search matched (neither the same product id nor the
 same ISBN).
 
-### records_path
+### parse_mode
 
 ```rust
-pub fn records_path(args: impl Iterator<Item = String>) -> Result<Option<PathBuf>>
+pub fn parse_mode(args: impl Iterator<Item = String>) -> Result<Mode>
 ```
 
-The `--write-records <path>` argument the seed binary was given, if any.
+Parses the seed binary's arguments into a [`Mode`](#mode).
 
 #### Arguments
 
@@ -327,11 +354,58 @@ The `--write-records <path>` argument the seed binary was given, if any.
 
 #### Returns
 
-Where to write the store records, or `None` to seed the library.
+The mode the arguments ask for.
 
 #### Errors
 
-Returns an error for any other argument, or a missing path.
+Returns an error for any other argument, a missing path, or an extra
+argument.
+
+### clear_install_files
+
+```rust
+pub fn clear_install_files(files_dir: &Path, cache_dir: &Path) -> Result<()>
+```
+
+Deletes the files a seeded files dir holds that every demo container
+must make for itself, so the dir can be baked into the image.
+
+Removes `master.key` (the first daemon of each container mints and wraps
+its own), the covers cache's URL-signing key (`covers/token.key` under
+the cache dir), `logs/`, each plugin's `session-*` dirs under
+`plugin-state/`, and empty SQLite side files. Anything already absent
+counts as removed.
+
+#### Arguments
+
+* `files_dir` - The seeded `$BOOKCLERK_FILES_DIR`.
+* `cache_dir` - Its cache dir (`paths.cache_dir`).
+
+#### Errors
+
+Returns an error when a file cannot be removed, or when a SQLite side
+file still holds data: it would carry writes the copied `library.db`
+cannot see, so bookclerkd must stop first.
+
+### deploy_on_node
+
+```rust
+pub async fn deploy_on_node(store: &LibraryStore, node_id: &str, key: &str) -> Result<()>
+```
+
+Deploys a plugin's default instance on `node_id` as the operator, as
+`plugins deploy` does; an instance already present is left alone.
+
+#### Arguments
+
+* `store` - The library.
+* `node_id` - The node the instance should run on (this host's).
+* `key` - The plugin's canonical key.
+
+#### Errors
+
+Returns an error when the plugin has no default instance, the scheduler
+manages it, or a deployment write fails or races another writer.
 
 ## Type aliases
 
@@ -360,6 +434,17 @@ pub const STOREFRONTS: [Storefront; 4] = _;
 ```
 
 Every storefront Sam has an account at, in the order the accounts are added.
+
+### EXTRA_PLUGINS
+
+```rust
+pub const EXTRA_PLUGINS: [&str; 1] = _;
+```
+
+Plugins the demo runs besides the storefronts, by manifest id: what the
+demo Worker enables as optional (`OPTIONAL_PLUGINS` in
+`tools/demo/src/lifecycle.ts`). The seed enables them too, so a baked
+image already has them, and one missing from the image is skipped.
 
 ### SAMPLE_BRANCH
 

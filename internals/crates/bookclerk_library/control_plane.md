@@ -85,6 +85,7 @@ See `docs/adr/control-plane.md`.
 | [`ClusterSecret`](#clustersecret) | struct | Cluster id and fingerprint of the secret root aligned for this process. |
 | [`SemaphorePermit`](#semaphorepermit) | struct | One held permit: a slot lease of a semaphore. |
 | [`SemaphoreRequest`](#semaphorerequest) | struct | One semaphore a caller wants a permit of. |
+| [`TemplateStrip`](#templatestrip) | struct | What `strip_install_state` removed. |
 | [`TitleNames`](#titlenames) | struct | The names a title's acquire writes on one destination, as the owner plans them, all without their extension. |
 | [`UploadDestination`](#uploaddestination) | struct | One output destination of the receiving owner node an upload is granted for, with where the title may be written there. |
 | [`UploadFinish`](#uploadfinish) | struct | How the job's closing upload completes it. |
@@ -329,6 +330,7 @@ See `docs/adr/control-plane.md`.
 | [`renew_fenced_lease`](#renew_fenced_lease) | function | Extends `lease` by `ttl` only while the row still carries its holder and token. Unlike `acquire_lease`, it never takes a lease over. |
 | [`renew_permits`](#renew_permits) | function | Extends every permit in `permits` by `ttl` while its holder and token still own the slot. |
 | [`semaphore_slot_lease_name`](#semaphore_slot_lease_name) | function | Lease name of slot `slot` of semaphore `name`. |
+| [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
 | [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. |
@@ -3022,6 +3024,27 @@ pub fn new(name: impl Into<String>, limit: u32) -> Self
 A request for one permit of `name` under `limit`.
 
 Implements: `Clone`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
+
+### TemplateStrip
+
+```rust
+pub struct TemplateStrip {
+    pub identity_rows: u64,
+    pub leases: u64,
+    pub node_status: u64,
+}
+```
+
+What [`strip_install_state`](#strip_install_state) removed.
+
+**Fields**
+
+- `identity_rows`: `cluster_identity` rows deleted (0 or 1); each holds the cluster id and
+  the fingerprint of its key, never the key.
+- `leases`: Cluster lease rows deleted.
+- `node_status`: Node heartbeat rows deleted.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### TitleNames
 
@@ -7979,6 +8002,28 @@ pub fn semaphore_slot_lease_name(name: &str, slot: u32) -> String
 ```
 
 Lease name of slot `slot` of semaphore `name`.
+
+### strip_install_state
+
+```rust
+pub async fn strip_install_state(store: &LibraryStore) -> Result<TemplateStrip>
+```
+
+Removes this install's own state from the library so that copies of it
+can start as installs of their own.
+
+Deletes the cluster secret fingerprint, so the first daemon of each copy
+records the key it mints instead of refusing it as a mismatch, plus the
+cluster leases and node heartbeats left by the build. Library data,
+plugin instances, deployments and the node rows stay. Run it only on a
+library no daemon has open.
+
+#### Errors
+
+Returns an error, and changes nothing, when `encrypted_secrets`,
+`operator_sessions`, `portal_sessions` or `claim_tickets` holds a row: a
+template must never carry sealed secrets or sessions.
+Returns the database error when a statement fails.
 
 ### accounts_owned_by
 
