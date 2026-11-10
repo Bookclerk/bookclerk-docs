@@ -95,6 +95,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
+| [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
@@ -2746,7 +2747,7 @@ JSON command envelope stored on a job row.
 - `subject`: For [`JobKind::DiscoverCandidates`](#jobkind) and [`JobKind::DiscoverFeed`]: the
   Discover subject key (`operator`, `user:<id>`, `portal:<id>`).
 - `node_id`: The one node that may claim this job, for work on that node's own
-  disk ([`JobKind::CacheSweep`](#jobkind)).
+  disk ([`JobKind::CacheSweep`](#jobkind), [`JobKind::SearchIndexRebuild`](#jobkind)).
   
   `None` lets any node that meets [`Self::requires`](#jobpayload) claim it. The
   routed claim (`control_plane::claim_routed_job`) skips a job pinned
@@ -3932,6 +3933,58 @@ A write plus the namespace limits it must satisfy.
 - `max_keys`: Most live keys this namespace holds.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ListingRef
+
+```rust
+pub struct ListingRef {
+    /* private fields */
+}
+```
+
+The identity of a store listing as the search index stores it: plugin
+key, stored marketplace and stored product id.
+
+Built either from a `store_listings` row or from a library title, and
+both spell it the same way, so a title's document and its listing's
+refresh meet on one [`Self::term`](#listingrefterm).
+
+#### ListingRef::of_book
+
+```rust
+pub fn of_book(book: &BookRecord) -> Self
+```
+
+The listing a library title's row resolves to.
+
+##### Arguments
+
+* `book` - The library title.
+
+#### ListingRef::new
+
+```rust
+pub fn new(plugin_key: &str, marketplace: &str, product_id: &str) -> Self
+```
+
+A listing from raw parts, normalized the way listings are stored.
+
+##### Arguments
+
+* `plugin_key` - The storefront's PluginKey.
+* `marketplace` - The marketplace as reported (normalized here).
+* `product_id` - The product id as reported (normalized here).
+
+#### ListingRef::term
+
+```rust
+pub fn term(&self) -> String
+```
+
+The single index term that names this listing: its three parts
+joined by the ASCII unit separator, which none of them contains.
+
+Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
 ### BookPage
 
@@ -5710,6 +5763,49 @@ Runs one retention delete as of `now` and answers how many rows
 Returns [`LibraryError::Orm`](#libraryerror) when a read or delete fails; rows the
 step had not reached yet are left for the next pass.
 
+#### LibraryStore::listing_refs_of_edition
+
+```rust
+pub async fn listing_refs_of_edition(&self, edition_id: &str) -> Result<Vec<ListingRef>>
+```
+
+The listings that sell `edition_id`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::listing_ref_by_id
+
+```rust
+pub async fn listing_ref_by_id(&self, listing_id: &str) -> Result<Option<ListingRef>>
+```
+
+The listing stored under `listing_id`, or `None` when it is gone.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::books_of_listing
+
+```rust
+pub async fn books_of_listing(&self, listing: &ListingRef) -> Result<Vec<BookRecord>>
+```
+
+Every library title whose row resolves to `listing`, one per
+account that holds it.
+
+A row keeps its product id as the store spelled it, padding
+included, while the listing keeps the normalized spelling, so the
+read narrows by plugin key and the product id's first word and the
+rest is compared normalized.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails, or a mapping error
+for a row the host cannot read.
+
 #### LibraryStore::storage_scan_put_object
 
 ```rust
@@ -6610,8 +6706,7 @@ pub async fn list_books_by_uuid_page(
 
 Pages books whose uuid is in `uuids`, then applies account and status.
 
-`uuids` is capped at [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) (the search-hit cap).
-Lists longer than one `IN` list (64 uuids, fewer when the adapter's
+`uuids` may hold every hit of a search; there is no cap. Lists longer than one `IN` list (64 uuids, fewer when the adapter's
 `maxPayloadBytes` or `maxBinds` holds fewer) are ordered from narrow
 `uuid, title` reads, then only the requested page is loaded. Shorter
 lists sort and page in SQL, in pieces that shrink when a result would
@@ -10312,6 +10407,7 @@ pub enum JobKind {
     DiscoverCandidates,
     DiscoverFeed,
     CacheSweep,
+    SearchIndexRebuild,
     Invalid,
 }
 ```
@@ -10335,12 +10431,15 @@ Kind of durable daemon work stored in the `jobs` table.
 - `CacheSweep`: Sweep one node's image caches and its orphaned job scratch
   (`cache_sweep`); only the node named by [`JobPayload::node_id`](#jobpayload)
   claims it.
+- `SearchIndexRebuild`: Rebuild one node's full-text search index from the library
+  (`search_index_rebuild`); only the node named by
+  [`JobPayload::node_id`](#jobpayload) claims it.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 10] = _
+pub const ALL: [Self; 11] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind

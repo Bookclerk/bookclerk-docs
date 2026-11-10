@@ -1418,7 +1418,7 @@ Lists or searches library titles with optional account/status filters and pagina
 
 - `account` (query) *string* — Restrict results to this store account id.
 - `status` (query) *string* — Optional `AcquireStatus` wire-string filter.
-- `q` (query) *string* — Full-text search query; empty skips the search index.
+- `q` (query) *string* — Full-text search over this node's search index. Hits are sorted by title and every hit counts toward `total` (there is no hit cap); an empty value skips the index.
 - `limit` (query) *integer* — Page size, clamped to 1–500 (default 40).
 - `offset` (query) *integer* — Number of matching titles to skip.
 

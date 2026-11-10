@@ -1001,7 +1001,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `cache_sweep`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `cache_sweep`, `search_index_rebuild`, `invalid`
 
 ## JobState
 

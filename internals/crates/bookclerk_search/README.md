@@ -13,6 +13,7 @@ Style: `docs/contributing/code-documentation.md`.
 | --- | --- | --- |
 | [`SearchEngine`](#searchengine) | struct | On-disk Tantivy search engine (classic Lucene `SearchEngine` parity). |
 | [`SearchHit`](#searchhit) | struct | One search hit. |
+| [`SearchPage`](#searchpage) | struct | One page of search hits in title order, and how many documents match. |
 | [`SavedFilter`](#savedfilter) | struct | A saved filter expression (Bookclerk quick-filter parity). |
 | [`SearchError`](#searcherror) | enum | Errors from opening, writing, or querying the Tantivy index. |
 | [`normalize_lucene_query`](#normalize_lucene_query) | function | Normalize a classic Libation/Lucene query for Tantivy's parser. |
@@ -47,6 +48,17 @@ Open or create a search index at `dir`.
 Returns [`crate::SearchError::Index`](#searcherror) when the directory or index cannot
 be opened.
 
+#### SearchEngine::is_complete
+
+```rust
+pub fn is_complete(dir: &Path) -> bool
+```
+
+True when a full rebuild of the current layout has finished in `dir`.
+
+An index that was never rebuilt, was deleted, or was written under
+an older layout is not complete; the daemon queues a rebuild for it.
+
 #### SearchEngine::rebuild
 
 ```rust
@@ -63,6 +75,79 @@ receives every catalog row.
 ##### Errors
 
 Returns an error when the operation fails.
+
+#### SearchEngine::refresh_listings
+
+```rust
+pub async fn refresh_listings(
+    &self,
+    library: &LibraryStore,
+    listings: &[ListingRef],
+) -> Result<usize>
+```
+
+Replaces the documents of `listings` with the library titles that
+sell them now.
+
+Every document carrying a listing's term is deleted and each title
+`LibraryStore::books_of_listing` still finds is added again, so a
+title whose row is gone (a holding removed, an account revoked)
+leaves the index, and one that changed is replaced.
+
+##### Arguments
+
+* `library` - The library the titles are read from.
+* `listings` - The listings an event touched.
+
+##### Returns
+
+How many documents were written.
+
+##### Errors
+
+Returns [`SearchError::Busy`](#searcherror) when another writer holds the index,
+[`SearchError::Library`](#searcherror) when a read fails, or
+[`SearchError::Index`](#searcherror) when the write fails.
+
+#### SearchEngine::refresh_titles
+
+```rust
+pub async fn refresh_titles(
+    &self,
+    library: &LibraryStore,
+    uuids: &[String],
+) -> Result<usize>
+```
+
+Replaces the documents of the titles `uuids` with their rows now, and
+drops any whose row is gone.
+
+##### Arguments
+
+* `library` - The library the titles are read from.
+* `uuids` - Library `books.uuid` values.
+
+##### Returns
+
+How many documents were written.
+
+##### Errors
+
+As [`Self::refresh_listings`](#searchenginerefresh_listings).
+
+#### SearchEngine::mark_incomplete
+
+```rust
+pub fn mark_incomplete(&self) -> Result<()>
+```
+
+Forgets that the index was fully rebuilt, so the daemon queues a new
+rebuild. For a change a refresh cannot place, such as an event whose
+listing is already gone.
+
+##### Errors
+
+Returns [`SearchError::Index`](#searcherror) when the marker cannot be removed.
 
 #### SearchEngine::open_and_search
 
@@ -101,6 +186,82 @@ Blocking. Prefer [`SearchEngine::open_and_search`](#searchengineopen_and_search)
 
 Returns an error when the operation fails.
 
+#### SearchEngine::open_and_search_page
+
+```rust
+pub async fn open_and_search_page(
+    dir: PathBuf,
+    query: String,
+    offset: usize,
+    limit: usize,
+) -> Result<SearchPage>
+```
+
+Opens an index and reads one title-ordered page of a query's hits
+without blocking the caller's task (see [`Self::open_and_search`](#searchengineopen_and_search)).
+
+##### Errors
+
+Propagates index-open and query failures.
+
+#### SearchEngine::open_and_match_uuids
+
+```rust
+pub async fn open_and_match_uuids(dir: PathBuf, query: String) -> Result<Vec<String>>
+```
+
+Opens an index and lists every hit of a query without blocking the
+caller's task (see [`Self::open_and_search`](#searchengineopen_and_search)).
+
+##### Errors
+
+Propagates index-open and query failures.
+
+#### SearchEngine::search_page
+
+```rust
+pub fn search_page(
+    &self,
+    raw_query: &str,
+    offset: usize,
+    limit: usize,
+) -> Result<SearchPage>
+```
+
+One page of a query's hits in case-insensitive title order, with the
+number of matching documents.
+
+Sorting, paging and counting all happen in the index, so no hit cap
+applies and only `limit` uuids leave it. Blocking.
+
+##### Arguments
+
+* `raw_query` - Lucene-style query (normalized before parse).
+* `offset` - Hits to skip.
+* `limit` - Most hits to return; 0 returns only the count.
+
+##### Errors
+
+Returns [`SearchError::Query`](#searcherror) for a query that does not parse, or
+[`SearchError::Index`](#searcherror) when the index cannot be read.
+
+#### SearchEngine::match_uuids
+
+```rust
+pub fn match_uuids(&self, raw_query: &str) -> Result<Vec<String>>
+```
+
+The uuid of every document a query matches, in title order.
+
+For callers that must filter the hits by something the index does
+not hold authoritatively; there is no cap. The count and the hits
+come from one searcher, so a commit in between cannot cut the list
+short. Blocking.
+
+##### Errors
+
+As [`Self::search_page`](#searchenginesearch_page).
+
 ### SearchHit
 
 ```rust
@@ -124,6 +285,25 @@ One search hit.
 - `score`: Tantivy relevance score (higher is better).
 
 Implements: `Clone`, `Debug`, `PartialEq`
+
+### SearchPage
+
+```rust
+pub struct SearchPage {
+    pub uuids: Vec<String>,
+    pub total: usize,
+}
+```
+
+One page of search hits in title order, and how many documents match.
+
+**Fields**
+
+- `uuids`: Library uuids of the page's hits (lowercased, as indexed), in
+  case-insensitive title order, then uuid.
+- `total`: Documents that match the query, before paging.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### SavedFilter
 
@@ -150,6 +330,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 ```rust
 pub enum SearchError {
     Index(String),
+    Busy,
     Query(String),
     Library(LibraryError),
 }
@@ -160,6 +341,8 @@ Errors from opening, writing, or querying the Tantivy index.
 **Variants**
 
 - `Index`: Index open / writer / commit failure (operator-facing detail).
+- `Busy`: Another writer (a rebuild, an event refresh, or the CLI) holds the
+  index lock; the write can be retried shortly.
 - `Query`: Query parse failure after Lucene-style normalization.
 - `Library`: Failure loading library rows while rebuilding the index.
 

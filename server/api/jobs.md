@@ -135,6 +135,7 @@ Schema:
           "discover_candidates",
           "discover_feed",
           "cache_sweep",
+          "search_index_rebuild",
           "invalid"
         ]
       },
