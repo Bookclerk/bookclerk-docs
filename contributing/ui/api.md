@@ -1357,6 +1357,52 @@ title: string;
 
 ***
 
+### DiscoverStatus
+
+Stored state of the caller's Discover shelves (`GET /api/discover/status`).
+
+#### Properties
+
+##### candidates\_fetched\_at?
+
+```ts
+candidates_fetched_at?: string | null;
+```
+
+##### feed\_computed\_at?
+
+```ts
+feed_computed_at?: string | null;
+```
+
+##### ready
+
+```ts
+ready: boolean;
+```
+
+##### scope?
+
+```ts
+scope?: string | null;
+```
+
+##### subject
+
+```ts
+subject: string;
+```
+
+##### updating
+
+```ts
+updating: boolean;
+```
+
+True while a fetch or ranking for the caller is waiting or running.
+
+***
+
 ### EventDeliveryInfo
 
 Operator delivery row from `/api/events/deliveries`.
@@ -4072,6 +4118,16 @@ best: PurchaseHint | null;
 hints: PurchaseHint[];
 ```
 
+##### incomplete?
+
+```ts
+incomplete?: boolean;
+```
+
+True when the server's batch deadline cut the lookup short: the hints are
+links without prices, so the answer is not cached and should be asked
+for again later.
+
 ***
 
 ### QueueWisher
@@ -4298,6 +4354,14 @@ score: number;
 seed_categories?: string | null;
 ```
 
+##### seed\_title?
+
+```ts
+seed_title?: string | null;
+```
+
+Title of the book or wish the storefront was asked about to find this card.
+
 ##### series
 
 ```ts
@@ -4309,6 +4373,14 @@ series: string | null;
 ```ts
 series_index: string | null;
 ```
+
+##### starter\_genre?
+
+```ts
+starter_genre?: string | null;
+```
+
+Starter genre this card was browsed from while the taste was thin.
 
 ##### store\_editions?
 
@@ -7678,6 +7750,23 @@ Deletes a wishlist title-request owned by the current user.
 `Promise`\<[`TitleRequest`](#titlerequest)\>
 
 The removed title-request row as echoed by the API.
+
+***
+
+### requestDiscoverRefresh()
+
+```ts
+function requestDiscoverRefresh(): Promise<DiscoverStatus>;
+```
+
+Queues a storefront fetch and ranking for the caller's shelves now, as
+the Refresh button asks. A fetch already waiting absorbs the request.
+
+#### Returns
+
+`Promise`\<[`DiscoverStatus`](#discoverstatus)\>
+
+The caller's Discover status once the fetch is queued.
 
 ***
 

@@ -80,14 +80,14 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`parse_money_label_to_cents`](#parse_money_label_to_cents) | function | Parse `$12.34` / `12.34` / `FREE` into cents. |
 | [`purchase_hints_for`](#purchase_hints_for) | function | Look up purchase links via registered `bookclerk_source::ContentSource::purchase_hint` (no prices). |
 | [`resolve_purchase_hints`](#resolve_purchase_hints) | function | Resolve every catalog match and attach live prices (view-time). |
-| [`resolve_purchase_hints_batch`](#resolve_purchase_hints_batch) | function | Resolve many purchase-hint queries with bounded concurrency (order preserved). |
+| [`resolve_purchase_hints_batch`](#resolve_purchase_hints_batch) | function | Resolve many purchase-hint queries at once (order preserved). |
 | [`seed_purchase_hint`](#seed_purchase_hint) | function | Seed a deterministic storefront URL from a known candidate (no remote I/O). |
 | [`combine_wishlist_score`](#combine_wishlist_score) | function | Combine local recommend taste with a heavy multi-user wishlist boost. |
 | [`listening_engagement`](#listening_engagement) | function | Continuous engagement from a listening progress row (≈0.0–6.0). |
 | [`rank_global_request_queue`](#rank_global_request_queue) | function | Rank the global wishlist queue with **overall / operator** recommend taste plus a heavy wish-count weight. |
 | [`recommend`](#recommend) | function | Build ranked recommendations for the operator (or a specific external user). |
 | [`recommend_feed`](#recommend_feed) | function | Personalized Discover feed (Netflix-style shelves) from the same candidate pool. |
-| [`build_discover_feed`](#build_discover_feed) | function | Partition scored recommendations into Discover shelves (items may repeat). |
+| [`build_discover_feed`](#build_discover_feed) | function | Partitions scored recommendations into Discover shelves. |
 | [`flatten_feed`](#flatten_feed) | function | Flatten shelves into a unique score-sorted list (CLI / legacy). |
 | [`shelf_is_disabled`](#shelf_is_disabled) | function | Whether `shelf_id` matches an ignore entry (exact, kind prefix, or `from_store`). |
 | [`shelf_kind_catalog`](#shelf_kind_catalog) | function | Shelf kinds Discover can emit (for config / UI ignore lists). |
@@ -98,10 +98,18 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
 | [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
 | [`METADATA_ENRICH_SOURCE_PREFIX`](#metadata_enrich_source_prefix) | constant | `enrich_source` prefix marking a title filled by a metadata provider; the provider's plugin key follows it. |
+| [`HOUSEHOLD_BLEND_WEIGHT`](#household_blend_weight) | constant | How much a household book counts in a member's taste while it blends in, relative to one of their own. |
+| [`OWN_TASTE_THRESHOLD`](#own_taste_threshold) | constant | Books and listens of their own a subject needs before the household's books stop blending into their taste. |
+| [`STARTER_GENRES`](#starter_genres) | constant | Genres browsed for a thin taste, in the order the stores are asked (the call budget may stop before the end). |
+| [`STARTER_GENRE_MIN_SEEDS`](#starter_genre_min_seeds) | constant | Seeds below which a fetch also browses each store's `STARTER_GENRES`, so a new library still gets shelves. |
 | [`STORE_CALL_MAX_AGE`](#store_call_max_age) | constant | How long a cached storefront answer is reused (the daily refresh). |
 | [`STORE_CALL_TIMEOUT`](#store_call_timeout) | constant | Longest one storefront call may take before its store moves on. |
 | [`STORE_FETCH_DEADLINE`](#store_fetch_deadline) | constant | How long one store may keep starting new calls in a fetch. |
+| [`BATCH_DEADLINE`](#batch_deadline) | constant | Longest a batch waits for its lookups before answering with what has resolved. Under the daemon's 25 s route budget, so a slow store never turns a page of cards into one failed request. |
+| [`BREAKER_OPEN_FOR`](#breaker_open_for) | constant | How long a tripped store is skipped. After that, lookups ask it again, and `BREAKER_TRIP_TIMEOUTS` more timeouts in a row pause it again. |
+| [`BREAKER_TRIP_TIMEOUTS`](#breaker_trip_timeouts) | constant | Timeouts in a row after which a store's price lookups are skipped. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
+| [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
 
 ## Re-exports
 
@@ -249,6 +257,7 @@ pub struct StorefrontCandidate {
     pub seed_categories: Option<String>,
     pub origin: String,
     pub seed_title: Option<String>,
+    pub starter_genre: Option<String>,
     pub store_editions: Vec<StoreEdition>,
     pub subtitle: Option<String>,
     pub description: Option<String>,
@@ -284,6 +293,8 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `seed_categories`: Categories/subjects copied from the taste seed that produced this hit.
 - `origin`: How this candidate was found (related-to seed, author search, …).
 - `seed_title`: Owned-library title that seeded this related / similar candidate.
+- `starter_genre`: Starter genre this candidate was browsed from (display name), set
+  only on hits of a starter-genre search for a thin taste.
 - `store_editions`: Known storefront editions of this work (including the primary source).
 - `subtitle`: Bibliographic extras from the storefront catalog payload (optional).
 - `description`: Publisher or storefront synopsis; may be truncated for embeddings.
@@ -762,8 +773,11 @@ Implements: `Clone`, `Debug`
 pub struct SubjectTaste {
     pub scope: SeedScope,
     pub books: Vec<BookRecord>,
+    pub weights: HashMap<String, f64>,
     pub listening: Vec<ListeningProgressRecord>,
     pub wishlist: Vec<SeedTitle>,
+    pub wish_titles: Vec<String>,
+    pub linked_sources: HashSet<String>,
 }
 ```
 
@@ -772,9 +786,17 @@ One subject's taste: whose seeds Discover uses and what they read.
 **Fields**
 
 - `scope`: Whether the taste is the subject's own or the household's.
-- `books`: Books whose finishes, ratings, series and authors shape the taste.
-- `listening`: The subject's listening rows (all rows for the household).
-- `wishlist`: The subject's open wishlist titles, used as extra seeds.
+- `books`: Books whose finishes, ratings, series and authors shape the taste:
+  the subject's own, then the household's blended in while the
+  subject's own are fewer than [`OWN_TASTE_THRESHOLD`](#own_taste_threshold).
+- `weights`: How much each book in `books` counts; a blended household book is
+  listed at [`HOUSEHOLD_BLEND_WEIGHT`](#household_blend_weight), the subject's own count in full.
+- `listening`: The subject's listening rows (all rows for the household). While
+  household books blend in, the household's rows for those books are
+  added too, and count at their book's weight.
+- `wishlist`: The subject's open wishlist titles, newest first, used as extra seeds.
+- `wish_titles`: Display titles of `wishlist`, newest first.
+- `linked_sources`: Lowercase storefront ids the subject has an account with.
 
 Implements: `Clone`, `Debug`
 
@@ -879,6 +901,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `S
 pub struct PurchaseHintsResponse {
     pub hints: Vec<PurchaseHint>,
     pub best: Option<PurchaseHint>,
+    pub incomplete: bool,
 }
 ```
 
@@ -888,6 +911,9 @@ Priced catalog matches for one title, sorted best-first.
 
 - `hints`: Resolved purchase hints for this query.
 - `best`: Lowest-priced hint (or first catalog hit when no prices resolved).
+- `incomplete`: True when the batch deadline cut this lookup short: the hints are the
+  query's trusted seeds alone, so a client should not keep the answer
+  and asks again later. Omitted (false) for a finished lookup.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1024,6 +1050,8 @@ pub struct Recommendation {
     pub language: Option<String>,
     pub wishers: Vec<QueueWisher>,
     pub wish_count: i64,
+    pub seed_title: Option<String>,
+    pub starter_genre: Option<String>,
 }
 ```
 
@@ -1065,6 +1093,9 @@ One ranked recommendation (typically an unowned storefront title).
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
 - `wishers`: Distinct people who have this title on an open wishlist.
 - `wish_count`: Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
+- `seed_title`: Title of the book or wish the storefront was asked about to find this
+  card, when it came from such an expansion.
+- `starter_genre`: Starter genre this card was browsed from while the taste was thin.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1140,6 +1171,8 @@ pub struct ShelfTaste {
     pub categories: HashMap<String, (String, f64)>,
     pub seed_authors_by_title: HashMap<String, Vec<String>>,
     pub owned_sources: HashSet<String>,
+    pub wish_titles: Vec<String>,
+    pub linked_sources: HashSet<String>,
 }
 ```
 
@@ -1152,6 +1185,10 @@ Taste context used to title and fill personalized shelves.
 - `categories`: Lowercase category/subject → (display name, weight).
 - `seed_authors_by_title`: Seed title (lowercase) → authors on that seed (display).
 - `owned_sources`: Storefronts represented in the owned library (`audible`, `libro`, …).
+- `wish_titles`: Titles on the subject's own open wishlist, newest first, that name
+  the "Because you wishlisted" shelves.
+- `linked_sources`: Lowercase storefront ids the subject has an account with, compared
+  at member price when a card is placed on a store shelf.
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -1896,9 +1933,13 @@ Loads one subject's taste.
 A user or portal identity uses the books held by store accounts linked to
 them plus the household books they have listened to, the listening rows
 recorded for them (by identity id, or by provider and external user id on
-rows recorded before the identity was known), and their open wishlist. When
-all three are empty (a new member, or a visitor who has connected no store
-yet), and always for the operator, the household library is used instead.
+rows recorded before the identity was known), and their open wishlist.
+While they have fewer than [`OWN_TASTE_THRESHOLD`](#own_taste_threshold) books and listens of
+their own, the rest of the household's books blend in at
+[`HOUSEHOLD_BLEND_WEIGHT`](#household_blend_weight), so a first wish or book adds to the shelves
+they already had instead of replacing them. With no signal of their own
+at all (a new member, or a visitor who has connected no store yet), and
+always for the operator, the household library is used as it stands.
 
 #### Arguments
 
@@ -2104,21 +2145,23 @@ pub async fn resolve_purchase_hints_batch(
 ) -> Vec<Result<PurchaseHintsResponse, DiscoverError>>
 ```
 
-Resolve many purchase-hint queries with bounded concurrency (order preserved).
+Resolve many purchase-hint queries at once (order preserved).
+
+Every query starts together, at most `max_concurrent` at a time. The
+whole batch answers within [`BATCH_DEADLINE`]: a query still waiting
+then answers with its trusted seeds alone (no prices) and `incomplete`
+set, so the page shows a link rather than nothing, keeps no copy, and
+asks again later.
 
 #### Arguments
 
 * `registry` - Configured content-source or integration registry.
-* `queries` - Batch of purchase-hint or title-meta queries.
-* `max_concurrent` - Numeric `max_concurrent` value for this call.
+* `queries` - Batch of purchase-hint queries.
+* `max_concurrent` - Lookups in flight at once (clamped to 1–8).
 
 #### Returns
 
-On success, `Vec<Result<PurchaseHintsResponse>>`.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+One result per query, in request order.
 
 ### seed_purchase_hint
 
@@ -2277,7 +2320,17 @@ pub fn build_discover_feed(
 ) -> DiscoverFeed
 ```
 
-Partition scored recommendations into Discover shelves (items may repeat).
+Partitions scored recommendations into Discover shelves.
+
+Every title lands on one shelf. Shelves claim titles in the order they
+are built: the series shelves, the subject's wishes, authors, narrators,
+genres, starter genres, similar taste, Chirp deals, then one shelf per
+store for whatever is left, each title under the store where it costs
+the subject least (member price on stores they have an account with,
+list price elsewhere, its own store when no price is known). Wished
+titles are claimed first and shown last, on the wishlist shelf alone.
+Shelves other than the series shelves and the wishlist keep at most
+[`SERIES_CAP`](#series_cap) titles of one series; those rotate between series instead.
 
 #### Arguments
 
@@ -2446,6 +2499,42 @@ pub const METADATA_ENRICH_SOURCE_PREFIX: &str = "metadata:";
 `enrich_source` prefix marking a title filled by a metadata provider; the
 provider's plugin key follows it.
 
+### HOUSEHOLD_BLEND_WEIGHT
+
+```rust
+pub const HOUSEHOLD_BLEND_WEIGHT: f64 = 0.5;
+```
+
+How much a household book counts in a member's taste while it blends in,
+relative to one of their own.
+
+### OWN_TASTE_THRESHOLD
+
+```rust
+pub const OWN_TASTE_THRESHOLD: usize = 5;
+```
+
+Books and listens of their own a subject needs before the household's
+books stop blending into their taste.
+
+### STARTER_GENRES
+
+```rust
+pub const STARTER_GENRES: [&str; 6] = _;
+```
+
+Genres browsed for a thin taste, in the order the stores are asked (the
+call budget may stop before the end).
+
+### STARTER_GENRE_MIN_SEEDS
+
+```rust
+pub const STARTER_GENRE_MIN_SEEDS: usize = 5;
+```
+
+Seeds below which a fetch also browses each store's [`STARTER_GENRES`](#starter_genres),
+so a new library still gets shelves.
+
 ### STORE_CALL_MAX_AGE
 
 ```rust
@@ -2474,6 +2563,33 @@ A store that is slow on every call stops asking once this has passed
 and saves what it has, so it delays the subject's ranking by at most
 this plus one [`STORE_CALL_TIMEOUT`](#store_call_timeout).
 
+### BATCH_DEADLINE
+
+```rust
+pub const BATCH_DEADLINE: Duration = _;
+```
+
+Longest a batch waits for its lookups before answering with what has
+resolved. Under the daemon's 25 s route budget, so a slow store never
+turns a page of cards into one failed request.
+
+### BREAKER_OPEN_FOR
+
+```rust
+pub const BREAKER_OPEN_FOR: Duration = _;
+```
+
+How long a tripped store is skipped. After that, lookups ask it again,
+and [`BREAKER_TRIP_TIMEOUTS`](#breaker_trip_timeouts) more timeouts in a row pause it again.
+
+### BREAKER_TRIP_TIMEOUTS
+
+```rust
+pub const BREAKER_TRIP_TIMEOUTS: u32 = 3;
+```
+
+Timeouts in a row after which a store's price lookups are skipped.
+
 ### WISH_COUNT_WEIGHT
 
 ```rust
@@ -2483,3 +2599,12 @@ pub const WISH_COUNT_WEIGHT: f64 = 40.0;
 Per open wish on the global queue. Large enough that multi-user demand
 dominates typical local taste scores (~1–25) while recommend signals still
 order titles that share the same wish count.
+
+### SERIES_CAP
+
+```rust
+pub const SERIES_CAP: usize = 2;
+```
+
+Most titles of one series on a shelf that is not about series, so one
+long series cannot crowd the others out.

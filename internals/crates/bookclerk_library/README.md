@@ -85,6 +85,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NamedAtomicBackend`](#namedatomicbackend) | struct | An `AtomicTxnBackend` that compiles every named operation and hands the plan to a `NamedAtomicRunner`. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
+| [`TitleQuery`](#titlequery) | struct | A title someone asks about (a wish, a catalog card): what the resolver needs to say which work it belongs to. |
 | [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
@@ -3680,6 +3681,33 @@ Parsed client presentation for a session row.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### TitleQuery
+
+```rust
+pub struct TitleQuery<'a> {
+    pub title: &'a str,
+    pub authors: Option<&'a str>,
+    pub asin: Option<&'a str>,
+    pub isbn: Option<&'a str>,
+    pub series: Option<&'a str>,
+    pub series_index: Option<&'a str>,
+}
+```
+
+A title someone asks about (a wish, a catalog card): what the resolver
+needs to say which work it belongs to.
+
+**Fields**
+
+- `title`: Display title.
+- `authors`: Comma-separated authors, when known.
+- `asin`: Audible ASIN, when known.
+- `isbn`: ISBN, when known.
+- `series`: Series name, when known.
+- `series_index`: Position in the series, when known.
+
+Implements: `Clone`, `Debug`, `Default`
+
 ### WorkEnrichment
 
 ```rust
@@ -5083,6 +5111,27 @@ The number of rows removed.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
 
+#### LibraryStore::owned_work_for
+
+```rust
+pub async fn owned_work_for(&self, query: &TitleQuery<'_>) -> Result<Option<String>>
+```
+
+The work in the library that `query` belongs to, when the library
+holds one.
+
+The query is resolved exactly as a scanned listing would be (shared
+identifiers first, then the work's identifiers, then the work-level
+title-and-author match), but nothing is written. A query that would
+make a new work, or whose work no library title resolves to, is not
+owned: *Dune Messiah* is its own work beside *Dune*. A query that
+cannot form a valid listing (a blank title, or a field over the
+listing limits) matches no work, so it is not owned either.
+
+##### Errors
+
+Returns [`LibraryError`](#libraryerror) when a read fails.
+
 #### LibraryStore::record_listing
 
 ```rust
@@ -6277,6 +6326,25 @@ attempt already queued instead of admitting it again.
 
 * `dedup_key` - The [`JobKind::dedup_key`](#jobkinddedup_key) of the job.
 * `since` - The moment the job must have been admitted after.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::job_is_active
+
+```rust
+pub async fn job_is_active(&self, dedup_key: &str) -> Result<bool>
+```
+
+True when a job with `dedup_key` is waiting or running.
+
+A Discover page read uses this to say its shelves are being rebuilt
+while an event-queued fetch or ranking has not finished.
+
+##### Arguments
+
+* `dedup_key` - The [`JobKind::dedup_key`](#jobkinddedup_key) of the job.
 
 ##### Errors
 

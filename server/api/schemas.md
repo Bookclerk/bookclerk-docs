@@ -654,6 +654,7 @@ Stored Discover state of the caller's shelves.
 - `scope` *string or null* — Seeds the stored feed was ranked from (`own` or `household`), when ranked.
 - `feed_computed_at` *string or null* — RFC 3339 time the stored feed was ranked, when ranked.
 - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
+- `updating` *boolean*, **required** — True while a fetch or ranking for the caller is waiting or running.
 
 ## DiscoveryDocument
 
@@ -2193,6 +2194,7 @@ Priced catalog matches for one title, sorted best-first.
 
 - `hints` *array of [`PurchaseHint`](#purchasehint)*, **required** — Resolved purchase hints for this query.
 - `best` *[`PurchaseHint`](#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
+- `incomplete` *boolean* — True when the batch deadline cut this lookup short: the hints are the query's trusted seeds alone, so a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
 
 ## PutActiveVersion
 
@@ -2366,6 +2368,8 @@ One ranked recommendation (typically an unowned storefront title).
 - `language` *string or null* — BCP-47 / storefront language code (`en`, `de`, …) when known.
 - `wishers` *array of [`QueueWisher`](#queuewisher)* — Distinct people who have this title on an open wishlist.
 - `wish_count` *integer (int64)* — Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
+- `seed_title` *string or null* — Title of the book or wish the storefront was asked about to find this card, when it came from such an expansion.
+- `starter_genre` *string or null* — Starter genre this card was browsed from while the taste was thin.
 
 ## RedeemBody
 

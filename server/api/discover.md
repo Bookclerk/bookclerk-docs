@@ -1451,6 +1451,7 @@ missing or stale, exactly as the Discover page read does.
   - `scope` *string or null* — Seeds the stored feed was ranked from (`own` or `household`), when ranked.
   - `feed_computed_at` *string or null* — RFC 3339 time the stored feed was ranked, when ranked.
   - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
+  - `updating` *boolean*, **required** — True while a fetch or ranking for the caller is waiting or running.
 - `401` — The caller has no portal identity. Body: string (`text/plain`)
 - `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
@@ -1512,7 +1513,8 @@ Status `200`: Stored Discover state of the caller's shelves.
   "ready": true,
   "scope": "own",
   "feed_computed_at": "2026-11-06T00:30:00+00:00",
-  "candidates_fetched_at": "2026-11-06T00:29:41+00:00"
+  "candidates_fetched_at": "2026-11-06T00:29:41+00:00",
+  "updating": false
 }
 ```
 
@@ -1524,7 +1526,8 @@ Schema:
   "description": "Stored Discover state of the caller's shelves.",
   "required": [
     "subject",
-    "ready"
+    "ready",
+    "updating"
   ],
   "properties": {
     "subject": {
@@ -1560,6 +1563,11 @@ Schema:
       ],
       "description": "RFC 3339 time the caller's last storefront fetch finished, when any.",
       "example": "2026-11-06T00:29:41+00:00"
+    },
+    "updating": {
+      "type": "boolean",
+      "description": "True while a fetch or ranking for the caller is waiting or running.",
+      "example": false
     }
   }
 }
@@ -1619,6 +1627,277 @@ Schema:
 ```
 
 Status `500`: The lookup failed.
+
+```text
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/discover/refresh`
+
+Queues a storefront fetch and ranking for the caller's shelves now, as
+the Discover page's Refresh button asks. Unchanged store calls answer
+from the day's cache, so a refresh is cheap; a fetch already waiting
+absorbs the request.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — Stored Discover state of the caller's shelves, with `updating` set once the fetch is queued. Body: [`DiscoverStatusResponse`](schemas.md#discoverstatusresponse) (`application/json`)
+  - `subject` *string*, **required** — The caller's subject key (`operator`, `user:<id>`, `portal:<id>`).
+  - `ready` *boolean*, **required** — True once the caller has stored shelves to show.
+  - `scope` *string or null* — Seeds the stored feed was ranked from (`own` or `household`), when ranked.
+  - `feed_computed_at` *string or null* — RFC 3339 time the stored feed was ranked, when ranked.
+  - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
+  - `updating` *boolean*, **required** — True while a fetch or ranking for the caller is waiting or running.
+- `401` — The caller has no portal identity. Body: string (`text/plain`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — The job queue is full, so the fetch was not queued. Body: string (`text/plain`)
+- `500` — The lookup failed, or the fetch could not be queued. Body: string (`text/plain`)
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/discover/refresh' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/discover/refresh' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/discover/refresh",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/discover/refresh", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/discover/refresh")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Stored Discover state of the caller's shelves, with `updating` set once the fetch is queued.
+
+```json
+{
+  "subject": "user:2",
+  "ready": true,
+  "scope": "own",
+  "feed_computed_at": "2026-11-06T00:30:00+00:00",
+  "candidates_fetched_at": "2026-11-06T00:29:41+00:00",
+  "updating": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Stored Discover state of the caller's shelves.",
+  "required": [
+    "subject",
+    "ready",
+    "updating"
+  ],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "description": "The caller's subject key (`operator`, `user:<id>`, `portal:<id>`).",
+      "example": "user:2"
+    },
+    "ready": {
+      "type": "boolean",
+      "description": "True once the caller has stored shelves to show.",
+      "example": true
+    },
+    "scope": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Seeds the stored feed was ranked from (`own` or `household`), when ranked.",
+      "example": "own"
+    },
+    "feed_computed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RFC 3339 time the stored feed was ranked, when ranked.",
+      "example": "2026-11-06T00:30:00+00:00"
+    },
+    "candidates_fetched_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RFC 3339 time the caller's last storefront fetch finished, when any.",
+      "example": "2026-11-06T00:29:41+00:00"
+    },
+    "updating": {
+      "type": "boolean",
+      "description": "True while a fetch or ranking for the caller is waiting or running.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `401`: The caller has no portal identity.
+
+```text
+Unauthorized
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: The job queue is full, so the fetch was not queued.
+
+```text
+job queue is full
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The lookup failed, or the fetch could not be queued.
 
 ```text
 ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
@@ -2259,6 +2538,22 @@ Schema:
                   "format": "int64",
                   "description": "Number of distinct users who wishlisted this title (may exceed `wishers.len()`).",
                   "example": 3
+                },
+                "seed_title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Title of the book or wish the storefront was asked about to find this\ncard, when it came from such an expansion.",
+                  "example": "Dune"
+                },
+                "starter_genre": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Starter genre this card was browsed from while the taste was thin.",
+                  "example": "Science Fiction"
                 }
               }
             },
@@ -2463,6 +2758,7 @@ Resolves storefront price/availability for one title, forcing server-side prefer
 - `200` — Prices and availability. Body: [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse) (`application/json`)
   - `hints` *array of [`PurchaseHint`](schemas.md#purchasehint)*, **required** — Resolved purchase hints for this query.
   - `best` *[`PurchaseHint`](schemas.md#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
+  - `incomplete` *boolean* — True when the batch deadline cut this lookup short: the hints are the query's trusted seeds alone, so a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
 - `400` — The query is malformed or too large. As `text/plain`, when the body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -2562,7 +2858,8 @@ Status `200`: Prices and availability.
     "list_price_label": "$29.99",
     "member_price_cents": 1499,
     "member_price_label": "$14.99"
-  }
+  },
+  "incomplete": false
 }
 ```
 
@@ -2776,6 +3073,11 @@ Schema:
           "type": "null"
         }
       ]
+    },
+    "incomplete": {
+      "type": "boolean",
+      "description": "True when the batch deadline cut this lookup short: the hints are the\nquery's trusted seeds alone, so a client should not keep the answer\nand asks again later. Omitted (false) for a finished lookup.",
+      "example": false
     }
   }
 }
@@ -3063,7 +3365,8 @@ Status `200`: One result per query, in order.
         "list_price_label": "$29.99",
         "member_price_cents": 1499,
         "member_price_label": "$14.99"
-      }
+      },
+      "incomplete": false
     }
   ]
 }
@@ -3288,6 +3591,11 @@ Schema:
                 "type": "null"
               }
             ]
+          },
+          "incomplete": {
+            "type": "boolean",
+            "description": "True when the batch deadline cut this lookup short: the hints are the\nquery's trusted seeds alone, so a client should not keep the answer\nand asks again later. Omitted (false) for a finished lookup.",
+            "example": false
           }
         }
       },
