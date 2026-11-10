@@ -52,7 +52,7 @@ See `docs/adr/control-plane.md`.
 | [`ClusterLease`](#clusterlease) | struct | A held cluster lease. |
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
-| [`LiveRevision`](#liverevision) | struct | One topic's revision: its row count and newest change stamp. |
+| [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
 | [`NodeHeartbeat`](#nodeheartbeat) | struct | One heartbeat's measurements, before budget and accounting are applied. |
@@ -248,7 +248,7 @@ See `docs/adr/control-plane.md`.
 | [`renew_lease`](#renew_lease) | function | Fencing check: extends a lease this holder still holds. |
 | [`renew_lease_on`](#renew_lease_on) | function | `renew_lease` on a bare connection. |
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
-| [`live_revisions`](#live_revisions) | function | Reads every topic's revision. |
+| [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
 | [`is_node_consumer_id`](#is_node_consumer_id) | function | True when a catalog / delivery `plugin_id` is a node consumer rather than a plugin. |
 | [`is_valid_node_id`](#is_valid_node_id) | function | True when `node_id` can name a node: `node.<node_id>` is a valid queue name. Minted ids are lowercase UUIDs, which always qualify. |
 | [`node_consumer_id`](#node_consumer_id) | function | Catalog id of a node's own consumer (`node:<node_id>`). |
@@ -1814,21 +1814,13 @@ Implements: `Clone`, `Debug`
 ### LiveRevision
 
 ```rust
-pub struct LiveRevision {
-    pub rows: u64,
-    pub newest: Option<String>,
-}
+pub struct LiveRevision(pub i64);
 ```
 
-One topic's revision: its row count and newest change stamp.
+One topic's revision: a counter that every write to the topic's table
+moves forward by at least one.
 
-**Fields**
-
-- `rows`: Rows behind the topic.
-- `newest`: The newest change stamp (RFC 3339 text or a sequence number), or a
-  digest of the rows for a table without one.
-
-Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### CacheUsage
 
@@ -3954,7 +3946,28 @@ Every topic.
 pub fn as_str(self) -> &'static str
 ```
 
-The topic's wire name.
+The topic's wire name, also its key in `live_topic_revisions`.
+
+#### LiveTopic::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+The topic for a wire name, or `None` for a name no topic has.
+
+#### LiveTopic::stamp_column
+
+```rust
+pub fn stamp_column(self) -> Option<(&'static str, &'static str)>
+```
+
+The table behind the topic and its change-stamp column, which every
+write to the table sets to the time of the write.
+
+`None` for `cluster_links`, which has no change stamp, and for
+`configuration_changes`, an append-only log whose stamp is not
+indexed; their writes bump on a probe instead.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
@@ -6560,7 +6573,12 @@ The topics whose revision differs between `before` and `after`.
 pub async fn live_revisions(store: &LibraryStore) -> Result<LiveRevisions>
 ```
 
-Reads every topic's revision.
+Reads every topic's revision: one batch of one-row reads of
+`live_topic_revisions`, one per topic, so it fits an adapter that
+returns a single row per statement.
+
+A topic without a counter row (a database the seed has not reached yet)
+reads as revision 0.
 
 #### Errors
 

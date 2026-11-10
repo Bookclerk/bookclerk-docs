@@ -345,6 +345,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`sql_plan::proxy_insert_returning_identity`](sql_plan/README.md#proxy_insert_returning_identity)
 - [`sql_plan::proxy_read_kind`](sql_plan/README.md#proxy_read_kind)
 - [`sql_plan::proxy_write_kind`](sql_plan/README.md#proxy_write_kind)
+- [`sql_plan::unquote_sea_identifiers`](sql_plan/README.md#unquote_sea_identifiers)
 - [`sql_plan::validate_plan`](sql_plan/README.md#validate_plan)
 - [`sql_plan::wake_page_for_max_binds`](sql_plan/README.md#wake_page_for_max_binds)
 - [`sql_plan::AtomicSession`](../bookclerk_db_exec/README.md#atomicsession)
@@ -6723,7 +6724,8 @@ error when the batch fails.
 pub fn dispatch_chunk_size(&self) -> usize
 ```
 
-Subscribers packed into one dispatch plan (receipt overhead is ~12 statements).
+Subscribers packed into one dispatch plan (receipt overhead and the
+live counter bump are ~13 statements).
 
 #### LibraryStore::wake_page
 

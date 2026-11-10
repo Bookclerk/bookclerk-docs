@@ -31,6 +31,7 @@ those lowerers.
 | [`list_user_relations`](#list_user_relations) | function | User-visible base tables in the current schema. |
 | [`pending_begin_isolation`](#pending_begin_isolation) | function | Isolation the next SeaORM `begin()` should ask the adapter to realize. |
 | [`prepare_unit_restore`](#prepare_unit_restore) | function | SQLite: `PRAGMA defer_foreign_keys = ON` on the restore transaction. |
+| [`build_canonical`](#build_canonical) | function | Renders a SeaORM query builder as a canonical statement (`?` placeholders, SQLite-shaped identifiers quoting) for host batches; the adapter lowers it after RPC. |
 | [`canonical_statement`](#canonical_statement) | function | Builds a SeaORM statement that keeps canonical `?` placeholders. |
 | [`execute_canonical`](#execute_canonical) | function | Executes already-canonical host SQL. Never desugars or physically lowers. |
 | [`query_canonical`](#query_canonical) | function | Queries already-canonical host SQL. Never desugars or physically lowers. |
@@ -532,6 +533,16 @@ SQLite: `PRAGMA defer_foreign_keys = ON` on the restore transaction.
 #### Errors
 
 Returns when the pragma fails.
+
+### build_canonical
+
+```rust
+pub fn build_canonical<Q: QueryTrait>(query: &Q) -> Statement
+```
+
+Renders a SeaORM query builder as a canonical statement (`?`
+placeholders, SQLite-shaped identifiers quoting) for host batches; the
+adapter lowers it after RPC.
 
 ### canonical_statement
 

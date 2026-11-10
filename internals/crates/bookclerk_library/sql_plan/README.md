@@ -33,6 +33,7 @@ execute the statements as one transaction and return a typed
 | [`wake_page_for_max_binds`](#wake_page_for_max_binds) | function | Wake page size from negotiated `maxBinds` (SET/EXISTS overhead is 4 binds). |
 | [`host_statement_kind`](#host_statement_kind) | function | Host-authored statement shape for the wire `kind` field. |
 | [`proxy_read_kind`](#proxy_read_kind) | function | Kind for a SeaORM proxy **read**. `SELECT`/`WITH`/`VALUES` become `Select` (LIMIT-wrapped). `RETURNING` stays `Returning`. Everything else (PRAGMA, schema introspection) is `Returning` so it is not LIMIT-wrapped. |
+| [`unquote_sea_identifiers`](#unquote_sea_identifiers) | function | Drops SeaORM double-quoted identifiers so typed execute sees SQL v1 names. |
 | [`proxy_write_kind`](#proxy_write_kind) | function | Kind for a SeaORM proxy **write**. `RETURNING` is preserved; other DML is `Execute`. |
 | [`proxy_insert_returning_identity`](#proxy_insert_returning_identity) | function | Rewrites a SeaORM proxy single-row `INSERT` to return the table's identity key. |
 | [`JOB_QUEUE_SLOT`](#job_queue_slot) | constant | Slot key for job admit / claim / scratch-quota serialization. |
@@ -453,6 +454,16 @@ pub fn proxy_read_kind(sql: &str) -> DbPlanStatementKind
 Kind for a SeaORM proxy **read**. `SELECT`/`WITH`/`VALUES` become `Select`
 (LIMIT-wrapped). `RETURNING` stays `Returning`. Everything else (PRAGMA,
 schema introspection) is `Returning` so it is not LIMIT-wrapped.
+
+### unquote_sea_identifiers
+
+```rust
+pub fn unquote_sea_identifiers(sql: &str) -> String
+```
+
+Drops SeaORM double-quoted identifiers so typed execute sees SQL v1 names.
+
+String literals, including doubled single quotes, are preserved.
 
 ### proxy_write_kind
 
