@@ -86,6 +86,7 @@ Materialize bridge assets + config under `root`, return config path and socket a
 ```rust
 pub enum ListenSpec {
     TcpLoopback(u16),
+    ReportedTcp,
     InheritedTcp { port: u16 },
 }
 ```
@@ -94,7 +95,16 @@ How the bridge HTTP socket is exposed to `bookclerk-workerd`.
 
 **Variants**
 
-- `TcpLoopback`: `127.0.0.1:port` — workerd binds itself (unconfined smoke / Windows).
+- `TcpLoopback`: `127.0.0.1:port` — workerd binds a port the caller chose (unconfined smoke).
+- `ReportedTcp`: workerd binds `127.0.0.1:0` itself and reports the port the operating
+  system picked on its control channel (`--control-fd`, read with
+  [`crate::control::listen_port`](control.md#listen_port)). Used on Windows, which has no
+  `--socket-fd`: reserving a port, releasing it and letting workerd
+  rebind it races every other bind on the host (issue #781).
+  
+  The generated config turns on structured logging with this variant, so
+  isolate `console.*` output on the shared stdout cannot pose as a
+  control message.
 - `InheritedTcp`: Parent already bound `127.0.0.1:0`; workerd inherits via `--socket-fd`.
   Required under Linux Landlock `OutboundListen` (only `bind(port=0)` is
   allowed — rebinding a concrete ephemeral port is EPERM).
@@ -113,18 +123,36 @@ Inherited FDs omit `address` — workerd gets `--socket-fd=rpc=<fd>`.
 #### ListenSpec::client_base_url
 
 ```rust
-pub fn client_base_url(&self) -> String
+pub fn client_base_url(&self) -> Option<String>
 ```
 
 HTTP origin the workerd isolate uses to call back into Bookclerk.
 
+##### Returns
+
+`None` for [`Self::ReportedTcp`](#listenspec), whose port is known only once workerd
+reports it.
+
 #### ListenSpec::port
 
 ```rust
-pub fn port(&self) -> u16
+pub fn port(&self) -> Option<u16>
 ```
 
 TCP port the bridge socket binds.
+
+##### Returns
+
+`None` for [`Self::ReportedTcp`](#listenspec), whose port is known only once workerd
+reports it on its control channel.
+
+#### ListenSpec::reports_port
+
+```rust
+pub fn reports_port(&self) -> bool
+```
+
+Whether workerd must report the bound port on `--control-fd`.
 
 Implements: `Clone`, `Debug`
 

@@ -35,6 +35,7 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`bridge_http`](bridge_http.md): Minimal HTTP/1.1 client for the workerd bridge (JSON control plane, Cap'n Proto `/invoke` bodies, and streamed object bodies).
 - [`bridge_stdio`](bridge_stdio.md): Bookclerk Cap'n Proto stdio adapter over the workerd HTTP bridge.
 - [`config`](config.md): Generate a real workerd Cap'n Proto config for one plugin isolate.
+- [`control`](control.md): Control messages workerd writes on `--control-fd`: the port each socket bound.
 - [`egress`](egress.md): Host egress policy for workerd guests (wraps shared `EgressPolicy`).
 - [`ensure`](ensure.md): Download / refresh the pinned Cloudflare `workerd` binary.
 - [`grant`](grant.md): Operator consent grant overrides delivered to `bookclerk-workerd` via env.

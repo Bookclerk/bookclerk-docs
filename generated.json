@@ -757,6 +757,7 @@
     "internals/crates/bookclerk_workerd/bridge_http",
     "internals/crates/bookclerk_workerd/bridge_stdio",
     "internals/crates/bookclerk_workerd/config",
+    "internals/crates/bookclerk_workerd/control",
     "internals/crates/bookclerk_workerd/egress",
     "internals/crates/bookclerk_workerd/ensure",
     "internals/crates/bookclerk_workerd/grant",
