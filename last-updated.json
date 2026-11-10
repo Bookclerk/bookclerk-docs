@@ -55,7 +55,7 @@
   "internals/crates/README": "2026-11-09T09:31:52Z",
   "internals/crates/bookclerk_acquire/README": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_audible_catalog/README": "2026-11-08T20:28:56Z",
-  "internals/crates/bookclerk_config/README": "2026-11-08T21:36:21Z",
+  "internals/crates/bookclerk_config/README": "2026-11-10T02:50:04Z",
   "internals/crates/bookclerk_cover/README": "2026-11-06T07:12:36Z",
   "internals/crates/bookclerk_cover/http_cache": "2026-11-06T07:12:36Z",
   "internals/crates/bookclerk_cover/token": "2026-11-06T01:24:45Z",
@@ -771,9 +771,9 @@
   "plugins/sql-contract/README": "2026-11-06T00:46:07Z",
   "plugins/sql-contract/v1": "2026-11-09T16:33:47Z",
   "server/README": "2026-11-06T00:46:07Z",
-  "server/api/README": "2026-11-06T04:44:02Z",
-  "server/api/accounts": "2026-11-06T01:24:45Z",
-  "server/api/auth": "2026-11-06T13:07:11Z",
+  "server/api/README": "2026-11-10T02:50:04Z",
+  "server/api/accounts": "2026-11-10T02:50:04Z",
+  "server/api/auth": "2026-11-10T02:50:04Z",
   "server/api/cluster": "2026-11-07T01:33:03Z",
   "server/api/configuration": "2026-11-06T01:24:45Z",
   "server/api/discover": "2026-11-06T11:33:59Z",
@@ -804,7 +804,7 @@
   "server/output": "2026-11-05T10:10:13Z",
   "server/plugins": "2026-11-08T17:36:27Z",
   "server/security": "2026-11-06T13:41:12Z",
-  "server/sign-in": "2026-11-09T19:41:25Z",
+  "server/sign-in": "2026-11-09T23:01:54Z",
   "server/stores": "2026-11-06T13:30:17Z"
  }
 }

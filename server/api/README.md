@@ -295,7 +295,7 @@ Store accounts a library user connects (the Accounts page).
 | [`POST /api/portal/libro/login`](accounts.md#post-apiportallibrologin) (deprecated) | Legacy `POST /libro/login` alias that forwards to the Libro password-login handler. |
 | [`POST /api/portal/audible/start`](accounts.md#post-apiportalaudiblestart) (deprecated) | Legacy `POST /audible/start` alias that forwards to Audible OAuth start. |
 | [`GET /api/portal/connections`](accounts.md#get-apiportalconnections) | Lists store accounts linked to the signed-in identity, including disabled sources. |
-| [`POST /api/portal/sources/{source}/connections/{account_id}/revoke`](accounts.md#post-apiportalsourcessourceconnectionsaccount_idrevoke) | Unlinks a store account from this identity and deletes secrets when no other identity remains. |
+| [`POST /api/portal/sources/{source}/connections/{account_id}/revoke`](accounts.md#post-apiportalsourcessourceconnectionsaccount_idrevoke) | Marks a store account revoked, signs it out, deletes its stored credentials, then unlinks it. |
 
 ### [Node protocol](node-protocol.md)
 

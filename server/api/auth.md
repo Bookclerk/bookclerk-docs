@@ -1737,6 +1737,11 @@ Owner portal session + password re-auth → short-lived elevated operator cookie
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong passwords from this client or for this Owner; retry after `Retry-After` seconds. Body: [`LoginThrottled`](schemas.md#loginthrottled) (`application/json`)
+  - `error` *string*, **required** — Always `too_many_requests`.
+  - `message` *string*, **required** — Caller-facing explanation naming the wait.
+  - `status` *integer (int32)*, **required** — Always 429 (duplicates the response status for clients). At least 0.
+  - `retry_after_secs` *integer (int64)*, **required** — Seconds until this client may try again; the same value as `Retry-After`. At least 0.
 - `500` — The password hash could not be read, or the elevated session could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -2036,6 +2041,58 @@ Failed to deserialize the JSON body into the target type: missing field `passwor
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong passwords from this client or for this Owner; retry after `Retry-After` seconds.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many failed login attempts. Try again in 45 seconds.",
+  "retry_after_secs": 45,
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of a 429 after too many failed sign-in attempts from one client.",
+  "required": [
+    "error",
+    "message",
+    "status",
+    "retry_after_secs"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Always `too_many_requests`.",
+      "example": "too_many_requests"
+    },
+    "message": {
+      "type": "string",
+      "description": "Caller-facing explanation naming the wait.",
+      "example": "Too many failed login attempts. Try again in 45 seconds."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Always 429 (duplicates the response status for clients).",
+      "example": 429,
+      "minimum": 0
+    },
+    "retry_after_secs": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds until this client may try again; the same value as `Retry-After`.",
+      "example": 45,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `500`: The password hash could not be read, or the elevated session could not be stored.
 

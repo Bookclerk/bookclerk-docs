@@ -2074,13 +2074,20 @@ A `text/plain` body: a string.
 
 ## `POST /api/portal/sources/{source}/connections/{account_id}/revoke`
 
-Unlinks a store account from this identity and deletes secrets when no other identity remains.
+Marks a store account revoked, signs it out, deletes its stored credentials, then unlinks it.
 
 The account is addressed by `(source, account_id)`: the same store id may
 exist under two plugins. `source` is the alias or plugin key of the link.
 
-When the last link goes, the plugin first signs the account out at the
-store (for example, Audible deregisters its device), best effort.
+Links are exclusive (one identity per account), so the caller's link is
+the account's only one and revoking it always clears the credentials.
+Every step runs while the link still exists, in this order: the account
+is marked revoked (which also turns scanning off, so no job picks it up
+half-cleaned); the plugin signs it out at the store (for example, Audible
+deregisters its device), best effort; its `encrypted_secrets` rows are
+deleted; only then is the link removed. Any failed library step answers
+503 and keeps the link, so the same request retries the cleanup.
+Already-acquired library rows stay (product policy).
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -2093,9 +2100,9 @@ store (for example, Audible deregisters its device), best effort.
 
 ### Responses
 
-- `200` — The account was unlinked. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
+- `200` — The account was marked revoked, its stored credentials were deleted, and it was unlinked. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
   - `ok` *boolean*, **required** — Always `true`.
-- `400` — The account is not linked to this identity, or the library database refused the unlink or the credential revoke (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The account is not linked to this identity, or the library database refused to read this identity's links (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
@@ -2103,7 +2110,7 @@ store (for example, Audible deregisters its device), best effort.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `503` — The store sign-out task that follows the last unlink stopped. The link is already gone (a retry answers 400 `account not linked to this identity`) and the account's stored credentials may remain; the daemon log names the task. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `503` — A cleanup step failed: marking the account revoked, deleting its stored credentials, or removing the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -2156,7 +2163,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The account was unlinked.
+Status `200`: The account was marked revoked, its stored credentials were deleted, and it was unlinked.
 
 ```json
 {
@@ -2183,7 +2190,7 @@ Schema:
 }
 ```
 
-Status `400`: The account is not linked to this identity, or the library database refused the unlink or the credential revoke (the body carries its message).
+Status `400`: The account is not linked to this identity, or the library database refused to read this identity's links (the body carries its message).
 
 ```json
 {
@@ -2282,11 +2289,11 @@ Schema:
 }
 ```
 
-Status `503`: The store sign-out task that follows the last unlink stopped. The link is already gone (a retry answers 400 `account not linked to this identity`) and the account's stored credentials may remain; the daemon log names the task.
+Status `503`: A cleanup step failed: marking the account revoked, deleting its stored credentials, or removing the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`.
 
 ```json
 {
-  "error": "revoke cleanup failed: task 12 panicked"
+  "error": "revoke cleanup failed: ORM / database plugin error: Execution Error: error returned from database: database is locked"
 }
 ```
 
