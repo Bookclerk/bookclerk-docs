@@ -40,7 +40,8 @@ A `[[databases]]` binding is taken from the `open` bindings with
 `DatabaseBinding::take_named_from_bindings` and used as on D1
 (`prepare`, `bind`, `all`, `first`, `batch`). Its `limits()` returns the
 session's `DbCapabilities`; `all()` reads through the session's streamed
-budget when it advertises one, and `chunk()` splits a long statement list
+budget when it advertises one, `iterate()` walks the same read one row at
+a time without holding the whole result, and `chunk()` splits a long statement list
 into batches that each fit one request. Any cap that is hit is a
 `PluginError` with `PluginErrorCode::LimitExceeded` and a typed `limit()`;
 see [Working within database limits](../../database-limits.md).
@@ -130,6 +131,7 @@ submodules unless you need module-level docs.
 | [`DatabaseBindingOptions`](#databasebindingoptions) | struct | Options for `DatabaseBinding`. |
 | [`PreparedStatement`](#preparedstatement) | struct | Cloudflare-style prepared statement. |
 | [`RetryToken`](#retrytoken) | struct | Explicit retry identity: reuse both `operationId` and `requestHash`. |
+| [`RowStream`](#rowstream) | struct | Rows of one read, handed out one at a time (`PreparedStatement::iterate`). |
 | [`FetchWorkDir`](#fetchworkdir) | struct | An open fetch work directory received from the host for one `fetchTitle` call. |
 | [`UploadFile`](#uploadfile) | struct | An open upload file received from the host for one `putFile` call. |
 | [`SdkError`](#sdkerror) | enum | Errors from the guest stdio loop and SDK helpers (not plugin business logic). |
@@ -781,6 +783,32 @@ Execute as a row-returning query. Returns a Cloudflare-shaped [`D1Result`](#d1re
 
 Returns when `execute` fails.
 
+#### PreparedStatement::iterate
+
+```rust
+pub fn iterate(self, retry: Option<RetryToken>) -> RowStream
+```
+
+Rows one at a time from the same single-snapshot streamed read as
+[`Self::all`](#preparedstatementall), without holding the whole result.
+
+```rust
+let mut rows = db.prepare("SELECT id, path FROM edition_files").iterate(None);
+while let Some(row) = rows.next().await {
+    let row = row?;
+    // ...
+}
+```
+
+Nothing is sent until the first [`RowStream::next`](#rowstreamnext). On a session
+that streams, rows are decoded as their frames arrive and each is
+handed out once, so memory stays near one frame however large
+the result is. The read still fails closed (`limit_exceeded`) past
+the session's streamed budget, after the rows that fit were handed
+out. On a session that does not stream, or answers `unsupported`
+before any row arrived, the rows come from one inline read like
+[`Self::all`](#preparedstatementall). Dropping the stream stops reading it.
+
 Implements: `Clone`
 
 ### RetryToken
@@ -800,6 +828,39 @@ Explicit retry identity: reuse both `operationId` and `requestHash`.
 - `request_hash`: Canonical Cap'n request hash stamped by the host.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### RowStream
+
+```rust
+pub struct RowStream {
+    /* private fields */
+}
+```
+
+Rows of one read, handed out one at a time
+([`PreparedStatement::iterate`](#preparedstatementiterate)).
+
+Each row is a column name → value map, the shape [`D1Result::results`](#d1result)
+holds. The stream ends (`None`) after the last row, or after the first
+error it yields.
+
+#### RowStream::next
+
+```rust
+pub async fn next(&mut self) -> Option<Result<HashMap<String, DbValue>>>
+```
+
+The next row, `None` once the read is over.
+
+##### Errors
+
+Yields (once, then `None`) the error the read fails with: a typed
+`limit_exceeded` past the session's budget, the adapter's error, an
+`unavailable` when the stream breaks off, or `invalid_params` when
+the reply does not answer the request or carries more rows than the
+statement's `max_rows`.
+
+Implements: `Debug`
 
 ### FetchWorkDir
 

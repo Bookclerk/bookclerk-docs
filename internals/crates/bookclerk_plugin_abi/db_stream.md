@@ -82,7 +82,14 @@ Sans-IO decoder of a streamed execute reply: feed it bytes in any split,
 then take the reassembled [`ExecuteReply`](db_execute.md#executereply).
 
 It fails closed on more raw bytes than the budget allows, on a statement
-with more rows than the row cap, and on any frame out of sequence.
+with more rows than the row cap, on duplicate column names or a row
+whose width disagrees with its statement's columns (when the statement
+closes, or as soon as it arrives on a [`Self::streaming`](#executestreamdecoderstreaming) decoder), and
+on any frame out of sequence.
+
+A decoder made with [`Self::streaming`](#executestreamdecoderstreaming) counts rows against the budget
+but does not keep them: [`Self::push_frames`](#executestreamdecoderpush_frames) hands each row out once,
+as it arrives, so a reader can walk a result without holding it.
 
 #### ExecuteStreamDecoder::new
 
@@ -91,6 +98,17 @@ pub fn new(limits: ExecuteStreamLimits) -> Self
 ```
 
 A decoder that holds the stream to `limits`.
+
+#### ExecuteStreamDecoder::streaming
+
+```rust
+pub fn streaming(limits: ExecuteStreamLimits) -> Self
+```
+
+A decoder that holds the stream to `limits` but keeps no rows: each
+row is handed out once by [`Self::push_frames`](#executestreamdecoderpush_frames) and counted against
+the row cap, and the reply [`Self::finish`](#executestreamdecoderfinish) returns carries every
+statement's columns and `rows_affected` with no rows.
 
 #### ExecuteStreamDecoder::is_finished
 
@@ -114,6 +132,29 @@ Returns a typed `limit_exceeded` error when the stream exceeds the
 byte or row budget, [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a frame is
 malformed or out of sequence or bytes follow the final frame, and a
 decode failure from a frame's codec.
+
+#### ExecuteStreamDecoder::push_frames
+
+```rust
+pub fn push_frames(
+    &mut self,
+    bytes: &[u8],
+    out: &mut Vec<ExecuteStreamFrame>,
+) -> Result<()>
+```
+
+Feeds the next bytes of the stream and appends the frames they
+completed to `out`, in order.
+
+A `Rows` frame carries the rows that arrived; on a
+[`Self::streaming`](#executestreamdecoderstreaming) decoder those rows are handed out here and not
+kept. A frame is appended only once the decoder has accepted it, so
+a row past the budget or out of sequence is never handed out, and
+the frames accepted before a failure stay in `out`.
+
+##### Errors
+
+See [`Self::push`](#executestreamdecoderpush).
 
 #### ExecuteStreamDecoder::finish
 
