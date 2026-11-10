@@ -1743,6 +1743,16 @@ wishers?: QueueWisher[];
 
 Distinct people who have this title on an open wishlist.
 
+##### work\_id?
+
+```ts
+work_id?: string | null;
+```
+
+Library work the entry's wishes resolve to, when known. Wishes for one
+work share an entry even when their `work_key`s differ, so match on this
+first.
+
 ##### work\_key
 
 ```ts

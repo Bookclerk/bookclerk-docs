@@ -2540,6 +2540,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 ```rust
 pub struct GlobalQueueEntry {
     pub work_key: String,
+    pub work_id: Option<String>,
     pub title: String,
     pub authors: Option<String>,
     pub asin: Option<String>,
@@ -2570,6 +2571,9 @@ Aggregated global request-queue entry (one work, many wishers).
 **Fields**
 
 - `work_key`: Stable merge key used to group editions into a work.
+- `work_id`: The library work the wishes resolved to when they were created, when
+  the resolver found one. Entries with the same work id are one work
+  whatever their identifiers say.
 - `title`: Display title of the work or edition.
 - `authors`: Comma-separated or JSON author list from the storefront.
 - `asin`: Amazon ASIN when known; otherwise null.
@@ -5279,6 +5283,23 @@ listing limits) matches no work, so it is not owned either.
 ##### Errors
 
 Returns [`LibraryError`](#libraryerror) when a read fails.
+
+#### LibraryStore::work_for
+
+```rust
+pub async fn work_for(&self, query: &TitleQuery<'_>) -> Result<Option<String>>
+```
+
+The existing work `query` belongs to, held by a library title or
+not, when the resolver finds one; `None` when it would make a new
+work. Nothing is written. A wish stores this id when it is created,
+so the queue and the shelves compare works, not words.
+
+##### Errors
+
+Returns [`LibraryError`](#libraryerror) when a read fails. A query that cannot form
+a valid listing (a blank title, or a field over the listing limits)
+names no work.
 
 #### LibraryStore::record_listing
 

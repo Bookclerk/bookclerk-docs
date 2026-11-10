@@ -2880,6 +2880,7 @@ Ranks the shared open-request queue without warming ONNX embeddings.
 
 - `200` — Open requests, ranked. Body: array of [`RankedQueueEntry`](schemas.md#rankedqueueentry) (`application/json`)
   - `work_key` *string*, **required** — Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
+  - `work_id` *string or null* — Library work the entry's wishes resolve to, when the library could place them. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
   - `title` *string*, **required** — Display title as shown on the storefront or library card.
   - `authors` *string or null* — Comma-separated author names when the storefront provides them.
   - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
@@ -2953,6 +2954,7 @@ Status `200`: Open requests, ranked.
 [
   {
     "work_key": "isbn:9780441478125",
+    "work_id": "0b7e2c1d-5f3a-4e6b-9c8d-1a2b3c4d5e6f",
     "title": "The Left Hand of Darkness",
     "authors": "Ursula K. Le Guin",
     "asin": "B002V0QK4C",
@@ -3013,6 +3015,14 @@ Schema:
         "type": "string",
         "description": "Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).",
         "example": "isbn:9780441478125"
+      },
+      "work_id": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Library work the entry's wishes resolve to, when the library could\nplace them. Wishes for one work are one entry even when their\n`work_key`s differ, so a client matches its own wishes on this id\nfirst and on `work_key` otherwise.",
+        "example": "0b7e2c1d-5f3a-4e6b-9c8d-1a2b3c4d5e6f"
       },
       "title": {
         "type": "string",

@@ -2330,6 +2330,7 @@ Global wishlist queue entry ranked by overall/operator recommend taste +
 heavy wish-count weight (shared order; not per-viewer personalized).
 
 - `work_key` *string*, **required** — Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
+- `work_id` *string or null* — Library work the entry's wishes resolve to, when the library could place them. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
 - `title` *string*, **required** — Display title as shown on the storefront or library card.
 - `authors` *string or null* — Comma-separated author names when the storefront provides them.
 - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.

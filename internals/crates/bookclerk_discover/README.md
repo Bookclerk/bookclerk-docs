@@ -926,6 +926,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `S
 ```rust
 pub struct RankedQueueEntry {
     pub work_key: String,
+    pub work_id: Option<String>,
     pub title: String,
     pub authors: Option<String>,
     pub asin: Option<String>,
@@ -949,6 +950,10 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 **Fields**
 
 - `work_key`: Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
+- `work_id`: Library work the entry's wishes resolve to, when the library could
+  place them. Wishes for one work are one entry even when their
+  `work_key`s differ, so a client matches its own wishes on this id
+  first and on `work_key` otherwise.
 - `title`: Display title as shown on the storefront or library card.
 - `authors`: Comma-separated author names when the storefront provides them.
 - `asin`: Audible / Amazon ASIN when this edition is sold on Audible.
