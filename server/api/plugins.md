@@ -5907,6 +5907,7 @@ Loads the consent dialog for one plugin, including coverage against the stored g
   - `covered` *boolean*, **required** — True when an existing on-disk grant already satisfies the request.
   - `summary` *array of string*, **required** — Operator-facing bullet list of requested capabilities.
   - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
+  - `pending` *[`PluginConsentPending`](schemas.md#pluginconsentpending) or null* — What the request asks for beyond the stored grant (a plugin upgrade that widened its capabilities); absent when no grant is stored. The plugin keeps running under the stored grant until these are approved.
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
   - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
@@ -6155,6 +6156,27 @@ Status `200`: What the plugin asks for and what is granted.
     "memoryMib": 512,
     "cpuCores": 1.0,
     "extraProcesses": 4
+  },
+  "pending": {
+    "lines": [
+      "Awaiting consent (not automatically approved):",
+      "  fetch hosts: any public website (*)"
+    ],
+    "domains": [
+      "*"
+    ],
+    "tcp": [
+      {
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
+      }
+    ],
+    "addressCidrs": [
+      "192.168.1.0/24"
+    ],
+    "allowUndeclaredPublicRedirects": false
   },
   "brand": {
     "name": "Libro.fm",
@@ -6990,6 +7012,93 @@ Schema:
               "description": "Extra process/thread budget beyond launcher overhead; native only.",
               "example": 4,
               "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pending": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "What the request asks for beyond the stored grant (a plugin upgrade\nthat widened its capabilities); absent when no grant is stored. The\nplugin keeps running under the stored grant until these are approved.",
+          "required": [
+            "lines",
+            "domains",
+            "tcp",
+            "addressCidrs",
+            "allowUndeclaredPublicRedirects"
+          ],
+          "properties": {
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-facing lines naming every capability awaiting consent, the\nsame lines `bookclerk plugins info` and `bookclerk plugins approve`\nprint; empty when the stored grant covers the request.",
+              "example": [
+                "Awaiting consent (not automatically approved):",
+                "  fetch hosts: any public website (*)"
+              ]
+            },
+            "domains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Fetch host patterns the request adds (`*` is any public host).",
+              "example": [
+                "*"
+              ]
+            },
+            "tcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
+                  }
+                }
+              },
+              "description": "TCP `host:ports` the request adds, narrowed to the new ports."
+            },
+            "addressCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "CIDRs the request adds.",
+              "example": [
+                "192.168.1.0/24"
+              ]
+            },
+            "allowUndeclaredPublicRedirects": {
+              "type": "boolean",
+              "description": "Whether the request newly asks to follow undeclared public redirects.",
+              "example": false
             }
           }
         },
@@ -7403,6 +7512,7 @@ Persists an approved plugin grant after validating operator overrides.
   - `covered` *boolean*, **required** — True when an existing on-disk grant already satisfies the request.
   - `summary` *array of string*, **required** — Operator-facing bullet list of requested capabilities.
   - `existing` *[`PluginGrantView`](schemas.md#plugingrantview) or null* — Previously approved grant, when one is stored.
+  - `pending` *[`PluginConsentPending`](schemas.md#pluginconsentpending) or null* — What the request asks for beyond the stored grant (a plugin upgrade that widened its capabilities); absent when no grant is stored. The plugin keeps running under the stored grant until these are approved.
   - `brand` *[`PluginConsentBrand`](schemas.md#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
   - `limits` *[`PluginConsentLimits`](schemas.md#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
   - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
@@ -7667,6 +7777,27 @@ Status `200`: The grant was stored.
     "memoryMib": 512,
     "cpuCores": 1.0,
     "extraProcesses": 4
+  },
+  "pending": {
+    "lines": [
+      "Awaiting consent (not automatically approved):",
+      "  fetch hosts: any public website (*)"
+    ],
+    "domains": [
+      "*"
+    ],
+    "tcp": [
+      {
+        "host": "*.libro.fm",
+        "ports": [
+          443
+        ]
+      }
+    ],
+    "addressCidrs": [
+      "192.168.1.0/24"
+    ],
+    "allowUndeclaredPublicRedirects": false
   },
   "brand": {
     "name": "Libro.fm",
@@ -8502,6 +8633,93 @@ Schema:
               "description": "Extra process/thread budget beyond launcher overhead; native only.",
               "example": 4,
               "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pending": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "What the request asks for beyond the stored grant (a plugin upgrade\nthat widened its capabilities); absent when no grant is stored. The\nplugin keeps running under the stored grant until these are approved.",
+          "required": [
+            "lines",
+            "domains",
+            "tcp",
+            "addressCidrs",
+            "allowUndeclaredPublicRedirects"
+          ],
+          "properties": {
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Operator-facing lines naming every capability awaiting consent, the\nsame lines `bookclerk plugins info` and `bookclerk plugins approve`\nprint; empty when the stored grant covers the request.",
+              "example": [
+                "Awaiting consent (not automatically approved):",
+                "  fetch hosts: any public website (*)"
+              ]
+            },
+            "domains": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Fetch host patterns the request adds (`*` is any public host).",
+              "example": [
+                "*"
+              ]
+            },
+            "tcp": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "Operator-facing TCP grant (`host` + `ports`).",
+                "required": [
+                  "host",
+                  "ports"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string",
+                    "description": "Hostname or `*.` wildcard.",
+                    "example": "*.libro.fm"
+                  },
+                  "ports": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 0
+                    },
+                    "description": "Destination ports.",
+                    "example": [
+                      443
+                    ]
+                  }
+                }
+              },
+              "description": "TCP `host:ports` the request adds, narrowed to the new ports."
+            },
+            "addressCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "CIDRs the request adds.",
+              "example": [
+                "192.168.1.0/24"
+              ]
+            },
+            "allowUndeclaredPublicRedirects": {
+              "type": "boolean",
+              "description": "Whether the request newly asks to follow undeclared public redirects.",
+              "example": false
             }
           }
         },

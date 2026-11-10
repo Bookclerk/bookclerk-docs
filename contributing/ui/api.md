@@ -3034,6 +3034,66 @@ subrequests: number;
 
 ***
 
+### PluginConsentPending
+
+The difference between a plugin's request and its stored grant.
+
+#### Properties
+
+##### addressCidrs
+
+```ts
+addressCidrs: string[];
+```
+
+CIDRs the request adds.
+
+##### allowUndeclaredPublicRedirects
+
+```ts
+allowUndeclaredPublicRedirects: boolean;
+```
+
+Whether the request newly asks to follow undeclared public redirects.
+
+##### domains
+
+```ts
+domains: string[];
+```
+
+Fetch host patterns the request adds (`*` is any public host).
+
+##### lines
+
+```ts
+lines: string[];
+```
+
+Operator-facing lines naming every capability awaiting consent (the CLI prints the same).
+
+##### tcp
+
+```ts
+tcp: object[];
+```
+
+TCP `host:ports` the request adds, narrowed to the new ports.
+
+###### host
+
+```ts
+host: string;
+```
+
+###### ports
+
+```ts
+ports: number[];
+```
+
+***
+
 ### PluginConsentResponse
 
 Network/capability consent status for a plugin.
@@ -3071,6 +3131,16 @@ The `User-Agent` the host sends, except to the request's `ownUserAgentHosts`.
 ```ts
 limits: PluginConsentLimits;
 ```
+
+##### pending?
+
+```ts
+pending?: PluginConsentPending;
+```
+
+What the request asks for beyond the stored grant (a plugin upgrade that
+widened its capabilities); absent when no grant is stored. The plugin runs
+under the stored grant until these are approved.
 
 ##### plugin\_id
 
@@ -4542,6 +4612,15 @@ grant: RemoteGrantView | null;
 ```
 
 What this host granted (the request, narrowed), if approved.
+
+##### pending?
+
+```ts
+pending?: string[];
+```
+
+What the current request asks for beyond the request this host approved,
+as the lines the CLI prints; empty when nothing was approved yet.
 
 ##### plugin\_key
 

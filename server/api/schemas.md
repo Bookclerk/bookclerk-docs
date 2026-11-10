@@ -1817,6 +1817,16 @@ Host-capped resource defaults shown on the consent dialog.
 - `max_extra_processes` *integer (int32)*, **required** — Host hard cap for extra process budget. At least 0.
 - `known_bindings` *array of string*, **required** — Suggested / default host bindings operators may grant.
 
+## PluginConsentPending
+
+The difference between a plugin's request and its stored grant.
+
+- `lines` *array of string*, **required** — Operator-facing lines naming every capability awaiting consent, the same lines `bookclerk plugins info` and `bookclerk plugins approve` print; empty when the stored grant covers the request.
+- `domains` *array of string*, **required** — Fetch host patterns the request adds (`*` is any public host).
+- `tcp` *array of [`TcpGrantView`](#tcpgrantview)*, **required** — TCP `host:ports` the request adds, narrowed to the new ports.
+- `addressCidrs` *array of string*, **required** — CIDRs the request adds.
+- `allowUndeclaredPublicRedirects` *boolean*, **required** — Whether the request newly asks to follow undeclared public redirects.
+
 ## PluginConsentResponse
 
 Consent dialog payload for one plugin.
@@ -1829,6 +1839,7 @@ Consent dialog payload for one plugin.
 - `covered` *boolean*, **required** — True when an existing on-disk grant already satisfies the request.
 - `summary` *array of string*, **required** — Operator-facing bullet list of requested capabilities.
 - `existing` *[`PluginGrantView`](#plugingrantview) or null* — Previously approved grant, when one is stored.
+- `pending` *[`PluginConsentPending`](#pluginconsentpending) or null* — What the request asks for beyond the stored grant (a plugin upgrade that widened its capabilities); absent when no grant is stored. The plugin keeps running under the stored grant until these are approved.
 - `brand` *[`PluginConsentBrand`](#pluginconsentbrand) or null* — Optional portal or manifest branding for the dialog.
 - `limits` *[`PluginConsentLimits`](#pluginconsentlimits)*, **required** — Host-capped resource defaults (workerd budgets + shared disk). Always set.
 - `host_user_agent` *string*, **required** — The `User-Agent` this host sends for the plugin's requests, except to the request's `ownUserAgentHosts`.
@@ -2396,6 +2407,7 @@ An owner library's request to run a plugin on this install, and what the operato
 - `revoked_at` *string or null* — RFC 3339 time the operator revoked the approval.
 - `updated_at` *string*, **required** — RFC 3339 time of the last write.
 - `state` *string*, **required** — How this host stands on the request: `consented`, `awaiting_host_consent` (no approval, or a revoked one), `awaiting_host_reapproval` (the owner changed the request or the archive since the approval), or `invalid_grant` (a grant that does not parse).
+- `pending` *array of string*, **required** — What the owner's current request asks for beyond the request the operator approved, as the operator-facing lines the CLI prints; empty when nothing was approved yet or the request stays within the approval.
 
 ## RemoveBranchTitles
 

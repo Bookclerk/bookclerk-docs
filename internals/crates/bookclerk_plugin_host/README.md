@@ -38,7 +38,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
-| [`PendingStructural`](#pendingstructural) | struct | Newly requested structural capabilities awaiting operator consent. |
+| [`PendingStructural`](#pendingstructural) | struct | Newly requested capabilities awaiting operator consent: structural ones, and network destinations wider than the stored grant. |
 | [`PluginGrant`](#plugingrant) | struct | One approved grant snapshot for a provenance-qualified plugin. |
 | [`PluginGrantStore`](#plugingrantstore) | struct | On-disk grant store. |
 | [`AuthorizedLocalPackages`](#authorizedlocalpackages) | struct | Operator-placed archives keyed by canonical plugin key. |
@@ -219,9 +219,11 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`narrow_remote_grant`](#narrow_remote_grant) | function | The grant a guest runs with: `requested ∩ consent`. |
 | [`remote_consent`](#remote_consent) | function | The consent an operator gives to `requested` with `narrowing` applied. |
 | [`remote_consent_state`](#remote_consent_state) | function | Evaluates a stored consent row's grants: the current request (`requested_json`), the request as reviewed and the consent (both `None` while unapproved). |
-| [`remote_consent_view`](#remote_consent_view) | function | The one JSON view of a consent row, shared by the operator API and the CLI so both answer the same fields: the request (version, grant, the archive this host would fetch, and its `request_digest`), the approval (`approved_version`, `grant`, `approved_at`, `approved_by`), `revoked_at`, `updated_at`, and the `state` (`remote_row_consent_state`). A stored grant that does not parse shows as `null`. |
+| [`remote_consent_view`](#remote_consent_view) | function | The one JSON view of a consent row, shared by the operator API and the CLI so both answer the same fields: the request (version, grant, the archive this host would fetch, and its `request_digest`), the approval (`approved_version`, `grant`, `approved_at`, `approved_by`), `revoked_at`, `updated_at`, the `state` (`remote_row_consent_state`), and `pending`, what the request asks for beyond the approval (`remote_row_changes`). A stored grant that does not parse shows as `null`. |
 | [`remote_platform_auto_approval`](#remote_platform_auto_approval) | function | True when a platform plugin's request may be approved without asking: the key is a Bookclerk platform key, this host's own install of that key is platform-bundled with the same payload digest as the owner's artifact (`local_bundled_payload`, from this host's provenance check), and the request stays inside the platform envelope (deny network, only `config` / `work_fs`). |
+| [`remote_request_changes`](#remote_request_changes) | function | Operator-facing lines naming what `requested` asks for beyond `reviewed`. |
 | [`remote_request_within`](#remote_request_within) | function | True when `requested` asks for nothing outside `reviewed`: the same plugin, every capability set a subset, network no wider (outbound only if reviewed outbound), undeclared redirects only if reviewed, and no larger budget. |
+| [`remote_row_changes`](#remote_row_changes) | function | `remote_request_changes` for a stored consent row: what the owner's current request asks for beyond the request the operator approved. |
 | [`remote_row_consent_state`](#remote_row_consent_state) | function | Evaluates a stored consent row: `remote_consent_state` over its grants, except that an approval of another archive (the owner changed the artifact URL or digest since the operator approved) needs approval again, whatever the grant. |
 | [`plugin_instance_key`](#plugin_instance_key) | function | Isolation key: different accounts never share a plugin isolate. |
 | [`note_spawn_stage`](#note_spawn_stage) | function | Record one secret-free startup line. |
@@ -235,6 +237,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`GRANTS_FILE`](#grants_file) | constant | Filename under `$BOOKCLERK_FILES_DIR` for persisted grants. |
 | [`GRANT_SCHEMA_VERSION`](#grant_schema_version) | constant | Current persisted `PluginGrant` document version. |
 | [`KNOWN_HOST_BINDINGS`](#known_host_bindings) | constant | Host binding names operators may grant (widen or narrow). |
+| [`PENDING_HEADER`](#pending_header) | constant | First line of `PendingStructural::summary_lines` and `crate::remote_request_changes`. |
 | [`PLUGIN_JAIL_ACTIVE_PROCESSES_MAX`](#plugin_jail_active_processes_max) | constant | Absolute OS jail PID ceiling (`overhead + extra`, inclusive). |
 | [`PLUGIN_JAIL_CPU_CORES_DEFAULT`](#plugin_jail_cpu_cores_default) | constant | Default jail CPU as cores (`PLUGIN_JAIL_CPU_RATE_DEFAULT` / 100). |
 | [`PLUGIN_JAIL_CPU_RATE_DEFAULT`](#plugin_jail_cpu_rate_default) | constant | Default jail Spec CPU rate percent for confined guests (one-core units). |
@@ -583,10 +586,15 @@ pub struct PendingStructural {
     pub bindings: BTreeSet<String>,
     pub compatibility_flags: BTreeSet<String>,
     pub own_user_agent_hosts: BTreeSet<String>,
+    pub domains: BTreeSet<String>,
+    pub tcp: BTreeSet<TcpGrant>,
+    pub address_cidrs: BTreeSet<String>,
+    pub undeclared_public_redirects: bool,
 }
 ```
 
-Newly requested structural capabilities awaiting operator consent.
+Newly requested capabilities awaiting operator consent: structural ones,
+and network destinations wider than the stored grant.
 
 **Fields**
 
@@ -598,6 +606,13 @@ Newly requested structural capabilities awaiting operator consent.
 - `compatibility_flags`: Compatibility flags declared by the current manifest but not granted.
 - `own_user_agent_hosts`: Hosts where the current manifest asks to keep its own `User-Agent`
   but the grant does not allow it yet.
+- `domains`: Fetch host patterns (normalized, `*` for any public host) the request
+  asks for that the grant neither approved nor denied.
+- `tcp`: TCP `host:ports` the request asks for that the grant neither approved
+  nor denied, narrowed to the new ports.
+- `address_cidrs`: CIDRs the request asks for that the grant neither approved nor denied.
+- `undeclared_public_redirects`: The request asks to follow undeclared public redirects, which the
+  grant does not allow and the operator never answered.
 
 #### PendingStructural::is_empty
 
@@ -678,13 +693,17 @@ One approved grant snapshot for a provenance-qualified plugin.
 - `network_mode`: Approved network mode: `deny` or `outbound`.
 - `domains`: Approved initial outbound domain patterns (**workerd** allowlist).
   
-  Effective set: manifest request ∪ operator additions − operator denials.
+  Effective set: (manifest request covered by the approval) ∪ operator
+  additions − operator denials. On a stored grant this is the approved
+  set; a newer manifest can't add to it ([`effective_grant`](#effective_grant)).
 - `manifest_domains`: Network destinations requested by the installed manifest (not operator-added).
 - `operator_added_domains`: Operator-added destinations beyond the current manifest request.
   
   Survive upgrades of the same [`Self::plugin_key`](#plugingrant). Do not transfer across provenance.
 - `operator_denied_domains`: Operator-denied destinations (even if the manifest still lists them).
-- `tcp`: Effective raw TCP grants (manifest ∪ operator additions − denials).
+- `tcp`: Effective raw TCP grants: (manifest ports covered by the approval) ∪
+  operator additions − denials. On a stored grant these are the approved
+  grants; a newer manifest can't add to them ([`effective_grant`](#effective_grant)).
 - `manifest_tcp`: TCP grants requested by the installed manifest.
 - `operator_added_tcp`: Operator-added TCP grants; survive upgrades of the same PluginKey.
 - `operator_denied_tcp`: Operator-denied TCP grants (even if the current manifest still lists them).
@@ -692,7 +711,9 @@ One approved grant snapshot for a provenance-qualified plugin.
   Same PluginKey upgrades must not silently restore a TCP host the operator
   removed. Host spawn overlays (postgres URL, D1, ABS, S3) may still add
   destinations from operator config after this set is applied.
-- `address_cidrs`: Effective CIDR grants beyond the public Internet.
+- `address_cidrs`: Effective CIDR grants beyond the public Internet. On a stored grant
+  these are the approved ranges; a newer manifest can't add to them
+  ([`effective_grant`](#effective_grant)).
 - `manifest_cidrs`: CIDRs requested by the installed manifest.
 - `operator_added_cidrs`: Operator-added CIDRs; survive upgrades of the same PluginKey.
 - `operator_denied_cidrs`: Operator-denied CIDRs (even if the current manifest still lists them).
@@ -4385,8 +4406,11 @@ pub fn effective_grant(existing: &PluginGrant, requested: &PluginGrant) -> Plugi
 Spawn/delivery grant: stored approval is authoritative, host-normalized.
 
 Structural capabilities stay at the stored operator snapshot (narrowed).
-Network destinations re-evaluate the current manifest plus persisted
-operator additions/denials.
+Network destinations re-evaluate the current manifest against the stored
+approval plus persisted operator additions/denials: the manifest can drop
+a destination but never add one the operator did not approve, and
+undeclared public redirects follow the manifest only while the stored
+grant allows them.
 
 ### effective_memory_mib
 
@@ -6020,8 +6044,9 @@ The one JSON view of a consent row, shared by the operator API and the
 CLI so both answer the same fields: the request (version, grant, the
 archive this host would fetch, and its `request_digest`), the approval
 (`approved_version`, `grant`, `approved_at`, `approved_by`), `revoked_at`,
-`updated_at`, and the `state` ([`remote_row_consent_state`](#remote_row_consent_state)). A stored
-grant that does not parse shows as `null`.
+`updated_at`, the `state` ([`remote_row_consent_state`](#remote_row_consent_state)), and `pending`,
+what the request asks for beyond the approval ([`remote_row_changes`](#remote_row_changes)).
+A stored grant that does not parse shows as `null`.
 
 ### remote_platform_auto_approval
 
@@ -6040,6 +6065,33 @@ artifact (`local_bundled_payload`, from this host's provenance check),
 and the request stays inside the platform envelope (deny network, only
 `config` / `work_fs`).
 
+### remote_request_changes
+
+```rust
+pub fn remote_request_changes(
+    reviewed: &PluginGrant,
+    requested: &PluginGrant,
+) -> Vec<String>
+```
+
+Operator-facing lines naming what `requested` asks for beyond `reviewed`.
+
+The same lines (and header) the local consent flow prints for a widened
+plugin ([`crate::PendingStructural::summary_lines`](#pendingstructuralsummary_lines)), plus network turned
+on and larger budgets, which only an owner request can change. Network
+destinations are compared exactly as [`remote_request_within`](#remote_request_within) compares
+them (whole TCP grants, exact patterns and ranges), so the lines are
+empty exactly when that holds.
+
+#### Arguments
+
+* `reviewed` - The owner's request as this host's operator approved it.
+* `requested` - The owner's current request.
+
+#### Returns
+
+A header line then one indented line per kind of widening, or nothing.
+
 ### remote_request_within
 
 ```rust
@@ -6050,6 +6102,19 @@ True when `requested` asks for nothing outside `reviewed`: the same
 plugin, every capability set a subset, network no wider (outbound only
 if reviewed outbound), undeclared redirects only if reviewed, and no
 larger budget.
+
+### remote_row_changes
+
+```rust
+pub fn remote_row_changes(row: &RemotePluginConsent) -> Vec<String>
+```
+
+[`remote_request_changes`](#remote_request_changes) for a stored consent row: what the owner's
+current request asks for beyond the request the operator approved.
+
+Empty when nothing was approved yet (the whole request is new), when
+the request stays within the approval, or when either grant does not
+parse (the row's state already says `invalid_grant`).
 
 ### remote_row_consent_state
 
@@ -6199,6 +6264,15 @@ pub const KNOWN_HOST_BINDINGS: &[&str] = _;
 ```
 
 Host binding names operators may grant (widen or narrow).
+
+### PENDING_HEADER
+
+```rust
+pub const PENDING_HEADER: &str = "Awaiting consent (not automatically approved):";
+```
+
+First line of [`PendingStructural::summary_lines`](#pendingstructuralsummary_lines) and
+[`crate::remote_request_changes`](#remote_request_changes).
 
 ### PLUGIN_JAIL_ACTIVE_PROCESSES_MAX
 

@@ -1294,7 +1294,11 @@ Status `200`: Pending and granted cluster consents.
       "approved_by": "operator",
       "revoked_at": "2026-11-01T08:00:00Z",
       "updated_at": "2026-10-29T10:12:00Z",
-      "state": "consented"
+      "state": "consented",
+      "pending": [
+        "Awaiting consent (not automatically approved):",
+        "  fetch hosts: any public website (*)"
+      ]
     }
   ]
 }
@@ -1393,7 +1397,8 @@ Schema:
           "request_digest",
           "grant",
           "updated_at",
-          "state"
+          "state",
+          "pending"
         ],
         "properties": {
           "cluster_id": {
@@ -1567,6 +1572,17 @@ Schema:
             "type": "string",
             "description": "How this host stands on the request: `consented`, `awaiting_host_consent` (no approval, or a revoked one), `awaiting_host_reapproval` (the owner changed the request or the archive since the approval), or `invalid_grant` (a grant that does not parse).",
             "example": "consented"
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the owner's current request asks for beyond the request the operator approved, as the operator-facing lines the CLI prints; empty when nothing was approved yet or the request stays within the approval.",
+            "example": [
+              "Awaiting consent (not automatically approved):",
+              "  fetch hosts: any public website (*)"
+            ]
           }
         }
       },
@@ -3021,7 +3037,11 @@ Status `200`: The consent was granted.
     "approved_by": "operator",
     "revoked_at": "2026-11-01T08:00:00Z",
     "updated_at": "2026-10-29T10:12:00Z",
-    "state": "consented"
+    "state": "consented",
+    "pending": [
+      "Awaiting consent (not automatically approved):",
+      "  fetch hosts: any public website (*)"
+    ]
   }
 }
 ```
@@ -3048,7 +3068,8 @@ Schema:
         "request_digest",
         "grant",
         "updated_at",
-        "state"
+        "state",
+        "pending"
       ],
       "properties": {
         "cluster_id": {
@@ -3222,6 +3243,17 @@ Schema:
           "type": "string",
           "description": "How this host stands on the request: `consented`, `awaiting_host_consent` (no approval, or a revoked one), `awaiting_host_reapproval` (the owner changed the request or the archive since the approval), or `invalid_grant` (a grant that does not parse).",
           "example": "consented"
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "What the owner's current request asks for beyond the request the operator approved, as the operator-facing lines the CLI prints; empty when nothing was approved yet or the request stays within the approval.",
+          "example": [
+            "Awaiting consent (not automatically approved):",
+            "  fetch hosts: any public website (*)"
+          ]
         }
       }
     }
@@ -3665,7 +3697,11 @@ Status `200`: The consent was revoked.
     "approved_by": "operator",
     "revoked_at": "2026-11-01T08:00:00Z",
     "updated_at": "2026-10-29T10:12:00Z",
-    "state": "consented"
+    "state": "consented",
+    "pending": [
+      "Awaiting consent (not automatically approved):",
+      "  fetch hosts: any public website (*)"
+    ]
   }
 }
 ```
@@ -3692,7 +3728,8 @@ Schema:
         "request_digest",
         "grant",
         "updated_at",
-        "state"
+        "state",
+        "pending"
       ],
       "properties": {
         "cluster_id": {
@@ -3866,6 +3903,17 @@ Schema:
           "type": "string",
           "description": "How this host stands on the request: `consented`, `awaiting_host_consent` (no approval, or a revoked one), `awaiting_host_reapproval` (the owner changed the request or the archive since the approval), or `invalid_grant` (a grant that does not parse).",
           "example": "consented"
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "What the owner's current request asks for beyond the request the operator approved, as the operator-facing lines the CLI prints; empty when nothing was approved yet or the request stays within the approval.",
+          "example": [
+            "Awaiting consent (not automatically approved):",
+            "  fetch hosts: any public website (*)"
+          ]
         }
       }
     }
