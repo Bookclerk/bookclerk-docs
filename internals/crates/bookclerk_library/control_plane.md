@@ -131,6 +131,8 @@ See `docs/adr/control-plane.md`.
 | [`AddVersion`](#addversion) | enum | What `add_plugin_version` did. |
 | [`EventsReplace`](#eventsreplace) | enum | Outcome of `replace_events`. |
 | [`NodeRuntimeReplace`](#noderuntimereplace) | enum | Outcome of `replace_node_runtime`. |
+| [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
+| [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
 | [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. With `done` (the last batch of a pass) while a pass from the start is under way, titles the pass did not name are withdrawn (detached); `done` on a resumed incremental pass changes nothing more. |
 | [`begin_catalog`](#begin_catalog) | function | Opens (or reopens) `node_id`'s catalog sync with the settings the branch reports: records them on its node row, bumps its catalog fence (frames under an older fence are lost from now on), and answers where to resume. A change of either setting restarts the pass from the start, so titles the new setting excludes are withdrawn when the pass ends; so does a session `FULL_CATALOG_PASS_EVERY` after the last full pass. With sharing off, every title the branch shared is marked detached (`stopped_sharing`). |
 | [`branch_provenance`](#branch_provenance) | function | The provenance text of titles shared by `node_id`. |
@@ -362,10 +364,8 @@ See `docs/adr/control-plane.md`.
 | [`list_installs`](#list_installs) | function | Every active pointer. |
 | [`list_versions`](#list_versions) | function | Every version of `plugin_key` (or of every plugin), newest install first. |
 | [`load_active_version`](#load_active_version) | function | The active version of `plugin_key`, when a pointer names one. |
-| [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
 | [`load_install`](#load_install) | function | The active pointer of `plugin_key`. |
 | [`load_version`](#load_version) | function | One version row. |
-| [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
 | [`bootstrap_control_plane`](#bootstrap_control_plane) | function | Enrolls this files directory and imports `[events]` and `[output]` when their documents are absent. |
 | [`overlay_core_documents`](#overlay_core_documents) | function | Copies every authoritative cluster document in `session` onto `config`. |
 | [`overlay_events`](#overlay_events) | function | Copies the authoritative events document onto `config` for `cluster_id`. |
@@ -378,6 +378,7 @@ See `docs/adr/control-plane.md`.
 | [`update_node_runtime`](#update_node_runtime) | function | Applies `edit` to a node's runtime document (creating it with defaults when the node never wrote one) under compare-and-swap, retrying a few times on a concurrent edit. Budgets reach the scheduler with the node's next heartbeat. |
 | [`LiveRevisions`](#liverevisions) | type alias | Every topic's revision, in `LiveTopic::ALL` order. |
 | [`AccountKey`](#accountkey) | type alias | A store account, keyed as in `accounts`: `(plugin_key, account_id)`. |
+| [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) | constant | Largest archive stored in the library, in bytes. |
 | [`BRANCH_TITLE_DETACHED`](#branch_title_detached) | constant | `branch_titles.state` of a title from a branch that stopped sharing, left, or withdrew it. |
 | [`BRANCH_TITLE_SHARED`](#branch_title_shared) | constant | `branch_titles.state` of a title its branch still shares. |
 | [`DETACHED_LEFT`](#detached_left) | constant | Detach reason: the branch left the library (or was revoked). |
@@ -457,8 +458,7 @@ See `docs/adr/control-plane.md`.
 | [`UPLOAD_NAME_WILDCARD`](#upload_name_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more characters of a file name (no `/`), where a part or chapter title goes. Storage keys hold no control character, so the marker never clashes with one. |
 | [`UPLOAD_NUMBER_WILDCARD`](#upload_number_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more ASCII digits, where a part or chapter number goes. |
 | [`UPLOAD_TOKEN_TTL_SECS`](#upload_token_ttl_secs) | constant | How long a granted upload's token is accepted past its latest extension (the grant, an accepted file, or a renewal of the job's lease). |
-| [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in `plugin_artifacts`. |
-| [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) | constant | Largest archive stored in `plugin_artifacts` (base64 stays under D1's row cap). |
+| [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in the library (`super::artifacts::put_artifact_blob`). |
 | [`EVENTS_NAMESPACE`](#events_namespace) | constant | Namespace for the migrated `[events]` domain. |
 | [`NODE_RUNTIME_NAMESPACE`](#node_runtime_namespace) | constant | Namespace for node-scoped runtime settings. |
 | [`EVENTS_SCHEMA_VERSION`](#events_schema_version) | constant | Schema version of `EventsSettingsV1`. |
@@ -4425,6 +4425,48 @@ Outcome of [`replace_node_runtime`](#replace_node_runtime).
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
+
+### load_artifact_blob
+
+```rust
+pub async fn load_artifact_blob(
+    store: &LibraryStore,
+    sha256: &str,
+) -> Result<Option<Vec<u8>>>
+```
+
+Reads an archive stored by [`put_artifact_blob`](#put_artifact_blob).
+
+Chunks are read in order, as many per request as the database plugin's
+result limits allow.
+
+#### Returns
+
+The archive bytes, or `None` when no archive with that digest is stored.
+
+#### Errors
+
+Returns an error when a read fails, a chunk is missing or the wrong
+size, or the stored bytes do not match their digest.
+
+### put_artifact_blob
+
+```rust
+pub async fn put_artifact_blob(store: &LibraryStore, bytes: &[u8]) -> Result<String>
+```
+
+Stores a small archive and returns its `blob:sha256:<hex>` URL.
+
+The bytes go in chunks sized from the database plugin's advertised
+limits, over as many atomic batches as those limits need; the header row
+goes in the last one. Storing an archive that is already stored writes
+nothing.
+
+#### Errors
+
+Returns an error when the archive exceeds [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) or
+a write fails. Chunks from batches written before the failure stay but
+are invisible without their header, and a retry reuses them.
 
 ### accept_catalog_batch
 
@@ -8660,22 +8702,6 @@ The active version of `plugin_key`, when a pointer names one.
 
 Returns an error when a read fails or the pointer names a missing row.
 
-### load_artifact_blob
-
-```rust
-pub async fn load_artifact_blob(
-    store: &LibraryStore,
-    sha256: &str,
-) -> Result<Option<Vec<u8>>>
-```
-
-Reads an archive stored by [`put_artifact_blob`](#put_artifact_blob).
-
-#### Errors
-
-Returns an error when the read fails or the stored bytes do not match
-their digest.
-
 ### load_install
 
 ```rust
@@ -8706,19 +8732,6 @@ One version row.
 #### Errors
 
 Returns an error when the read or decode fails.
-
-### put_artifact_blob
-
-```rust
-pub async fn put_artifact_blob(store: &LibraryStore, bytes: &[u8]) -> Result<String>
-```
-
-Stores a small archive and returns its `blob:sha256:<hex>` URL.
-
-#### Errors
-
-Returns an error when the archive exceeds [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) or
-the write fails.
 
 ### bootstrap_control_plane
 
@@ -8919,6 +8932,16 @@ pub type AccountKey = (String, String);
 A store account, keyed as in `accounts`: `(plugin_key, account_id)`.
 
 ## Constants
+
+### MAX_ARTIFACT_BLOB_BYTES
+
+```rust
+pub const MAX_ARTIFACT_BLOB_BYTES: usize = 1_048_576;
+```
+
+Largest archive stored in the library, in bytes.
+
+A larger local archive is referenced in place as a `file://` URL.
 
 ### BRANCH_TITLE_DETACHED
 
@@ -9580,16 +9603,8 @@ lease).
 pub const ARTIFACT_BLOB_SCHEME: &str = "blob:sha256:";
 ```
 
-Artifact URL scheme of an archive stored in `plugin_artifacts`.
-
-### MAX_ARTIFACT_BLOB_BYTES
-
-```rust
-pub const MAX_ARTIFACT_BLOB_BYTES: usize = 1_048_576;
-```
-
-Largest archive stored in `plugin_artifacts` (base64 stays under
-D1's row cap).
+Artifact URL scheme of an archive stored in the library
+([`super::artifacts::put_artifact_blob`](#put_artifact_blob)).
 
 ### EVENTS_NAMESPACE
 
