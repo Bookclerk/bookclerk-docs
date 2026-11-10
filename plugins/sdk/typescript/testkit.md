@@ -206,6 +206,40 @@ The profile name, unchecked.
 
 ***
 
+### kitMigrations()
+
+```ts
+function kitMigrations(migrations): object[];
+```
+
+Spells a `databaseMigrations` registration the way the kit reads it.
+
+A plugin may return each operation typed (`{ kind: "schema", value }`,
+the [PluginMigration](generated.md#pluginmigration) shape) or in the short form the
+`schemaMigrationOp` / `dataMigrationOp` helpers build (`{ schema }`); the
+host accepts both, so the kit is handed the one form it parses. The
+registration is first held to the same resource bounds the isolate SDK
+applies before the host sees it.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `migrations` | readonly [`PluginMigration`](generated.md#pluginmigration)[] | The registration, in either form. |
+
+#### Returns
+
+`object`[]
+
+The same migrations with every operation as `{ schema }` or `{ data }`.
+
+#### Throws
+
+Error naming the migration when an operation is neither form, or
+  with code `payload_too_large` when the registration passes an ABI bound.
+
+***
+
 ### testkitBinary()
 
 ```ts
