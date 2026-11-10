@@ -275,7 +275,7 @@ pub struct StorefrontCandidate {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
-    pub audible_rank: Option<u32>,
+    pub store_rank: Option<u32>,
 }
 ```
 
@@ -312,7 +312,9 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `rating_overall`: Community overall rating when a storefront provided one.
 - `rating_count`: Number of ratings backing [`Self::rating_overall`](#storefrontcandidate) when known.
 - `is_abridged`: Abridged flag when the storefront provided one.
-- `audible_rank`: Position within the Audible page that produced this hit (for merge rank).
+- `store_rank`: The storefront's own 1-based search rank for this hit (its declared
+  `CatalogHit.rankHint`); catalog search merges stores by it for
+  relevance and popularity sorts. `None` when no store ranked it.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 

@@ -289,6 +289,12 @@ pub fn get_parent_product_id(self) -> Result<Reader<'a>>
 pub fn has_parent_product_id(&self) -> bool
 ```
 
+#### Reader::get_rank_hint
+
+```rust
+pub fn get_rank_hint(self) -> u32
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -825,6 +831,18 @@ pub fn init_parent_product_id(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_parent_product_id(&self) -> bool
+```
+
+#### Builder::get_rank_hint
+
+```rust
+pub fn get_rank_hint(self) -> u32
+```
+
+#### Builder::set_rank_hint
+
+```rust
+pub fn set_rank_hint(&mut self, value: u32)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

@@ -128,6 +128,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`json_enum`](json_enum.md)
 - [`event_consumer_spec`](event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capabilities.md)
+- [`catalog_capabilities`](catalog_capabilities.md)
 - [`brand`](brand.md)
 - [`config_option`](config_option.md)
 - [`config_option_value`](config_option_value.md)

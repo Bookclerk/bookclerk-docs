@@ -175,6 +175,18 @@ pub fn get_cli(self) -> Result<Reader<'a>>
 pub fn has_cli(&self) -> bool
 ```
 
+#### Reader::get_catalog
+
+```rust
+pub fn get_catalog(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_catalog
+
+```rust
+pub fn has_catalog(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -485,6 +497,30 @@ pub fn init_cli(self) -> Builder<'a>
 pub fn has_cli(&self) -> bool
 ```
 
+#### Builder::get_catalog
+
+```rust
+pub fn get_catalog(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_catalog
+
+```rust
+pub fn set_catalog(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_catalog
+
+```rust
+pub fn init_catalog(self) -> Builder<'a>
+```
+
+#### Builder::has_catalog
+
+```rust
+pub fn has_catalog(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -517,6 +553,12 @@ pub fn get_brand(&self) -> Pipeline
 
 ```rust
 pub fn get_cli(&self) -> Pipeline
+```
+
+#### Pipeline::get_catalog
+
+```rust
+pub fn get_catalog(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`

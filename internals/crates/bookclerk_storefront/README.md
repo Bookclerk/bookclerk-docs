@@ -138,6 +138,7 @@ pub struct CatalogHit {
     pub credits: Vec<Credit>,
     pub series_entries: Vec<SeriesEntry>,
     pub parent_product_id: Option<String>,
+    pub rank_hint: Option<u32>,
 }
 ```
 
@@ -175,6 +176,9 @@ second Audnexus / purchase-hint round-trip for Discover detail).
 - `credits`: Credited contributors in billing order.
 - `series_entries`: Series the work belongs to.
 - `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
+- `rank_hint`: The storefront's own 1-based rank for a catalog search hit across all
+  result pages (see [`CatalogSearchOpts::rank_hint`](#catalogsearchoptsrank_hint)); `None` when the
+  store does not rank its results. Catalog search merges stores by it.
 
 #### CatalogHit::decode_html_entities
 
@@ -287,6 +291,40 @@ The number of hits to return: [`CatalogSearchOpts::limit`](#catalogsearchopts), 
 ##### Returns
 
 A hit count of at least 1.
+
+#### CatalogSearchOpts::rank_hint
+
+```rust
+pub fn rank_hint(&self, index: usize) -> u32
+```
+
+1-based rank of the hit at `index` on this search's page, counted
+across every page of [`Self::effective_limit`](#catalogsearchoptseffective_limit) hits (page 2 of 20-hit
+pages starts at 21).
+
+A storefront whose search order is meaningful for the requested sort
+stores it in [`CatalogHit::rank_hint`](#cataloghit), so catalog search can merge
+stores without naming any of them. Saturates at `u32::MAX`.
+
+##### Arguments
+
+* `index` - 0-based position of the hit within this page.
+
+##### Returns
+
+The rank, never 0 (0 means unranked on the wire).
+
+#### CatalogSearchOpts::stamp_rank_hints
+
+```rust
+pub fn stamp_rank_hints(&self, hits: &mut [CatalogHit])
+```
+
+Stamps [`Self::rank_hint`](#catalogsearchoptsrank_hint) on each hit of one search page, in order.
+
+##### Arguments
+
+* `hits` - The page's hits in the storefront's own order.
 
 Implements: `Clone`, `Debug`, `Default`, `From<&CatalogSearchOpts>`, `From<SearchCatalogParams>`
 

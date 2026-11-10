@@ -112,6 +112,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CoverFetcher`](#coverfetcher) | class | `covers` entrypoint: downloads cover images on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The fetcher only transports bytes: the host sniffs, decodes and re-encodes every image in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
 | [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
+| [`CatalogCapabilities`](#catalogcapabilities) | class | Catalog behaviours a storefront declares in `describe()`. Catalog search reads them instead of special-casing plugin ids; every flag defaults to false, so a guest that says nothing keeps the plain behaviour. |
 | [`Brand`](#brand) | class | Portal brand crossing the RPC boundary. Distinct from `plugin.toml` `logo`: `iconUrl` is the live URL or data URI the SPA renders. |
 | [`ConfigOption`](#configoption) | class | One discoverable config option group advertised for sources. |
 | [`ConfigOptionValue`](#configoptionvalue) | class | One selectable value under a `ConfigOption`. |
@@ -565,6 +566,7 @@ Guest identity and negotiation surface returned by `describe()`.
 - `brand`: Portal brand colors and icon URL; `brand.id` is empty when the guest has no brand and the host renders a neutral fallback.
 - `configOptions`: Discoverable config option groups for source UIs.
 - `cli`: Embedded CLI schema (same shape as `PluginCli.describe`); empty when unused.
+- `catalog`: Catalog behaviours a storefront declares so the host can use any store for catalog search without naming it; all false for other kinds.
 
 ### OidcClientTemplate
 
@@ -2671,6 +2673,20 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `queueProducers`: Queues the guest may send to through its `[[queues.producers]]` bindings.
 - `crons`: Five-field UTC cron schedules the default entrypoint handles (`scheduled(controller)` trigger, `[triggers] crons`), normalized to single spaces.
 
+### CatalogCapabilities
+
+```python
+class CatalogCapabilities(TypedDict)
+```
+
+Catalog behaviours a storefront declares in `describe()`. Catalog search
+reads them instead of special-casing plugin ids; every flag defaults to
+false, so a guest that says nothing keeps the plain behaviour.
+
+**Attributes**
+
+- `detailByIsbn`: True when `catalogDetail` resolves a bare ISBN (sent in both `productId` and `isbn`) to a full bibliographic record. Catalog search then asks this store to fill description, narrators, runtime and genres on lean result rows from any store that carry an ISBN.
+
 ### Brand
 
 ```python
@@ -3516,6 +3532,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `credits`: Credited contributors in billing order.
 - `seriesEntries`: Series the work belongs to.
 - `parentProductId`: Product id of the parent podcast show, for a podcast episode. Omitted when absent (wire zero value).
+- `rankHint`: The storefront's own rank for this hit in `searchCatalog` results 1-based position in the store's ordering for the requested sort across all pages (page 2 of 20-hit pages starts at 21), or a store-wide popularity rank when the store has one. 0 means unranked. Catalog search merges stores by it for relevance and popularity sorts and puts unranked hits after ranked ones. Other catalog methods leave it 0. Omitted when absent (wire zero value).
 
 ### CatalogHits
 

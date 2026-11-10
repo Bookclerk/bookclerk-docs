@@ -180,6 +180,15 @@ pub trait ContentSource: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
+    fn answers_catalog_detail_by_isbn(&self) -> bool;
+    fn catalog_detail_by_isbn<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        isbn: &'life1 str,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<CatalogHit>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
     fn expand_candidates<'life0, 'life1, 'async_trait>(
         &'life0 self,
         seed: &'life1 ExpandSeed,
@@ -504,6 +513,41 @@ Fetch rich bibliographic metadata for one catalog product (no account).
 
 Default: none. Used when search/expand hits are lean (e.g. HTML scrape)
 and a title detail dialog needs narrator, runtime, description, etc.
+
+#### ContentSource::answers_catalog_detail_by_isbn
+
+```rust
+fn answers_catalog_detail_by_isbn(&self) -> bool
+```
+
+Whether [`Self::catalog_detail_by_isbn`](#contentsourcecatalog_detail_by_isbn) resolves any audiobook ISBN to
+a full record (the guest's declared `CatalogCapabilities.detailByIsbn`).
+
+Catalog search asks every source that returns `true` to fill lean
+result rows from other stores, instead of naming one storefront.
+Default: `false`.
+
+#### ContentSource::catalog_detail_by_isbn
+
+```rust
+fn catalog_detail_by_isbn<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    isbn: &'life1 str,
+) -> Pin<Box<dyn Future<Output = Result<Option<CatalogHit>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Full catalog record for an ISBN, from a source that declares
+[`Self::answers_catalog_detail_by_isbn`](#contentsourceanswers_catalog_detail_by_isbn).
+
+Default: [`Self::catalog_detail`](#contentsourcecatalog_detail) with the ISBN as the product id.
+
+##### Errors
+
+Returns the source's error; external guests soft-fail to `Ok(None)`.
 
 #### ContentSource::expand_candidates
 

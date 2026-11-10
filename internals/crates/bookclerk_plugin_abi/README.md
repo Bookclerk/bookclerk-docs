@@ -390,6 +390,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::Abridgement`](generated.md#abridgement)
 - [`generated::EventConsumerSpec`](generated.md#eventconsumerspec)
 - [`generated::PluginCapabilities`](generated.md#plugincapabilities)
+- [`generated::CatalogCapabilities`](generated.md#catalogcapabilities)
 - [`generated::Brand`](generated.md#brand)
 - [`generated::ConfigOption`](generated.md#configoption)
 - [`generated::ConfigOptionValue`](generated.md#configoptionvalue)
@@ -471,6 +472,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_event_consumer_spec`](generated.md#read_event_consumer_spec)
 - [`generated::write_plugin_capabilities`](generated.md#write_plugin_capabilities)
 - [`generated::read_plugin_capabilities`](generated.md#read_plugin_capabilities)
+- [`generated::write_catalog_capabilities`](generated.md#write_catalog_capabilities)
+- [`generated::read_catalog_capabilities`](generated.md#read_catalog_capabilities)
 - [`generated::write_brand`](generated.md#write_brand)
 - [`generated::read_brand`](generated.md#read_brand)
 - [`generated::write_config_option`](generated.md#write_config_option)
@@ -4741,6 +4744,7 @@ pub struct PluginDescribe {
     pub brand: Option<Brand>,
     pub config_options: Vec<ConfigOption>,
     pub cli: CliSchema,
+    pub catalog: CatalogCapabilities,
 }
 ```
 
@@ -4769,6 +4773,8 @@ side-channel JSON. Storefront UI extras (`brand`, `config_options`,
   empty) and the host renders a neutral fallback.
 - `config_options`: Discoverable config option groups for source UIs.
 - `cli`: Embedded CLI schema (same shape as `cliDescribe`); empty when unused.
+- `catalog`: Catalog behaviours a storefront declares (ISBN detail lookup, ...);
+  all false for other kinds and for storefronts that declare none.
 
 #### PluginDescribe::has_entrypoint
 

@@ -28,6 +28,7 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::AccountCredential`](../../../internals/crates/bookclerk_plugin_abi/generated.md#accountcredential)
 - [`bookclerk_plugin_abi::AuthenticateUserParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#authenticateuserparams)
 - [`bookclerk_plugin_abi::Brand`](../../../internals/crates/bookclerk_plugin_abi/generated.md#brand)
+- [`bookclerk_plugin_abi::CatalogCapabilities`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogcapabilities)
 - [`bookclerk_plugin_abi::CatalogDetail`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogdetail)
 - [`bookclerk_plugin_abi::CatalogDetailParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogdetailparams)
 - [`bookclerk_plugin_abi::CatalogField`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogfield)

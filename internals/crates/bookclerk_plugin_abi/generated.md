@@ -12,6 +12,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | --- | --- | --- |
 | [`EventConsumerSpec`](#eventconsumerspec) | struct | One declared event consumer: a `\[\[events.consumers\]\]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | struct | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
+| [`CatalogCapabilities`](#catalogcapabilities) | struct | Catalog behaviours a storefront declares in `describe()`. Catalog search reads them instead of special-casing plugin ids; every flag defaults to false, so a guest that says nothing keeps the plain behaviour. |
 | [`Brand`](#brand) | struct | Portal brand crossing the RPC boundary. Distinct from `plugin.toml` `logo`: `iconUrl` is the live URL or data URI the SPA renders. |
 | [`ConfigOption`](#configoption) | struct | One discoverable config option group advertised for sources. |
 | [`ConfigOptionValue`](#configoptionvalue) | struct | One selectable value under a `ConfigOption`. |
@@ -106,6 +107,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_event_consumer_spec`](#read_event_consumer_spec) | function | Decode a `EventConsumerSpec` from a Cap'n Proto reader. |
 | [`write_plugin_capabilities`](#write_plugin_capabilities) | function | Encode a `PluginCapabilities` onto a Cap'n Proto builder. |
 | [`read_plugin_capabilities`](#read_plugin_capabilities) | function | Decode a `PluginCapabilities` from a Cap'n Proto reader. |
+| [`write_catalog_capabilities`](#write_catalog_capabilities) | function | Encode a `CatalogCapabilities` onto a Cap'n Proto builder. |
+| [`read_catalog_capabilities`](#read_catalog_capabilities) | function | Decode a `CatalogCapabilities` from a Cap'n Proto reader. |
 | [`write_brand`](#write_brand) | function | Encode a `Brand` onto a Cap'n Proto builder. |
 | [`read_brand`](#read_brand) | function | Decode a `Brand` from a Cap'n Proto reader. |
 | [`write_config_option`](#write_config_option) | function | Encode a `ConfigOption` onto a Cap'n Proto builder. |
@@ -370,6 +373,27 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `crons`: Five-field UTC cron schedules the default entrypoint handles
   (`scheduled(controller)` trigger, `\[triggers\] crons`), normalized to
   single spaces.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CatalogCapabilities
+
+```rust
+pub struct CatalogCapabilities {
+    pub detail_by_isbn: bool,
+}
+```
+
+Catalog behaviours a storefront declares in `describe()`. Catalog search
+reads them instead of special-casing plugin ids; every flag defaults to
+false, so a guest that says nothing keeps the plain behaviour.
+
+**Fields**
+
+- `detail_by_isbn`: True when `catalogDetail` resolves a bare ISBN (sent in both `productId`
+  and `isbn`) to a full bibliographic record. Catalog search then asks this
+  store to fill description, narrators, runtime and genres on lean result
+  rows from any store that carry an ISBN.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1307,6 +1331,7 @@ pub struct CatalogHit {
     pub credits: Vec<Credit>,
     pub series_entries: Vec<SeriesEntry>,
     pub parent_product_id: Option<String>,
+    pub rank_hint: Option<u32>,
 }
 ```
 
@@ -1354,6 +1379,13 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `credits`: Credited contributors in billing order.
 - `series_entries`: Series the work belongs to.
 - `parent_product_id`: Product id of the parent podcast show, for a podcast episode.
+  `None` when absent (wire zero value).
+- `rank_hint`: The storefront's own rank for this hit in `searchCatalog` results:
+  1-based position in the store's ordering for the requested sort across
+  all pages (page 2 of 20-hit pages starts at 21), or a store-wide
+  popularity rank when the store has one. 0 means unranked. Catalog search
+  merges stores by it for relevance and popularity sorts and puts unranked
+  hits after ranked ones. Other catalog methods leave it 0.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
@@ -2869,6 +2901,30 @@ pub fn read_plugin_capabilities(r: Reader<'_>) -> Result<PluginCapabilities>
 ```
 
 Decode a [`PluginCapabilities`](#plugincapabilities) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_catalog_capabilities
+
+```rust
+pub fn write_catalog_capabilities(b: Builder<'_>, v: &CatalogCapabilities) -> Result<()>
+```
+
+Encode a [`CatalogCapabilities`](#catalogcapabilities) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_catalog_capabilities
+
+```rust
+pub fn read_catalog_capabilities(r: Reader<'_>) -> Result<CatalogCapabilities>
+```
+
+Decode a [`CatalogCapabilities`](#catalogcapabilities) from a Cap'n Proto reader.
 
 #### Errors
 
@@ -5483,7 +5539,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 104;
+pub const READ_ANY_COUNT: u8 = 105;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

@@ -1388,6 +1388,12 @@ Re-exports [canonicalExecuteRequestHash](db-execute.md#canonicalexecuterequestha
 
 ***
 
+### CatalogCapabilities
+
+Re-exports [CatalogCapabilities](generated.md#catalogcapabilities)
+
+***
+
 ### CatalogDetail
 
 Re-exports [CatalogDetail](generated.md#catalogdetail)

@@ -634,6 +634,27 @@ Short human note.
 
 ***
 
+### CatalogCapabilities
+
+Catalog behaviours a storefront declares in `describe()`. Catalog search
+reads them instead of special-casing plugin ids; every flag defaults to
+false, so a guest that says nothing keeps the plain behaviour.
+
+#### Properties
+
+##### detailByIsbn
+
+```ts
+detailByIsbn: boolean;
+```
+
+True when `catalogDetail` resolves a bare ISBN (sent in both `productId`
+and `isbn`) to a full bibliographic record. Catalog search then asks this
+store to fill description, narrators, runtime and genres on lean result
+rows from any store that carry an ISBN.
+
+***
+
 ### CatalogDetail
 
 Success payload of `ContentSource.catalogDetail`.
@@ -843,6 +864,20 @@ publisher?: string;
 ```
 
 Publisher name when known.
+Omitted when absent (wire zero value).
+
+##### rankHint?
+
+```ts
+rankHint?: number;
+```
+
+The storefront's own rank for this hit in `searchCatalog` results:
+1-based position in the store's ordering for the requested sort across
+all pages (page 2 of 20-hit pages starts at 21), or a store-wide
+popularity rank when the store has one. 0 means unranked. Catalog search
+merges stores by it for relevance and popularity sorts and puts unranked
+hits after ranked ones. Other catalog methods leave it 0.
 Omitted when absent (wire zero value).
 
 ##### ratingCount?
@@ -5914,6 +5949,15 @@ capabilities: PluginCapabilities;
 
 Exported entrypoints, triggers, and bindings the guest implements. The
 host rejects anything wider than the manifest and the operator grant.
+
+##### catalog
+
+```ts
+catalog: CatalogCapabilities;
+```
+
+Catalog behaviours a storefront declares so the host can use any store
+for catalog search without naming it; all false for other kinds.
 
 ##### cli
 

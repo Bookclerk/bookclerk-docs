@@ -366,6 +366,7 @@
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/json_enum",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/event_consumer_spec",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/plugin_capabilities",
+    "internals/crates/bookclerk_plugin_abi/plugin_capnp/catalog_capabilities",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/brand",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/config_option",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/config_option_value",

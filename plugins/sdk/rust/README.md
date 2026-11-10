@@ -186,6 +186,7 @@ submodules unless you need module-level docs.
 - [`protocol::AccountCredential`](../../../internals/crates/bookclerk_plugin_abi/generated.md#accountcredential)
 - [`protocol::AuthenticateUserParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#authenticateuserparams)
 - [`protocol::Brand`](../../../internals/crates/bookclerk_plugin_abi/generated.md#brand)
+- [`protocol::CatalogCapabilities`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogcapabilities)
 - [`protocol::CatalogDetail`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogdetail)
 - [`protocol::CatalogDetailParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogdetailparams)
 - [`protocol::CatalogField`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogfield)
