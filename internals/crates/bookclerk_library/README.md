@@ -5340,6 +5340,68 @@ Loads a work by id, with its work-level credits and series.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::list_works_page
+
+```rust
+pub async fn list_works_page(
+    &self,
+    after_id: Option<&str>,
+    limit: u64,
+) -> Result<Vec<WorkRecord>>
+```
+
+Lists up to `limit` works with ids after `after_id`, in id order, with
+their work-level credits and series.
+
+A keyset page: pass the last id of one page as `after_id` of the
+next, and stop at a short page. Unlike [`Self::list_works`](#librarystorelist_works) it never
+reads the whole table at once.
+
+##### Arguments
+
+* `after_id` - Exclusive lower bound on `works.id`; `None` starts at
+  the first work.
+* `limit` - Page size, clamped to 1..=500.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::embedding_text_hashes
+
+```rust
+pub async fn embedding_text_hashes(
+    &self,
+    target_kind: &str,
+    model: &str,
+    target_ids: &[String],
+) -> Result<HashMap<String, String>>
+```
+
+Stored text hashes of the `model` embeddings of `target_kind` targets
+among `target_ids`, keyed by target id. Targets with no embedding are
+absent.
+
+Reads in chunks sized from the adapter's bind limit, so one call
+replaces a lookup per target.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::prune_orphan_work_embeddings
+
+```rust
+pub async fn prune_orphan_work_embeddings(&self) -> Result<u64>
+```
+
+Deletes work embeddings (every model) whose work no longer exists,
+and answers how many it removed.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
+
 #### LibraryStore::list_works
 
 ```rust

@@ -52,7 +52,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`catalog_search_page`](#catalog_search_page) | function | Paged multi-store catalog browse (filters + sort + cursor). |
 | [`catalog_search_with_field`](#catalog_search_with_field) | function | Like `catalog_search`, optionally scoping storefront queries to a facet (author / narrator / series / genre). When `language` is set it is applied as a hard include filter (unknown/missing language still passes). |
 | [`default_embedding_model_id`](#default_embedding_model_id) | function | Preferred model id for this build (ONNX MiniLM; runtime may fall back). |
-| [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing). |
+| [`embed_dirty_works`](#embed_dirty_works) | function | Embed works whose text hash changed (or are missing), and drop the embeddings of works that no longer exist. |
 | [`embedding_model_id`](#embedding_model_id) | function | Resolve the configured model id. |
 | [`open_embedder`](#open_embedder) | function | Open an embedder for the current build / config. |
 | [`text_for_work`](#text_for_work) | function | Build the text blob embedded for a work. |
@@ -94,6 +94,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
+| [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
 | [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
 | [`DEFAULT_MAX_REQUESTS_PER_RUN`](#default_max_requests_per_run) | constant | Default cap on provider asks in one run. |
@@ -1554,7 +1555,13 @@ pub async fn embed_dirty_works(
 ) -> Result<usize, DiscoverError>
 ```
 
-Embed works whose text hash changed (or are missing).
+Embed works whose text hash changed (or are missing), and drop the
+embeddings of works that no longer exist.
+
+Walks `works` in keyset pages of [`EMBED_PAGE_WORKS`]: each page costs
+one read of the works, one chunked read of their stored hashes, and one
+embedder call for the dirty ones, so memory stays bounded by the page
+and the store sees no per-work lookup.
 
 #### Arguments
 
@@ -1563,11 +1570,12 @@ Embed works whose text hash changed (or are missing).
 
 #### Returns
 
-On success, the inner `usize` value.
+How many embeddings were written.
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when a store read or write fails, or when the
+embedder fails or returns a different number of vectors than texts.
 
 ### embedding_model_id
 
@@ -2482,6 +2490,15 @@ On success, the inner `TitleReviewsPage` value.
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
 ## Constants
+
+### EMBED_PAGE_WORKS
+
+```rust
+pub const EMBED_PAGE_WORKS: u64 = 128;
+```
+
+Works read per page by [`embed_dirty_works`](#embed_dirty_works); also the most texts one
+embedder call receives.
 
 ### MODEL_ALL_MINILM_L6_V2_Q
 
