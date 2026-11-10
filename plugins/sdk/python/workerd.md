@@ -1468,6 +1468,31 @@ async def purchaseHint(self, _params: abi.PurchaseHintParams)
 
 Purchase link / price hint (`PurchaseHintParams` → `PurchaseHint`).
 
+#### StorefrontEntrypoint.purchaseHints
+
+```python
+async def purchaseHints(self, params: abi.PurchaseHintsParams)
+```
+
+Purchase links / price hints for several titles at once.
+
+Asks [`purchaseHint`](#storefrontentrypointpurchasehint) for each query, those that already name a
+product id first (one lookup each) and title searches after, and
+starts nothing once `PURCHASE_HINTS_BUDGET_SECONDS` has passed,
+so the host's batch gets what the store managed instead of nothing.
+A store whose catalog prices many products per request overrides
+this to make one request. Raise a `rate_limited`
+[`PluginError`](#pluginerror) (with `details.retryAfterMs`) when the store
+asks to slow down.
+
+**Args**
+
+- `params`: The titles to price, in order.
+
+**Returns**
+
+One `PurchaseHint` or `None` per query.
+
 #### StorefrontEntrypoint.listDeals
 
 ```python

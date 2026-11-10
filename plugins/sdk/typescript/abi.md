@@ -585,7 +585,7 @@ Ordinal-ordered `MediaKind` wire names (index = Cap'n Proto ordinal).
 ### PLUGIN\_ERROR\_CODES
 
 ```ts
-const PLUGIN_ERROR_CODES: readonly ["invalid_params", "unauthorized", "forbidden", "not_found", "unavailable", "unsupported", "internal", "payload_too_large", "deadline_exceeded", "invalid_cursor", "cancelled", "conflict", "limit_exceeded"];
+const PLUGIN_ERROR_CODES: readonly ["invalid_params", "unauthorized", "forbidden", "not_found", "unavailable", "unsupported", "internal", "payload_too_large", "deadline_exceeded", "invalid_cursor", "cancelled", "conflict", "limit_exceeded", "rate_limited"];
 ```
 
 Stable `PluginError.code` strings. Unknown future codes are forwarded

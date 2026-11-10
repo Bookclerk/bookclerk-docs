@@ -338,6 +338,25 @@ Live deal / list pricing for a Chirp audiobook (public GraphQL).
 
 Returns an error when the operation fails.
 
+#### ChirpClient::audiobook_pricings
+
+```rust
+pub async fn audiobook_pricings(
+    &self,
+    ids: &[String],
+) -> Result<HashMap<String, ChirpProductPricing>>
+```
+
+Live pricing for several audiobooks in one GraphQL request, by id.
+
+Each id is an aliased `audiobook(id:)` field of one query, so a page
+of cards costs one request. Ids Chirp does not know are absent.
+
+##### Errors
+
+Returns an error when the request fails, including
+[`ChirpError::RateLimited`](#chirperror) when Chirp asks to slow down.
+
 #### ChirpClient::search_catalog
 
 ```rust
@@ -683,6 +702,29 @@ Returns an error when a storefront request or its parse fails and the
 method cannot fall back. Failed lookups are soft, so `Ok(None)` can also
 mean the store could not be reached, not only that the title is not sold.
 
+#### ChirpSource::purchase_hints
+
+```rust
+pub async fn purchase_hints(
+    &self,
+    opts: &[PurchaseHintOpts],
+) -> Result<Vec<Option<SourcePurchaseHint>>>
+```
+
+Resolves purchase hints for several titles, pricing them in one
+aliased GraphQL request instead of one per card.
+
+Titles whose Chirp product id is known resolve first, without a
+search; the rest are looked up by title until the 5 s `RESOLVE_BUDGET` runs
+out, and a title not tried by then answers `None`, which the host
+does not take as an answer.
+
+##### Errors
+
+Returns `bookclerk_storefront::SourceError::RateLimited` when Chirp
+asks to slow down, during a title lookup or the pricing query; other
+failures leave the cards unpriced.
+
 #### ChirpSource::list_deals
 
 ```rust
@@ -709,6 +751,7 @@ pub enum ChirpError {
     NoAccounts(String),
     AccountNotFound(String),
     Api(String),
+    RateLimited(Option<Duration>),
     Download(String),
     Io(Error),
     Other(Error),
@@ -723,6 +766,7 @@ Failures from Chirp GraphQL sign-in, library listing, or DRM-free download.
 - `NoAccounts`: No Chirp accounts are configured (safe to skip in multi-source scan).
 - `AccountNotFound`: Requested account id is not present in `encrypted_secrets`.
 - `Api`: Upstream GraphQL / HTTP API error.
+- `RateLimited`: Chirp answered 429; the duration is its `Retry-After`, when sent.
 - `Download`: Title download or packaging failed.
 - `Io`: Local filesystem I/O while reading or writing cache files.
 - `Other`: Unexpected failure wrapped from `anyhow`.

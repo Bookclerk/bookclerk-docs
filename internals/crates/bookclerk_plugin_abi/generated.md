@@ -52,6 +52,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CatalogDetail`](#catalogdetail) | struct | Success payload of `ContentSource.catalogDetail`. |
 | [`PurchaseHint`](#purchasehint) | struct | Purchase hint for SPA / CLI purchase deep-links. |
 | [`PurchaseHintResult`](#purchasehintresult) | struct | Success payload of `ContentSource.purchaseHint`. |
+| [`PurchaseHintsParams`](#purchasehintsparams) | struct | Params of `ContentSource.purchaseHints`: the titles to price together. |
+| [`PurchaseHintsResult`](#purchasehintsresult) | struct | Success payload of `ContentSource.purchaseHints`. |
 | [`ScanLibraryParams`](#scanlibraryparams) | struct | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
 | [`AuthenticateUserParams`](#authenticateuserparams) | struct | Params of `Oidc.authenticateUser`. |
 | [`ExternalUser`](#externaluser) | struct | One external user observed by an integration. The host may mint claim tickets without exposing portal details to the guest. |
@@ -206,6 +208,12 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_purchase_hint_result`](#read_purchase_hint_result) | function | Decode a `PurchaseHintResult` from a Cap'n Proto reader. |
 | [`write_purchase_hint_reply`](#write_purchase_hint_reply) | function | Encode a `PurchaseHintReply` union from a typed result. |
 | [`read_purchase_hint_reply`](#read_purchase_hint_reply) | function | Decode a `PurchaseHintReply` union into a typed result. |
+| [`write_purchase_hints_params`](#write_purchase_hints_params) | function | Encode a `PurchaseHintsParams` onto a Cap'n Proto builder. |
+| [`read_purchase_hints_params`](#read_purchase_hints_params) | function | Decode a `PurchaseHintsParams` from a Cap'n Proto reader. |
+| [`write_purchase_hints_result`](#write_purchase_hints_result) | function | Encode a `PurchaseHintsResult` onto a Cap'n Proto builder. |
+| [`read_purchase_hints_result`](#read_purchase_hints_result) | function | Decode a `PurchaseHintsResult` from a Cap'n Proto reader. |
+| [`write_purchase_hints_reply`](#write_purchase_hints_reply) | function | Encode a `PurchaseHintsReply` union from a typed result. |
+| [`read_purchase_hints_reply`](#read_purchase_hints_reply) | function | Decode a `PurchaseHintsReply` union into a typed result. |
 | [`write_scan_library_params`](#write_scan_library_params) | function | Encode a `ScanLibraryParams` onto a Cap'n Proto builder. |
 | [`read_scan_library_params`](#read_scan_library_params) | function | Decode a `ScanLibraryParams` from a Cap'n Proto reader. |
 | [`write_authenticate_user_params`](#write_authenticate_user_params) | function | Encode a `AuthenticateUserParams` onto a Cap'n Proto builder. |
@@ -1442,6 +1450,38 @@ Success payload of `ContentSource.purchaseHint`.
 
 - `found`: False when the guest could not resolve the title (`hint` is empty).
 - `hint`: Purchase hint when `found`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### PurchaseHintsParams
+
+```rust
+pub struct PurchaseHintsParams {
+    pub queries: Vec<PurchaseHintParams>,
+}
+```
+
+Params of `ContentSource.purchaseHints`: the titles to price together.
+
+**Fields**
+
+- `queries`: One query per title, each as for `purchaseHint`; at most `maxListPage`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### PurchaseHintsResult
+
+```rust
+pub struct PurchaseHintsResult {
+    pub results: Vec<PurchaseHintResult>,
+}
+```
+
+Success payload of `ContentSource.purchaseHints`.
+
+**Fields**
+
+- `results`: One answer per query, in the order the queries were sent.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4107,6 +4147,83 @@ Decode a `PurchaseHintReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_purchase_hints_params
+
+```rust
+pub fn write_purchase_hints_params(b: Builder<'_>, v: &PurchaseHintsParams) -> Result<()>
+```
+
+Encode a [`PurchaseHintsParams`](#purchasehintsparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_purchase_hints_params
+
+```rust
+pub fn read_purchase_hints_params(r: Reader<'_>) -> Result<PurchaseHintsParams>
+```
+
+Decode a [`PurchaseHintsParams`](#purchasehintsparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_purchase_hints_result
+
+```rust
+pub fn write_purchase_hints_result(b: Builder<'_>, v: &PurchaseHintsResult) -> Result<()>
+```
+
+Encode a [`PurchaseHintsResult`](#purchasehintsresult) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_purchase_hints_result
+
+```rust
+pub fn read_purchase_hints_result(r: Reader<'_>) -> Result<PurchaseHintsResult>
+```
+
+Decode a [`PurchaseHintsResult`](#purchasehintsresult) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_purchase_hints_reply
+
+```rust
+pub fn write_purchase_hints_reply(
+    b: Builder<'_>,
+    v: &Result<PurchaseHintsResult, PluginError>,
+) -> Result<()>
+```
+
+Encode a `PurchaseHintsReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_purchase_hints_reply
+
+```rust
+pub fn read_purchase_hints_reply(
+    r: Reader<'_>,
+) -> Result<Result<PurchaseHintsResult, PluginError>>
+```
+
+Decode a `PurchaseHintsReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_scan_library_params
 
 ```rust
@@ -5366,7 +5483,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 101;
+pub const READ_ANY_COUNT: u8 = 104;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

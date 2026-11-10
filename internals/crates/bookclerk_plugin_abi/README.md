@@ -229,6 +229,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant | Maximum decoded size of an ordinary RPC scalar value (not a stream window). |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`apiVersion` / `plugin.toml` `api_version`). |
+| [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
 | [`JSON_MEDIA_TYPE`](#json_media_type) | constant | Media type of a JSON `ExtensibleConfig` payload. |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant | Maximum checkpoint payload size (bytes). |
 | [`PLUGIN_TOML_SCHEMA_JSON`](#plugin_toml_schema_json) | constant | Embedded JSON Schema for install `plugin.toml` files (shared with language SDK author tools and `bookclerk plugins` validation). |
@@ -429,6 +430,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::CatalogDetail`](generated.md#catalogdetail)
 - [`generated::PurchaseHint`](generated.md#purchasehint)
 - [`generated::PurchaseHintResult`](generated.md#purchasehintresult)
+- [`generated::PurchaseHintsParams`](generated.md#purchasehintsparams)
+- [`generated::PurchaseHintsResult`](generated.md#purchasehintsresult)
 - [`generated::ScanLibraryParams`](generated.md#scanlibraryparams)
 - [`generated::AuthenticateUserParams`](generated.md#authenticateuserparams)
 - [`generated::ExternalUser`](generated.md#externaluser)
@@ -570,6 +573,12 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_purchase_hint_result`](generated.md#read_purchase_hint_result)
 - [`generated::write_purchase_hint_reply`](generated.md#write_purchase_hint_reply)
 - [`generated::read_purchase_hint_reply`](generated.md#read_purchase_hint_reply)
+- [`generated::write_purchase_hints_params`](generated.md#write_purchase_hints_params)
+- [`generated::read_purchase_hints_params`](generated.md#read_purchase_hints_params)
+- [`generated::write_purchase_hints_result`](generated.md#write_purchase_hints_result)
+- [`generated::read_purchase_hints_result`](generated.md#read_purchase_hints_result)
+- [`generated::write_purchase_hints_reply`](generated.md#write_purchase_hints_reply)
+- [`generated::read_purchase_hints_reply`](generated.md#read_purchase_hints_reply)
 - [`generated::write_scan_library_params`](generated.md#write_scan_library_params)
 - [`generated::read_scan_library_params`](generated.md#read_scan_library_params)
 - [`generated::write_authenticate_user_params`](generated.md#write_authenticate_user_params)
@@ -1279,6 +1288,13 @@ pub trait ContentSource {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn purchase_hints<'life0, 'async_trait>(
+        &'life0 self,
+        params: PurchaseHintsParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Option<PurchaseHint>>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn list_deals<'life0, 'async_trait>(
         &'life0 self,
         _params: ListDealsParams,
@@ -1446,6 +1462,30 @@ where
 ```
 
 Purchase link / price hint; `Ok(None)` when the title is unknown.
+
+#### ContentSource::purchase_hints
+
+```rust
+fn purchase_hints<'life0, 'async_trait>(
+    &'life0 self,
+    params: PurchaseHintsParams,
+) -> Pin<Box<dyn Future<Output = Result<Vec<Option<PurchaseHint>>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Purchase links / price hints for several titles in one call, one
+answer per query in order.
+
+The default asks [`Self::purchase_hint`](#contentsourcepurchase_hint) for each query in turn,
+queries that already name a product id first (one lookup each) and
+title searches after, and stops at the first error. It stops
+starting lookups once [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) has passed and
+answers `None` for the rest, so the host's batch gets what the store
+managed instead of nothing. A guest whose backend prices many
+products per request overrides this to make one request. A
+`rate_limited` error applies to the whole batch.
 
 #### ContentSource::list_deals
 
@@ -5960,6 +6000,17 @@ pub const PRODUCT_API_VERSION: u32 = crate::plugin_capnp::API_VERSION;
 ```
 
 Product ABI version (`apiVersion` / `plugin.toml` `api_version`).
+
+### PURCHASE_HINTS_BUDGET
+
+```rust
+pub const PURCHASE_HINTS_BUDGET: Duration = _;
+```
+
+How long the default [`ContentSource::purchase_hints`](#contentsourcepurchase_hints) keeps starting
+one-title lookups before answering with what it has. Well under the
+host's 10 s batch deadline, so even a slow last lookup lands before it
+and a store without a bulk endpoint still returns the titles it priced.
 
 ### JSON_MEDIA_TYPE
 

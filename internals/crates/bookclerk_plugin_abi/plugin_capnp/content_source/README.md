@@ -34,6 +34,8 @@
 | [`CatalogDetailResults`](#catalogdetailresults) | type alias |  |
 | [`RevokeAccountParams`](#revokeaccountparams) | type alias |  |
 | [`RevokeAccountResults`](#revokeaccountresults) | type alias |  |
+| [`PurchaseHintsParams`](#purchasehintsparams) | type alias |  |
+| [`PurchaseHintsResults`](#purchasehintsresults) | type alias |  |
 
 ## Modules
 
@@ -65,6 +67,8 @@
 - [`catalog_detail_results`](catalog_detail_results.md)
 - [`revoke_account_params`](revoke_account_params.md)
 - [`revoke_account_results`](revoke_account_results.md)
+- [`purchase_hints_params`](purchase_hints_params.md)
+- [`purchase_hints_results`](purchase_hints_results.md)
 
 ## Traits
 
@@ -141,6 +145,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: RevokeAccountParams,
         _: RevokeAccountResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn purchase_hints(
+        self: Rc<Self>,
+        _: PurchaseHintsParams,
+        _: PurchaseHintsResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -285,6 +294,16 @@ fn revoke_account(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::purchase_hints
+
+```rust
+fn purchase_hints(
+    self: Rc<Self>,
+    _: PurchaseHintsParams,
+    _: PurchaseHintsResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -377,6 +396,12 @@ pub fn catalog_detail_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn revoke_account_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::purchase_hints_request
+
+```rust
+pub fn purchase_hints_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -578,4 +603,16 @@ pub type RevokeAccountParams = Params<Owned>;
 
 ```rust
 pub type RevokeAccountResults = Results<Owned>;
+```
+
+### PurchaseHintsParams
+
+```rust
+pub type PurchaseHintsParams = Params<Owned>;
+```
+
+### PurchaseHintsResults
+
+```rust
+pub type PurchaseHintsResults = Results<Owned>;
 ```

@@ -636,6 +636,7 @@ pub enum SourceError {
     NoAccounts(String),
     Auth(String),
     Api(String),
+    RateLimited(Option<Duration>),
     Io(Error),
     Library(Box<dyn Error + Send + Sync + 'static>),
     Other(Error),
@@ -649,12 +650,29 @@ Errors from content-source auth, scan, or fetch.
 - `NoAccounts`: No accounts are configured for this source (safe to skip in multi-source scan).
 - `Auth`: Authentication or credential failure (operator-facing message).
 - `Api`: Upstream store HTTP / protocol failure (operator-facing message).
+- `RateLimited`: The store asked to be left alone for a while (HTTP 429 or its
+  equivalent); the duration is its `Retry-After`, when it sent one.
 - `Io`: Local filesystem failure while caching or writing downloads.
 - `Library`: Library database / secret-store failure on the host.
   
   Guests never open the library; the host converts its store errors
   into this variant (`bookclerk-library` implements the `From`).
 - `Other`: Catch-all for plugin-internal failures wrapped as [`anyhow::Error`](https://docs.rs/anyhow/latest/anyhow/struct.Error.html).
+
+#### SourceError::from_rate_limit
+
+```rust
+pub fn from_rate_limit(status: u16, retry_after: Option<&str>) -> Option<Self>
+```
+
+[`Self::RateLimited`](#sourceerror) from an HTTP status and `Retry-After` header,
+when the status is 429; otherwise `None`.
+
+##### Arguments
+
+* `status` - The response status code.
+* `retry_after` - The `Retry-After` header value: whole seconds, as
+  stores send it (an HTTP date is ignored).
 
 #### SourceError::no_accounts
 
@@ -680,7 +698,7 @@ pub fn api(msg: impl Into<String>) -> Self
 
 Construct [`Self::Api`](#sourceerror) with an operator-facing message.
 
-Implements: `Debug`, `Display`, `Error`, `From<Error>`
+Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<SourceError>`
 
 ### CatalogSearchField
 

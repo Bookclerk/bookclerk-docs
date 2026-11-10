@@ -2861,6 +2861,24 @@ Re-exports [PurchaseHintResult](generated.md#purchasehintresult)
 
 ***
 
+### PurchaseHintsParams
+
+Re-exports [PurchaseHintsParams](generated.md#purchasehintsparams)
+
+***
+
+### PurchaseHintsReply
+
+Re-exports [PurchaseHintsReply](generated.md#purchasehintsreply)
+
+***
+
+### PurchaseHintsResult
+
+Re-exports [PurchaseHintsResult](generated.md#purchasehintsresult)
+
+***
+
 ### PutReply
 
 Re-exports [PutReply](generated.md#putreply)

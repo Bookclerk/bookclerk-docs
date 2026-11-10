@@ -115,6 +115,29 @@ Convenience for [`PluginErrorCode::Unavailable`](#pluginerrorcode).
 Use for ambiguous transport failures (lost HTTP/RPC responses, timeouts)
 where the caller should retry the same idempotency key.
 
+#### PluginError::rate_limited
+
+```rust
+pub fn rate_limited(message: impl Into<String>, retry_after: Option<Duration>) -> Self
+```
+
+Convenience for [`PluginErrorCode::RateLimited`](#pluginerrorcode).
+
+##### Arguments
+
+* `message` - Human-readable explanation (which backend, which call).
+* `retry_after` - How long the backend asked to be left alone, when
+  it said (its `Retry-After`); stored as `details.retryAfterMs`.
+
+#### PluginError::retry_after
+
+```rust
+pub fn retry_after(&self) -> Option<Duration>
+```
+
+How long a [`PluginErrorCode::RateLimited`](#pluginerrorcode) error asks the caller to
+wait, when the backend said (`details.retryAfterMs`).
+
 #### PluginError::payload_too_large
 
 ```rust
@@ -278,6 +301,7 @@ pub enum PluginErrorCode {
     Cancelled,
     Conflict,
     LimitExceeded,
+    RateLimited,
     Unknown,
 }
 ```
@@ -302,6 +326,8 @@ Serialized with `snake_case` wire names (`invalid_params`, `not_found`, …).
 - `Conflict`: The operation conflicts with current state (conditional put, …).
 - `LimitExceeded`: A negotiated database limit was exceeded; [`PluginError::limit`](#pluginerrorlimit)
   names which one.
+- `RateLimited`: The backend asked the guest to slow down (HTTP 429 or its
+  equivalent); [`PluginError::retry_after`](#pluginerrorretry_after) says for how long.
 - `Unknown`: Unrecognized wire code. See [`PluginError::wire_str`](#pluginerrorwire_str).
 
 #### PluginErrorCode::as_str

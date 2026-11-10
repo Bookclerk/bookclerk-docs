@@ -197,6 +197,14 @@ pub trait ContentSource: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
+    fn purchase_hints<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        opts: &'life1 [PurchaseHintOpts],
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Option<SourcePurchaseHint>>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
     fn list_deals<'life0, 'async_trait>(
         &'life0 self,
         limit: usize,
@@ -531,6 +539,31 @@ where
 Resolve a purchase / catalog URL (optionally with live price).
 
 Default: none.
+
+#### ContentSource::purchase_hints
+
+```rust
+fn purchase_hints<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    opts: &'life1 [PurchaseHintOpts],
+) -> Pin<Box<dyn Future<Output = Result<Vec<Option<SourcePurchaseHint>>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Resolve purchase hints for several titles in one call, one answer
+per query in order.
+
+Default: [`Self::purchase_hint`](#contentsourcepurchase_hint) for each query, stopping at the
+first error. A store whose catalog prices many products per request
+overrides this to make one request. A `SourceError::RateLimited`
+error applies to the whole batch.
+
+##### Errors
+
+Returns the first query's error.
 
 #### ContentSource::list_deals
 

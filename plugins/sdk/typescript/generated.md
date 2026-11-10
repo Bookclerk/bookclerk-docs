@@ -1473,6 +1473,29 @@ Purchase link / price hint for one title.
 
 [PurchaseHintReply](#purchasehintreply)
 
+##### purchaseHints()
+
+```ts
+purchaseHints(params): Promise<PurchaseHintsReply>;
+```
+
+Purchase links / price hints for several titles in one call, so a guest
+whose backend prices many products per request makes one request for a
+page of cards. A guest that cannot batch answers each query as
+`purchaseHint` would.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`PurchaseHintsParams`](#purchasehintsparams) | The titles to price, in order. |
+
+###### Returns
+
+`Promise`\<[`PurchaseHintsReply`](#purchasehintsreply)\>
+
+[PurchaseHintsReply](#purchasehintsreply)
+
 ##### revokeAccount()
 
 ```ts
@@ -6471,6 +6494,38 @@ Purchase hint when `found`.
 
 ***
 
+### PurchaseHintsParams
+
+Params of `ContentSource.purchaseHints`: the titles to price together.
+
+#### Properties
+
+##### queries
+
+```ts
+queries: PurchaseHintParams[];
+```
+
+One query per title, each as for `purchaseHint`; at most `maxListPage`.
+
+***
+
+### PurchaseHintsResult
+
+Success payload of `ContentSource.purchaseHints`.
+
+#### Properties
+
+##### results
+
+```ts
+results: PurchaseHintResult[];
+```
+
+One answer per query, in the order the queries were sent.
+
+***
+
 ### PutResult
 
 Summary of a stored (or committed) object.
@@ -8761,6 +8816,25 @@ type PurchaseHintReply =
 ```
 
 Result union of `ContentSource.purchaseHint`.
+
+***
+
+### PurchaseHintsReply
+
+```ts
+type PurchaseHintsReply = 
+  | {
+  kind: "ok";
+  value: PurchaseHintsResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `ContentSource.purchaseHints`. A whole-batch `err` (for
+example `rateLimited`) applies to every query in it.
 
 ***
 

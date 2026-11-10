@@ -222,6 +222,8 @@ submodules unless you need module-level docs.
 - [`protocol::PurchaseHint`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehint)
 - [`protocol::PurchaseHintParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintparams)
 - [`protocol::PurchaseHintResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintresult)
+- [`protocol::PurchaseHintsParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintsparams)
+- [`protocol::PurchaseHintsResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintsresult)
 - [`protocol::RevokeAccountParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#revokeaccountparams)
 - [`protocol::S3CredentialsDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#s3credentialsdto)
 - [`protocol::ScanBook`](../../../internals/crates/bookclerk_plugin_abi/generated.md#scanbook)

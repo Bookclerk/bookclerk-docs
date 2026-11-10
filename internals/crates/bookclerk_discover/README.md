@@ -108,6 +108,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`BATCH_DEADLINE`](#batch_deadline) | constant | Longest a batch waits for its lookups before answering with what has resolved. Under the daemon's 25 s route budget, so a slow store never turns a page of cards into one failed request. |
 | [`BREAKER_OPEN_FOR`](#breaker_open_for) | constant | How long a tripped store is skipped. After that, lookups ask it again, and `BREAKER_TRIP_TIMEOUTS` more timeouts in a row pause it again. |
 | [`BREAKER_TRIP_TIMEOUTS`](#breaker_trip_timeouts) | constant | Timeouts in a row after which a store's price lookups are skipped. |
+| [`RATE_LIMIT_FIRST_PAUSE`](#rate_limit_first_pause) | constant | How long a store that asked to slow down without saying for how long is left alone the first time; each repeat doubles it. |
+| [`RATE_LIMIT_MAX_PAUSE`](#rate_limit_max_pause) | constant | Longest pause a rate limit can grow to by doubling, and the most a store's own `Retry-After` is honored for. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
 
@@ -915,7 +917,7 @@ Priced catalog matches for one title, sorted best-first.
   query's trusted seeds alone, so a client should not keep the answer
   and asks again later. Omitted (false) for a finished lookup.
 
-Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### RankedQueueEntry
 
@@ -2147,17 +2149,25 @@ pub async fn resolve_purchase_hints_batch(
 
 Resolve many purchase-hint queries at once (order preserved).
 
-Every query starts together, at most `max_concurrent` at a time. The
-whole batch answers within [`BATCH_DEADLINE`]: a query still waiting
-then answers with its trusted seeds alone (no prices) and `incomplete`
-set, so the page shows a link rather than nothing, keeps no copy, and
-asks again later.
+Queries answered from the cache are done at once. For the rest, every
+store is asked **once**, through `bookclerk_source::ContentSource::purchase_hints`,
+for all of them together, so a store whose catalog prices many products
+per request makes one request for a page of cards. The whole batch
+answers within [`BATCH_DEADLINE`]: a store still working then counts as
+timed out. A query no store answered with a hint (timed out, paused, or
+never tried within a guest's own budget) carries its trusted seeds alone
+(no prices) and `incomplete` set: it is not cached, so the page shows a
+link rather than nothing, keeps no copy, and asks again later. A store
+that asks to slow down
+(`bookclerk_source::SourceError::RateLimited`) is left alone for the
+time it said (see [`RATE_LIMIT_FIRST_PAUSE`](#rate_limit_first_pause)).
 
 #### Arguments
 
 * `registry` - Configured content-source or integration registry.
 * `queries` - Batch of purchase-hint queries.
-* `max_concurrent` - Lookups in flight at once (clamped to 1–8).
+* `max_concurrent` - Unused since each store is asked once; kept for
+  the route's call shape.
 
 #### Returns
 
@@ -2323,12 +2333,12 @@ pub fn build_discover_feed(
 Partitions scored recommendations into Discover shelves.
 
 Every title lands on one shelf. Shelves claim titles in the order they
-are built: the series shelves, the subject's wishes, authors, narrators,
-genres, starter genres, similar taste, Chirp deals, then one shelf per
-store for whatever is left, each title under the store where it costs
-the subject least (member price on stores they have an account with,
-list price elsewhere, its own store when no price is known). Wished
-titles are claimed first and shown last, on the wishlist shelf alone.
+are built: the wishlist first, then the series shelves, the
+subject's wishes, authors, narrators, genres, starter genres, similar
+taste, Chirp deals, then one shelf per store for whatever is left, each
+title under the store where it costs the subject least (member price on
+stores they have an account with, list price elsewhere, its own store
+when no price is known). A wished title shows on the wishlist shelf alone.
 Shelves other than the series shelves and the wishlist keep at most
 [`SERIES_CAP`](#series_cap) titles of one series; those rotate between series instead.
 
@@ -2589,6 +2599,24 @@ pub const BREAKER_TRIP_TIMEOUTS: u32 = 3;
 ```
 
 Timeouts in a row after which a store's price lookups are skipped.
+
+### RATE_LIMIT_FIRST_PAUSE
+
+```rust
+pub const RATE_LIMIT_FIRST_PAUSE: Duration = _;
+```
+
+How long a store that asked to slow down without saying for how long
+is left alone the first time; each repeat doubles it.
+
+### RATE_LIMIT_MAX_PAUSE
+
+```rust
+pub const RATE_LIMIT_MAX_PAUSE: Duration = _;
+```
+
+Longest pause a rate limit can grow to by doubling, and the most a
+store's own `Retry-After` is honored for.
 
 ### WISH_COUNT_WEIGHT
 

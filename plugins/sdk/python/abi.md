@@ -174,6 +174,10 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PurchaseHintResult`](#purchasehintresult) | class | Success payload of `ContentSource.purchaseHint`. |
 | [`PurchaseHintReplyOk`](#purchasehintreplyok) | class | `PurchaseHintReply` member `ok`. |
 | [`PurchaseHintReplyErr`](#purchasehintreplyerr) | class | `PurchaseHintReply` member `err`. |
+| [`PurchaseHintsParams`](#purchasehintsparams) | class | Params of `ContentSource.purchaseHints`: the titles to price together. |
+| [`PurchaseHintsResult`](#purchasehintsresult) | class | Success payload of `ContentSource.purchaseHints`. |
+| [`PurchaseHintsReplyOk`](#purchasehintsreplyok) | class | `PurchaseHintsReply` member `ok`. |
+| [`PurchaseHintsReplyErr`](#purchasehintsreplyerr) | class | `PurchaseHintsReply` member `err`. |
 | [`ScanLibraryParams`](#scanlibraryparams) | class | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
 | [`AuthenticateUserParams`](#authenticateuserparams) | class | Params of `Oidc.authenticateUser`. |
 | [`ExternalUser`](#externaluser) | class | One external user observed by an integration. The host may mint claim tickets without exposing portal details to the guest. |
@@ -353,6 +357,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CatalogHitsReply`](#cataloghitsreply) | constant | Result union of `searchCatalog` / `expandCandidates` / `listDeals`. |
 | [`CatalogDetailReply`](#catalogdetailreply) | constant | Result union of `ContentSource.catalogDetail`. |
 | [`PurchaseHintReply`](#purchasehintreply) | constant | Result union of `ContentSource.purchaseHint`. |
+| [`PurchaseHintsReply`](#purchasehintsreply) | constant | Result union of `ContentSource.purchaseHints`. A whole-batch `err` (for example `rateLimited`) applies to every query in it. |
 | [`ExternalUserReply`](#externaluserreply) | constant | Result union of `Oidc.authenticateUser`. |
 | [`EventPollReply`](#eventpollreply) | constant | Result union of `RemoteLibrary.pollEvents`. |
 | [`SyncListeningReply`](#synclisteningreply) | constant | Result union of `RemoteLibrary.syncListening`. |
@@ -2320,6 +2325,25 @@ login). Best effort: the host revokes the account whatever this returns.
 
 `EmptyReply`
 
+#### ContentSource.purchase_hints
+
+```python
+async def purchase_hints(self, params: PurchaseHintsParams) -> PurchaseHintsReply
+```
+
+Purchase links / price hints for several titles in one call, so a guest
+whose backend prices many products per request makes one request for a
+page of cards. A guest that cannot batch answers each query as
+`purchaseHint` would.
+
+**Args**
+
+- `params`: The titles to price, in order.
+
+**Returns**
+
+`PurchaseHintsReply`
+
 ### RemoteLibrary
 
 ```python
@@ -3634,6 +3658,60 @@ class PurchaseHintReplyErr(TypedDict)
 ```
 
 `PurchaseHintReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### PurchaseHintsParams
+
+```python
+class PurchaseHintsParams(TypedDict)
+```
+
+Params of `ContentSource.purchaseHints`: the titles to price together.
+
+**Attributes**
+
+- `queries`: One query per title, each as for `purchaseHint`; at most `maxListPage`.
+
+### PurchaseHintsResult
+
+```python
+class PurchaseHintsResult(TypedDict)
+```
+
+Success payload of `ContentSource.purchaseHints`.
+
+**Attributes**
+
+- `results`: One answer per query, in the order the queries were sent.
+
+### PurchaseHintsReplyOk
+
+```python
+class PurchaseHintsReplyOk(TypedDict)
+```
+
+`PurchaseHintsReply` member `ok`.
+
+Success: an answer per query.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: an answer per query.
+
+### PurchaseHintsReplyErr
+
+```python
+class PurchaseHintsReplyErr(TypedDict)
+```
+
+`PurchaseHintsReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
@@ -6291,6 +6369,15 @@ PurchaseHintReply = Union[PurchaseHintReplyOk, PurchaseHintReplyErr]
 ```
 
 Result union of `ContentSource.purchaseHint`.
+
+### PurchaseHintsReply
+
+```python
+PurchaseHintsReply = Union[PurchaseHintsReplyOk, PurchaseHintsReplyErr]
+```
+
+Result union of `ContentSource.purchaseHints`. A whole-batch `err` (for
+example `rateLimited`) applies to every query in it.
 
 ### ExternalUserReply
 

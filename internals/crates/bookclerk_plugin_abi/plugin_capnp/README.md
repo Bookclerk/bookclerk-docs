@@ -179,6 +179,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`purchase_hint`](purchase_hint.md)
 - [`purchase_hint_result`](purchase_hint_result.md)
 - [`purchase_hint_reply`](purchase_hint_reply.md)
+- [`purchase_hints_params`](purchase_hints_params.md)
+- [`purchase_hints_result`](purchase_hints_result.md)
+- [`purchase_hints_reply`](purchase_hints_reply.md)
 - [`scan_library_params`](scan_library_params.md)
 - [`authenticate_user_params`](authenticate_user_params.md)
 - [`external_user`](external_user.md)
@@ -292,6 +295,7 @@ pub enum PluginErrorCode {
     Cancelled = 10,
     Conflict = 11,
     LimitExceeded = 12,
+    RateLimited = 13,
 }
 ```
 

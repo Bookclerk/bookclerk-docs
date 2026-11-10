@@ -3794,6 +3794,7 @@ pub enum PluginError {
     Toml(Error),
     Manifest(Error),
     Other(Error),
+    RateLimited { message: String, retry_after: Option<Duration> },
     Abi { code: String, message: String },
 }
 ```
@@ -3816,6 +3817,10 @@ Failures from discovery, RPC, consent, or plugin adapters.
 - `Toml`: TOML decode failure (settings tables, legacy paths).
 - `Manifest`: Invalid or unsupported `plugin.toml` / package manifest.
 - `Other`: Catch-all for otherwise unclassified failures.
+- `RateLimited`: The guest's backend asked it to slow down (ABI `rate_limited`);
+  `retry_after` is how long it said, when it did.
+  - `message`: Operator-facing explanation (which backend, which call).
+  - `retry_after`: How long the backend asked to be left alone, when it said.
 - `Abi`: Guest ABI error with a preserved wire `code` (including `unknown`).
   - `code`: Wire error code (`not_found`, `unknown`, …).
   - `message`: Operator-facing explanation.

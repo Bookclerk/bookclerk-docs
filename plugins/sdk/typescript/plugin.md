@@ -3789,6 +3789,32 @@ Purchase link / price hint; `null` when the title is unknown.
 
 Hint or `null`.
 
+##### purchaseHints()
+
+```ts
+purchaseHints(params): Promise<(PurchaseHint | null)[]>;
+```
+
+Purchase links / price hints for several titles in one call, one
+answer per query in order. The default asks [purchaseHint](#purchasehint) for
+each query, those with a product id first, and stops starting lookups
+after [PURCHASE\_HINTS\_BUDGET\_MS](#purchase_hints_budget_ms); a store whose catalog prices
+many products per request overrides this to make one request. Reject with a
+`rate_limited` [PluginError](README.md#pluginerror) (its `details.retryAfterMs` says how
+long) when the store asks to slow down, so the host leaves it alone.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`PurchaseHintsParams`](generated.md#purchasehintsparams) | The titles to price, in order. |
+
+###### Returns
+
+`Promise`\<([`PurchaseHint`](generated.md#purchasehint-1) \| `null`)[]\>
+
+One hint or `null` per query.
+
 ##### revokeAccount()
 
 ```ts
@@ -5264,6 +5290,19 @@ const ENTRYPOINT_CLASSES: Readonly<Record<EntrypointName, string>>;
 ```
 
 Exported class name the launcher binds for each named entrypoint.
+
+***
+
+### PURCHASE\_HINTS\_BUDGET\_MS
+
+```ts
+const PURCHASE_HINTS_BUDGET_MS: 4000 = 4_000;
+```
+
+How long the default `purchaseHints` keeps starting one-title lookups
+before answering with what it has, in milliseconds. Well under the
+host's 10 s batch deadline, so even a slow last lookup lands before it
+and a store without a bulk endpoint still returns the titles it priced.
 
 ***
 
