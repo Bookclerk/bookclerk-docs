@@ -1780,6 +1780,10 @@ Create a client; confidential clients return the generated secret once.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2147,6 +2151,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "too many wrong passwords for this account; try again later",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -2299,6 +2346,10 @@ Update redirects, name, scopes, and public/confidential mode; switching a public
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2666,6 +2717,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "too many wrong passwords for this account; try again later",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -2810,6 +2904,10 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -3065,6 +3163,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "too many wrong passwords for this account; try again later",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`).
 
 ```json
@@ -3208,6 +3349,10 @@ Optional.
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -3531,6 +3676,49 @@ Failed to deserialize the JSON body into the target type: current_password: inva
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+
+```json
+{
+  "error": "oidc_client",
+  "message": "too many wrong passwords for this account; try again later",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `500`: The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`).
 

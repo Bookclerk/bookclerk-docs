@@ -1681,8 +1681,8 @@ Operator token / session settings for the daemon HTTP API.
 - `enabled`: When true, `/api/*` (and legacy control routes) require Bearer or session cookie.
 - `session_ttl_hours`: Browser session lifetime in hours after `POST /api/auth/login`.
 - `login_max_failures`: Failed sign-in attempts before a lockout, counted per client IP across
-  the sign-in routes, and per Owner for password elevation
-  (`POST /api/auth/elevate`).
+  the sign-in routes, and per account for password re-checks by a
+  signed-in user (elevation, password change, `current_password`).
 - `login_lockout_secs`: How long a client stays locked out after exceeding [`Self::login_max_failures`](#daemonauthconfig).
 - `require_second_factor`: When true, password login requires TOTP or the user must sign in with a passkey.
 - `tray_handoff_ttl_secs`: How long a tray/CLI loopback `?code=` ticket stays valid (clamped to 30..=900).

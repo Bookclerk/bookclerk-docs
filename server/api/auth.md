@@ -2807,6 +2807,10 @@ Set password for self (portal) or target user (operator/admin); revokes sessions
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The password could not be hashed, or the library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -3099,6 +3103,51 @@ Failed to deserialize the JSON body into the target type: missing field `passwor
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
 
 Status `500`: The password could not be hashed, or the library could not be read or written.
 
@@ -10253,6 +10302,10 @@ Operator PUT: writes next-generation sealed secrets, then publishes config.toml.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_config`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The configuration file or the sealed secrets could not be written, or an Owner's current password could not be read or checked (`oidc_config`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -10765,6 +10818,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_config`).
+
+```json
+{
+  "error": "oidc_config",
+  "message": "too many wrong passwords for this account; try again later",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `500`: The configuration file or the sealed secrets could not be written, or an Owner's current password could not be read or checked (`oidc_config`).
 
 ```json
@@ -11118,6 +11214,10 @@ Starts passkey registration (skips reauth only for first local-only setup).
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The library could not be read, or the challenge could not be stored. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -11425,6 +11525,51 @@ Failed to deserialize the JSON body into the target type: current_password: inva
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
 
 Status `500`: The library could not be read, or the challenge could not be stored.
 
@@ -11900,6 +12045,10 @@ Deletes one passkey after recent reauth; 404 when the id is not this user's.
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -12153,6 +12302,51 @@ Failed to deserialize the JSON body into the target type: current_password: inva
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
 
 Status `500`: The library could not be read or written.
 
@@ -14065,6 +14259,10 @@ Starts TOTP enrollment: new pending secret, otpauth URL, and QR SVG.
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The secret could not be sealed and stored, or the library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -14332,6 +14530,51 @@ Failed to deserialize the JSON body into the target type: current_password: inva
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
 
 Status `500`: The secret could not be sealed and stored, or the library could not be read.
 
@@ -14987,6 +15230,10 @@ Disables TOTP after recent reauth and deletes sealed secrets.
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `500` — The library could not be read or written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -15195,6 +15442,51 @@ Failed to deserialize the JSON body into the target type: current_password: inva
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout.
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
 
 Status `500`: The library could not be read or written.
 
@@ -15516,6 +15808,10 @@ Persists `daemon.auth.require_second_factor` to `config.toml`.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`too_many_requests`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The configuration path is unknown or the configuration file could not be written, or an Owner's current password could not be read or checked (`internal_error`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -15719,6 +16015,49 @@ Failed to deserialize the JSON body into the target type: missing field `require
 Schema:
 
 A `text/plain` body: a string.
+
+Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`too_many_requests`).
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many wrong passwords for this account. Try again later.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `500`: The configuration path is unknown or the configuration file could not be written, or an Owner's current password could not be read or checked (`internal_error`).
 
