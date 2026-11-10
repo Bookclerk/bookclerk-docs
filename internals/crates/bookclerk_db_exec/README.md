@@ -92,6 +92,7 @@ those lowerers.
 - [`guest_receipt::guest_batch_is_read_only`](guest_receipt.md#guest_batch_is_read_only)
 - [`guest_receipt::guest_receipt_applied_stmt`](guest_receipt.md#guest_receipt_applied_stmt)
 - [`guest_receipt::guest_receipt_finalize_stmts`](guest_receipt.md#guest_receipt_finalize_stmts)
+- [`guest_receipt::guest_receipt_read_only_finalize_stmt`](guest_receipt.md#guest_receipt_read_only_finalize_stmt)
 - [`guest_receipt::is_guest_receipt_result_lost`](guest_receipt.md#is_guest_receipt_result_lost)
 - [`guest_receipt::is_guest_receipt_stub_insert`](guest_receipt.md#is_guest_receipt_stub_insert)
 - [`guest_receipt::pad_skipped_guest_results`](guest_receipt.md#pad_skipped_guest_results)

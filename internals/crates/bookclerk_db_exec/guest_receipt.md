@@ -20,6 +20,7 @@ Host wrap lives in `bookclerk-library`; adapters run
 | [`should_skip_remaining_guest_work`](#should_skip_remaining_guest_work) | function | True when wrap prefix results show a completed prior receipt (skip guest SQL). |
 | [`pad_skipped_guest_results`](#pad_skipped_guest_results) | function | Pads skipped guest + stub results so the wrap shape stays intact. |
 | [`guest_receipt_finalize_stmts`](#guest_receipt_finalize_stmts) | function | Builds finalize statements to persist a guest reply before COMMIT. |
+| [`guest_receipt_read_only_finalize_stmt`](#guest_receipt_read_only_finalize_stmt) | function | Host UPDATE that finalizes this batch's own stub as a read-only receipt when the batch failed after its stub committed. |
 | [`GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES`](#guest_typed_replay_payload_max_bytes) | constant | Maximum UTF-8 bytes stored in `bookclerk_receipts.payload` for guest replay. |
 | [`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload) | constant | Payload stored for a read-only guest batch instead of its results. |
 | [`GUEST_RECEIPT_RESULT_LOST`](#guest_receipt_result_lost) | constant | Error text when a receipt committed but the caller-visible payload was lost. |
@@ -176,6 +177,27 @@ a large read is not bounded by the payload cap.
 
 Returns [`DbErr`](https://docs.rs/sea_orm/latest/sea_orm/error/enum.DbErr.html) when the envelope is malformed or the payload exceeds
 [`GUEST_TYPED_REPLAY_PAYLOAD_MAX_BYTES`](#guest_typed_replay_payload_max_bytes).
+
+### guest_receipt_read_only_finalize_stmt
+
+```rust
+pub fn guest_receipt_read_only_finalize_stmt(
+    operation_id: &str,
+    guest_hash: &str,
+) -> TypedDbStatement
+```
+
+Host UPDATE that finalizes this batch's own stub as a read-only receipt
+when the batch failed after its stub committed.
+
+For an adapter whose stub commits before it sees the result (D1), a
+read-only guest batch that fails a result cap has committed only the
+host's bookkeeping. Finalizing the stub with
+[`GUEST_READ_ONLY_REPLAY_PAYLOAD`](#guest_read_only_replay_payload) leaves the receipt as a successful
+read would have: a retry under the same operation id runs the reads
+again and fails the same cap, instead of finding an unfinished claim.
+Only a `claimed` row with this request's hash is touched, so another
+request's receipt under the same id is left alone.
 
 ## Constants
 
