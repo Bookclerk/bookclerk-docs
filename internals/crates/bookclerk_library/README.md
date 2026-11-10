@@ -87,6 +87,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
 | [`TitleQuery`](#titlequery) | struct | A title someone asks about (a wish, a catalog card): what the resolver needs to say which work it belongs to. |
 | [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
+| [`ListeningIdentifiers`](#listeningidentifiers) | struct | The identifiers a listening item names its book by, as the provider reported them (any case and punctuation; normalised here). |
+| [`ListeningMatch`](#listeningmatch) | struct | What one listening item resolved to in the library. |
+| [`ListeningProgressWrite`](#listeningprogresswrite) | struct | One stored listening row a batched write produced. |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
@@ -3746,6 +3749,63 @@ True when no field is set.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### ListeningIdentifiers
+
+```rust
+pub struct ListeningIdentifiers {
+    pub asin: Option<String>,
+    pub isbn: Option<String>,
+}
+```
+
+The identifiers a listening item names its book by, as the provider
+reported them (any case and punctuation; normalised here).
+
+**Fields**
+
+- `asin`: Amazon / Audible ASIN, when the provider knows it.
+- `isbn`: ISBN-10 or ISBN-13, when the provider knows it.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### ListeningMatch
+
+```rust
+pub struct ListeningMatch {
+    pub book_uuid: Option<String>,
+    pub work_id: Option<String>,
+}
+```
+
+What one listening item resolved to in the library.
+
+**Fields**
+
+- `book_uuid`: Owned `books.uuid` carrying the same ASIN (preferred) or ISBN, when
+  one does.
+- `work_id`: Work the item's identifiers resolve to, when they name exactly one.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### ListeningProgressWrite
+
+```rust
+pub struct ListeningProgressWrite {
+    pub before: Option<ListeningProgressRecord>,
+    pub after: NewListeningProgress,
+}
+```
+
+One stored listening row a batched write produced.
+
+**Fields**
+
+- `before`: The stored row before this write; `None` when the write inserted it.
+- `after`: The row as written: every report for its key merged over `before`
+  the way [`LibraryStore::upsert_listening_progress`](#librarystoreupsert_listening_progress) merges one.
+
+Implements: `Clone`, `Debug`
+
 ### PluginDatabaseRecord
 
 ```rust
@@ -5276,6 +5336,101 @@ work id); a value another work already holds is left there.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the write fails.
+
+#### LibraryStore::match_listening_items
+
+```rust
+pub async fn match_listening_items(
+    &self,
+    items: &[ListeningIdentifiers],
+) -> Result<Vec<ListeningMatch>>
+```
+
+Resolves many listening items to owned books and works in a few bulk
+lookups.
+
+The item's ASIN is tried first, then its ISBN; the first one that
+names an owned book or a work decides both, so they never come from
+different identifiers. For that identifier, the work comes from the
+editions whose `edition_identifiers` carry it (an ASIN in any
+marketplace), used only when those editions agree on one work, and
+otherwise from the owned book. The owned book is the one whose
+`asin` / `isbn` column holds the item's spelling or its normalised
+form (an ASIN also in lower case; lowest UUID when several do).
+Titles are never compared.
+
+##### Arguments
+
+* `items` - Each item's identifiers.
+
+##### Returns
+
+One match per item, in the same order.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::portal_identity_ids
+
+```rust
+pub async fn portal_identity_ids(
+    &self,
+    provider: &str,
+    external_user_ids: &BTreeSet<String>,
+) -> Result<BTreeMap<String, i64>>
+```
+
+Portal identity ids of many external users of one provider.
+
+##### Arguments
+
+* `provider` - Identity provider / integration id.
+* `external_user_ids` - User ids at that provider.
+
+##### Returns
+
+`portal_identities.id` keyed by external user id; users with no
+identity are absent.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::upsert_listening_progress_batch
+
+```rust
+pub async fn upsert_listening_progress_batch(
+    &self,
+    rows: &[NewListeningProgress],
+) -> Result<Vec<ListeningProgressWrite>>
+```
+
+Stores many listening rows in a few chunked reads and atomic batches.
+
+Reports for one `(provider, external_user_id, external_item_id)` are
+merged in order over the stored row, exactly as successive calls to
+[`Self::upsert_listening_progress`](#librarystoreupsert_listening_progress) would merge them: optional text
+and the identity keep their stored value when a report leaves them
+out, progress fields take the report's. Each row is written once.
+
+The writes are split into atomic batches under the database plugin's
+`maxStatements` and `maxRequestBytes`; a row's two statements always
+share a batch. No interactive transaction is used, so a reader
+between two batches can see part of the sync.
+
+##### Arguments
+
+* `rows` - Reports to store, in the order the provider sent them.
+
+##### Returns
+
+One write per distinct row key, in the order the keys first appear.
+
+##### Errors
+
+Returns the database error. Batches sent before a failing one stay
+written.
 
 #### LibraryStore::record_plugin_database
 

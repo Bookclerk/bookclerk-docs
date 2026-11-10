@@ -29,7 +29,6 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`from_config`](#from_config) | function | Construct an empty registry (no in-process adapters). |
 | [`register_builtins`](#register_builtins) | function | Register first-party integrations into an existing registry. |
 | [`emit_book_acquired`](#emit_book_acquired) | function | Look up the acquired book and publish `book_acquired` to the durable outbox. |
-| [`match_book_uuid`](#match_book_uuid) | function | Best-effort match to an owned library book via ASIN, ISBN, or exact title. |
 | [`upsert_listening_snapshots`](#upsert_listening_snapshots) | function | Upsert provider-agnostic listening snapshots into `listening_progress`. |
 | [`mint_for_external_user`](#mint_for_external_user) | function | Mint a claim ticket for an external user (daemon watcher / CLI). |
 | [`portal_identity_from_headers`](#portal_identity_from_headers) | function | Resolve a portal identity from the request cookie, if present and valid. |
@@ -1347,34 +1346,6 @@ fail-closed catch-up for callers that already committed the book row.
 Returns when the library lookup or outbox insert fails, including a missing
 book row (so the caller cannot report success without an outbox record).
 
-### match_book_uuid
-
-```rust
-pub async fn match_book_uuid(
-    library: &LibraryStore,
-    asin: Option<&str>,
-    isbn: Option<&str>,
-    title: Option<&str>,
-) -> Result<Option<String>>
-```
-
-Best-effort match to an owned library book via ASIN, ISBN, or exact title.
-
-#### Arguments
-
-* `library` - Open library store used for reads/writes.
-* `asin` - Optional Audible / Amazon ASIN.
-* `isbn` - Optional ISBN (any punctuation; normalized internally).
-* `title` - Display title.
-
-#### Returns
-
-On success, the inner `Option<String>` value.
-
-#### Errors
-
-Returns an error when the underlying I/O, parse, network, or store operation fails.
-
 ### upsert_listening_snapshots
 
 ```rust
@@ -1388,6 +1359,14 @@ pub async fn upsert_listening_snapshots(
 Upsert provider-agnostic listening snapshots into `listening_progress`.
 
 `provider` should be the integration id (`audiobookshelf`, plugin id, …).
+The whole sync costs a few bulk statements, not a round trip chain per
+item: portal identities and stored rows are read in chunks, each item's
+ASIN and ISBN resolve to a work through the indexed `edition_identifiers`
+table (and to an owned book through the indexed `books` identifier
+columns; titles are never compared), and the rows are written as atomic
+batches sized to the database plugin's limits
+(`LibraryStore::upsert_listening_progress_batch`).
+
 When the sync changes what Discover reads from any stored row (see
 `TasteState`: who the row belongs to, which owned book and work it matched,
 its authors, and how far they got), publishes one `listening_synced`; a sync that changes
@@ -1397,15 +1376,17 @@ nothing Discover reads queues no refresh.
 
 * `library` - Open library store used for reads/writes.
 * `provider` - Integration id.
-* `items` - `items` input for this call.
+* `items` - Snapshots the integration reported, in its order.
 
 #### Returns
 
-On success, the inner `usize` value.
+How many snapshots were stored (every item; reports of one row merge).
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when a store read or write fails. Batches written
+before the failure stay, so a failed write still publishes
+`listening_synced` (naming no identity: everyone refreshes).
 
 ### mint_for_external_user
 
