@@ -8,6 +8,7 @@ Proto `/invoke` bodies, and streamed object bodies).
 | [`BridgeHttp`](#bridgehttp) | struct | Loopback HTTP client for the isolate bridge. |
 | [`CapnpResponse`](#capnpresponse) | struct | Fully buffered reply of `BridgeHttp::capnp_post`. |
 | [`generate_bridge_token`](#generate_bridge_token) | function | Generate a 32-byte hex bearer token for one isolate (`BRIDGE_TOKEN`). |
+| [`check_health`](#check_health) | function | `GET /health` on the bridge at `127.0.0.1:<port>` with `token`, through `BridgeHttp::health`. |
 
 ## Structs
 
@@ -22,10 +23,27 @@ pub struct BridgeHttp {
 
 Loopback HTTP client for the isolate bridge.
 
+It writes HTTP/1.1 straight to a `TcpStream` on `127.0.0.1`, so proxy
+environment variables (`ALL_PROXY`, `HTTPS_PROXY`, `HTTP_PROXY`) never
+route a request, and the bearer token never leaves loopback.
+
 **Fields**
 
 - `port`: Bridge TCP port.
 - `token`: Bearer token (`BRIDGE_TOKEN`).
+
+#### BridgeHttp::health
+
+```rust
+pub async fn health(&self) -> Result<()>
+```
+
+`GET /health`: whether the bridge is up and accepts this token.
+
+##### Errors
+
+Returns transport failures, `bridge unauthorized` on 401, and any other
+non-2xx status as `bridge HTTP <status>`.
 
 #### BridgeHttp::json_post
 
@@ -167,3 +185,25 @@ pub fn generate_bridge_token() -> String
 ```
 
 Generate a 32-byte hex bearer token for one isolate (`BRIDGE_TOKEN`).
+
+### check_health
+
+```rust
+pub async fn check_health(port: u16, token: &str) -> Result<()>
+```
+
+`GET /health` on the bridge at `127.0.0.1:<port>` with `token`, through
+[`BridgeHttp::health`](#bridgehttphealth).
+
+The launcher polls this until the isolate is up. Like every other bridge
+request it never consults proxy environment variables, so the session
+token stays on loopback.
+
+#### Arguments
+
+* `port` - The bridge's loopback TCP port.
+* `token` - The session's `BRIDGE_TOKEN`.
+
+#### Errors
+
+The errors of [`BridgeHttp::health`](#bridgehttphealth).
