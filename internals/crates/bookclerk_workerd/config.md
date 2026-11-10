@@ -26,8 +26,11 @@ Generate a real workerd Cap'n Proto config for one plugin isolate.
 | [`SDK_PY_WORKERD_MODULE`](#sdk_py_workerd_module) | constant | Python package path for `from bookclerk_plugin_sdk.workerd import …`. |
 | [`SDK_PY_DB_VALUE_MODULE`](#sdk_py_db_value_module) | constant | Python module path for typed SQL value / execute codec helpers. |
 | [`SDK_PY_PRODUCT_ABI_MODULE`](#sdk_py_product_abi_module) | constant | Python module path for the generated product ABI constants. |
+| [`SDK_PY_CAPNP_MODULE`](#sdk_py_capnp_module) | constant | Python module path for the Cap'n Proto reader and builder. |
+| [`SDK_PY_WIRE_MODULE`](#sdk_py_wire_module) | constant | Python module path for the generated ABI codecs. |
 | [`SDK_PY_GUEST_SQL_MODULE`](#sdk_py_guest_sql_module) | constant | Python module path for guest-side SQL statement classification helpers. |
 | [`SDK_PY_LIMITS_MODULE`](#sdk_py_limits_module) | constant | Python module path for the typed `limit_exceeded` helpers. |
+| [`SDK_PY_PLUGIN_MIGRATION_MODULE`](#sdk_py_plugin_migration_module) | constant | Python module path for the plugin-owned migration registration checks. |
 | [`SDK_PY_INIT_MODULE`](#sdk_py_init_module) | constant | Python module path that initializes the sparse workerd guest SDK. |
 | [`WORKERD_STATE_DIR_ENV`](#workerd_state_dir_env) | constant | Env var the host sets to the per-session workerd state directory. |
 
@@ -489,6 +492,22 @@ pub const SDK_PY_PRODUCT_ABI_MODULE: &str = "bookclerk_plugin_sdk/_abi.py";
 
 Python module path for the generated product ABI constants.
 
+### SDK_PY_CAPNP_MODULE
+
+```rust
+pub const SDK_PY_CAPNP_MODULE: &str = "bookclerk_plugin_sdk/_capnp.py";
+```
+
+Python module path for the Cap'n Proto reader and builder.
+
+### SDK_PY_WIRE_MODULE
+
+```rust
+pub const SDK_PY_WIRE_MODULE: &str = "bookclerk_plugin_sdk/_wire.py";
+```
+
+Python module path for the generated ABI codecs.
+
 ### SDK_PY_GUEST_SQL_MODULE
 
 ```rust
@@ -504,6 +523,14 @@ pub const SDK_PY_LIMITS_MODULE: &str = "bookclerk_plugin_sdk/limits.py";
 ```
 
 Python module path for the typed `limit_exceeded` helpers.
+
+### SDK_PY_PLUGIN_MIGRATION_MODULE
+
+```rust
+pub const SDK_PY_PLUGIN_MIGRATION_MODULE: &str = "bookclerk_plugin_sdk/plugin_migration.py";
+```
+
+Python module path for the plugin-owned migration registration checks.
 
 ### SDK_PY_INIT_MODULE
 

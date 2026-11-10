@@ -4276,6 +4276,12 @@ one named `[[databases]]` binding. The author-side SDK wraps it as the
 D1-shaped [DatabaseBinding](db-execute.md#databasebinding) on `env.<BINDING>`; Python authors call
 [GrantedDatabaseTransport.executeBytes](#executebytes) with Cap'n bytes instead.
 
+The `*Bytes` methods report every failure inside the reply (the
+`ExecuteResultReply` or `DbCapabilitiesReply` `err` arm, or one `err`
+stream frame) rather than by throwing, so the error keeps its code and
+`details` across the Workers RPC boundary between the two isolates; both
+author SDKs read through them.
+
 #### Extends
 
 - [`AtomicTransport`](db-execute.md#atomictransport)
