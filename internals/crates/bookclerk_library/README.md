@@ -40,6 +40,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ProvenPluginMigration`](#provenpluginmigration) | struct | One proven registered migration. |
 | [`AccountLinkRecord`](#accountlinkrecord) | struct | Link between a portal identity and a bookstore account. |
 | [`AccountRecord`](#accountrecord) | struct | Account row stored in the Bookclerk DB. |
+| [`AcquireStatusCounts`](#acquirestatuscounts) | struct | `books` row counts per `AcquireStatus`, read in one grouped query (see `LibraryStore::count_books_by_status`). |
 | [`BookRecord`](#bookrecord) | struct | Book / library item (one ownership row per store product per account). |
 | [`ClaimTicketRecord`](#claimticketrecord) | struct | Claim ticket metadata (token plaintext is never stored). |
 | [`DomainEventRecord`](#domaineventrecord) | struct | Immutable outbox envelope. |
@@ -128,6 +129,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
+| [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
@@ -253,6 +255,11 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SCHEMA_STATE_FROZEN`](#schema_state_frozen) | constant | On-disk `bookclerk_schema_migrations.state` for a frozen plan version. |
 | [`SCHEMA_STATE_UNRELEASED`](#schema_state_unreleased) | constant | On-disk `bookclerk_schema_migrations.state` for an unreleased development pack. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
+| [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
+| [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days) | constant | Days `configuration_changes` notices are kept. They only signal that a document changed; the document and its audit row hold the content. |
+| [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days) | constant | Days without a heartbeat after which a jobless storage-scan generation (a CLI scan) is treated as abandoned. |
+| [`TOKEN_HISTORY_DAYS`](#token_history_days) | constant | Days an expired claim ticket, user invite, or node enrollment link stays listed (as expired or redeemed) before it is deleted. |
+| [`UPLOAD_HISTORY_DAYS`](#upload_history_days) | constant | Days a committed or aborted host upload is kept past its token's expiry. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
@@ -1915,6 +1922,33 @@ Account row stored in the Bookclerk DB.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### AcquireStatusCounts
+
+```rust
+pub struct AcquireStatusCounts {
+    pub total: i64,
+    pub not_acquired: i64,
+    pub queued: i64,
+    pub downloading: i64,
+    pub acquired: i64,
+    pub error: i64,
+}
+```
+
+`books` row counts per [`AcquireStatus`](#acquirestatus), read in one grouped query
+(see `LibraryStore::count_books_by_status`).
+
+**Fields**
+
+- `total`: Every row, including any with a status this build does not know.
+- `not_acquired`: Rows in [`AcquireStatus::NotAcquired`](#acquirestatus).
+- `queued`: Rows in [`AcquireStatus::Queued`](#acquirestatus).
+- `downloading`: Rows in [`AcquireStatus::Downloading`](#acquirestatus).
+- `acquired`: Rows in [`AcquireStatus::Acquired`](#acquirestatus).
+- `error`: Rows in [`AcquireStatus::Error`](#acquirestatus).
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### BookRecord
 
@@ -5651,6 +5685,30 @@ Removes every row of one plugin (retire / uninstall).
 
 Returns an error when the delete fails.
 
+#### LibraryStore::prune_record_step
+
+```rust
+pub async fn prune_record_step(
+    &self,
+    step: RecordPruneStep,
+    now: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Runs one retention delete as of `now` and answers how many rows
+(for [`RecordPruneStep::StorageScans`](#recordprunestep), generations) it removed.
+
+##### Arguments
+
+* `step` - Which table and rule to apply.
+* `now` - The instant the windows are measured back from; the
+  maintenance duty passes the current time, tests a fixed one.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read or delete fails; rows the
+step had not reached yet are left for the next pass.
+
 #### LibraryStore::storage_scan_put_object
 
 ```rust
@@ -8940,6 +8998,23 @@ Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason ot
 than file-lock contention, and [`LibraryError::Unavailable`](#libraryerror) when the
 lock is still held after the retries.
 
+#### LibraryStore::count_books_by_status
+
+```rust
+pub async fn count_books_by_status(&self) -> Result<AcquireStatusCounts>
+```
+
+Counts `books` rows per acquire status in one grouped read.
+
+##### Returns
+
+The count for each [`AcquireStatus`](#acquirestatus) and the table total. A row with
+a status this build does not know is counted in the total only.
+
+##### Errors
+
+Returns an error when the read fails.
+
 #### LibraryStore::update_catalog_enrichment
 
 ```rust
@@ -10705,6 +10780,56 @@ Why a write was refused, so the binding can map it onto a wire code.
   - `max`: Namespace cap.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### RecordPruneStep
+
+```rust
+pub enum RecordPruneStep {
+    OidcAuthCodes,
+    OidcRefreshTokens,
+    PortalSessions,
+    ClaimTickets,
+    UserInvites,
+    EnrollmentLinks,
+    UploadSessions,
+    StorageScans,
+    SecurityAudit,
+    ConfigurationAudit,
+    ConfigurationChanges,
+}
+```
+
+One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step), in run order.
+
+**Variants**
+
+- `OidcAuthCodes`: OIDC authorization codes past their expiry (they are single-use
+  and minutes long; consumed codes are refused by `consumed_at`
+  until then).
+- `OidcRefreshTokens`: OIDC refresh tokens that expired or were revoked; neither is ever
+  accepted again.
+- `PortalSessions`: User portal sessions past their expiry.
+- `ClaimTickets`: Claim tickets expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
+- `UserInvites`: User invites expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
+- `EnrollmentLinks`: Node enrollment links expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
+- `UploadSessions`: Committed or aborted uploads expired more than
+  [`UPLOAD_HISTORY_DAYS`](#upload_history_days) ago.
+- `StorageScans`: Storage-scan generations whose job is terminal or gone, and jobless
+  ones silent for [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days), with their rows.
+- `SecurityAudit`: Security audit events older than [`AUDIT_RETENTION_DAYS`](#audit_retention_days).
+- `ConfigurationAudit`: Configuration audit rows older than [`AUDIT_RETENTION_DAYS`](#audit_retention_days).
+- `ConfigurationChanges`: Configuration change notices older than
+  [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days).
+
+#### RecordPruneStep::ALL
+
+```rust
+pub const ALL: [Self; 11] = _
+```
+
+Every step, in the order a maintenance pass runs them.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### DiscoverSubject
 
@@ -12552,6 +12677,54 @@ pub const KV_LIST_DEFAULT_LIMIT: u32 = 100;
 ```
 
 Default page size for [`LibraryStore::kv_list`](#librarystorekv_list) when the caller passes 0.
+
+### AUDIT_RETENTION_DAYS
+
+```rust
+pub const AUDIT_RETENTION_DAYS: i64 = 365;
+```
+
+Days `security_audit_events` and `configuration_audit` rows are kept.
+
+### CONFIGURATION_CHANGE_RETENTION_DAYS
+
+```rust
+pub const CONFIGURATION_CHANGE_RETENTION_DAYS: i64 = 30;
+```
+
+Days `configuration_changes` notices are kept. They only signal that a
+document changed; the document and its audit row hold the content.
+
+### STORAGE_SCAN_STALE_DAYS
+
+```rust
+pub const STORAGE_SCAN_STALE_DAYS: i64 = 1;
+```
+
+Days without a heartbeat after which a jobless storage-scan generation
+(a CLI scan) is treated as abandoned.
+
+### TOKEN_HISTORY_DAYS
+
+```rust
+pub const TOKEN_HISTORY_DAYS: i64 = 30;
+```
+
+Days an expired claim ticket, user invite, or node enrollment link stays
+listed (as expired or redeemed) before it is deleted.
+
+### UPLOAD_HISTORY_DAYS
+
+```rust
+pub const UPLOAD_HISTORY_DAYS: i64 = 1;
+```
+
+Days a committed or aborted host upload is kept past its token's expiry.
+
+No request can use it after expiry; the day only spares a commit replay
+racing the expiry a confusing "unknown upload". Open uploads are never
+deleted here: an abort still needs the row to tell the receiving node
+which copies to delete.
 
 ### ACQUIRE_WRITER
 

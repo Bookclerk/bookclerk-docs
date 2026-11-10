@@ -420,6 +420,7 @@ See `docs/adr/control-plane.md`.
 | [`JOB_RETENTION_LEASE`](#job_retention_lease) | constant | Lease of the job retention duty (terminal `jobs` rows). |
 | [`KV_EXPIRY_LEASE`](#kv_expiry_lease) | constant | Lease of the plugin KV expiry duty. |
 | [`MIGRATION_LEASE`](#migration_lease) | constant | Lease a schema migration runs under (see `crate::apply_host_schema_with_batch_opts`). |
+| [`RECORD_RETENTION_LEASE`](#record_retention_lease) | constant | Lease of the record retention duty (expired credentials and tokens, finished uploads, abandoned scan inventories, old audit rows). |
 | [`SESSION_EXPIRY_LEASE`](#session_expiry_lease) | constant | Lease of the session duty (expired operator sessions, OIDC RP states, WebAuthn challenges). |
 | [`NODE_CONSUMER_PREFIX`](#node_consumer_prefix) | constant | Catalog `plugin_id` prefix of a node's own consumer (`node:<node_id>`). |
 | [`AVAILABILITY_FULL_PPM`](#availability_full_ppm) | constant | Full availability in parts per million. |
@@ -9277,6 +9278,15 @@ pub const MIGRATION_LEASE: &str = "schema.migrate";
 
 Lease a schema migration runs under (see
 [`crate::apply_host_schema_with_batch_opts`](README.md#apply_host_schema_with_batch_opts)).
+
+### RECORD_RETENTION_LEASE
+
+```rust
+pub const RECORD_RETENTION_LEASE: &str = "maintenance.records";
+```
+
+Lease of the record retention duty (expired credentials and tokens,
+finished uploads, abandoned scan inventories, old audit rows).
 
 ### SESSION_EXPIRY_LEASE
 
