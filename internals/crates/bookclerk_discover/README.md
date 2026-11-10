@@ -713,6 +713,7 @@ pub struct FetchReport {
     pub stores_saved: usize,
     pub candidates: usize,
     pub stores_failed: Vec<String>,
+    pub priced: usize,
 }
 ```
 
@@ -724,6 +725,7 @@ What one candidate fetch did.
 - `stores_saved`: Stores whose answers were stored.
 - `candidates`: Candidates stored across those stores.
 - `stores_failed`: Stores whose fetch failed outright, by plugin id.
+- `priced`: Candidates that carry a price from the fetch, across stores.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
