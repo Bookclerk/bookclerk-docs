@@ -17,6 +17,10 @@ in-memory library whose connection behaves like the guest:
 - Lost replies and lock contention can be injected
   ([`TestDatabase::lose_next_replies`](#testdatabaselose_next_replies), [`TestDatabase::lock_next_requests`](#testdatabaselock_next_requests)).
 
+[`adapter`](adapter.md) is the other side of the same contract: a conformance suite
+a database adapter plugin runs on an empty unit, in process or as its
+spawned guest, to prove it keeps the SQL-v1 contract the host relies on.
+
 [`fixtures`](fixtures.md) generates realistic rows near the caps, and [`paging`](../bookclerk_library/test_support/paging.md) checks
 that a paged listing returns what the full listing returns. Ordinary
 SeaORM reads through [`TestDatabase::connection`](#testdatabaseconnection) are held to the engine
@@ -31,6 +35,9 @@ proxy's first-party caps, as on the shipped sqlite adapter.
 
 ## Re-exports
 
+- [`adapter::assert_adapter_conforms`](adapter.md#assert_adapter_conforms)
+- [`adapter::run_adapter_suite`](adapter.md#run_adapter_suite)
+- [`adapter::AdapterReport`](adapter.md#adapterreport)
 - [`binding::BindingDatabase`](binding.md#bindingdatabase)
 - [`bookclerk_library::test_support::paging`](../bookclerk_library/test_support/paging.md)
 - [`bookclerk_library::test_support::Profile`](../bookclerk_library/test_support/README.md#profile)
@@ -38,6 +45,7 @@ proxy's first-party caps, as on the shipped sqlite adapter.
 
 ## Modules
 
+- [`adapter`](adapter.md): Conformance suite for database adapter plugins.
 - [`binding`](binding.md): A plugin-owned database that behaves like a granted `[[databases]]` binding on a deployed host.
 - [`fixtures`](fixtures.md): Realistic row contents sized against a capability advertisement.
 

@@ -19,5 +19,6 @@ interactive `BEGIN`.
 
 ## Modules
 
+- [`adapter`](adapter.md): The `AdapterDatabaseSession` the D1 guest serves.
 - [`atomic`](atomic.md): Generic D1 HTTP `batch()` executor for host-authored SQL plans.
 - [`d1`](d1.md): Cloudflare D1 HTTP API proxy for SeaORM.
