@@ -74,4 +74,5 @@ Build tooling, test suites and examples.
 | --- | --- |
 | [`bookclerk_dev`](bookclerk_dev/README.md) | Cargo alias dispatcher: build, stage, and run Bookclerk with external plugins |
 | [`bookclerk_plugin_e2e`](bookclerk_plugin_e2e/README.md) | End-to-end suite against a staged first-party plugin installation |
+| [`bookclerk_plugin_echo_native_rust`](bookclerk_plugin_echo_native_rust/README.md) | Reference Echo integration (native Rust / BookclerkPlugin) |
 | [`bookclerk_plugin_echo_workerd_rust`](bookclerk_plugin_echo_workerd_rust/README.md) | Echo integration — workerd Rust/Wasm guest (JSON dispatch + JS WorkerEntrypoint) |
