@@ -76,6 +76,39 @@ receives every catalog row.
 
 Returns an error when the operation fails.
 
+#### SearchEngine::rebuild_waiting
+
+```rust
+pub async fn rebuild_waiting(
+    &self,
+    library: &LibraryStore,
+    max_wait: Duration,
+) -> Result<usize>
+```
+
+Rebuilds the index like [`Self::rebuild`](#searchenginerebuild), waiting while another
+writer holds it.
+
+A running daemon refreshes its index from library events, and each
+refresh holds the writer for a moment (a daemon rebuild holds it for
+longer). A rebuild that finds the index busy has written nothing, so
+it pauses (100 ms, doubling to 2 s) and tries again until `max_wait`
+has passed.
+
+##### Arguments
+
+* `library` - The library the titles are read from.
+* `max_wait` - How long to keep trying while the index is busy.
+
+##### Returns
+
+How many titles the index now holds.
+
+##### Errors
+
+Returns [`SearchError::Busy`](#searcherror) when the index is still busy after
+`max_wait`, and any other error of [`Self::rebuild`](#searchenginerebuild) at once.
+
 #### SearchEngine::refresh_listings
 
 ```rust
