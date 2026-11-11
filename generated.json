@@ -122,6 +122,7 @@
     "internals/crates/bookclerk_enrich/README",
     "internals/crates/bookclerk_integrations/README",
     "internals/crates/bookclerk_library/README",
+    "internals/crates/bookclerk_library/column_read",
     "internals/crates/bookclerk_library/control_plane",
     "internals/crates/bookclerk_library/email",
     "internals/crates/bookclerk_library/entities/README",

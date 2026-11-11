@@ -358,6 +358,7 @@ the external guest RPC. This crate owns the greenfield schema
 
 ## Modules
 
+- [`column_read`](column_read.md): Column reads that stay correct on the host's proxied store connection.
 - [`control_plane`](control_plane.md): Database-backed control plane: node identity and typed configuration.
 - [`email`](email.md): Contact-email normalization and library-backed validation.
 - [`entities`](entities/README.md): SeaORM entities mirroring the greenfield schema in `crate::migrations`.
