@@ -134,6 +134,7 @@ Schema:
           "plugin_scheduled",
           "discover_candidates",
           "discover_feed",
+          "discover_request_queue",
           "cache_sweep",
           "search_index_rebuild",
           "invalid"

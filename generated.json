@@ -155,6 +155,7 @@
     "internals/crates/bookclerk_library/entities/discover_candidates",
     "internals/crates/bookclerk_library/entities/discover_feeds",
     "internals/crates/bookclerk_library/entities/discover_fetches",
+    "internals/crates/bookclerk_library/entities/discover_request_queue",
     "internals/crates/bookclerk_library/entities/discover_store_calls",
     "internals/crates/bookclerk_library/entities/domain_events",
     "internals/crates/bookclerk_library/entities/edition_files",

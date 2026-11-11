@@ -104,10 +104,12 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
 | [`NewTitleRequest`](#newtitlerequest) | struct | Input for creating a title request / wishlist row. |
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
+| [`QueueRank`](#queuerank) | struct | The taste ranking of one queue entry, as the ranking job computed it. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
 | [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject. |
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
+| [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishlistIdentity`](#wishlistidentity) | struct | Bibliographic slice used for wishlist dedupe. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
@@ -264,6 +266,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
+| [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
 ## Re-exports
@@ -5822,6 +5825,46 @@ Removes every row of one plugin (retire / uninstall).
 
 Returns an error when the delete fails.
 
+#### LibraryStore::replace_request_queue_ranks
+
+```rust
+pub async fn replace_request_queue_ranks(&self, ranks: &[QueueRank]) -> Result<()>
+```
+
+Replaces the stored queue ranking with `ranks`.
+
+Each row is upserted with this pass's time, then every row this pass
+did not write (an entry whose wishes were all closed) is deleted. The
+writes go to the database plugin as canonical atomic batches sized
+from its advertised limits, never an interactive transaction; the
+delete rides in the last batch. A reader between two batches can see
+part of the new ranking next to old rows, which only shifts order.
+
+##### Arguments
+
+* `ranks` - One ranking per queue entry; a repeated `entry_key` keeps the last.
+
+##### Errors
+
+Returns the database error. Batches written before it stay; old rows
+are deleted only once every new row is stored.
+
+#### LibraryStore::list_request_queue_ranks
+
+```rust
+pub async fn list_request_queue_ranks(&self) -> Result<Vec<StoredQueueRank>>
+```
+
+Lists every stored queue ranking row.
+
+Rows are read in id pages of a bounded size; a page whose result
+would exceed the plugin's `maxResultBytes` is halved and read again.
+A row whose reasons do not parse keeps its score with no reasons.
+
+##### Errors
+
+Returns the database error.
+
 #### LibraryStore::prune_record_step
 
 ```rust
@@ -9923,6 +9966,32 @@ Decode HTML entities in human-readable metadata fields.
 
 Implements: `Clone`, `Debug`, `Default`
 
+### QueueRank
+
+```rust
+pub struct QueueRank {
+    pub entry_key: String,
+    pub work_id: Option<String>,
+    pub owned: bool,
+    pub taste_score: f64,
+    pub reasons: Vec<String>,
+}
+```
+
+The taste ranking of one queue entry, as the ranking job computed it.
+
+**Fields**
+
+- `entry_key`: The entry this ranks: `work:<work id>` for wishes resolved to a
+  library work, otherwise the entry's `work_key`.
+- `work_id`: Library work the entry's wishes resolved to, when any.
+- `owned`: True when the library already holds the entry's work.
+- `taste_score`: Household taste score before the wish-count boost. A non-finite
+  value is stored as 0.
+- `reasons`: Taste reasons; at most [`MAX_QUEUE_REASONS`](#max_queue_reasons) are stored.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
 ### SavedFilterRecord
 
 ```rust
@@ -10011,6 +10080,24 @@ One subject's stored, ranked Discover feed.
 - `computed_at`: When the feed was ranked.
 
 Implements: `Clone`, `Debug`
+
+### StoredQueueRank
+
+```rust
+pub struct StoredQueueRank {
+    pub rank: QueueRank,
+    pub ranked_at: DateTime<Utc>,
+}
+```
+
+One stored queue ranking row.
+
+**Fields**
+
+- `rank`: The ranking.
+- `ranked_at`: When the ranking pass that wrote the row ran.
+
+Implements: `Clone`, `Debug`, `PartialEq`
 
 ### UserBookFields
 
@@ -10489,6 +10576,7 @@ pub enum JobKind {
     PluginScheduled,
     DiscoverCandidates,
     DiscoverFeed,
+    DiscoverRequestQueue,
     CacheSweep,
     SearchIndexRebuild,
     Invalid,
@@ -10511,6 +10599,9 @@ Kind of durable daemon work stored in the `jobs` table.
   (`discover_candidates`), store by store.
 - `DiscoverFeed`: Rank one Discover subject's stored candidates into shelves
   (`discover_feed`); no network.
+- `DiscoverRequestQueue`: Rank the shared request queue against household taste and store the
+  ranking (`discover_request_queue`); no network. One job serves
+  everyone, since the queue is not personalized.
 - `CacheSweep`: Sweep one node's image caches and its orphaned job scratch
   (`cache_sweep`); only the node named by [`JobPayload::node_id`](#jobpayload)
   claims it.
@@ -10522,7 +10613,7 @@ Kind of durable daemon work stored in the `jobs` table.
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 11] = _
+pub const ALL: [Self; 12] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -12933,6 +13024,15 @@ pub const BOOK_PAGE_MAX_LIMIT: u64 = 500;
 ```
 
 Upper clamp for a library book page. Matches the HTTP handler.
+
+### MAX_QUEUE_REASONS
+
+```rust
+pub const MAX_QUEUE_REASONS: usize = 6;
+```
+
+Most taste reasons one stored row keeps, so a row stays small whatever
+the ranking explains.
 
 ### CLAIM_REDEEM_NONCE_HEX_LEN
 

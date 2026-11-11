@@ -154,7 +154,7 @@ Titles users have asked for.
 | [`GET /api/wishlist`](wishlist.md#get-apiwishlist) | Lists open wishlist rows for the caller (portal identity or operator-owned). |
 | [`POST /api/wishlist`](wishlist.md#post-apiwishlist) | Creates a wishlist / title-request row for the authenticated caller. |
 | [`DELETE /api/wishlist/{uuid}`](wishlist.md#delete-apiwishlistuuid) | Cancels an open wishlist item the caller owns; others get 403. |
-| [`GET /api/request-queue`](wishlist.md#get-apirequest-queue) | Ranks the shared open-request queue without warming ONNX embeddings. |
+| [`GET /api/request-queue`](wishlist.md#get-apirequest-queue) | Reads the shared open-request queue from its stored ranking. |
 
 ### [Jobs](jobs.md)
 

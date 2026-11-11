@@ -36,6 +36,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`RankedQueueEntry`](#rankedqueueentry) | struct | Global wishlist queue entry ranked by overall/operator recommend taste + heavy wish-count weight (shared order; not per-viewer personalized). |
 | [`RecommendOptions`](#recommendoptions) | struct | Tunables for `recommend`. |
 | [`Recommendation`](#recommendation) | struct | One ranked recommendation (typically an unowned storefront title). |
+| [`StoredRequestQueue`](#storedrequestqueue) | struct | The shared request queue as a read builds it. |
 | [`DiscoverFeed`](#discoverfeed) | struct | Full Discover page payload: ordered shelves of personalized candidates. |
 | [`DiscoverShelf`](#discovershelf) | struct | One horizontal Discover row (series to finish, more by author, …). |
 | [`ShelfKindInfo`](#shelfkindinfo) | struct | A shelf kind the operator can ignore (all offered by default). |
@@ -85,9 +86,11 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`seed_purchase_hint`](#seed_purchase_hint) | function | Seed a deterministic storefront URL from a known candidate (no remote I/O). |
 | [`combine_wishlist_score`](#combine_wishlist_score) | function | Combine local recommend taste with a heavy multi-user wishlist boost. |
 | [`listening_engagement`](#listening_engagement) | function | Continuous engagement from a listening progress row (≈0.0–6.0). |
-| [`rank_global_request_queue`](#rank_global_request_queue) | function | Rank the global wishlist queue with **overall / operator** recommend taste plus a heavy wish-count weight. |
+| [`rank_request_queue_taste`](#rank_request_queue_taste) | function | Ranks every entry of the shared request queue against **household** taste, for the `discover_request_queue` job to store. |
 | [`recommend`](#recommend) | function | Build ranked recommendations for the operator (or a specific external user). |
 | [`recommend_feed`](#recommend_feed) | function | Personalized Discover feed (Netflix-style shelves) from the same candidate pool. |
+| [`queue_entry_key`](#queue_entry_key) | function | The key a queue entry's stored ranking is filed under. |
+| [`read_request_queue`](#read_request_queue) | function | Builds the ranked queue from the open requests and the stored ranking. |
 | [`build_discover_feed`](#build_discover_feed) | function | Partitions scored recommendations into Discover shelves. |
 | [`flatten_feed`](#flatten_feed) | function | Flatten shelves into a unique score-sorted list (CLI / legacy). |
 | [`shelf_is_disabled`](#shelf_is_disabled) | function | Whether `shelf_id` matches an ignore entry (exact, kind prefix, or `from_store`). |
@@ -113,6 +116,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`RATE_LIMIT_FIRST_PAUSE`](#rate_limit_first_pause) | constant | How long a store that asked to slow down without saying for how long is left alone the first time; each repeat doubles it. |
 | [`RATE_LIMIT_MAX_PAUSE`](#rate_limit_max_pause) | constant | Longest pause a rate limit can grow to by doubling, and the most a store's own `Retry-After` is honored for. |
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
+| [`REQUEST_QUEUE_MAX_AGE`](#request_queue_max_age) | constant | How old the stored ranking may get before a read asks for a new pass, so taste changes no event announces (a book removed, a rating edited) still reach the queue within a day. |
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
 
 ## Re-exports
@@ -1116,6 +1120,25 @@ One ranked recommendation (typically an unowned storefront title).
 - `starter_genre`: Starter genre this card was browsed from while the taste was thin.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
+
+### StoredRequestQueue
+
+```rust
+pub struct StoredRequestQueue {
+    pub entries: Vec<RankedQueueEntry>,
+    pub stale: bool,
+}
+```
+
+The shared request queue as a read builds it.
+
+**Fields**
+
+- `entries`: Open entries the library does not hold, best first.
+- `stale`: True when the stored ranking is missing an entry or older than
+  [`REQUEST_QUEUE_MAX_AGE`](#request_queue_max_age), so the caller should queue a ranking pass.
+
+Implements: `Clone`, `Debug`, `Default`
 
 ### DiscoverFeed
 
@@ -2288,38 +2311,41 @@ secondary completion bonus, not the main weight.
 
 `f64` result.
 
-### rank_global_request_queue
+### rank_request_queue_taste
 
 ```rust
-pub async fn rank_global_request_queue(
+pub async fn rank_request_queue_taste(
     library: &LibraryStore,
-    _registry: &SourceRegistry,
     opts: &RecommendOptions,
-) -> Result<Vec<RankedQueueEntry>, DiscoverError>
+) -> Result<Vec<QueueRank>, DiscoverError>
 ```
 
-Rank the global wishlist queue with **overall / operator** recommend taste
-plus a heavy wish-count weight.
+Ranks every entry of the shared request queue against **household**
+taste, for the `discover_request_queue` job to store.
 
 This ranking is **not** personalized: portal `external_user_id` filters are
-ignored so every viewer sees the same shared queue order (household library
-+ all listening progress). Titles already in the library are omitted.
+ignored so every viewer sees the same shared queue order (the household
+library and all listening progress). Wishlist rows keyed as ASIN vs ISBN
+for the same work are merged first, as the read merges them, so each
+ranking's [`crate::queue_entry_key`](#queue_entry_key) matches the entry the read builds.
 
-Wishlist rows keyed as ASIN vs ISBN for the same work are merged first.
+Only taste is ranked here: the wish-count boost and the wish reasons are
+added when the queue is read, from the live counts, so a new wish moves an
+entry before the next pass. Entries the library already holds are kept
+with `owned` set, so the read can hide them.
 
 #### Arguments
 
-* `library` - Open library store used for reads/writes.
-* `registry` - Configured content-source or integration registry.
-* `opts` - Options struct for this operation.
+* `library` - Open library store.
+* `opts` - Ranking options (embedder, listening filters).
 
 #### Returns
 
-On success, the inner `Vec<RankedQueueEntry>` value.
+One ranking per merged queue entry (empty when the queue is).
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns the library read error, or the embedder's open error.
 
 ### recommend
 
@@ -2372,6 +2398,41 @@ On success, the inner `crate::shelves::DiscoverFeed` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### queue_entry_key
+
+```rust
+pub fn queue_entry_key(entry: &GlobalQueueEntry) -> String
+```
+
+The key a queue entry's stored ranking is filed under.
+
+Wishes resolved to a library work are one entry whatever identifiers each
+wisher's store gave, so they key by that work (`work:<id>`); the rest key
+by the entry's bibliographic `work_key`. When wishes are re-keyed by work
+and edition, this becomes the work id alone.
+
+### read_request_queue
+
+```rust
+pub async fn read_request_queue(
+    library: &LibraryStore,
+) -> Result<StoredRequestQueue, DiscoverError>
+```
+
+Builds the ranked queue from the open requests and the stored ranking.
+
+An entry with no stored ranking yet (wished since the last pass) is shown
+with no taste score, so wish count alone places it until the next pass;
+an entry the last pass found in the library is hidden.
+
+#### Arguments
+
+* `library` - Open library store.
+
+#### Errors
+
+Returns the library read error.
 
 ### build_discover_feed
 
@@ -2690,6 +2751,16 @@ pub const WISH_COUNT_WEIGHT: f64 = 40.0;
 Per open wish on the global queue. Large enough that multi-user demand
 dominates typical local taste scores (~1–25) while recommend signals still
 order titles that share the same wish count.
+
+### REQUEST_QUEUE_MAX_AGE
+
+```rust
+pub const REQUEST_QUEUE_MAX_AGE: Duration = _;
+```
+
+How old the stored ranking may get before a read asks for a new pass,
+so taste changes no event announces (a book removed, a rating edited)
+still reach the queue within a day.
 
 ### SERIES_CAP
 

@@ -2870,7 +2870,14 @@ A `text/plain` body: a string.
 
 ## `GET /api/request-queue`
 
-Ranks the shared open-request queue without warming ONNX embeddings.
+Reads the shared open-request queue from its stored ranking.
+
+The `discover_request_queue` job ranks the queue against household taste
+when a taste event says it may have moved; this route joins that stored
+ranking with the open requests and the live wish counts, so it reads no
+books, listening history or embedder. When an entry has no stored ranking
+yet, or the ranking is older than a day, the route queues a pass and
+answers with what it has.
 
 **Access:** The operator, or any library session.
 
@@ -2903,8 +2910,11 @@ Ranks the shared open-request queue without warming ONNX embeddings.
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The queue could not be ranked. Body: string (`text/plain`)
-- `503` — Discover is shutting down; try again. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: string (`text/plain`)
+- `500` — The queue could not be read. Body: string (`text/plain`)
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3299,7 +3309,7 @@ Schema:
 }
 ```
 
-Status `500`: The queue could not be ranked.
+Status `500`: The queue could not be read.
 
 ```text
 ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
@@ -3309,15 +3319,48 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `503`: Discover is shutting down; try again. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
-```text
-discover gate closed
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
 ```
 
 Schema:
 
-A `text/plain` body: a string.
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
 
 Status `504`: The request ran past the API's time budget.
 
