@@ -67,6 +67,8 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_QUEUE_MAX_RETRIES`](#default_queue_max_retries) | constant | Default `max_retries` for `[[queues.consumers]]`. |
 | [`MAX_QUEUE_RETRIES`](#max_queue_retries) | constant | Largest `max_retries` a consumer may declare. |
 | [`MAX_QUEUE_RETRY_DELAY_SECS`](#max_queue_retry_delay_secs) | constant | Largest `retry_delay` (seconds) a consumer may declare: 12 hours. |
+| [`MIN_MESSAGE_RETENTION_SECS`](#min_message_retention_secs) | constant | Smallest `message_retention_period` (seconds) an event or queue consumer may declare: one minute, as in Cloudflare Queues. |
+| [`MAX_MESSAGE_RETENTION_SECS`](#max_message_retention_secs) | constant | Largest `message_retention_period` (seconds) an event or queue consumer may declare: 14 days, as in Cloudflare Queues. The host also caps it at `events.retention_days`. |
 
 ## Re-exports
 
@@ -360,6 +362,7 @@ pub struct EventConsumer {
     pub resource_class: String,
     pub filter: Option<Value>,
     pub max_retries: Option<u32>,
+    pub message_retention_period: Option<u32>,
 }
 ```
 
@@ -374,6 +377,10 @@ default entrypoint's `event(batch)` handler.
 - `resource_class`: Concurrency class copied onto deliveries (default `"network"`).
 - `filter`: Optional host-owned payload object filter (top-level key equality).
 - `max_retries`: Redelivery attempts before dead-lettering; `None` uses the host default.
+- `message_retention_period`: Seconds a delivery may wait, due but never handed to the plugin, before
+  the host expires it (Cloudflare Queues' message retention period).
+  `None` uses the host default; the value is
+  [`MIN_MESSAGE_RETENTION_SECS`](#min_message_retention_secs)`..=`[`MAX_MESSAGE_RETENTION_SECS`](#max_message_retention_secs).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -471,6 +478,7 @@ pub struct QueueConsumer {
     pub dead_letter_queue: Option<String>,
     pub retry_delay: u32,
     pub max_concurrency: Option<u32>,
+    pub message_retention_period: Option<u32>,
 }
 ```
 
@@ -490,6 +498,9 @@ entrypoint's `queue(batch)` handler.
 - `retry_delay`: Seconds a retried message waits before redelivery (default `0`).
 - `max_concurrency`: Most concurrent `queue(batch)` invocations across the cluster; `None`
   lets the host choose.
+- `message_retention_period`: Seconds a message may wait, due but never handed to the plugin, before
+  the host expires it. `None` uses the host default; the value is
+  [`MIN_MESSAGE_RETENTION_SECS`](#min_message_retention_secs)`..=`[`MAX_MESSAGE_RETENTION_SECS`](#max_message_retention_secs).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1604,3 +1615,22 @@ pub const MAX_QUEUE_RETRY_DELAY_SECS: u32 = 43_200;
 ```
 
 Largest `retry_delay` (seconds) a consumer may declare: 12 hours.
+
+### MIN_MESSAGE_RETENTION_SECS
+
+```rust
+pub const MIN_MESSAGE_RETENTION_SECS: u32 = 60;
+```
+
+Smallest `message_retention_period` (seconds) an event or queue consumer
+may declare: one minute, as in Cloudflare Queues.
+
+### MAX_MESSAGE_RETENTION_SECS
+
+```rust
+pub const MAX_MESSAGE_RETENTION_SECS: u32 = 1_209_600;
+```
+
+Largest `message_retention_period` (seconds) an event or queue consumer
+may declare: 14 days, as in Cloudflare Queues. The host also caps it at
+`events.retention_days`.

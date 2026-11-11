@@ -911,6 +911,7 @@ pub struct EventSubscription {
     pub supports_suspend: bool,
     pub resource_class: String,
     pub filter: Option<Value>,
+    pub message_retention_secs: Option<u32>,
 }
 ```
 
@@ -923,6 +924,8 @@ Declared durable `onEvent` subscription (mirrors `plugin.toml`).
 - `supports_suspend`: Whether `EventResult::Suspended` is advertised for this type.
 - `resource_class`: Concurrency class copied onto deliveries (default `"network"`).
 - `filter`: Optional host-owned payload object filter (top-level key equality).
+- `message_retention_secs`: Seconds a due delivery may wait unleased before the host expires it;
+  `None` uses the host default.
 
 #### EventSubscription::new
 
@@ -986,6 +989,7 @@ pub struct QueueSubscription {
     pub max_retries: u32,
     pub dead_letter_queue: Option<String>,
     pub retry_delay_secs: u32,
+    pub message_retention_secs: Option<u32>,
 }
 ```
 
@@ -998,6 +1002,8 @@ integration's `queue(batch)` trigger consumes and its redelivery policy.
 - `max_retries`: Redeliveries before a message is dead-lettered.
 - `dead_letter_queue`: Queue that receives a copy once `max_retries` is exhausted.
 - `retry_delay_secs`: Seconds a retried message waits when the consumer names no delay.
+- `message_retention_secs`: Seconds a due message may wait unleased before the host expires it;
+  `None` uses the host default.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

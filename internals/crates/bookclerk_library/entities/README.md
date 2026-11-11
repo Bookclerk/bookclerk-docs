@@ -31,6 +31,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`discover_feeds`](discover_feeds.md): SeaORM entity for the `discover_feeds` table.
 - [`discover_fetches`](discover_fetches.md): SeaORM entity for the `discover_fetches` table.
 - [`discover_request_queue`](discover_request_queue.md): SeaORM entity for the `discover_request_queue` table.
+- [`discover_store_call_hits`](discover_store_call_hits.md): SeaORM entity for the `discover_store_call_hits` table (composite primary key).
 - [`discover_store_calls`](discover_store_calls.md): SeaORM entity for the `discover_store_calls` table.
 - [`domain_events`](domain_events.md): SeaORM entity for the durable `domain_events` outbox.
 - [`edition_files`](edition_files.md): SeaORM entity for `edition_files`: every file key an acquire or a host upload wrote, per output destination, and the edition it belongs to (library data model ADR, `docs/adr/library-data-model.md`, section 3). Written by the acquire pipeline (`crate::LibraryStore::record_edition_file`) and by `control_plane::uploads`, which refuses an upload a key another edition holds and deletes an aborted upload's copy only while the key is still its own.
@@ -48,6 +49,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`job_temp_paths`](job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.
 - [`jobs`](jobs.md): SeaORM entity for the durable daemon `jobs` table.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.
+- [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
 - [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a host node into this cluster. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.

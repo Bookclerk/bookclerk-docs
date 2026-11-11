@@ -280,6 +280,7 @@ pub struct StorefrontCandidate {
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
     pub store_rank: Option<u32>,
+    pub work_id: Option<String>,
 }
 ```
 
@@ -319,6 +320,9 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `store_rank`: The storefront's own 1-based search rank for this hit (its declared
   `CatalogHit.rankHint`); catalog search merges stores by it for
   relevance and popularity sorts. `None` when no store ranked it.
+- `work_id`: The work the pool resolved this listing into, when the candidate was
+  read from the shared listing pool. Lets the ranking drop titles the
+  library holds by work identity without resolving the title again.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -2019,9 +2023,9 @@ Reads one subject's stored feed, drops their hidden shelves and joins
 each card's catalog metadata from the candidate pool.
 
 The stored feed keeps card references and what is personal to the
-subject; the description, cover and other metadata the subject's
-`discover_candidates` rows hold are read from them here, in pages that
-stay under the database plugin's result limit.
+subject; the description, cover and other metadata of the subject's
+listings are read from the pool here, in chunks that stay under the
+database plugin's result limit.
 
 #### Returns
 

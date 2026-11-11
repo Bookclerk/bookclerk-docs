@@ -17,6 +17,7 @@ until it is mapped.
 | [`credit_role`](#credit_role) | function | The resolver's credit role for a wire credit role. |
 | [`credit_level`](#credit_level) | function | The level a wire credit names; `None` for the role's usual level. |
 | [`scan_book_draft`](#scan_book_draft) | function | The listing draft a storefront's scan record describes. |
+| [`catalog_hit_draft`](#catalog_hit_draft) | function | The listing draft a storefront's catalog hit describes, for the shared catalog pool. |
 
 ## Functions
 
@@ -92,6 +93,31 @@ flat row is.
 #### Arguments
 
 * `book` - The scan record as the guest returned it.
+
+#### Returns
+
+The unchecked draft; `bookclerk_resolve::Listing::from_draft` validates it.
+
+### catalog_hit_draft
+
+```rust
+pub fn catalog_hit_draft(hit: &CatalogHit, marketplace: &str) -> ListingDraft
+```
+
+The listing draft a storefront's catalog hit describes, for the shared
+catalog pool.
+
+Like [`scan_book_draft`](#scan_book_draft), the plugin key is left blank for the host to
+set from the plugin it asked. The marketplace is the one the host asked
+the store about (catalog hits carry none of their own). Abridgement is
+unknown unless the store flagged it. Human-readable text is HTML-entity
+decoded, as for scans, so match keys agree with a later scan of the same
+title.
+
+#### Arguments
+
+* `hit` - The catalog hit as the guest returned it.
+* `marketplace` - Marketplace the store was asked about (`us`).
 
 #### Returns
 

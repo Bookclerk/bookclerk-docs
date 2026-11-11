@@ -389,7 +389,7 @@ pub struct Plan {
     pub work_identifiers: Vec<WorkIdentifierRow>,
     pub credits: Vec<CreditWrite>,
     pub series: Vec<SeriesWrite>,
-    pub holding: HoldingRow,
+    pub holding: Option<HoldingRow>,
     pub holding_is_new: bool,
     pub holding_changed: bool,
     pub conflicts: Vec<Conflict>,
@@ -418,7 +418,8 @@ Every write one listing's link needs, applied as one atomic batch.
 - `credits`: Credits for the work, expression and edition the listing reached,
   for each of them that has none yet.
 - `series`: Series entries for the work, when it has none yet.
-- `holding`: The holding to insert or refresh.
+- `holding`: The holding to insert or refresh; `None` for a catalog listing
+  nobody holds ([`crate::resolve_catalog`](README.md#resolve_catalog)).
 - `holding_is_new`: True when the holding is new.
 - `holding_changed`: True when a stored holding's entitlement or purchase date changes.
 - `conflicts`: Decisions left to an Administrator.
@@ -549,6 +550,10 @@ A `core.events` outbox event the link publishes.
 **Variants**
 
 - `EditionLinked`: A listing joined an edition, new or existing (`edition_linked`).
+  
+  A new catalog listing (a plan with no holding) is not announced: it is
+  announced by the `holding_added` of the scan that later holds it. A
+  relink is announced by any plan.
   - `edition_id`: The edition.
   - `listing_id`: The listing.
 - `EditionUpdated`: A rescan changed an existing edition's metadata (`edition_updated`).

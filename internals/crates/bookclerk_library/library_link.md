@@ -25,6 +25,7 @@ first, so the caller resolves again against the new rows.
 | [`LinkConflictRow`](#linkconflictrow) | struct | A `resolution_conflicts` row to record. |
 | [`LinkEvent`](#linkevent) | struct | A `core.events` row the link publishes when it commits. |
 | [`ListingLinkParams`](#listinglinkparams) | struct | Everything one listing's link writes, as one atomic batch. |
+| [`LinkHoldingRow`](#linkholdingrow) | struct | A `holdings` row a link batch inserts or refreshes. |
 | [`ContributorRow`](#contributorrow) | struct | A `contributors` row (id derived from the cleaned name). |
 | [`CreditRow`](#creditrow) | struct | A `credits` row. |
 | [`SeriesRow`](#seriesrow) | struct | A `series` row (id derived from the cleaned name). |
@@ -311,9 +312,7 @@ pub struct ListingLinkParams {
     pub edition_identifiers: Vec<LinkIdentifierRow>,
     pub work_id: String,
     pub work_identifiers: Vec<LinkWorkIdentifierRow>,
-    pub holder: String,
-    pub entitlement: String,
-    pub purchased_at: Option<String>,
+    pub holding: Option<LinkHoldingRow>,
     pub conflicts: Vec<LinkConflictRow>,
     pub events: Vec<LinkEvent>,
 }
@@ -348,11 +347,30 @@ Everything one listing's link writes, as one atomic batch.
 - `edition_identifiers`: Edition identifiers to attach.
 - `work_id`: The work work identifiers attach to.
 - `work_identifiers`: Work identifiers to attach.
+- `holding`: The holding to insert or refresh; `None` for a catalog listing
+  nobody in the library holds.
+- `conflicts`: Conflicts to record.
+- `events`: Events to publish.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### LinkHoldingRow
+
+```rust
+pub struct LinkHoldingRow {
+    pub holder: String,
+    pub entitlement: String,
+    pub purchased_at: Option<String>,
+}
+```
+
+A `holdings` row a link batch inserts or refreshes.
+
+**Fields**
+
 - `holder`: Stored holder (`account:<id>` or `node:<id>`).
 - `entitlement`: Stored entitlement.
 - `purchased_at`: When the holder bought or added it (RFC 3339).
-- `conflicts`: Conflicts to record.
-- `events`: Events to publish.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

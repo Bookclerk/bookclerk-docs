@@ -39,6 +39,8 @@ See `docs/plugins/README.md` for manifest fields and runtime requirements.
 | [`WORKERD_PIN_COMPAT_DATE`](#workerd_pin_compat_date) | constant | Newest `compatibility_date` the pinned workerd binary honors. |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Longest queue name. |
 | [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefixes) | constant | Queue-name prefixes only the host may use. |
+| [`MIN_MESSAGE_RETENTION_SECS`](#min_message_retention_secs) | constant | Shortest `message_retention_period` in seconds, as in Cloudflare Queues. |
+| [`MAX_MESSAGE_RETENTION_SECS`](#max_message_retention_secs) | constant | Longest `message_retention_period` in seconds (14 days), as in Cloudflare Queues. |
 | [`HOST_EVENT_TYPES`](#host_event_types) | constant | Domain event types only the host emits; plugins consume them but cannot produce them. |
 | [`MAX_KV_NAMESPACE_VALUE_BYTES`](#max_kv_namespace_value_bytes) | constant | Largest `max_value_bytes` a `[[kv_namespaces]]` row may declare (1 MiB). |
 | [`MAX_KV_NAMESPACE_KEYS`](#max_kv_namespace_keys) | constant | Largest `max_keys` a `[[kv_namespaces]]` row may declare. |
@@ -580,6 +582,22 @@ RESERVED_QUEUE_PREFIXES = ('core.', 'node.')
 ```
 
 Queue-name prefixes only the host may use.
+
+### MIN_MESSAGE_RETENTION_SECS
+
+```python
+MIN_MESSAGE_RETENTION_SECS = 60
+```
+
+Shortest `message_retention_period` in seconds, as in Cloudflare Queues.
+
+### MAX_MESSAGE_RETENTION_SECS
+
+```python
+MAX_MESSAGE_RETENTION_SECS = 1209600
+```
+
+Longest `message_retention_period` in seconds (14 days), as in Cloudflare Queues.
 
 ### HOST_EVENT_TYPES
 

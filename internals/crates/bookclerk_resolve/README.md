@@ -22,6 +22,7 @@ replay test and the store all drive the same code.
 | [`IdSource`](#idsource) | trait | Mints ids for new rows; the store uses UUIDs, tests use counters. |
 | [`EntityKind`](#entitykind) | enum | The kind of row a new id is minted for. |
 | [`resolve`](#resolve) | function | Resolves one listing against a snapshot of the stored rows. |
+| [`resolve_catalog`](#resolve_catalog) | function | Resolves a catalog listing (a title a store sells that nobody in the library holds) against a snapshot of the stored rows. |
 
 ## Re-exports
 
@@ -166,3 +167,31 @@ Resolves one listing against a snapshot of the stored rows.
 
 The plan of writes. Resolving the same listing again after applying
 the plan returns a plan for which [`Plan::is_noop`](model.md#planis_noop) holds.
+
+### resolve_catalog
+
+```rust
+pub fn resolve_catalog(
+    listing: &Listing,
+    snapshot: &Snapshot,
+    ids: &mut dyn IdSource,
+) -> Plan
+```
+
+Resolves a catalog listing (a title a store sells that nobody in the
+library holds) against a snapshot of the stored rows.
+
+The listing reaches a work, an expression and an edition exactly as
+[`resolve`](#resolve) would place it, so a later scan of the same product finds
+the same rows; the plan carries no holding, so the library does not
+hold the edition.
+
+#### Arguments
+
+* `listing` - The validated listing.
+* `snapshot` - The stored rows that bear on it.
+* `ids` - Mints ids for the rows the plan creates.
+
+#### Returns
+
+The plan of writes, with [`Plan::holding`](model.md#plan) set to `None`.

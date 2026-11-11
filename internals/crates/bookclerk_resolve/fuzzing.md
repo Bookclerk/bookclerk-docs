@@ -15,6 +15,8 @@ the resolver's invariants after every step:
   the listing reaches one and the conflict is recorded;
 - a work found by identifier or matcher has the listing's kind, and an
   episode matched by text shares its parent show;
+- a catalog listing (recorded with no holding) never gains a holding
+  and never announces a holding or its own new link;
 - resolving the same input twice changes nothing.
 
 The fuzz target and the replay test in `tests/fuzz_corpus.rs` both call

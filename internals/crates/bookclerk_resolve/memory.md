@@ -163,6 +163,25 @@ The applied plan.
 
 Returns [`ApplyError`](#applyerror) when the plan breaks a constraint.
 
+#### MemoryCatalog::record_catalog
+
+```rust
+pub fn record_catalog(&mut self, listing: &Listing) -> Result<Plan, ApplyError>
+```
+
+Resolves a catalog `listing` (nobody holds it) and applies the plan.
+
+Unlike [`Self::record`](#memorycatalogrecord), nothing is added to the link log the
+fuzzing replay walks, since there is no holding to replay.
+
+##### Returns
+
+The applied plan.
+
+##### Errors
+
+Returns [`ApplyError`](#applyerror) when the plan breaks a constraint.
+
 #### MemoryCatalog::work_of_edition
 
 ```rust

@@ -87,6 +87,11 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NamedAtomicBackend`](#namedatomicbackend) | struct | An `AtomicTxnBackend` that compiles every named operation and hands the plan to a `NamedAtomicRunner`. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
+| [`CatalogListing`](#cataloglisting) | struct | One title a store's catalog answer reported. |
+| [`CatalogListingRecord`](#cataloglistingrecord) | struct | A stored catalog listing, as Discover and the wishlist read it. |
+| [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
+| [`ListingOffer`](#listingoffer) | struct | One price a store quoted for one listing and audience. |
+| [`RecordedListings`](#recordedlistings) | struct | What `LibraryStore::record_catalog_listings` stored for one answer. |
 | [`TitleQuery`](#titlequery) | struct | A title someone asks about (a wish, a catalog card): what the resolver needs to say which work it belongs to. |
 | [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
 | [`ListeningIdentifiers`](#listeningidentifiers) | struct | The identifiers a listening item names its book by, as the provider reported them (any case and punctuation; normalised here). |
@@ -101,6 +106,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
+| [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
@@ -111,7 +117,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`QueueRank`](#queuerank) | struct | The taste ranking of one queue entry, as the ranking job computed it. |
 | [`SavedFilterRecord`](#savedfilterrecord) | struct | Saved Lucene-style quick filter. |
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
-| [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject. |
+| [`StoreCallHit`](#storecallhit) | struct | One listing a cached storefront call answered. |
+| [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject: the shared listing joined with what is personal to the subject. |
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
@@ -133,6 +140,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `host` \| `member`). |
 | [`UserStatus`](#userstatus) | enum | First-party user status. |
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
+| [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
@@ -245,9 +253,11 @@ the external guest RPC. This crate owns the greenfield schema
 | [`BOOKCLERK_SCHEMA_NAMESPACE`](#bookclerk_schema_namespace) | constant | Ledger namespace for host library schema and Bookclerk-owned binding bootstrap. |
 | [`MAX_PLUGIN_MIGRATION_APPLY_ATTEMPTS`](#max_plugin_migration_apply_attempts) | constant | Bounded retries for **one** expected plugin migration apply unit. |
 | [`CORE_EVENTS_QUEUE`](#core_events_queue) | constant | Queue that carries the domain-event bus (`[events]` producers and consumers). |
+| [`EVENT_DELIVERY_DEFAULT_RETENTION_SECS`](#event_delivery_default_retention_secs) | constant | How long a delivery may wait, due but never leased, before the host expires it when its consumer declares no `message_retention_period`: one day. A consumer that is deployed but not running stops accumulating work after this, and catches up through the event stream instead. |
 | [`EVENT_DELIVERY_MAX_ATTEMPTS`](#event_delivery_max_attempts) | constant | Default max delivery attempts before dead-letter. |
 | [`EVENT_RESOURCE_CLASS_NETWORK`](#event_resource_class_network) | constant | Default delivery resource class (`network`). |
 | [`EVENT_SUBSCRIBER_HEARTBEAT_TTL_SECS`](#event_subscriber_heartbeat_ttl_secs) | constant | Live catalog rows quieter than this many seconds are ignored at dispatch. |
+| [`HOST_CONSUMER_PREFIX`](#host_consumer_prefix) | constant | Prefix of subscriber ids the daemon itself consumes under (`host:discover`, `host:search-index:<node>`). Their deliveries never expire. |
 | [`JOB_PAYLOAD_VERSION`](#job_payload_version) | constant | Current job command envelope version stored in `JobPayload::v`. |
 | [`LISTENING_SYNCED`](#listening_synced) | constant | Host event published when a listening sync changed what Discover reads from a stored row: its owner, matched book or work, authors, or how far they got (started, quarter, finished). |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Longest queue name. |
@@ -260,6 +270,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WISHLIST_CHANGED`](#wishlist_changed) | constant | Host event published when a wishlist entry is added or changes status, or an open entry is deleted with its user. |
 | [`SCHEMA_STATE_FROZEN`](#schema_state_frozen) | constant | On-disk `bookclerk_schema_migrations.state` for a frozen plan version. |
 | [`SCHEMA_STATE_UNRELEASED`](#schema_state_unreleased) | constant | On-disk `bookclerk_schema_migrations.state` for an unreleased development pack. |
+| [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
 | [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days) | constant | Days `configuration_changes` notices are kept. They only signal that a document changed; the document and its audit row hold the content. |
@@ -2253,6 +2264,7 @@ pub struct EventCatalogSubscription {
     pub max_retries: Option<u32>,
     pub dead_letter_queue: Option<String>,
     pub retry_delay_secs: u32,
+    pub message_retention_secs: Option<u32>,
 }
 ```
 
@@ -2270,6 +2282,9 @@ One `[capabilities.events.subscriptions]` row persisted in `event_subscriber_nod
 - `max_retries`: Redeliveries before dead-lettering; `None` uses the host default.
 - `dead_letter_queue`: Queue that receives a message once `max_retries` is exhausted.
 - `retry_delay_secs`: Seconds a retried message waits before redelivery.
+- `message_retention_secs`: Seconds a delivery may wait, due but never leased, before the host
+  expires it (the consumer's `message_retention_period`). `None` uses
+  [`EVENT_DELIVERY_DEFAULT_RETENTION_SECS`](#event_delivery_default_retention_secs).
 
 #### EventCatalogSubscription::new
 
@@ -3759,6 +3774,175 @@ Parsed client presentation for a session row.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CatalogListing
+
+```rust
+pub struct CatalogListing {
+    pub draft: ListingDraft,
+    pub detail: ListingDetail,
+    pub offers: Vec<ListingOffer>,
+}
+```
+
+One title a store's catalog answer reported.
+
+**Fields**
+
+- `draft`: What the resolver sees: key, kinds, title, identifiers, credits and
+  series. Its plugin key and marketplace must be set.
+- `detail`: The store's own text for it.
+- `offers`: Prices the answer quoted (often none: search hits rarely price).
+
+Implements: `Clone`, `Debug`
+
+### CatalogListingRecord
+
+```rust
+pub struct CatalogListingRecord {
+    pub id: String,
+    pub plugin_key: String,
+    pub marketplace: String,
+    pub product_id: String,
+    pub edition_id: String,
+    pub work_id: Option<String>,
+    pub title: String,
+    pub categories: Option<String>,
+    pub detail: ListingDetail,
+    pub asin: Option<String>,
+    pub isbn: Option<String>,
+    pub offers: Vec<ListingOffer>,
+    pub observed_at: DateTime<Utc>,
+}
+```
+
+A stored catalog listing, as Discover and the wishlist read it.
+
+**Fields**
+
+- `id`: `store_listings.id`.
+- `plugin_key`: Provenance-qualified PluginKey of the store.
+- `marketplace`: Lower-cased marketplace.
+- `product_id`: The store's product id.
+- `edition_id`: The edition the listing sells.
+- `work_id`: That edition's work, when the rows are consistent.
+- `title`: Title as the store lists it.
+- `categories`: Store category labels.
+- `detail`: The store's own text.
+- `asin`: ASIN of the edition, preferring one scoped to the marketplace.
+- `isbn`: An ISBN of the edition.
+- `offers`: Stored prices, one per audience.
+- `observed_at`: When a store last reported the listing.
+
+#### CatalogListingRecord::offer
+
+```rust
+pub fn offer(&self, audience: OfferAudience) -> Option<&ListingOffer>
+```
+
+The stored offer for `audience`.
+
+Implements: `Clone`, `Debug`
+
+### ListingDetail
+
+```rust
+pub struct ListingDetail {
+    pub subtitle: Option<String>,
+    pub authors: Option<String>,
+    pub narrators: Option<String>,
+    pub series: Option<String>,
+    pub series_index: Option<String>,
+    pub description: Option<String>,
+    pub publisher: Option<String>,
+    pub published_at: Option<String>,
+    pub length_minutes: Option<i64>,
+    pub language: Option<String>,
+    pub cover_url: Option<String>,
+    pub url: Option<String>,
+    pub rating_overall: Option<f64>,
+    pub rating_count: Option<i64>,
+    pub is_abridged: Option<bool>,
+}
+```
+
+The store's own text for a listing, beyond the title the resolver sees.
+
+Display only: credits and series here are as the store prints them, and
+nothing matches on them.
+
+**Fields**
+
+- `subtitle`: Subtitle.
+- `authors`: Authors, comma-separated.
+- `narrators`: Narrators, comma-separated.
+- `series`: Series name.
+- `series_index`: Position in the series (`1`, `2.5`).
+- `description`: Synopsis, kept whole.
+- `publisher`: Publisher or imprint.
+- `published_at`: Publication date as the store reports it.
+- `length_minutes`: Runtime in whole minutes.
+- `language`: Language code (`en`).
+- `cover_url`: Cover image URL.
+- `url`: Product page URL.
+- `rating_overall`: Community rating (0 to 5).
+- `rating_count`: How many ratings back the rating.
+- `is_abridged`: Abridged (`true`), unabridged (`false`) or unknown.
+
+Implements: `Clone`, `Debug`, `Default`, `PartialEq`
+
+### ListingOffer
+
+```rust
+pub struct ListingOffer {
+    pub audience: OfferAudience,
+    pub price_cents: Option<i64>,
+    pub price_label: Option<String>,
+    pub currency: Option<String>,
+    pub observed_at: DateTime<Utc>,
+}
+```
+
+One price a store quoted for one listing and audience.
+
+**Fields**
+
+- `audience`: Who pays it.
+- `price_cents`: Price in minor units of [`Self::currency`](#listingoffer), when the store gave one.
+- `price_label`: The store's formatted price (`$14.95`), when it gave one.
+- `currency`: ISO 4217 currency code.
+- `observed_at`: When the store quoted it.
+
+#### ListingOffer::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when the offer carries neither a price nor a label.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
+### RecordedListings
+
+```rust
+pub struct RecordedListings {
+    pub ids: Vec<Option<String>>,
+    pub unresolved: usize,
+}
+```
+
+What [`LibraryStore::record_catalog_listings`](#librarystorerecord_catalog_listings) stored for one answer.
+
+**Fields**
+
+- `ids`: One entry per input, in order: the listing id, or `None` for a title
+  that was not stored.
+- `unresolved`: How many valid titles could not be resolved this time (other writers
+  kept changing their rows on every attempt). An answer with any is incomplete and should not be
+  cached, so those titles are tried again.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### TitleQuery
 
 ```rust
@@ -4117,6 +4301,31 @@ One page of books plus the unpaged match count.
 
 Implements: `Clone`, `Debug`
 
+### CandidateRef
+
+```rust
+pub struct CandidateRef {
+    pub listing_id: String,
+    pub origin: String,
+    pub seed_title: Option<String>,
+    pub seed_categories: Option<String>,
+    pub starter_genre: Option<String>,
+}
+```
+
+One title a store returned for a subject, as written: the shared
+listing it is, plus why the subject got it.
+
+**Fields**
+
+- `listing_id`: The `store_listings` row.
+- `origin`: How the store found it (`related to …`, `deals`).
+- `seed_title`: The subject's title that seeded it, when a seed did.
+- `seed_categories`: That seed's categories.
+- `starter_genre`: Starter genre it was browsed from, for a thin taste.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### CatalogEnrichmentFields
 
 ```rust
@@ -4197,6 +4406,113 @@ Plugin-scoped view — first-party and third-party sources use this.
 `plugin_key` isolates rows; `source_id` is the display alias written
 to the `source` column.
 
+#### LibraryStore::record_catalog_listings
+
+```rust
+pub async fn record_catalog_listings(
+    &self,
+    listings: &[CatalogListing],
+) -> Result<RecordedListings>
+```
+
+Stores what a store's catalog answer reported and returns each
+title's listing id.
+
+A title whose listing a store reported within
+[`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) keeps its resolution and text, and only
+its offers are written. Any other title is resolved into the book
+model as a catalog listing ([`Self::record_catalog_listing`]: work,
+expression, edition and listing row, no holding), then its store
+text is filled. Text and offers go to the database plugin as atomic
+host batches sized from its limits.
+
+##### Arguments
+
+* `listings` - The titles, in the store's order.
+
+##### Returns
+
+The listing ids, one per input in order. A title that does not form
+a valid listing (a blank title or key, or a field over the listing
+limits) gets `None`; so does one whose rows other writers kept
+changing on every attempt, which is also counted in
+[`RecordedListings::unresolved`](#recordedlistings) and does not stop the rest of the
+answer. A stored title that was not placed stays stale, so the next
+answer resolves it again.
+
+##### Errors
+
+Returns [`LibraryError`](#libraryerror) when a read or write of the answer's rows
+fails, including the resolver's own reads and writes; titles before
+the failure may already be stored.
+
+#### LibraryStore::record_listing_offers
+
+```rust
+pub async fn record_listing_offers(&self, offers: &[(String, ListingOffer)]) -> Result<()>
+```
+
+Stores prices a store quoted for listings already in the pool.
+
+##### Arguments
+
+* `offers` - `(listing id, offer)` pairs. An offer older than the
+  stored one for the same audience is ignored; one for a listing no
+  longer stored fails its foreign key and is dropped with its batch,
+  while the other batches are still written.
+
+##### Errors
+
+Returns the first batch's database error, after every batch was
+tried.
+
+#### LibraryStore::catalog_listings
+
+```rust
+pub async fn catalog_listings(&self, ids: &[String]) -> Result<Vec<CatalogListingRecord>>
+```
+
+Reads stored listings by id, with their work, identifiers and offers.
+
+Rows are read in chunks bounded by the backend's bind limit; a chunk
+whose result would pass the database plugin's `maxResultBytes`
+(long synopses) is split and read again.
+
+##### Arguments
+
+* `ids` - `store_listings` ids; duplicates are read once.
+
+##### Returns
+
+The listings found, in the order of `ids` (first occurrence); ids no
+longer stored are left out.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::prune_catalog_listings
+
+```rust
+pub async fn prune_catalog_listings(&self, cutoff: DateTime<Utc>) -> Result<u64>
+```
+
+Deletes catalog listings nothing refers to any more.
+
+A listing is deleted when no store reported it since `cutoff` and
+nobody holds it, no Discover subject has it as a candidate, no
+cached storefront call lists it and no resolution override names
+it. Its offers go with it. The edition, expression and work it
+made stay, since other rows (a wish, a later scan) may use them.
+
+##### Returns
+
+How many listings were deleted.
+
+##### Errors
+
+Returns the database error.
+
 #### LibraryStore::replace_discover_candidates
 
 ```rust
@@ -4205,7 +4521,7 @@ pub async fn replace_discover_candidates(
     subject: &DiscoverSubject,
     source: &str,
     scope: SeedScope,
-    rows: &[(String, String)],
+    rows: &[CandidateRef],
 ) -> Result<()>
 ```
 
@@ -4230,7 +4546,8 @@ deleted yet.
 * `subject` - Whose candidates these are.
 * `source` - Storefront plugin id that returned them.
 * `scope` - Seeds that produced them.
-* `rows` - `(candidate_key, candidate_json)` pairs; duplicate keys keep the last.
+* `rows` - The candidates, as listing references; a listing named
+  twice keeps the last.
 
 ##### Errors
 
@@ -4247,14 +4564,14 @@ pub async fn list_discover_candidates(
 ) -> Result<Vec<StoredCandidate>>
 ```
 
-Lists every stored candidate of one subject, oldest store fetch first.
+Lists every stored candidate of one subject, oldest store fetch first,
+each joined with its listing from the shared pool.
 
-Rows are read in id pages, then ordered by fetch time (ties keep id
-order). A refreshed candidate keeps its id, so id order alone would
-not be fetch order. A page whose result would exceed the database
-plugin's `maxResultBytes` is halved and read again; the smaller width
-is kept for the rest of the walk. Rows whose scope text is unknown
-(written by a newer release) are skipped.
+Candidate rows are read in id pages, then their listings in chunks
+that stay under the database plugin's result limit
+([`LibraryStore::catalog_listings`](#librarystorecatalog_listings)), then the rows are ordered by
+fetch time (ties keep id order). Rows whose scope text is unknown
+(written by a newer release), or whose listing is gone, are skipped.
 
 ##### Errors
 
@@ -4335,7 +4652,7 @@ pub async fn get_discover_store_call(
     &self,
     call_key: &str,
     max_age: Duration,
-) -> Result<Option<String>>
+) -> Result<Option<Vec<StoreCallHit>>>
 ```
 
 Returns a cached storefront answer no older than `max_age`.
@@ -4347,7 +4664,8 @@ Returns a cached storefront answer no older than `max_age`.
 
 ##### Returns
 
-The cached JSON, or `None` when absent or too old.
+The listings the call answered, in the store's order, or `None`
+when absent or too old.
 
 ##### Errors
 
@@ -4360,14 +4678,29 @@ pub async fn put_discover_store_call(
     &self,
     call_key: &str,
     source: &str,
-    response_json: &str,
+    hits: &[StoreCallHit],
 ) -> Result<()>
 ```
 
-Stores (or refreshes) one cached storefront answer.
+Stores (or refreshes) one cached storefront answer: the call row and
+the listings it answered, replacing the previous answer's hits.
 
-One upsert statement keyed on `call_key`, so a refresh costs one
-database round trip instead of a read and a write.
+The writes go as atomic host batches sized from the database
+plugin's limits. The first batch marks the call as fetched long ago
+and deletes the old hits; the new fetch time is written last, in the
+final batch. A reader between batches, or after a batch fails, sees
+an expired answer and asks the store again, never a fresh answer
+with only part of its hits. Each write claims the call row with its
+own random token, and its hits and fetch time apply only while the
+row still carries that token, so two concurrent answers to one call
+are never mixed: the later claim wins, and the earlier write adds
+nothing after it.
+
+##### Arguments
+
+* `call_key` - The call's key.
+* `source` - Storefront plugin id that answered.
+* `hits` - The listings, in the store's order.
 
 ##### Errors
 
@@ -4746,10 +5079,10 @@ across restarts). Cursor release and finish require that token.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read or wake write fails.
 
-#### LibraryStore::claim_next_event_delivery
+#### LibraryStore::lease_next_event_delivery
 
 ```rust
-pub async fn claim_next_event_delivery(
+pub async fn lease_next_event_delivery(
     &self,
     owner: &str,
     lease_secs: u64,
@@ -4760,7 +5093,11 @@ pub async fn claim_next_event_delivery(
 ) -> Result<Option<EventDeliveryRecord>>
 ```
 
-Claim the next ready delivery with a fenced `pending` → `running` mutation.
+Lease the next ready delivery with a fenced `pending` → `running` mutation.
+
+A delivery is one subscriber's own copy of an event, so a lease never
+takes work from another subscriber: it only picks which node runs this
+copy. Jobs, by contrast, are claimed (see `docs/internals/jobs.md`).
 
 When `node_id` is non-empty, this node’s own catalog must match the parent
 event’s type, schema version, and filter. The host loads the catalog and
@@ -4772,10 +5109,10 @@ plugin-id-only filtering (tests).
 
 Returns [`LibraryError::Orm`](#libraryerror) when the claim write fails.
 
-#### LibraryStore::claim_next_event_delivery_due_by
+#### LibraryStore::lease_next_event_delivery_due_by
 
 ```rust
-pub async fn claim_next_event_delivery_due_by(
+pub async fn lease_next_event_delivery_due_by(
     &self,
     owner: &str,
     lease_secs: u64,
@@ -4787,7 +5124,7 @@ pub async fn claim_next_event_delivery_due_by(
 ) -> Result<Option<EventDeliveryRecord>>
 ```
 
-[`Self::claim_next_event_delivery`](#librarystoreclaim_next_event_delivery) restricted to deliveries due at
+[`Self::lease_next_event_delivery`](#librarystorelease_next_event_delivery) restricted to deliveries due at
 or before `due_by` (`run_after <= due_by`).
 
 A host that is not the best placed to run a plugin passes a cutoff in
@@ -5240,6 +5577,10 @@ pub async fn list_live_event_subscriber_nodes(
 
 Live per-node rows whose heartbeat is within `ttl_secs`.
 
+Read in pages of the adapter's `maxResultRows`, keyed by
+`(plugin_id, node_id)`, so a catalog larger than one result still
+reads on an adapter that does not paginate for the host.
+
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
@@ -5321,6 +5662,53 @@ Wake a suspended delivery: `run_after = now` and `resume_pending = 1`.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the update fails.
 
+#### LibraryStore::expire_unleased_event_deliveries
+
+```rust
+pub async fn expire_unleased_event_deliveries(
+    &self,
+    retention_days: u64,
+    now: DateTime<Utc>,
+) -> Result<u64>
+```
+
+Expire deliveries that waited, due but never leased, past their
+consumer's retention period.
+
+This is the Cloudflare Queues message retention period applied per
+subscriber: a plugin instance that is deployed but not running stops
+accumulating work, and catches up from the event stream once it runs.
+A delivery is a candidate while it is `pending`, has never been
+leased (`attempt_count = 0`), and is not suspended or resuming. It
+expires once both its insert time and its `run_after` are older than
+the retention of the matching subscription in the live catalog
+(`message_retention_secs`, else
+[`EVENT_DELIVERY_DEFAULT_RETENTION_SECS`](#event_delivery_default_retention_secs)), capped at
+`retention_days`; a subscriber with no live catalog row waits the
+full `retention_days`. The matching subscription is the first one of the
+subscriber that matches the parent event in full (queue, type, schema
+version and filter), as at dispatch. Host consumers (`host:` and node
+consumers) never expire and are left out of the scan. Expired rows stay
+until [`EventPruneStep::TerminalDeliveries`](#eventprunestep) removes them, so they
+record which events a subscriber missed. About 10 000
+candidates are examined per call (the budget is checked after each
+page, so the last page can go past it); the next call resumes where this one
+stopped and wraps around once it reaches the newest candidate.
+
+##### Arguments
+
+* `retention_days` - The events retention window, which caps every
+  delivery retention.
+* `now` - The time the retention periods are measured back from.
+
+##### Returns
+
+The number of deliveries moved to `expired`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read or the update fails.
+
 #### LibraryStore::prune_event_deliveries
 
 ```rust
@@ -5333,7 +5721,7 @@ pub async fn prune_event_deliveries(
 
 Delete terminal deliveries past their retention windows, then empty events.
 
-Acked/rejected rows use `retention_days`. Dead letters use
+Acked, rejected and expired rows use `retention_days`. Dead letters use
 `dead_letter_retention_days`. Dispatched parent events with no remaining
 deliveries are removed only after the same `retention_days` cutoff.
 Expired per-node catalog heartbeats are swept here too. Runs every
@@ -5359,14 +5747,15 @@ Runs one delete of [`Self::prune_event_deliveries`](#librarystoreprune_event_del
 
 ##### Arguments
 
-* `step` - Which rows to delete.
-* `retention_days` - Window for acked/rejected deliveries and empty
-  dispatched events.
+* `step` - Which rows to expire or delete.
+* `retention_days` - Window for acked, rejected and expired
+  deliveries and empty dispatched events, and the cap on every
+  delivery retention period.
 * `dead_letter_retention_days` - Window for dead letters.
 
 ##### Returns
 
-The number of rows removed.
+The number of rows expired or removed.
 
 ##### Errors
 
@@ -5478,6 +5867,27 @@ The plan that was written (a no-op plan when nothing changed).
 Returns [`LibraryError`](#libraryerror) when a read or write fails, when the stored
 rows are inconsistent, or when other writers kept changing the rows
 for three attempts.
+
+#### LibraryStore::record_catalog_listing
+
+```rust
+pub async fn record_catalog_listing(&self, listing: &Listing) -> Result<Plan>
+```
+
+Resolves a catalog `listing` (a title a store sells that nobody in
+the library holds) into the library: its work, expression, edition
+and `store_listings` row, with no holding.
+
+A later scan of the same product finds the same listing row and adds
+only its holding, so a catalog listing and a held one never diverge.
+
+##### Returns
+
+The plan that was written (a no-op plan when nothing changed).
+
+##### Errors
+
+As [`Self::record_listing`](#librarystorerecord_listing).
 
 #### LibraryStore::works_by_ids
 
@@ -10441,26 +10851,53 @@ One title a storefront scan reported.
 
 Implements: `Clone`, `Debug`, `From<NewBook>`
 
+### StoreCallHit
+
+```rust
+pub struct StoreCallHit {
+    pub listing_id: String,
+    pub origin: String,
+    pub rank_hint: Option<u32>,
+}
+```
+
+One listing a cached storefront call answered.
+
+**Fields**
+
+- `listing_id`: The `store_listings` row the hit resolved to.
+- `origin`: How the store found it for this call.
+- `rank_hint`: The store's own 1-based rank for the hit, when it gave one.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### StoredCandidate
 
 ```rust
 pub struct StoredCandidate {
     pub source: String,
-    pub candidate_key: String,
+    pub listing: CatalogListingRecord,
     pub seed_scope: SeedScope,
-    pub candidate_json: String,
+    pub origin: String,
+    pub seed_title: Option<String>,
+    pub seed_categories: Option<String>,
+    pub starter_genre: Option<String>,
     pub fetched_at: DateTime<Utc>,
 }
 ```
 
-One stored storefront candidate of a subject.
+One stored storefront candidate of a subject: the shared listing joined
+with what is personal to the subject.
 
 **Fields**
 
-- `source`: Storefront plugin id that returned the title.
-- `candidate_key`: Identity key of the candidate within its subject and store.
+- `source`: Storefront plugin id that returned the title (`audible`).
+- `listing`: The listing, read from the shared pool.
 - `seed_scope`: Seeds that produced the row.
-- `candidate_json`: The candidate as JSON, written by `bookclerk-discover`.
+- `origin`: How the store found it.
+- `seed_title`: The subject's title that seeded it, when a seed did.
+- `seed_categories`: That seed's categories.
+- `starter_genre`: Starter genre it was browsed from, for a thin taste.
 - `fetched_at`: When the store fetch that produced the row ran.
 
 Implements: `Clone`, `Debug`
@@ -11372,10 +11809,46 @@ Checksum when the database has applied Bookclerk schema.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
 
+### OfferAudience
+
+```rust
+pub enum OfferAudience {
+    NonMember,
+    Member,
+}
+```
+
+Who a [`ListingOffer`](#listingoffer) price is for.
+
+**Variants**
+
+- `NonMember`: Someone without an account at the store: the price Discover shows
+  unless the person has an account there.
+- `Member`: A member or subscriber of the store.
+
+#### OfferAudience::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored `listing_offers.audience` text.
+
+#### OfferAudience::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses stored audience text; `None` for text a newer release wrote.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
 ### EventPruneStep
 
 ```rust
 pub enum EventPruneStep {
+    ExpireUnleased,
     TerminalDeliveries,
     DeadLetters,
     StaleSubscriberNodes,
@@ -11387,7 +11860,9 @@ One delete of [`LibraryStore::prune_event_deliveries`](#librarystoreprune_event_
 
 **Variants**
 
-- `TerminalDeliveries`: Acked and rejected deliveries past `retention_days`.
+- `ExpireUnleased`: Pending deliveries never leased within their retention period become
+  `expired` (see [`LibraryStore::expire_unleased_event_deliveries`](#librarystoreexpire_unleased_event_deliveries)).
+- `TerminalDeliveries`: Acked, rejected and expired deliveries past `retention_days`.
 - `DeadLetters`: Dead letters past `dead_letter_retention_days`.
 - `StaleSubscriberNodes`: Per-node subscriber heartbeats past their TTL.
 - `EmptyEvents`: Dispatched events past `retention_days` with no deliveries left.
@@ -11395,7 +11870,7 @@ One delete of [`LibraryStore::prune_event_deliveries`](#librarystoreprune_event_
 #### EventPruneStep::ALL
 
 ```rust
-pub const ALL: [Self; 4] = _
+pub const ALL: [Self; 5] = _
 ```
 
 Every step, in the order the deletes must run (deliveries before the
@@ -13194,6 +13669,17 @@ pub const CORE_EVENTS_QUEUE: &str = "core.events";
 
 Queue that carries the domain-event bus (`[events]` producers and consumers).
 
+### EVENT_DELIVERY_DEFAULT_RETENTION_SECS
+
+```rust
+pub const EVENT_DELIVERY_DEFAULT_RETENTION_SECS: u32 = 86_400;
+```
+
+How long a delivery may wait, due but never leased, before the host
+expires it when its consumer declares no `message_retention_period`: one
+day. A consumer that is deployed but not running stops accumulating work
+after this, and catches up through the event stream instead.
+
 ### EVENT_DELIVERY_MAX_ATTEMPTS
 
 ```rust
@@ -13217,6 +13703,15 @@ pub const EVENT_SUBSCRIBER_HEARTBEAT_TTL_SECS: i64 = 60;
 ```
 
 Live catalog rows quieter than this many seconds are ignored at dispatch.
+
+### HOST_CONSUMER_PREFIX
+
+```rust
+pub const HOST_CONSUMER_PREFIX: &str = "host:";
+```
+
+Prefix of subscriber ids the daemon itself consumes under (`host:discover`,
+`host:search-index:<node>`). Their deliveries never expire.
 
 ### JOB_PAYLOAD_VERSION
 
@@ -13324,6 +13819,16 @@ pub const SCHEMA_STATE_UNRELEASED: &str = "unreleased";
 ```
 
 On-disk `bookclerk_schema_migrations.state` for an unreleased development pack.
+
+### CATALOG_LISTING_REFRESH
+
+```rust
+pub const CATALOG_LISTING_REFRESH: Duration = _;
+```
+
+How long a catalog listing counts as current: a store answer for a
+listing seen more recently than this refreshes only its prices, not
+its resolution or text, so overlapping tastes cost one resolve a day.
 
 ### KV_LIST_DEFAULT_LIMIT
 
