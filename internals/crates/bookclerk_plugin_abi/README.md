@@ -227,6 +227,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](#max_plugin_migration_registration_bytes) | constant | Maximum aggregate UTF-8 bytes of plugin migration ids plus SQL in one `databaseMigrations` registration (Cap'n Proto framing is not counted). |
 | [`MAX_PLUGIN_MIGRATION_TOTAL_OPS`](#max_plugin_migration_total_ops) | constant | Maximum already-separated operations across one `databaseMigrations` registration (independent of the per-migration cap and of id+SQL UTF-8 bytes). |
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant | Maximum decoded size of an ordinary RPC scalar value (not a stream window). |
+| [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant | Longest scan cursor or sync token in bytes. |
+| [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant | Most titles, and separately most removed product ids, in one `ContentSource.scan` page. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`apiVersion` / `plugin.toml` `api_version`). |
 | [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
@@ -367,6 +369,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_stream::ExecuteStreamFrame`](db_stream.md#executestreamframe)
 - [`db_stream::ExecuteStreamLimits`](db_stream.md#executestreamlimits)
 - [`db_stream::STREAM_FRAME_TARGET_BYTES`](db_stream.md#stream_frame_target_bytes)
+- [`scan_page::decode_scan_page_bytes`](scan_page.md#decode_scan_page_bytes)
+- [`scan_page::encode_scan_page_bytes`](scan_page.md#encode_scan_page_bytes)
+- [`scan_page::validate_scan_page`](scan_page.md#validate_scan_page)
+- [`scan_page::ScanPageError`](scan_page.md#scanpageerror)
 - [`settings_schema::is_valid_setting_key`](settings_schema.md#is_valid_setting_key)
 - [`settings_schema::EffectiveConfig`](settings_schema.md#effectiveconfig)
 - [`settings_schema::SettingKind`](settings_schema.md#settingkind)
@@ -413,7 +419,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::Credit`](generated.md#credit)
 - [`generated::SeriesEntry`](generated.md#seriesentry)
 - [`generated::ScanBook`](generated.md#scanbook)
-- [`generated::ScanSummary`](generated.md#scansummary)
+- [`generated::ScanPage`](generated.md#scanpage)
 - [`generated::FetchOptions`](generated.md#fetchoptions)
 - [`generated::FetchTitleParams`](generated.md#fetchtitleparams)
 - [`generated::PlainPart`](generated.md#plainpart)
@@ -528,8 +534,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_series_entry`](generated.md#read_series_entry)
 - [`generated::write_scan_book`](generated.md#write_scan_book)
 - [`generated::read_scan_book`](generated.md#read_scan_book)
-- [`generated::write_scan_summary`](generated.md#write_scan_summary)
-- [`generated::read_scan_summary`](generated.md#read_scan_summary)
+- [`generated::write_scan_page`](generated.md#write_scan_page)
+- [`generated::read_scan_page`](generated.md#read_scan_page)
 - [`generated::write_scan_reply`](generated.md#write_scan_reply)
 - [`generated::read_scan_reply`](generated.md#read_scan_reply)
 - [`generated::write_fetch_options`](generated.md#write_fetch_options)
@@ -700,6 +706,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`kind`](kind.md): Output-plugin configuration DTOs carried as `application/json` inside `crate::ExtensibleConfig` (`Bindings.config` for the `storage` entrypoint).
 - [`methods`](methods/README.md): Role capability method names (camelCase on the wire).
 - [`package_version`](package_version.md): `plugin.toml` `version` as a semantic version.
+- [`scan_page`](scan_page.md): Validation of one `ContentSource.scan` page before the host writes it.
 - [`settings_schema`](settings_schema.md): Operator-facing plugin settings schema (`[[settings]]` in `plugin.toml`).
 - [`sql_desugar`](sql_desugar.md): Host semantic desugars for canonical Bookclerk SQL.
 - [`sql_types`](sql_types.md): Bookclerk SQL v1 types, CAST matrix, and fail-closed expression checking.
@@ -1239,7 +1246,7 @@ pub trait ContentSource {
     fn scan<'life0, 'async_trait>(
         &'life0 self,
         _params: ScanParams,
-    ) -> Pin<Box<dyn Future<Output = Result<ScanSummary>> + 'async_trait>>
+    ) -> Pin<Box<dyn Future<Output = Result<ScanPage>> + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -1361,13 +1368,14 @@ Password or one-shot OAuth login. The host seals
 fn scan<'life0, 'async_trait>(
     &'life0 self,
     _params: ScanParams,
-) -> Pin<Box<dyn Future<Output = Result<ScanSummary>> + 'async_trait>>
+) -> Pin<Box<dyn Future<Output = Result<ScanPage>> + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
-Library scan; the host upserts [`ScanSummary::books`](generated.md#scansummary).
+One page of one account's library scan pass; the host upserts
+[`ScanPage::books`](generated.md#scanpage) and drives the pass by `next_cursor`.
 
 #### ContentSource::fetch_title
 
@@ -5990,6 +5998,23 @@ pub const MAX_SCALAR_BYTES: u32 = crate::plugin_capnp::MAX_SCALAR_BYTES;
 ```
 
 Maximum decoded size of an ordinary RPC scalar value (not a stream window).
+
+### MAX_SCAN_CURSOR_BYTES
+
+```rust
+pub const MAX_SCAN_CURSOR_BYTES: u32 = crate::plugin_capnp::MAX_SCAN_CURSOR_BYTES;
+```
+
+Longest scan cursor or sync token in bytes.
+
+### MAX_SCAN_PAGE_BOOKS
+
+```rust
+pub const MAX_SCAN_PAGE_BOOKS: u32 = crate::plugin_capnp::MAX_SCAN_PAGE_BOOKS;
+```
+
+Most titles, and separately most removed product ids, in one
+`ContentSource.scan` page.
 
 ### MAX_STREAM_WINDOW_BYTES
 

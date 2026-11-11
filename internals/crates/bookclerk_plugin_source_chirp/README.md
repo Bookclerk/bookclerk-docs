@@ -26,6 +26,7 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one audiobook id into `cache_dir` via AndroidSingleAudiobook track URLs. |
 | [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Chirp audiobook to a structured scan row. Chirp returns one display string per role, so names are split with `records::credits_from_display`. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
+| [`fetch_account_page`](#fetch_account_page) | function | Fetch one Chirp library page as scan rows (no DB writes). |
 | [`Result`](#result) | type alias | Result alias for Chirp auth, sync, and download operations. |
 | [`DEFAULT_GRAPHQL_URL`](#default_graphql_url) | constant | Android Mockingjay GraphQL endpoint. |
 | [`CHIRP_SOURCE_ID`](#chirp_source_id) | constant | Describe / config id for this store (`chirp`). |
@@ -36,8 +37,7 @@ Uses the reverse-engineered Android Mockingjay GraphQL API
 - [`guest::guest_fetch_title_rpc`](guest.md#guest_fetch_title_rpc)
 - [`guest::guest_login`](guest.md#guest_login)
 - [`guest::guest_login_rpc`](guest.md#guest_login_rpc)
-- [`guest::guest_scan`](guest.md#guest_scan)
-- [`guest::guest_scan_rpc`](guest.md#guest_scan_rpc)
+- [`guest::guest_scan_page`](guest.md#guest_scan_page)
 - [`guest::resolve_graphql_url`](guest.md#resolve_graphql_url)
 
 ## Modules
@@ -860,6 +860,37 @@ Fetch all library pages for one client and collect books (no DB writes).
 #### Errors
 
 Returns an error when the operation fails.
+
+### fetch_account_page
+
+```rust
+pub async fn fetch_account_page(
+    client: &ChirpClient,
+    account_id: &str,
+    marketplace: &str,
+    page: u32,
+    page_size: u32,
+) -> Result<(Vec<ScanBook>, Option<u32>)>
+```
+
+Fetch one Chirp library page as scan rows (no DB writes).
+
+#### Arguments
+
+* `client` - Authenticated Chirp client.
+* `account_id` - Account the rows belong to.
+* `marketplace` - Marketplace stamped on every row.
+* `page` - 1-based library page.
+* `page_size` - Items per page (at least 1).
+
+#### Returns
+
+The page's playable titles and the next page number, `None` on the last
+page (a short or empty page).
+
+#### Errors
+
+Returns an error when the request fails.
 
 ## Type aliases
 

@@ -551,6 +551,7 @@ pub struct ScanSummary {
     pub books_upserted: usize,
     pub pages: u32,
     pub skipped_disabled: usize,
+    pub removed: usize,
     pub warnings: Vec<String>,
 }
 ```
@@ -563,6 +564,8 @@ Summary of a scan run.
 - `books_upserted`: Library rows inserted or updated.
 - `pages`: Upstream library pages fetched across all accounts.
 - `skipped_disabled`: Accounts skipped because [`crate::SourceAccount::scan_enabled`](#sourceaccount) was false.
+- `removed`: Titles the storefronts reported gone from their accounts (delta
+  passes). Counted only; holdings are not removed yet.
 - `warnings`: Plugin keys skipped because more than one instance is registered.
   
   Other sources in the same scan still run. Accounts stay keyed by

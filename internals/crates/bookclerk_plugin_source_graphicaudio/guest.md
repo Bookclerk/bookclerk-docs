@@ -10,8 +10,7 @@ between storefront types and the typed ABI live in [`bookclerk_storefront::abi`]
 | --- | --- | --- |
 | [`guest_login`](#guest_login) | function | Login against GraphicAudio and return account metadata + credential JSON. |
 | [`guest_login_rpc`](#guest_login_rpc) | function | RPC login: build `LoginOptions` from typed params and return the ABI result. |
-| [`guest_scan`](#guest_scan) | function | Scan libraries for the credential blobs the host injected. |
-| [`guest_scan_rpc`](#guest_scan_rpc) | function | RPC scan: return the typed `ScanSummary` (host upserts books). |
+| [`guest_scan_page`](#guest_scan_page) | function | RPC scan: one page of one account's full pass (the host upserts books). |
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download one title into `cache_dir` using host-injected credentials. |
 | [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) | function | RPC fetch: return the typed plain fetch result. |
 | [`resolve_access_base_url`](#resolve_access_base_url) | function | Resolve Access App API base URL from the plugin settings document. |
@@ -62,46 +61,43 @@ RPC login: build [`LoginOptions`](../bookclerk_storefront/README.md#loginoptions
 
 Returns an error when the operation fails.
 
-### guest_scan
+### guest_scan_page
 
 ```rust
-pub async fn guest_scan(
-    access_base_url: &str,
-    store_base_url: &str,
-    access: GraphicAudioAccess,
-    magento_password: Option<&str>,
-    credentials: &BTreeMap<String, Value>,
-    account_filter: &[String],
-    include_samples: bool,
-) -> Result<(Vec<ScanBook>, usize, u32)>
-```
-
-Scan libraries for the credential blobs the host injected.
-
-`magento_password` is required for Magento web/zip listing unless a device
-token is present on the credentials (legacy Access App fallback).
-
-#### Errors
-
-Returns an error when the operation fails.
-
-### guest_scan_rpc
-
-```rust
-pub async fn guest_scan_rpc(
+pub async fn guest_scan_page(
     access_base_url: &str,
     store_base_url: &str,
     access: GraphicAudioAccess,
     magento_password: Option<&str>,
     params: &ScanParams,
-) -> Result<ScanSummary>
+    page: u32,
+) -> Result<ScanPage>
 ```
 
-RPC scan: return the typed [`ScanSummary`](../bookclerk_plugin_abi/generated.md#scansummary) (host upserts books).
+RPC scan: one page of one account's full pass (the host upserts books).
+
+GraphicAudio lists a library in one response with no paging or delta API,
+so every pass is full and ends `complete`. A library larger than
+`maxScanPageBooks` is split into pages of that size, and each later page
+lists the library again and takes its slice.
+
+`magento_password` is required for Magento web/zip listing unless a device
+token is present on the credentials (legacy Access App fallback).
+
+#### Arguments
+
+* `access_base_url` - Access App API base URL.
+* `store_base_url` - Magento store base URL.
+* `access` - Which listing to use.
+* `magento_password` - The account password for the Magento listing.
+* `params` - The pass's account, credential and options.
+* `page` - The page the cursor names
+  ([`bookclerk_storefront::abi::page_from_cursor`](../bookclerk_storefront/abi.md#page_from_cursor)).
 
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when the credential is missing or invalid, or the
+listing fails.
 
 ### guest_fetch_title
 

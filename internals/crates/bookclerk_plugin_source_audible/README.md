@@ -10,7 +10,10 @@ the library database.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`LicenseSummary`](#licensesummary) | struct | Public summary of a license grant (no secrets). |
+| [`AudibleScanCursor`](#audiblescancursor) | struct | Where an Audible scan pass stands between pages: the library listing's continuation token and the delta state token the pass's first page returned (Audible sends it only there, so the pass carries it to the last page, which hands it to the host). |
 | [`DownloadOptions`](#downloadoptions) | struct | What one `fetchTitle` call asks of the download path. |
+| [`LibraryPageRequest`](#librarypagerequest) | struct | Library listing filters and paging for one `/1.0/library` request. |
+| [`LibraryPageRows`](#librarypagerows) | struct | One `/1.0/library` page mapped to scan rows. |
 | [`AudibleError`](#audibleerror) | enum | Failures from Audible login, library sync, licensing, or download/decrypt. |
 | [`Bitrate`](#bitrate) | enum | Audible license bitrate tier, the instance's `bitrate` setting. |
 | [`fetch_chapter_info`](#fetch_chapter_info) | function | Fetch curated chapter metadata (`chapter_info` object). |
@@ -21,8 +24,9 @@ the library database.
 | [`guest_login_complete`](#guest_login_complete) | function | Await a pending OAuth session and return account + opaque credential bytes. |
 | [`guest_login_start`](#guest_login_start) | function | Start LoginServer OAuth; return `(session_id, browser_url)`. |
 | [`guest_revoke_account`](#guest_revoke_account) | function | Deregister the Audible device that login registered for these credentials. |
-| [`guest_scan`](#guest_scan) | function | Scan libraries for host-injected credential blobs. |
-| [`collect_account_books`](#collect_account_books) | function | Fetch library pages for one account without touching the library DB. |
+| [`guest_scan_page`](#guest_scan_page) | function | RPC scan: one page of one account's pass (the host upserts books). |
+| [`collect_account_books`](#collect_account_books) | function | Fetch every library page for one account without touching the library DB (a full pass). |
+| [`fetch_library_page`](#fetch_library_page) | function | Fetch one library page for one account without touching the library DB. |
 | [`Result`](#result) | type alias | Result alias for Audible auth, sync, license, and download operations. |
 | [`ID`](#id) | constant | Plugin id of this storefront (`audible`), stamped on accounts it returns. |
 
@@ -63,6 +67,40 @@ Public summary of a license grant (no secrets).
 - `offline_url_present`: Offline URL present.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### AudibleScanCursor
+
+```rust
+pub struct AudibleScanCursor {
+    pub continuation: String,
+    pub state_token: Option<String>,
+}
+```
+
+Where an Audible scan pass stands between pages: the library listing's
+continuation token and the delta state token the pass's first page
+returned (Audible sends it only there, so the pass carries it to the last
+page, which hands it to the host).
+
+**Fields**
+
+- `continuation`: Continuation token of the next library page.
+- `state_token`: State token the pass has seen so far, if any.
+
+#### AudibleScanCursor::parse
+
+```rust
+pub fn parse(cursor: &str) -> Result<Option<Self>, PluginError>
+```
+
+Reads the cursor the host sent; the empty cursor starts a pass.
+
+##### Errors
+
+Returns an `invalid_cursor` [`PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) for text this plugin did
+not write.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### DownloadOptions
 
@@ -116,6 +154,52 @@ Empty `cover_size` and `chapter_layout` keep the defaults (`500` and
 * `source_config` - The instance's settings document (for `bitrate`).
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### LibraryPageRequest
+
+```rust
+pub struct LibraryPageRequest {
+    pub continuation: Option<String>,
+    pub state_token: Option<String>,
+    pub page_size: u32,
+    pub import_episodes: bool,
+    pub import_plus_titles: bool,
+}
+```
+
+Library listing filters and paging for one `/1.0/library` request.
+
+**Fields**
+
+- `continuation`: Continuation token of the page to fetch; `None` for the first page.
+- `state_token`: Delta state token from the account's last pass; `None` for a full pass.
+- `page_size`: Items per page (`num_results`).
+- `import_episodes`: When true, keep podcast episodes.
+- `import_plus_titles`: When true, keep Plus catalog titles that are not owned outright.
+
+Implements: `Clone`, `Debug`, `Default`
+
+### LibraryPageRows
+
+```rust
+pub struct LibraryPageRows {
+    pub books: Vec<ScanBook>,
+    pub removed: Vec<String>,
+    pub next_continuation: Option<String>,
+    pub state_token: Option<String>,
+}
+```
+
+One `/1.0/library` page mapped to scan rows.
+
+**Fields**
+
+- `books`: Titles to upsert.
+- `removed`: ASINs the delta reports as gone from the library (empty on a full pass).
+- `next_continuation`: Continuation token of the next page; `None` on the last page.
+- `state_token`: State token the response carried (Audible sends it on the first page).
+
+Implements: `Clone`, `Debug`, `Default`
 
 ## Enums
 
@@ -340,23 +424,34 @@ record one.
 Returns an error when the credentials do not parse, the token refresh
 fails, or Amazon rejects the deregistration.
 
-### guest_scan
+### guest_scan_page
 
 ```rust
-pub async fn guest_scan(
-    credentials: &BTreeMap<String, Value>,
-    account_filter: &[String],
-    page_size: u32,
-    import_episodes: bool,
-    import_plus_titles: bool,
-) -> Result<ScanSummary>
+pub async fn guest_scan_page(
+    params: &ScanParams,
+    cursor: Option<AudibleScanCursor>,
+) -> Result<ScanPage>
 ```
 
-Scan libraries for host-injected credential blobs.
+RPC scan: one page of one account's pass (the host upserts books).
+
+With a non-empty `syncToken` the pass is a delta: Audible lists items
+added or revoked since that state token, revoked ASINs come back in
+`removed`, and the pass ends with `complete = false`. Without one the pass
+lists the whole active library and ends `complete`. Either way the last
+page returns the state token Audible issued for the pass, so the next
+pass can be a delta.
+
+#### Arguments
+
+* `params` - The pass's account, credential, options and sync token.
+* `cursor` - Where the pass stands ([`AudibleScanCursor::parse`](#audiblescancursorparse));
+  `None` on the first page.
 
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when the credential is missing or invalid, the page
+request fails, or the next cursor would exceed `maxScanCursorBytes`.
 
 ### collect_account_books
 
@@ -371,13 +466,34 @@ pub async fn collect_account_books(
 ) -> Result<(Vec<ScanBook>, u32)>
 ```
 
-Fetch library pages for one account without touching the library DB.
-
-Used by the external guest plugin (the host resolves the structured rows).
+Fetch every library page for one account without touching the library DB
+(a full pass).
 
 #### Errors
 
 Returns an error when the operation fails.
+
+### fetch_library_page
+
+```rust
+pub async fn fetch_library_page(
+    client: &Client,
+    account_id: &str,
+    marketplace: &str,
+    request: &LibraryPageRequest,
+) -> Result<LibraryPageRows>
+```
+
+Fetch one library page for one account without touching the library DB.
+
+A request with a `state_token` is a delta: it asks for active and revoked
+items changed since that token, and revoked or soft-deleted items come
+back in [`LibraryPageRows::removed`](#librarypagerows). Without one it lists the active
+library and skips soft-deleted items.
+
+#### Errors
+
+Returns an error when the request fails.
 
 ## Type aliases
 

@@ -1410,7 +1410,7 @@ Password or one-shot OAuth login (`LoginParams` → `LoginResult`).
 async def scan(self, _params: abi.ScanParams)
 ```
 
-Enumerate owned titles (`ScanParams` → `ScanSummary`).
+Return one page of one account's library (`ScanParams` → `ScanPage`).
 
 #### StorefrontEntrypoint.fetchTitle
 

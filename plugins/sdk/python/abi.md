@@ -140,12 +140,12 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`LoginStartReplyOk`](#loginstartreplyok) | class | `LoginStartReply` member `ok`. |
 | [`LoginStartReplyErr`](#loginstartreplyerr) | class | `LoginStartReply` member `err`. |
 | [`AccountCredential`](#accountcredential) | class | Host-sealed credentials for one account, delivered on `scan`. |
-| [`ScanParams`](#scanparams) | class | Params of `ContentSource.scan`. The host injects sealed credentials so the plugin does not need a private credential store under `pluginDataDir`. |
+| [`ScanParams`](#scanparams) | class | Params of `ContentSource.scan`: one page of one account's scan pass. The host injects that account's sealed credentials so the plugin does not need a private credential store under `pluginDataDir`, and drives the pass page by page: the first call of a pass sends an empty `cursor`, every later call echoes the previous page's `nextCursor`. |
 | [`Identifier`](#identifier) | class | One external identifier a storefront or metadata provider reports. |
 | [`Credit`](#credit) | class | One credited contributor. Credits are listed in billing order. |
 | [`SeriesEntry`](#seriesentry) | class | A work's place in one series. |
 | [`ScanBook`](#scanbook) | class | One library title returned by `ContentSource.scan`. The host forces `source` to the plugin id and, until the library stores works, expressions and editions, maps the record onto one flat library row. |
-| [`ScanSummary`](#scansummary) | class | Summary result of `ContentSource.scan`. |
+| [`ScanPage`](#scanpage) | class | One page of an account's scan pass, the result of `ContentSource.scan`. A pass is the run of pages from an empty `cursor` to the page whose `nextCursor` is empty; `syncToken` and `complete` are read from that last page only. A guest that does not page answers the first call with every title, an empty `nextCursor` and `complete = true`. |
 | [`ScanReplyOk`](#scanreplyok) | class | `ScanReply` member `ok`. |
 | [`ScanReplyErr`](#scanreplyerr) | class | `ScanReply` member `err`. |
 | [`FetchOptions`](#fetchoptions) | class | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
@@ -2135,11 +2135,11 @@ Connect an account (password or one-shot OAuth).
 async def scan(self, params: ScanParams) -> ScanReply
 ```
 
-Sync library rows for one or more accounts.
+One page of one account's library scan pass (see `ScanPage`).
 
 **Args**
 
-- `params`: Accounts, paging, and host-sealed credentials.
+- `params`: Account, cursor, sync token, credential.
 
 **Returns**
 
@@ -3103,17 +3103,22 @@ Host-sealed credentials for one account, delivered on `scan`.
 class ScanParams(TypedDict)
 ```
 
-Params of `ContentSource.scan`. The host injects sealed credentials so the
-plugin does not need a private credential store under `pluginDataDir`.
+Params of `ContentSource.scan`: one page of one account's scan pass. The
+host injects that account's sealed credentials so the plugin does not need a
+private credential store under `pluginDataDir`, and drives the pass page by
+page: the first call of a pass sends an empty `cursor`, every later call
+echoes the previous page's `nextCursor`.
 
 **Attributes**
 
 - `pluginDataDir`: Scoped plugin data directory.
-- `accounts`: Account ids to scan; empty means all scan-enabled accounts.
+- `accountId`: Account this pass scans; always one of the plugin's connected accounts.
 - `pageSize`: Storefront page size; the host always sends an explicit value.
 - `importEpisodes`: When true, import podcast/episode-style rows.
 - `importPlusTitles`: When true, import Plus/catalog entitlement titles.
-- `credentials`: Host-loaded credential blobs for the requested accounts.
+- `credential`: Host-loaded credential blob for `accountId`.
+- `cursor`: Opaque position the guest returned as `ScanPage.nextCursor`; empty on the first page of a pass. At most `maxScanCursorBytes`.
+- `syncToken`: Opaque token the guest returned as `ScanPage.syncToken` at the end of the account's last pass; empty asks for a full pass. At most `maxScanCursorBytes`.
 
 ### Identifier
 
@@ -3189,21 +3194,26 @@ editions, maps the record onto one flat library row.
 - `purchasedAt`: When the account bought or added the title, as RFC 3339, when known. Omitted when absent (wire zero value).
 - `categories`: Category / genre labels as a single string when known. Omitted when absent (wire zero value).
 
-### ScanSummary
+### ScanPage
 
 ```python
-class ScanSummary(TypedDict)
+class ScanPage(TypedDict)
 ```
 
-Summary result of `ContentSource.scan`.
+One page of an account's scan pass, the result of `ContentSource.scan`.
+A pass is the run of pages from an empty `cursor` to the page whose
+`nextCursor` is empty; `syncToken` and `complete` are read from that last
+page only. A guest that does not page answers the first call with every
+title, an empty `nextCursor` and `complete = true`.
 
 **Attributes**
 
-- `accounts`: Number of accounts touched during the scan.
-- `booksUpserted`: Count of titles the guest expects the host to upsert; may mirror `books.length`.
-- `pages`: Number of storefront pages fetched.
-- `skippedDisabled`: Accounts skipped because `scanEnabled` was false.
-- `books`: Titles for the host to upsert. Prefer this over plugin-side DB writes.
+- `books`: Titles for the host to upsert; at most `maxScanPageBooks`.
+- `removed`: Product ids the storefront reports as gone from the account since the pass's `syncToken` (delta passes only); at most `maxScanPageBooks`.
+- `nextCursor`: Opaque position of the next page; empty ends the pass. At most `maxScanCursorBytes`; never equal to the cursor this page answered.
+- `syncToken`: On the last page: the opaque token the host sends as `ScanParams.syncToken` on the account's next pass; empty means the next pass is a full one. At most `maxScanCursorBytes`.
+- `complete`: On the last page: true when the pass listed every title the account holds (a full pass), false for a delta pass that listed only changes.
+- `storePages`: Storefront requests this page took.
 
 ### ScanReplyOk
 
@@ -3213,12 +3223,12 @@ class ScanReplyOk(TypedDict)
 
 `ScanReply` member `ok`.
 
-Success: scan summary and titles to upsert.
+Success: one page of the pass.
 
 **Attributes**
 
 - `kind`: Always `"ok"`.
-- `value`: Success: scan summary and titles to upsert.
+- `value`: Success: one page of the pass.
 
 ### ScanReplyErr
 

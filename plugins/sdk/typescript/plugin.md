@@ -3841,22 +3841,30 @@ Resolves when the store sign-out finished.
 ##### scan()
 
 ```ts
-scan(_params): Promise<ScanSummary>;
+scan(_params): Promise<ScanPage>;
 ```
 
-Library scan; the host upserts `ScanSummary.books`.
+One page of one account's library scan.
+
+The host calls this repeatedly, passing back `nextCursor` as
+`params.cursor` until a page returns an empty `nextCursor`, which ends
+the pass. An empty `params.syncToken` asks for a full pass; a non-empty
+one asks only for changes since that token (list gone titles in
+`removed`). Set `complete` only on the last page of a full pass that
+listed the whole library. Only the last page's `syncToken` is stored. Reject a stale cursor or token with `invalid_cursor` and the
+host restarts as a full pass.
 
 ###### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `_params` | [`ScanParams`](generated.md#scanparams) | Scan parameters (accounts + credentials). |
+| `_params` | [`ScanParams`](generated.md#scanparams) | The account, its credential, the cursor and the sync token. |
 
 ###### Returns
 
-`Promise`\<[`ScanSummary`](generated.md#scansummary)\>
+`Promise`\<[`ScanPage`](generated.md#scanpage)\>
 
-Books discovered plus per-account counters.
+At most `MAX_SCAN_PAGE_BOOKS` books plus the paging fields.
 
 ##### searchCatalog()
 

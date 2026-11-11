@@ -30,12 +30,12 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`LoginStartResult`](#loginstartresult) | struct | Result of `ContentSource.loginStart` (interactive OAuth). The operator opens `url`; `loginComplete` later uses `sessionId`. |
 | [`LoginCompleteParams`](#logincompleteparams) | struct | Params of `ContentSource.loginComplete`. |
 | [`AccountCredential`](#accountcredential) | struct | Host-sealed credentials for one account, delivered on `scan`. |
-| [`ScanParams`](#scanparams) | struct | Params of `ContentSource.scan`. The host injects sealed credentials so the plugin does not need a private credential store under `pluginDataDir`. |
+| [`ScanParams`](#scanparams) | struct | Params of `ContentSource.scan`: one page of one account's scan pass. The host injects that account's sealed credentials so the plugin does not need a private credential store under `pluginDataDir`, and drives the pass page by page: the first call of a pass sends an empty `cursor`, every later call echoes the previous page's `nextCursor`. |
 | [`Identifier`](#identifier) | struct | One external identifier a storefront or metadata provider reports. |
 | [`Credit`](#credit) | struct | One credited contributor. Credits are listed in billing order. |
 | [`SeriesEntry`](#seriesentry) | struct | A work's place in one series. |
 | [`ScanBook`](#scanbook) | struct | One library title returned by `ContentSource.scan`. The host forces `source` to the plugin id and, until the library stores works, expressions and editions, maps the record onto one flat library row. |
-| [`ScanSummary`](#scansummary) | struct | Summary result of `ContentSource.scan`. |
+| [`ScanPage`](#scanpage) | struct | One page of an account's scan pass, the result of `ContentSource.scan`. A pass is the run of pages from an empty `cursor` to the page whose `nextCursor` is empty; `syncToken` and `complete` are read from that last page only. A guest that does not page answers the first call with every title, an empty `nextCursor` and `complete = true`. |
 | [`FetchOptions`](#fetchoptions) | struct | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
 | [`FetchTitleParams`](#fetchtitleparams) | struct | Params of `ContentSource.fetchTitle`. The plugin writes media under `cacheDir` and returns plain (DRM-free) paths. The host injects credentials; guests must not open `library.db` or `master.key`. |
 | [`PlainPart`](#plainpart) | struct | One plain audio part written under the cache directory. |
@@ -163,8 +163,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_series_entry`](#read_series_entry) | function | Decode a `SeriesEntry` from a Cap'n Proto reader. |
 | [`write_scan_book`](#write_scan_book) | function | Encode a `ScanBook` onto a Cap'n Proto builder. |
 | [`read_scan_book`](#read_scan_book) | function | Decode a `ScanBook` from a Cap'n Proto reader. |
-| [`write_scan_summary`](#write_scan_summary) | function | Encode a `ScanSummary` onto a Cap'n Proto builder. |
-| [`read_scan_summary`](#read_scan_summary) | function | Decode a `ScanSummary` from a Cap'n Proto reader. |
+| [`write_scan_page`](#write_scan_page) | function | Encode a `ScanPage` onto a Cap'n Proto builder. |
+| [`read_scan_page`](#read_scan_page) | function | Decode a `ScanPage` from a Cap'n Proto reader. |
 | [`write_scan_reply`](#write_scan_reply) | function | Encode a `ScanReply` union from a typed result. |
 | [`read_scan_reply`](#read_scan_reply) | function | Decode a `ScanReply` union into a typed result. |
 | [`write_fetch_options`](#write_fetch_options) | function | Encode a `FetchOptions` onto a Cap'n Proto builder. |
@@ -806,25 +806,35 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 ```rust
 pub struct ScanParams {
     pub plugin_data_dir: String,
-    pub accounts: Vec<String>,
+    pub account_id: String,
     pub page_size: u32,
     pub import_episodes: bool,
     pub import_plus_titles: bool,
-    pub credentials: Vec<AccountCredential>,
+    pub credential: AccountCredential,
+    pub cursor: String,
+    pub sync_token: String,
 }
 ```
 
-Params of `ContentSource.scan`. The host injects sealed credentials so the
-plugin does not need a private credential store under `pluginDataDir`.
+Params of `ContentSource.scan`: one page of one account's scan pass. The
+host injects that account's sealed credentials so the plugin does not need a
+private credential store under `pluginDataDir`, and drives the pass page by
+page: the first call of a pass sends an empty `cursor`, every later call
+echoes the previous page's `nextCursor`.
 
 **Fields**
 
 - `plugin_data_dir`: Scoped plugin data directory.
-- `accounts`: Account ids to scan; empty means all scan-enabled accounts.
+- `account_id`: Account this pass scans; always one of the plugin's connected accounts.
 - `page_size`: Storefront page size; the host always sends an explicit value.
 - `import_episodes`: When true, import podcast/episode-style rows.
 - `import_plus_titles`: When true, import Plus/catalog entitlement titles.
-- `credentials`: Host-loaded credential blobs for the requested accounts.
+- `credential`: Host-loaded credential blob for `accountId`.
+- `cursor`: Opaque position the guest returned as `ScanPage.nextCursor`; empty on the
+  first page of a pass. At most `maxScanCursorBytes`.
+- `sync_token`: Opaque token the guest returned as `ScanPage.syncToken` at the end of the
+  account's last pass; empty asks for a full pass. At most
+  `maxScanCursorBytes`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -954,28 +964,38 @@ editions, maps the record onto one flat library row.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### ScanSummary
+### ScanPage
 
 ```rust
-pub struct ScanSummary {
-    pub accounts: u32,
-    pub books_upserted: u32,
-    pub pages: u32,
-    pub skipped_disabled: u32,
+pub struct ScanPage {
     pub books: Vec<ScanBook>,
+    pub removed: Vec<String>,
+    pub next_cursor: String,
+    pub sync_token: String,
+    pub complete: bool,
+    pub store_pages: u32,
 }
 ```
 
-Summary result of `ContentSource.scan`.
+One page of an account's scan pass, the result of `ContentSource.scan`.
+A pass is the run of pages from an empty `cursor` to the page whose
+`nextCursor` is empty; `syncToken` and `complete` are read from that last
+page only. A guest that does not page answers the first call with every
+title, an empty `nextCursor` and `complete = true`.
 
 **Fields**
 
-- `accounts`: Number of accounts touched during the scan.
-- `books_upserted`: Count of titles the guest expects the host to upsert; may mirror
-  `books.length`.
-- `pages`: Number of storefront pages fetched.
-- `skipped_disabled`: Accounts skipped because `scanEnabled` was false.
-- `books`: Titles for the host to upsert. Prefer this over plugin-side DB writes.
+- `books`: Titles for the host to upsert; at most `maxScanPageBooks`.
+- `removed`: Product ids the storefront reports as gone from the account since the
+  pass's `syncToken` (delta passes only); at most `maxScanPageBooks`.
+- `next_cursor`: Opaque position of the next page; empty ends the pass. At most
+  `maxScanCursorBytes`; never equal to the cursor this page answered.
+- `sync_token`: On the last page: the opaque token the host sends as
+  `ScanParams.syncToken` on the account's next pass; empty means the next
+  pass is a full one. At most `maxScanCursorBytes`.
+- `complete`: On the last page: true when the pass listed every title the account
+  holds (a full pass), false for a delta pass that listed only changes.
+- `store_pages`: Storefront requests this page took.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3600,25 +3620,25 @@ Decode a [`ScanBook`](#scanbook) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_scan_summary
+### write_scan_page
 
 ```rust
-pub fn write_scan_summary(b: Builder<'_>, v: &ScanSummary) -> Result<()>
+pub fn write_scan_page(b: Builder<'_>, v: &ScanPage) -> Result<()>
 ```
 
-Encode a [`ScanSummary`](#scansummary) onto a Cap'n Proto builder.
+Encode a [`ScanPage`](#scanpage) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_scan_summary
+### read_scan_page
 
 ```rust
-pub fn read_scan_summary(r: Reader<'_>) -> Result<ScanSummary>
+pub fn read_scan_page(r: Reader<'_>) -> Result<ScanPage>
 ```
 
-Decode a [`ScanSummary`](#scansummary) from a Cap'n Proto reader.
+Decode a [`ScanPage`](#scanpage) from a Cap'n Proto reader.
 
 #### Errors
 
@@ -3627,10 +3647,7 @@ Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malfo
 ### write_scan_reply
 
 ```rust
-pub fn write_scan_reply(
-    b: Builder<'_>,
-    v: &Result<ScanSummary, PluginError>,
-) -> Result<()>
+pub fn write_scan_reply(b: Builder<'_>, v: &Result<ScanPage, PluginError>) -> Result<()>
 ```
 
 Encode a `ScanReply` union from a typed result.
@@ -3642,7 +3659,7 @@ Returns a Cap'n Proto error when a nested field cannot be encoded.
 ### read_scan_reply
 
 ```rust
-pub fn read_scan_reply(r: Reader<'_>) -> Result<Result<ScanSummary, PluginError>>
+pub fn read_scan_reply(r: Reader<'_>) -> Result<Result<ScanPage, PluginError>>
 ```
 
 Decode a `ScanReply` union into a typed result.

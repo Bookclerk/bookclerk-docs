@@ -1559,13 +1559,13 @@ login). Best effort: the host revokes the account whatever this returns.
 scan(params): Promise<ScanReply>;
 ```
 
-Sync library rows for one or more accounts.
+One page of one account's library scan pass (see `ScanPage`).
 
 ###### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `params` | [`ScanParams`](#scanparams) | Accounts, paging, and host-sealed credentials. |
+| `params` | [`ScanParams`](#scanparams) | Account, cursor, sync token, credential. |
 
 ###### Returns
 
@@ -7389,28 +7389,105 @@ incremental-sync.
 
 ***
 
-### ScanParams
+### ScanPage
 
-Params of `ContentSource.scan`. The host injects sealed credentials so the
-plugin does not need a private credential store under `pluginDataDir`.
+One page of an account's scan pass, the result of `ContentSource.scan`.
+A pass is the run of pages from an empty `cursor` to the page whose
+`nextCursor` is empty; `syncToken` and `complete` are read from that last
+page only. A guest that does not page answers the first call with every
+title, an empty `nextCursor` and `complete = true`.
 
 #### Properties
 
-##### accounts
+##### books
 
 ```ts
-accounts: string[];
+books: ScanBook[];
 ```
 
-Account ids to scan; empty means all scan-enabled accounts.
+Titles for the host to upsert; at most `maxScanPageBooks`.
 
-##### credentials
+##### complete
 
 ```ts
-credentials: AccountCredential[];
+complete: boolean;
 ```
 
-Host-loaded credential blobs for the requested accounts.
+On the last page: true when the pass listed every title the account
+holds (a full pass), false for a delta pass that listed only changes.
+
+##### nextCursor
+
+```ts
+nextCursor: string;
+```
+
+Opaque position of the next page; empty ends the pass. At most
+`maxScanCursorBytes`; never equal to the cursor this page answered.
+
+##### removed
+
+```ts
+removed: string[];
+```
+
+Product ids the storefront reports as gone from the account since the
+pass's `syncToken` (delta passes only); at most `maxScanPageBooks`.
+
+##### storePages
+
+```ts
+storePages: number;
+```
+
+Storefront requests this page took.
+
+##### syncToken
+
+```ts
+syncToken: string;
+```
+
+On the last page: the opaque token the host sends as
+`ScanParams.syncToken` on the account's next pass; empty means the next
+pass is a full one. At most `maxScanCursorBytes`.
+
+***
+
+### ScanParams
+
+Params of `ContentSource.scan`: one page of one account's scan pass. The
+host injects that account's sealed credentials so the plugin does not need a
+private credential store under `pluginDataDir`, and drives the pass page by
+page: the first call of a pass sends an empty `cursor`, every later call
+echoes the previous page's `nextCursor`.
+
+#### Properties
+
+##### accountId
+
+```ts
+accountId: string;
+```
+
+Account this pass scans; always one of the plugin's connected accounts.
+
+##### credential
+
+```ts
+credential: AccountCredential;
+```
+
+Host-loaded credential blob for `accountId`.
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+Opaque position the guest returned as `ScanPage.nextCursor`; empty on the
+first page of a pass. At most `maxScanCursorBytes`.
 
 ##### importEpisodes
 
@@ -7444,54 +7521,15 @@ pluginDataDir: string;
 
 Scoped plugin data directory.
 
-***
-
-### ScanSummary
-
-Summary result of `ContentSource.scan`.
-
-#### Properties
-
-##### accounts
+##### syncToken
 
 ```ts
-accounts: number;
+syncToken: string;
 ```
 
-Number of accounts touched during the scan.
-
-##### books
-
-```ts
-books: ScanBook[];
-```
-
-Titles for the host to upsert. Prefer this over plugin-side DB writes.
-
-##### booksUpserted
-
-```ts
-booksUpserted: number;
-```
-
-Count of titles the guest expects the host to upsert; may mirror
-`books.length`.
-
-##### pages
-
-```ts
-pages: number;
-```
-
-Number of storefront pages fetched.
-
-##### skippedDisabled
-
-```ts
-skippedDisabled: number;
-```
-
-Accounts skipped because `scanEnabled` was false.
+Opaque token the guest returned as `ScanPage.syncToken` at the end of the
+account's last pass; empty asks for a full pass. At most
+`maxScanCursorBytes`.
 
 ***
 
@@ -8959,7 +8997,7 @@ Result union of `QueueProducer.send` / `sendBatch`.
 type ScanReply = 
   | {
   kind: "ok";
-  value: ScanSummary;
+  value: ScanPage;
 }
   | {
   kind: "err";

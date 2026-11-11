@@ -3116,6 +3116,12 @@ Re-exports [ScanLibraryParams](generated.md#scanlibraryparams)
 
 ***
 
+### ScanPage
+
+Re-exports [ScanPage](generated.md#scanpage)
+
+***
+
 ### ScanParams
 
 Re-exports [ScanParams](generated.md#scanparams)
@@ -3125,12 +3131,6 @@ Re-exports [ScanParams](generated.md#scanparams)
 ### ScanReply
 
 Re-exports [ScanReply](generated.md#scanreply)
-
-***
-
-### ScanSummary
-
-Re-exports [ScanSummary](generated.md#scansummary)
 
 ***
 

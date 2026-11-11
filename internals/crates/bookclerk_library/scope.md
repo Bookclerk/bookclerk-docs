@@ -144,6 +144,65 @@ Upsert a scanned title as this plugin's, and resolve its listing.
 
 Returns an error when a read or write fails.
 
+#### SourceScope::scan_state
+
+```rust
+pub async fn scan_state(&self, account_id: &str) -> Result<Option<ScanState>>
+```
+
+Where one of this plugin's accounts' scan stands.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### SourceScope::save_scan_checkpoint
+
+```rust
+pub async fn save_scan_checkpoint(
+    &self,
+    account_id: &str,
+    cursor: &str,
+    pass_token: &str,
+) -> Result<()>
+```
+
+Checkpoints a pass of one of this plugin's accounts after a page.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### SourceScope::finish_scan_pass
+
+```rust
+pub async fn finish_scan_pass(
+    &self,
+    account_id: &str,
+    sync_token: &str,
+    complete: bool,
+) -> Result<()>
+```
+
+Records the end of a pass of one of this plugin's accounts.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### SourceScope::reset_scan_state
+
+```rust
+pub async fn reset_scan_state(&self, account_id: &str) -> Result<()>
+```
+
+Forgets the sync token and resume cursor of one of this plugin's
+accounts.
+
+##### Errors
+
+Returns an error when the write fails.
+
 #### SourceScope::get_book
 
 ```rust

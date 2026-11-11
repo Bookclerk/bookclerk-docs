@@ -2,7 +2,7 @@
 
 Scan a source storefront library; host upserts returned [`crate::ScanBook`](../generated.md#scanbook) rows.
 
-Params: [`crate::ScanParams`](../generated.md#scanparams). Result: [`crate::ScanSummary`](../generated.md#scansummary).
+Params: [`crate::ScanParams`](../generated.md#scanparams). Result: [`crate::ScanPage`](../generated.md#scanpage).
 
 ## Constants
 

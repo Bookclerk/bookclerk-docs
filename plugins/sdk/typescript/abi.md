@@ -559,6 +559,26 @@ Maximum decoded size of an ordinary RPC scalar value (not a stream window).
 
 ***
 
+### MAX\_SCAN\_CURSOR\_BYTES
+
+```ts
+const MAX_SCAN_CURSOR_BYTES: 4096;
+```
+
+Maximum bytes of a scan cursor or sync token.
+
+***
+
+### MAX\_SCAN\_PAGE\_BOOKS
+
+```ts
+const MAX_SCAN_PAGE_BOOKS: 500;
+```
+
+Maximum titles, and separately removed product ids, in one `ScanPage`.
+
+***
+
 ### MAX\_STREAM\_WINDOW\_BYTES
 
 ```ts

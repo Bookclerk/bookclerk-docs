@@ -10,8 +10,7 @@ between storefront types and the typed ABI live in [`bookclerk_storefront::abi`]
 | --- | --- | --- |
 | [`guest_login`](#guest_login) | function | Login against Chirp and return account metadata + credential JSON. |
 | [`guest_login_rpc`](#guest_login_rpc) | function | RPC login: build `LoginOptions` from typed params and return the ABI result. |
-| [`guest_scan`](#guest_scan) | function | Scan libraries for the credential blobs the host injected. |
-| [`guest_scan_rpc`](#guest_scan_rpc) | function | RPC scan: return the typed `ScanSummary` (host upserts books). |
+| [`guest_scan_page`](#guest_scan_page) | function | RPC scan: one page of one account's full pass (the host upserts books). |
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download one title into `cache_dir` using host-injected credentials. |
 | [`guest_fetch_title_rpc`](#guest_fetch_title_rpc) | function | RPC fetch: return the typed plain fetch result. |
 | [`resolve_graphql_url`](#resolve_graphql_url) | function | Resolve GraphQL endpoint (tests may override via the plugin settings document). |
@@ -51,34 +50,32 @@ RPC login: build [`LoginOptions`](../bookclerk_storefront/README.md#loginoptions
 
 Returns an error when the operation fails.
 
-### guest_scan
+### guest_scan_page
 
 ```rust
-pub async fn guest_scan(
+pub async fn guest_scan_page(
     graphql_url: &str,
-    credentials: &BTreeMap<String, Value>,
-    account_filter: &[String],
-    page_size: u32,
-) -> Result<(Vec<ScanBook>, usize, u32)>
+    params: &ScanParams,
+    page: u32,
+) -> Result<ScanPage>
 ```
 
-Scan libraries for the credential blobs the host injected.
+RPC scan: one page of one account's full pass (the host upserts books).
+
+Chirp has no delta API, so every pass lists the whole library and ends
+`complete`.
+
+#### Arguments
+
+* `graphql_url` - Chirp GraphQL endpoint.
+* `params` - The pass's account, credential, page size and cursor.
+* `page` - The store page the cursor names
+  ([`bookclerk_storefront::abi::page_from_cursor`](../bookclerk_storefront/abi.md#page_from_cursor)).
 
 #### Errors
 
-Returns an error when the operation fails.
-
-### guest_scan_rpc
-
-```rust
-pub async fn guest_scan_rpc(graphql_url: &str, params: &ScanParams) -> Result<ScanSummary>
-```
-
-RPC scan: return the typed [`ScanSummary`](../bookclerk_plugin_abi/generated.md#scansummary) (host upserts books).
-
-#### Errors
-
-Returns an error when the operation fails.
+Returns an error when the credential is missing or invalid, or the page
+request fails.
 
 ### guest_fetch_title
 

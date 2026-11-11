@@ -96,6 +96,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
+| [`PassStart`](#passstart) | struct | How the next pass of one account starts. |
+| [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
 | [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
@@ -223,6 +225,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`library_id`](#library_id) | function | The `<library id>` of edition `edition_id`: its first 40 bits as 8 lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id that is not a UUID falls back to its first 8 ASCII letters and digits. Returns `None` when that leaves nothing. |
 | [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
+| [`plan_pass`](#plan_pass) | function | Decides how the next pass of an account starts. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
 | [`derive_claim_password_fingerprint`](#derive_claim_password_fingerprint) | function | Stable, non-secret fingerprint of an invite/reset password for idempotency. |
 | [`derive_claim_session_token`](#derive_claim_session_token) | function | Derive the portal session token for a claim ticket plus browser nonce. |
@@ -263,6 +266,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days) | constant | Days without a heartbeat after which a jobless storage-scan generation (a CLI scan) is treated as abandoned. |
 | [`TOKEN_HISTORY_DAYS`](#token_history_days) | constant | Days an expired claim ticket, user invite, or node enrollment link stays listed (as expired or redeemed) before it is deleted. |
 | [`UPLOAD_HISTORY_DAYS`](#upload_history_days) | constant | Days a committed or aborted host upload is kept past its token's expiry. |
+| [`FULL_PASS_INTERVAL`](#full_pass_interval) | constant | Longest time since the last complete pass before the host asks for a full pass again, so a store whose deltas miss edits or removals is corrected. |
+| [`RESUME_CURSOR_TTL`](#resume_cursor_ttl) | constant | Longest time a stopped pass's cursor is resumed; an older one restarts the pass (store cursors expire). |
 | [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for one `LibraryStore::acquired_book_keys_page` read. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
@@ -3968,6 +3973,50 @@ A write plus the namespace limits it must satisfy.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### PassStart
+
+```rust
+pub struct PassStart {
+    pub cursor: String,
+    pub sync_token: String,
+    pub resumed: bool,
+}
+```
+
+How the next pass of one account starts.
+
+**Fields**
+
+- `cursor`: Cursor of the first page to ask for; empty starts at the beginning.
+- `sync_token`: Sync token to send; empty asks for a full pass.
+- `resumed`: True when the pass resumes one that stopped part way.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ScanState
+
+```rust
+pub struct ScanState {
+    pub sync_token: String,
+    pub resume_cursor: String,
+    pub resume_token: String,
+    pub last_complete_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+Where one account's scan stands.
+
+**Fields**
+
+- `sync_token`: Opaque token from the end of the last pass; empty for none.
+- `resume_cursor`: Cursor of a stopped pass's next page; empty when none.
+- `resume_token`: Token the stopped pass started with.
+- `last_complete_at`: When the last complete pass ended.
+- `updated_at`: When the row was last written.
+
+Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
+
 ### ListingRef
 
 ```rust
@@ -6030,6 +6079,79 @@ Runs one retention delete as of `now` and answers how many rows
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read or delete fails; rows the
 step had not reached yet are left for the next pass.
+
+#### LibraryStore::scan_state
+
+```rust
+pub async fn scan_state(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Option<ScanState>>
+```
+
+Reads where an account's scan stands.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::save_scan_checkpoint
+
+```rust
+pub async fn save_scan_checkpoint(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    cursor: &str,
+    pass_token: &str,
+) -> Result<()>
+```
+
+Records that a pass wrote a page and continues at `cursor`.
+
+##### Arguments
+
+* `plugin_key` - The account's plugin.
+* `account_id` - The account.
+* `cursor` - The next page's cursor.
+* `pass_token` - The sync token the pass started with.
+
+##### Errors
+
+Returns an error when the batch fails.
+
+#### LibraryStore::finish_scan_pass
+
+```rust
+pub async fn finish_scan_pass(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    sync_token: &str,
+    complete: bool,
+) -> Result<()>
+```
+
+Records the end of a pass: stores the plugin's next sync token, drops
+the resume cursor, and stamps `last_complete_at` for a complete pass.
+
+##### Errors
+
+Returns an error when the batch fails.
+
+#### LibraryStore::reset_scan_state
+
+```rust
+pub async fn reset_scan_state(&self, plugin_key: &str, account_id: &str) -> Result<()>
+```
+
+Forgets an account's sync token and resume cursor (the plugin called
+one invalid), so its next pass is full and starts at the beginning.
+
+##### Errors
+
+Returns an error when the batch fails.
 
 #### LibraryStore::listing_refs_of_edition
 
@@ -12825,6 +12947,24 @@ pub fn prefer_enrichment_source(books: &[BookRecord]) -> Option<&BookRecord>
 
 Prefer an Audible ownership row with the richest metadata for enrichment.
 
+### plan_pass
+
+```rust
+pub fn plan_pass(state: Option<&ScanState>, now: DateTime<Utc>) -> PassStart
+```
+
+Decides how the next pass of an account starts.
+
+A stopped pass whose cursor is younger than [`RESUME_CURSOR_TTL`](#resume_cursor_ttl) resumes
+with the token it started with. Otherwise a pass starts from the
+beginning, as a delta from the stored token unless no complete pass ended
+within [`FULL_PASS_INTERVAL`](#full_pass_interval), in which case it is full.
+
+#### Arguments
+
+* `state` - The stored row, `None` before the account's first pass.
+* `now` - The current time.
+
 ### set_dispatch_chunk_for_test
 
 ```rust
@@ -13240,6 +13380,24 @@ No request can use it after expiry; the day only spares a commit replay
 racing the expiry a confusing "unknown upload". Open uploads are never
 deleted here: an abort still needs the row to tell the receiving node
 which copies to delete.
+
+### FULL_PASS_INTERVAL
+
+```rust
+pub const FULL_PASS_INTERVAL: Duration = _;
+```
+
+Longest time since the last complete pass before the host asks for a full
+pass again, so a store whose deltas miss edits or removals is corrected.
+
+### RESUME_CURSOR_TTL
+
+```rust
+pub const RESUME_CURSOR_TTL: Duration = _;
+```
+
+Longest time a stopped pass's cursor is resumed; an older one restarts
+the pass (store cursors expire).
 
 ### ACQUIRED_KEYS_MAX_PAGE
 

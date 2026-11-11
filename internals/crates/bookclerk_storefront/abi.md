@@ -23,12 +23,12 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`login_params`](#login_params) | function | Builds guest login params. `plugin_data_dir` is the jail-granted data directory; the host fills `callback_ipc` / `callback_public_base` after it starts the OAuth callback proxy. |
 | [`parse_rfc3339`](#parse_rfc3339) | function | RFC 3339 wire timestamp as UTC; `None` when it does not parse. |
 | [`rfc3339`](#rfc3339) | function | RFC 3339 wire form of a host timestamp, for `ScanBook` date fields. |
-| [`scan_summary`](#scan_summary) | function | Builds a guest scan summary from the books a scan produced. |
-| [`scan_summary_from_abi`](#scan_summary_from_abi) | function | Host counters from a guest scan summary. |
+| [`page_from_cursor`](#page_from_cursor) | function | Store page a scan page-number cursor names: page 1 for the empty cursor a pass starts with, otherwise the page `page_cursor` wrote. |
+| [`page_cursor`](#page_cursor) | function | Cursor naming store page `page`, read back by `page_from_cursor`. |
+| [`scan_credential`](#scan_credential) | function | The pass's credential document, checked against the account it scans. |
+| [`full_pass_page`](#full_pass_page) | function | One page of a full pass: the pass is complete once no page follows. |
 | [`credentials_to_bytes`](#credentials_to_bytes) | function | Encodes a credential document as the opaque bytes the ABI carries. |
 | [`credentials_from_bytes`](#credentials_from_bytes) | function | Decodes an opaque credential blob into the JSON document guests store. |
-| [`account_credentials`](#account_credentials) | function | Host-issued per-account credential list for `scan`. |
-| [`account_credentials_json`](#account_credentials_json) | function | Guest view of the per-account credential list as JSON documents. |
 | [`DEFAULT_LIST_DEALS_LIMIT`](#default_list_deals_limit) | constant | `limit` sent for the host's `ContentSource::list_deals` when the caller omits one. |
 | [`DEFAULT_EXTERNAL_SORT_KEY`](#default_external_sort_key) | constant | Host-side registry sort key for guests that leave `sortKey` at zero. |
 
@@ -111,25 +111,56 @@ RFC 3339 wire form of a host timestamp, for `ScanBook` date fields.
 Sub-second precision is kept when the timestamp has it, so a round
 trip through the wire form returns the same instant.
 
-### scan_summary
+### page_from_cursor
 
 ```rust
-pub fn scan_summary(books: Vec<ScanBook>, accounts: usize, pages: u32) -> ScanSummary
+pub fn page_from_cursor(cursor: &str) -> Result<u32, PluginError>
 ```
 
-Builds a guest scan summary from the books a scan produced.
+Store page a scan page-number cursor names: page 1 for the empty cursor a
+pass starts with, otherwise the page [`page_cursor`](#page_cursor) wrote.
 
-### scan_summary_from_abi
+#### Errors
+
+Returns an `invalid_cursor` [`abi::PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) when the cursor is not
+one [`page_cursor`](#page_cursor) wrote (a page below 2 included), so the host restarts
+the pass.
+
+### page_cursor
 
 ```rust
-pub fn scan_summary_from_abi(summary: &ScanSummary, upserted: usize) -> ScanSummary
+pub fn page_cursor(page: u32) -> String
 ```
 
-Host counters from a guest scan summary.
+Cursor naming store page `page`, read back by [`page_from_cursor`](#page_from_cursor).
 
-`books_upserted` is always the host's own count of the rows it wrote, so
-records the host skipped (ebook and print editions, blank product ids)
-never count, even when the guest reported them.
+### scan_credential
+
+```rust
+pub fn scan_credential(params: &ScanParams) -> Result<Value>
+```
+
+The pass's credential document, checked against the account it scans.
+
+#### Errors
+
+Returns [`crate::SourceError::Auth`](README.md#sourceerror) when the host sent no credential,
+a credential for another account, or a blob that is not JSON.
+
+### full_pass_page
+
+```rust
+pub fn full_pass_page(
+    books: Vec<ScanBook>,
+    next_cursor: Option<String>,
+    store_pages: u32,
+) -> ScanPage
+```
+
+One page of a full pass: the pass is complete once no page follows.
+
+Storefronts without a delta API list every title on every pass, so the
+last page of a pass always says `complete` and leaves `syncToken` empty.
 
 ### credentials_to_bytes
 
@@ -154,30 +185,6 @@ Decodes an opaque credential blob into the JSON document guests store.
 #### Errors
 
 Returns [`crate::SourceError::Auth`](README.md#sourceerror) when the bytes are not JSON.
-
-### account_credentials
-
-```rust
-pub fn account_credentials(
-    credentials: impl IntoIterator<Item = (String, Vec<u8>)>,
-) -> Vec<AccountCredential>
-```
-
-Host-issued per-account credential list for `scan`.
-
-### account_credentials_json
-
-```rust
-pub fn account_credentials_json(
-    credentials: &[AccountCredential],
-) -> Result<BTreeMap<String, Value>>
-```
-
-Guest view of the per-account credential list as JSON documents.
-
-#### Errors
-
-Returns [`crate::SourceError::Auth`](README.md#sourceerror) when any blob is not JSON.
 
 ## Constants
 

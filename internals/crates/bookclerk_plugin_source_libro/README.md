@@ -27,6 +27,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 | [`fetch_title_materials`](#fetch_title_materials) | function | Fetch one ISBN into `cache_dir`, preferring M4B when available. |
 | [`audiobook_to_scan_book`](#audiobook_to_scan_book) | function | Map a Libro.fm audiobook JSON object to a structured scan row. |
 | [`collect_account_books`](#collect_account_books) | function | Fetch all library pages for one client and collect books (no DB writes). |
+| [`fetch_account_page`](#fetch_account_page) | function | Fetch one Libro.fm library page as scan rows (no DB writes). |
 | [`Result`](#result) | type alias | Result alias for Libro.fm auth, sync, and download operations. |
 | [`APP_VER`](#app_ver) | constant | Android app version header (`X-LibroFm-AppVer`). |
 | [`CLIENT_ID`](#client_id) | constant | Optional OAuth `client_id`. |
@@ -53,8 +54,7 @@ live in [`catalog`](catalog.md) (SDK HTTP, no enrich).
 - [`guest::guest_fetch_title_rpc`](guest.md#guest_fetch_title_rpc)
 - [`guest::guest_login`](guest.md#guest_login)
 - [`guest::guest_login_rpc`](guest.md#guest_login_rpc)
-- [`guest::guest_scan`](guest.md#guest_scan)
-- [`guest::guest_scan_rpc`](guest.md#guest_scan_rpc)
+- [`guest::guest_scan_page`](guest.md#guest_scan_page)
 - [`guest::resolve_base_url`](guest.md#resolve_base_url)
 - [`guest::resolve_container`](guest.md#resolve_container)
 
@@ -660,6 +660,35 @@ Fetch all library pages for one client and collect books (no DB writes).
 #### Errors
 
 Returns an error when the operation fails.
+
+### fetch_account_page
+
+```rust
+pub async fn fetch_account_page(
+    client: &LibroClient,
+    account_id: &str,
+    marketplace: &str,
+    page: u32,
+) -> Result<(Vec<ScanBook>, Option<u32>)>
+```
+
+Fetch one Libro.fm library page as scan rows (no DB writes).
+
+#### Arguments
+
+* `client` - Authenticated Libro.fm client.
+* `account_id` - Account the rows belong to.
+* `marketplace` - Marketplace stamped on every row.
+* `page` - 1-based library page.
+
+#### Returns
+
+The page's visible titles and the next page number, `None` on the last
+page.
+
+#### Errors
+
+Returns an error when the request fails or the API reports one.
 
 ## Type aliases
 

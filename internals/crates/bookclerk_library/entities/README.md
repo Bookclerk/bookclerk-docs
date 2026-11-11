@@ -13,6 +13,7 @@ at the record boundary and uses these entities (`Entity::find`,
 ## Modules
 
 - [`account_links`](account_links.md): SeaORM entity for the `account_links` table.
+- [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
 - [`accounts`](accounts.md): SeaORM entity for the `accounts` table.
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
 - [`books`](books.md): SeaORM entity for the `books` table.

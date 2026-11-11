@@ -49,16 +49,16 @@ pub fn get_plugin_data_dir(self) -> Result<Reader<'a>>
 pub fn has_plugin_data_dir(&self) -> bool
 ```
 
-#### Reader::get_accounts
+#### Reader::get_account_id
 
 ```rust
-pub fn get_accounts(self) -> Result<Reader<'a>>
+pub fn get_account_id(self) -> Result<Reader<'a>>
 ```
 
-#### Reader::has_accounts
+#### Reader::has_account_id
 
 ```rust
-pub fn has_accounts(&self) -> bool
+pub fn has_account_id(&self) -> bool
 ```
 
 #### Reader::get_page_size
@@ -79,16 +79,40 @@ pub fn get_import_episodes(self) -> bool
 pub fn get_import_plus_titles(self) -> bool
 ```
 
-#### Reader::get_credentials
+#### Reader::get_credential
 
 ```rust
-pub fn get_credentials(self) -> Result<Reader<'a, Owned>>
+pub fn get_credential(self) -> Result<Reader<'a>>
 ```
 
-#### Reader::has_credentials
+#### Reader::has_credential
 
 ```rust
-pub fn has_credentials(&self) -> bool
+pub fn has_credential(&self) -> bool
+```
+
+#### Reader::get_cursor
+
+```rust
+pub fn get_cursor(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_cursor
+
+```rust
+pub fn has_cursor(&self) -> bool
+```
+
+#### Reader::get_sync_token
+
+```rust
+pub fn get_sync_token(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_sync_token
+
+```rust
+pub fn has_sync_token(&self) -> bool
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
@@ -149,28 +173,28 @@ pub fn init_plugin_data_dir(self, size: u32) -> Builder<'a>
 pub fn has_plugin_data_dir(&self) -> bool
 ```
 
-#### Builder::get_accounts
+#### Builder::get_account_id
 
 ```rust
-pub fn get_accounts(self) -> Result<Builder<'a>>
+pub fn get_account_id(self) -> Result<Builder<'a>>
 ```
 
-#### Builder::set_accounts
+#### Builder::set_account_id
 
 ```rust
-pub fn set_accounts(&mut self, value: impl SetterInput<Owned>) -> Result<()>
+pub fn set_account_id(&mut self, value: impl SetterInput<Owned>)
 ```
 
-#### Builder::init_accounts
+#### Builder::init_account_id
 
 ```rust
-pub fn init_accounts(self, size: u32) -> Builder<'a>
+pub fn init_account_id(self, size: u32) -> Builder<'a>
 ```
 
-#### Builder::has_accounts
+#### Builder::has_account_id
 
 ```rust
-pub fn has_accounts(&self) -> bool
+pub fn has_account_id(&self) -> bool
 ```
 
 #### Builder::get_page_size
@@ -209,28 +233,76 @@ pub fn get_import_plus_titles(self) -> bool
 pub fn set_import_plus_titles(&mut self, value: bool)
 ```
 
-#### Builder::get_credentials
+#### Builder::get_credential
 
 ```rust
-pub fn get_credentials(self) -> Result<Builder<'a, Owned>>
+pub fn get_credential(self) -> Result<Builder<'a>>
 ```
 
-#### Builder::set_credentials
+#### Builder::set_credential
 
 ```rust
-pub fn set_credentials(&mut self, value: Reader<'_, Owned>) -> Result<()>
+pub fn set_credential(&mut self, value: Reader<'_>) -> Result<()>
 ```
 
-#### Builder::init_credentials
+#### Builder::init_credential
 
 ```rust
-pub fn init_credentials(self, size: u32) -> Builder<'a, Owned>
+pub fn init_credential(self) -> Builder<'a>
 ```
 
-#### Builder::has_credentials
+#### Builder::has_credential
 
 ```rust
-pub fn has_credentials(&self) -> bool
+pub fn has_credential(&self) -> bool
+```
+
+#### Builder::get_cursor
+
+```rust
+pub fn get_cursor(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_cursor
+
+```rust
+pub fn set_cursor(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_cursor
+
+```rust
+pub fn init_cursor(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_cursor
+
+```rust
+pub fn has_cursor(&self) -> bool
+```
+
+#### Builder::get_sync_token
+
+```rust
+pub fn get_sync_token(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_sync_token
+
+```rust
+pub fn set_sync_token(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_sync_token
+
+```rust
+pub fn init_sync_token(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_sync_token
+
+```rust
+pub fn has_sync_token(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
@@ -241,6 +313,12 @@ Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<
 pub struct Pipeline {
     /* private fields */
 }
+```
+
+#### Pipeline::get_credential
+
+```rust
+pub fn get_credential(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`
