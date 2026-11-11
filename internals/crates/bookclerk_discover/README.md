@@ -73,7 +73,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`fetch_subject_candidates`](#fetch_subject_candidates) | function | Fetches one subject's storefront candidates and stores them store by store. |
 | [`load_subject_taste`](#load_subject_taste) | function | Loads one subject's taste. |
 | [`rank_subject_feed`](#rank_subject_feed) | function | Ranks one subject's stored candidates into shelves and stores the feed. |
-| [`stored_subject_feed`](#stored_subject_feed) | function | Reads one subject's stored feed and drops their hidden shelves. |
+| [`stored_subject_feed`](#stored_subject_feed) | function | Reads one subject's stored feed, drops their hidden shelves and joins each card's catalog metadata from the candidate pool. |
+| [`stored_subject_feed_state`](#stored_subject_feed_state) | function | Reads one subject's stored feed without joining its catalog metadata, for callers that need only whether it exists and when it was ranked. |
 | [`best_purchase_hint`](#best_purchase_hint) | function | Pick the lowest-priced hint (ties keep earlier order). Unpriced sort after priced. |
 | [`best_purchase_hint_preferring`](#best_purchase_hint_preferring) | function | Pick the offer the caller would actually pay least for. |
 | [`format_money_label`](#format_money_label) | function | Formats integer cents into a storefront-style money label for `currency`. |
@@ -739,6 +740,8 @@ pub struct RankReport {
     pub scope: SeedScope,
     pub shelves: usize,
     pub candidates: usize,
+    pub cards: usize,
+    pub stored_bytes: usize,
 }
 ```
 
@@ -749,6 +752,9 @@ What one ranking did.
 - `scope`: Seeds the feed was ranked against.
 - `shelves`: Shelves stored.
 - `candidates`: Stored candidates read.
+- `cards`: Cards on the stored shelves, after any trimming to fit the budget.
+- `stored_bytes`: Bytes of the stored feed as the database counts it (an escaped JSON
+  string), at most the 192 KiB stored-feed budget.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -2008,13 +2014,44 @@ pub async fn stored_subject_feed(
 ) -> Result<Option<StoredSubjectFeed>, DiscoverError>
 ```
 
-Reads one subject's stored feed and drops their hidden shelves.
+Reads one subject's stored feed, drops their hidden shelves and joins
+each card's catalog metadata from the candidate pool.
+
+The stored feed keeps card references and what is personal to the
+subject; the description, cover and other metadata the subject's
+`discover_candidates` rows hold are read from them here, in pages that
+stay under the database plugin's result limit.
 
 #### Returns
 
 `None` when the subject has no stored feed yet, or it does not decode
 (written by another release); the caller then shows placeholders and
 queues a ranking.
+
+#### Errors
+
+Returns the library read error.
+
+### stored_subject_feed_state
+
+```rust
+pub async fn stored_subject_feed_state(
+    library: &LibraryStore,
+    subject: &DiscoverSubject,
+) -> Result<Option<StoredSubjectFeed>, DiscoverError>
+```
+
+Reads one subject's stored feed without joining its catalog metadata,
+for callers that need only whether it exists and when it was ranked.
+
+The cards come back as stored: references and the subject's own fields,
+without the description, cover and other metadata
+[`stored_subject_feed`](#stored_subject_feed) joins from the candidate pool. Hidden shelves
+are kept. No candidate row is read.
+
+#### Returns
+
+`None` when the subject has no stored feed yet, or it does not decode.
 
 #### Errors
 
