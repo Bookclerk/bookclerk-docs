@@ -1743,15 +1743,14 @@ wishers?: QueueWisher[];
 
 Distinct people who have this title on an open wishlist.
 
-##### work\_id?
+##### work\_id
 
 ```ts
-work_id?: string | null;
+work_id: string;
 ```
 
-Library work the entry's wishes resolve to, when known. Wishes for one
-work share an entry even when their `work_key`s differ, so match on this
-first.
+Library work the entry's wishes are for. Wishes for one work share an
+entry even when their `work_key`s differ, so match on this first.
 
 ##### work\_key
 
@@ -5241,8 +5240,8 @@ title?: string | null;
 
 Wishlist / title-request row from `/api/wishlist`.
 
-Represents a user ask for a title (and optional acquire queue linkage via
-`resolved_book_uuid` / `work_key`).
+Represents a user ask for a work (and optional acquire queue linkage via
+`resolved_book_uuid`).
 
 #### Properties
 
@@ -5283,6 +5282,14 @@ created_at: string;
 ```ts
 description?: string | null;
 ```
+
+##### edition\_id?
+
+```ts
+edition_id?: string | null;
+```
+
+Edition the wish named, when its identifiers reached exactly one.
 
 ##### genres?
 
@@ -5407,14 +5414,18 @@ uuid: string;
 ##### work\_id
 
 ```ts
-work_id: string | null;
+work_id: string;
 ```
+
+Library work the wish is for; every wish names one.
 
 ##### work\_key
 
 ```ts
 work_key: string;
 ```
+
+Bibliographic key derived from the wish's identifiers, for display matching.
 
 ***
 
@@ -6258,7 +6269,7 @@ Adds a title to the current user's wishlist.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `body` | \{ `asin?`: `string`; `authors?`: `string`; `cover_url?`: `string` \| `null`; `description?`: `string` \| `null`; `genres?`: `string` \| `null`; `isbn?`: `string`; `language?`: `string` \| `null`; `length_minutes?`: `number` \| `null`; `narrators?`: `string` \| `null`; `notes?`: `string`; `published_at?`: `string` \| `null`; `publisher?`: `string` \| `null`; `purchase_hints?`: [`PurchaseHint`](#purchasehint)[]; `series?`: `string` \| `null`; `series_index?`: `string` \| `null`; `store_editions?`: [`StoreEdition`](#storeedition)[]; `subtitle?`: `string` \| `null`; `title`: `string`; `work_key?`: `string`; \} | Title fields and optional catalog enrichment. |
+| `body` | \{ `asin?`: `string`; `authors?`: `string`; `cover_url?`: `string` \| `null`; `description?`: `string` \| `null`; `genres?`: `string` \| `null`; `isbn?`: `string`; `language?`: `string` \| `null`; `length_minutes?`: `number` \| `null`; `narrators?`: `string` \| `null`; `notes?`: `string`; `published_at?`: `string` \| `null`; `publisher?`: `string` \| `null`; `purchase_hints?`: [`PurchaseHint`](#purchasehint)[]; `series?`: `string` \| `null`; `series_index?`: `string` \| `null`; `store_editions?`: [`StoreEdition`](#storeedition)[]; `subtitle?`: `string` \| `null`; `title`: `string`; \} | Title fields and optional catalog enrichment. |
 | `body.asin?` | `string` | - |
 | `body.authors?` | `string` | - |
 | `body.cover_url?` | `string` \| `null` | - |
@@ -6277,7 +6288,6 @@ Adds a title to the current user's wishlist.
 | `body.store_editions?` | [`StoreEdition`](#storeedition)[] | - |
 | `body.subtitle?` | `string` \| `null` | - |
 | `body.title` | `string` | - |
-| `body.work_key?` | `string` | - |
 
 #### Returns
 

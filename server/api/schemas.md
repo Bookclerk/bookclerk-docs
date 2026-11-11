@@ -564,7 +564,6 @@ Wishlist / title-request create body from Discover or the portal.
 - `notes` *string or null* — Optional operator or member note stored on the request.
 - `store_editions` *array of [`StoreEdition`](#storeedition)* — Known storefront editions to persist as `title_request_sources`.
 - `purchase_hints` *array of [`PurchaseHint`](#purchasehint)* — Optional priced storefront links snapshotted at wishlist time.
-- `work_key` *string or null* — Optional stable work key; when omitted one is derived from bib fields.
 - `cover_url` *string or null* — Optional cover image URL snapshotted onto the request.
 - `description` *string or null* — Optional plot/summary text persisted with the request.
 - `subtitle` *string or null* — Optional subtitle stored on the request and source rows.
@@ -2330,7 +2329,7 @@ Global wishlist queue entry ranked by overall/operator recommend taste +
 heavy wish-count weight (shared order; not per-viewer personalized).
 
 - `work_key` *string*, **required** — Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
-- `work_id` *string or null* — Library work the entry's wishes resolve to, when the library could place them. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
+- `work_id` *string*, **required** — The work every wish of this entry is for. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
 - `title` *string*, **required** — Display title as shown on the storefront or library card.
 - `authors` *string or null* — Comma-separated author names when the storefront provides them.
 - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
@@ -2757,14 +2756,15 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
 - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
 - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
-- `title` *string*, **required** — Display title of the work or edition.
-- `authors` *string or null* — Comma-separated or JSON author list from the storefront.
-- `asin` *string or null* — Amazon ASIN when known; otherwise null.
-- `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+- `title` *string*, **required** — Display title: the title of the wish's work.
+- `authors` *string or null* — Comma-separated authors: the work's author credits in billing order.
+- `asin` *string or null* — Amazon ASIN from the wish's storefront sources, when one carries it.
+- `isbn` *string or null* — ISBN-10/13 from the wish's storefront sources, when one carries it.
 - `notes` *string or null* — Free-form operator or requester notes.
 - `status` *[`RequestStatus`](#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
-- `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
-- `work_id` *string or null* — Canonical work id this edition or request resolves to.
+- `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
+- `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
+- `edition_id` *string or null* — The edition the wish named, when the library knows it.
 - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
 - `cover_url` *string or null* — HTTPS URL for cover art when known.
 - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
@@ -3016,7 +3016,7 @@ Storefront / integration connection summary for admin user lists.
 
 Recent unfinished listening hint for admin user lists.
 
-- `title` *string or null* — Display title when the provider reported one.
+- `title` *string or null* — Title of the work being listened to, when the library knows it.
 - `provider` *string*, **required** — Integration / storefront provider id.
 - `last_listened_at` *string (date-time)*, **required** — RFC 3339 time of the last playback update.
 

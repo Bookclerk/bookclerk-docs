@@ -210,6 +210,7 @@
     "internals/crates/bookclerk_library/entities/title_requests",
     "internals/crates/bookclerk_library/entities/user_invites",
     "internals/crates/bookclerk_library/entities/user_preferences",
+    "internals/crates/bookclerk_library/entities/user_title_state",
     "internals/crates/bookclerk_library/entities/users",
     "internals/crates/bookclerk_library/entities/webauthn_challenges",
     "internals/crates/bookclerk_library/entities/webauthn_credentials",

@@ -18,14 +18,15 @@ Lists open wishlist rows for the caller (portal identity or operator-owned).
   - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
   - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
   - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
-  - `title` *string*, **required** — Display title of the work or edition.
-  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
-  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
-  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `title` *string*, **required** — Display title: the title of the wish's work.
+  - `authors` *string or null* — Comma-separated authors: the work's author credits in billing order.
+  - `asin` *string or null* — Amazon ASIN from the wish's storefront sources, when one carries it.
+  - `isbn` *string or null* — ISBN-10/13 from the wish's storefront sources, when one carries it.
   - `notes` *string or null* — Free-form operator or requester notes.
   - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
-  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
-  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
+  - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
+  - `edition_id` *string or null* — The edition the wish named, when the library knows it.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
@@ -116,6 +117,7 @@ Status `200`: The caller's open requests.
     "status": "open",
     "work_key": "isbn:9780441478125",
     "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
+    "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
     "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
     "cover_url": "https://images.example.com/covers/9780441478125.jpg",
     "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
@@ -203,6 +205,7 @@ Schema:
       "uuid",
       "title",
       "status",
+      "work_id",
       "created_at",
       "updated_at"
     ],
@@ -229,7 +232,7 @@ Schema:
       },
       "title": {
         "type": "string",
-        "description": "Display title of the work or edition.",
+        "description": "Display title: the title of the wish's work.",
         "example": "The Left Hand of Darkness"
       },
       "authors": {
@@ -237,7 +240,7 @@ Schema:
           "string",
           "null"
         ],
-        "description": "Comma-separated or JSON author list from the storefront.",
+        "description": "Comma-separated authors: the work's author credits in billing order.",
         "example": "Ursula K. Le Guin"
       },
       "asin": {
@@ -245,7 +248,7 @@ Schema:
           "string",
           "null"
         ],
-        "description": "Amazon ASIN when known; otherwise null.",
+        "description": "Amazon ASIN from the wish's storefront sources, when one carries it.",
         "example": "B002V0QK4C"
       },
       "isbn": {
@@ -253,7 +256,7 @@ Schema:
           "string",
           "null"
         ],
-        "description": "ISBN-10/13 when known; otherwise null.",
+        "description": "ISBN-10/13 from the wish's storefront sources, when one carries it.",
         "example": "9780441478125"
       },
       "notes": {
@@ -274,16 +277,21 @@ Schema:
       },
       "work_key": {
         "type": "string",
-        "description": "Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.",
+        "description": "Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use\nto match a wish to a catalog card. Derived from the work's title and\nauthors and the sources' identifiers on every read, never stored.",
         "example": "isbn:9780441478125"
       },
       "work_id": {
+        "type": "string",
+        "description": "The work the wish is for; wishes for one work are one queue entry.",
+        "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+      },
+      "edition_id": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Canonical work id this edition or request resolves to.",
-        "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+        "description": "The edition the wish named, when the library knows it.",
+        "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
       },
       "resolved_book_uuid": {
         "type": [
@@ -949,7 +957,6 @@ Creates a wishlist / title-request row for the authenticated caller.
 - `notes` *string or null* — Optional operator or member note stored on the request.
 - `store_editions` *array of [`StoreEdition`](schemas.md#storeedition)* — Known storefront editions to persist as `title_request_sources`.
 - `purchase_hints` *array of [`PurchaseHint`](schemas.md#purchasehint)* — Optional priced storefront links snapshotted at wishlist time.
-- `work_key` *string or null* — Optional stable work key; when omitted one is derived from bib fields.
 - `cover_url` *string or null* — Optional cover image URL snapshotted onto the request.
 - `description` *string or null* — Optional plot/summary text persisted with the request.
 - `subtitle` *string or null* — Optional subtitle stored on the request and source rows.
@@ -968,14 +975,15 @@ Creates a wishlist / title-request row for the authenticated caller.
   - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
   - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
   - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
-  - `title` *string*, **required** — Display title of the work or edition.
-  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
-  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
-  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `title` *string*, **required** — Display title: the title of the wish's work.
+  - `authors` *string or null* — Comma-separated authors: the work's author credits in billing order.
+  - `asin` *string or null* — Amazon ASIN from the wish's storefront sources, when one carries it.
+  - `isbn` *string or null* — ISBN-10/13 from the wish's storefront sources, when one carries it.
   - `notes` *string or null* — Free-form operator or requester notes.
   - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
-  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
-  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
+  - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
+  - `edition_id` *string or null* — The edition the wish named, when the library knows it.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
@@ -1078,6 +1086,7 @@ Status `200`: The new request.
   "status": "open",
   "work_key": "isbn:9780441478125",
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
+  "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
   "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
   "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
@@ -1162,6 +1171,7 @@ Schema:
     "uuid",
     "title",
     "status",
+    "work_id",
     "created_at",
     "updated_at"
   ],
@@ -1188,7 +1198,7 @@ Schema:
     },
     "title": {
       "type": "string",
-      "description": "Display title of the work or edition.",
+      "description": "Display title: the title of the wish's work.",
       "example": "The Left Hand of Darkness"
     },
     "authors": {
@@ -1196,7 +1206,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Comma-separated or JSON author list from the storefront.",
+      "description": "Comma-separated authors: the work's author credits in billing order.",
       "example": "Ursula K. Le Guin"
     },
     "asin": {
@@ -1204,7 +1214,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Amazon ASIN when known; otherwise null.",
+      "description": "Amazon ASIN from the wish's storefront sources, when one carries it.",
       "example": "B002V0QK4C"
     },
     "isbn": {
@@ -1212,7 +1222,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "ISBN-10/13 when known; otherwise null.",
+      "description": "ISBN-10/13 from the wish's storefront sources, when one carries it.",
       "example": "9780441478125"
     },
     "notes": {
@@ -1233,16 +1243,21 @@ Schema:
     },
     "work_key": {
       "type": "string",
-      "description": "Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.",
+      "description": "Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use\nto match a wish to a catalog card. Derived from the work's title and\nauthors and the sources' identifiers on every read, never stored.",
       "example": "isbn:9780441478125"
     },
     "work_id": {
+      "type": "string",
+      "description": "The work the wish is for; wishes for one work are one queue entry.",
+      "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+    },
+    "edition_id": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Canonical work id this edition or request resolves to.",
-      "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+      "description": "The edition the wish named, when the library knows it.",
+      "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
     },
     "resolved_book_uuid": {
       "type": [
@@ -1936,14 +1951,15 @@ Cancels an open wishlist item the caller owns; others get 403.
   - `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
   - `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
   - `identity_id` *integer (int64) or null* — Foreign key to `portal_identities.id`.
-  - `title` *string*, **required** — Display title of the work or edition.
-  - `authors` *string or null* — Comma-separated or JSON author list from the storefront.
-  - `asin` *string or null* — Amazon ASIN when known; otherwise null.
-  - `isbn` *string or null* — ISBN-10/13 when known; otherwise null.
+  - `title` *string*, **required** — Display title: the title of the wish's work.
+  - `authors` *string or null* — Comma-separated authors: the work's author credits in billing order.
+  - `asin` *string or null* — Amazon ASIN from the wish's storefront sources, when one carries it.
+  - `isbn` *string or null* — ISBN-10/13 from the wish's storefront sources, when one carries it.
   - `notes` *string or null* — Free-form operator or requester notes.
   - `status` *[`RequestStatus`](schemas.md#requeststatus)*, **required** — Lifecycle status for the row (user, request, …).
-  - `work_key` *string* — Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
-  - `work_id` *string or null* — Canonical work id this edition or request resolves to.
+  - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
+  - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
+  - `edition_id` *string or null* — The edition the wish named, when the library knows it.
   - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
@@ -2038,6 +2054,7 @@ Status `200`: The cancelled request.
   "status": "open",
   "work_key": "isbn:9780441478125",
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
+  "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
   "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
   "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
@@ -2122,6 +2139,7 @@ Schema:
     "uuid",
     "title",
     "status",
+    "work_id",
     "created_at",
     "updated_at"
   ],
@@ -2148,7 +2166,7 @@ Schema:
     },
     "title": {
       "type": "string",
-      "description": "Display title of the work or edition.",
+      "description": "Display title: the title of the wish's work.",
       "example": "The Left Hand of Darkness"
     },
     "authors": {
@@ -2156,7 +2174,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Comma-separated or JSON author list from the storefront.",
+      "description": "Comma-separated authors: the work's author credits in billing order.",
       "example": "Ursula K. Le Guin"
     },
     "asin": {
@@ -2164,7 +2182,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Amazon ASIN when known; otherwise null.",
+      "description": "Amazon ASIN from the wish's storefront sources, when one carries it.",
       "example": "B002V0QK4C"
     },
     "isbn": {
@@ -2172,7 +2190,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "ISBN-10/13 when known; otherwise null.",
+      "description": "ISBN-10/13 from the wish's storefront sources, when one carries it.",
       "example": "9780441478125"
     },
     "notes": {
@@ -2193,16 +2211,21 @@ Schema:
     },
     "work_key": {
       "type": "string",
-      "description": "Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.",
+      "description": "Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use\nto match a wish to a catalog card. Derived from the work's title and\nauthors and the sources' identifiers on every read, never stored.",
       "example": "isbn:9780441478125"
     },
     "work_id": {
+      "type": "string",
+      "description": "The work the wish is for; wishes for one work are one queue entry.",
+      "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+    },
+    "edition_id": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Canonical work id this edition or request resolves to.",
-      "example": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c"
+      "description": "The edition the wish named, when the library knows it.",
+      "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
     },
     "resolved_book_uuid": {
       "type": [
@@ -2887,7 +2910,7 @@ answers with what it has.
 
 - `200` — Open requests, ranked. Body: array of [`RankedQueueEntry`](schemas.md#rankedqueueentry) (`application/json`)
   - `work_key` *string*, **required** — Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
-  - `work_id` *string or null* — Library work the entry's wishes resolve to, when the library could place them. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
+  - `work_id` *string*, **required** — The work every wish of this entry is for. Wishes for one work are one entry even when their `work_key`s differ, so a client matches its own wishes on this id first and on `work_key` otherwise.
   - `title` *string*, **required** — Display title as shown on the storefront or library card.
   - `authors` *string or null* — Comma-separated author names when the storefront provides them.
   - `asin` *string or null* — Audible / Amazon ASIN when this edition is sold on Audible.
@@ -3011,6 +3034,7 @@ Schema:
     "description": "Global wishlist queue entry ranked by overall/operator recommend taste +\nheavy wish-count weight (shared order; not per-viewer personalized).",
     "required": [
       "work_key",
+      "work_id",
       "title",
       "wish_count",
       "sample_uuids",
@@ -3027,11 +3051,8 @@ Schema:
         "example": "isbn:9780441478125"
       },
       "work_id": {
-        "type": [
-          "string",
-          "null"
-        ],
-        "description": "Library work the entry's wishes resolve to, when the library could\nplace them. Wishes for one work are one entry even when their\n`work_key`s differ, so a client matches its own wishes on this id\nfirst and on `work_key` otherwise.",
+        "type": "string",
+        "description": "The work every wish of this entry is for. Wishes for one work are\none entry even when their `work_key`s differ, so a client matches\nits own wishes on this id first and on `work_key` otherwise.",
         "example": "0b7e2c1d-5f3a-4e6b-9c8d-1a2b3c4d5e6f"
       },
       "title": {

@@ -80,6 +80,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UserPresenceExtras`](#userpresenceextras) | struct | Presence + connection extras for administrator user management. |
 | [`UserRecord`](#userrecord) | struct | First-party Bookclerk user (security principal for portal paths). |
 | [`UserSsoPicture`](#userssopicture) | struct | IdP-supplied avatar available as a profile-picture choice. |
+| [`UserTitleState`](#usertitlestate) | struct | One user's own state for one work (`user_title_state`). |
 | [`WishlistPurchaseHint`](#wishlistpurchasehint) | struct | Snapshotted purchase link/price for a wishlist title. |
 | [`WishlistStoreEdition`](#wishliststoreedition) | struct | Storefront edition key for wishlist / queue payloads. |
 | [`WorkRecord`](#workrecord) | struct | Canonical work spanning one or more ownership rows / editions. |
@@ -111,7 +112,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
-| [`WishlistIdentity`](#wishlistidentity) | struct | Bibliographic slice used for wishlist dedupe. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
 | [`CanonicalObject`](#canonicalobject) | enum | One immutable canonical object (hashed before compression). |
 | [`BackupReason`](#backupreason) | enum | Why a backup was written. |
@@ -223,7 +223,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
-| [`wishlist_identities_match`](#wishlist_identities_match) | function | Whether two wishlist rows refer to the same work despite differing keys. |
 | [`derive_claim_password_fingerprint`](#derive_claim_password_fingerprint) | function | Stable, non-secret fingerprint of an invite/reset password for idempotency. |
 | [`derive_claim_session_token`](#derive_claim_session_token) | function | Derive the portal session token for a claim ticket plus browser nonce. |
 | [`hash_token`](#hash_token) | function | SHA-256 hex digest of a raw ticket/session token for durable storage. |
@@ -2543,7 +2542,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 ```rust
 pub struct GlobalQueueEntry {
     pub work_key: String,
-    pub work_id: Option<String>,
+    pub work_id: String,
     pub title: String,
     pub authors: Option<String>,
     pub asin: Option<String>,
@@ -2573,10 +2572,9 @@ Aggregated global request-queue entry (one work, many wishers).
 
 **Fields**
 
-- `work_key`: Stable merge key used to group editions into a work.
-- `work_id`: The library work the wishes resolved to when they were created, when
-  the resolver found one. Entries with the same work id are one work
-  whatever their identifiers say.
+- `work_key`: Bibliographic card key of the newest wish (see
+  [`TitleRequestRecord::work_key`](#titlerequestrecord)); clients match cards on it.
+- `work_id`: The work every wish of this entry is for: the queue groups by it.
 - `title`: Display title of the work or edition.
 - `authors`: Comma-separated or JSON author list from the storefront.
 - `asin`: Amazon ASIN when known; otherwise null.
@@ -2860,13 +2858,9 @@ pub struct ListeningProgressRecord {
     pub identity_id: Option<i64>,
     pub provider: String,
     pub external_user_id: String,
-    pub book_uuid: Option<String>,
-    pub work_id: Option<String>,
+    pub work_id: String,
+    pub edition_id: Option<String>,
     pub external_item_id: String,
-    pub title: Option<String>,
-    pub authors: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
     pub progress: Option<f64>,
     pub current_time_seconds: Option<f64>,
     pub duration_seconds: Option<f64>,
@@ -2884,13 +2878,9 @@ Listening progress snapshot from an external player (e.g. AudioBookshelf).
 - `identity_id`: Foreign key to `portal_identities.id`.
 - `provider`: External identity or integration provider id (for example ABS).
 - `external_user_id`: User id at the external provider.
-- `book_uuid`: Foreign key to `books.uuid`.
-- `work_id`: Canonical work id this edition or request resolves to.
+- `work_id`: The work the item resolved to through its identifiers.
+- `edition_id`: The edition the item's identifiers name, when exactly one does.
 - `external_item_id`: Provider-native listening-progress item id.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `asin`: Amazon ASIN when known; otherwise null.
-- `isbn`: ISBN-10/13 when known; otherwise null.
 - `progress`: Fractional progress 0.0–1.0 when the provider reports it.
 - `current_time_seconds`: Current playback position within the title, in seconds.
 - `duration_seconds`: Total duration in seconds when known.
@@ -3214,7 +3204,8 @@ pub struct TitleRequestRecord {
     pub notes: Option<String>,
     pub status: RequestStatus,
     pub work_key: String,
-    pub work_id: Option<String>,
+    pub work_id: String,
+    pub edition_id: Option<String>,
     pub resolved_book_uuid: Option<String>,
     pub cover_url: Option<String>,
     pub cover_path: Option<String>,
@@ -3243,14 +3234,17 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `id`: Surrogate primary key assigned by the database.
 - `uuid`: Stable UUID for this row (API / foreign-key identity).
 - `identity_id`: Foreign key to `portal_identities.id`.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `asin`: Amazon ASIN when known; otherwise null.
-- `isbn`: ISBN-10/13 when known; otherwise null.
+- `title`: Display title: the title of the wish's work.
+- `authors`: Comma-separated authors: the work's author credits in billing order.
+- `asin`: Amazon ASIN from the wish's storefront sources, when one carries it.
+- `isbn`: ISBN-10/13 from the wish's storefront sources, when one carries it.
 - `notes`: Free-form operator or requester notes.
 - `status`: Lifecycle status for the row (user, request, …).
-- `work_key`: Stable bibliographic key (`isbn:…` / `asin:…` / `soft:…`) for aggregation.
-- `work_id`: Canonical work id this edition or request resolves to.
+- `work_key`: Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use
+  to match a wish to a catalog card. Derived from the work's title and
+  authors and the sources' identifiers on every read, never stored.
+- `work_id`: The work the wish is for; wishes for one work are one queue entry.
+- `edition_id`: The edition the wish named, when the library knows it.
 - `resolved_book_uuid`: Library `books.uuid` once the wishlist item is fulfilled.
 - `cover_url`: HTTPS URL for cover art when known.
 - `cover_path`: Same-origin path of this cover's processed images, set by the daemon
@@ -3415,7 +3409,7 @@ Recent unfinished listening hint for admin user lists.
 
 **Fields**
 
-- `title`: Display title when the provider reported one.
+- `title`: Title of the work being listened to, when the library knows it.
 - `provider`: Integration / storefront provider id.
 - `last_listened_at`: RFC 3339 time of the last playback update.
 
@@ -3548,6 +3542,36 @@ IdP-supplied avatar available as a profile-picture choice.
 - `last_used_at`: Most recent portal session activity for this identity, when any.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### UserTitleState
+
+```rust
+pub struct UserTitleState {
+    pub user_id: i64,
+    pub work_id: String,
+    pub is_finished: bool,
+    pub rating_overall: Option<f64>,
+    pub rating_performance: Option<f64>,
+    pub rating_story: Option<f64>,
+    pub tags: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+One user's own state for one work (`user_title_state`).
+
+**Fields**
+
+- `user_id`: The user (`users.id`) the state belongs to.
+- `work_id`: The work (`works.id`) the state is about.
+- `is_finished`: Whether the user finished the work.
+- `rating_overall`: The user's overall rating (0 to 5), when given.
+- `rating_performance`: The user's narration rating (0 to 5), when given.
+- `rating_story`: The user's story rating (0 to 5), when given.
+- `tags`: The user's tags, as one serialized string, when any.
+- `updated_at`: When the state was last written.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
 ### WishlistPurchaseHint
 
@@ -3815,8 +3839,8 @@ Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ```rust
 pub struct ListeningMatch {
-    pub book_uuid: Option<String>,
     pub work_id: Option<String>,
+    pub edition_id: Option<String>,
 }
 ```
 
@@ -3824,9 +3848,9 @@ What one listening item resolved to in the library.
 
 **Fields**
 
-- `book_uuid`: Owned `books.uuid` carrying the same ASIN (preferred) or ISBN, when
-  one does.
 - `work_id`: Work the item's identifiers resolve to, when they name exactly one.
+- `edition_id`: Edition carrying the identifier that decided the work, when exactly
+  one edition carries it.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
@@ -5304,6 +5328,48 @@ Returns [`LibraryError`](#libraryerror) when a read fails. A query that cannot f
 a valid listing (a blank title, or a field over the listing limits)
 names no work.
 
+#### LibraryStore::work_for_wish
+
+```rust
+pub async fn work_for_wish(
+    &self,
+    query: &TitleQuery<'_>,
+) -> Result<(String, Option<String>)>
+```
+
+The work a wish for `query` is for, made when the library has none.
+
+The query is resolved exactly as [`Self::work_for`](#librarystorework_for) resolves it. When
+that names an existing work (held by a library title or not), that is
+the work. Otherwise a catalog work is written as one atomic batch:
+the work, an expression and an edition carrying the wish's ASIN and
+ISBN (a non-acquirable catalog edition, as the data model ADR keeps
+catalog results), then their credits and series. No store listing or
+holding is written, so the library does not hold it. A later wish
+with the same identifiers joins that edition, and a later scan of the
+book finds the work through the work matcher (same title, authors
+and kind), so wishes and the scanned title share the work.
+
+Every id is derived (the work's from its match key, the edition's
+from the query, the expression's from both) and every row is
+inserted with `INSERT OR IGNORE`, so two wishes for one new book made
+at once (on one node or two) name the same rows.
+
+##### Arguments
+
+* `query` - The wished title, authors, identifiers and series.
+
+##### Returns
+
+The work, and the existing edition the query's identifiers reached
+(`None` when they reached none).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) when the query cannot form a valid
+listing (a blank title, or a field over the listing limits), and
+[`LibraryError`](#libraryerror) when a read or write fails.
+
 #### LibraryStore::record_listing
 
 ```rust
@@ -5330,6 +5396,27 @@ The plan that was written (a no-op plan when nothing changed).
 Returns [`LibraryError`](#libraryerror) when a read or write fails, when the stored
 rows are inconsistent, or when other writers kept changing the rows
 for three attempts.
+
+#### LibraryStore::works_by_ids
+
+```rust
+pub async fn works_by_ids(&self, ids: &[String]) -> Result<BTreeMap<String, WorkRecord>>
+```
+
+Loads many works by id, with their work-level credits, narrators and
+series, in chunked bulk reads.
+
+##### Arguments
+
+* `ids` - Work ids; unknown ids are left out of the result.
+
+##### Returns
+
+The works found, keyed by id.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::get_work
 
@@ -5471,6 +5558,31 @@ Library title UUIDs whose listings resolve to `work_id`.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::book_uuids_for_works
+
+```rust
+pub async fn book_uuids_for_works(
+    &self,
+    work_ids: &[String],
+) -> Result<BTreeMap<String, Vec<String>>>
+```
+
+The library titles (`books.uuid`) whose listings reach each of
+`work_ids`, in chunked bulk reads.
+
+##### Arguments
+
+* `work_ids` - Works to look up.
+
+##### Returns
+
+Each work with at least one library title, mapped to its titles'
+uuids in ascending order; works no title reaches are absent.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::set_work_enrichment
 
 ```rust
@@ -5520,18 +5632,14 @@ pub async fn match_listening_items(
 ) -> Result<Vec<ListeningMatch>>
 ```
 
-Resolves many listening items to owned books and works in a few bulk
-lookups.
+Resolves many listening items to works in a few bulk lookups.
 
 The item's ASIN is tried first, then its ISBN; the first one that
-names an owned book or a work decides both, so they never come from
-different identifiers. For that identifier, the work comes from the
+names a work decides it. For that identifier, the work comes from the
 editions whose `edition_identifiers` carry it (an ASIN in any
-marketplace), used only when those editions agree on one work, and
-otherwise from the owned book. The owned book is the one whose
-`asin` / `isbn` column holds the item's spelling or its normalised
-form (an ASIN also in lower case; lowest UUID when several do).
-Titles are never compared.
+marketplace), used only when those editions agree on one work; the
+edition is kept when exactly one carries it. Titles are never
+compared.
 
 ##### Arguments
 
@@ -5539,7 +5647,8 @@ Titles are never compared.
 
 ##### Returns
 
-One match per item, in the same order.
+One match per item, in the same order; an item no identifier
+resolves has neither a work nor an edition.
 
 ##### Errors
 
@@ -6200,6 +6309,80 @@ collected or the catalog ends.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
 than a result byte cap, or when a single row still exceeds it.
+
+#### LibraryStore::set_user_title_state
+
+```rust
+pub async fn set_user_title_state(
+    &self,
+    user_id: i64,
+    work_id: &str,
+    fields: &UserBookFields,
+) -> Result<()>
+```
+
+Records `fields` as `user_id`'s state for `work_id`.
+
+Fields left `None` keep their stored value (a new row starts
+unfinished, unrated and untagged). The write is one atomic batch.
+
+##### Arguments
+
+* `user_id` - The user (`users.id`).
+* `work_id` - The work (`works.id`).
+* `fields` - The fields to set.
+
+##### Errors
+
+Returns the database error, for example when the user or the work
+does not exist on an engine that checks foreign keys.
+
+#### LibraryStore::user_title_states
+
+```rust
+pub async fn user_title_states(&self, user_ids: &[i64]) -> Result<Vec<UserTitleState>>
+```
+
+Every work state of the given users, read in chunks.
+
+##### Arguments
+
+* `user_ids` - Users whose state to read.
+
+##### Returns
+
+The stored rows, ordered by user then work.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::users_linked_to_account
+
+```rust
+pub async fn users_linked_to_account(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Vec<i64>>
+```
+
+The users linked to a storefront account: the users of the portal
+identities whose account links name it.
+
+##### Arguments
+
+* `plugin_key` - The account's plugin.
+* `account_id` - The account id at that plugin.
+
+##### Returns
+
+Distinct user ids, ascending; empty when no linked identity has a
+user.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::enqueue_job
 
@@ -9395,35 +9578,20 @@ Returns a crate error when the database operation fails or inputs are invalid.
 pub async fn find_open_wishlist(
     &self,
     identity_id: Option<i64>,
-    work_key: &str,
+    work_id: &str,
 ) -> Result<Option<TitleRequestRecord>>
 ```
 
-Open wishlist row for this identity + work key, if any.
+Open wish of this identity for `work_id`, if any.
+
+##### Arguments
+
+* `identity_id` - The wisher's portal identity; `None` for the operator.
+* `work_id` - The work wished for.
 
 ##### Errors
 
-Returns an error when the operation fails.
-
-#### LibraryStore::find_open_wishlist_matching
-
-```rust
-pub async fn find_open_wishlist_matching(
-    &self,
-    identity_id: Option<i64>,
-    work_key: &str,
-    title: &str,
-    authors: Option<&str>,
-    asin: Option<&str>,
-    isbn: Option<&str>,
-) -> Result<Option<TitleRequestRecord>>
-```
-
-Open wishlist row that matches bibliographic identity even when `work_key` differs.
-
-##### Errors
-
-Returns an error when the operation fails.
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::list_wishlist
 
@@ -9446,7 +9614,7 @@ Returns an error when the operation fails.
 pub async fn list_global_request_queue(&self) -> Result<Vec<GlobalQueueEntry>>
 ```
 
-Global request queue: open wishes grouped by `work_key`.
+Global request queue: open wishes grouped by their work.
 
 Sorted by wish count as a simple default; Discover re-ranks with local
 taste plus a heavy per-wisher boost for the Wishlist sidebar.
@@ -9795,13 +9963,9 @@ pub struct NewListeningProgress {
     pub identity_id: Option<i64>,
     pub provider: String,
     pub external_user_id: String,
-    pub book_uuid: Option<String>,
-    pub work_id: Option<String>,
+    pub work_id: String,
+    pub edition_id: Option<String>,
     pub external_item_id: String,
-    pub title: Option<String>,
-    pub authors: Option<String>,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
     pub progress: Option<f64>,
     pub current_time_seconds: Option<f64>,
     pub duration_seconds: Option<f64>,
@@ -9817,13 +9981,9 @@ Input for upserting listening progress.
 - `identity_id`: Foreign key to `portal_identities.id`.
 - `provider`: External identity or integration provider id (for example ABS).
 - `external_user_id`: User id at the external provider.
-- `book_uuid`: Foreign key to `books.uuid`.
-- `work_id`: Canonical work id this edition or request resolves to.
+- `work_id`: The work the item resolved to through its identifiers.
+- `edition_id`: The edition the item's identifiers name, when exactly one does.
 - `external_item_id`: Provider-native listening-progress item id.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `asin`: Amazon ASIN when known; otherwise null.
-- `isbn`: ISBN-10/13 when known; otherwise null.
 - `progress`: Fractional progress 0.0–1.0 when the provider reports it.
 - `current_time_seconds`: Current playback position within the title, in seconds.
 - `duration_seconds`: Total duration in seconds when known.
@@ -9844,8 +10004,6 @@ pub struct NewTitleRequest {
     pub isbn: Option<String>,
     pub notes: Option<String>,
     pub status: RequestStatus,
-    pub work_key: String,
-    pub work_id: Option<String>,
     pub resolved_book_uuid: Option<String>,
     pub cover_url: Option<String>,
 }
@@ -9857,14 +10015,13 @@ Input for creating a title request / wishlist row.
 
 - `uuid`: Stable UUID for this row (API / foreign-key identity).
 - `identity_id`: Foreign key to `portal_identities.id`.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `asin`: Amazon ASIN when known; otherwise null.
-- `isbn`: ISBN-10/13 when known; otherwise null.
+- `title`: Title the wisher asked for. It only finds (or makes) the wish's
+  work and is not stored on the wish.
+- `authors`: Comma-separated authors the wisher gave, used like `title`.
+- `asin`: Amazon ASIN the wisher gave, used like `title`.
+- `isbn`: ISBN-10/13 the wisher gave, used like `title`.
 - `notes`: Free-form operator or requester notes.
 - `status`: Lifecycle status for the row (user, request, …).
-- `work_key`: Stable bibliographic key; empty triggers [`fallback_work_key`](#fallback_work_key).
-- `work_id`: Canonical work id this edition or request resolves to.
 - `resolved_book_uuid`: Library `books.uuid` once the wishlist item is fulfilled.
 - `cover_url`: HTTPS URL for cover art when known.
 
@@ -9982,8 +10139,7 @@ The taste ranking of one queue entry, as the ranking job computed it.
 
 **Fields**
 
-- `entry_key`: The entry this ranks: `work:<work id>` for wishes resolved to a
-  library work, otherwise the entry's `work_key`.
+- `entry_key`: The entry this ranks: the library work id its wishes are for.
 - `work_id`: Library work the entry's wishes resolved to, when any.
 - `owned`: True when the library already holds the entry's work.
 - `taste_score`: Household taste score before the wish-count boost. A non-finite
@@ -10122,42 +10278,6 @@ Partial update for user-defined book fields.
 - `is_finished`: Whether the listener marked the title finished (0/1 or bool).
 
 Implements: `Clone`, `Debug`, `Default`
-
-### WishlistIdentity
-
-```rust
-pub struct WishlistIdentity<'a> {
-    pub work_key: &'a str,
-    pub title: &'a str,
-    pub authors: Option<&'a str>,
-    pub asin: Option<&'a str>,
-    pub isbn: Option<&'a str>,
-}
-```
-
-Bibliographic slice used for wishlist dedupe.
-
-**Fields**
-
-- `work_key`: Stable merge key used to group editions into a work.
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `asin`: Amazon ASIN when known; otherwise null.
-- `isbn`: ISBN-10/13 when known; otherwise null.
-
-#### WishlistIdentity::matches
-
-```rust
-pub fn matches(self, other: WishlistIdentity<'_>) -> bool
-```
-
-Whether two wishlist rows refer to the same work despite differing keys.
-
-Matches exact `work_key`, shared ASIN/ISBN, or the soft title+author key
-from [`fallback_work_key`](#fallback_work_key). Cross-key isbn↔asin pairs require a soft title
-agreement so unrelated hard keys never collapse.
-
-Implements: `Clone`, `Copy`, `Debug`
 
 ## Enums
 
@@ -12584,14 +12704,6 @@ pub fn set_dispatch_chunk_for_test(chunk: Option<usize>)
 ```
 
 Override subscribers-per-plan for dispatch paging tests.
-
-### wishlist_identities_match
-
-```rust
-pub fn wishlist_identities_match(a: WishlistIdentity<'_>, b: WishlistIdentity<'_>) -> bool
-```
-
-Whether two wishlist rows refer to the same work despite differing keys.
 
 ### derive_claim_password_fingerprint
 

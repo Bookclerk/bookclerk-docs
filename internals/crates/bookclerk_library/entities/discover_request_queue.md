@@ -41,8 +41,7 @@ copies catalog metadata.
 **Fields**
 
 - `id`: Surrogate primary key assigned by the database.
-- `entry_key`: The queue entry the row ranks: `work:<work id>` when the entry's wishes
-  resolved to a library work, otherwise the entry's `work_key`.
+- `entry_key`: The queue entry the row ranks: the library work id its wishes are for.
 - `work_id`: Library work (`works.id`) the entry's wishes resolved to, when any.
 - `owned`: 1 when the library already holds the entry's work, so the queue hides it.
 - `taste_score`: Household taste score of the entry before the wish-count boost

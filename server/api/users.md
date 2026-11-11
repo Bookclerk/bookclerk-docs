@@ -310,7 +310,7 @@ Schema:
                           "string",
                           "null"
                         ],
-                        "description": "Display title when the provider reported one.",
+                        "description": "Title of the work being listened to, when the library knows it.",
                         "example": "The Left Hand of Darkness"
                       },
                       "provider": {

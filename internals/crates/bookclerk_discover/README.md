@@ -61,7 +61,6 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`hard_work_key`](#hard_work_key) | function | Hard bibliographic key: canonical ISBN first, then ASIN. |
 | [`identities_match`](#identities_match) | function | Whether two bibliographic identities refer to the same work. |
 | [`merge_candidate_metadata`](#merge_candidate_metadata) | function | Merge storefront metadata into `into`, preferring filled fields / richer text. |
-| [`merge_global_queue_entries`](#merge_global_queue_entries) | function | Merge wishlist queue rows that share ISBN/ASIN or soft title+author identity. |
 | [`merge_recommendation`](#merge_recommendation) | function | Merge a scored recommendation into an existing card. |
 | [`parse_series_index`](#parse_series_index) | function | Parse Audible/Chirp-style series indexes (`"1"`, `"1.5"`, `"Book 2"`, `"02"`). |
 | [`push_edition`](#push_edition) | function | Appends a store edition when not already present (dedupes on source+product_id). |
@@ -89,7 +88,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`rank_request_queue_taste`](#rank_request_queue_taste) | function | Ranks every entry of the shared request queue against **household** taste, for the `discover_request_queue` job to store. |
 | [`recommend`](#recommend) | function | Build ranked recommendations for the operator (or a specific external user). |
 | [`recommend_feed`](#recommend_feed) | function | Personalized Discover feed (Netflix-style shelves) from the same candidate pool. |
-| [`queue_entry_key`](#queue_entry_key) | function | The key a queue entry's stored ranking is filed under. |
+| [`queue_entry_key`](#queue_entry_key) | function | The key a queue entry's stored ranking is filed under: the library work its wishes are for. Every wish names a work, so one work is one entry whatever identifiers each wisher's store gave. |
 | [`read_request_queue`](#read_request_queue) | function | Builds the ranked queue from the open requests and the stored ranking. |
 | [`build_discover_feed`](#build_discover_feed) | function | Partitions scored recommendations into Discover shelves. |
 | [`flatten_feed`](#flatten_feed) | function | Flatten shelves into a unique score-sorted list (CLI / legacy). |
@@ -791,7 +790,7 @@ pub struct SubjectTaste {
     pub scope: SeedScope,
     pub books: Vec<BookRecord>,
     pub weights: HashMap<String, f64>,
-    pub listening: Vec<ListeningProgressRecord>,
+    pub listening: Vec<ListeningSignal>,
     pub wishlist: Vec<SeedTitle>,
     pub wish_titles: Vec<String>,
     pub linked_sources: HashSet<String>,
@@ -939,7 +938,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `S
 ```rust
 pub struct RankedQueueEntry {
     pub work_key: String,
-    pub work_id: Option<String>,
+    pub work_id: String,
     pub title: String,
     pub authors: Option<String>,
     pub asin: Option<String>,
@@ -963,10 +962,9 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 **Fields**
 
 - `work_key`: Stable map key for this work (`isbn:…`, `asin:…`, or soft title+author).
-- `work_id`: Library work the entry's wishes resolve to, when the library could
-  place them. Wishes for one work are one entry even when their
-  `work_key`s differ, so a client matches its own wishes on this id
-  first and on `work_key` otherwise.
+- `work_id`: The work every wish of this entry is for. Wishes for one work are
+  one entry even when their `work_key`s differ, so a client matches
+  its own wishes on this id first and on `work_key` otherwise.
 - `title`: Display title as shown on the storefront or library card.
 - `authors`: Comma-separated author names when the storefront provides them.
 - `asin`: Audible / Amazon ASIN when this edition is sold on Audible.
@@ -1739,26 +1737,6 @@ Merge storefront metadata into `into`, preferring filled fields / richer text.
 * `into` - `into` input for this call.
 * `from` - `from` input for this call.
 
-### merge_global_queue_entries
-
-```rust
-pub fn merge_global_queue_entries(entries: Vec<GlobalQueueEntry>) -> Vec<GlobalQueueEntry>
-```
-
-Merge wishlist queue rows that share ISBN/ASIN or soft title+author identity.
-
-Sums `wish_count`, unions store editions / purchase hints, and prefers
-richer bibliographic metadata (longer strings / filled optionals). ISBN-keyed
-`work_key` wins when available.
-
-#### Arguments
-
-* `entries` - `entries` input for this call.
-
-#### Returns
-
-Collected results (may be empty).
-
 ### merge_recommendation
 
 ```rust
@@ -2294,7 +2272,7 @@ Combine local recommend taste with a heavy multi-user wishlist boost.
 ### listening_engagement
 
 ```rust
-pub fn listening_engagement(row: &ListeningProgressRecord) -> f64
+pub fn listening_engagement(row: &ListeningSignal) -> f64
 ```
 
 Continuous engagement from a listening progress row (≈0.0–6.0).
@@ -2405,12 +2383,9 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 pub fn queue_entry_key(entry: &GlobalQueueEntry) -> String
 ```
 
-The key a queue entry's stored ranking is filed under.
-
-Wishes resolved to a library work are one entry whatever identifiers each
-wisher's store gave, so they key by that work (`work:<id>`); the rest key
-by the entry's bibliographic `work_key`. When wishes are re-keyed by work
-and edition, this becomes the work id alone.
+The key a queue entry's stored ranking is filed under: the library work
+its wishes are for. Every wish names a work, so one work is one entry
+whatever identifiers each wisher's store gave.
 
 ### read_request_queue
 

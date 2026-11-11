@@ -1362,15 +1362,19 @@ Upsert provider-agnostic listening snapshots into `listening_progress`.
 The whole sync costs a few bulk statements, not a round trip chain per
 item: portal identities and stored rows are read in chunks, each item's
 ASIN and ISBN resolve to a work through the indexed `edition_identifiers`
-table (and to an owned book through the indexed `books` identifier
-columns; titles are never compared), and the rows are written as atomic
+table (titles are never compared), and the rows are written as atomic
 batches sized to the database plugin's limits
 (`LibraryStore::upsert_listening_progress_batch`).
 
+A row is keyed by the work its identifiers resolved to. An item whose
+identifiers name no work in the library is not stored: there is no work
+to hold its progress, and the next sync stores it once the library has
+one.
+
 When the sync changes what Discover reads from any stored row (see
-`TasteState`: who the row belongs to, which owned book and work it matched,
-its authors, and how far they got), publishes one `listening_synced`; a sync that changes
-nothing Discover reads queues no refresh.
+`TasteState`: who the row belongs to, which work it is about, and how far
+they got), publishes one `listening_synced`; a sync that changes nothing
+Discover reads queues no refresh.
 
 #### Arguments
 
@@ -1380,7 +1384,8 @@ nothing Discover reads queues no refresh.
 
 #### Returns
 
-How many snapshots were stored (every item; reports of one row merge).
+How many snapshots were stored: the items whose identifiers resolved
+to a work (reports of one row merge).
 
 #### Errors
 

@@ -84,6 +84,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`title_requests`](title_requests.md): SeaORM entity for the `title_requests` table.
 - [`user_invites`](user_invites.md): SeaORM entity for the `user_invites` table entity — admin/operator invite tickets with role.
 - [`user_preferences`](user_preferences.md): SeaORM entity for the `user_preferences` table.
+- [`user_title_state`](user_title_state.md): SeaORM entity for the `user_title_state` table.
 - [`users`](users.md): SeaORM entity for the `users` table entity — first-party identity principal (#117).
 - [`webauthn_challenges`](webauthn_challenges.md): SeaORM entity for in-flight WebAuthn ceremonies.
 - [`webauthn_credentials`](webauthn_credentials.md): SeaORM entity for WebAuthn / passkey credentials.
