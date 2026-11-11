@@ -144,6 +144,22 @@ Upsert a scanned title as this plugin's, and resolve its listing.
 
 Returns an error when a read or write fails.
 
+#### SourceScope::upsert_scanned_titles
+
+```rust
+pub async fn upsert_scanned_titles(
+    &self,
+    titles: &[ScannedTitle],
+) -> Result<Vec<BookRecord>>
+```
+
+Upsert a page of scanned titles as this plugin's, and resolve their
+listings as one page (see [`LibraryStore::upsert_scanned_titles`](README.md#librarystoreupsert_scanned_titles)).
+
+##### Errors
+
+Returns an error when a flat row cannot be read or written.
+
 #### SourceScope::scan_state
 
 ```rust

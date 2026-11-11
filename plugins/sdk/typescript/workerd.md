@@ -1179,6 +1179,12 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
 
 ***
 
+### MAX\_WRITE\_KEY\_BYTES
+
+Re-exports [MAX_WRITE_KEY_BYTES](db-execute.md#max_write_key_bytes)
+
+***
+
 ### MediaKind
 
 Re-exports [MediaKind](abi.md#mediakind)
@@ -1545,6 +1551,30 @@ Re-exports [wrapPluginFromNative](plugin.md#wrappluginfromnative)
 
 ***
 
+### WriteChunksError
+
+Re-exports [WriteChunksError](db-execute.md#writechunkserror)
+
+***
+
+### writeChunksOperationId
+
+Re-exports [writeChunksOperationId](db-execute.md#writechunksoperationid)
+
+***
+
+### WriteChunksOptions
+
+Re-exports [WriteChunksOptions](db-execute.md#writechunksoptions)
+
+***
+
 ### WriteOptions
 
 Re-exports [WriteOptions](plugin.md#writeoptions)
+
+***
+
+### WriteProgress
+
+Re-exports [WriteProgress](db-execute.md#writeprogress)

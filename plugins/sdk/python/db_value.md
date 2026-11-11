@@ -25,6 +25,7 @@ always uses the domain types.
 | [`D1Result`](#d1result) | class | Cloudflare D1Result projection for plugin guests. |
 | [`D1ExecResult`](#d1execresult) | class | Cloudflare D1ExecResult projection. |
 | [`DatabaseBinding`](#databasebinding) | class | Host-mediated Cloudflare-style SQL binding for plugin guests. |
+| [`WriteProgress`](#writeprogress) | class | Where a `DatabaseBinding.write_chunks` run stands. |
 | [`RetryToken`](#retrytoken) | class | Explicit retry identity: reuse both `operationId` and `requestHash`. |
 | [`PreparedStatement`](#preparedstatement) | class | Cloudflare-style prepared statement over a `DatabaseBinding`. |
 | [`ExecuteStreamLimits`](#executestreamlimits) | class | What a receiver lets a streamed reply grow to. |
@@ -43,6 +44,7 @@ always uses the domain types.
 | [`statement_result_to_d1_result`](#statement_result_to_d1_result) | function | Map one statement result to Cloudflare `D1Result`. |
 | [`execute_reply_to_d1_results`](#execute_reply_to_d1_results) | function | Map an execute reply to one Cloudflare `D1Result` per statement. |
 | [`create_database_binding`](#create_database_binding) | function | Build a host-mediated `DatabaseBinding` over an async transport. |
+| [`write_chunks_operation_id`](#write_chunks_operation_id) | function | The operation id `DatabaseBinding.write_chunks` sends for a batch. |
 | [`streams_results`](#streams_results) | function | Whether `caps` advertises a streamed result budget. |
 | [`execute_stream_limits`](#execute_stream_limits) | function | The streamed budget of `caps`, or its inline caps when it does not stream. |
 | [`raw_stream_ceiling`](#raw_stream_ceiling) | function | Raw frame bytes a receiver accepts before failing closed. |
@@ -67,6 +69,7 @@ always uses the domain types.
 | [`AtomicTransport`](#atomictransport) | constant |  |
 | [`LimitsTransport`](#limitstransport) | constant |  |
 | [`StreamedTransport`](#streamedtransport) | constant | `GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked. |
+| [`MAX_WRITE_KEY_BYTES`](#max_write_key_bytes) | constant | Longest `key` `DatabaseBinding.write_chunks` accepts, in UTF-8 bytes. |
 | [`GUEST_RECEIPT_WRAP_PREFIX`](#guest_receipt_wrap_prefix) | constant | Prune + prior-receipt `SELECT` statements ahead of the guest statements. |
 | [`GUEST_RECEIPT_STUB_SUFFIX`](#guest_receipt_stub_suffix) | constant | Receipt stub `INSERT` after the guest statements. |
 | [`GUEST_REPLAY_PAYLOAD_MAX_BYTES`](#guest_replay_payload_max_bytes) | constant | Largest replay payload, in UTF-8 bytes, a receipt stores for a write batch. |
@@ -390,6 +393,54 @@ Batches in order, together covering every statement once.
 
 - `PluginError`: `unsupported` when neither the session's limits nor explicit caps are available.
 
+#### DatabaseBinding.write_chunks
+
+```python
+async def write_chunks(
+    self,
+    statements: list[PreparedStatement],
+    *,
+    key: str,
+    start: int=0,
+    stop: Callable[[int], bool] | None=None,
+    max_statements: int | None=None,
+    max_request_bytes: int | None=None,
+) -> WriteProgress
+```
+
+Write `statements` in batches that fit one request, resumably.
+
+The batches are the ones [`chunk`](#databasebindingchunk) yields for
+`statements[start:]`, each committed with [`batch`](#databasebindingbatch) under an
+operation id derived from `key` and the batch's offset
+([`write_chunks_operation_id`](#write_chunks_operation_id)). Store the returned `next` (for
+example in a job checkpoint) and call again with the same list, the
+same `key` and `start=next` to carry on: a batch whose reply was
+lost is resent under the same id and the host replays its receipt.
+Receipts are kept for 24 hours; a batch resent later runs again, so a
+write that may pause that long uses statements safe to repeat.
+The list and the caps must not change between calls with one `key`,
+or a resent batch no longer matches its receipt and the host answers
+`conflict`.
+
+**Args**
+
+- `statements`: The whole list, the same on every call.
+- `key`: Names this write, stable across resumes (a job id plus a step name); at most [`MAX_WRITE_KEY_BYTES`](#max_write_key_bytes) UTF-8 bytes.
+- `start`: Statements already committed; `0` on the first call.
+- `stop`: Asked before each batch with the statements committed so far; returning `True` pauses the run there.
+- `max_statements`: As for [`chunk`](#databasebindingchunk).
+- `max_request_bytes`: As for [`chunk`](#databasebindingchunk).
+
+**Returns**
+
+`{"next": n, "done": bool}`: statements committed, and whether
+all of them are.
+
+**Raises**
+
+- `WriteChunksError`: Carrying `next` when the input is invalid or a batch fails.
+
 #### DatabaseBinding.batch
 
 ```python
@@ -425,6 +476,19 @@ async def execute(
 ```
 
 Internal typed-batch transport. Prefer [`prepare`](#databasebindingprepare) / [`batch`](#databasebindingbatch).
+
+### WriteProgress
+
+```python
+class WriteProgress(TypedDict)
+```
+
+Where a [`DatabaseBinding.write_chunks`](#databasebindingwrite_chunks) run stands.
+
+**Fields**
+
+- `next: int`
+- `done: bool`
 
 ### RetryToken
 
@@ -921,6 +985,28 @@ Build a host-mediated [`DatabaseBinding`](#databasebinding) over an async transp
 
 A binding whose terminal methods route through `transport`.
 
+### write_chunks_operation_id
+
+```python
+def write_chunks_operation_id(key: str, offset: int) -> str
+```
+
+The operation id [`DatabaseBinding.write_chunks`](#databasebindingwrite_chunks) sends for a batch.
+
+The first 16 bytes of SHA-256 over
+`"bookclerk-write-chunks\0" + key + "\0" + offset` (decimal), as
+lowercase hex grouped 8-4-4-4-12. The Rust and TypeScript SDKs derive
+the same id.
+
+**Args**
+
+- `key`: Name of the write.
+- `offset`: Index of the batch's first statement.
+
+**Returns**
+
+A UUID-shaped operation id.
+
 ### streams_results
 
 ```python
@@ -1316,6 +1402,14 @@ StreamedTransport = Callable[[ExecuteRequest], Awaitable['bytes | AsyncIterable[
 ```
 
 `GuestDatabase.executeStreamed` projection: frame bytes, whole or chunked.
+
+### MAX_WRITE_KEY_BYTES
+
+```python
+MAX_WRITE_KEY_BYTES = 256
+```
+
+Longest `key` [`DatabaseBinding.write_chunks`](#databasebindingwrite_chunks) accepts, in UTF-8 bytes.
 
 ### GUEST_RECEIPT_WRAP_PREFIX
 

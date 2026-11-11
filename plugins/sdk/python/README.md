@@ -107,8 +107,9 @@ session negotiated; a request or result over one of them raises a
 the cap. On a host that predates `limits()` the call raises
 `unsupported`. `all()` reads through the session's streamed budget when
 it advertises one, `prepare(sql).iterate()` yields rows one at a time
-from the same read, and `db.chunk(statements)` splits a long list into
-batches that each fit one request; see
+from the same read, `db.chunk(statements)` splits a long list into
+batches that each fit one request, and `db.write_chunks(...)` commits those
+batches resumably; see
 [Working within database limits](../../database-limits.md). Generate a
 typed `Env` protocol from `plugin.toml`:
 
@@ -205,6 +206,7 @@ source of truth.
 
 | Name | Kind | Summary |
 | --- | --- | --- |
+| [`WriteChunksError`](#writechunkserror) | class | A `DatabaseBinding.write_chunks` run that failed part way. |
 | [`PLUGIN_ERROR_CODES`](#plugin_error_codes) | constant | Stable `PluginError.code` strings. Unknown future codes are forwarded as-is; SDKs surface them as a local `unknown` while keeping the raw wire code. |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`). |
 
@@ -228,7 +230,10 @@ source of truth.
 - [`LoginParams`](abi.md#loginparams) from `bookclerk_plugin_sdk.abi`
 - [`PluginDescribe`](abi.md#plugindescribe) from `bookclerk_plugin_sdk.abi`
 - [`PluginErrorCode`](abi.md#pluginerrorcode) from `bookclerk_plugin_sdk.abi`
+- [`MAX_WRITE_KEY_BYTES`](db_value.md#max_write_key_bytes) from `bookclerk_plugin_sdk.db_value`
 - [`RetryToken`](db_value.md#retrytoken) from `bookclerk_plugin_sdk.db_value`
+- [`WriteProgress`](db_value.md#writeprogress) from `bookclerk_plugin_sdk.db_value`
+- [`write_chunks_operation_id`](db_value.md#write_chunks_operation_id) from `bookclerk_plugin_sdk.db_value`
 - [`ScanParams`](abi.md#scanparams) from `bookclerk_plugin_sdk.abi`
 - [`canonical_execute_request_hash`](db_value.md#canonical_execute_request_hash) from `bookclerk_plugin_sdk.db_value`
 - [`chunk_indexes`](db_value.md#chunk_indexes) from `bookclerk_plugin_sdk.db_value`
@@ -251,6 +256,28 @@ source of truth.
 - [`streams_results`](db_value.md#streams_results) from `bookclerk_plugin_sdk.db_value`
 - [`parse_db_value`](db_value.md#parse_db_value) from `bookclerk_plugin_sdk.db_value`
 - [`statement_result_to_d1_result`](db_value.md#statement_result_to_d1_result) from `bookclerk_plugin_sdk.db_value`
+
+## Classes
+
+### WriteChunksError
+
+```python
+class WriteChunksError(PluginError)
+```
+
+A [`DatabaseBinding.write_chunks`](db_value.md#databasebindingwrite_chunks) run that failed part way.
+
+`code`, `message` and `details` are the failed batch's.
+
+**Attributes**
+
+- `next`: Statements committed before the failure; resume with `start=next`. The failed batch may have committed with its reply lost: resuming resends it under the same operation id, so the host replays its receipt instead of writing it twice.
+
+#### WriteChunksError.__init__
+
+```python
+def __init__(self, next_offset: int, cause: PluginError) -> None
+```
 
 ## Constants
 

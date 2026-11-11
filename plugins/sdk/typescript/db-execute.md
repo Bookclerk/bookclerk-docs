@@ -1,5 +1,189 @@
 # db-execute
 
+## Classes
+
+### WriteChunksError
+
+A [DatabaseBinding.writeChunks](#writechunks) run that failed part way. `code`,
+`message` and `details` are the failed batch's; `next` is the statements
+committed before it, to resume from.
+
+#### Extends
+
+- [`PluginError`](README.md#pluginerror)
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new WriteChunksError(next, cause): WriteChunksError;
+```
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `next` | `number` | Statements committed before the failure. |
+| `cause` | [`PluginError`](README.md#pluginerror) | The failed batch's error, whose code, message and details this error carries. |
+
+###### Returns
+
+[`WriteChunksError`](#writechunkserror)
+
+###### Overrides
+
+[`PluginError`](README.md#pluginerror).[`constructor`](README.md#constructor-1)
+
+#### Properties
+
+##### code
+
+```ts
+readonly code: string;
+```
+
+Known `PluginErrorCode` wire string, or `unknown`.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`code`](README.md#code)
+
+##### details
+
+```ts
+readonly details: Readonly<Record<string, unknown>> | undefined;
+```
+
+Structured detail object from the wire (`details` JSON), when the error carries one.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`details`](README.md#details)
+
+##### next
+
+```ts
+readonly next: number;
+```
+
+Statements committed before the failure; resume with `from: next`.
+
+##### wireCode
+
+```ts
+readonly wireCode: string;
+```
+
+Raw wire code, including codes this SDK does not know.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`wireCode`](README.md#wirecode)
+
+#### Accessors
+
+##### detailsText
+
+###### Get Signature
+
+```ts
+get detailsText(): string;
+```
+
+`details` as the JSON text the wire carries.
+
+###### Returns
+
+`string`
+
+JSON object text, or an empty string when the error has none.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`detailsText`](README.md#detailstext)
+
+##### limit
+
+###### Get Signature
+
+```ts
+get limit(): LimitExceeded | undefined;
+```
+
+The exceeded cap when this is a `limit_exceeded` error.
+
+###### Returns
+
+[`LimitExceeded`](README.md#limitexceeded-1) \| `undefined`
+
+The cap from `details` first, then from the canonical message;
+`undefined` for every other code.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`limit`](README.md#limit)
+
+#### Methods
+
+##### fromWire()
+
+```ts
+static fromWire(
+   code, 
+   message, 
+   details?
+): PluginError;
+```
+
+Construct a [PluginError](README.md#pluginerror) from a Cap'n Proto / JSON wire code.
+
+Unknown codes become `unknown` on [PluginError.code](README.md#code) while
+[PluginError.wireCode](README.md#wirecode) keeps the raw value.
+
+###### Parameters
+
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `code` | `string` | `undefined` | Wire error code (known or unknown). |
+| `message` | `string` | `undefined` | Operator-facing error text. |
+| `details?` | `string` | `""` | `details` JSON text from the wire (empty when none). |
+
+###### Returns
+
+[`PluginError`](README.md#pluginerror)
+
+Typed plugin error.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`fromWire`](README.md#fromwire)
+
+##### limitExceeded()
+
+```ts
+static limitExceeded(limit): PluginError;
+```
+
+Builds a `limit_exceeded` error whose message and `details` both carry
+the exceeded cap.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `limit` | [`LimitExceeded`](README.md#limitexceeded-1) | Exceeded cap. |
+
+###### Returns
+
+[`PluginError`](README.md#pluginerror)
+
+Typed plugin error.
+
+###### Inherited from
+
+[`PluginError`](README.md#pluginerror).[`limitExceeded`](README.md#limitexceeded)
+
 ## Interfaces
 
 ### AtomicTransport
@@ -331,6 +515,47 @@ Prepare one canonical-SQL statement (`?` placeholders).
 ###### Returns
 
 [`PreparedStatement`](#preparedstatement)
+
+##### writeChunks()
+
+```ts
+writeChunks(statements, options): Promise<WriteProgress>;
+```
+
+Writes `statements` in batches that fit one request, resumably.
+
+The batches are the ones [DatabaseBinding.chunk](#chunk) yields for
+`statements.slice(from)`, each committed with `batch()` under an
+operation id derived from `key` and the batch's offset
+([writeChunksOperationId](#writechunksoperationid)). Store the returned `next` (for example
+in a job checkpoint) and call again with the same list, the same `key`
+and `from: next` to carry on: a batch whose reply was lost is resent
+under the same id and the host replays its receipt. Receipts are kept
+for 24 hours; a batch resent later runs again, so a write that may pause
+that long uses statements safe to repeat.
+
+`stop(next)` is asked before each batch; returning `true` pauses the
+run there. The list and the caps must not change between calls with
+one `key`, or a resent batch no longer matches its receipt and the host
+answers `conflict`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `statements` | [`PreparedStatement`](#preparedstatement)[] | The whole list, the same on every call. |
+| `options` | [`WriteChunksOptions`](#writechunksoptions) | `key` names the write (stable across resumes, at most [MAX\_WRITE\_KEY\_BYTES](#max_write_key_bytes) UTF-8 bytes); `from` is the statements already committed (default `0`); `stop` is asked before each batch; `maxStatements` / `maxRequestBytes` are as for `chunk()`. |
+
+###### Returns
+
+`Promise`\<[`WriteProgress`](#writeprogress)\>
+
+`{ next, done }`: statements committed, and whether all are.
+
+###### Throws
+
+[WriteChunksError](#writechunkserror) carrying `next` when a batch fails or
+  the input is invalid.
 
 ***
 
@@ -805,6 +1030,98 @@ sql: string;
 
 Canonical Bookclerk SQL (`?` placeholders).
 
+***
+
+### WriteChunksOptions
+
+Options for [DatabaseBinding.writeChunks](#writechunks).
+
+#### Properties
+
+##### from?
+
+```ts
+from?: number;
+```
+
+Statements already committed; `0` on the first call.
+
+##### key
+
+```ts
+key: string;
+```
+
+Names this write, stable across resumes (a job id plus a step name).
+
+##### maxRequestBytes?
+
+```ts
+maxRequestBytes?: number;
+```
+
+Request bytes per batch instead of the session's cap (`0` = no cap).
+
+##### maxStatements?
+
+```ts
+maxStatements?: number;
+```
+
+Statements per batch instead of the session's cap (`0` = no cap).
+
+##### stop?
+
+```ts
+stop?: (next) => boolean;
+```
+
+Asked before each batch with the statements committed so far; `true` pauses.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `next` | `number` |
+
+###### Returns
+
+`boolean`
+
+***
+
+### WriteProgress
+
+Where a [DatabaseBinding.writeChunks](#writechunks) run stands.
+
+#### Properties
+
+##### done
+
+```ts
+done: boolean;
+```
+
+True when every statement is committed; false when `stop` paused the run.
+
+##### next
+
+```ts
+next: number;
+```
+
+Statements committed from the start of the list; always a batch boundary.
+
+## Variables
+
+### MAX\_WRITE\_KEY\_BYTES
+
+```ts
+const MAX_WRITE_KEY_BYTES: 256 = 256;
+```
+
+Longest `key` [DatabaseBinding.writeChunks](#writechunks) accepts, in UTF-8 bytes.
+
 ## Functions
 
 ### canonicalExecuteRequestHash()
@@ -1097,6 +1414,33 @@ Maps one typed statement result to Cloudflare [D1Result](#d1result).
 [`D1Result`](#d1result)
 
 Cloudflare-shaped `{ success, results, meta }`.
+
+***
+
+### writeChunksOperationId()
+
+```ts
+function writeChunksOperationId(key, offset): Promise<string>;
+```
+
+The operation id [DatabaseBinding.writeChunks](#writechunks) sends for the batch
+that starts at `offset` of the write named `key`: the first 16 bytes of
+SHA-256 over `"bookclerk-write-chunks\0" + key + "\0" + offset`
+(decimal), as lowercase hex grouped 8-4-4-4-12. The Rust and Python SDKs
+derive the same id.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `key` | `string` | Name of the write. |
+| `offset` | `number` | Index of the batch's first statement. |
+
+#### Returns
+
+`Promise`\<`string`\>
+
+A UUID-shaped operation id.
 
 ## References
 

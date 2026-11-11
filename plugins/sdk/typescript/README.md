@@ -123,8 +123,9 @@ whose `code` is `limit_exceeded` and whose `limit` names the cap. On a
 host that predates `limits()` the call rejects with `unsupported`.
 `all()` reads through the session's streamed budget when it advertises
 one, `prepare(sql).iterate()` yields rows one at a time from the same
-read, and `db.chunk(statements)` splits a long list into batches that
-each fit one request; see
+read, `db.chunk(statements)` splits a long list into batches that each
+fit one request, and `db.writeChunks(...)` commits those batches
+resumably; see
 [Working within database limits](../../database-limits.md).
 Generate the `Env` type from `plugin.toml`:
 
@@ -341,6 +342,7 @@ Thrown by the SDK when a wire union carries `err`. Unknown codes are kept.
 
 #### Extended by
 
+- [`WriteChunksError`](db-execute.md#writechunkserror)
 - [`InvokeError`](workerd.md#invokeerror)
 
 #### Constructors
@@ -2564,6 +2566,12 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
 
 ***
 
+### MAX\_WRITE\_KEY\_BYTES
+
+Re-exports [MAX_WRITE_KEY_BYTES](db-execute.md#max_write_key_bytes)
+
+***
+
 ### MediaKind
 
 Re-exports [MediaKind](abi.md#mediakind)
@@ -3314,6 +3322,30 @@ Re-exports [wrapPluginFromNative](plugin.md#wrappluginfromnative)
 
 ***
 
+### WriteChunksError
+
+Re-exports [WriteChunksError](db-execute.md#writechunkserror)
+
+***
+
+### writeChunksOperationId
+
+Re-exports [writeChunksOperationId](db-execute.md#writechunksoperationid)
+
+***
+
+### WriteChunksOptions
+
+Re-exports [WriteChunksOptions](db-execute.md#writechunksoptions)
+
+***
+
 ### WriteOptions
 
 Re-exports [WriteOptions](plugin.md#writeoptions)
+
+***
+
+### WriteProgress
+
+Re-exports [WriteProgress](db-execute.md#writeprogress)

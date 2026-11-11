@@ -41,8 +41,9 @@ A `[[databases]]` binding is taken from the `open` bindings with
 (`prepare`, `bind`, `all`, `first`, `batch`). Its `limits()` returns the
 session's `DbCapabilities`; `all()` reads through the session's streamed
 budget when it advertises one, `iterate()` walks the same read one row at
-a time without holding the whole result, and `chunk()` splits a long statement list
-into batches that each fit one request. Any cap that is hit is a
+a time without holding the whole result, `chunk()` splits a long statement list
+into batches that each fit one request, and `write_chunks()` commits those
+batches resumably. Any cap that is hit is a
 `PluginError` with `PluginErrorCode::LimitExceeded` and a typed `limit()`;
 see [Working within database limits](../../database-limits.md). A guest's
 tests open the same binding with `bookclerk_db_testkit::BindingDatabase`
@@ -138,6 +139,8 @@ submodules unless you need module-level docs.
 | [`PreparedStatement`](#preparedstatement) | struct | Cloudflare-style prepared statement. |
 | [`RetryToken`](#retrytoken) | struct | Explicit retry identity: reuse both `operationId` and `requestHash`. |
 | [`RowStream`](#rowstream) | struct | Rows of one read, handed out one at a time (`PreparedStatement::iterate`). |
+| [`WriteChunksError`](#writechunkserror) | struct | A `DatabaseBinding::write_chunks` run that failed part way. |
+| [`WriteProgress`](#writeprogress) | struct | Where a `DatabaseBinding::write_chunks` run stands. |
 | [`FetchWorkDir`](#fetchworkdir) | struct | An open fetch work directory received from the host for one `fetchTitle` call. |
 | [`UploadFile`](#uploadfile) | struct | An open upload file received from the host for one `putFile` call. |
 | [`SdkError`](#sdkerror) | enum | Errors from the guest stdio loop and SDK helpers (not plugin business logic). |
@@ -146,6 +149,7 @@ submodules unless you need module-level docs.
 | [`chunk_indexes`](#chunk_indexes) | function | Greedy split of `typed` into index runs that each fit one request. |
 | [`execute_reply_to_d1_results`](#execute_reply_to_d1_results) | function | Maps a typed execute reply to Cloudflare `D1Result` per statement. |
 | [`statement_result_to_d1_result`](#statement_result_to_d1_result) | function | Maps one typed statement result to Cloudflare `D1Result`. |
+| [`write_chunks_operation_id`](#write_chunks_operation_id) | function | The operation id `DatabaseBinding::write_chunks` sends for the batch that starts at `offset` of the write named `key`. |
 | [`fetch_work_dir`](#fetch_work_dir) | function | Resolves the directory a `fetchTitle` call should write into. |
 | [`upload_file_path`](#upload_file_path) | function | Resolves the local file path for a `putFile` call. |
 | [`decode_json`](#decode_json) | function | Deserialize a role-method JSON argument. |
@@ -157,6 +161,7 @@ submodules unless you need module-level docs.
 | [`recv_passed_fd`](#recv_passed_fd) | function | Receives one file descriptor from the host side channel (SCM_RIGHTS). |
 | [`serve`](#serve) | function | Serves a `PluginWorker` on stdin/stdout (Cap'n Proto RPC). |
 | [`Result`](#result) | type alias | Result alias for guest helpers that fail with `SdkError`. |
+| [`MAX_WRITE_KEY_BYTES`](#max_write_key_bytes) | constant | Longest `key` `DatabaseBinding::write_chunks` accepts, in bytes. |
 | [`PLUGIN_FD_CHANNEL`](#plugin_fd_channel) | constant | Fixed descriptor number the host leaves open for the plugin side channel. |
 | [`PLUGIN_FD_CHANNEL_ENV`](#plugin_fd_channel_env) | constant | Environment variable the host *would* set to the decimal form of `PLUGIN_FD_CHANNEL`. |
 
@@ -594,6 +599,53 @@ Returns `unsupported` when neither the session's limits nor `caps`
 are available, and `PluginError::invalid_params` when a statement
 is missing terminal intent.
 
+#### DatabaseBinding::write_chunks
+
+```rust
+pub async fn write_chunks(
+    &self,
+    statements: Vec<PreparedStatement>,
+    from: usize,
+    key: &str,
+    caps: Option<ChunkCaps>,
+    stop: impl FnMut(usize) -> bool,
+) -> Result<WriteProgress, WriteChunksError>
+```
+
+Writes `statements` in batches that fit one request, resumably.
+
+The batches are the ones [`Self::chunk`](#databasebindingchunk) would yield for
+`statements[from..]`, each committed with [`Self::batch`](#databasebindingbatch) under an
+operation id derived from `key` and the batch's offset (see
+[`write_chunks_operation_id`](#write_chunks_operation_id)). Store the returned `next` (for
+example in a job checkpoint) and call again with the same list, the
+same `key` and `from = next` to carry on: a batch whose reply was
+lost is resent under the same id and the host replays its receipt.
+Receipts are kept for 24 hours; a batch resent later runs again, so
+a write that may pause that long uses statements safe to repeat.
+
+`stop` is asked before each batch with the number of statements
+committed so far; returning `true` pauses the run there (a time
+budget, a cancellation flag). The list and the caps must not change
+between calls with one `key`, or a resent batch no longer matches its
+receipt and the host answers `conflict`.
+
+##### Arguments
+
+* `statements` - The whole list, the same on every call.
+* `from` - Statements already committed; `0` on the first call.
+* `key` - Names this write, stable across resumes (a job id plus a
+  step name); at most [`MAX_WRITE_KEY_BYTES`](#max_write_key_bytes) bytes.
+* `caps` - As for [`Self::chunk`](#databasebindingchunk); `None` uses the session's limits.
+* `stop` - Asked before each batch whether to pause.
+
+##### Errors
+
+Returns a [`WriteChunksError`](#writechunkserror) whose `next` is the statements
+committed so far: `invalid_params` when `key` is empty or too long or
+`from` is past the list, the error [`Self::chunk`](#databasebindingchunk) returns, or the
+error of the batch that failed.
+
 #### DatabaseBinding::prepare
 
 ```rust
@@ -871,6 +923,47 @@ statement's `max_rows`.
 
 Implements: `Debug`
 
+### WriteChunksError
+
+```rust
+pub struct WriteChunksError {
+    pub next: usize,
+    pub error: PluginError,
+}
+```
+
+A [`DatabaseBinding::write_chunks`](#databasebindingwrite_chunks) run that failed part way.
+
+**Fields**
+
+- `next`: Statements committed before the failure; resume with `from = next`.
+  The failed batch may have committed with its reply lost: resuming
+  resends it under the same operation id, so the host replays its
+  receipt instead of writing it twice.
+- `error`: Why the batch at `next` failed.
+
+Implements: `Debug`, `Display`, `Error`
+
+### WriteProgress
+
+```rust
+pub struct WriteProgress {
+    pub next: usize,
+    pub done: bool,
+}
+```
+
+Where a [`DatabaseBinding::write_chunks`](#databasebindingwrite_chunks) run stands.
+
+**Fields**
+
+- `next`: Statements committed from the start of the list; pass it back as
+  `from` to resume. Always a batch boundary.
+- `done`: True when every statement is committed; false when `stop` paused the
+  run between batches.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### FetchWorkDir
 
 ```rust
@@ -1093,6 +1186,22 @@ pub fn statement_result_to_d1_result(
 
 Maps one typed statement result to Cloudflare [`D1Result`](#d1result).
 
+### write_chunks_operation_id
+
+```rust
+pub fn write_chunks_operation_id(key: &str, offset: usize) -> String
+```
+
+The operation id [`DatabaseBinding::write_chunks`](#databasebindingwrite_chunks) sends for the batch
+that starts at `offset` of the write named `key`.
+
+It is UUID-shaped, so [`DatabaseBinding::chunk`](#databasebindingchunk) sizes the batches for
+it: the first 16 bytes of SHA-256 over
+`"bookclerk-write-chunks\0" + key + "\0" + offset` (decimal), as
+lowercase hex grouped 8-4-4-4-12. The TypeScript and Python SDKs derive
+the same id, so a write resumed from another SDK replays the same
+receipts.
+
 ### fetch_work_dir
 
 ```rust
@@ -1311,6 +1420,14 @@ pub type Result<T> = Result<T, SdkError>;
 Result alias for guest helpers that fail with [`SdkError`](#sdkerror).
 
 ## Constants
+
+### MAX_WRITE_KEY_BYTES
+
+```rust
+pub const MAX_WRITE_KEY_BYTES: usize = 256;
+```
+
+Longest `key` [`DatabaseBinding::write_chunks`](#databasebindingwrite_chunks) accepts, in bytes.
 
 ### PLUGIN_FD_CHANNEL
 

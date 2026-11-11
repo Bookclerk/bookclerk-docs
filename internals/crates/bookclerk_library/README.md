@@ -9715,6 +9715,32 @@ carries.
 Returns an error when the flat row cannot be read or written; a
 listing that cannot be resolved is logged, not returned.
 
+#### LibraryStore::upsert_scanned_titles
+
+```rust
+pub async fn upsert_scanned_titles(
+    &self,
+    titles: &[ScannedTitle],
+) -> Result<Vec<BookRecord>>
+```
+
+Upsert a page of scanned titles: the flat rows as
+[`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title) writes each one, read and written per
+page in batches sized from the database plugin's limits, then every
+title's listing resolved as one page (`record_listing_page`),
+so titles the library already holds as the store describes them cost
+no reads of their own.
+
+##### Returns
+
+The stored flat rows, in the order of `titles`.
+
+##### Errors
+
+Returns an error when the flat rows cannot be read or written; the
+batches before the failure stay written and no listing is resolved. A listing
+that cannot be resolved is logged, not returned.
+
 #### LibraryStore::get_book_by_uuid
 
 ```rust
