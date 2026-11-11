@@ -726,7 +726,7 @@
   "internals/crates/bookclerk_workerd/pin": "2026-11-10T23:39:27Z",
   "internals/crates/bookclerk_workerd/socket_proxy": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_workerd/unix_bind": "2026-11-06T01:24:45Z",
-  "internals/discovery": "2026-11-10T22:17:35Z",
+  "internals/discovery": "2026-11-11T01:47:51Z",
   "internals/guest-jail": "2026-11-10T06:41:42Z",
   "internals/jobs": "2026-11-10T22:17:35Z",
   "internals/node-api": "2026-11-10T08:49:58Z",
