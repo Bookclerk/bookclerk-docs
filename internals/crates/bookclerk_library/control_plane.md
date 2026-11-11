@@ -14,6 +14,7 @@ See `docs/adr/control-plane.md`.
 | [`BranchTitle`](#branchtitle) | struct | One title a branch shared, as the owner's Settings → Branches lists it. |
 | [`BranchTitleCounts`](#branchtitlecounts) | struct | Counts of one branch's shared titles. |
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
+| [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shared with this install, without its metadata or file manifest. |
 | [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
@@ -139,7 +140,8 @@ See `docs/adr/control-plane.md`.
 | [`branch_title_counts`](#branch_title_counts) | function | `BranchTitleCounts` of `node_id`. |
 | [`catalog_fence_live`](#catalog_fence_live) | function | True while `fence` is `node_id`'s live catalog fence and it may share. |
 | [`detach_branch_titles`](#detach_branch_titles) | function | Marks every title `node_id` shares detached with `reason`; answers how many changed. Files already delivered stay where they are. |
-| [`forwardable_branch_titles`](#forwardable_branch_titles) | function | On a branch: the titles its own branches shared with it that it may pass on (still shared, files delivered), oldest first. |
+| [`forwardable_branch_title`](#forwardable_branch_title) | function | On a branch: the shared title `uuid` when it may still be passed on (still shared, files of its current manifest delivered). |
+| [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page) | function | On a branch: one keyset page of the titles its own branches shared with it (still shared), identity columns only, by surrogate id. |
 | [`grant_catalog_upload`](#grant_catalog_upload) | function | Opens an upload of one shared title's files, bound to `node_id`'s catalog `fence` and received by `receiving_node_id`. |
 | [`list_branch_titles`](#list_branch_titles) | function | Titles branches shared, of one branch or all, oldest first, at most `limit`. |
 | [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since). |
@@ -384,6 +386,7 @@ See `docs/adr/control-plane.md`.
 | [`DETACHED_LEFT`](#detached_left) | constant | Detach reason: the branch left the library (or was revoked). |
 | [`DETACHED_STOPPED_SHARING`](#detached_stopped_sharing) | constant | Detach reason: the branch turned "Share this branch's books" off. |
 | [`DETACHED_WITHDRAWN`](#detached_withdrawn) | constant | Detach reason: a full pass of the branch's catalog no longer named it. |
+| [`FORWARDABLE_KEYS_MAX_PAGE`](#forwardable_keys_max_page) | constant | Upper clamp for one `forwardable_branch_title_keys_page` read. |
 | [`FULL_CATALOG_PASS_EVERY`](#full_catalog_pass_every) | constant | How long a branch's catalog sync resumes incrementally before the library asks for a full pass again, so titles a branch no longer has (removed, or from a sub-branch that left) are withdrawn within a day. |
 | [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
 | [`CACHE_SCHEMA_VERSION`](#cache_schema_version) | constant | Schema version of `CacheSettingsV1`. |
@@ -556,6 +559,38 @@ An opened catalog session ([`begin_catalog`](#begin_catalog)).
 - `fence`: The new catalog fence.
 - `cursor`: Where the branch resumes (empty: from the start).
 - `wanted`: Titles recorded earlier whose files have not arrived.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ForwardableBranchKey
+
+```rust
+pub struct ForwardableBranchKey {
+    pub id: i64,
+    pub uuid: String,
+    pub store: String,
+    pub product_id: String,
+    pub updated_at: String,
+    pub delivered: bool,
+}
+```
+
+The identity of one title a branch shared with this install, without
+its metadata or file manifest.
+
+Read in keyset pages by [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page); the full
+row is loaded only when it is needed, by [`forwardable_branch_title`](#forwardable_branch_title).
+
+**Fields**
+
+- `id`: Surrogate row id; the keyset cursor of the page reader.
+- `uuid`: Stable title id (an upload's `book_uuid`).
+- `store`: Store id (`audible`, `libro`, ...).
+- `product_id`: Store product id.
+- `updated_at`: RFC 3339 last change, as stored.
+- `delivered`: The files of the current manifest arrived here, so the title may be
+  passed on. Rows without it are returned so a page's length still
+  tells the caller whether more rows follow.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4591,14 +4626,57 @@ many changed. Files already delivered stay where they are.
 
 Returns the write error.
 
-### forwardable_branch_titles
+### forwardable_branch_title
 
 ```rust
-pub async fn forwardable_branch_titles(store: &LibraryStore) -> Result<Vec<Model>>
+pub async fn forwardable_branch_title(
+    store: &LibraryStore,
+    uuid: &str,
+) -> Result<Option<Model>>
 ```
 
-On a branch: the titles its own branches shared with it that it may
-pass on (still shared, files delivered), oldest first.
+On a branch: the shared title `uuid` when it may still be passed on
+(still shared, files of its current manifest delivered).
+
+#### Arguments
+
+* `store` - This install's library.
+* `uuid` - The title's stable id, from a [`ForwardableBranchKey`](#forwardablebranchkey).
+
+#### Returns
+
+The full row, or `None` when it is gone, detached or not delivered.
+
+#### Errors
+
+Returns the read error.
+
+### forwardable_branch_title_keys_page
+
+```rust
+pub async fn forwardable_branch_title_keys_page(
+    store: &LibraryStore,
+    after_id: Option<i64>,
+    limit: u64,
+) -> Result<Vec<ForwardableBranchKey>>
+```
+
+On a branch: one keyset page of the titles its own branches shared with
+it (still shared), identity columns only, by surrogate id.
+
+Only keys with [`ForwardableBranchKey::delivered`](#forwardablebranchkey) set may be passed on.
+
+#### Arguments
+
+* `store` - This install's library.
+* `after_id` - The last [`ForwardableBranchKey::id`](#forwardablebranchkey) of the previous
+  page, or `None` for the first page.
+* `limit` - Rows wanted, clamped to 1..=[`FORWARDABLE_KEYS_MAX_PAGE`](#forwardable_keys_max_page).
+
+#### Returns
+
+Up to `limit` keys in ascending id order; fewer than `limit` means the
+last page.
 
 #### Errors
 
@@ -9002,6 +9080,17 @@ pub const DETACHED_WITHDRAWN: &str = "withdrawn";
 ```
 
 Detach reason: a full pass of the branch's catalog no longer named it.
+
+### FORWARDABLE_KEYS_MAX_PAGE
+
+```rust
+pub const FORWARDABLE_KEYS_MAX_PAGE: u64 = 256;
+```
+
+Upper clamp for one [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page) read.
+
+A key row is a handful of short columns, so this many stay far below the
+256 KiB inline result cap of an adapter that does not stream.
 
 ### FULL_CATALOG_PASS_EVERY
 

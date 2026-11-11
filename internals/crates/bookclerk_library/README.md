@@ -97,6 +97,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
 | [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
+| [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
@@ -262,6 +263,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days) | constant | Days without a heartbeat after which a jobless storage-scan generation (a CLI scan) is treated as abandoned. |
 | [`TOKEN_HISTORY_DAYS`](#token_history_days) | constant | Days an expired claim ticket, user invite, or node enrollment link stays listed (as expired or redeemed) before it is deleted. |
 | [`UPLOAD_HISTORY_DAYS`](#upload_history_days) | constant | Days a committed or aborted host upload is kept past its token's expiry. |
+| [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for one `LibraryStore::acquired_book_keys_page` read. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
@@ -4017,6 +4019,36 @@ joined by the ASCII unit separator, which none of them contains.
 
 Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
+### AcquiredBookKey
+
+```rust
+pub struct AcquiredBookKey {
+    pub id: i64,
+    pub uuid: String,
+    pub source: String,
+    pub product_id: String,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+The identity of one acquired book with a stored file, without its
+metadata.
+
+Read in keyset pages by [`LibraryStore::acquired_book_keys_page`](#librarystoreacquired_book_keys_page); the
+full row is loaded only when it is needed, by
+[`LibraryStore::get_book_by_uuid`](#librarystoreget_book_by_uuid).
+
+**Fields**
+
+- `id`: Surrogate row id; the keyset cursor of the page reader.
+- `uuid`: Public book id.
+- `source`: Store alias the book came from (`audible`, `libro`, ...), as stored.
+- `product_id`: Store product id.
+- `updated_at`: Last change of the row. An unparsable stored value reads as the
+  time of the read, the same fallback [`BookRecord`](#bookrecord) uses.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### BookPage
 
 ```rust
@@ -6964,6 +6996,101 @@ while an event-queued fetch or ranking has not finished.
 ##### Arguments
 
 * `dedup_key` - The [`JobKind::dedup_key`](#jobkinddedup_key) of the job.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::find_books_by_any_id
+
+```rust
+pub async fn find_books_by_any_id(
+    &self,
+    account_id: Option<&str>,
+    id: &str,
+) -> Result<Vec<BookRecord>>
+```
+
+Books whose uuid, product id, ISBN or ASIN equals `id`, ignoring
+ASCII case, optionally on one account, in title order.
+
+The first read compares each id column through its index (see
+`case_variants` for how case is handled), so it touches the matching
+rows only. When that finds nothing, a second read compares
+`lower(column)` so a stored id in mixed case (a slug such as
+`The-Dresden-Files`) still matches; that read may scan the table on
+the database side but still returns only the matching rows. The
+result is the set the acquire job used to find by filtering the
+whole library in memory.
+
+##### Arguments
+
+* `account_id` - Store account to search, or every account when `None`.
+* `id` - A book uuid, store product id, ISBN or ASIN.
+
+##### Returns
+
+The matching books ordered by title; empty when none match.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::find_book_by_store_id_or_key
+
+```rust
+pub async fn find_book_by_store_id_or_key(
+    &self,
+    id: &str,
+    storage_key: &str,
+) -> Result<Option<BookRecord>>
+```
+
+The first book, in title order, whose product id or ASIN is exactly
+`id`, or else whose primary storage key is exactly `storage_key`.
+
+The id comparison uses the `product_id` and `asin` indexes. The
+storage-key fallback returns at most one row, but `storage_key` has
+no index, so the database may scan the table to find it; it runs
+only when no id matched.
+
+##### Arguments
+
+* `id` - A store product id or ASIN.
+* `storage_key` - The primary file's storage key, matched only when
+  no id matches; an empty key matches nothing.
+
+##### Returns
+
+The book, or `None` when neither matches.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::acquired_book_keys_page
+
+```rust
+pub async fn acquired_book_keys_page(
+    &self,
+    after_id: Option<i64>,
+    limit: u64,
+) -> Result<Vec<AcquiredBookKey>>
+```
+
+One keyset page of the acquired books that have a stored file,
+identity columns only, by surrogate id.
+
+##### Arguments
+
+* `after_id` - The last [`AcquiredBookKey::id`](#acquiredbookkey) of the previous page,
+  or `None` for the first page.
+* `limit` - Rows wanted, clamped to 1..=[`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page).
+
+##### Returns
+
+Up to `limit` keys in ascending id order; fewer than `limit` means
+the last page.
 
 ##### Errors
 
@@ -13112,6 +13239,18 @@ No request can use it after expiry; the day only spares a commit replay
 racing the expiry a confusing "unknown upload". Open uploads are never
 deleted here: an abort still needs the row to tell the receiving node
 which copies to delete.
+
+### ACQUIRED_KEYS_MAX_PAGE
+
+```rust
+pub const ACQUIRED_KEYS_MAX_PAGE: u64 = 256;
+```
+
+Upper clamp for one [`LibraryStore::acquired_book_keys_page`](#librarystoreacquired_book_keys_page) read.
+
+A key row is five short columns (well under 1 KiB on the wire), so this
+many stay far below the 256 KiB inline result cap of an adapter that
+does not stream.
 
 ### ACQUIRE_WRITER
 

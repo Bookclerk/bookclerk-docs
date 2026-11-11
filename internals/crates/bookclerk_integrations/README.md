@@ -1337,6 +1337,9 @@ pub async fn emit_book_acquired(
 
 Look up the acquired book and publish `book_acquired` to the durable outbox.
 
+The book is found by uuid, then by store product id or ASIN, then by its
+primary storage key, each with an indexed or single-row read.
+
 Prefer `bookclerk_library::LibraryStore::set_acquire_status`, which publishes
 in the same transaction as the acquire state change. This helper is a
 fail-closed catch-up for callers that already committed the book row.
