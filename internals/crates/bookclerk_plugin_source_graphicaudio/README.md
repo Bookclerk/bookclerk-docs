@@ -33,6 +33,7 @@ the `access` plugin setting (default `web`):
 | [`parse_related_products`](#parse_related_products) | function | Parse the Recommended / related products block on a product page. |
 | [`search_catalog`](#search_catalog) | function | Search Magento catalog; often redirects to a matching series page. |
 | [`search_catalog_page`](#search_catalog_page) | function | Like `search_catalog` with an optional Magento page index. |
+| [`parse_product_detail`](#parse_product_detail) | function | Reads one GraphicAudio product page as a catalog record. |
 | [`fetch_title_materials`](#fetch_title_materials) | function | Password env (same as CLI login) for Magento ZIP / Browser Player. Fetch one product id into `cache_dir` via `api/links` Hi/Lo URLs. |
 | [`fetch_title_with_mode`](#fetch_title_with_mode) | function | Fetch owned audio for one product using the configured access path only (no ZIP→web→device cascade). |
 | [`collect_account_books`](#collect_account_books) | function | Collect owned titles for one account (no DB writes). |
@@ -644,6 +645,27 @@ Returns an error when a storefront request or its parse fails and the
 method cannot fall back. Some lookups fail soft and only yield fewer
 results (or none), so an empty result does not prove the store has none.
 
+#### GraphicAudioSource::catalog_detail
+
+```rust
+pub async fn catalog_detail(&self, product_id: &str) -> Result<Option<CatalogHit>>
+```
+
+The full catalog record of one product, read from its product page.
+
+##### Arguments
+
+* `product_id` - The store's numeric product id.
+
+##### Returns
+
+The record, or `None` when the id is not numeric or the page names
+no product.
+
+##### Errors
+
+Returns an error when the page cannot be fetched.
+
 #### GraphicAudioSource::expand_candidates
 
 ```rust
@@ -983,6 +1005,23 @@ Like [`search_catalog`](#search_catalog) with an optional Magento page index.
 #### Errors
 
 Returns an error when the operation fails.
+
+### parse_product_detail
+
+```rust
+pub fn parse_product_detail(html: &str) -> Option<CatalogHit>
+```
+
+Reads one GraphicAudio product page as a catalog record.
+
+#### Arguments
+
+* `html` - The product page's HTML, as the store sent it.
+
+#### Returns
+
+The record, or `None` when the page names no numeric product id or no
+title (a search page, an error page, or something else entirely).
 
 ### fetch_title_materials
 
