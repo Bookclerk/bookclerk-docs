@@ -216,6 +216,15 @@ forwarded to `/join/approve`).
 - `branch_name` *string or null* — The name the branch asks to join as.
 - `clerk_offer` *string or null* — `1` when the joining install offers to join as a clerk ([`bookclerk_node_proto::CLERK_OFFER_PARAM`]).
 
+## BranchAvailability
+
+One branch a title is available through.
+
+- `node_id` *string*, **required** — The branch node id.
+- `owner_name` *string or null* — The branch owner's display name, for "available through Riley's branch"; absent when the owner has none.
+- `store` *string*, **required** — The store the branch has the book from.
+- `product_id` *string*, **required** — The store's product id of the branch's copy.
+
 ## BranchConsentBody
 
 `POST /api/auth/branch-consent` body.
@@ -353,6 +362,14 @@ a branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).
 
 - `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
 
+## CatalogListingView
+
+The caller's listing choice and how many libraries it applies to.
+
+- `listed` *boolean*, **required** — The caller's choice; see [`CatalogListing::listed`].
+- `libraries` *integer (int32)*, **required** — Libraries this install is currently a branch of (active links). With none, the choice has no effect yet, and the app hides it. At least 0.
+- `always_listed` *boolean*, **required** — `true` for an active Owner: an Owner's books are always listed, so `listed` has no effect and the app shows that instead of the toggle.
+
 ## CatalogSearchHit
 
 One autocomplete / results-page hit (possibly spanning multiple storefronts).
@@ -381,6 +398,7 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `rating_count` *integer (int64) or null* — Number of ratings backing [`Self::rating_overall`] when known.
 - `price_cents` *integer (int64) or null* — Catalog list/deal price in cents when the storefront provided it.
 - `purchase_hints` *array of [`PurchaseHint`](#purchasehint)* — Buy / open-in-store links with optional member vs list pricing.
+- `available_through` *array of [`BranchAvailability`](#branchavailability)* — Branches of this library that currently list this title, matched through a store listing the library already holds. Filled by the daemon after the search.
 
 ## CatalogSearchPage
 
@@ -2428,6 +2446,7 @@ One ranked recommendation (typically an unowned storefront title).
 - `wish_count` *integer (int64)* — Number of distinct users who wishlisted this title (may exceed `wishers.len()`).
 - `seed_title` *string or null* — Title of the book or wish the storefront was asked about to find this card, when it came from such an expansion.
 - `starter_genre` *string or null* — Starter genre this card was browsed from while the taste was thin.
+- `available_through` *array of [`BranchAvailability`](#branchavailability)* — Branches of this library that currently list this title (they answered a catalog lookup for its work). Filled when the feed is read, never stored with it.
 
 ## RedeemBody
 

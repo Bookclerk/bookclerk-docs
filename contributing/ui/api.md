@@ -754,6 +754,79 @@ user_id: number;
 
 ***
 
+### BranchAvailability
+
+One branch of this library that can supply a title (it answered a
+catalog lookup for the title's work).
+
+#### Properties
+
+##### node\_id
+
+```ts
+node_id: string;
+```
+
+The branch node id.
+
+##### owner\_name?
+
+```ts
+owner_name?: string | null;
+```
+
+The branch owner's display name, when the owner has one.
+
+##### product\_id
+
+```ts
+product_id: string;
+```
+
+The store's product id of the branch's copy.
+
+##### store
+
+```ts
+store: string;
+```
+
+The store the branch has the book from (`audible`).
+
+***
+
+### CatalogListingView
+
+The signed-in user's catalog listing choice.
+
+#### Properties
+
+##### always\_listed
+
+```ts
+always_listed: boolean;
+```
+
+`true` for an Owner, whose books are always listed; `listed` then has no effect.
+
+##### libraries
+
+```ts
+libraries: number;
+```
+
+Libraries this server is currently a branch of; the choice matters only above zero.
+
+##### listed
+
+```ts
+listed: boolean;
+```
+
+`true` (the default) unless the user keeps their books out of catalog answers.
+
+***
+
 ### CatalogSearchHit
 
 One hit from `/api/discover/search`.
@@ -771,6 +844,14 @@ asin: string | null;
 ```ts
 authors: string | null;
 ```
+
+##### available\_through?
+
+```ts
+available_through?: BranchAvailability[];
+```
+
+Branches of this library that currently list this title.
 
 ##### cover\_path?
 
@@ -1022,6 +1103,14 @@ keep_member_copies?: boolean;
 
 "Keep copies of other members' books" (off by default).
 
+##### list\_members\_books?
+
+```ts
+list_members_books?: boolean;
+```
+
+"List my members' books" when the library asks (on by default).
+
 ##### max\_jobs?
 
 ```ts
@@ -1114,7 +1203,7 @@ node_id: string;
 
 ###### Inherited from
 
-[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-3)
+[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-4)
 
 ##### nodes
 
@@ -4355,6 +4444,14 @@ asin: string | null;
 authors: string | null;
 ```
 
+##### available\_through?
+
+```ts
+available_through?: BranchAvailability[];
+```
+
+Branches of this library that currently list this title.
+
 ##### candidate\_product\_id
 
 ```ts
@@ -6129,6 +6226,29 @@ When the check fails in a way asking again cannot fix.
 
 ***
 
+### availableThroughLabel()
+
+```ts
+function availableThroughLabel(through): string | null;
+```
+
+One line naming the branches a title is available through.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `through` | [`BranchAvailability`](#branchavailability)[] \| `undefined` | The title's branch availability. |
+
+#### Returns
+
+`string` \| `null`
+
+For example "Available through Riley's branch", or `null` when
+  no branch lists the title.
+
+***
+
 ### bootstrapAdministrator()
 
 ```ts
@@ -6536,6 +6656,23 @@ size is 40 when `limit` is omitted.
 `Promise`\<[`BooksResponse`](#booksresponse)\>
 
 Paginated books plus total count for the pager.
+
+***
+
+### fetchCatalogListing()
+
+```ts
+function fetchCatalogListing(): Promise<CatalogListingView>;
+```
+
+Whether the signed-in user's books are listed to the libraries this
+server is a branch of (`GET /api/auth/profile/catalog-listing`).
+
+#### Returns
+
+`Promise`\<[`CatalogListingView`](#cataloglistingview)\>
+
+The choice, and how many libraries it applies to.
 
 ***
 
@@ -8092,6 +8229,29 @@ than 2 characters. Language defaults to the browser locale unless
 `Promise`\<[`CatalogSearchPage`](#catalogsearchpage)\>
 
 Cursor-paginated search page (or an empty stub when `q` is too short).
+
+***
+
+### setCatalogListing()
+
+```ts
+function setCatalogListing(listed): Promise<CatalogListingView>;
+```
+
+Sets whether the signed-in user's books are listed to the libraries this
+server is a branch of (`PUT /api/auth/profile/catalog-listing`).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `listed` | `boolean` | `false` keeps the user's books out of catalog answers. |
+
+#### Returns
+
+`Promise`\<[`CatalogListingView`](#cataloglistingview)\>
+
+The stored choice.
 
 ***
 

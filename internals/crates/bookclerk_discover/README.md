@@ -13,6 +13,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`Embedder`](#embedder) | trait | Produce dense vectors for recommendation / similarity search. |
+| [`BranchAvailability`](#branchavailability) | struct | One branch a title is available through. |
 | [`CandidateFetchOptions`](#candidatefetchoptions) | struct | Options for storefront candidate expansion. |
 | [`SeedTitle`](#seedtitle) | struct | One taste seed for storefront expansion: a book the subject has, or a title on their wishlist. |
 | [`StorefrontCandidate`](#storefrontcandidate) | struct | A purchase candidate discovered from a storefront catalog (not owned locally). |
@@ -49,6 +50,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
 | [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
+| [`join_branch_availability`](#join_branch_availability) | function | Sets `available_through` on every card of `feed`. |
+| [`join_search_branch_availability`](#join_search_branch_availability) | function | Sets `available_through` on every hit of a catalog search page. |
 | [`gather_storefront_candidates`](#gather_storefront_candidates) | function | Expand storefront catalogs from local taste seeds; drop already-owned ids. |
 | [`select_taste_seeds`](#select_taste_seeds) | function | Pick local seed books for storefront expansion (finished / high-rated first). |
 | [`catalog_search`](#catalog_search) | function | Search every configured storefront catalog and merge by work identity. |
@@ -176,6 +179,29 @@ Returns an error when the operation fails.
 Implemented by: `HashEmbedder`, `OnnxEmbedder`
 
 ## Structs
+
+### BranchAvailability
+
+```rust
+pub struct BranchAvailability {
+    pub node_id: String,
+    pub owner_name: Option<String>,
+    pub store: String,
+    pub product_id: String,
+}
+```
+
+One branch a title is available through.
+
+**Fields**
+
+- `node_id`: The branch node id.
+- `owner_name`: The branch owner's display name, for "available through Riley's
+  branch"; absent when the owner has none.
+- `store`: The store the branch has the book from.
+- `product_id`: The store's product id of the branch's copy.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `From<BranchOffer>`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### CandidateFetchOptions
 
@@ -403,6 +429,7 @@ pub struct CatalogSearchHit {
     pub rating_count: Option<i64>,
     pub price_cents: Option<i64>,
     pub purchase_hints: Vec<PurchaseHint>,
+    pub available_through: Vec<BranchAvailability>,
 }
 ```
 
@@ -437,6 +464,9 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
 - `rating_count`: Number of ratings backing [`Self::rating_overall`](#catalogsearchhit) when known.
 - `price_cents`: Catalog list/deal price in cents when the storefront provided it.
 - `purchase_hints`: Buy / open-in-store links with optional member vs list pricing.
+- `available_through`: Branches of this library that currently list this title, matched
+  through a store listing the library already holds. Filled by the
+  daemon after the search.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1104,6 +1134,7 @@ pub struct Recommendation {
     pub wish_count: i64,
     pub seed_title: Option<String>,
     pub starter_genre: Option<String>,
+    pub available_through: Vec<BranchAvailability>,
 }
 ```
 
@@ -1148,6 +1179,9 @@ One ranked recommendation (typically an unowned storefront title).
 - `seed_title`: Title of the book or wish the storefront was asked about to find this
   card, when it came from such an expansion.
 - `starter_genre`: Starter genre this card was browsed from while the taste was thin.
+- `available_through`: Branches of this library that currently list this title (they
+  answered a catalog lookup for its work). Filled when the feed is
+  read, never stored with it.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1480,6 +1514,59 @@ How current a stored Discover feed is.
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ## Functions
+
+### join_branch_availability
+
+```rust
+pub async fn join_branch_availability(
+    library: &LibraryStore,
+    feed: &mut DiscoverFeed,
+    pool: Option<&CandidatePool>,
+) -> Result<(), DiscoverError>
+```
+
+Sets `available_through` on every card of `feed`.
+
+A card's work is its `work_id`, or else the work of the first of its
+store editions the candidate pool holds. Cards with no work, or whose
+work no branch currently lists, get an empty list.
+
+#### Arguments
+
+* `library` - The library whose branch answers are read.
+* `feed` - The feed as read for one subject.
+* `pool` - The subject's candidate pool, when it was read.
+
+#### Errors
+
+Returns the library read error.
+
+### join_search_branch_availability
+
+```rust
+pub async fn join_search_branch_availability(
+    library: &LibraryStore,
+    hits: &mut [CatalogSearchHit],
+    plugin_key_of: impl Fn(&str) -> Option<String>,
+) -> Result<(), DiscoverError>
+```
+
+Sets `available_through` on every hit of a catalog search page.
+
+A hit's work is the work of the first of its store editions the shared
+listing pool holds (an owned, wished or recommended book's listing). A
+hit the pool knows nothing about gets an empty list.
+
+#### Arguments
+
+* `library` - The library whose pool and branch answers are read.
+* `hits` - The page's hits.
+* `plugin_key_of` - The PluginKey a storefront id's listings are pooled
+  under, or `None` for a source that is not deployed.
+
+#### Errors
+
+Returns the library read error.
 
 ### gather_storefront_candidates
 

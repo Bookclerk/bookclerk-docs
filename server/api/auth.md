@@ -7427,8 +7427,10 @@ install is a branch of.
 
 ### Responses
 
-- `200` — The caller's listing choice. Body: [`CatalogListing`](schemas.md#cataloglisting) (`application/json`)
-  - `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+- `200` — The caller's listing choice. Body: [`CatalogListingView`](schemas.md#cataloglistingview) (`application/json`)
+  - `listed` *boolean*, **required** — The caller's choice; see [`CatalogListing::listed`].
+  - `libraries` *integer (int32)*, **required** — Libraries this install is currently a branch of (active links). With none, the choice has no effect yet, and the app hides it. At least 0.
+  - `always_listed` *boolean*, **required** — `true` for an active Owner: an Owner's books are always listed, so `listed` has no effect and the app shows that instead of the toggle.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -7492,7 +7494,9 @@ Status `200`: The caller's listing choice.
 
 ```json
 {
-  "listed": true
+  "listed": true,
+  "libraries": 1,
+  "always_listed": false
 }
 ```
 
@@ -7501,18 +7505,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Whether the caller's books are listed to the libraries this install is\na branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).",
+  "description": "The caller's listing choice and how many libraries it applies to.",
   "required": [
-    "listed"
+    "listed",
+    "libraries",
+    "always_listed"
   ],
   "properties": {
     "listed": {
       "type": "boolean",
-      "description": "`true` (the default): the libraries this install joined can see,\nwhen they ask, that it can supply the caller's books. `false` keeps\nthem out of those answers; the owner's books are always listed.",
+      "description": "The caller's choice; see [`CatalogListing::listed`].",
       "example": true
+    },
+    "libraries": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Libraries this install is currently a branch of (active links).\nWith none, the choice has no effect yet, and the app hides it.",
+      "example": 1,
+      "minimum": 0
+    },
+    "always_listed": {
+      "type": "boolean",
+      "description": "`true` for an active Owner: an Owner's books are always listed, so\n`listed` has no effect and the app shows that instead of the toggle.",
+      "example": false
     }
-  },
-  "additionalProperties": false
+  }
 }
 ```
 
@@ -7721,8 +7738,10 @@ is a branch of.
 
 ### Responses
 
-- `200` — The caller's listing choice after the change. Body: [`CatalogListing`](schemas.md#cataloglisting) (`application/json`)
-  - `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+- `200` — The caller's listing choice after the change. Body: [`CatalogListingView`](schemas.md#cataloglistingview) (`application/json`)
+  - `listed` *boolean*, **required** — The caller's choice; see [`CatalogListing::listed`].
+  - `libraries` *integer (int32)*, **required** — Libraries this install is currently a branch of (active links). With none, the choice has no effect yet, and the app hides it. At least 0.
+  - `always_listed` *boolean*, **required** — `true` for an active Owner: an Owner's books are always listed, so `listed` has no effect and the app shows that instead of the toggle.
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -7799,7 +7818,9 @@ Status `200`: The caller's listing choice after the change.
 
 ```json
 {
-  "listed": true
+  "listed": true,
+  "libraries": 1,
+  "always_listed": false
 }
 ```
 
@@ -7808,18 +7829,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "Whether the caller's books are listed to the libraries this install is\na branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).",
+  "description": "The caller's listing choice and how many libraries it applies to.",
   "required": [
-    "listed"
+    "listed",
+    "libraries",
+    "always_listed"
   ],
   "properties": {
     "listed": {
       "type": "boolean",
-      "description": "`true` (the default): the libraries this install joined can see,\nwhen they ask, that it can supply the caller's books. `false` keeps\nthem out of those answers; the owner's books are always listed.",
+      "description": "The caller's choice; see [`CatalogListing::listed`].",
       "example": true
+    },
+    "libraries": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Libraries this install is currently a branch of (active links).\nWith none, the choice has no effect yet, and the app hides it.",
+      "example": 1,
+      "minimum": 0
+    },
+    "always_listed": {
+      "type": "boolean",
+      "description": "`true` for an active Owner: an Owner's books are always listed, so\n`listed` has no effect and the app shows that instead of the toggle.",
+      "example": false
     }
-  },
-  "additionalProperties": false
+  }
 }
 ```
 

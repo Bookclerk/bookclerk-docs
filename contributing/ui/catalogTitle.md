@@ -54,6 +54,14 @@ asin: string | null;
 authors: string | null;
 ```
 
+##### available\_through?
+
+```ts
+available_through?: BranchAvailability[];
+```
+
+Branches of this library that currently list this title.
+
 ##### cover\_path
 
 ```ts

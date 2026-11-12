@@ -21,6 +21,7 @@ See `docs/adr/control-plane.md`.
 | [`AnswerReport`](#answerreport) | struct | What `record_answers` stored. |
 | [`AskReport`](#askreport) | struct | What `ask_branches` did. |
 | [`BranchListing`](#branchlisting) | struct | A `branch:<node>` listing and the work its edition belongs to. |
+| [`BranchOffer`](#branchoffer) | struct | One branch a work is available through, as Discover and search show it. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
@@ -177,12 +178,15 @@ See `docs/adr/control-plane.md`.
 | [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
 | [`branch_listing_key`](#branch_listing_key) | function | The plugin key of listings answered by branch `node_id`. |
 | [`branch_listings_for_works`](#branch_listings_for_works) | function | The current branch listings of `work_ids`: those a branch this library still trusts named within `BRANCH_LISTING_TTL`. |
+| [`branch_offers_for_works`](#branch_offers_for_works) | function | The branches each of `work_ids` is currently available through. |
+| [`catalog_listing_always`](#catalog_listing_always) | function | True when `user_id` is an active Owner of this branch, whose books are always listed whatever their opt-out says. |
 | [`catalog_listing_opted_out`](#catalog_listing_opted_out) | function | True when member `user_id` keeps their books out of this branch's listings. |
 | [`pending_questions`](#pending_questions) | function | The questions waiting for branch `node_id`, marked sent. |
 | [`record_answers`](#record_answers) | function | Records branch `node_id`'s answers to the questions it was sent. |
 | [`set_catalog_listing_opt_out`](#set_catalog_listing_opt_out) | function | Records whether member `user_id`'s books are kept out of what this branch lists to the libraries it joined. |
 | [`trusted_branches`](#trusted_branches) | function | The branches this library trusts, by node id. |
 | [`works_of_interest`](#works_of_interest) | function | The works this library wants its branches asked about: those of open wishes (most recently changed first), then those of Discover candidates (most recently fetched first), at most `limit`. |
+| [`works_of_listings`](#works_of_listings) | function | The work of each store listing in `listings`, by `(plugin key, product id)`, for listings the shared pool already holds. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
 | [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its clerks) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
@@ -840,6 +844,29 @@ A `branch:<node>` listing and the work its edition belongs to.
 - `store`: The store the branch has it from (`audible`).
 - `product_id`: The store's product id.
 - `observed_at`: When the branch last named it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### BranchOffer
+
+```rust
+pub struct BranchOffer {
+    pub node_id: String,
+    pub owner_name: Option<String>,
+    pub store: String,
+    pub product_id: String,
+}
+```
+
+One branch a work is available through, as Discover and search show it.
+
+**Fields**
+
+- `node_id`: The branch node.
+- `owner_name`: The branch owner's display name (or login name), for "available
+  through Riley's branch"; `None` when the owner has neither.
+- `store`: The store the branch has the book from (`audible`).
+- `product_id`: The store's product id.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -5513,6 +5540,39 @@ still trusts named within [`BRANCH_LISTING_TTL`](#branch_listing_ttl).
 
 Returns the read error.
 
+### branch_offers_for_works
+
+```rust
+pub async fn branch_offers_for_works(
+    store: &LibraryStore,
+    work_ids: &[String],
+) -> Result<HashMap<String, Vec<BranchOffer>>>
+```
+
+The branches each of `work_ids` is currently available through.
+
+Built from [`branch_listings_for_works`]: only answers a trusted branch
+gave within [`BRANCH_LISTING_TTL`](#branch_listing_ttl) count. A work with no current branch
+listing is left out of the map. Each work's offers are ordered by node,
+then store and product id, with duplicates removed.
+
+#### Errors
+
+Returns the read error.
+
+### catalog_listing_always
+
+```rust
+pub async fn catalog_listing_always(store: &LibraryStore, user_id: i64) -> Result<bool>
+```
+
+True when `user_id` is an active Owner of this branch, whose books are
+always listed whatever their opt-out says.
+
+#### Errors
+
+Returns the read error.
+
 ### catalog_listing_opted_out
 
 ```rust
@@ -5620,6 +5680,34 @@ pub async fn works_of_interest(store: &LibraryStore, limit: u64) -> Result<Vec<S
 The works this library wants its branches asked about: those of open
 wishes (most recently changed first), then those of Discover candidates
 (most recently fetched first), at most `limit`.
+
+#### Errors
+
+Returns the read error.
+
+### works_of_listings
+
+```rust
+pub async fn works_of_listings(
+    store: &LibraryStore,
+    listings: &[(String, String)],
+) -> Result<HashMap<(String, String), String>>
+```
+
+The work of each store listing in `listings`, by `(plugin key, product
+id)`, for listings the shared pool already holds.
+
+Product ids are compared in their stored spelling
+([`resolve::stored_product_id`](../bookclerk_resolve/listing.md#stored_product_id)); the marketplace is not compared, so a
+product sold in two marketplaces maps to the work of either listing.
+Branch listings (`branch:<node>`) are never matched. A listing the pool
+does not hold, or whose edition has no work, is left out.
+
+#### Arguments
+
+* `store` - The library.
+* `listings` - `(plugin key, product id)` pairs as the storefront
+  reports them.
 
 #### Errors
 

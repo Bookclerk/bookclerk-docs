@@ -2554,6 +2554,44 @@ Schema:
                   ],
                   "description": "Starter genre this card was browsed from while the taste was thin.",
                   "example": "Science Fiction"
+                },
+                "available_through": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One branch a title is available through.",
+                    "required": [
+                      "node_id",
+                      "store",
+                      "product_id"
+                    ],
+                    "properties": {
+                      "node_id": {
+                        "type": "string",
+                        "description": "The branch node id.",
+                        "example": "node-7f3a"
+                      },
+                      "owner_name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "The branch owner's display name, for \"available through Riley's\nbranch\"; absent when the owner has none.",
+                        "example": "Riley"
+                      },
+                      "store": {
+                        "type": "string",
+                        "description": "The store the branch has the book from.",
+                        "example": "audible"
+                      },
+                      "product_id": {
+                        "type": "string",
+                        "description": "The store's product id of the branch's copy.",
+                        "example": "B002V0QK4C"
+                      }
+                    }
+                  },
+                  "description": "Branches of this library that currently list this title (they\nanswered a catalog lookup for its work). Filled when the feed is\nread, never stored with it."
                 }
               }
             },
@@ -3925,6 +3963,13 @@ Status `200`: A page of catalog results.
           "source": "libro",
           "product_id": "9780441478125"
         }
+      ],
+      "available_through": [
+        {
+          "node_id": "node-7f3a",
+          "store": "audible",
+          "product_id": "B002V0QK4C"
+        }
       ]
     }
   ],
@@ -4260,6 +4305,44 @@ Schema:
               }
             },
             "description": "Buy / open-in-store links with optional member vs list pricing."
+          },
+          "available_through": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One branch a title is available through.",
+              "required": [
+                "node_id",
+                "store",
+                "product_id"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string",
+                  "description": "The branch node id.",
+                  "example": "node-7f3a"
+                },
+                "owner_name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The branch owner's display name, for \"available through Riley's\nbranch\"; absent when the owner has none.",
+                  "example": "Riley"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "The store the branch has the book from.",
+                  "example": "audible"
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "The store's product id of the branch's copy.",
+                  "example": "B002V0QK4C"
+                }
+              }
+            },
+            "description": "Branches of this library that currently list this title, matched\nthrough a store listing the library already holds. Filled by the\ndaemon after the search."
           }
         }
       },
