@@ -27,6 +27,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`WorkIdentity`](#workidentity) | struct | Bibliographic identity slice used for merge decisions. |
 | [`MetadataEnrichOptions`](#metadataenrichoptions) | struct | Pacing for one enrichment run. |
 | [`FetchReport`](#fetchreport) | struct | What one candidate fetch did. |
+| [`OwnedIdentities`](#ownedidentities) | struct | Identifiers of every title the library holds, used to keep titles the library already has out of a subject's candidates and feed. |
 | [`RankReport`](#rankreport) | struct | What one ranking did. |
 | [`StoredSubjectFeed`](#storedsubjectfeed) | struct | One subject's stored feed, ready for the page. |
 | [`SubjectTaste`](#subjecttaste) | struct | One subject's taste: whose seeds Discover uses and what they read. |
@@ -743,6 +744,27 @@ What one candidate fetch did.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### OwnedIdentities
+
+```rust
+pub struct OwnedIdentities {
+    pub asins: HashSet<String>,
+    pub isbns: HashSet<String>,
+    pub products: HashSet<String>,
+}
+```
+
+Identifiers of every title the library holds, used to keep titles the
+library already has out of a subject's candidates and feed.
+
+**Fields**
+
+- `asins`: Upper-cased ASINs.
+- `isbns`: Canonical ISBN-13s.
+- `products`: `source:product_id` keys and bare product ids.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### RankReport
 
 ```rust
@@ -801,6 +823,7 @@ pub struct SubjectTaste {
     pub wishlist: Vec<SeedTitle>,
     pub wish_titles: Vec<String>,
     pub linked_sources: HashSet<String>,
+    pub owned: OwnedIdentities,
 }
 ```
 
@@ -820,6 +843,8 @@ One subject's taste: whose seeds Discover uses and what they read.
 - `wishlist`: The subject's open wishlist titles, newest first, used as extra seeds.
 - `wish_titles`: Display titles of `wishlist`, newest first.
 - `linked_sources`: Lowercase storefront ids the subject has an account with.
+- `owned`: Identifiers of every title the library holds, read with the taste so
+  a subject job reads the library once.
 
 Implements: `Clone`, `Debug`
 
