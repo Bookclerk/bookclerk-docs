@@ -81,6 +81,7 @@ use so a missing jail can never pass silently.
 | [`truncate_utf8`](#truncate_utf8) | function | Copy `text` up to `max_bytes` without splitting a scalar value. |
 | [`canonicalize`](#canonicalize) | function | `std::fs::canonicalize` that also works inside a Windows AppContainer. |
 | [`create_process_path`](#create_process_path) | function | Path passed to `CreateProcess`, `Command`, or a child that parses Win32 paths. |
+| [`helper_search_dirs`](#helper_search_dirs) | function | Directories a host searches for a helper it ships beside itself. |
 | [`require_absolute_or_name`](#require_absolute_or_name) | function | Absolute path with no NUL, or a single PATH lookup name (`cargo`, `python3`). |
 | [`require_absolute_spawn_path`](#require_absolute_spawn_path) | function | Like `require_absolute_or_name`, but the path must be absolute (no PATH names). |
 | [`require_existing_regular_file`](#require_existing_regular_file) | function | Existing regular file after resolving relative paths against the process cwd. |
@@ -1690,6 +1691,34 @@ that form for read and still be denied process creation
 filesystem parser treats `?` as the first component and aborts. The prefix
 is removed only after callers have already canonicalized, so the Win32 path
 names the same resolved file. Other platforms return `path` unchanged.
+
+### helper_search_dirs
+
+```rust
+pub fn helper_search_dirs(exe: &Path) -> Vec<PathBuf>
+```
+
+Directories a host searches for a helper it ships beside itself.
+
+The first entry is always the directory holding `exe`. When `exe` is a
+test binary that Cargo placed below its profile directory, the profile
+directory (where Cargo puts the workspace's binaries, helpers included)
+follows. Cargo has used two layouts for test binaries:
+
+* `<profile>/deps/<test>-<hash>` (up to Rust 1.99).
+* `<profile>/build/<package>/<hash>/out/<test>-<hash>` (from Rust 1.100).
+
+Only these exact shapes add the profile directory, so an installed host
+still finds helpers only beside itself. The result names directories;
+callers still validate any helper they find in them.
+
+#### Arguments
+
+* `exe` - Path of the running executable, usually `std::env::current_exe()`.
+
+#### Returns
+
+One or two directories, nearest first. Empty when `exe` has no parent.
 
 ### require_absolute_or_name
 
