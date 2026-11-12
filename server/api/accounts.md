@@ -891,10 +891,8 @@ Connects a password storefront, upserts the account, and links it to the signed-
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -1057,13 +1055,11 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "this library's administrator hasn't allowed you to connect store accounts here"
 }
 ```
 
@@ -1072,31 +1068,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body of every portal error response.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1152,10 +1132,8 @@ Starts interactive OAuth for an OAuth storefront and returns the browser login U
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1288,13 +1266,11 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "this library's administrator hasn't allowed you to connect store accounts here"
 }
 ```
 
@@ -1303,31 +1279,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body of every portal error response.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1371,10 +1331,8 @@ Legacy `POST /libro/login` alias that forwards to the Libro password-login handl
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -1537,13 +1495,11 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "this library's administrator hasn't allowed you to connect store accounts here"
 }
 ```
 
@@ -1552,31 +1508,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body of every portal error response.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }
@@ -1630,10 +1570,8 @@ Legacy `POST /audible/start` alias that forwards to Audible OAuth start.
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1766,13 +1704,11 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "this library's administrator hasn't allowed you to connect store accounts here"
 }
 ```
 
@@ -1781,31 +1717,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON body of every portal error response.",
   "required": [
     "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
     }
   }
 }

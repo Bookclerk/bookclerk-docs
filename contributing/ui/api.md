@@ -2096,6 +2096,14 @@ Unfinished listen within ~30 minutes (waveform uses the last ~5 minutes).
 login_name: string | null;
 ```
 
+##### may\_connect\_accounts?
+
+```ts
+may_connect_accounts?: boolean;
+```
+
+Whether an administrator lets this user connect store accounts here (absent: allowed).
+
 ##### online?
 
 ```ts
@@ -7397,10 +7405,11 @@ Updates a first-party user role, status, or profile fields.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `id` | `number` | User id to patch. |
-| `body` | \{ `display_name?`: `string`; `email?`: `string`; `login_name?`: `string`; `role?`: `string`; `status?`: `string`; \} | Partial user fields accepted by the daemon. |
+| `body` | \{ `display_name?`: `string`; `email?`: `string`; `login_name?`: `string`; `may_connect_accounts?`: `boolean`; `role?`: `string`; `status?`: `string`; \} | Partial user fields accepted by the daemon. |
 | `body.display_name?` | `string` | - |
 | `body.email?` | `string` | - |
 | `body.login_name?` | `string` | - |
+| `body.may_connect_accounts?` | `boolean` | Let the user connect store accounts here, or stop them. |
 | `body.role?` | `string` | - |
 | `body.status?` | `string` | - |
 

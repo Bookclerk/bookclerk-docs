@@ -320,6 +320,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 - [`manifest::validate_logo`](../bookclerk_plugin_manifest/logo.md#validate_logo)
 - [`manifest::BindingCapabilities`](../bookclerk_plugin_manifest/types.md#bindingcapabilities)
 - [`manifest::CapabilitiesManifest`](../bookclerk_plugin_manifest/types.md#capabilitiesmanifest)
+- [`manifest::CredentialSharing`](../bookclerk_plugin_manifest/types.md#credentialsharing)
 - [`manifest::DatabaseBindingManifest`](../bookclerk_plugin_manifest/types.md#databasebindingmanifest)
 - [`manifest::Entrypoint`](../bookclerk_plugin_abi/generated.md#entrypoint)
 - [`manifest::EventConsumer`](../bookclerk_plugin_manifest/types.md#eventconsumer)

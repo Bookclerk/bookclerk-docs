@@ -225,6 +225,7 @@ Includes every field of [`BranchAuthorizeParams`](#branchauthorizeparams).
 - `approve` *boolean*, **required** — True to let the branch join; false to deny.
 - `connection` *string or null* — `branch` (default) or `clerk`.
 - `step_up` *[`StepUp`](#stepup) or null* — The fresh second factor a clerk needs.
+- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a clerk. Defaults to false.
 
 ## BranchConsentPage
 
@@ -236,6 +237,7 @@ JSON body for `GET /api/auth/branch-consent`: what the consent page shows.
 - `enrollment` *boolean*, **required** — Whether this library lets new branches join right now.
 - `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the branch would belong to.
 - `connection` *[`ConnectionChoice`](#connectionchoice)*, **required** — The connection types the page may offer.
+- `connections` *array of [`ConsentConnection`](#consentconnection)*, **required** — The user's store connections here, and whether each would travel to the branch if the user chooses to bring them.
 
 ## BranchesResponse
 
@@ -255,6 +257,7 @@ JSON body once this install joined a library as a branch.
 - `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The new link.
 - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
 - `running` *boolean*, **required** — Whether the link's client is running now.
+- `connections` *[`BroughtConnectionsView`](#broughtconnectionsview) or null* — What became of the store connections the library's user chose to bring to this branch; left out when none came.
 
 ## BranchJoinSetting
 
@@ -304,6 +307,18 @@ CSS colors and logo href for a storefront or integration brand.
 - `fg` *string*, **required** — Foreground / text color (`#RRGGBB`).
 - `accent` *string*, **required** — Accent color (`#RRGGBB`).
 - `logo` *string*, **required** — Same-origin logo image (a 128 px copy of the brand's icon), or empty when there is none.
+
+## BroughtConnectionsView
+
+The store connections a library sent with its person, as this install
+kept them.
+
+- `offered` *integer*, **required** — How many came with the join. At least 0.
+- `added` *integer*, **required** — How many are now connected here for the person. At least 0.
+- `already_here` *integer*, **required** — How many the person had already connected here (left as they are). At least 0.
+- `taken` *integer*, **required** — How many are connected to someone else here (left as they are). At least 0.
+- `failed` *integer*, **required** — How many could not be kept: no secret came with them, or their write failed. At least 0.
+- `not_kept` *string or null* — Why none were kept, when none were: `not_allowed` (this install's operator does not let the person connect store accounts), `no_owner` (no single Owner here to keep them for) or `failed`.
 
 ## CallbackBody
 
@@ -531,6 +546,16 @@ Form body for `POST /oidc/authorize` after the user grants or denies consent.
 JSON body after a consent was approved or revoked.
 
 - `consent` *[`RemoteConsentView`](#remoteconsentview)*, **required** — The consent as stored now.
+
+## ConsentConnection
+
+One of the consenting user's store connections, as the consent page
+lists it.
+
+- `source` *string*, **required** — Display alias of the storefront.
+- `account_id` *string*, **required** — Store account id.
+- `label` *string or null* — The account's display label, when it has one.
+- `travels` *boolean*, **required** — True when the storefront lets its login be used in more than one place, so the connection travels; false when it keeps one login that only this library refreshes.
 
 ## ConsentingUser
 
@@ -1341,6 +1366,7 @@ One node with its latest heartbeat, budget and owner.
 - `node_id` *string*, **required** — The node id recorded for the joining install.
 - `connection` *[`ConnectionType`](#connectiontype)* — The connection type recorded (`branch` when left out).
 - `bootstrap` *string or null* — For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box key ([`crate::seal_clerk_bootstrap`]), as base64url without padding.
+- `accounts` *string or null* — For a branch whose user chose "Bring my store connections to this branch": the user's own store accounts as a [`crate::AccountBundle`] sealed to the node's box key ([`crate::seal_account_bundle`]), as base64url without padding. Left out when the user did not choose it or had none to bring.
 
 ## OAuthEnrollRequest
 
@@ -1732,6 +1758,7 @@ Partial profile, role, or status patch for a first-party user.
 - `display_name` *string or null* — Replacement display name when present.
 - `login_name` *string or null* — Replacement local login name when present.
 - `email` *string or null* — Replacement email when present.
+- `may_connect_accounts` *boolean or null* — Whether the user may connect store accounts on this library, by hand or by bringing them from another library, when present.
 
 ## PathSanitizationMode
 
@@ -3036,6 +3063,7 @@ Includes every field of [`UserSummary`](#usersummary).
 - `sso_pictures` *array of [`UserSsoPictureSummary`](#userssopicturesummary)*, **required** — Pictures the user's identity providers supplied.
 - `listening` *[`UserListeningHint`](#userlisteninghint) or null* — The most recent unfinished listen within the last 30 minutes, if any.
 - `integrations` *array of [`UserIntegrationHint`](#userintegrationhint)*, **required** — Storefront and integration accounts linked to the user.
+- `may_connect_accounts` *boolean*, **required** — Whether the operator lets the user connect store accounts here, by hand or by bringing them from another library. True unless an administrator turned it off for this user.
 - `identities` *array of [`UserIdentitySummary`](#useridentitysummary)*, **required** — External sign-in identities linked to the user.
 
 ## UserListResponse

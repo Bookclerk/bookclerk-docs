@@ -16,6 +16,8 @@ See `docs/adr/control-plane.md`.
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
 | [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shared with this install, without its metadata or file manifest. |
 | [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
+| [`CarriedImport`](#carriedimport) | struct | What `import_carried_accounts` did with each account it was handed. |
+| [`MemberAccount`](#memberaccount) | struct | One store account a member connected here, as the join consent page lists it. Carries no secret. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
@@ -149,6 +151,18 @@ See `docs/adr/control-plane.md`.
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
 | [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
 | [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
+| [`accounts_to_carry`](#accounts_to_carry) | function | The store accounts `user_id` connected here that may travel to a branch (`member_accounts` whose plugin `shareable` accepts), each with its secrets unsealed. At most `MAX_BUNDLE_ACCOUNTS`; an account without a secret is left out (there is nothing to sign in with). |
+| [`branch_person`](#branch_person) | function | The person on this install that store accounts brought from a library belong to: `preferred` (the Owner who elevated into the operator session that ran the join) while that user is still an active Owner, otherwise the only active Owner. `None` when neither settles it, for example on a new install with no Owner yet; the accounts are then not kept. |
+| [`identity_may_connect_accounts`](#identity_may_connect_accounts) | function | Whether the portal identity `identity_id` may connect store accounts here: the rule of the user it belongs to (`member_may_connect_accounts`). An identity that belongs to no first-party user (an integration's external user) has no member rule and may connect, as before; an unknown identity may not. |
+| [`import_carried_accounts`](#import_carried_accounts) | function | Imports the accounts a library sent with its person, for `user_id`, recording that they came from the library `cluster_id`. |
+| [`link_peer`](#link_peer) | function | The `account_shares.peer` of a library this install received accounts from. |
+| [`member_account_rules`](#member_account_rules) | function | Every stored rule, by user id (`true` = may connect). Users with no rule are left out; they may connect. |
+| [`member_accounts`](#member_accounts) | function | The store accounts `user_id` has connected here: linked to any of the user's portal identities and still connected (`connection_status` is `active`), sorted by plugin key and account id. |
+| [`member_may_connect_accounts`](#member_may_connect_accounts) | function | Whether `user_id` may connect store accounts on this instance: an active user with no rule, or whose rule allows it. |
+| [`node_peer`](#node_peer) | function | The `account_shares.peer` of a branch node this library sent accounts to. |
+| [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 20 accounts; a repeat refreshes the time. |
+| [`revoke_unlinked_account`](#revoke_unlinked_account) | function | Takes back a store account a refused login stored: deletes its secrets and marks it `revoked` with scans off, in one atomic batch whose every statement applies only while no link holds the account. |
+| [`set_member_may_connect_accounts`](#set_member_may_connect_accounts) | function | Sets whether `user_id` may connect store accounts on this instance. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
 | [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its clerks) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
@@ -187,6 +201,7 @@ See `docs/adr/control-plane.md`.
 | [`change_count`](#change_count) | function | Counts committed change notices for one namespace. |
 | [`authorized_enrollment_link`](#authorized_enrollment_link) | function | The link a branch or clerk sign-in redeems through: its id and secret are derived from the authorization code and the PKCE verifier, so a retry of the same exchange (same code, verifier and keys) finds the same link and answers from its receipt, and a wrong verifier can never redeem it. |
 | [`check_redeem_request`](#check_redeem_request) | function | Checks what a redeem would refuse as malformed before anything is written: its keys (canonical Curve25519 points) and `software_version`. A sign-in's redeem runs this before it spends its code, so a malformed request leaves the code for a corrected retry. |
+| [`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts) | function | Whether the user who approved the sign-in behind `link_id` chose to bring their store connections to the branch (`record_authorized_enrollment_link`). `false` for an unknown link and for every minted invite. |
 | [`format_enrollment_token`](#format_enrollment_token) | function | Formats `bcn1.<link_id>.<secret>[.<spki_pin>]`. |
 | [`list_enrollment_links`](#list_enrollment_links) | function | Links `actor` may see, newest first: every link for the operator or an Owner, the caller's own links for anyone else. |
 | [`load_host_enrollment`](#load_host_enrollment) | function | Reads the cluster's host-enrollment switch. A missing document means the default: enabled. |
@@ -391,6 +406,8 @@ See `docs/adr/control-plane.md`.
 | [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
 | [`CACHE_SCHEMA_VERSION`](#cache_schema_version) | constant | Schema version of `CacheSettingsV1`. |
 | [`CACHE_SETTING_KEYS`](#cache_setting_keys) | constant | Settings keys the cache document owns, in display order. |
+| [`SHARE_RECEIVED`](#share_received) | constant | `account_shares.direction` of an account this install received from a library it joined. |
+| [`SHARE_SENT`](#share_sent) | constant | `account_shares.direction` of an account this library sent to a branch. |
 | [`CLUSTER_LINK_ACTIVE`](#cluster_link_active) | constant | `cluster_links.state` of a link the host client connects. |
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
@@ -671,6 +688,60 @@ cluster budget.
 * `node` - The node's runtime document.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### CarriedImport
+
+```rust
+pub struct CarriedImport {
+    pub imported: Vec<(String, String)>,
+    pub already_here: Vec<(String, String)>,
+    pub taken: Vec<(String, String)>,
+    pub failed: Vec<(String, String)>,
+    pub refused_by_rule: bool,
+}
+```
+
+What [`import_carried_accounts`](#import_carried_accounts) did with each account it was handed.
+
+**Fields**
+
+- `imported`: `(plugin_key, account_id)` of each account now connected here for
+  the person.
+- `already_here`: Accounts the person had already connected here; left as they are.
+- `taken`: Accounts connected to someone else here; refused.
+- `failed`: Accounts that came without a secret, or whose write failed (logged);
+  nothing of them was stored.
+- `refused_by_rule`: This instance's operator does not let the person connect store
+  accounts here; nothing was stored. A rule turned off while the
+  import runs instead stops it: the accounts not yet kept land in
+  [`Self::failed`](#carriedimport).
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### MemberAccount
+
+```rust
+pub struct MemberAccount {
+    pub plugin_key: String,
+    pub account_id: String,
+    pub source: String,
+    pub marketplace: String,
+    pub label: Option<String>,
+}
+```
+
+One store account a member connected here, as the join consent page
+lists it. Carries no secret.
+
+**Fields**
+
+- `plugin_key`: Provenance-qualified plugin key of the storefront.
+- `account_id`: Store account id.
+- `source`: Display alias of the storefront.
+- `marketplace`: Store marketplace or locale code.
+- `label`: The account's display label, when it has one.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### LibraryContents
 
@@ -4824,6 +4895,225 @@ Returns the error `edit` returned, an error when the edited body is
 invalid or the actor may not write, or [`LibraryError::Conflict`](README.md#libraryerror) when
 the document keeps changing underneath.
 
+### accounts_to_carry
+
+```rust
+pub async fn accounts_to_carry(
+    store: &LibraryStore,
+    user_id: i64,
+    shareable: &dyn Fn(&str) -> bool + Send + Sync,
+) -> Result<Vec<CarriedAccount>>
+```
+
+The store accounts `user_id` connected here that may travel to a
+branch ([`member_accounts`](#member_accounts) whose plugin `shareable` accepts), each
+with its secrets unsealed. At most [`MAX_BUNDLE_ACCOUNTS`](../bookclerk_node_proto/README.md#max_bundle_accounts); an account
+without a secret is left out (there is nothing to sign in with).
+
+#### Arguments
+
+* `store` - This library.
+* `user_id` - The member who chose to bring their connections.
+* `shareable` - Whether a plugin key's store credentials may be held by
+  several instances (`credentials = "shareable"` in its `plugin.toml`).
+
+#### Errors
+
+Returns a read error, or the unseal error of a secret.
+
+### branch_person
+
+```rust
+pub async fn branch_person(
+    store: &LibraryStore,
+    preferred: Option<i64>,
+) -> Result<Option<i64>>
+```
+
+The person on this install that store accounts brought from a library
+belong to: `preferred` (the Owner who elevated into the operator
+session that ran the join) while that user is still an active Owner,
+otherwise the only
+active Owner. `None` when neither settles it, for example on a new
+install with no Owner yet; the accounts are then not kept.
+
+#### Errors
+
+Returns the read error.
+
+### identity_may_connect_accounts
+
+```rust
+pub async fn identity_may_connect_accounts(
+    store: &LibraryStore,
+    identity_id: i64,
+) -> Result<bool>
+```
+
+Whether the portal identity `identity_id` may connect store accounts
+here: the rule of the user it belongs to ([`member_may_connect_accounts`](#member_may_connect_accounts)).
+An identity that belongs to no first-party user (an integration's
+external user) has no member rule and may connect, as before; an
+unknown identity may not.
+
+#### Errors
+
+Returns the read error.
+
+### import_carried_accounts
+
+```rust
+pub async fn import_carried_accounts(
+    store: &LibraryStore,
+    user_id: i64,
+    cluster_id: &str,
+    accounts: &[CarriedAccount],
+) -> Result<CarriedImport>
+```
+
+Imports the accounts a library sent with its person, for `user_id`,
+recording that they came from the library `cluster_id`.
+
+Refused whole, storing nothing, when this instance's rule does not let
+the person connect accounts ([`member_may_connect_accounts`](#member_may_connect_accounts)). Each
+batch checks the rule again, so a rule turned off midway stops the
+accounts not yet kept. Each
+other account is one atomic batch that inserts the account (scanning
+on, connected), writes its secrets re-sealed with this install's key,
+links it to the person's local identity and records the share. Every
+statement is guarded on the account having no link yet, so an account
+connected here before (to the person or to someone else) is never
+overwritten, even when it is connected while the import runs.
+
+#### Errors
+
+Returns a read error from before any account is written. An account
+whose own write fails is reported in [`CarriedImport::failed`](#carriedimport).
+
+### link_peer
+
+```rust
+pub fn link_peer(cluster_id: &str) -> String
+```
+
+The `account_shares.peer` of a library this install received accounts
+from.
+
+### member_account_rules
+
+```rust
+pub async fn member_account_rules(store: &LibraryStore) -> Result<BTreeMap<i64, bool>>
+```
+
+Every stored rule, by user id (`true` = may connect). Users with no
+rule are left out; they may connect.
+
+#### Errors
+
+Returns the read error.
+
+### member_accounts
+
+```rust
+pub async fn member_accounts(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<Vec<MemberAccount>>
+```
+
+The store accounts `user_id` has connected here: linked to any of the
+user's portal identities and still connected (`connection_status` is
+`active`), sorted by plugin key and account id.
+
+#### Errors
+
+Returns the read error.
+
+### member_may_connect_accounts
+
+```rust
+pub async fn member_may_connect_accounts(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<bool>
+```
+
+Whether `user_id` may connect store accounts on this instance: an
+active user with no rule, or whose rule allows it.
+
+#### Errors
+
+Returns the read error.
+
+### node_peer
+
+```rust
+pub fn node_peer(node_id: &str) -> String
+```
+
+The `account_shares.peer` of a branch node this library sent accounts to.
+
+### record_accounts_sent
+
+```rust
+pub async fn record_accounts_sent(
+    store: &LibraryStore,
+    node_id: &str,
+    accounts: &[CarriedAccount],
+) -> Result<()>
+```
+
+Records that `accounts` were sent to the branch `node_id`
+(`account_shares`, direction [`SHARE_SENT`](#share_sent)), in atomic batches of at
+most 20 accounts; a repeat refreshes the time.
+
+#### Errors
+
+Returns the write error.
+
+### revoke_unlinked_account
+
+```rust
+pub async fn revoke_unlinked_account(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<()>
+```
+
+Takes back a store account a refused login stored: deletes its secrets
+and marks it `revoked` with scans off, in one atomic batch whose every
+statement applies only while no link holds the account.
+
+A link committed before the batch runs (another login of the same
+store account that finished meanwhile) keeps the account and its
+secrets as they are.
+
+#### Errors
+
+Returns the write error.
+
+### set_member_may_connect_accounts
+
+```rust
+pub async fn set_member_may_connect_accounts(
+    store: &LibraryStore,
+    user_id: i64,
+    allowed: bool,
+) -> Result<()>
+```
+
+Sets whether `user_id` may connect store accounts on this instance.
+
+The caller has already checked that the actor may manage the user. One
+atomic batch: the stored rule is updated, or inserted when there is
+none. Accounts the member already connected stay connected.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user and the write
+error.
+
 ### library_contents
 
 ```rust
@@ -5545,6 +5835,23 @@ request leaves the code for a corrected retry.
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for malformed keys or a version that is
 too long or holds control characters.
 
+### enrollment_link_brings_accounts
+
+```rust
+pub async fn enrollment_link_brings_accounts(
+    store: &LibraryStore,
+    link_id: &str,
+) -> Result<bool>
+```
+
+Whether the user who approved the sign-in behind `link_id` chose to
+bring their store connections to the branch ([`record_authorized_enrollment_link`](#record_authorized_enrollment_link)).
+`false` for an unknown link and for every minted invite.
+
+#### Errors
+
+Returns the read error.
+
 ### format_enrollment_token
 
 ```rust
@@ -5652,6 +5959,7 @@ pub async fn record_authorized_enrollment_link(
     secret: &EnrollmentSecret,
     for_user_id: i64,
     label: &str,
+    bring_accounts: bool,
 ) -> Result<()>
 ```
 
@@ -5661,6 +5969,12 @@ in and consented. Called only after the authorization code's client,
 redirect and PKCE verifier were checked, before the code is consumed, so
 a failed write leaves the code usable; the redeem itself is
 [`redeem_enrollment_link`](#redeem_enrollment_link), the same canonical batch a minted link takes.
+
+`bring_accounts` keeps the user's "Bring my store connections to this
+branch" choice with the link, so a retried redeem of the same exchange
+answers the same way ([`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts)): it gathers
+the user's shareable accounts again, while the user is still active
+and the branch is not revoked.
 
 A second call for the same link id leaves the first row as it is.
 
@@ -9125,6 +9439,23 @@ pub const CACHE_SETTING_KEYS: &[&str] = _;
 ```
 
 Settings keys the cache document owns, in display order.
+
+### SHARE_RECEIVED
+
+```rust
+pub const SHARE_RECEIVED: &str = "received";
+```
+
+`account_shares.direction` of an account this install received from a
+library it joined.
+
+### SHARE_SENT
+
+```rust
+pub const SHARE_SENT: &str = "sent";
+```
+
+`account_shares.direction` of an account this library sent to a branch.
 
 ### CLUSTER_LINK_ACTIVE
 

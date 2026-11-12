@@ -108,6 +108,7 @@ Status `200`: The library's users.
           "account_id": "sam@example.com"
         }
       ],
+      "may_connect_accounts": true,
       "identities": [
         {
           "provider": "oidc:github",
@@ -206,6 +207,7 @@ Schema:
               "avatar_source",
               "sso_pictures",
               "integrations",
+              "may_connect_accounts",
               "identities"
             ],
             "properties": {
@@ -362,6 +364,11 @@ Schema:
                   }
                 },
                 "description": "Storefront and integration accounts linked to the user."
+              },
+              "may_connect_accounts": {
+                "type": "boolean",
+                "description": "Whether the operator lets the user connect store accounts here, by\nhand or by bringing them from another library. True unless an\nadministrator turned it off for this user.",
+                "example": true
               },
               "identities": {
                 "type": "array",
@@ -1233,7 +1240,8 @@ A `text/plain` body: a string.
 
 ## `PATCH /api/users/{id}`
 
-Patch role/status/display/login for a first-party user (provisioner).
+Patch role/status/display/login, or the store-account rule, for a
+first-party user (provisioner).
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -1252,6 +1260,7 @@ Patch role/status/display/login for a first-party user (provisioner).
 - `display_name` *string or null* — Replacement display name when present.
 - `login_name` *string or null* — Replacement local login name when present.
 - `email` *string or null* — Replacement email when present.
+- `may_connect_accounts` *boolean or null* — Whether the user may connect store accounts on this library, by hand or by bringing them from another library, when present.
 
 ### Responses
 

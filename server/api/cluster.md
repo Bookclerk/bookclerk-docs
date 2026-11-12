@@ -5566,7 +5566,15 @@ Status `200`: The join completed.
     "running": true
   },
   "library_name": "books.example.com",
-  "running": true
+  "running": true,
+  "connections": {
+    "offered": 2,
+    "added": 1,
+    "already_here": 1,
+    "taken": 0,
+    "failed": 0,
+    "not_kept": null
+  }
 }
 ```
 
@@ -5659,6 +5667,64 @@ Schema:
           "type": "boolean",
           "description": "Whether the link's client is running now.",
           "example": true
+        },
+        "connections": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "What became of the store connections the library's user chose to\nbring to this branch; left out when none came.",
+              "required": [
+                "offered",
+                "added",
+                "already_here",
+                "taken",
+                "failed"
+              ],
+              "properties": {
+                "offered": {
+                  "type": "integer",
+                  "description": "How many came with the join.",
+                  "example": 2,
+                  "minimum": 0
+                },
+                "added": {
+                  "type": "integer",
+                  "description": "How many are now connected here for the person.",
+                  "example": 1,
+                  "minimum": 0
+                },
+                "already_here": {
+                  "type": "integer",
+                  "description": "How many the person had already connected here (left as they are).",
+                  "example": 1,
+                  "minimum": 0
+                },
+                "taken": {
+                  "type": "integer",
+                  "description": "How many are connected to someone else here (left as they are).",
+                  "example": 0,
+                  "minimum": 0
+                },
+                "failed": {
+                  "type": "integer",
+                  "description": "How many could not be kept: no secret came with them, or their\nwrite failed.",
+                  "example": 0,
+                  "minimum": 0
+                },
+                "not_kept": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Why none were kept, when none were: `not_allowed` (this install's\noperator does not let the person connect store accounts),\n`no_owner` (no single Owner here to keep them for) or `failed`.",
+                  "example": null
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -6059,6 +6125,7 @@ while the join carries on and starts its client when it lands.
   - `cluster` *[`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The new link.
   - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
   - `running` *boolean*, **required** — Whether the link's client is running now.
+  - `connections` *[`BroughtConnectionsView`](schemas.md#broughtconnectionsview) or null* — What became of the store connections the library's user chose to bring to this branch; left out when none came.
 - `400` — The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -6147,7 +6214,15 @@ Status `200`: The join completed.
     "running": true
   },
   "library_name": "books.example.com",
-  "running": true
+  "running": true,
+  "connections": {
+    "offered": 2,
+    "added": 1,
+    "already_here": 1,
+    "taken": 0,
+    "failed": 0,
+    "not_kept": null
+  }
 }
 ```
 
@@ -6238,6 +6313,64 @@ Schema:
       "type": "boolean",
       "description": "Whether the link's client is running now.",
       "example": true
+    },
+    "connections": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "What became of the store connections the library's user chose to\nbring to this branch; left out when none came.",
+          "required": [
+            "offered",
+            "added",
+            "already_here",
+            "taken",
+            "failed"
+          ],
+          "properties": {
+            "offered": {
+              "type": "integer",
+              "description": "How many came with the join.",
+              "example": 2,
+              "minimum": 0
+            },
+            "added": {
+              "type": "integer",
+              "description": "How many are now connected here for the person.",
+              "example": 1,
+              "minimum": 0
+            },
+            "already_here": {
+              "type": "integer",
+              "description": "How many the person had already connected here (left as they are).",
+              "example": 1,
+              "minimum": 0
+            },
+            "taken": {
+              "type": "integer",
+              "description": "How many are connected to someone else here (left as they are).",
+              "example": 0,
+              "minimum": 0
+            },
+            "failed": {
+              "type": "integer",
+              "description": "How many could not be kept: no secret came with them, or their\nwrite failed.",
+              "example": 0,
+              "minimum": 0
+            },
+            "not_kept": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Why none were kept, when none were: `not_allowed` (this install's\noperator does not let the person connect store accounts),\n`no_owner` (no single Owner here to keep them for) or `failed`.",
+              "example": null
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }

@@ -33,6 +33,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`OidcClientToml`](#oidcclienttoml) | struct | One `[[oidc.clients]]` row (snake_case TOML). |
 | [`PluginFamily`](#pluginfamily) | enum | Handler family — how the daemon, CLI, and UI group plugins and which `config.toml` prefix holds their settings. |
 | [`PluginRuntimeKind`](#pluginruntimekind) | enum | Guest runtime selection (`runtime` key in `plugin.toml`). |
+| [`CredentialSharing`](#credentialsharing) | enum | How a storefront's store credentials may be used from several Bookclerk instances at once (`credentials` key in `plugin.toml`). |
 | [`NetworkMode`](#networkmode) | enum | Network mode declared in `[capabilities.network]`. |
 | [`JailNetworkNeed`](#jailnetworkneed) | enum | OS jail network capability derived from manifest network + oauth binding. |
 | [`entrypoint_family`](#entrypoint_family) | function | Handler family an `Entrypoint` belongs to. |
@@ -687,6 +688,7 @@ pub struct PluginManifest {
     pub queues: QueuesManifest,
     pub work_fs: Option<NamedBinding>,
     pub oauth: Option<NamedBinding>,
+    pub credentials: Option<CredentialSharing>,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -752,10 +754,24 @@ rejected.
   `core.events` queue; `[queues]` names plugin-owned queues.
 - `work_fs`: Host-mediated work filesystem binding (`[work_fs]`).
 - `oauth`: OAuth callback tunnel binding (`[oauth]`).
+- `credentials`: How the store accounts this storefront connects may be shared
+  between Bookclerk instances (`credentials`); see
+  [`CredentialSharing`](#credentialsharing) and [`Self::credential_sharing`](#pluginmanifestcredential_sharing). Only a
+  plugin with the `storefront` entrypoint may set it.
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
 - `oidc`: Optional Bookclerk-as-IdP client templates (`[[oidc.clients]]`).
+
+#### PluginManifest::credential_sharing
+
+```rust
+pub fn credential_sharing(&self) -> CredentialSharing
+```
+
+How this plugin's store credentials may be shared between
+instances: the declared `credentials`, or
+[`CredentialSharing::SingleKeeper`](#credentialsharing) when it is left out.
 
 #### PluginManifest::declares_python
 
@@ -1281,6 +1297,45 @@ Defaults to [`PluginRuntimeKind::Native`](#pluginruntimekind) when omitted.
   
   Requires a `[workerd]` table. Outbound mode requires non-empty
   `capabilities.network.domains`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CredentialSharing
+
+```rust
+pub enum CredentialSharing {
+    Shareable,
+    SingleKeeper,
+}
+```
+
+How a storefront's store credentials may be used from several
+Bookclerk instances at once (`credentials` key in `plugin.toml`).
+
+A person's store accounts follow them to every library and branch they
+connect ("Accounts on every instance" in the library catalog network
+ADR). Only the plugin knows whether its store tolerates one login being
+refreshed in several places, so it declares it. Defaults to
+[`CredentialSharing::SingleKeeper`](#credentialsharing), the choice that never logs a
+person out, when the key is left out.
+
+**Variants**
+
+- `Shareable`: Every instance may hold a copy of the account's secrets and
+  refresh them on its own: the store neither rotates its refresh
+  tokens on use nor caps the devices one login may register.
+- `SingleKeeper`: One instance at a time keeps the account's login fresh (its
+  refresh keeper) and the others receive each new token from it.
+  For stores that rotate refresh tokens on use or register one
+  device per login (Audible).
+
+#### CredentialSharing::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The `plugin.toml` spelling (`shareable` or `single_keeper`).
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

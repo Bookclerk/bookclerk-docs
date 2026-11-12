@@ -112,6 +112,7 @@ assert_eq!(manifest.id, "echo");
 - [`types::entrypoint_family`](types.md#entrypoint_family)
 - [`types::PluginFamily`](types.md#pluginfamily)
 - [`types::PluginRuntimeKind`](types.md#pluginruntimekind)
+- [`types::CredentialSharing`](types.md#credentialsharing)
 - [`types::NetworkMode`](types.md#networkmode)
 - [`types::TcpCapability`](types.md#tcpcapability)
 - [`types::NetworkCapabilities`](types.md#networkcapabilities)

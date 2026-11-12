@@ -53,6 +53,9 @@ code + PKCE flow of the built-in client [`BRANCH_CLIENT_ID`](#branch_client_id) 
 [`OAuthEnrollRequest`](#oauthenrollrequest)). An Owner of the library may instead let the
 install join as a clerk (an owner node, [`ConnectionType::Clerk`](#connectiontype)): its
 redeem answer carries a [`ClerkBootstrap`](#clerkbootstrap) sealed to the node's box key.
+A branch's redeem answer may carry the signing-in user's own store
+accounts as an [`AccountBundle`](#accountbundle) sealed the same way, when the user
+chose to bring them.
 
 This crate is pure: no I/O, no clock, no randomness. The daemon (owner)
 and the host client share it so both sides sign and check the same
@@ -60,6 +63,9 @@ bytes.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`AccountBundle`](#accountbundle) | struct | The store accounts a library hands a joining branch, for one person. `Debug` prints no secret. |
+| [`CarriedAccount`](#carriedaccount) | struct | One store account in an `AccountBundle`. |
+| [`CarriedSecret`](#carriedsecret) | struct | One secret of a `CarriedAccount`: an `encrypted_secrets` row of the account, by kind and name. |
 | [`CatalogFile`](#catalogfile) | struct | One file of a `CatalogTitle`. |
 | [`CatalogMetadata`](#catalogmetadata) | struct | Bibliographic metadata of a `CatalogTitle`. |
 | [`CatalogRef`](#catalogref) | struct | A title named by store and product id. |
@@ -96,6 +102,11 @@ bytes.
 | [`KeyError`](#keyerror) | enum | Why a public key was refused. |
 | [`SealError`](#sealerror) | enum | Why a sealed box could not be made or opened. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
+| [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
+| [`check_account_bundle`](#check_account_bundle) | function | Checks `bundle` against every rule `parse_account_bundle` applies. |
+| [`open_account_bundle`](#open_account_bundle) | function | Opens a bundle made by `seal_account_bundle` with the joining node's box secret, for the cluster and node ids the redeem answered. |
+| [`parse_account_bundle`](#parse_account_bundle) | function | Parses the opened bytes of an account bundle for `node_id` of `cluster_id` and checks it (`check_account_bundle`). Sans-IO: the branch runs it on what `open` returns, and the fuzz target runs it on arbitrary bytes. |
+| [`seal_account_bundle`](#seal_account_bundle) | function | Seals `bundle` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
 | [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain cluster id and there are at most `MAX_ANCESTRY`. |
 | [`is_cluster_id`](#is_cluster_id) | function | True for a plain cluster id in an ancestry. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
@@ -137,6 +148,15 @@ bytes.
 | [`sign_auth`](#sign_auth) | function | Signs a handshake; the result is base64url without padding. |
 | [`verify_artifact_request`](#verify_artifact_request) | function | Verifies a signed artifact request with the node's enrolled key and checks its time against `now` (unix seconds). |
 | [`verify_auth`](#verify_auth) | function | Verifies a handshake signature with the node's enrolled public key. Uses strict verification (no malleable or small-order signatures). |
+| [`ACCOUNT_BUNDLE_AAD_DOMAIN`](#account_bundle_aad_domain) | constant | Domain tag that starts the associated data of an account bundle. |
+| [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version) | constant | Version of an `AccountBundle`. |
+| [`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes) | constant | Largest opened bundle accepted, in bytes. A bundle at every limit above would be far larger; this keeps the redeem answer small. |
+| [`MAX_ACCOUNT_SECRETS`](#max_account_secrets) | constant | Most secrets one carried account holds. |
+| [`MAX_BUNDLE_ACCOUNTS`](#max_bundle_accounts) | constant | Most accounts one bundle carries. |
+| [`MAX_CARRIED_ACCOUNT_ID_BYTES`](#max_carried_account_id_bytes) | constant | Longest store account id carried, in bytes. |
+| [`MAX_CARRIED_FIELD_BYTES`](#max_carried_field_bytes) | constant | Longest source alias, marketplace, secret kind or label carried, in bytes. |
+| [`MAX_CARRIED_PLUGIN_KEY_BYTES`](#max_carried_plugin_key_bytes) | constant | Longest plugin key carried, in bytes. |
+| [`MAX_CARRIED_SECRET_BYTES`](#max_carried_secret_bytes) | constant | Largest secret value carried, in bytes. |
 | [`CATALOG_ITEM`](#catalog_item) | constant | Item kind of the catalog fence (`lost.item`), and the job id a catalog upload's token is sealed for. |
 | [`MAX_ANCESTRY`](#max_ancestry) | constant | Most cluster ids an ancestry may list. |
 | [`MAX_CATALOG_BATCH_TITLES`](#max_catalog_batch_titles) | constant | Most titles one `crate::Body::CatalogSync` batch may carry. |
@@ -199,6 +219,77 @@ bytes.
 - [`ed25519_dalek::SigningKey`](https://docs.rs/ed25519_dalek/latest/ed25519_dalek/signing/struct.SigningKey.html)
 
 ## Structs
+
+### AccountBundle
+
+```rust
+pub struct AccountBundle {
+    pub v: u32,
+    pub cluster_id: String,
+    pub node_id: String,
+    pub accounts: Vec<CarriedAccount>,
+}
+```
+
+The store accounts a library hands a joining branch, for one person.
+`Debug` prints no secret.
+
+**Fields**
+
+- `v`: [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version).
+- `cluster_id`: The library's cluster id.
+- `node_id`: The node id the library minted for the branch.
+- `accounts`: The person's accounts, each with its secrets.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CarriedAccount
+
+```rust
+pub struct CarriedAccount {
+    pub plugin_key: String,
+    pub account_id: String,
+    pub source: String,
+    pub marketplace: String,
+    pub label: Option<String>,
+    pub secrets: Vec<CarriedSecret>,
+}
+```
+
+One store account in an [`AccountBundle`](#accountbundle).
+
+**Fields**
+
+- `plugin_key`: Provenance-qualified plugin key of the storefront that owns the
+  account.
+- `account_id`: Store account id, unique within its plugin key.
+- `source`: Display alias of the storefront (`libro`, `chirp`, ...).
+- `marketplace`: Store marketplace or locale code (`us`, `uk`, ...).
+- `label`: The account's display label, when it has one.
+- `secrets`: The account's sealed secrets, unsealed for the box.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CarriedSecret
+
+```rust
+pub struct CarriedSecret {
+    pub kind: String,
+    pub name: String,
+    pub value: SecretValue,
+}
+```
+
+One secret of a [`CarriedAccount`]: an `encrypted_secrets` row of the
+account, by kind and name.
+
+**Fields**
+
+- `kind`: Secret kind (`source_auth`, ...).
+- `name`: Logical secret name within the account.
+- `value`: The secret bytes.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### CatalogFile
 
@@ -791,6 +882,7 @@ pub struct OAuthEnrollAnswer {
     pub node_id: String,
     pub connection: ConnectionType,
     pub bootstrap: Option<String>,
+    pub accounts: Option<String>,
 }
 ```
 
@@ -803,6 +895,11 @@ pub struct OAuthEnrollAnswer {
 - `connection`: The connection type recorded (`branch` when left out).
 - `bootstrap`: For a clerk: the [`crate::ClerkBootstrap`](#clerkbootstrap) sealed to the node's box
   key ([`crate::seal_clerk_bootstrap`](#seal_clerk_bootstrap)), as base64url without padding.
+- `accounts`: For a branch whose user chose "Bring my store connections to this
+  branch": the user's own store accounts as a
+  [`crate::AccountBundle`](#accountbundle) sealed to the node's box key
+  ([`crate::seal_account_bundle`](#seal_account_bundle)), as base64url without padding.
+  Left out when the user did not choose it or had none to bring.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -1488,6 +1585,94 @@ Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ## Functions
 
+### account_bundle_aad
+
+```rust
+pub fn account_bundle_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+```
+
+Associated data of the account bundle for `node_id` of `cluster_id`:
+the domain tag, then each field as a 4-byte big-endian length and its
+bytes.
+
+### check_account_bundle
+
+```rust
+pub fn check_account_bundle(
+    bundle: &AccountBundle,
+    cluster_id: &str,
+    node_id: &str,
+) -> Result<(), SealError>
+```
+
+Checks `bundle` against every rule [`parse_account_bundle`](#parse_account_bundle) applies.
+
+#### Errors
+
+Returns [`SealError::Bundle`](#sealerror) for a wrong version or ids, too many
+accounts or secrets, an empty or oversized field or value, a repeated
+account, or a repeated secret within an account.
+
+### open_account_bundle
+
+```rust
+pub fn open_account_bundle(
+    recipient_secret: &[u8; 32],
+    cluster_id: &str,
+    node_id: &str,
+    sealed: &str,
+) -> Result<AccountBundle, SealError>
+```
+
+Opens a bundle made by [`seal_account_bundle`](#seal_account_bundle) with the joining node's
+box secret, for the cluster and node ids the redeem answered.
+
+#### Errors
+
+Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
+another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
+its content is refused by [`parse_account_bundle`](#parse_account_bundle).
+
+### parse_account_bundle
+
+```rust
+pub fn parse_account_bundle(
+    plaintext: &[u8],
+    cluster_id: &str,
+    node_id: &str,
+) -> Result<AccountBundle, SealError>
+```
+
+Parses the opened bytes of an account bundle for `node_id` of
+`cluster_id` and checks it ([`check_account_bundle`](#check_account_bundle)). Sans-IO: the
+branch runs it on what [`open`](#open) returns, and the fuzz target runs it on
+arbitrary bytes.
+
+#### Errors
+
+Returns [`SealError::Bundle`](#sealerror) for bytes over
+[`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes), bytes that are not a bundle, and a bundle
+the check refuses.
+
+### seal_account_bundle
+
+```rust
+pub fn seal_account_bundle(
+    recipient: &[u8],
+    ephemeral_secret: &[u8; 32],
+    bundle: &AccountBundle,
+) -> Result<String, SealError>
+```
+
+Seals `bundle` to the joining node's box key `recipient`, as base64url
+text for the redeem answer.
+
+#### Errors
+
+Returns [`SealError::Key`](#sealerror) for an invalid recipient key and
+[`SealError::Bundle`](#sealerror) for a bundle [`check_account_bundle`](#check_account_bundle) refuses for
+its own ids, or whose JSON is over [`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes).
+
 ### is_ancestry
 
 ```rust
@@ -2027,6 +2212,80 @@ Returns [`AuthError`](#autherror) when the key is invalid, the signature is
 malformed, or it does not verify.
 
 ## Constants
+
+### ACCOUNT_BUNDLE_AAD_DOMAIN
+
+```rust
+pub const ACCOUNT_BUNDLE_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 account-bundle";
+```
+
+Domain tag that starts the associated data of an account bundle.
+
+### ACCOUNT_BUNDLE_VERSION
+
+```rust
+pub const ACCOUNT_BUNDLE_VERSION: u32 = 1;
+```
+
+Version of an [`AccountBundle`](#accountbundle).
+
+### MAX_ACCOUNT_BUNDLE_BYTES
+
+```rust
+pub const MAX_ACCOUNT_BUNDLE_BYTES: usize = _;
+```
+
+Largest opened bundle accepted, in bytes. A bundle at every limit above
+would be far larger; this keeps the redeem answer small.
+
+### MAX_ACCOUNT_SECRETS
+
+```rust
+pub const MAX_ACCOUNT_SECRETS: usize = 16;
+```
+
+Most secrets one carried account holds.
+
+### MAX_BUNDLE_ACCOUNTS
+
+```rust
+pub const MAX_BUNDLE_ACCOUNTS: usize = 64;
+```
+
+Most accounts one bundle carries.
+
+### MAX_CARRIED_ACCOUNT_ID_BYTES
+
+```rust
+pub const MAX_CARRIED_ACCOUNT_ID_BYTES: usize = 256;
+```
+
+Longest store account id carried, in bytes.
+
+### MAX_CARRIED_FIELD_BYTES
+
+```rust
+pub const MAX_CARRIED_FIELD_BYTES: usize = 128;
+```
+
+Longest source alias, marketplace, secret kind or label carried, in
+bytes.
+
+### MAX_CARRIED_PLUGIN_KEY_BYTES
+
+```rust
+pub const MAX_CARRIED_PLUGIN_KEY_BYTES: usize = 256;
+```
+
+Longest plugin key carried, in bytes.
+
+### MAX_CARRIED_SECRET_BYTES
+
+```rust
+pub const MAX_CARRIED_SECRET_BYTES: usize = _;
+```
+
+Largest secret value carried, in bytes.
 
 ### CATALOG_ITEM
 

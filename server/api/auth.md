@@ -4270,6 +4270,7 @@ shows the problem and never redirects).
   - `enrollment` *boolean*, **required** — Whether this library lets new branches join right now.
   - `user` *[`ConsentingUser`](schemas.md#consentinguser)*, **required** — The signed-in user the branch would belong to.
   - `connection` *[`ConnectionChoice`](schemas.md#connectionchoice)*, **required** — The connection types the page may offer.
+  - `connections` *array of [`ConsentConnection`](schemas.md#consentconnection)*, **required** — The user's store connections here, and whether each would travel to the branch if the user chooses to bring them.
 - `400` — The authorize parameters are invalid (`invalid_request`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -4339,7 +4340,15 @@ Status `200`: What the consent page shows.
   "connection": {
     "choice": false,
     "default": "branch"
-  }
+  },
+  "connections": [
+    {
+      "source": "libro",
+      "account_id": "sam@example.com",
+      "label": "Sam",
+      "travels": true
+    }
+  ]
 }
 ```
 
@@ -4355,7 +4364,8 @@ Schema:
     "redirect_origin",
     "enrollment",
     "user",
-    "connection"
+    "connection",
+    "connections"
   ],
   "properties": {
     "library_name": {
@@ -4470,6 +4480,44 @@ Schema:
         }
       ],
       "description": "The connection types the page may offer."
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One of the consenting user's store connections, as the consent page\nlists it.",
+        "required": [
+          "source",
+          "account_id",
+          "travels"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Display alias of the storefront.",
+            "example": "libro"
+          },
+          "account_id": {
+            "type": "string",
+            "description": "Store account id.",
+            "example": "sam@example.com"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The account's display label, when it has one.",
+            "example": "Sam"
+          },
+          "travels": {
+            "type": "boolean",
+            "description": "True when the storefront lets its login be used in more than one\nplace, so the connection travels; false when it keeps one login\nthat only this library refreshes.",
+            "example": true
+          }
+        }
+      },
+      "description": "The user's store connections here, and whether each would travel\nto the branch if the user chooses to bring them."
     }
   }
 }
@@ -4744,6 +4792,7 @@ enrollment on, and a connection the transport policy allows.
 - `approve` *boolean*, **required** — True to let the branch join; false to deny.
 - `connection` *string or null* — `branch` (default) or `clerk`.
 - `step_up` *[`StepUp`](schemas.md#stepup) or null* — The fresh second factor a clerk needs.
+- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a clerk. Defaults to false.
 
 ### Responses
 

@@ -107,7 +107,7 @@ Library users and their claim tickets.
 | [`GET /api/users`](users.md#get-apiusers) | List first-party users (operator or administrator provisioner). |
 | [`POST /api/users`](users.md#post-apiusers) | Owner/admin or operator creates a user and optional invite magic link. |
 | [`DELETE /api/users/{id}`](users.md#delete-apiusersid) | Delete a user and their personal data (wishlist / links / sessions); keep acquired books. |
-| [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login for a first-party user (provisioner). |
+| [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login, or the store-account rule, for a first-party user (provisioner). |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
 | [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |

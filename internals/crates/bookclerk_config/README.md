@@ -123,6 +123,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`redact_field_value`](#redact_field_value) | function | Redact a field value: sensitive names are fully replaced; others are scrubbed. |
 | [`redact_str`](#redact_str) | function | Scrub known secrets: exact registered values, then pattern matches. |
 | [`register_secret`](#register_secret) | function | Register a known secret so it is always scrubbed from logs and diagnostics. |
+| [`register_secret_bytes`](#register_secret_bytes) | function | Registers one secret value given as bytes, when it is UTF-8 text. |
 | [`register_secrets`](#register_secrets) | function | Register several secrets at once. |
 | [`register_secrets_from_env`](#register_secrets_from_env) | function | Register secrets commonly present in the process environment / config. |
 | [`sanitize_for_remote_upload`](#sanitize_for_remote_upload) | function | Extra sanitization for payloads that leave the machine (collector / B2). |
@@ -3229,6 +3230,19 @@ memory. Values shorter than 6 characters are ignored.
 
 Also registers common encodings (percent-encoding, `+` for spaces) so a secret
 cannot slip through via URL/query embedding.
+
+### register_secret_bytes
+
+```rust
+pub fn register_secret_bytes(value: &[u8])
+```
+
+Registers one secret value given as bytes, when it is UTF-8 text.
+
+A JSON credential (a token bundle) also registers each string inside
+it, at any depth, since a log quotes the token field rather than the
+whole document. Bytes that are not UTF-8 register nothing: the text
+scrubber can never see them in a log line.
 
 ### register_secrets
 

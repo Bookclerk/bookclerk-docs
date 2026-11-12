@@ -14,6 +14,7 @@ at the record boundary and uses these entities (`Entity::find`,
 
 - [`account_links`](account_links.md): SeaORM entity for the `account_links` table.
 - [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
+- [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).
 - [`accounts`](accounts.md): SeaORM entity for the `accounts` table.
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
 - [`books`](books.md): SeaORM entity for the `books` table.
@@ -50,6 +51,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`jobs`](jobs.md): SeaORM entity for the durable daemon `jobs` table.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
+- [`member_account_rules`](member_account_rules.md): SeaORM entity for the `member_account_rules` table: the operator's per-member rule "may connect store accounts here".
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
 - [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a host node into this cluster. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.

@@ -52,6 +52,7 @@ job runs its guest are the daemon's.
 | [`BranchAuthorization`](#branchauthorization) | struct | One sign-in about to start. `Debug` prints no secret. |
 | [`BranchRedeem`](#branchredeem) | struct | What `redeem_branch_code` needs besides the keys. |
 | [`InspectedLibrary`](#inspectedlibrary) | struct | A library as `inspect_library` found it. |
+| [`RedeemedBranch`](#redeemedbranch) | struct | A branch sign-in the library redeemed and this install recorded. |
 | [`AppliedClerk`](#appliedclerk) | struct | What `apply_clerk_bootstrap` wrote. |
 | [`ClerkJoined`](#clerkjoined) | struct | A redeemed clerk sign-in. `Debug` prints no secret. |
 | [`PendingClerkJoin`](#pendingclerkjoin) | struct | A clerk join whose files are all in place but whose first start has not opened the library's database yet, or whose undoing was cut short. The daemon `confirm`s it once the database opens, or `revert`s it when it cannot, so a join to an unreachable database does not leave the server unable to start. |
@@ -69,6 +70,7 @@ job runs its guest are the daemon's.
 | [`HostJobCtx`](#hostjobctx) | struct | Everything a runner gets for one job. |
 | [`HostJobError`](#hostjoberror) | struct | How a job failed: a stable kind and an operator-facing message. Neither may contain a secret. |
 | [`HostUpload`](#hostupload) | struct | An open upload of one title: its id and bearer token. The token is zeroized on drop and never shown by `Debug`. |
+| [`BroughtConnections`](#broughtconnections) | enum | What became of the store connections a library sent with its person (`keep_brought_connections`). |
 | [`ClientExit`](#clientexit) | enum | Why `HostClient::run` returned. |
 | [`DialError`](#dialerror) | enum | Why the owner could not be reached. |
 | [`JoinError`](#joinerror) | enum | Why joining failed. |
@@ -78,6 +80,7 @@ job runs its guest are the daemon's.
 | [`authorize_branch`](#authorize_branch) | function | Starts a sign-in at `library` for this install as `branch_name`, coming back to `redirect_uri` (a loopback or https URL). |
 | [`authorize_join`](#authorize_join) | function | `authorize_branch`, optionally offering to join as a clerk (`offer_clerk`, `CLERK_OFFER_PARAM`): the consent page then lets an Owner of the library choose a clerk instead of a branch. Offer it only for an install that holds no library data of its own. |
 | [`inspect_library`](#inspect_library) | function | Reads what the library at `address` says about itself, under the transport policy (plain HTTP only on loopback). |
+| [`keep_brought_connections`](#keep_brought_connections) | function | Keeps the store connections a library sent with its person (`RedeemedBranch::accounts`) for the person on this install (`branch_person`), recording that they came from the library. |
 | [`library_origin`](#library_origin) | function | Normalizes what an operator typed (`owner.example:8443`, `https://owner.example/`) to a canonical origin. A bare `host[:port]` means `https`. |
 | [`redeem_branch_code`](#redeem_branch_code) | function | Redeems an approved sign-in: the library runs the same redeem as for a link (one node, a receipt, idempotent retries), then this install seals `keys` and records the link. The code and verifier go once in the request body and are never logged. |
 | [`apply_clerk_bootstrap`](#apply_clerk_bootstrap) | function | Writes `bootstrap` as this install's own bootstrap under `files_dir`: |
@@ -249,6 +252,26 @@ A library as [`inspect_library`](#inspect_library) found it.
   to the public roots or the library is on loopback.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### RedeemedBranch
+
+```rust
+pub struct RedeemedBranch {
+    pub link: ClusterLink,
+    pub accounts: Option<AccountBundle>,
+}
+```
+
+A branch sign-in the library redeemed and this install recorded.
+
+**Fields**
+
+- `link`: The recorded link.
+- `accounts`: The store accounts the library's user chose to bring to this
+  branch, opened with the link's box key; `None` when the user did not
+  choose it, had none to bring, or the box did not open (logged).
+
+Implements: `Debug`
 
 ### AppliedClerk
 
@@ -840,6 +863,26 @@ is written straight to the stream and never logged.
 Returns [`DialError`](#dialerror) when the request cannot be made or the answer
 is malformed.
 
+#### OwnerEndpoint::post_json_within
+
+```rust
+pub async fn post_json_within(
+    &self,
+    path: &str,
+    body: &[u8],
+    extra_body: usize,
+) -> Result<(u16, Vec<u8>), DialError>
+```
+
+[`post_json`](#ownerendpointpost_json) for an answer that may carry up to
+`extra_body` more bytes than the usual response limit (a redeem
+answer with sealed store connections).
+
+##### Errors
+
+Returns [`DialError`](#dialerror) when the request cannot be made or the answer
+is malformed or over the limit.
+
 #### OwnerEndpoint::get_json
 
 ```rust
@@ -1262,6 +1305,26 @@ Implements: `Debug`, `Drop`
 
 ## Enums
 
+### BroughtConnections
+
+```rust
+pub enum BroughtConnections {
+    Kept(CarriedImport),
+    NoPerson(usize),
+}
+```
+
+What became of the store connections a library sent with its person
+([`keep_brought_connections`](#keep_brought_connections)).
+
+**Variants**
+
+- `Kept`: They were imported for the person (see [`CarriedImport`](../bookclerk_library/control_plane.md#carriedimport)).
+- `NoPerson`: No one on this install could be named as their person (no Owner
+  yet, or several); nothing was stored. Holds how many came.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### ClientExit
 
 ```rust
@@ -1506,6 +1569,31 @@ Returns [`JoinError`](#joinerror) when the address is malformed, the library is
 unreachable or untrusted, or its answer is malformed or names another
 origin.
 
+### keep_brought_connections
+
+```rust
+pub async fn keep_brought_connections(
+    store: &LibraryStore,
+    preferred: Option<i64>,
+    bundle: &AccountBundle,
+) -> Result<BroughtConnections>
+```
+
+Keeps the store connections a library sent with its person
+([`RedeemedBranch::accounts`](#redeemedbranch)) for the person on this install
+([`branch_person`](../bookclerk_library/control_plane.md#branch_person)), recording that they came from the library.
+
+#### Arguments
+
+* `store` - This install's library.
+* `preferred` - The Owner who elevated into the operator session that
+  ran the join, when one did.
+* `bundle` - The opened bundle.
+
+#### Errors
+
+Returns a read or write error ([`import_carried_accounts`](../bookclerk_library/control_plane.md#import_carried_accounts)).
+
 ### library_origin
 
 ```rust
@@ -1527,7 +1615,7 @@ pub async fn redeem_branch_code(
     store: &LibraryStore,
     redeem: &BranchRedeem<'_>,
     keys: &ClusterLinkKeys,
-) -> Result<ClusterLink, JoinError>
+) -> Result<RedeemedBranch, JoinError>
 ```
 
 Redeems an approved sign-in: the library runs the same redeem as for a

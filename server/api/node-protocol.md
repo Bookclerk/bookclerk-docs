@@ -640,6 +640,7 @@ redirect URI, enrollment off, or the user no longer active).
   - `node_id` *string*, **required** — The node id recorded for the joining install.
   - `connection` *[`ConnectionType`](schemas.md#connectiontype)* — The connection type recorded (`branch` when left out).
   - `bootstrap` *string or null* — For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box key ([`crate::seal_clerk_bootstrap`]), as base64url without padding.
+  - `accounts` *string or null* — For a branch whose user chose "Bring my store connections to this branch": the user's own store accounts as a [`crate::AccountBundle`] sealed to the node's box key ([`crate::seal_account_bundle`]), as base64url without padding. Left out when the user did not choose it or had none to bring.
 - `400` — The body is not an enroll request, or its keys are not base64url. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`), or the code does not redeem: blank, unknown, used, expired, wrong verifier, or the user may no longer let a clerk join (`enrollment_refused`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
@@ -747,6 +748,14 @@ Schema:
       ],
       "description": "For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box\nkey ([`crate::seal_clerk_bootstrap`]), as base64url without padding.",
       "example": "Qm9va2NsZXJrIHNlYWxlZCBjbGVyayBib290c3RyYXA6IGVwaGVtZXJhbCBrZXkgKyBjaXBoZXJ0ZXh0"
+    },
+    "accounts": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "For a branch whose user chose \"Bring my store connections to this\nbranch\": the user's own store accounts as a\n[`crate::AccountBundle`] sealed to the node's box key\n([`crate::seal_account_bundle`]), as base64url without padding.\nLeft out when the user did not choose it or had none to bring.",
+      "example": "Qm9va2NsZXJrIHNlYWxlZCBhY2NvdW50IGJ1bmRsZTogZXBoZW1lcmFsIGtleSArIGNpcGhlcnRleHQ"
     }
   }
 }

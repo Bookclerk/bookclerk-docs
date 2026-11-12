@@ -8060,6 +8060,28 @@ Lists all store accounts in the library database.
 
 Returns a crate error when the database operation fails or inputs are invalid.
 
+#### LibraryStore::list_accounts_for_plugin
+
+```rust
+pub async fn list_accounts_for_plugin(
+    &self,
+    plugin_key: &str,
+) -> Result<Vec<AccountRecord>>
+```
+
+List the accounts of one storefront plugin, ordered by account id.
+
+The filter runs in the query, so the read is bounded by that
+plugin's accounts rather than the whole library's.
+
+##### Arguments
+
+* `plugin_key` - Canonical plugin key whose accounts to read.
+
+##### Errors
+
+Returns the read error.
+
 #### LibraryStore::count_identities
 
 ```rust
