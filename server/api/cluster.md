@@ -1201,6 +1201,8 @@ Status `200`: Pending and granted cluster consents.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "work_for_members": false,
+      "keep_member_copies": false,
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
@@ -1332,6 +1334,8 @@ Schema:
           "enrolled_at",
           "share_books",
           "include_branches",
+          "work_for_members",
+          "keep_member_copies",
           "list_members_books"
         ],
         "properties": {
@@ -1374,6 +1378,16 @@ Schema:
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
             "example": true
+          },
+          "work_for_members": {
+            "type": "boolean",
+            "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+            "example": false
+          },
+          "keep_member_copies": {
+            "type": "boolean",
+            "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+            "example": false
           },
           "max_jobs": {
             "type": [
@@ -4225,6 +4239,8 @@ Status `200`: Whether this install has joined a library, and its state.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "work_for_members": false,
+      "keep_member_copies": false,
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
@@ -4290,6 +4306,8 @@ Schema:
           "enrolled_at",
           "share_books",
           "include_branches",
+          "work_for_members",
+          "keep_member_copies",
           "list_members_books"
         ],
         "properties": {
@@ -4332,6 +4350,16 @@ Schema:
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
             "example": true
+          },
+          "work_for_members": {
+            "type": "boolean",
+            "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+            "example": false
+          },
+          "keep_member_copies": {
+            "type": "boolean",
+            "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+            "example": false
           },
           "max_jobs": {
             "type": [
@@ -5619,6 +5647,8 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "work_for_members": false,
+    "keep_member_copies": false,
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
@@ -5662,6 +5692,8 @@ Schema:
             "enrolled_at",
             "share_books",
             "include_branches",
+            "work_for_members",
+            "keep_member_copies",
             "list_members_books"
           ],
           "properties": {
@@ -5704,6 +5736,16 @@ Schema:
               "type": "boolean",
               "description": "\"Include books from my own branches\".",
               "example": true
+            },
+            "work_for_members": {
+              "type": "boolean",
+              "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+              "example": false
+            },
+            "keep_member_copies": {
+              "type": "boolean",
+              "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+              "example": false
             },
             "max_jobs": {
               "type": [
@@ -6295,6 +6337,8 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "work_for_members": false,
+    "keep_member_copies": false,
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
@@ -6336,6 +6380,8 @@ Schema:
         "enrolled_at",
         "share_books",
         "include_branches",
+        "work_for_members",
+        "keep_member_copies",
         "list_members_books"
       ],
       "properties": {
@@ -6378,6 +6424,16 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "work_for_members": {
+          "type": "boolean",
+          "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+          "example": false
+        },
+        "keep_member_copies": {
+          "type": "boolean",
+          "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+          "example": false
         },
         "max_jobs": {
           "type": [
@@ -6938,6 +6994,8 @@ Status `200`: Leaving started.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "work_for_members": false,
+    "keep_member_copies": false,
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
@@ -6970,6 +7028,8 @@ Schema:
         "enrolled_at",
         "share_books",
         "include_branches",
+        "work_for_members",
+        "keep_member_copies",
         "list_members_books"
       ],
       "properties": {
@@ -7012,6 +7072,16 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "work_for_members": {
+          "type": "boolean",
+          "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+          "example": false
+        },
+        "keep_member_copies": {
+          "type": "boolean",
+          "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+          "example": false
         },
         "max_jobs": {
           "type": [
@@ -12087,7 +12157,7 @@ sharing settings (`{clusters: [...]}`).
 ### Responses
 
 - `200` — The branch's sharing settings. Body: [`SharingSettings`](schemas.md#sharingsettings) (`application/json`)
-  - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — Every library this install is a branch of, with its two sharing settings.
+  - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — Every library this install is a branch of, with its sharing and work settings.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -12156,6 +12226,8 @@ Status `200`: The branch's sharing settings.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "work_for_members": false,
+      "keep_member_copies": false,
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
@@ -12189,6 +12261,8 @@ Schema:
           "enrolled_at",
           "share_books",
           "include_branches",
+          "work_for_members",
+          "keep_member_copies",
           "list_members_books"
         ],
         "properties": {
@@ -12232,6 +12306,16 @@ Schema:
             "description": "\"Include books from my own branches\".",
             "example": true
           },
+          "work_for_members": {
+            "type": "boolean",
+            "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+            "example": false
+          },
+          "keep_member_copies": {
+            "type": "boolean",
+            "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+            "example": false
+          },
           "max_jobs": {
             "type": [
               "integer",
@@ -12266,7 +12350,7 @@ Schema:
           }
         }
       },
-      "description": "Every library this install is a branch of, with its two sharing settings."
+      "description": "Every library this install is a branch of, with its sharing and work settings."
     }
   }
 }
@@ -12479,9 +12563,10 @@ A `text/plain` body: a string.
 
 ## `POST /api/config/join/sharing`
 
-`POST /api/config/join/sharing`: Settings → Library's sharing settings
-for one library this install is a branch of (the two book-sharing
-settings, and optionally "List my members' books"). The operator or
+`POST /api/config/join/sharing`: Settings → Library's sharing and work
+settings for one library this install is a branch of (the two
+book-sharing settings, the two work settings, and optionally "List my
+members' books"). The operator or
 an Owner (verified from the stored role); anyone else gets 403.
 
 **Access:** The operator, or any signed-in user.
@@ -12495,7 +12580,9 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `cluster_id` *string*, **required** — The library (owner cluster id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
-- `list_members_books` *boolean or null* — "List my members' books to *library*"; left as it is when absent.
+- `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
+- `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
+- `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
 
 ### Responses
 
@@ -12584,6 +12671,8 @@ Status `200`: The sharing settings after the change.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "work_for_members": false,
+    "keep_member_copies": false,
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
@@ -12614,6 +12703,8 @@ Schema:
         "enrolled_at",
         "share_books",
         "include_branches",
+        "work_for_members",
+        "keep_member_copies",
         "list_members_books"
       ],
       "properties": {
@@ -12656,6 +12747,16 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "work_for_members": {
+          "type": "boolean",
+          "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+          "example": false
+        },
+        "keep_member_copies": {
+          "type": "boolean",
+          "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+          "example": false
         },
         "max_jobs": {
           "type": [
@@ -13073,6 +13174,8 @@ Status `200`: The link after the change, with its share of the machine now.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "work_for_members": false,
+    "keep_member_copies": false,
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
@@ -13103,6 +13206,8 @@ Schema:
         "enrolled_at",
         "share_books",
         "include_branches",
+        "work_for_members",
+        "keep_member_copies",
         "list_members_books"
       ],
       "properties": {
@@ -13145,6 +13250,16 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "work_for_members": {
+          "type": "boolean",
+          "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+          "example": false
+        },
+        "keep_member_copies": {
+          "type": "boolean",
+          "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+          "example": false
         },
         "max_jobs": {
           "type": [

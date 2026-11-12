@@ -461,6 +461,8 @@ A library this install is a branch of: ids, origin and state, never key material
 - `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
 - `share_books` *boolean*, **required** — "Share this branch's books with the library".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `work_for_members` *boolean*, **required** — "Download for other members of the library": this install takes the library's work for its other members too, not only its owner's (off by default).
+- `keep_member_copies` *boolean*, **required** — "Keep copies of other members' books": a book acquired here for another member is also written to this install's own destinations (off by default).
 - `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
 - `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
 - `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
@@ -2616,12 +2618,15 @@ One allowed value of an `enum` setting: the stored id and its label.
 
 ## SharingBody
 
-`POST /api/config/join/sharing` body.
+`POST /api/config/join/sharing` body: one library and the settings to
+change for it.
 
 - `cluster_id` *string*, **required** — The library (owner cluster id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
-- `list_members_books` *boolean or null* — "List my members' books to *library*"; left as it is when absent.
+- `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
+- `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
+- `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
 
 ## SharingChanged
 
@@ -2633,7 +2638,7 @@ JSON body after `POST /api/config/join/sharing`.
 
 JSON body for `GET /api/config/join/sharing`.
 
-- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with its two sharing settings.
+- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with its sharing and work settings.
 
 ## ShelfKindInfo
 

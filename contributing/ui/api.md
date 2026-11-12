@@ -1014,6 +1014,14 @@ job_share?: number;
 
 Jobs the library may have running here now; absent while its link is not running.
 
+##### keep\_member\_copies?
+
+```ts
+keep_member_copies?: boolean;
+```
+
+"Keep copies of other members' books" (off by default).
+
 ##### max\_jobs?
 
 ```ts
@@ -1061,6 +1069,14 @@ state: string;
 ```
 
 `active`, `revoked` (by the owner), or `left` (by this host).
+
+##### work\_for\_members?
+
+```ts
+work_for_members?: boolean;
+```
+
+"Download for other members of <library>" (off by default).
 
 ***
 

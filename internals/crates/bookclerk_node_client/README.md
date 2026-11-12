@@ -649,6 +649,24 @@ pub fn consented_plugins(&self) -> BTreeSet<String>
 
 The plugin keys consented to now.
 
+#### HostClientHandle::set_claim_scope
+
+```rust
+pub fn set_claim_scope(&self, scope: ClaimScope)
+```
+
+Sets whose work later claims take. Jobs already held keep running:
+the setting decides what this host asks for, and the library hands
+only work the node is trusted with either way.
+
+#### HostClientHandle::claim_scope
+
+```rust
+pub fn claim_scope(&self) -> ClaimScope
+```
+
+Whose work claims take now.
+
 #### HostClientHandle::request
 
 ```rust

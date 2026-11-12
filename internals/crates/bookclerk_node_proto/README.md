@@ -26,7 +26,8 @@ fence, and may write a refreshed store token back with
 [`Body::SecretUpdate`](#body). The owner forwards the host's `node.<id>` queue
 as [`Body::Wake`](#body) frames, each answered with [`Body::Ack`](#body).
 
-A claim may carry a [`ClaimFilter`](#claimfilter) (the kinds the host runs and the
+A claim may carry a [`ClaimFilter`](#claimfilter) (the kinds the host runs, whose work
+it takes ([`ClaimScope`](#claimscope)), and the
 plugins its operator consented to); a job handed back unrun goes with
 [`Body::Release`](#body). To act on wakes the host reads
 [`Body::DeploymentsList`](#body) and [`Body::InstanceConfigGet`](#body) (`SECRETS`
@@ -107,6 +108,7 @@ bytes.
 | [`ClerkDatabase`](#clerkdatabase) | enum | The library's database, as a clerk needs it to connect. |
 | [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
+| [`ClaimScope`](#claimscope) | enum | Whose work a host takes from a library (`claim.filter.scope`), as the branch operator set it for that link. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
 | [`KeyError`](#keyerror) | enum | Why a public key was refused. |
 | [`Availability`](#availability) | enum | How a branch can supply an edition. |
@@ -513,6 +515,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 pub struct ClaimFilter {
     pub kinds: Vec<String>,
     pub plugins: Vec<String>,
+    pub scope: ClaimScope,
 }
 ```
 
@@ -522,6 +525,7 @@ What a host is willing to claim (`claim.filter`).
 
 - `kinds`: Job kinds the host runs.
 - `plugins`: Plugin keys the host's operator consented to.
+- `scope`: Whose work the host takes. Absent means [`ClaimScope::Own`](#claimscope).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -876,6 +880,7 @@ pub struct WorkJob {
     pub payload: Value,
     pub attempt: i64,
     pub scan_import: Option<ScanImport>,
+    pub for_node_owner: bool,
 }
 ```
 
@@ -890,6 +895,10 @@ A job handed to a host.
 - `scan_import`: For a scan: which titles the owner's library imports. The owner
   writes every row a host returns, so the host scans with the
   owner's settings, never its own. Absent for other kinds.
+- `for_node_owner`: True when every store account the job touches belongs to the user
+  who owns the node: the branch's own books. A branch keeps its own
+  copy of another member's book only when its operator asked for
+  that. Absent means false.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1440,8 +1449,8 @@ What a frame says, tagged by `type`.
   - `item`: [`ITEM_JOB`](#item_job) (deliveries are not served yet).
   - `class`: Job resource class; `network` when absent.
   - `filter`: The host's own narrowing: only jobs of these kinds whose every
-    plugin its operator consented to. Absent claims everything the
-    node is trusted with.
+    plugin its operator consented to, and whose work ([`ClaimScope`](#claimscope)).
+    Absent claims everything the node is trusted with.
 - `Work`: Owner → host: a claimed job, its lease, and its sealed secrets.
   - `item`: [`ITEM_JOB`](#item_job).
   - `job`: The job.
@@ -1659,6 +1668,37 @@ What a frame says, tagged by `type`.
 - `Unknown`: A frame type this side does not know.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ClaimScope
+
+```rust
+pub enum ClaimScope {
+    Own,
+    AllMembers,
+}
+```
+
+Whose work a host takes from a library (`claim.filter.scope`), as the
+branch operator set it for that link.
+
+The library still hands only work the node is trusted with: a scope
+can narrow that trust, never widen it.
+
+**Variants**
+
+- `Own`: Only work for the store accounts of the user who owns the node.
+- `AllMembers`: Work for any member of the library the node is trusted with
+  ("Download for other members of *library*").
+
+#### ClaimScope::is_own
+
+```rust
+pub fn is_own(&self) -> bool
+```
+
+True for [`ClaimScope::Own`](#claimscope), the default left off the wire.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### FrameError
 

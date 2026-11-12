@@ -25,9 +25,12 @@ See `docs/adr/control-plane.md`.
 | [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
+| [`ClusterLinkSettings`](#clusterlinksettings) | struct | Every setting Settings → Library changes on one link at once; see `set_cluster_link_settings`. |
 | [`JobCapRequest`](#jobcaprequest) | struct | A validated job cap change: the library it names (trimmed) and its new cap, `None` for an equal share. |
 | [`LinkJobCap`](#linkjobcap) | struct | The most jobs a branch runs for one library at once, as its operator set it: 0 (runs nothing for that library) to `LinkJobCap::MAX`. |
 | [`NewClusterLink`](#newclusterlink) | struct | What enrollment returned, to record with `record_cluster_link`. |
+| [`SharingBody`](#sharingbody) | struct | `POST /api/config/join/sharing` body: one library and the settings to change for it. |
+| [`SharingRequest`](#sharingrequest) | struct | A sharing settings change: the library it names (trimmed) and the settings to write, each `None` setting left as stored. |
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
@@ -193,12 +196,15 @@ See `docs/adr/control-plane.md`.
 | [`load_cluster_link_keys`](#load_cluster_link_keys) | function | Unseals the node keys of an active `link`. |
 | [`mark_cluster_link_revoked`](#mark_cluster_link_revoked) | function | Marks an **active** link still enrolled as `remote_node_id` `CLUSTER_LINK_REVOKED` (the owner closed with 4403 on that node's connection). A link this install already left stays `left`, and one a later join enrolled as another node keeps its new enrollment. |
 | [`parse_job_cap_request`](#parse_job_cap_request) | function | Parses and validates a `POST /api/config/join/capacity` body from its raw bytes, sans IO, the way the route reads it: JSON into `CapacityBody`, then `CapacityBody::validate`. |
+| [`parse_sharing_request`](#parse_sharing_request) | function | Parses a `POST /api/config/join/sharing` body from its raw bytes, sans IO, the way the route reads it: JSON into `SharingBody`, then `SharingBody::into_request`. |
 | [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
 | [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
 | [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
+| [`set_cluster_link_settings`](#set_cluster_link_settings) | function | Sets a link's sharing, listing and work settings in one statement, so a failed write leaves every one of them as it was. |
 | [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
+| [`set_cluster_link_work`](#set_cluster_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
 | [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
 | [`ensure_cron_cursor`](#ensure_cron_cursor) | function | Creates the cursor at `initial_last_ms` unless one exists, and returns the stored cursor. |
 | [`load_cron_cursor`](#load_cron_cursor) | function | Reads one cursor. |
@@ -374,10 +380,13 @@ See `docs/adr/control-plane.md`.
 | [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
 | [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
+| [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
 | [`job_item_accounts`](#job_item_accounts) | function | The store accounts a scan or acquire touches: its items. |
 | [`job_trusted`](#job_trusted) | function | True when a node with `trust` may receive `job`. |
-| [`node_may_claim_job`](#node_may_claim_job) | function | True when `node_id` may claim `job` right now. |
+| [`node_may_claim_job`](#node_may_claim_job) | function | True when `node_id` may claim `job` right now, whoever's work it is. |
+| [`node_may_claim_job_in_scope`](#node_may_claim_job_in_scope) | function | True when `node_id` may claim `job` right now under a claim of `scope` (`node_trust_in_scope`). |
 | [`node_trust`](#node_trust) | function | Resolves what `node_id` is trusted with right now. |
+| [`node_trust_in_scope`](#node_trust_in_scope) | function | What `node_id` is trusted with for a claim of `scope`. |
 | [`plan_acquire`](#plan_acquire) | function | Plans the acquire jobs one request admits. |
 | [`plan_scan`](#plan_scan) | function | Plans the scan jobs one request admits. |
 | [`remote_node_may_view_job`](#remote_node_may_view_job) | function | True when a remote node may read `job`'s state. |
@@ -912,6 +921,8 @@ pub struct ClusterLink {
     pub share_books: bool,
     pub include_branches: bool,
     pub ancestry: Vec<String>,
+    pub work_for_members: bool,
+    pub keep_member_copies: bool,
     pub max_jobs: Option<LinkJobCap>,
     pub list_members_books: bool,
 }
@@ -934,6 +945,10 @@ One owner cluster this install enrolled into.
   only books acquired on this install itself).
 - `ancestry`: The owner library's ancestry as it last reported it: its own
   cluster id first, then each library above it.
+- `work_for_members`: "Download for other members of *library*" (off by default): with it
+  off the branch takes only its owner's work from the library.
+- `keep_member_copies`: "Keep copies of other members' books" (off by default): with it off
+  a book acquired for another member goes only to the library.
 - `max_jobs`: The operator's cap on jobs run for this library at once; `None`
   leaves the link its equal share of the machine.
 - `list_members_books`: "List my members' books to *library*" (on by default): catalog
@@ -947,6 +962,14 @@ pub fn is_active(&self) -> bool
 ```
 
 True when the host client should connect this link.
+
+#### ClusterLink::claim_scope
+
+```rust
+pub fn claim_scope(&self) -> ClaimScope
+```
+
+Whose work the branch takes from this library.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
 
@@ -1010,6 +1033,32 @@ pub fn box_public_key(&self) -> [u8; 32]
 The X25519 public key the owner seals job secrets to.
 
 Implements: `Clone`, `Debug`
+
+### ClusterLinkSettings
+
+```rust
+pub struct ClusterLinkSettings {
+    pub share_books: bool,
+    pub include_branches: bool,
+    pub list_members_books: Option<bool>,
+    pub work_for_members: Option<bool>,
+    pub keep_member_copies: Option<bool>,
+}
+```
+
+Every setting Settings → Library changes on one link at once; see
+[`set_cluster_link_settings`](#set_cluster_link_settings).
+
+**Fields**
+
+- `share_books`: "Share this branch's books with *library*".
+- `include_branches`: "Include books from my own branches".
+- `list_members_books`: "List my members' books to *library*"; `None` keeps the stored value.
+- `work_for_members`: "Download for other members of *library*"; `None` keeps the stored
+  value.
+- `keep_member_copies`: "Keep copies of other members' books"; `None` keeps the stored value.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### JobCapRequest
 
@@ -1089,6 +1138,46 @@ What enrollment returned, to record with [`record_cluster_link`](#record_cluster
 - `owner_origin`: Owner origin the host enrolled through.
 - `remote_node_id`: Node id from the enroll answer.
 - `spki_pin`: SPKI pin from the enrollment link.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### SharingBody
+
+```rust
+pub struct SharingBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/sharing` body: one library and the settings to
+change for it.
+
+#### SharingBody::into_request
+
+```rust
+pub fn into_request(self) -> SharingRequest
+```
+
+The change the body asks for.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### SharingRequest
+
+```rust
+pub struct SharingRequest {
+    pub cluster_id: String,
+    pub settings: ClusterLinkSettings,
+}
+```
+
+A sharing settings change: the library it names (trimmed) and the
+settings to write, each `None` setting left as stored.
+
+**Fields**
+
+- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
+- `settings`: The settings to write ([`set_cluster_link_settings`](#set_cluster_link_settings)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -1858,6 +1947,7 @@ Implements: `Clone`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `Part
 pub struct JobClaimFilter {
     pub kinds: BTreeSet<String>,
     pub plugin_keys: BTreeSet<String>,
+    pub scope: ClaimScope,
 }
 ```
 
@@ -1868,6 +1958,8 @@ keys its operator consented to. Both must admit a job.
 
 - `kinds`: Job kinds (`scan`, `acquire`, ...).
 - `plugin_keys`: Canonical plugin keys.
+- `scope`: Whose work the Host takes; it narrows what the node is trusted
+  with ([`super::node_trust_in_scope`](#node_trust_in_scope)), never widens it.
 
 #### JobClaimFilter::is_empty
 
@@ -1942,6 +2034,16 @@ One routed claim attempt by one worker.
 - `limits`: Semaphore limits.
 - `filter`: The claimer's own narrowing; `None` claims every job it is trusted
   with and can run.
+
+#### JobClaimRequest::scope
+
+```rust
+pub fn scope(&self) -> ClaimScope
+```
+
+Whose work the claim takes: a Host's filter says
+([`JobClaimFilter::scope`](#jobclaimfilter)); a claim without one takes every job
+the node is trusted with.
 
 Implements: `Clone`, `Debug`
 
@@ -3091,6 +3193,7 @@ pub struct RemoteJobClaim {
     pub plugin_keys: Vec<String>,
     pub source_plugin_key: Option<String>,
     pub resumed: bool,
+    pub for_node_owner: bool,
 }
 ```
 
@@ -3106,6 +3209,9 @@ A job claimed for a Host, with the secrets to seal for it.
   ([`job_source_plugin_key`](#job_source_plugin_key)); always set under a claim filter.
 - `resumed`: The claim resumed a suspended job ([`RoutedJobClaim::resumed`](#routedjobclaim)).
   Pass it back to [`release_remote_job`](#release_remote_job) if the claim is given back.
+- `for_node_owner`: Every store account the job touches belongs to the user who owns
+  the node ([`super::job_for_node_owner`](#job_for_node_owner)): the branch owner's own
+  work.
 
 Implements: `Debug`
 
@@ -4596,6 +4702,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 pub enum NodeTrust {
     All,
     OwnedBy(i64),
+    AllOfOwner(i64),
     Nothing,
 }
 ```
@@ -4607,6 +4714,13 @@ What a node is trusted with, resolved from the database.
 - `All`: Every job: an owner node, or a Host owned by an active Owner or
   Administrator.
 - `OwnedBy`: Only jobs whose secrets all belong to this user.
+- `AllOfOwner`: Any job a node trusted with [`NodeTrust::All`](#nodetrust) may run, but only
+  when it names an account and every store account that name reaches
+  belongs to this user: an Owner's or Administrator's branch claiming
+  only its owner's work ([`node_trust_in_scope`](#node_trust_in_scope)). Unlike
+  [`NodeTrust::OwnedBy`](#nodetrust) the job's shape (an instance pin,
+  requirements, its kind) does not refuse it. Only claims produce it;
+  [`node_trust`](#node_trust) never does.
 - `Nothing`: No job at all.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -5779,6 +5893,23 @@ Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not
 shape (unknown or duplicate fields, wrong types, numbers outside `u32`),
 a missing `max_jobs`, or a cap above [`LinkJobCap::MAX`](#linkjobcapmax).
 
+### parse_sharing_request
+
+```rust
+pub fn parse_sharing_request(body: &[u8]) -> Result<SharingRequest>
+```
+
+Parses a `POST /api/config/join/sharing` body from its raw bytes, sans
+IO, the way the route reads it: JSON into [`SharingBody`](#sharingbody), then
+[`SharingBody::into_request`](#sharingbodyinto_request).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape: not an object, unknown or duplicate fields, a missing
+`cluster_id`, `share_books` or `include_branches`, or a value of the
+wrong type.
+
 ### record_cluster_link
 
 ```rust
@@ -5867,6 +5998,33 @@ the value it already has still returns `true`.
 
 Returns the write error.
 
+### set_cluster_link_settings
+
+```rust
+pub async fn set_cluster_link_settings(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    settings: ClusterLinkSettings,
+) -> Result<bool>
+```
+
+Sets a link's sharing, listing and work settings in one statement, so a
+failed write leaves every one of them as it was.
+
+#### Arguments
+
+* `owner_cluster_id` - The library the link joined.
+* `settings` - The new values; each `None` keeps the stored one.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the values it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
+
 ### set_cluster_link_sharing
 
 ```rust
@@ -5914,6 +6072,26 @@ Sets a link's state. Answers false when no such link exists.
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for an unknown state, and the write
 error.
+
+### set_cluster_link_work
+
+```rust
+pub async fn set_cluster_link_work(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    work_for_members: bool,
+    keep_member_copies: bool,
+) -> Result<bool>
+```
+
+Sets a link's two work settings: "Download for other members of
+*library*" and "Keep copies of other members' books". Answers false
+when no such link exists. The running client claims under the new
+scope from its next consent check.
+
+#### Errors
+
+Returns the write error.
 
 ### claim_cron_fire
 
@@ -8989,7 +9167,8 @@ The claim is returned unchanged only when both hold:
   fence (same lease owner and generation), that owner is
   `request.owner`, and the lease has not expired. A claim that was
   reclaimed, finished, released, or left to expire is not handed over;
-- the node is still trusted with the job ([`node_may_claim_job`](#node_may_claim_job)).
+- the node is still trusted with the job under the claim's scope
+  ([`node_may_claim_job_in_scope`](#node_may_claim_job_in_scope)).
 
 Ownership is checked again after the trust reads, so a lease lost while
 they ran is refused too.
@@ -9005,6 +9184,24 @@ lease owner is refused without touching the row or its permits.
 
 Returns an error when a read or write fails. A failure while releasing
 leaves the lease to expire, after which the job is redelivered.
+
+### job_for_node_owner
+
+```rust
+pub async fn job_for_node_owner(
+    store: &LibraryStore,
+    node_id: &str,
+    job: &JobRecord,
+) -> Result<bool>
+```
+
+True when every store account `job` touches belongs to the user who
+owns `node_id`: the job is the branch owner's own work
+(`bookclerk_node_proto::WorkJob::for_node_owner`).
+
+#### Errors
+
+Returns an error when a read fails.
 
 ### job_item_accounts
 
@@ -9062,7 +9259,26 @@ pub async fn node_may_claim_job(
 ) -> Result<bool>
 ```
 
-True when `node_id` may claim `job` right now.
+True when `node_id` may claim `job` right now, whoever's work it is.
+
+#### Errors
+
+Returns an error when a read fails.
+
+### node_may_claim_job_in_scope
+
+```rust
+pub async fn node_may_claim_job_in_scope(
+    store: &LibraryStore,
+    node_id: &str,
+    claimant: Claimant,
+    scope: ClaimScope,
+    job: &JobRecord,
+) -> Result<bool>
+```
+
+True when `node_id` may claim `job` right now under a claim of `scope`
+([`node_trust_in_scope`](#node_trust_in_scope)).
 
 #### Errors
 
@@ -9079,6 +9295,31 @@ pub async fn node_trust(
 ```
 
 Resolves what `node_id` is trusted with right now.
+
+#### Errors
+
+Returns an error when a read fails.
+
+### node_trust_in_scope
+
+```rust
+pub async fn node_trust_in_scope(
+    store: &LibraryStore,
+    node_id: &str,
+    claimant: Claimant,
+    scope: ClaimScope,
+) -> Result<NodeTrust>
+```
+
+What `node_id` is trusted with for a claim of `scope`.
+
+`ClaimScope::Own` narrows a Host trusted with every job
+([`NodeTrust::All`](#nodetrust), an Owner's or Administrator's) to the work of the
+user who owns it ([`NodeTrust::AllOfOwner`](#nodetrust), which still admits that
+user's pinned jobs and jobs with requirements), as a branch takes only
+its owner's work unless its
+operator turned on "Download for other members". A scope never widens
+trust, and an owner node, which shares the database, keeps every job.
 
 #### Errors
 
