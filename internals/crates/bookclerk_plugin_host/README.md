@@ -46,6 +46,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`LiveDeploymentRuntime`](#livedeploymentruntime) | struct | Production runtime: spawn through the existing host adapters and register the session on the live registry. |
 | [`LocalPackage`](#localpackage) | struct | Local archive the reconciler may install when the ledger has no row. |
 | [`DiscoveredPlugin`](#discoveredplugin) | struct | A discovered plugin ready to spawn. |
+| [`LinkStateDir`](#linkstatedir) | struct | The directory leaf that holds one joined library's plugin state: `link-` and 32 lowercase hex digits (128 bits of the SHA-256 of the library's cluster id, as `PluginKey::fs_id` keeps). An owner picks its own cluster id, so the digest must be long enough that no library can search for an id that lands in another library's directory. |
 | [`EnrolledPlugin`](#enrolledplugin) | struct | One plugin after enrollment on this node. |
 | [`EventOutbox`](#eventoutbox) | struct | Host-owned facts a session needs before it can hand a guest an `EVENTS` binding: the outbox store, the producer allowlist and what it may read. |
 | [`EventReaders`](#eventreaders) | struct | What an `EVENTS` binding may read back from the outbox. |
@@ -79,6 +80,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`SpawnPlan`](#spawnplan) | struct | Everything the spawn path needs to start one guest. |
 | [`WorkerdFrontDoor`](#workerdfrontdoor) | struct | Resolved `bookclerk-workerd` launcher and the pinned `workerd` beside it. |
 | [`SpawnHealth`](#spawnhealth) | enum | Result of spawn plus the health RPC. |
+| [`StateScope`](#statescope) | enum | Whose library a guest works for, which keeps one library's plugin state apart from another's on the same install. |
 | [`PluginError`](#pluginerror) | enum | Failures from discovery, RPC, consent, or plugin adapters. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
@@ -230,6 +232,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`remote_row_consent_state`](#remote_row_consent_state) | function | Evaluates a stored consent row: `remote_consent_state` over its grants, except that an approval of another archive (the owner changed the artifact URL or digest since the operator approved) needs approval again, whatever the grant. |
 | [`plugin_instance_key`](#plugin_instance_key) | function | Isolation key: different accounts never share a plugin isolate. |
 | [`note_spawn_stage`](#note_spawn_stage) | function | Record one secret-free startup line. |
+| [`purge_link_plugin_state`](#purge_link_plugin_state) | function | Deletes the plugin state this install kept for a library it no longer belongs to: `plugin-state/<link dir>/`, every plugin's `data`, `tmp` and session directories in it. |
 | [`recent_spawn_diagnostics`](#recent_spawn_diagnostics) | function | Bounded startup log for the current process. |
 | [`retry_abandoned_acl_journals`](#retry_abandoned_acl_journals) | function | Retry abandoned journals for every plugin under `files_dir/plugin-state`. |
 | [`revoke_plugin_state_before_purge`](#revoke_plugin_state_before_purge) | function | Revoke this plugin's journal before `--purge-state` deletes the directory. |
@@ -1194,6 +1197,7 @@ pub struct DiscoveredPlugin {
     pub command: PathBuf,
     pub identity: PluginInstallIdentity,
     pub version_grant: Option<PluginGrant>,
+    pub state_scope: StateScope,
 }
 ```
 
@@ -1208,6 +1212,8 @@ A discovered plugin ready to spawn.
 - `version_grant`: Consent grant recorded on the cluster release this tree was
   materialized from; `None` for host-local trees, whose grant lives in
   `plugin-grants.json`.
+- `state_scope`: Whose library the guest works for, which decides where its
+  host-managed `data` and `tmp` directories live.
 
 #### DiscoveredPlugin::new
 
@@ -1294,6 +1300,48 @@ pub fn plugin_key(&self) -> &PluginKey
 Provenance-qualified key.
 
 Implements: `Clone`, `Debug`
+
+### LinkStateDir
+
+```rust
+pub struct LinkStateDir(/* private */);
+```
+
+The directory leaf that holds one joined library's plugin state:
+`link-` and 32 lowercase hex digits (128 bits of the SHA-256 of the
+library's cluster id, as `PluginKey::fs_id` keeps). An owner picks its
+own cluster id, so the digest must be long enough that no library can
+search for an id that lands in another library's directory.
+
+Derived from the cluster id rather than copying it, so the leaf is
+always filesystem-safe and fixed-length whatever the owner sent.
+
+#### LinkStateDir::for_cluster
+
+```rust
+pub fn for_cluster(cluster_id: &str) -> Self
+```
+
+The state directory leaf of the library with `cluster_id`.
+
+#### LinkStateDir::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The directory leaf (`link-` + 32 hex digits).
+
+#### LinkStateDir::is_leaf
+
+```rust
+pub fn is_leaf(leaf: &str) -> bool
+```
+
+True when `leaf` has the shape of a link state directory, so a
+sweep never mistakes a plugin's own state directory for one.
+
+Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
 ### EnrolledPlugin
 
@@ -3829,6 +3877,31 @@ Result of spawn plus the health RPC.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### StateScope
+
+```rust
+pub enum StateScope {
+    Local,
+    Link(LinkStateDir),
+}
+```
+
+Whose library a guest works for, which keeps one library's plugin state
+apart from another's on the same install.
+
+A branch runs the plugins of every library it joined beside its own. Two
+libraries can deploy the same plugin key, so the key alone cannot name
+the guest's state: each joined library gets its own subtree under
+`plugin-state/`, and this install's own guests keep the top level.
+
+**Variants**
+
+- `Local`: This install's own library: `plugin-state/<PluginKey fs-id>/`.
+- `Link`: A library this install is a branch of:
+  `plugin-state/<link dir>/<PluginKey fs-id>/`.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### PluginError
 
 ```rust
@@ -6205,6 +6278,38 @@ The line is a `bookclerk::spawn` tracing event and a byte-capped ring
 entry. Raw stderr is written only when [`spawn_diag_stderr_enabled`](../bookclerk_sandbox/README.md#spawn_diag_stderr_enabled) is
 set (`BOOKCLERK_SPAWN_DIAG=1|true|stderr`). Session challenges are stripped.
 Plugin stderr is not stored here; the per-session tail is separate.
+
+### purge_link_plugin_state
+
+```rust
+pub fn purge_link_plugin_state(
+    files_dir: &Path,
+    link: &LinkStateDir,
+) -> Result<(), String>
+```
+
+Deletes the plugin state this install kept for a library it no longer
+belongs to: `plugin-state/<link dir>/`, every plugin's `data`, `tmp`
+and session directories in it.
+
+Each plugin's state root goes through [`revoke_plugin_state_before_purge`](#revoke_plugin_state_before_purge)
+first, so a Windows package-SID grant still journalled there is revoked
+(or the purge refused) rather than left behind. Rejected journals are not
+discarded. A missing subtree is not an error.
+
+Call it only once no guest of that library is running.
+
+#### Arguments
+
+* `files_dir` - This install's files directory.
+* `link` - The joined library's state directory leaf.
+
+#### Errors
+
+Returns a message naming every plugin whose journal refused the purge,
+or saying the
+subtree could not be deleted; whatever was not deleted stays in place,
+and a later call retries it.
 
 ### recent_spawn_diagnostics
 

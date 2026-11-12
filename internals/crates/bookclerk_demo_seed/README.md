@@ -373,7 +373,8 @@ must make for itself, so the dir can be baked into the image.
 Removes `master.key` (the first daemon of each container mints and wraps
 its own), the covers cache's URL-signing key (`covers/token.key` under
 the cache dir), `logs/`, each plugin's `session-*` dirs under
-`plugin-state/`, and empty SQLite side files. Anything already absent
+`plugin-state/`, any joined library's plugin state
+(`plugin-state/link-*`), and empty SQLite side files. Anything already absent
 counts as removed.
 
 #### Arguments
