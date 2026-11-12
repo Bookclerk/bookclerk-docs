@@ -50,6 +50,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EventDeliveryFence`](#eventdeliveryfence) | struct | Claim fence for an event delivery (mirrors `JobFence`). |
 | [`EventDeliveryMetrics`](#eventdeliverymetrics) | struct | Operator-visible delivery-queue counters for `GET /api/status`. |
 | [`EventDeliveryRecord`](#eventdeliveryrecord) | struct | Per-subscriber delivery row. |
+| [`EventStreamPage`](#eventstreampage) | struct | One page of `EventStreamRead`. |
+| [`EventStreamRead`](#eventstreamread) | struct | One page request over the domain-event outbox (`EventPublisher.read`). |
 | [`EventSubscriber`](#eventsubscriber) | struct | Subscriber snapshot used when creating deliveries for one event. |
 | [`EventSubscriberCatalogRecord`](#eventsubscribercatalogrecord) | struct | Cluster-authoritative catalog row after collapsing live nodes by `plugin_id`. |
 | [`EventSubscriberNodeRecord`](#eventsubscribernoderecord) | struct | Live per-node catalog row (`event_subscriber_nodes`). |
@@ -132,6 +134,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`LibraryError`](#libraryerror) | enum | Failures from library store, schema apply, secrets, or config. |
 | [`AcquireStatus`](#acquirestatus) | enum | Acquire / download state for a title. |
 | [`EnqueueOutcome`](#enqueueoutcome) | enum | Result of admitting a job into the durable queue. |
+| [`EventStreamStart`](#eventstreamstart) | enum | Where one event stream read starts. |
 | [`JobKind`](#jobkind) | enum | Kind of durable daemon work stored in the `jobs` table. |
 | [`JobResourceClass`](#jobresourceclass) | enum | Concurrency class that bounds how many jobs of this type run at once. |
 | [`JobState`](#jobstate) | enum | Lifecycle state of a durable job row. |
@@ -271,6 +274,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WISHLIST_CHANGED`](#wishlist_changed) | constant | Host event published when a wishlist entry is added or changes status, or an open entry is deleted with its user. |
 | [`SCHEMA_STATE_FROZEN`](#schema_state_frozen) | constant | On-disk `bookclerk_schema_migrations.state` for a frozen plan version. |
 | [`SCHEMA_STATE_UNRELEASED`](#schema_state_unreleased) | constant | On-disk `bookclerk_schema_migrations.state` for an unreleased development pack. |
+| [`EVENT_STREAM_SCAN_FACTOR`](#event_stream_scan_factor) | constant | Rows one `LibraryStore::read_event_stream` call may examine per event it may return. |
+| [`EVENT_STREAM_SETTLE_SECS`](#event_stream_settle_secs) | constant | Seconds an outbox row must age before `LibraryStore::read_event_stream` returns it. `created_at` is stamped before the insert commits, so a publication can commit after a newer one; a read that stops short of the last few seconds never moves its cursor past a row that has yet to appear. Newer events still reach subscribers through delivery. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
@@ -2458,6 +2463,69 @@ pub fn fence(&self) -> EventDeliveryFence
 Fence for heartbeat / complete / fail / suspend.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### EventStreamPage
+
+```rust
+pub struct EventStreamPage {
+    pub events: Vec<DomainEventRecord>,
+    pub last_scanned: Option<(String, String)>,
+    pub more: bool,
+    pub expired_event_ids: Vec<String>,
+    pub truncated: bool,
+}
+```
+
+One page of [`EventStreamRead`](#eventstreamread).
+
+**Fields**
+
+- `events`: Matching events, oldest first.
+- `last_scanned`: Stored `(created_at, id)` of the last row scanned, the next page's
+  start; `None` when nothing was scanned.
+- `more`: True when more events may follow (the page filled or the scan budget
+  ran out).
+- `expired_event_ids`: Ids of returned events whose delivery to one of the subscriber ids
+  expired unleased.
+- `truncated`: True when the start position is older than the retention window.
+
+Implements: `Clone`, `Debug`, `Default`
+
+### EventStreamRead
+
+```rust
+pub struct EventStreamRead {
+    pub start: EventStreamStart,
+    pub subscriptions: Vec<EventCatalogSubscription>,
+    pub account_id: Option<String>,
+    pub plugin_key: String,
+    pub retention_days: u64,
+    pub settle_secs: u64,
+    pub limit: usize,
+    pub now: DateTime<Utc>,
+}
+```
+
+One page request over the domain-event outbox (`EventPublisher.read`).
+
+**Fields**
+
+- `start`: Where the read starts.
+- `subscriptions`: The reader's consented subscriptions, already narrowed to the types it
+  asked for. An event is returned when any of them matches it.
+- `account_id`: `Some` limits the read to one account's events; `None` reads every
+  account, as delivery does for a host-wide invocation.
+- `plugin_key`: The reader's PluginKey. Its deliveries are filed under this key and
+  under each of its instance ids; they report which returned events it
+  missed. Empty reports none.
+- `retention_days`: `[events].retention_days`: nothing older is returned.
+- `settle_secs`: Events stored less than this many seconds before `now` are left for a
+  later read ([`crate::EVENT_STREAM_SETTLE_SECS`](#event_stream_settle_secs) in production), so a
+  publication that commits behind a newer one is never skipped.
+- `limit`: Most events to return (at least one).
+- `now`: Current time, which fixes the retention cutoff.
+
+Implements: `Clone`, `Debug`
 
 ### EventSubscriber
 
@@ -5709,6 +5777,27 @@ The number of deliveries moved to `expired`.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read or the update fails.
+
+#### LibraryStore::read_event_stream
+
+```rust
+pub async fn read_event_stream(&self, read: &EventStreamRead) -> Result<EventStreamPage>
+```
+
+Reads one page of past domain events for `EventPublisher.read`.
+
+Scans the outbox in `(created_at, id)` order from `read.start`, never
+before `read.retention_days`, and returns the events any of
+`read.subscriptions` matches (type, schema version and filter, as
+delivery does), limited to `read.account_id` when set. Queue messages
+are never returned. One call examines at most
+[`EVENT_STREAM_SCAN_FACTOR`](#event_stream_scan_factor) times `read.limit` rows, in pages that fit
+the adapter's bind and result-row limits; when the budget runs out
+first the page says `more` and its `last_scanned` resumes the scan.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::prune_event_deliveries
 
@@ -11451,6 +11540,28 @@ Result of admitting a job into the durable queue.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### EventStreamStart
+
+```rust
+pub enum EventStreamStart {
+    Oldest,
+    Since(DateTime<Utc>),
+    After { created_at: String, id: String },
+}
+```
+
+Where one event stream read starts.
+
+**Variants**
+
+- `Oldest`: The oldest retained event.
+- `Since`: The first event stored at or after this time.
+- `After`: The first event after this stored `(created_at, id)` position.
+  - `created_at`: Stored `created_at` text of the last row already read.
+  - `id`: Event id of the last row already read.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### JobKind
 
 ```rust
@@ -13899,6 +14010,27 @@ pub const SCHEMA_STATE_UNRELEASED: &str = "unreleased";
 ```
 
 On-disk `bookclerk_schema_migrations.state` for an unreleased development pack.
+
+### EVENT_STREAM_SCAN_FACTOR
+
+```rust
+pub const EVENT_STREAM_SCAN_FACTOR: usize = 8;
+```
+
+Rows one [`LibraryStore::read_event_stream`](#librarystoreread_event_stream) call may examine per event
+it may return.
+
+### EVENT_STREAM_SETTLE_SECS
+
+```rust
+pub const EVENT_STREAM_SETTLE_SECS: u64 = 30;
+```
+
+Seconds an outbox row must age before [`LibraryStore::read_event_stream`](#librarystoreread_event_stream)
+returns it. `created_at` is stamped before the insert commits, so a
+publication can commit after a newer one; a read that stops short of the
+last few seconds never moves its cursor past a row that has yet to
+appear. Newer events still reach subscribers through delivery.
 
 ### CATALOG_LISTING_REFRESH
 

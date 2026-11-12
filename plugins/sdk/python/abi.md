@@ -57,6 +57,10 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`EventBatch`](#eventbatch) | class | One `EventConsumer.event` delivery: at most `maxListPage` events, each bounded by `maxEventPayloadBytes` / `maxCheckpointBytes`. |
 | [`EventBatchReplyOk`](#eventbatchreplyok) | class | `EventBatchReply` member `ok`. |
 | [`EventBatchReplyErr`](#eventbatchreplyerr) | class | `EventBatchReply` member `err`. |
+| [`EventReadRequest`](#eventreadrequest) | class | Request of `EventPublisher.read`: one page of past outbox events, oldest first. Only types the instance's consented `[[events.consumers]]` rows subscribe to are returned, through the same schema-version and filter match as delivery, and only back to `[events].retention_days`. |
+| [`EventReadPage`](#eventreadpage) | class | Success payload of `EventPublisher.read`. |
+| [`EventReadReplyOk`](#eventreadreplyok) | class | `EventReadReply` member `ok`. |
+| [`EventReadReplyErr`](#eventreadreplyerr) | class | `EventReadReply` member `err`. |
 | [`JobController`](#jobcontroller) | class | Everything one `JobRunner.job` invocation may touch. Capabilities are host-served; the guest never sees OS paths or sockets. |
 | [`HeadOk`](#headok) | class | Success payload of `Destination.head`. |
 | [`HeadReplyOk`](#headreplyok) | class | `HeadReply` member `ok`. |
@@ -334,6 +338,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`JobOutcome`](#joboutcome) | constant | Terminal or suspended result of `JobRunner.job`. |
 | [`EventResult`](#eventresult) | constant | Per-event outcome inside an `EventConsumer.event` batch reply. |
 | [`EventBatchReply`](#eventbatchreply) | constant | Result union of `EventConsumer.event`. `ok` has exactly one entry per `EventBatch.events` entry, in order; a short list is a host-side error and the missing tail is retried. |
+| [`EventReadReply`](#eventreadreply) | constant | Result union of `EventPublisher.read`. |
 | [`HeadReply`](#headreply) | constant | Result union of `Destination.head`. |
 | [`ListReply`](#listreply) | constant | Result union of `Destination.list`. |
 | [`GetReply`](#getreply) | constant | Result union of `Destination.get`. |
@@ -1092,6 +1097,70 @@ class EventBatchReplyErr(TypedDict)
 ```
 
 `EventBatchReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### EventReadRequest
+
+```python
+class EventReadRequest(TypedDict)
+```
+
+Request of `EventPublisher.read`: one page of past outbox events, oldest
+first. Only types the instance's consented `[[events.consumers]]` rows
+subscribe to are returned, through the same schema-version and filter match
+as delivery, and only back to `[events].retention_days`.
+
+**Attributes**
+
+- `after`: Opaque cursor from an earlier `EventReadPage.cursor`; empty starts at `sinceUnixMs`. At most `maxEventCursorBytes`. Set at most one of `after` and `sinceUnixMs`.
+- `sinceUnixMs`: UTC Unix milliseconds to start from when `after` is empty; zero starts at the oldest retained event.
+- `types`: Event types to return; empty means every consented subscription. Each entry must be a consented subscription type; at most `maxListPage`.
+- `limit`: Most events to return; zero means `maxListPage`. At most `maxListPage`.
+
+### EventReadPage
+
+```python
+class EventReadPage(TypedDict)
+```
+
+Success payload of `EventPublisher.read`.
+
+**Attributes**
+
+- `events`: Matching events in outbox order. `deliveryAttempt` is zero and `deduplicationKey` is the event id: a read is not a delivery, so dedupe on `eventId`.
+- `cursor`: Opaque position after the last event scanned; pass it as `after` to continue. Empty only when nothing was scanned and the request had no cursor. At most `maxEventCursorBytes`.
+- `more`: True when more events may follow: the page filled or the host's scan budget ran out before the newest event.
+- `expiredEventIds`: Ids of the events on this page whose delivery to this plugin expired unleased: the events the instance missed.
+- `truncated`: True when the start position is older than `[events].retention_days`, so events before the retained window may be gone.
+
+### EventReadReplyOk
+
+```python
+class EventReadReplyOk(TypedDict)
+```
+
+`EventReadReply` member `ok`.
+
+Success: one page.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: one page.
+
+### EventReadReplyErr
+
+```python
+class EventReadReplyErr(TypedDict)
+```
+
+`EventReadReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
@@ -1886,6 +1955,23 @@ Append one event to the outbox (idempotent on `deduplicationKey`).
 **Returns**
 
 `PublishReply`
+
+#### EventPublisher.read
+
+```python
+async def read(self, request: EventReadRequest) -> EventReadReply
+```
+
+Read one page of past outbox events this instance subscribes to, oldest
+first, to catch up after a gap (`env.EVENTS.read`).
+
+**Args**
+
+- `request`: Where to start, which types, how many.
+
+**Returns**
+
+`EventReadReply`
 
 ### NamedDatabase
 
@@ -6204,6 +6290,14 @@ EventBatchReply = Union[EventBatchReplyOk, EventBatchReplyErr]
 Result union of `EventConsumer.event`. `ok` has exactly one entry per
 `EventBatch.events` entry, in order; a short list is a host-side error and
 the missing tail is retried.
+
+### EventReadReply
+
+```python
+EventReadReply = Union[EventReadReplyOk, EventReadReplyErr]
+```
+
+Result union of `EventPublisher.read`.
 
 ### HeadReply
 

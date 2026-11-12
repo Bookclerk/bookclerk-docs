@@ -1978,6 +1978,30 @@ Re-exports [EventPublisherBinding](env.md#eventpublisherbinding)
 
 ***
 
+### EventReadOptions
+
+Re-exports [EventReadOptions](env.md#eventreadoptions)
+
+***
+
+### EventReadPage
+
+Re-exports [EventReadPage](generated.md#eventreadpage)
+
+***
+
+### EventReadReply
+
+Re-exports [EventReadReply](generated.md#eventreadreply)
+
+***
+
+### EventReadRequest
+
+Re-exports [EventReadRequest](generated.md#eventreadrequest)
+
+***
+
 ### EventReject
 
 Re-exports [EventReject](generated.md#eventreject)

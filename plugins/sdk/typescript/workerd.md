@@ -819,6 +819,12 @@ Re-exports [EventPublisherBinding](env.md#eventpublisherbinding)
 
 ***
 
+### EventReadOptions
+
+Re-exports [EventReadOptions](env.md#eventreadoptions)
+
+***
+
 ### EventSuspendOptions
 
 Re-exports [EventSuspendOptions](plugin.md#eventsuspendoptions)

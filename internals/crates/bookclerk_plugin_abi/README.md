@@ -155,6 +155,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`IntegerArithKind`](#integerarithkind) | enum | INTEGER `+` `-` `*` `abs` site lowered to overflow → NULL. |
 | [`SchemaAction`](#schemaaction) | enum | CREATE/DROP action recorded on a proof. |
 | [`LikePatternSrc`](#likepatternsrc) | enum | Proven LIKE pattern sources in one canonical statement. |
+| [`EventReadCodec`](#eventreadcodec) | enum | Which `EVENTS.read` Cap'n Proto struct `roundtrip_event_read_message` decodes. |
+| [`EventReadMessage`](#eventreadmessage) | enum | A value `roundtrip_event_read_message` decoded. |
 | [`EventResult`](#eventresult) | enum | Per-event result of `crate::EventConsumer::event`. |
 | [`JobOutcome`](#joboutcome) | enum | Outcome of `crate::JobRunner::job`. |
 | [`capnp_u32_len`](#capnp_u32_len) | function | Converts a Rust list length into a Cap'n Proto `UInt32` list size. |
@@ -197,6 +199,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`byte_source_from_async_read`](#byte_source_from_async_read) | function | Returns a `ByteSource` client that pulls from `reader`. |
 | [`connect_plugin`](#connect_plugin) | function | Connects as the client side of a two-party vat. |
 | [`pull_byte_source_to_writer`](#pull_byte_source_to_writer) | function | Pulls `source` into `writer` using bounded windows. |
+| [`roundtrip_event_read_message`](#roundtrip_event_read_message) | function | Decodes one unpacked single-segment `EventReadRequest` or `EventReadPage` message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The fuzz target and its replay test drive this, so they reach the same bounds checks a peer's bytes do. |
 | [`serve_plugin`](#serve_plugin) | function | Serves `plugin` as the bootstrap object on a two-party vat over `reader`/`writer`. |
 | [`serve_plugin_stdio`](#serve_plugin_stdio) | function | Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSet`. |
 | [`MAX_PLUGIN_MIGRATION_ID_BYTES`](#max_plugin_migration_id_bytes) | constant | Maximum UTF-8 bytes of one plugin-chosen migration id. |
@@ -218,6 +221,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant | Longest cache header value one `CoverFetcher.fetchCovers` call carries in either direction, in bytes. |
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant | Most URLs in one `CoverFetcher.fetchCovers` call. |
 | [`MAX_CRON_BYTES`](#max_cron_bytes) | constant | Longest `[triggers] crons` source in bytes (`ScheduledController.cron`). |
+| [`MAX_EVENT_CURSOR_BYTES`](#max_event_cursor_bytes) | constant | Longest `EventPublisher.read` cursor in bytes. |
 | [`MAX_EVENT_PAYLOAD_BYTES`](#max_event_payload_bytes) | constant | Maximum decoded size of a domain-event scalar payload (not a stream). |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant | Longest `KvNamespace` key in UTF-8 bytes. |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant | Largest `KvNamespace` metadata JSON text in bytes. |
@@ -303,6 +307,16 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`error::PluginError`](error.md#pluginerror)
 - [`error::PluginErrorCode`](error.md#pluginerrorcode)
 - [`error::Result`](error.md#result)
+- [`event_read::is_cursor_event_id`](event_read.md#is_cursor_event_id)
+- [`event_read::parse_event_read_json`](event_read.md#parse_event_read_json)
+- [`event_read::validate_event_read_request`](event_read.md#validate_event_read_request)
+- [`event_read::EventCursor`](event_read.md#eventcursor)
+- [`event_read::EventReadPage`](event_read.md#eventreadpage)
+- [`event_read::EventReadQuery`](event_read.md#eventreadquery)
+- [`event_read::EventReadRequest`](event_read.md#eventreadrequest)
+- [`event_read::EventReadStart`](event_read.md#eventreadstart)
+- [`event_read::MAX_CURSOR_CREATED_AT_BYTES`](event_read.md#max_cursor_created_at_bytes)
+- [`event_read::MAX_CURSOR_EVENT_ID_BYTES`](event_read.md#max_cursor_event_id_bytes)
 - [`guest_sql::authorize_guest_sql_policy`](guest_sql.md#authorize_guest_sql_policy)
 - [`guest_sql::guest_statement_kind`](guest_sql.md#guest_statement_kind)
 - [`guest_sql::is_reserved_binding_name`](guest_sql.md#is_reserved_binding_name)
@@ -700,6 +714,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_stream`](db_stream.md): Streamed execute replies (`executeStreamed`).
 - [`db_value`](db_value.md): Universal Cap'n database value domain (`DbValue`).
 - [`error`](error.md): Plugin error model shared by host and guests.
+- [`event_read`](event_read.md): Validation of one `EventPublisher.read` request and its opaque cursor.
 - [`generated`](generated.md): GENERATED FILE - do not edit. Run `python3 scripts/gen-plugin-abi.py --write` after changing crates/bookclerk-plugin-abi/schema/plugin.capnp.
 - [`guest_sql`](guest_sql.md): Host-side grammar and scope checks for guest-authored typed SQL.
 - [`json_bytes`](json_bytes/README.md): Serde helpers projecting Cap'n Proto `Data` fields as base64 text in JSON.
@@ -1975,6 +1990,13 @@ pub trait EventPublisher {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn read<'life0, 'async_trait>(
+        &'life0 self,
+        request: EventReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<EventReadPage>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -1995,6 +2017,30 @@ where
 Appends `event` to the host outbox. The host stamps `source` (this
 plugin id) and the invocation account; `event_type` must be listed in
 `[[events.producers]]`.
+
+#### EventPublisher::read
+
+```rust
+fn read<'life0, 'async_trait>(
+    &'life0 self,
+    request: EventReadRequest,
+) -> Pin<Box<dyn Future<Output = Result<EventReadPage>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Reads one page of past outbox events the instance subscribes to,
+oldest first, so a plugin can catch up after a gap.
+
+Only types the instance's consented `[[events.consumers]]` rows
+subscribe to come back, through the same schema-version and filter
+match as delivery, and only back to `[events].retention_days`.
+
+##### Errors
+
+The default refuses with `unsupported`; the host publisher validates
+the request with [`crate::validate_event_read_request`](event_read.md#validate_event_read_request).
 
 Implemented by: `EventPublisherClient`
 
@@ -5016,6 +5062,43 @@ Proven LIKE pattern sources in one canonical statement.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### EventReadCodec
+
+```rust
+pub enum EventReadCodec {
+    Request,
+    Page,
+}
+```
+
+Which `EVENTS.read` Cap'n Proto struct [`roundtrip_event_read_message`](#roundtrip_event_read_message)
+decodes.
+
+**Variants**
+
+- `Request`: `EventReadRequest`, which the host decodes from a guest.
+- `Page`: `EventReadPage`, which a guest decodes from the host.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### EventReadMessage
+
+```rust
+pub enum EventReadMessage {
+    Request(EventReadRequest),
+    Page(EventReadPage),
+}
+```
+
+A value [`roundtrip_event_read_message`](#roundtrip_event_read_message) decoded.
+
+**Variants**
+
+- `Request`: A decoded `EventReadRequest`.
+- `Page`: A decoded `EventReadPage`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EventResult
 
 ```rust
@@ -5727,6 +5810,35 @@ EOF. Destinations must abort rather than commit.
 
 Returns a plugin error when the stream or writer fails.
 
+### roundtrip_event_read_message
+
+```rust
+pub fn roundtrip_event_read_message(
+    codec: EventReadCodec,
+    bytes: &[u8],
+) -> Result<EventReadMessage, RoundTripFailure>
+```
+
+Decodes one unpacked single-segment `EventReadRequest` or
+`EventReadPage` message with the codec the RPC server and client use,
+then checks `read(write(v)) == v`. The fuzz target and its replay test
+drive this, so they reach the same bounds checks a peer's bytes do.
+
+#### Arguments
+
+* `codec` - Which struct the message holds.
+* `bytes` - The message, as `capnp::serialize` writes it.
+
+#### Returns
+
+The decoded value, for the caller to check against its own bounds.
+
+#### Errors
+
+[`RoundTripFailure::Rejected`](generated.md#roundtripfailure) when the bytes do not decode or break a
+bound; [`RoundTripFailure::Codec`](generated.md#roundtripfailure) when a decoded value does not survive
+`write` then `read` intact.
+
 ### serve_plugin
 
 ```rust
@@ -5923,6 +6035,14 @@ pub const MAX_CRON_BYTES: u32 = crate::plugin_capnp::MAX_CRON_BYTES;
 ```
 
 Longest `[triggers] crons` source in bytes (`ScheduledController.cron`).
+
+### MAX_EVENT_CURSOR_BYTES
+
+```rust
+pub const MAX_EVENT_CURSOR_BYTES: u32 = crate::plugin_capnp::MAX_EVENT_CURSOR_BYTES;
+```
+
+Longest `EventPublisher.read` cursor in bytes.
 
 ### MAX_EVENT_PAYLOAD_BYTES
 

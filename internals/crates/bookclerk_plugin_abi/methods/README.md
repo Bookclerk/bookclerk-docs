@@ -22,6 +22,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`stop`](stop.md): Stop background watchers started by `start` (Cap'n Proto `RemoteLibrary.stop`).
 - [`event`](event.md): Deliver one ordered batch of domain events (Cap'n Proto `EventConsumer.event`).
 - [`publish`](publish.md): Append one guest event to the host outbox (Cap'n Proto `EventPublisher.publish`).
+- [`read`](read.md): Read one page of past outbox events (Cap'n Proto `EventPublisher.read`).
 - [`queue`](queue.md): Deliver one ordered batch of queue messages (Cap'n Proto `QueueConsumer.queue`).
 - [`scheduled`](scheduled.md): Run one cron fire (Cap'n Proto `ScheduledHandler.scheduled`).
 - [`send`](send.md): Send one message into a granted queue (Cap'n Proto `QueueProducer.send`).

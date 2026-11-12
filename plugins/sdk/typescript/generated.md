@@ -3035,6 +3035,129 @@ Append one event to the outbox (idempotent on `deduplicationKey`).
 
 [PublishReply](#publishreply)
 
+##### read()
+
+```ts
+read(request): Promise<EventReadReply>;
+```
+
+Read one page of past outbox events this instance subscribes to, oldest
+first, to catch up after a gap (`env.EVENTS.read`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`EventReadRequest`](#eventreadrequest) | Where to start, which types, how many. |
+
+###### Returns
+
+`Promise`\<[`EventReadReply`](#eventreadreply)\>
+
+[EventReadReply](#eventreadreply)
+
+***
+
+### EventReadPage
+
+Success payload of `EventPublisher.read`.
+
+#### Properties
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+Opaque position after the last event scanned; pass it as `after` to
+continue. Empty only when nothing was scanned and the request had no
+cursor. At most `maxEventCursorBytes`.
+
+##### events
+
+```ts
+events: DomainEvent[];
+```
+
+Matching events in outbox order. `deliveryAttempt` is zero and
+`deduplicationKey` is the event id: a read is not a delivery, so dedupe
+on `eventId`.
+
+##### expiredEventIds
+
+```ts
+expiredEventIds: string[];
+```
+
+Ids of the events on this page whose delivery to this plugin expired
+unleased: the events the instance missed.
+
+##### more
+
+```ts
+more: boolean;
+```
+
+True when more events may follow: the page filled or the host's scan
+budget ran out before the newest event.
+
+##### truncated
+
+```ts
+truncated: boolean;
+```
+
+True when the start position is older than `[events].retention_days`, so
+events before the retained window may be gone.
+
+***
+
+### EventReadRequest
+
+Request of `EventPublisher.read`: one page of past outbox events, oldest
+first. Only types the instance's consented `[[events.consumers]]` rows
+subscribe to are returned, through the same schema-version and filter match
+as delivery, and only back to `[events].retention_days`.
+
+#### Properties
+
+##### after
+
+```ts
+after: string;
+```
+
+Opaque cursor from an earlier `EventReadPage.cursor`; empty starts at
+`sinceUnixMs`. At most `maxEventCursorBytes`. Set at most one of `after`
+and `sinceUnixMs`.
+
+##### limit
+
+```ts
+limit: number;
+```
+
+Most events to return; zero means `maxListPage`. At most `maxListPage`.
+
+##### sinceUnixMs
+
+```ts
+sinceUnixMs: number;
+```
+
+UTC Unix milliseconds to start from when `after` is empty; zero starts at
+the oldest retained event.
+
+##### types
+
+```ts
+types: string[];
+```
+
+Event types to return; empty means every consented subscription. Each
+entry must be a consented subscription type; at most `maxListPage`.
+
 ***
 
 ### EventReject
@@ -8309,6 +8432,24 @@ type EventPollReply =
 ```
 
 Result union of `RemoteLibrary.pollEvents`.
+
+***
+
+### EventReadReply
+
+```ts
+type EventReadReply = 
+  | {
+  kind: "ok";
+  value: EventReadPage;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `EventPublisher.read`.
 
 ***
 

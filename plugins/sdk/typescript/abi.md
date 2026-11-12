@@ -458,6 +458,16 @@ Maximum `[triggers] crons` source length (bytes), as in `ScheduledController.cro
 
 ***
 
+### MAX\_EVENT\_CURSOR\_BYTES
+
+```ts
+const MAX_EVENT_CURSOR_BYTES: 512;
+```
+
+Maximum bytes of an `EventReadRequest.after` / `EventReadPage.cursor`.
+
+***
+
 ### MAX\_EVENT\_PAYLOAD\_BYTES
 
 ```ts

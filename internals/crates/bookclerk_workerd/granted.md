@@ -3,8 +3,8 @@
 Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job`
 streams (`Source` / `Destination` / `ProgressSink`), the job's
 `Cancellation` long poll (`/cancel`), named database sessions
-(`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox publisher
-(`/events/publish`).
+(`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox binding
+(`/events/publish`, `/events/read`).
 
 HTTP accept/read/write runs on the multi-thread runtime (`tokio::spawn`) so
 it is not starved by the Cap'n Proto vat `LocalSet`. Stub calls stay on the
@@ -15,8 +15,10 @@ vat thread via a command channel.
 | [`GrantedListener`](#grantedlistener) | trait | Accept loop abstraction (unix or tcp). |
 | [`GrantedSlot`](#grantedslot) | struct | One grant token's host stubs (vat-thread only): a `JobRunner.job` invocation, a `CoverFetcher.fetchCovers` sink, a named database binding, or an `EVENTS` publisher. |
 | [`spawn_granted`](#spawn_granted) | function | Starts the Send HTTP accept loop and the vat-thread command dispatcher. |
+| [`parse_event_read_body`](#parse_event_read_body) | function | Parses a `/events/read` body: the JSON form of `EventReadRequest` (`bookclerk_plugin_abi::parse_event_read_json`). Bounds and consent are checked later by the host publisher (`bookclerk_plugin_abi::validate_event_read_request`). |
 | [`GrantedTable`](#grantedtable) | type alias | Invocation-id → granted stubs. |
 | [`MAX_EVENT_PUBLISH_BODY_BYTES`](#max_event_publish_body_bytes) | constant | Largest `/events/publish` request body: a base64 payload at `MAX_EVENT_PAYLOAD_BYTES` plus the envelope fields. |
+| [`MAX_EVENT_READ_BODY_BYTES`](#max_event_read_body_bytes) | constant | Largest `/events/read` request body: a cursor plus up to `maxListPage` event types. |
 | [`MAX_QUEUE_SEND_BODY_BYTES`](#max_queue_send_body_bytes) | constant | Largest `/queues/send` request body: a `sendBatch` of base64 bodies. The host producer still caps every message at `MAX_EVENT_PAYLOAD_BYTES` and every batch at `maxListPage`; this only bounds the read. |
 | [`CANCEL_POLL_WINDOW`](#cancel_poll_window) | constant | How long one `GET /cancel` long poll waits before answering `204` so the isolate re-arms; short enough that a dropped isolate cannot pin the cancellation stub for long. |
 
@@ -160,6 +162,21 @@ Starts the Send HTTP accept loop and the vat-thread command dispatcher.
 
 Must be called from a `LocalSet` (dispatcher is `spawn_local`).
 
+### parse_event_read_body
+
+```rust
+pub fn parse_event_read_body(body: &[u8]) -> Result<EventReadRequest, PluginError>
+```
+
+Parses a `/events/read` body: the JSON form of [`EventReadRequest`](../bookclerk_plugin_abi/event_read.md#eventreadrequest)
+([`bookclerk_plugin_abi::parse_event_read_json`](../bookclerk_plugin_abi/event_read.md#parse_event_read_json)). Bounds and consent are
+checked later by the host publisher
+([`bookclerk_plugin_abi::validate_event_read_request`](../bookclerk_plugin_abi/event_read.md#validate_event_read_request)).
+
+#### Errors
+
+Returns `invalid_params` when the body is not that JSON object.
+
 ## Type aliases
 
 ### GrantedTable
@@ -180,6 +197,15 @@ pub const MAX_EVENT_PUBLISH_BODY_BYTES: u32 = _;
 
 Largest `/events/publish` request body: a base64 payload at
 [`MAX_EVENT_PAYLOAD_BYTES`](../bookclerk_plugin_abi/README.md#max_event_payload_bytes) plus the envelope fields.
+
+### MAX_EVENT_READ_BODY_BYTES
+
+```rust
+pub const MAX_EVENT_READ_BODY_BYTES: u32 = _;
+```
+
+Largest `/events/read` request body: a cursor plus up to `maxListPage`
+event types.
 
 ### MAX_QUEUE_SEND_BODY_BYTES
 

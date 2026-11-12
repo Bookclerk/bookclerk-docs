@@ -32,6 +32,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant |  |
 | [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant |  |
 | [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant |  |
+| [`MAX_EVENT_CURSOR_BYTES`](#max_event_cursor_bytes) | constant |  |
 | [`MAX_IDENTIFIER_BYTES`](#max_identifier_bytes) | constant |  |
 | [`MAX_CRON_BYTES`](#max_cron_bytes) | constant |  |
 | [`MAX_CONFIG_PAYLOAD_BYTES`](#max_config_payload_bytes) | constant |  |
@@ -87,6 +88,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`event_result`](event_result.md)
 - [`event_batch`](event_batch.md)
 - [`event_batch_reply`](event_batch_reply.md)
+- [`event_read_request`](event_read_request.md)
+- [`event_read_page`](event_read_page.md)
+- [`event_read_reply`](event_read_reply.md)
 - [`job_controller`](job_controller.md)
 - [`head_ok`](head_ok.md)
 - [`head_reply`](head_reply.md)
@@ -591,6 +595,12 @@ pub const MAX_SCAN_PAGE_BOOKS: u32 = 500;
 
 ```rust
 pub const MAX_SCAN_CURSOR_BYTES: u32 = 4096;
+```
+
+### MAX_EVENT_CURSOR_BYTES
+
+```rust
+pub const MAX_EVENT_CURSOR_BYTES: u32 = 512;
 ```
 
 ### MAX_IDENTIFIER_BYTES

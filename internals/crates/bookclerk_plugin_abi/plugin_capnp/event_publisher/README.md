@@ -8,11 +8,15 @@
 | [`ServerDispatch`](#serverdispatch) | struct |  |
 | [`PublishParams`](#publishparams) | type alias |  |
 | [`PublishResults`](#publishresults) | type alias |  |
+| [`ReadParams`](#readparams) | type alias |  |
+| [`ReadResults`](#readresults) | type alias |  |
 
 ## Modules
 
 - [`publish_params`](publish_params.md)
 - [`publish_results`](publish_results.md)
+- [`read_params`](read_params.md)
+- [`read_results`](read_results.md)
 
 ## Traits
 
@@ -25,6 +29,11 @@ pub trait Server: 'static {
         _: PublishParams,
         _: PublishResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn read(
+        self: Rc<Self>,
+        _: ReadParams,
+        _: ReadResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
 
@@ -35,6 +44,16 @@ fn publish(
     self: Rc<Self>,
     _: PublishParams,
     _: PublishResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::read
+
+```rust
+fn read(
+    self: Rc<Self>,
+    _: ReadParams,
+    _: ReadResults,
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
@@ -52,6 +71,12 @@ pub struct Client {
 
 ```rust
 pub fn publish_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::read_request
+
+```rust
+pub fn read_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -97,4 +122,16 @@ pub type PublishParams = Params<Owned>;
 
 ```rust
 pub type PublishResults = Results<Owned>;
+```
+
+### ReadParams
+
+```rust
+pub type ReadParams = Params<Owned>;
+```
+
+### ReadResults
+
+```rust
+pub type ReadResults = Results<Owned>;
 ```

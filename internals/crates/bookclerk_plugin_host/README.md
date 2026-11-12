@@ -47,7 +47,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`LocalPackage`](#localpackage) | struct | Local archive the reconciler may install when the ledger has no row. |
 | [`DiscoveredPlugin`](#discoveredplugin) | struct | A discovered plugin ready to spawn. |
 | [`EnrolledPlugin`](#enrolledplugin) | struct | One plugin after enrollment on this node. |
-| [`EventOutbox`](#eventoutbox) | struct | Host-owned facts a session needs before it can hand a guest an `EVENTS` binding: the outbox store plus the producer allowlist. |
+| [`EventOutbox`](#eventoutbox) | struct | Host-owned facts a session needs before it can hand a guest an `EVENTS` binding: the outbox store, the producer allowlist and what it may read. |
+| [`EventReaders`](#eventreaders) | struct | What an `EVENTS` binding may read back from the outbox. |
 | [`OutboxEventPublisher`](#outboxeventpublisher) | struct | `EventPublisher` server for one invocation: validates a guest `PluginEvent` and appends it to the library outbox. |
 | [`DatabaseRegistry`](#databaseregistry) | struct | Long-lived external database plugin for the active `[database].plugin`. |
 | [`DestinationRegistry`](#destinationregistry) | struct | Long-lived external output plugins loaded at host startup. |
@@ -174,6 +175,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`enroll_one`](#enroll_one) | function | Enrolls one discovered plugin. See the module docs for the steps. |
 | [`has_covering_grant`](#has_covering_grant) | function | True when the operator already consented to this plugin, or it is a verified platform guest that grants itself on first spawn. |
 | [`is_bootstrap_only`](#is_bootstrap_only) | function | True when the plugin is a database adapter and nothing else: those stay bootstrap (`[database]` in `config.toml`) in this phase. |
+| [`granted_event_subscriptions`](#granted_event_subscriptions) | function | Keeps the catalog rows an operator grant admits. |
+| [`manifest_event_subscriptions`](#manifest_event_subscriptions) | function | Catalog rows for a manifest's `[[events.consumers]]` declarations, before consent narrows them. |
 | [`backup_adapter_id`](#backup_adapter_id) | function | Adapter id recorded on a backup (diagnostic; restore is capability-driven). |
 | [`database_connect_bindings`](#database_connect_bindings) | function | Builds the `bookclerk_plugin_sdk::BindingValues` for the adapter's `PluginWorker.open` (then `databaseAdapter.openSession`). |
 | [`export_registered_plugin_units`](#export_registered_plugin_units) | function | Exports every registered plugin-owned database binding as SeaORM sessions. |
@@ -1322,7 +1325,7 @@ pub struct EventOutbox {
 ```
 
 Host-owned facts a session needs before it can hand a guest an `EVENTS`
-binding: the outbox store plus the producer allowlist.
+binding: the outbox store, the producer allowlist and what it may read.
 
 #### EventOutbox::new
 
@@ -1332,11 +1335,13 @@ pub fn new(
     plugin_id: &str,
     declared: impl IntoIterator<Item = String>,
     granted: &BTreeSet<String>,
+    readers: EventReaders,
 ) -> Option<Self>
 ```
 
-Builds the outbox hook for `plugin_id`, or `None` when no producer is
-both declared and granted (the guest then sees no `EVENTS` binding).
+Builds the outbox hook for `plugin_id`, or `None` when the plugin
+neither publishes a consented producer nor consumes a consented
+subscription (the guest then sees no `EVENTS` binding).
 
 #### EventOutbox::publisher
 
@@ -1348,6 +1353,28 @@ Publisher bound to one `PluginWorker.open` invocation (account scope
 and default correlation / causation come from `invocation`).
 
 Implements: `Clone`
+
+### EventReaders
+
+```rust
+pub struct EventReaders {
+    pub subscriptions: Vec<EventCatalogSubscription>,
+    pub retention_days: u64,
+    pub settle_secs: u64,
+}
+```
+
+What an `EVENTS` binding may read back from the outbox.
+
+**Fields**
+
+- `subscriptions`: Consented `[[events.consumers]]` subscriptions (manifest ∩ grant).
+- `retention_days`: `[events].retention_days`: reads never go further back.
+- `settle_secs`: Seconds an event must age before a read returns it
+  ([`bookclerk_library::EVENT_STREAM_SETTLE_SECS`](../bookclerk_library/README.md#event_stream_settle_secs) in a session), so a
+  late-committing publication is never behind a returned cursor.
+
+Implements: `Clone`, `Debug`, `Default`
 
 ### OutboxEventPublisher
 
@@ -5263,6 +5290,32 @@ pub fn is_bootstrap_only(plugin: &DiscoveredPlugin) -> bool
 
 True when the plugin is a database adapter and nothing else: those stay
 bootstrap (`[database]` in `config.toml`) in this phase.
+
+### granted_event_subscriptions
+
+```rust
+pub fn granted_event_subscriptions(
+    catalog: &[EventCatalogSubscription],
+    admitted: &BTreeSet<GrantedEventConsumer>,
+) -> Vec<EventCatalogSubscription>
+```
+
+Keeps the catalog rows an operator grant admits.
+
+A row is admitted when a granted consumer has its type, covers all its
+schema versions, and carries the same canonical filter; suspend support
+is kept only when both sides allow it.
+
+### manifest_event_subscriptions
+
+```rust
+pub fn manifest_event_subscriptions(
+    manifest: &PluginManifest,
+) -> Vec<EventCatalogSubscription>
+```
+
+Catalog rows for a manifest's `[[events.consumers]]` declarations, before
+consent narrows them.
 
 ### backup_adapter_id
 

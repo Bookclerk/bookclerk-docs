@@ -74,8 +74,9 @@ WORK_FS?: StorageBinding;
 
 ### EventPublisherBinding
 
-`EVENTS` binding: outbox publisher, present when `[[events.producers]]` is
-declared and granted.
+`EVENTS` binding, present when a `[[events.producers]]` or
+`[[events.consumers]]` entry is declared and granted. Publishing needs a
+granted producer; reading needs a granted consumer.
 
 #### Methods
 
@@ -98,6 +99,90 @@ Publish one domain event through the host outbox.
 `Promise`\<[`PublishOk`](generated.md#publishok)\>
 
 Outbox row identity (`duplicate` when the dedup key matched).
+
+##### read()
+
+```ts
+read(options?): Promise<EventReadPage>;
+```
+
+Read one page of past events the plugin's granted subscriptions match,
+oldest first, to catch up after its deliveries expired.
+
+Pass the page's `cursor` back as `after` while `more` is true.
+`expiredEventIds` names events in the page whose delivery to this
+plugin expired unhandled, and `truncated` says the start was older
+than the host keeps. Read events are not deliveries: `deliveryAttempt`
+is `0` and `deduplicationKey` is the event id.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `options?` | [`EventReadOptions`](#eventreadoptions) | Start position, types, and page size. |
+
+###### Returns
+
+`Promise`\<[`EventReadPage`](generated.md#eventreadpage)\>
+
+One page of events and the cursor after it.
+
+###### Throws
+
+PluginError `forbidden` for a type that is not a granted
+  consumer, `invalid_cursor` for a cursor the host did not issue.
+
+***
+
+### EventReadOptions
+
+Where an [EventPublisherBinding.read](#read) starts and which events it
+returns. Set at most one of `after` and `since`; with neither, the read
+starts at the oldest event the host still keeps (`[events].retention_days`).
+
+#### Properties
+
+##### after?
+
+```ts
+after?: string;
+```
+
+Opaque cursor from an earlier page's `cursor`: resume right after it.
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Most events in the page; `0` or omitted means the host maximum.
+
+##### since?
+
+```ts
+since?: number | Date;
+```
+
+Start at this instant (a `Date`, or UTC unix milliseconds).
+
+##### sinceUnixMs?
+
+```ts
+sinceUnixMs?: number;
+```
+
+The ABI spelling of `since` (UTC unix milliseconds), as the generated
+`EventReadRequest` names it; used when `since` is absent.
+
+##### types?
+
+```ts
+types?: string[];
+```
+
+Event types to return; each must be a granted `[[events.consumers]]`
+type. Empty or omitted means every granted type.
 
 ***
 
