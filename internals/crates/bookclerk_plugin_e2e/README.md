@@ -32,6 +32,10 @@ native-behind-workerd path (CI check `native_gateway`, all three OSes).
 | [`STAGED_PLUGINS_ENV`](#staged_plugins_env) | constant | Environment variable selecting a subset of staged guests to check. |
 | [`REQUIRE_STAGED_ENV`](#require_staged_env) | constant | Environment variable turning missing staging prerequisites into failures. |
 
+## Modules
+
+- [`startup`](startup.md): Summaries for the plugin cold-start measurement (`tests/cold_start.rs`).
+
 ## Enums
 
 ### StagedScope

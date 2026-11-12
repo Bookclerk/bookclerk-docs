@@ -723,6 +723,7 @@
     "internals/crates/bookclerk_plugin_destination_s3/README",
     "internals/crates/bookclerk_plugin_destination_s3/plugin",
     "internals/crates/bookclerk_plugin_e2e/README",
+    "internals/crates/bookclerk_plugin_e2e/startup",
     "internals/crates/bookclerk_plugin_echo_native_rust/README",
     "internals/crates/bookclerk_plugin_echo_native_rust/cli",
     "internals/crates/bookclerk_plugin_echo_native_rust/notes",
