@@ -4337,6 +4337,9 @@ pub struct AcquiredBookKey {
     pub id: i64,
     pub uuid: String,
     pub source: String,
+    pub plugin_key: String,
+    pub account_id: String,
+    pub marketplace: String,
     pub product_id: String,
     pub updated_at: DateTime<Utc>,
 }
@@ -4354,6 +4357,9 @@ full row is loaded only when it is needed, by
 - `id`: Surrogate row id; the keyset cursor of the page reader.
 - `uuid`: Public book id.
 - `source`: Store alias the book came from (`audible`, `libro`, ...), as stored.
+- `plugin_key`: Provenance-qualified plugin key of the store.
+- `account_id`: Store account that holds the book.
+- `marketplace`: Store marketplace, as stored on the flat row.
 - `product_id`: Store product id.
 - `updated_at`: Last change of the row. An unparsable stored value reads as the
   time of the read, the same fallback [`BookRecord`](#bookrecord) uses.
@@ -14279,7 +14285,7 @@ pub const ACQUIRED_KEYS_MAX_PAGE: u64 = 256;
 
 Upper clamp for one [`LibraryStore::acquired_book_keys_page`](#librarystoreacquired_book_keys_page) read.
 
-A key row is five short columns (well under 1 KiB on the wire), so this
+A key row is eight short columns (well under 1 KiB on the wire), so this
 many stay far below the 256 KiB inline result cap of an adapter that
 does not stream.
 

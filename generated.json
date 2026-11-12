@@ -179,6 +179,7 @@
     "internals/crates/bookclerk_library/entities/job_secret_handoffs",
     "internals/crates/bookclerk_library/entities/job_temp_paths",
     "internals/crates/bookclerk_library/entities/jobs",
+    "internals/crates/bookclerk_library/entities/link_imports",
     "internals/crates/bookclerk_library/entities/listening_progress",
     "internals/crates/bookclerk_library/entities/listing_offers",
     "internals/crates/bookclerk_library/entities/member_account_rules",

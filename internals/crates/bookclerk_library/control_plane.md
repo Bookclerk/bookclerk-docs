@@ -65,6 +65,8 @@ See `docs/adr/control-plane.md`.
 | [`ClusterLease`](#clusterlease) | struct | A held cluster lease. |
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
+| [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
+| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: only the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`), and never one imported from that library (`books_imported_from_link`). With no single person, nothing. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
@@ -124,6 +126,7 @@ See `docs/adr/control-plane.md`.
 | [`NodeKind`](#nodekind) | enum | How a node joined the cluster. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingValue`](#settingvalue) | enum | One scalar setting. Nested objects and arrays are not representable. |
+| [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
 | [`OutputReplace`](#outputreplace) | enum | Outcome of `replace_output`. |
@@ -294,6 +297,8 @@ See `docs/adr/control-plane.md`.
 | [`release_lease_on`](#release_lease_on) | function | `release_lease` on a bare connection. |
 | [`renew_lease`](#renew_lease) | function | Fencing check: extends a lease this holder still holds. |
 | [`renew_lease_on`](#renew_lease_on) | function | `renew_lease` on a bare connection. |
+| [`books_imported_from_link`](#books_imported_from_link) | function | Every book imported from the library `cluster_id`, by store identity: the books the catalog sync must not send back to it. Read in keyset pages no larger than the database plugin's `maxResultRows`. |
+| [`import_link_title`](#import_link_title) | function | Imports a title the library committed into this install's own library (see the module docs). |
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
 | [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
 | [`is_node_consumer_id`](#is_node_consumer_id) | function | True when a catalog / delivery `plugin_id` is a node consumer rather than a plugin. |
@@ -426,6 +431,7 @@ See `docs/adr/control-plane.md`.
 | [`import_node_runtime_if_absent`](#import_node_runtime_if_absent) | function | Inserts a node runtime document when it is absent. |
 | [`replace_node_runtime`](#replace_node_runtime) | function | Replaces one node's runtime document. |
 | [`update_node_runtime`](#update_node_runtime) | function | Applies `edit` to a node's runtime document (creating it with defaults when the node never wrote one) under compare-and-swap, retrying a few times on a concurrent edit. Budgets reach the scheduler with the node's next heartbeat. |
+| [`HeldBookKey`](#heldbookkey) | type alias | A book this library holds, by store identity: `(plugin_key, stored marketplace, stored product id, account_id)`. |
 | [`LiveRevisions`](#liverevisions) | type alias | Every topic's revision, in `LiveTopic::ALL` order. |
 | [`AccountKey`](#accountkey) | type alias | A store account, keyed as in `accounts`: `(plugin_key, account_id)`. |
 | [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) | constant | Largest archive stored in the library, in bytes. |
@@ -2229,6 +2235,69 @@ Records that the duty ran (successfully or not) so the next run waits
 a full interval.
 
 Implements: `Clone`, `Debug`
+
+### LinkImport
+
+```rust
+pub struct LinkImport<'a> {
+    pub cluster_id: &'a str,
+    pub book: &'a BookRecord,
+    pub primary_key: &'a str,
+    pub pdf_key: Option<&'a str>,
+    pub files: &'a [(&'a str, &'a str)],
+}
+```
+
+One title the library committed, as the branch kept it.
+
+**Fields**
+
+- `cluster_id`: The library this branch acquired the title for.
+- `book`: The library's row of the title (its uuid is the library's and is not
+  reused here).
+- `primary_key`: Storage key of the primary audio file, the same on every
+  destination of the copy.
+- `pdf_key`: Storage key of the companion PDF, when one was acquired.
+- `files`: Every file of the copy: `(destination id, storage key)`, where the
+  destination id is this install's (`local`, `s3`).
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### OwnerShareFilter
+
+```rust
+pub struct OwnerShareFilter {
+    /* private fields */
+}
+```
+
+Which of this install's acquired books the catalog sync sends the
+library `cluster_id`: only the branch owner's own books, those held by
+a store account connected here to the branch's person
+([`super::branch_person`](#branch_person)), and never one imported from that library
+([`books_imported_from_link`](#books_imported_from_link)). With no single person, nothing.
+
+#### OwnerShareFilter::load
+
+```rust
+pub async fn load(store: &LibraryStore, cluster_id: &str) -> Result<Self>
+```
+
+Reads the filter for the library `cluster_id` now.
+
+##### Errors
+
+Returns an error when a read fails.
+
+#### OwnerShareFilter::admits
+
+```rust
+pub fn admits(&self, key: &AcquiredBookKey) -> bool
+```
+
+True when the book `key` names is sent.
+
+Implements: `Clone`, `Debug`, `Default`
 
 ### LiveRevision
 
@@ -4341,6 +4410,32 @@ One scalar setting. Nested objects and arrays are not representable.
 - `String`: JSON string, at most 1024 bytes.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
+
+### LinkImportOutcome
+
+```rust
+pub enum LinkImportOutcome {
+    Imported(Box<BookRecord>),
+    AccountNotHere,
+    NoPerson,
+    KeyHeldElsewhere,
+}
+```
+
+What [`import_link_title`](#import_link_title) did.
+
+**Variants**
+
+- `Imported`: The title is in this library now, as this row.
+- `AccountNotHere`: The store account that bought it is not connected here to the
+  branch's person; nothing was written.
+- `NoPerson`: This install has no single person a branch's books belong to (no
+  active Owner, or several); nothing was written.
+- `KeyHeldElsewhere`: Another live edition here holds the copy's primary file key, so the
+  copy is not this title's: its row stays (not acquired) and nothing
+  else was recorded.
+
+Implements: `Clone`, `Debug`
 
 ### LiveTopic
 
@@ -7675,6 +7770,45 @@ pub async fn renew_lease_on<C: ConnectionTrait>(
 
 Returns an error when the write fails.
 
+### books_imported_from_link
+
+```rust
+pub async fn books_imported_from_link(
+    store: &LibraryStore,
+    cluster_id: &str,
+) -> Result<BTreeSet<HeldBookKey>>
+```
+
+Every book imported from the library `cluster_id`, by store identity:
+the books the catalog sync must not send back to it. Read in keyset
+pages no larger than the database plugin's `maxResultRows`.
+
+#### Errors
+
+Returns an error when a read fails.
+
+### import_link_title
+
+```rust
+pub async fn import_link_title(
+    store: &LibraryStore,
+    import: LinkImport<'_>,
+) -> Result<LinkImportOutcome>
+```
+
+Imports a title the library committed into this install's own library
+(see the module docs).
+
+A file whose key another live edition here already holds is left
+unrecorded (logged), as an acquire on this install would refuse it; when
+that is the primary file, the title is not marked acquired
+([`LinkImportOutcome::KeyHeldElsewhere`](#linkimportoutcome)); when it is the PDF, the PDF
+is not marked acquired.
+
+#### Errors
+
+Returns an error when a read or write fails; the writes before it stay.
+
 ### changed_topics
 
 ```rust
@@ -9213,6 +9347,9 @@ pub async fn accounts_owned_by(
 
 Store accounts linked to `user_id` through any of the user's identities.
 
+Read in keyset pages no larger than the database plugin's
+`maxResultRows`.
+
 #### Errors
 
 Returns an error when a read fails.
@@ -10112,6 +10249,15 @@ Returns an error when the actor may not write, the edited body is
 invalid, or the document keeps changing underneath.
 
 ## Type aliases
+
+### HeldBookKey
+
+```rust
+pub type HeldBookKey = (String, String, String, String);
+```
+
+A book this library holds, by store identity: `(plugin_key, stored
+marketplace, stored product id, account_id)`.
 
 ### LiveRevisions
 
