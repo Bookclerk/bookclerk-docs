@@ -909,6 +909,12 @@ Re-exports [FEATURE_STREAMS](abi.md#feature_streams)
 
 ***
 
+### FetchStorePage
+
+Re-exports [FetchStorePage](README.md#fetchstorepage)
+
+***
+
 ### fromBridgeJson
 
 Re-exports [fromBridgeJson](plugin.md#frombridgejson)
@@ -1449,6 +1455,12 @@ Re-exports [runAdapterBatch](README.md#runadapterbatch)
 
 ***
 
+### scanPage
+
+Re-exports [scanPage](README.md#scanpage)
+
+***
+
 ### schemaMigrationOp
 
 Re-exports [schemaMigrationOp](plugin.md#schemamigrationop)
@@ -1500,6 +1512,12 @@ Re-exports [StorageEntrypoint](plugin.md#storageentrypoint)
 ### StorefrontEntrypoint
 
 Re-exports [StorefrontEntrypoint](plugin.md#storefrontentrypoint)
+
+***
+
+### StorePage
+
+Re-exports [StorePage](README.md#storepage)
 
 ***
 

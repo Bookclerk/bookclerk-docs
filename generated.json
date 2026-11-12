@@ -51,6 +51,7 @@
     "plugins/sdk/python/limits",
     "plugins/sdk/python/path_guard",
     "plugins/sdk/python/plugin_migration",
+    "plugins/sdk/python/scan_page",
     "plugins/sdk/python/sparse_workerd/README",
     "plugins/sdk/python/sparse_workerd/config",
     "plugins/sdk/python/sparse_workerd/ensure",

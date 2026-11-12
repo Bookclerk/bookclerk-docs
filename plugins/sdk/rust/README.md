@@ -50,6 +50,9 @@ tests open the same binding with `bookclerk_db_testkit::BindingDatabase`
 under `bookclerk_db_testkit::selected_profile()`, so `bookclerk-plugin test .`
 runs them under every profile (see
 [Testing against the limits](../../database-limits.md#testing-against-the-limits)).
+A storefront's `scan` can hand its paging to `scan_page(&params, fetch)`,
+which slices the store's own pages into replies the host accepts; see
+[Paged scans](../../abi.md#paged-scans).
 [`examples/plugins-echo-native-rust`](../../../../examples/plugins-echo-native-rust)
 does all of this end to end in its `notes` table.
 
@@ -143,6 +146,7 @@ submodules unless you need module-level docs.
 | [`WriteProgress`](#writeprogress) | struct | Where a `DatabaseBinding::write_chunks` run stands. |
 | [`FetchWorkDir`](#fetchworkdir) | struct | An open fetch work directory received from the host for one `fetchTitle` call. |
 | [`UploadFile`](#uploadfile) | struct | An open upload file received from the host for one `putFile` call. |
+| [`StorePage`](#storepage) | struct | One page of a storefront's own library listing, as the plugin fetched it. |
 | [`SdkError`](#sdkerror) | enum | Errors from the guest stdio loop and SDK helpers (not plugin business logic). |
 | [`db_value_from_sea`](#db_value_from_sea) | function | Fallible SeaORM → `bookclerk_plugin_abi::DbValue` bridge. |
 | [`proxy_rows_from_typed`](#proxy_rows_from_typed) | function | Builds SeaORM proxy rows from a typed statement result. |
@@ -159,6 +163,7 @@ submodules unless you need module-level docs.
 | [`manifest_capabilities`](#manifest_capabilities) | function | Parses `plugin.toml` source and returns the `PluginCapabilities` a guest must advertise from `describe()`. |
 | [`fd_proc_path`](#fd_proc_path) | function | Builds the OS path that refers to an open descriptor by number. |
 | [`recv_passed_fd`](#recv_passed_fd) | function | Receives one file descriptor from the host side channel (SCM_RIGHTS). |
+| [`scan_page`](#scan_page) | function | Answers one `scan` call from the storefront's own pages. |
 | [`serve`](#serve) | function | Serves a `PluginWorker` on stdin/stdout (Cap'n Proto RPC). |
 | [`Result`](#result) | type alias | Result alias for guest helpers that fail with `SdkError`. |
 | [`MAX_WRITE_KEY_BYTES`](#max_write_key_bytes) | constant | Longest `key` `DatabaseBinding::write_chunks` accepts, in bytes. |
@@ -1076,6 +1081,37 @@ valid.
 
 Implements: `Deref`
 
+### StorePage
+
+```rust
+pub struct StorePage {
+    pub books: Vec<ScanBook>,
+    pub removed: Vec<String>,
+    pub next: String,
+    pub sync_token: String,
+    pub complete: bool,
+    pub store_pages: Option<u32>,
+}
+```
+
+One page of a storefront's own library listing, as the plugin fetched it.
+
+**Fields**
+
+- `books`: Titles on this store page, in the store's order; any number of them.
+- `removed`: Product ids gone from the account since `ScanParams::sync_token`, on a
+  delta pass only; any number of them.
+- `next`: The storefront's own cursor for the store page after this one; empty
+  when this is the last store page.
+- `sync_token`: On the last store page: the token the host sends as
+  `ScanParams::sync_token` on the account's next pass. Ignored on
+  earlier pages.
+- `complete`: On the last store page: whether the pass listed every title the
+  account holds (a full pass). Ignored on earlier pages.
+- `store_pages`: Storefront requests this fetch took; `None` counts one.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ## Enums
 
 ### SdkError
@@ -1396,6 +1432,43 @@ Raw OS file descriptor owned by the caller. Prefer wrapping it immediately
 Returns [`SdkError`](#sdkerror) when [`PLUGIN_FD_CHANNEL_ENV`](#plugin_fd_channel_env) is unset or not equal to
 [`PLUGIN_FD_CHANNEL`](#plugin_fd_channel), when `recvmsg` fails, or when the platform does not
 support the side channel (non-Unix).
+
+### scan_page
+
+```rust
+pub async fn scan_page<F, Fut>(
+    params: &ScanParams,
+    fetch: F,
+) -> Result<ScanPage, PluginError>
+where
+    F: FnOnce(String, &ScanParams) -> Fut,
+    Fut: Future<Output = Result<StorePage, PluginError>>,
+```
+
+Answers one `scan` call from the storefront's own pages.
+
+Fetches the store page `params.cursor` names and returns at most
+[`MAX_SCAN_PAGE_BOOKS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_scan_page_books) of its titles and removed ids. A larger store page
+is returned over several calls, each fetching it again. The pass ends on
+the last slice of the store page whose [`StorePage::next`](#storepage) is empty, which
+carries that page's `sync_token` and `complete`.
+
+#### Arguments
+
+* `params` - The scan call's params.
+* `fetch` - Fetches the store page a storefront cursor names (empty for
+  the first), given the call's params.
+
+#### Returns
+
+The reply for this call.
+
+#### Errors
+
+Returns the fetch's error unchanged; an `invalid_cursor` [`PluginError`](../../../internals/crates/bookclerk_plugin_abi/error.md#pluginerror)
+when the cursor was not written by this helper or no longer fits the store
+page (the store changed mid-pass), so the host restarts the pass; and an
+`internal` one when a store cursor is too long for a scan cursor.
 
 ### serve
 

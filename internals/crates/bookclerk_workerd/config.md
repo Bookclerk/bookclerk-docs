@@ -31,6 +31,7 @@ Generate a real workerd Cap'n Proto config for one plugin isolate.
 | [`SDK_PY_GUEST_SQL_MODULE`](#sdk_py_guest_sql_module) | constant | Python module path for guest-side SQL statement classification helpers. |
 | [`SDK_PY_LIMITS_MODULE`](#sdk_py_limits_module) | constant | Python module path for the typed `limit_exceeded` helpers. |
 | [`SDK_PY_PLUGIN_MIGRATION_MODULE`](#sdk_py_plugin_migration_module) | constant | Python module path for the plugin-owned migration registration checks. |
+| [`SDK_PY_SCAN_PAGE_MODULE`](#sdk_py_scan_page_module) | constant | Python module path for the storefront `scan` paging helper. |
 | [`SDK_PY_INIT_MODULE`](#sdk_py_init_module) | constant | Python module path that initializes the sparse workerd guest SDK. |
 | [`WORKERD_STATE_DIR_ENV`](#workerd_state_dir_env) | constant | Env var the host sets to the per-session workerd state directory. |
 
@@ -559,6 +560,14 @@ pub const SDK_PY_PLUGIN_MIGRATION_MODULE: &str = "bookclerk_plugin_sdk/plugin_mi
 ```
 
 Python module path for the plugin-owned migration registration checks.
+
+### SDK_PY_SCAN_PAGE_MODULE
+
+```rust
+pub const SDK_PY_SCAN_PAGE_MODULE: &str = "bookclerk_plugin_sdk/scan_page.py";
+```
+
+Python module path for the storefront `scan` paging helper.
 
 ### SDK_PY_INIT_MODULE
 

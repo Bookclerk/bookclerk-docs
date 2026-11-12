@@ -23,7 +23,7 @@ authoring tools that do not ship the Rust `bookclerk-workerd` binary.
 | [`SDK_JS_MODULE_NAMES`](#sdk_js_module_names) | constant | Module names used when embedding the TypeScript workerd SDK. |
 | [`SDK_PY_WORKERD_MODULE`](#sdk_py_workerd_module) | constant | Isolate module path for the Python workerd `BookclerkEntrypoint` base. |
 | [`SDK_PY_INIT_MODULE`](#sdk_py_init_module) | constant | Isolate module path for the package `__init__` stub. |
-| [`SDK_PY_SIBLING_MODULES`](#sdk_py_sibling_modules) | constant | SDK modules `workerd.py` imports inside the isolate, injected beside it. |
+| [`SDK_PY_SIBLING_MODULES`](#sdk_py_sibling_modules) | constant | SDK modules `workerd.py` imports inside the isolate, injected beside it, plus `scan_page.py`, which authors import directly. |
 | [`PYODIDE_EGRESS_HOSTS`](#pyodide_egress_hosts) | constant | Extra egress hosts allowed for Python Workers / Pyodide package fetch. |
 | [`SDK_PY_INIT`](#sdk_py_init) | constant | Source text embedded as `bookclerk_plugin_sdk/__init__.py` in the isolate. |
 | [`ADAPTER_JS`](#adapter_js) | constant | First-party adapter isolate module (mirrors `ADAPTER_JS` in `config.rs`). |
@@ -306,7 +306,8 @@ Isolate module path for the package `__init__` stub.
 SDK_PY_SIBLING_MODULES = (('bookclerk_plugin_sdk/_abi.py', '_abi.py', 'sdk-product-abi.py'), ('bookcle...
 ```
 
-SDK modules `workerd.py` imports inside the isolate, injected beside it.
+SDK modules `workerd.py` imports inside the isolate, injected beside it,
+plus `scan_page.py`, which authors import directly.
 
 Each entry is `(isolate module path, source file name, embedded file name)`.
 Together with `__init__.py` and `workerd.py` this is the SDK's in-package

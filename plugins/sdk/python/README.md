@@ -110,8 +110,11 @@ it advertises one, `prepare(sql).iterate()` yields rows one at a time
 from the same read, `db.chunk(statements)` splits a long list into
 batches that each fit one request, and `db.write_chunks(...)` commits those
 batches resumably; see
-[Working within database limits](../../database-limits.md). Generate a
-typed `Env` protocol from `plugin.toml`:
+[Working within database limits](../../database-limits.md). A
+storefront's `scan` can hand its paging to `scan_page(params, fetch)`
+(`from bookclerk_plugin_sdk.scan_page import scan_page`, which also works
+inside a workerd isolate), which slices the store's own pages into replies
+the host accepts; see [Paged scans](../../abi.md#paged-scans). Generate a typed `Env` protocol from `plugin.toml`:
 
 ```bash
 python -m bookclerk_plugin_sdk types .   # writes bookclerk_configuration.py
@@ -177,6 +180,7 @@ module, and what the package itself exports.
 | [`bookclerk_plugin_sdk.limits`](limits.md) | Typed `limit_exceeded` errors: the SQL-v1 cap a request or result broke. |
 | [`bookclerk_plugin_sdk.path_guard`](path_guard.md) | Path containment helpers for authoring tools and sparse workerd launchers. |
 | [`bookclerk_plugin_sdk.plugin_migration`](plugin_migration.md) | Resource bounds for plugin-owned `databaseMigrations` registration. |
+| [`bookclerk_plugin_sdk.scan_page`](scan_page.md) | Paging helper for a storefront's `scan`. |
 | [`bookclerk_plugin_sdk.sparse_workerd`](sparse_workerd/README.md) | Sparse out-of-tree workerd launcher (no Rust `bookclerk-workerd` binary). |
 | [`bookclerk_plugin_sdk.sparse_workerd.config`](sparse_workerd/config.md) | Materialize Cap'n Proto workerd config + bridge (mirrors config.rs). |
 | [`bookclerk_plugin_sdk.sparse_workerd.ensure`](sparse_workerd/ensure.md) | Download / refresh the pinned Cloudflare `workerd` binary (mirrors ensure.rs). |
@@ -234,7 +238,10 @@ source of truth.
 - [`RetryToken`](db_value.md#retrytoken) from `bookclerk_plugin_sdk.db_value`
 - [`WriteProgress`](db_value.md#writeprogress) from `bookclerk_plugin_sdk.db_value`
 - [`write_chunks_operation_id`](db_value.md#write_chunks_operation_id) from `bookclerk_plugin_sdk.db_value`
+- [`FetchStorePage`](scan_page.md#fetchstorepage) from `bookclerk_plugin_sdk.scan_page`
 - [`ScanParams`](abi.md#scanparams) from `bookclerk_plugin_sdk.abi`
+- [`StorePage`](scan_page.md#storepage) from `bookclerk_plugin_sdk.scan_page`
+- [`scan_page`](scan_page.md#scan_page) from `bookclerk_plugin_sdk.scan_page`
 - [`canonical_execute_request_hash`](db_value.md#canonical_execute_request_hash) from `bookclerk_plugin_sdk.db_value`
 - [`chunk_indexes`](db_value.md#chunk_indexes) from `bookclerk_plugin_sdk.db_value`
 - [`create_database_binding`](db_value.md#create_database_binding) from `bookclerk_plugin_sdk.db_value`

@@ -127,6 +127,9 @@ read, `db.chunk(statements)` splits a long list into batches that each
 fit one request, and `db.writeChunks(...)` commits those batches
 resumably; see
 [Working within database limits](../../database-limits.md).
+A storefront's `scan` can hand its paging to `scanPage(params, fetch)`,
+which slices the store's own pages into replies the host accepts; see
+[Paged scans](../../abi.md#paged-scans).
 Generate the `Env` type from `plugin.toml`:
 
 ```bash
@@ -705,6 +708,67 @@ used: number;
 
 The observed value that exceeded `cap`.
 
+***
+
+### StorePage
+
+One page of a storefront's own library listing, as the plugin fetched it.
+
+#### Properties
+
+##### books
+
+```ts
+books: ScanBook[];
+```
+
+Titles on this store page, in the store's order; any number of them.
+
+##### complete?
+
+```ts
+complete?: boolean;
+```
+
+On the last store page: whether the pass listed every title the account
+holds (a full pass). Ignored on earlier pages.
+
+##### next?
+
+```ts
+next?: string;
+```
+
+The storefront's own cursor for the store page after this one; empty or
+absent when this is the last store page.
+
+##### removed?
+
+```ts
+removed?: string[];
+```
+
+Product ids gone from the account since `ScanParams.syncToken`, on a
+delta pass only; any number of them.
+
+##### storePages?
+
+```ts
+storePages?: number;
+```
+
+Storefront requests this fetch took; 1 when absent.
+
+##### syncToken?
+
+```ts
+syncToken?: string;
+```
+
+On the last store page: the token the host sends as
+`ScanParams.syncToken` on the account's next pass. Ignored on earlier
+pages.
+
 ## Type Aliases
 
 ### AdapterBatchStatement
@@ -714,6 +778,29 @@ type AdapterBatchStatement = Pick<AdapterStatement, "sql" | "parameters" | "kind
 ```
 
 The parts of an [AdapterStatement](generated.md#adapterstatement) an adapter executes.
+
+***
+
+### FetchStorePage
+
+```ts
+type FetchStorePage = (storeCursor, params) => Promise<StorePage>;
+```
+
+Fetches one store page.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `storeCursor` | `string` | The storefront's own cursor: empty for the first store page of a pass, otherwise a [StorePage.next](#next) it returned. |
+| `params` | [`ScanParams`](generated.md#scanparams) | The scan call's params (account, credential, sync token). |
+
+#### Returns
+
+`Promise`\<[`StorePage`](#storepage)\>
+
+That store page.
 
 ## Variables
 
@@ -1200,6 +1287,58 @@ The reply to deliver once the transaction commits.
   its reply, `internal` when the wrap shape is malformed or the payload is
   over [GUEST\_REPLAY\_PAYLOAD\_MAX\_BYTES](#guest_replay_payload_max_bytes), `invalid_params` when a
   result cell is not a valid `DbValue`, or whatever `run` threw.
+
+***
+
+### scanPage()
+
+```ts
+function scanPage(params, fetchStorePage): Promise<ScanPage>;
+```
+
+Answers one `scan` call from the storefront's own pages.
+
+Fetches the store page `params.cursor` names and returns at most
+`MAX_SCAN_PAGE_BOOKS` of its titles and removed ids. A store page larger
+than that is returned over several calls, each fetching it again. The pass
+ends on the last slice of the store page whose [StorePage.next](#next) is
+empty, which carries that page's `syncToken` and `complete`.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`ScanParams`](generated.md#scanparams) | The scan call's params. |
+| `fetchStorePage` | [`FetchStorePage`](#fetchstorepage) | Fetches one store page. |
+
+#### Returns
+
+`Promise`\<[`ScanPage`](generated.md#scanpage)\>
+
+The reply for this call.
+
+#### Example
+
+```ts
+scan(params: ScanParams): Promise<ScanPage> {
+  return scanPage(params, async (storeCursor) => {
+    const page = Number(storeCursor || "1");
+    const listing = await this.library(params.accountId, page);
+    return {
+      books: listing.items.map(toScanBook),
+      next: listing.hasMore ? String(page + 1) : "",
+      complete: true,
+    };
+  });
+}
+```
+
+#### Throws
+
+[PluginError](#pluginerror) `invalid_cursor` when the cursor was not
+  written by this helper or no longer fits the store page (the store
+  changed mid-pass), so the host restarts the pass; `internal` when a
+  store cursor is too long for a scan cursor.
 
 ***
 
