@@ -44,7 +44,7 @@ Row shape for this table (`DeriveEntityModel`).
 - `label`: Optional operator-facing display label.
 - `scan_enabled`: When nonzero/true, scheduled scans include this account.
 - `source`: Display alias of the owning plugin (`audible`, `libro`, …).
-- `connection_status`: Credential health: `active` or `revoked` (books retained).
+- `connection_status`: Credential health: `active` or `revoked` (holdings removed; books retained).
 - `created_at`: RFC 3339 timestamp when the row was inserted.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 

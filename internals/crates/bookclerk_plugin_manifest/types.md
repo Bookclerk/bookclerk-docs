@@ -1584,7 +1584,7 @@ Most `[triggers] crons` entries one manifest may declare.
 ### HOST_EVENT_TYPES
 
 ```rust
-pub const HOST_EVENT_TYPES: [&str; 6] = _;
+pub const HOST_EVENT_TYPES: [&str; 7] = _;
 ```
 
 Domain event types only the host emits.
@@ -1593,7 +1593,9 @@ Domain event types only the host emits.
 transaction as the library row once a source plugin's acquire handler
 returns; the source never publishes it. `edition_linked`,
 `edition_updated` and `holding_added` are written by the library model
-resolver in the same batch as the listing they describe.
+resolver in the same batch as the listing they describe, and
+`holding_removed` in the batch that deletes the holding (a scan no
+longer lists it, or its account was revoked or remapped).
 `wishlist_changed` is written when a wishlist entry is added or changes
 status, and `listening_synced` when a listening sync changed what someone
 has started or finished. Plugins consume these types but cannot declare

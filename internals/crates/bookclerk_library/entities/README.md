@@ -44,7 +44,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`event_outbox_stats`](event_outbox_stats.md): SeaORM entity for the singleton durable event-outbox counters.
 - [`event_subscriber_nodes`](event_subscriber_nodes.md): SeaORM entity for live per-node `event_subscriber_nodes` registrations.
 - [`expressions`](expressions.md): SeaORM entity for the `expressions` table (text primary key).
-- [`holdings`](holdings.md): SeaORM entity for the `holdings` table (composite primary key).
+- [`holdings`](holdings.md): SeaORM entity for the `holdings` table: who holds a store listing.
 - [`ignored_titles`](ignored_titles.md): SeaORM entity for the `ignored_titles` table entity (composite primary key).
 - [`job_secret_handoffs`](job_secret_handoffs.md): SeaORM entity for `job_secret_handoffs`: which store-account secrets a Host was handed with a job, per lease generation.
 - [`job_temp_paths`](job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.

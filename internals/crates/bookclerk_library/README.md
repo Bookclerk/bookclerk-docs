@@ -151,6 +151,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
+| [`HoldingSelection`](#holdingselection) | enum | Which holdings of one account a removal takes. |
 | [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy all library tables from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
@@ -289,6 +290,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
+| [`HOLDING_REMOVED`](#holding_removed) | constant | Event type published when a holding is removed. |
 | [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
@@ -1946,7 +1948,7 @@ Account row stored in the Bookclerk DB.
 - `marketplace`: Store marketplace / locale code (for example `us`, `uk`).
 - `label`: Optional operator-facing display label.
 - `scan_enabled`: When nonzero/true, scheduled scans include this account.
-- `connection_status`: `active` or `revoked` (credentials removed; books retained).
+- `connection_status`: `active` or `revoked` (credentials and holdings removed; books retained).
 - `created_at`: RFC 3339 timestamp when the row was inserted.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
@@ -4233,6 +4235,7 @@ pub struct PassStart {
     pub cursor: String,
     pub sync_token: String,
     pub resumed: bool,
+    pub pass_id: String,
 }
 ```
 
@@ -4243,6 +4246,9 @@ How the next pass of one account starts.
 - `cursor`: Cursor of the first page to ask for; empty starts at the beginning.
 - `sync_token`: Sync token to send; empty asks for a full pass.
 - `resumed`: True when the pass resumes one that stopped part way.
+- `pass_id`: Id of the pass, stamped on every holding a page lists
+  (`holdings.seen_pass`); a resumed pass keeps the id its earlier
+  pages stamped.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4254,6 +4260,7 @@ pub struct ScanState {
     pub resume_cursor: String,
     pub resume_token: String,
     pub last_complete_at: Option<DateTime<Utc>>,
+    pub pass_id: String,
     pub updated_at: DateTime<Utc>,
 }
 ```
@@ -4266,6 +4273,7 @@ Where one account's scan stands.
 - `resume_cursor`: Cursor of a stopped pass's next page; empty when none.
 - `resume_token`: Token the stopped pass started with.
 - `last_complete_at`: When the last complete pass ended.
+- `pass_id`: Id of the pass in progress or last run; empty before the first.
 - `updated_at`: When the row was last written.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
@@ -5851,6 +5859,65 @@ The number of rows expired or removed.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the delete fails.
 
+#### LibraryStore::mark_holdings_seen
+
+```rust
+pub async fn mark_holdings_seen(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    pass_id: &str,
+    product_ids: &[String],
+) -> Result<()>
+```
+
+Stamps scan pass `pass_id` on the account's holdings of `product_ids`.
+
+A holding is stamped whether or not its listing resolved on this
+page, so a title the library model could not settle is never taken
+for one that left the account.
+
+##### Arguments
+
+* `plugin_key` - The account's plugin (and the listings').
+* `account_id` - The scanned account.
+* `pass_id` - The pass in progress (`account_scan_state.pass_id`).
+* `product_ids` - The product ids the page listed.
+
+##### Errors
+
+Returns an error when a batch fails.
+
+#### LibraryStore::remove_account_holdings
+
+```rust
+pub async fn remove_account_holdings(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    selection: HoldingSelection<'_>,
+) -> Result<usize>
+```
+
+Removes the account's holdings that `selection` names, publishing
+`holding_removed` for each in the batch that deletes it.
+
+##### Arguments
+
+* `plugin_key` - The account's plugin.
+* `account_id` - The account.
+* `selection` - Which of its holdings go.
+
+##### Returns
+
+How many holdings were selected for removal (a concurrent writer may
+have kept or removed some of them first).
+
+##### Errors
+
+Returns an error when a read or a batch fails; holdings removed by
+earlier batches stay removed.
+
 #### LibraryStore::owned_work_for
 
 ```rust
@@ -6605,6 +6672,7 @@ pub async fn save_scan_checkpoint(
     account_id: &str,
     cursor: &str,
     pass_token: &str,
+    pass_id: &str,
 ) -> Result<()>
 ```
 
@@ -6616,6 +6684,8 @@ Records that a pass wrote a page and continues at `cursor`.
 * `account_id` - The account.
 * `cursor` - The next page's cursor.
 * `pass_token` - The sync token the pass started with.
+* `pass_id` - The pass's id ([`PassStart::pass_id`](#passstart)), kept so a
+  resumed pass stamps the same one.
 
 ##### Errors
 
@@ -7972,10 +8042,13 @@ Returns an error when the operation fails.
 pub async fn remap_account_id(&self, plugin_key: &str, from: &str, to: &str) -> Result<()>
 ```
 
-Remap `from` → `to` account ids within one plugin (books + account row).
+Remap `from` → `to` account ids within one plugin (books, holdings
+and the account row).
 
 Used when classic Libation stored an email `AccountId` and a later
-login/scan discovers Audible `customer_id`.
+login/scan discovers Audible `customer_id`. Holdings move to `to`
+with `holding_removed` / `holding_added` events before the old
+account row, whose foreign key would otherwise drop them, is deleted.
 
 ##### Errors
 
@@ -8205,7 +8278,13 @@ Returns an error when the operation fails.
 pub async fn revoke_credentials(&self, plugin_key: &str, account_id: &str) -> Result<()>
 ```
 
-Mark bookstore credentials revoked without deleting the account or books.
+Mark bookstore credentials revoked, remove the account's holdings
+(with `holding_removed` for each) and forget its sync token, without
+deleting the account, its flat library rows or acquired files.
+
+The account no longer reaches the store, so the library no longer
+holds its titles through it. A later reconnect starts a full scan
+pass (no sync token), which adds the holdings back.
 
 ##### Errors
 
@@ -9808,6 +9887,23 @@ and the listing is skipped with a warning.
 ##### Errors
 
 Returns an error when the flat row cannot be read or written.
+
+#### LibraryStore::update_book_metadata
+
+```rust
+pub async fn update_book_metadata(&self, book: &NewBook) -> Result<BookRecord>
+```
+
+Updates a title's metadata: the flat row, and its listing, without
+asserting that its account holds it.
+
+For metadata from elsewhere (enrichment), which must not bring back
+a holding a scan or a revoke removed.
+
+##### Errors
+
+Returns an error when the flat row cannot be read or written; a
+listing that cannot be resolved is logged, not returned.
 
 #### LibraryStore::upsert_scanned_title
 
@@ -12313,6 +12409,27 @@ The role of the file at `key`, from its extension.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
 
+### HoldingSelection
+
+```rust
+pub enum HoldingSelection<'a> {
+    Products(&'a [String]),
+    UnseenBy(&'a str),
+    All,
+}
+```
+
+Which holdings of one account a removal takes.
+
+**Variants**
+
+- `Products`: The account's holdings of these products of its plugin (a scan page's
+  `removed` ids).
+- `UnseenBy`: The account's holdings that the scan pass `pass_id` did not list.
+- `All`: Every holding of the account (it was revoked).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### SeedScope
 
 ```rust
@@ -13644,7 +13761,8 @@ pub fn plan_pass(state: Option<&ScanState>, now: DateTime<Utc>) -> PassStart
 Decides how the next pass of an account starts.
 
 A stopped pass whose cursor is younger than [`RESUME_CURSOR_TTL`](#resume_cursor_ttl) resumes
-with the token it started with. Otherwise a pass starts from the
+with the token and pass id it started with (a row without a pass id
+starts over, since its earlier pages stamped no holdings). Otherwise a pass starts from the
 beginning, as a delta from the stored token unless no complete pass ended
 within [`FULL_PASS_INTERVAL`](#full_pass_interval), in which case it is full.
 
@@ -14173,6 +14291,14 @@ pub const BOOK_PAGE_MAX_LIMIT: u64 = 500;
 ```
 
 Upper clamp for a library book page. Matches the HTTP handler.
+
+### HOLDING_REMOVED
+
+```rust
+pub const HOLDING_REMOVED: &str = "holding_removed";
+```
+
+Event type published when a holding is removed.
 
 ### MAX_QUEUE_REASONS
 

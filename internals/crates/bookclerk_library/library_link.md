@@ -359,6 +359,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 ```rust
 pub struct LinkHoldingRow {
     pub holder: String,
+    pub holding_id: String,
     pub entitlement: String,
     pub purchased_at: Option<String>,
 }
@@ -368,7 +369,10 @@ A `holdings` row a link batch inserts or refreshes.
 
 **Fields**
 
-- `holder`: Stored holder (`account:<id>` or `node:<id>`).
+- `holder`: Stored holder (`account:<id>` of an account of the listing's plugin,
+  or `node:<id>`); the typed holder columns are derived from it.
+- `holding_id`: Id a new holding is inserted with; the `holding_added` event names
+  it, so a later holding of the same listing announces itself again.
 - `entitlement`: Stored entitlement.
 - `purchased_at`: When the holder bought or added it (RFC 3339).
 
