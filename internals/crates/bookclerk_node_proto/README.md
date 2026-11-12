@@ -47,6 +47,11 @@ joined ([`Body::CatalogBegin`](#body), [`Body::CatalogSync`](#body),
 [`Body::CatalogUpload`](#body); see [`CatalogTitle`](#catalogtitle)): titles carry no account
 or user field, and files reuse the upload endpoint.
 
+A library asks its branches whether they can supply works it knows
+([`LookupWork`](#lookupwork), by strong identifiers, never titles): it stores the
+questions and wakes the branch, which pulls them with
+[`Body::CatalogQuestions`](#body) and answers with [`Body::CatalogFound`](#body).
+
 A host that leaves sends [`Body::NodeLeaving`](#body); the owner revokes the
 node at once. Joining with a sign-in instead of a link is the OAuth
 code + PKCE flow of the built-in client [`BRANCH_CLIENT_ID`](#branch_client_id) ([`OwnerInfo`](#ownerinfo),
@@ -90,6 +95,10 @@ bytes.
 | [`OAuthEnrollAnswer`](#oauthenrollanswer) | struct | `POST /api/node/v1/enroll/oauth` answer. |
 | [`OAuthEnrollRequest`](#oauthenrollrequest) | struct | `POST /api/node/v1/enroll/oauth` body. Keys are base64url without padding. |
 | [`OwnerInfo`](#ownerinfo) | struct | `GET /api/node/v1/info` answer. |
+| [`LookupAnswer`](#lookupanswer) | struct | A branch's answer to one `LookupWork`. |
+| [`LookupEdition`](#lookupedition) | struct | One edition a branch can supply. |
+| [`LookupIdentifier`](#lookupidentifier) | struct | One identifier of the work a question is about. |
+| [`LookupWork`](#lookupwork) | struct | One question: "can you supply this work?". |
 | [`SecretEntry`](#secretentry) | struct | One secret in a bundle. |
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
@@ -100,6 +109,9 @@ bytes.
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
 | [`KeyError`](#keyerror) | enum | Why a public key was refused. |
+| [`Availability`](#availability) | enum | How a branch can supply an edition. |
+| [`LookupFormat`](#lookupformat) | enum | A file format a branch has for an edition. |
+| [`LookupScheme`](#lookupscheme) | enum | Which kind of identifier a `LookupIdentifier` is. Only identifiers that name one edition or one work are asked about; anything else does not parse. |
 | [`SealError`](#sealerror) | enum | Why a sealed box could not be made or opened. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
@@ -124,6 +136,9 @@ bytes.
 | [`sign_public_key`](#sign_public_key) | function | The Ed25519 public key of a 32-byte signing seed. |
 | [`validate_box_public_key`](#validate_box_public_key) | function | Validates an X25519 public box key (a Montgomery u-coordinate). |
 | [`validate_sign_public_key`](#validate_sign_public_key) | function | Validates an Ed25519 public signing key. |
+| [`found_problem`](#found_problem) | function | Why a `crate::Body::CatalogFound` is malformed, or `None`: at most `MAX_LOOKUP_WORKS` works named in all, each once, every answer well-formed and every missing work a correlation key. |
+| [`is_work_ref`](#is_work_ref) | function | True for a correlation key: 1 to `MAX_WORK_REF_BYTES` ASCII letters, digits and `-`. |
+| [`questions_problem`](#questions_problem) | function | Why a list of questions is malformed, or `None`: at most `MAX_LOOKUP_WORKS` well-formed questions, each about a different work. |
 | [`instance_secrets_aad`](#instance_secrets_aad) | function | Associated data of `instance_id`'s `SECRETS` handed to `node_id` at document `revision`. |
 | [`open`](#open) | function | Opens a box sealed to the public key of `recipient_secret`. |
 | [`open_instance_secrets`](#open_instance_secrets) | function | Opens a payload made by `seal_instance_secrets` with the node's box secret. |
@@ -188,6 +203,10 @@ bytes.
 | [`MAX_BRANCH_NAME_BYTES`](#max_branch_name_bytes) | constant | Longest branch name sent. |
 | [`MAX_LIBRARY_NAME_BYTES`](#max_library_name_bytes) | constant | Longest library name accepted: a library is named by its public host, and a DNS name runs to 253 bytes. |
 | [`PUBLIC_KEY_LEN`](#public_key_len) | constant | Length of either public key. |
+| [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) | constant | Most editions one `LookupAnswer` may list. |
+| [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) | constant | Most identifiers one `LookupWork` may carry. |
+| [`MAX_LOOKUP_WORKS`](#max_lookup_works) | constant | Most works one `crate::Body::CatalogAsk` or `crate::Body::CatalogFound` may name. |
+| [`MAX_WORK_REF_BYTES`](#max_work_ref_bytes) | constant | Longest correlation key (`LookupWork::work`). |
 | [`INSTANCE_SECRETS_AAD_DOMAIN`](#instance_secrets_aad_domain) | constant | Domain tag that starts the associated data of an instance's `SECRETS`. |
 | [`SEALED_BOX_INFO`](#sealed_box_info) | constant | HKDF info string of a sealed box. |
 | [`SEALED_BOX_OVERHEAD`](#sealed_box_overhead) | constant | Bytes a sealed box adds to its plaintext (ephemeral key and tag). |
@@ -972,6 +991,132 @@ pub struct OwnerInfo {
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### LookupAnswer
+
+```rust
+pub struct LookupAnswer {
+    pub work: String,
+    pub editions: Vec<LookupEdition>,
+}
+```
+
+A branch's answer to one [`LookupWork`](#lookupwork).
+
+**Fields**
+
+- `work`: The question's [`LookupWork::work`](#lookupwork).
+- `editions`: What the branch can supply; 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) editions.
+
+#### LookupAnswer::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the answer is malformed, or `None`: a correlation key, and 1 to
+[`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) well-formed editions with distinct
+(store, marketplace, product id).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupEdition
+
+```rust
+pub struct LookupEdition {
+    pub store: String,
+    pub marketplace: String,
+    pub product_id: String,
+    pub availability: Availability,
+    pub formats: Vec<LookupFormat>,
+    pub metadata: CatalogMetadata,
+}
+```
+
+One edition a branch can supply.
+
+**Fields**
+
+- `store`: The store that sells it, as the store's plain id (`audible`,
+  `libro`, ...).
+- `marketplace`: Lower-cased marketplace of the store listing (`us`); empty when the
+  store has none.
+- `product_id`: The store's product id (ASIN, ISBN, ...).
+- `availability`: Whether the branch holds it or can borrow it.
+- `formats`: Formats the branch has; empty when unknown.
+- `metadata`: Bibliographic metadata, as the branch's library has it.
+
+#### LookupEdition::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the edition is malformed, or `None`: a store id, product id and
+marketplace within their rules, distinct formats, a non-empty
+bounded title and bounded metadata.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupIdentifier
+
+```rust
+pub struct LookupIdentifier {
+    pub scheme: LookupScheme,
+    pub value: String,
+    pub marketplace: String,
+}
+```
+
+One identifier of the work a question is about.
+
+**Fields**
+
+- `scheme`: The scheme.
+- `value`: The normalised value (an ASIN, an ISBN-13, an OpenLibrary id).
+- `marketplace`: Lower-cased marketplace for an ASIN; empty for every other scheme.
+
+#### LookupIdentifier::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when the value is 1 to 64 ASCII letters, digits and `-`, and
+the marketplace is set exactly for an ASIN, as up to 16 lowercase
+ASCII letters and digits.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### LookupWork
+
+```rust
+pub struct LookupWork {
+    pub work: String,
+    pub identifiers: Vec<LookupIdentifier>,
+}
+```
+
+One question: "can you supply this work?".
+
+**Fields**
+
+- `work`: The asking library's work id, echoed in the answer; opaque to the
+  branch.
+- `identifiers`: The work's identifiers; at least one, at most
+  [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers).
+
+#### LookupWork::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the question is malformed, or `None`: a correlation key
+([`is_work_ref`](#is_work_ref)) and 1 to [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) distinct
+well-formed identifiers.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### SecretEntry
 
 ```rust
@@ -1234,6 +1379,9 @@ pub enum Body {
     CatalogSync { fence: i64, batch: u64, cursor: String, done: bool, titles: Vec<CatalogTitle> },
     CatalogAccepted { batch: u64, upserted: u64, skipped: u64, wanted: Vec<CatalogRef> },
     CatalogUpload { fence: i64, store: String, product_id: String, files: Vec<UploadFile> },
+    CatalogQuestions {  },
+    CatalogAsk { works: Vec<LookupWork> },
+    CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
     Accepted {  },
     Unknown,
 }
@@ -1494,6 +1642,19 @@ What a frame says, tagged by `type`.
   - `product_id`: Product id of the title.
   - `files`: The title's files, in upload order, each copied to every
     destination of the session under its manifest key.
+- `CatalogQuestions`: Branch → library: send the catalog questions waiting for this
+  branch (see [`crate::LookupWork`](#lookupwork)). Answered with
+  [`Body::CatalogAsk`](#body), or `error {code: "refused"}` when the node is
+  not a branch this library trusts.
+- `CatalogAsk`: Library → branch: the questions waiting for it, at most
+  [`crate::MAX_LOOKUP_WORKS`](#max_lookup_works); empty when none is.
+  - `works`: The questions.
+- `CatalogFound`: Branch → library: answers to questions it was asked; a question
+  with no answer means the branch cannot supply that work. Answered
+  with [`Body::Accepted`](#body) or `error`.
+  - `answers`: The answers, at most [`crate::MAX_LOOKUP_WORKS`](#max_lookup_works).
+  - `missing`: Works of the batch the branch looked up and cannot supply, so
+    the library stops asking until the answer expires.
 - `Accepted`: Owner → host: the request with this frame id was applied.
 - `Unknown`: A frame type this side does not know.
 
@@ -1540,6 +1701,91 @@ Why a public key was refused.
 - `WeakPoint`: A small-order or mixed-order point.
 
 Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### Availability
+
+```rust
+pub enum Availability {
+    Owned,
+    Reachable,
+}
+```
+
+How a branch can supply an edition.
+
+**Variants**
+
+- `Owned`: The branch's own library holds it (its owner's or a member's book).
+- `Reachable`: The branch can borrow it from another library it joined, which
+  allows onward lending.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupFormat
+
+```rust
+pub enum LookupFormat {
+    Audio,
+    Pdf,
+}
+```
+
+A file format a branch has for an edition.
+
+**Variants**
+
+- `Audio`: The audiobook itself.
+- `Pdf`: The companion PDF.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### LookupScheme
+
+```rust
+pub enum LookupScheme {
+    Asin,
+    Isbn,
+    OpenlibraryEdition,
+    OpenlibraryWork,
+}
+```
+
+Which kind of identifier a [`LookupIdentifier`](#lookupidentifier) is. Only identifiers
+that name one edition or one work are asked about; anything else does
+not parse.
+
+**Variants**
+
+- `Asin`: Amazon ASIN of an edition in one marketplace (strong).
+- `Isbn`: ISBN-13 of an edition (weak: one ISBN can sit on several editions).
+- `OpenlibraryEdition`: OpenLibrary edition id (strong).
+- `OpenlibraryWork`: OpenLibrary work id (names the work).
+
+#### LookupScheme::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The scheme as the library model stores it (`edition_identifiers.scheme`).
+
+#### LookupScheme::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses stored scheme text; `None` for any other.
+
+#### LookupScheme::is_scoped
+
+```rust
+pub fn is_scoped(self) -> bool
+```
+
+True for the one scheme scoped to a marketplace (ASIN).
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ### SealError
 
@@ -1852,6 +2098,34 @@ Validates an Ed25519 public signing key.
 
 Returns [`KeyError`](#keyerror) when the key is the wrong length, not a canonical
 curve point, or not in the prime-order subgroup.
+
+### found_problem
+
+```rust
+pub fn found_problem(answers: &[LookupAnswer], missing: &[String]) -> Option<&'static str>
+```
+
+Why a [`crate::Body::CatalogFound`](#body) is malformed, or `None`: at most
+[`MAX_LOOKUP_WORKS`](#max_lookup_works) works named in all, each once, every answer
+well-formed and every missing work a correlation key.
+
+### is_work_ref
+
+```rust
+pub fn is_work_ref(work: &str) -> bool
+```
+
+True for a correlation key: 1 to [`MAX_WORK_REF_BYTES`](#max_work_ref_bytes) ASCII letters,
+digits and `-`.
+
+### questions_problem
+
+```rust
+pub fn questions_problem(works: &[LookupWork]) -> Option<&'static str>
+```
+
+Why a list of questions is malformed, or `None`: at most
+[`MAX_LOOKUP_WORKS`](#max_lookup_works) well-formed questions, each about a different work.
 
 ### instance_secrets_aad
 
@@ -2540,6 +2814,39 @@ pub const PUBLIC_KEY_LEN: usize = 32;
 ```
 
 Length of either public key.
+
+### MAX_LOOKUP_EDITIONS
+
+```rust
+pub const MAX_LOOKUP_EDITIONS: usize = 8;
+```
+
+Most editions one [`LookupAnswer`](#lookupanswer) may list.
+
+### MAX_LOOKUP_IDENTIFIERS
+
+```rust
+pub const MAX_LOOKUP_IDENTIFIERS: usize = 16;
+```
+
+Most identifiers one [`LookupWork`](#lookupwork) may carry.
+
+### MAX_LOOKUP_WORKS
+
+```rust
+pub const MAX_LOOKUP_WORKS: usize = 100;
+```
+
+Most works one [`crate::Body::CatalogAsk`](#body) or
+[`crate::Body::CatalogFound`](#body) may name.
+
+### MAX_WORK_REF_BYTES
+
+```rust
+pub const MAX_WORK_REF_BYTES: usize = 64;
+```
+
+Longest correlation key ([`LookupWork::work`](#lookupwork)).
 
 ### INSTANCE_SECRETS_AAD_DOMAIN
 

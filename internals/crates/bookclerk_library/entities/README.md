@@ -19,6 +19,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
 - [`books`](books.md): SeaORM entity for the `books` table.
 - [`branch_titles`](branch_titles.md): SeaORM entity for `branch_titles`: on a library, the titles a branch shared with it (`catalog.sync`; written by `control_plane::branch_catalog`). Rows name the branch's node and its owner user only; nothing names the branch's store accounts, users or own branches.
+- [`catalog_listing_optouts`](catalog_listing_optouts.md): SeaORM entity for `catalog_listing_optouts`: on a branch, the members whose books it does not list to the libraries it joined.
+- [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
 - [`claim_tickets`](claim_tickets.md): SeaORM entity for the `claim_tickets` table.
 - [`cluster_identity`](cluster_identity.md): SeaORM entity for the singleton cluster identity and secret-root fingerprint.
 - [`cluster_leases`](cluster_leases.md): SeaORM entity for `cluster_leases`: singleton maintenance leases.

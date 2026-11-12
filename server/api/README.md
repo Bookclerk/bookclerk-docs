@@ -72,6 +72,8 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`GET /api/auth/sessions`](auth.md#get-apiauthsessions) | List sessions for the current principal only (not every operator session). |
 | [`DELETE /api/auth/sessions/{id}`](auth.md#delete-apiauthsessionsid) | Revoke a session by id. Operators may revoke any operator session; portal users may only revoke their own. |
 | [`PATCH /api/auth/profile`](auth.md#patch-apiauthprofile) | Updates the caller's display name and/or email. |
+| [`GET /api/auth/profile/catalog-listing`](auth.md#get-apiauthprofilecatalog-listing) | Reads whether the caller's books are listed to the libraries this install is a branch of. |
+| [`PUT /api/auth/profile/catalog-listing`](auth.md#put-apiauthprofilecatalog-listing) | Sets whether the caller's books are listed to the libraries this install is a branch of. |
 | [`PUT /api/auth/profile/avatar`](auth.md#put-apiauthprofileavatar) | Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`. |
 | [`DELETE /api/auth/profile/avatar`](auth.md#delete-apiauthprofileavatar) | Removes the caller's stored avatar, if any. |
 | [`GET /api/auth/oidc/providers`](auth.md#get-apiauthoidcproviders) | Lists enabled IdPs for the login picker (id and display name only). |
@@ -275,7 +277,7 @@ Nodes, clerks, branches, joining a library and host enrollment.
 | [`PUT /api/config/branches`](cluster.md#put-apiconfigbranches) | `PUT /api/config/branches`: turn "Let new branches join" on or off. |
 | [`POST /api/config/branches/titles/remove`](cluster.md#post-apiconfigbranchestitlesremove) | `POST /api/config/branches/titles/remove`: removes the entries of titles from a branch that stopped sharing or left. Delivered files stay. |
 | [`GET /api/config/join/sharing`](cluster.md#get-apiconfigjoinsharing) | `GET /api/config/join/sharing`: Settings → Library for the operator or an Owner: every library this install is a branch of, with its two sharing settings (`{clusters: [...]}`). |
-| [`POST /api/config/join/sharing`](cluster.md#post-apiconfigjoinsharing) | `POST /api/config/join/sharing`: Settings → Library's two sharing settings for one library this install is a branch of. The operator or an Owner (verified from the stored role); anyone else gets 403. |
+| [`POST /api/config/join/sharing`](cluster.md#post-apiconfigjoinsharing) | `POST /api/config/join/sharing`: Settings → Library's sharing settings for one library this install is a branch of (the two book-sharing settings, and optionally "List my members' books"). The operator or an Owner (verified from the stored role); anyone else gets 403. |
 | [`DELETE /api/config/node-credentials/{node_id}`](cluster.md#delete-apiconfignode-credentialsnode_id) | `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled host's credential so it can no longer connect. |
 | [`GET /api/config/host-enrollment`](cluster.md#get-apiconfighost-enrollment) | `GET /api/config/host-enrollment`: whether host nodes may enroll. |
 | [`PUT /api/config/host-enrollment`](cluster.md#put-apiconfighost-enrollment) | `PUT /api/config/host-enrollment`: turn host enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |

@@ -7416,6 +7416,631 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/auth/profile/catalog-listing`
+
+Reads whether the caller's books are listed to the libraries this
+install is a branch of.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The caller's listing choice. Body: [`CatalogListing`](schemas.md#cataloglisting) (`application/json`)
+  - `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile/catalog-listing' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile/catalog-listing' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/profile/catalog-listing",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile/catalog-listing", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/profile/catalog-listing")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The caller's listing choice.
+
+```json
+{
+  "listed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Whether the caller's books are listed to the libraries this install is\na branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).",
+  "required": [
+    "listed"
+  ],
+  "properties": {
+    "listed": {
+      "type": "boolean",
+      "description": "`true` (the default): the libraries this install joined can see,\nwhen they ask, that it can supply the caller's books. `false` keeps\nthem out of those answers; the owner's books are always listed.",
+      "example": true
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/auth/profile/catalog-listing`
+
+Sets whether the caller's books are listed to the libraries this install
+is a branch of.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`CatalogListing`](schemas.md#cataloglisting)
+
+- `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+
+### Responses
+
+- `200` — The caller's listing choice after the change. Body: [`CatalogListing`](schemas.md#cataloglisting) (`application/json`)
+  - `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library could not be written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/profile/catalog-listing' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"listed": true}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/profile/catalog-listing' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"listed": true}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/auth/profile/catalog-listing",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"listed": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/profile/catalog-listing", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"listed": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/auth/profile/catalog-listing")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"listed": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The caller's listing choice after the change.
+
+```json
+{
+  "listed": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Whether the caller's books are listed to the libraries this install is\na branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).",
+  "required": [
+    "listed"
+  ],
+  "properties": {
+    "listed": {
+      "type": "boolean",
+      "description": "`true` (the default): the libraries this install joined can see,\nwhen they ask, that it can supply the caller's books. `false` keeps\nthem out of those answers; the owner's books are always listed.",
+      "example": true
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `listed` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library could not be written.
+
+```json
+{
+  "error": "internal_error",
+  "message": "Something went wrong on the Bookclerk daemon.",
+  "status": 500
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `PUT /api/auth/profile/avatar`
 
 Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.

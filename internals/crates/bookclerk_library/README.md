@@ -5956,6 +5956,21 @@ Returns [`LibraryError`](#libraryerror) when a read fails. A query that cannot f
 a valid listing (a blank title, or a field over the listing limits)
 names no work.
 
+#### LibraryStore::existing_edition_work
+
+```rust
+pub async fn existing_edition_work(&self, listing: &Listing) -> Result<Option<String>>
+```
+
+The work of the stored edition `listing` would join, without
+writing anything: `Some` only when the resolver places it on an
+edition this library already has (through a shared identifier), so
+no new work, expression or edition, and no title match, is involved.
+
+##### Errors
+
+Returns [`LibraryError`](#libraryerror) when a read fails.
+
 #### LibraryStore::work_for_wish
 
 ```rust

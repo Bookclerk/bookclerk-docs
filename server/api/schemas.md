@@ -338,6 +338,13 @@ Query or form_post fields from the IdP callback.
 - `error` *string or null* — IdP-reported deny/error; redirects the browser to `/?sso_error=denied`.
 - `user` *string or null* — Apple first-login name/email JSON (form_post only).
 
+## CatalogListing
+
+Whether the caller's books are listed to the libraries this install is
+a branch of (`GET` / `PUT /api/auth/profile/catalog-listing`).
+
+- `listed` *boolean*, **required** — `true` (the default): the libraries this install joined can see, when they ask, that it can supply the caller's books. `false` keeps them out of those answers; the owner's books are always listed.
+
 ## CatalogSearchHit
 
 One autocomplete / results-page hit (possibly spanning multiple storefronts).
@@ -446,6 +453,7 @@ A library this install is a branch of: ids, origin and state, never key material
 - `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
 - `share_books` *boolean*, **required** — "Share this branch's books with the library".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
 - `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
 
 ## ClusterScanBody
@@ -2603,6 +2611,7 @@ One allowed value of an `enum` setting: the stored id and its label.
 - `cluster_id` *string*, **required** — The library (owner cluster id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `list_members_books` *boolean or null* — "List my members' books to *library*"; left as it is when absent.
 
 ## SharingChanged
 

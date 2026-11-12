@@ -147,6 +147,8 @@
     "internals/crates/bookclerk_library/entities/bookclerk_receipts",
     "internals/crates/bookclerk_library/entities/books",
     "internals/crates/bookclerk_library/entities/branch_titles",
+    "internals/crates/bookclerk_library/entities/catalog_listing_optouts",
+    "internals/crates/bookclerk_library/entities/catalog_lookups",
     "internals/crates/bookclerk_library/entities/claim_tickets",
     "internals/crates/bookclerk_library/entities/cluster_identity",
     "internals/crates/bookclerk_library/entities/cluster_leases",

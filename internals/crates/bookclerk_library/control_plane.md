@@ -18,6 +18,9 @@ See `docs/adr/control-plane.md`.
 | [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
 | [`CarriedImport`](#carriedimport) | struct | What `import_carried_accounts` did with each account it was handed. |
 | [`MemberAccount`](#memberaccount) | struct | One store account a member connected here, as the join consent page lists it. Carries no secret. |
+| [`AnswerReport`](#answerreport) | struct | What `record_answers` stored. |
+| [`AskReport`](#askreport) | struct | What `ask_branches` did. |
+| [`BranchListing`](#branchlisting) | struct | A `branch:<node>` listing and the work its edition belongs to. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
@@ -103,6 +106,7 @@ See `docs/adr/control-plane.md`.
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
+| [`AnswersRecorded`](#answersrecorded) | enum | Outcome of `record_answers`. |
 | [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
 | [`DeploymentReplace`](#deploymentreplace) | enum | Outcome of `replace_plugin_deployment`. |
 | [`DeploymentStatus`](#deploymentstatus) | enum | Observed deployment status. |
@@ -163,6 +167,16 @@ See `docs/adr/control-plane.md`.
 | [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 20 accounts; a repeat refreshes the time. |
 | [`revoke_unlinked_account`](#revoke_unlinked_account) | function | Takes back a store account a refused login stored: deletes its secrets and marks it `revoked` with scans off, in one atomic batch whose every statement applies only while no link holds the account. |
 | [`set_member_may_connect_accounts`](#set_member_may_connect_accounts) | function | Sets whether `user_id` may connect store accounts on this instance. |
+| [`answer_questions`](#answer_questions) | function | Answers questions a library sent this branch from this branch's own library. |
+| [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
+| [`branch_listing_key`](#branch_listing_key) | function | The plugin key of listings answered by branch `node_id`. |
+| [`branch_listings_for_works`](#branch_listings_for_works) | function | The current branch listings of `work_ids`: those a branch this library still trusts named within `BRANCH_LISTING_TTL`. |
+| [`catalog_listing_opted_out`](#catalog_listing_opted_out) | function | True when member `user_id` keeps their books out of this branch's listings. |
+| [`pending_questions`](#pending_questions) | function | The questions waiting for branch `node_id`, marked sent. |
+| [`record_answers`](#record_answers) | function | Records branch `node_id`'s answers to the questions it was sent. |
+| [`set_catalog_listing_opt_out`](#set_catalog_listing_opt_out) | function | Records whether member `user_id`'s books are kept out of what this branch lists to the libraries it joined. |
+| [`trusted_branches`](#trusted_branches) | function | The branches this library trusts, by node id. |
+| [`works_of_interest`](#works_of_interest) | function | The works this library wants its branches asked about: those of open wishes (most recently changed first), then those of Discover candidates (most recently fetched first), at most `limit`. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
 | [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its clerks) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
@@ -177,6 +191,7 @@ See `docs/adr/control-plane.md`.
 | [`mark_cluster_link_revoked`](#mark_cluster_link_revoked) | function | Marks an **active** link still enrolled as `remote_node_id` `CLUSTER_LINK_REVOKED` (the owner closed with 4403 on that node's connection). A link this install already left stays `left`, and one a later join enrolled as another node keeps its new enrollment. |
 | [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
+| [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
 | [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
 | [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
@@ -408,6 +423,10 @@ See `docs/adr/control-plane.md`.
 | [`CACHE_SETTING_KEYS`](#cache_setting_keys) | constant | Settings keys the cache document owns, in display order. |
 | [`SHARE_RECEIVED`](#share_received) | constant | `account_shares.direction` of an account this install received from a library it joined. |
 | [`SHARE_SENT`](#share_sent) | constant | `account_shares.direction` of an account this library sent to a branch. |
+| [`BRANCH_LISTING_PREFIX`](#branch_listing_prefix) | constant | Plugin key prefix of the listings branches answer with. |
+| [`BRANCH_LISTING_TTL`](#branch_listing_ttl) | constant | How long a `branch:<node>` listing counts as current after the branch last named it: a day of answer life plus a day for the next question to be asked and answered. |
+| [`LOOKUP_ANSWER_TTL`](#lookup_answer_ttl) | constant | How long a branch's answer stands: a question answered longer ago is asked again the next time `ask_branches` names its work. |
+| [`LOOKUP_RESEND`](#lookup_resend) | constant | How long a sent question waits for its answer before it is sent again. |
 | [`CLUSTER_LINK_ACTIVE`](#cluster_link_active) | constant | `cluster_links.state` of a link the host client connects. |
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
@@ -743,6 +762,73 @@ lists it. Carries no secret.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AnswerReport
+
+```rust
+pub struct AnswerReport {
+    pub works: u64,
+    pub listings: u64,
+    pub dropped: u64,
+    pub expired: u64,
+}
+```
+
+What [`record_answers`](#record_answers) stored.
+
+**Fields**
+
+- `works`: Works the answer settled (answered or "not here").
+- `listings`: Branch listings stored or refreshed.
+- `dropped`: Editions dropped: for a work not asked of this branch, or one the
+  resolver did not place on a stored edition of the asked work.
+- `expired`: Earlier branch listings the answer no longer names, now expired.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### AskReport
+
+```rust
+pub struct AskReport {
+    pub branches: usize,
+    pub asked: u64,
+}
+```
+
+What [`ask_branches`](#ask_branches) did.
+
+**Fields**
+
+- `branches`: Branches asked.
+- `asked`: Questions added or asked again, over every branch.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### BranchListing
+
+```rust
+pub struct BranchListing {
+    pub listing_id: String,
+    pub node_id: String,
+    pub work_id: String,
+    pub store: String,
+    pub product_id: String,
+    pub observed_at: DateTime<Utc>,
+}
+```
+
+A `branch:<node>` listing and the work its edition belongs to.
+
+**Fields**
+
+- `listing_id`: `store_listings.id`.
+- `node_id`: The branch node it is available through.
+- `work_id`: The work it supplies.
+- `store`: The store the branch has it from (`audible`).
+- `product_id`: The store's product id.
+- `observed_at`: When the branch last named it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### LibraryContents
 
 ```rust
@@ -794,6 +880,7 @@ pub struct ClusterLink {
     pub share_books: bool,
     pub include_branches: bool,
     pub ancestry: Vec<String>,
+    pub list_members_books: bool,
 }
 ```
 
@@ -814,6 +901,9 @@ One owner cluster this install enrolled into.
   only books acquired on this install itself).
 - `ancestry`: The owner library's ancestry as it last reported it: its own
   cluster id first, then each library above it.
+- `list_members_books`: "List my members' books to *library*" (on by default): catalog
+  lookups from that library are answered with the members' books
+  (except those of members who opted out) as well as the owner's.
 
 #### ClusterLink::is_active
 
@@ -3653,6 +3743,24 @@ Outcome of [`begin_catalog`](#begin_catalog).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AnswersRecorded
+
+```rust
+pub enum AnswersRecorded {
+    Recorded(AnswerReport),
+    Refused(&'static str),
+}
+```
+
+Outcome of [`record_answers`](#record_answers).
+
+**Variants**
+
+- `Recorded`: The answers were applied.
+- `Refused`: The node is not a branch this library trusts.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### CronFireClaim
 
 ```rust
@@ -4086,6 +4194,7 @@ pub enum NodeMessage {
     PlacementChanged { subject: String, revision: i64 },
     ConfigurationChanged { scope_type: String, scope_id: String, namespace: String, revision: i64 },
     NodeRevoked { node_id: String },
+    CatalogAsked {  },
 }
 ```
 
@@ -4120,6 +4229,9 @@ enum (`{"type": "deployment.changed", ...}`).
   `node_credentials.revoked_at` as well, so a lost message does not
   keep the host connected to work.
   - `node_id`: Revoked host node.
+- `CatalogAsked`: Catalog questions wait for this branch
+  (`control_plane::catalog_lookup`). The branch pulls them with
+  `catalog.questions`; the message itself carries none.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5114,6 +5226,197 @@ none. Accounts the member already connected stay connected.
 Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user and the write
 error.
 
+### answer_questions
+
+```rust
+pub async fn answer_questions(
+    store: &LibraryStore,
+    questions: &[LookupWork],
+    list_members_books: bool,
+) -> Result<(Vec<LookupAnswer>, Vec<String>)>
+```
+
+Answers questions a library sent this branch from this branch's own
+library.
+
+Each question is mapped to a work here by identifier
+(`work_for_question`); the answer lists the books of that work this
+library holds whose holder may be listed (the owner's always; members'
+only with `list_members_books` on and when they did not opt out), at
+most [`MAX_LOOKUP_EDITIONS`](../bookclerk_node_proto/README.md#max_lookup_editions). A question with no such book is answered
+as missing.
+
+#### Arguments
+
+* `questions` - The library's questions (already validated).
+* `list_members_books` - The link's "List my members' books" setting.
+
+#### Returns
+
+The answers and the missing works, together naming every question.
+
+#### Errors
+
+Returns the read error.
+
+### ask_branches
+
+```rust
+pub async fn ask_branches(store: &LibraryStore, work_ids: &[String]) -> Result<AskReport>
+```
+
+Asks every trusted branch about `work_ids`.
+
+A work a branch was never asked about gets a new question; one whose
+answer is older than [`LOOKUP_ANSWER_TTL`](#lookup_answer_ttl) is asked again; one waiting
+for its answer, or answered recently, is left alone. A work id this
+library does not have is skipped. Each branch with a new question gets a
+`catalog.asked` wakeup.
+
+#### Arguments
+
+* `work_ids` - Works of this library to ask about.
+
+#### Errors
+
+Returns a read or write error.
+
+### branch_listing_key
+
+```rust
+pub fn branch_listing_key(node_id: &str) -> String
+```
+
+The plugin key of listings answered by branch `node_id`.
+
+### branch_listings_for_works
+
+```rust
+pub async fn branch_listings_for_works(
+    store: &LibraryStore,
+    work_ids: &[String],
+) -> Result<Vec<BranchListing>>
+```
+
+The current branch listings of `work_ids`: those a branch this library
+still trusts named within [`BRANCH_LISTING_TTL`](#branch_listing_ttl).
+
+#### Errors
+
+Returns the read error.
+
+### catalog_listing_opted_out
+
+```rust
+pub async fn catalog_listing_opted_out(store: &LibraryStore, user_id: i64) -> Result<bool>
+```
+
+True when member `user_id` keeps their books out of this branch's
+listings.
+
+#### Errors
+
+Returns the read error.
+
+### pending_questions
+
+```rust
+pub async fn pending_questions(
+    store: &LibraryStore,
+    node_id: &str,
+) -> Result<Option<Vec<LookupWork>>>
+```
+
+The questions waiting for branch `node_id`, marked sent.
+
+A question is waiting while it has no answer and was never sent or was
+sent more than [`LOOKUP_RESEND`](#lookup_resend) ago. A work with no identifier to ask
+by is marked answered (there is nothing to ask), so it does not come
+back until it is asked again.
+
+#### Returns
+
+`None` when `node_id` is not a branch this library trusts; otherwise at
+most [`MAX_LOOKUP_WORKS`](../bookclerk_node_proto/README.md#max_lookup_works) questions, oldest first.
+
+#### Errors
+
+Returns a read or write error.
+
+### record_answers
+
+```rust
+pub async fn record_answers(
+    store: &LibraryStore,
+    node_id: &str,
+    answers: &[LookupAnswer],
+    missing: &[String],
+) -> Result<AnswersRecorded>
+```
+
+Records branch `node_id`'s answers to the questions it was sent.
+
+Only works with a question waiting for this branch are settled; an
+answer for any other work is dropped. Each answered edition is stored
+as a `branch:<node>` catalog listing when the resolver places it on a
+stored edition of the asked work (through a shared identifier, never a
+title); other editions are dropped. Branch listings of a settled work
+the answer no longer names are expired, and the settled questions are
+marked answered.
+
+#### Arguments
+
+* `answers` - Works the branch can supply.
+* `missing` - Works it looked up and cannot supply.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed answer, and a read or
+write error.
+
+### set_catalog_listing_opt_out
+
+```rust
+pub async fn set_catalog_listing_opt_out(
+    store: &LibraryStore,
+    user_id: i64,
+    opted_out: bool,
+) -> Result<()>
+```
+
+Records whether member `user_id`'s books are kept out of what this
+branch lists to the libraries it joined.
+
+#### Errors
+
+Returns the write error.
+
+### trusted_branches
+
+```rust
+pub async fn trusted_branches(store: &LibraryStore) -> Result<Vec<String>>
+```
+
+The branches this library trusts, by node id.
+
+#### Errors
+
+Returns the read error.
+
+### works_of_interest
+
+```rust
+pub async fn works_of_interest(store: &LibraryStore, limit: u64) -> Result<Vec<String>>
+```
+
+The works this library wants its branches asked about: those of open
+wishes (most recently changed first), then those of Discover candidates
+(most recently fetched first), at most `limit`.
+
+#### Errors
+
+Returns the read error.
+
 ### library_contents
 
 ```rust
@@ -5408,6 +5711,32 @@ refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
 write error.
+
+### set_cluster_link_listing
+
+```rust
+pub async fn set_cluster_link_listing(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    list_members_books: bool,
+) -> Result<bool>
+```
+
+Sets the link's "List my members' books to *library*" setting.
+
+#### Arguments
+
+* `owner_cluster_id` - The library the link joined.
+* `list_members_books` - The new setting.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the value it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
 
 ### set_cluster_link_sharing
 
@@ -9456,6 +9785,41 @@ pub const SHARE_SENT: &str = "sent";
 ```
 
 `account_shares.direction` of an account this library sent to a branch.
+
+### BRANCH_LISTING_PREFIX
+
+```rust
+pub const BRANCH_LISTING_PREFIX: &str = "branch:";
+```
+
+Plugin key prefix of the listings branches answer with.
+
+### BRANCH_LISTING_TTL
+
+```rust
+pub const BRANCH_LISTING_TTL: Duration = _;
+```
+
+How long a `branch:<node>` listing counts as current after the branch
+last named it: a day of answer life plus a day for the next question to
+be asked and answered.
+
+### LOOKUP_ANSWER_TTL
+
+```rust
+pub const LOOKUP_ANSWER_TTL: Duration = _;
+```
+
+How long a branch's answer stands: a question answered longer ago is
+asked again the next time [`ask_branches`](#ask_branches) names its work.
+
+### LOOKUP_RESEND
+
+```rust
+pub const LOOKUP_RESEND: Duration = _;
+```
+
+How long a sent question waits for its answer before it is sent again.
 
 ### CLUSTER_LINK_ACTIVE
 

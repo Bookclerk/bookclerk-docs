@@ -724,6 +724,39 @@ the cursor after it.
 
 Returns [`OwnerCallError`](#ownercallerror); `Lost` when the fence moved on.
 
+#### HostClientHandle::catalog_questions
+
+```rust
+pub async fn catalog_questions(&self) -> Result<Vec<LookupWork>, OwnerCallError>
+```
+
+`catalog.questions`: the catalog questions the library has for this
+branch, at most [`bookclerk_node_proto::MAX_LOOKUP_WORKS`](../bookclerk_node_proto/README.md#max_lookup_works) (empty
+when none waits). A list that breaks the frame rules is refused as
+[`OwnerCallError::Unavailable`](#ownercallerror).
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
+count this node as a branch.
+
+#### HostClientHandle::catalog_found
+
+```rust
+pub async fn catalog_found(
+    &self,
+    answers: Vec<LookupAnswer>,
+    missing: Vec<String>,
+) -> Result<(), OwnerCallError>
+```
+
+`catalog.found`: this branch's answers to questions it was sent, and
+the works it cannot supply.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror).
+
 #### HostClientHandle::catalog_upload
 
 ```rust

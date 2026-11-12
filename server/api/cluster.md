@@ -1201,6 +1201,7 @@ Status `200`: Pending and granted cluster consents.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "list_members_books": true,
       "running": true
     }
   ],
@@ -1328,7 +1329,8 @@ Schema:
           "state",
           "enrolled_at",
           "share_books",
-          "include_branches"
+          "include_branches",
+          "list_members_books"
         ],
         "properties": {
           "cluster_id": {
@@ -1369,6 +1371,11 @@ Schema:
           "include_branches": {
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
+            "example": true
+          },
+          "list_members_books": {
+            "type": "boolean",
+            "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
           "running": {
@@ -4197,6 +4204,7 @@ Status `200`: Whether this install has joined a library, and its state.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "list_members_books": true,
       "running": true
     }
   ]
@@ -4258,7 +4266,8 @@ Schema:
           "state",
           "enrolled_at",
           "share_books",
-          "include_branches"
+          "include_branches",
+          "list_members_books"
         ],
         "properties": {
           "cluster_id": {
@@ -4299,6 +4308,11 @@ Schema:
           "include_branches": {
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
+            "example": true
+          },
+          "list_members_books": {
+            "type": "boolean",
+            "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
           "running": {
@@ -5563,6 +5577,7 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "list_members_books": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -5602,7 +5617,8 @@ Schema:
             "state",
             "enrolled_at",
             "share_books",
-            "include_branches"
+            "include_branches",
+            "list_members_books"
           ],
           "properties": {
             "cluster_id": {
@@ -5643,6 +5659,11 @@ Schema:
             "include_branches": {
               "type": "boolean",
               "description": "\"Include books from my own branches\".",
+              "example": true
+            },
+            "list_members_books": {
+              "type": "boolean",
+              "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
               "example": true
             },
             "running": {
@@ -6211,6 +6232,7 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "list_members_books": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -6248,7 +6270,8 @@ Schema:
         "state",
         "enrolled_at",
         "share_books",
-        "include_branches"
+        "include_branches",
+        "list_members_books"
       ],
       "properties": {
         "cluster_id": {
@@ -6289,6 +6312,11 @@ Schema:
         "include_branches": {
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
+          "example": true
+        },
+        "list_members_books": {
+          "type": "boolean",
+          "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
         "running": {
@@ -6826,6 +6854,7 @@ Status `200`: Leaving started.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "list_members_books": true,
     "running": true
   },
   "owner_notified": true
@@ -6854,7 +6883,8 @@ Schema:
         "state",
         "enrolled_at",
         "share_books",
-        "include_branches"
+        "include_branches",
+        "list_members_books"
       ],
       "properties": {
         "cluster_id": {
@@ -6895,6 +6925,11 @@ Schema:
         "include_branches": {
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
+          "example": true
+        },
+        "list_members_books": {
+          "type": "boolean",
+          "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
         "running": {
@@ -12016,6 +12051,7 @@ Status `200`: The branch's sharing settings.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "list_members_books": true,
       "running": true
     }
   ]
@@ -12045,7 +12081,8 @@ Schema:
           "state",
           "enrolled_at",
           "share_books",
-          "include_branches"
+          "include_branches",
+          "list_members_books"
         ],
         "properties": {
           "cluster_id": {
@@ -12086,6 +12123,11 @@ Schema:
           "include_branches": {
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
+            "example": true
+          },
+          "list_members_books": {
+            "type": "boolean",
+            "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
           "running": {
@@ -12311,8 +12353,9 @@ A `text/plain` body: a string.
 
 ## `POST /api/config/join/sharing`
 
-`POST /api/config/join/sharing`: Settings → Library's two sharing
-settings for one library this install is a branch of. The operator or
+`POST /api/config/join/sharing`: Settings → Library's sharing settings
+for one library this install is a branch of (the two book-sharing
+settings, and optionally "List my members' books"). The operator or
 an Owner (verified from the stored role); anyone else gets 403.
 
 **Access:** The operator, or any signed-in user.
@@ -12326,6 +12369,7 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `cluster_id` *string*, **required** — The library (owner cluster id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `list_members_books` *boolean or null* — "List my members' books to *library*"; left as it is when absent.
 
 ### Responses
 
@@ -12414,6 +12458,7 @@ Status `200`: The sharing settings after the change.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "list_members_books": true,
     "running": true
   }
 }
@@ -12440,7 +12485,8 @@ Schema:
         "state",
         "enrolled_at",
         "share_books",
-        "include_branches"
+        "include_branches",
+        "list_members_books"
       ],
       "properties": {
         "cluster_id": {
@@ -12481,6 +12527,11 @@ Schema:
         "include_branches": {
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
+          "example": true
+        },
+        "list_members_books": {
+          "type": "boolean",
+          "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
         "running": {
