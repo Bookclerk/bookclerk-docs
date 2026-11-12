@@ -747,7 +747,7 @@
   "internals/crates/bookclerk_workerd/unix_bind": "2026-11-06T01:24:45Z",
   "internals/discovery": "2026-11-12T05:13:01Z",
   "internals/guest-jail": "2026-11-10T06:41:42Z",
-  "internals/jobs": "2026-11-11T11:31:03Z",
+  "internals/jobs": "2026-11-12T05:33:38Z",
   "internals/node-api": "2026-11-12T05:13:56Z",
   "internals/storage-bounds": "2026-10-15T05:47:38Z",
   "internals/tls": "2026-11-08T23:49:18Z",
