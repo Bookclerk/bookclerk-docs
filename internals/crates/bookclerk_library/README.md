@@ -122,6 +122,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
+| [`WishWork`](#wishwork) | struct | The work a wish is for, read from a store listing in the shared pool. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
 | [`CanonicalObject`](#canonicalobject) | enum | One immutable canonical object (hashed before compression). |
 | [`BackupReason`](#backupreason) | enum | Why a backup was written. |
@@ -4501,8 +4502,8 @@ Deletes catalog listings nothing refers to any more.
 
 A listing is deleted when no store reported it since `cutoff` and
 nobody holds it, no Discover subject has it as a candidate, no
-cached storefront call lists it and no resolution override names
-it. Its offers go with it. The edition, expression and work it
+cached storefront call lists it, no wish names it and no resolution
+override names it. Its offers go with it. The edition, expression and work it
 made stay, since other rows (a wish, a later scan) may use them.
 
 ##### Returns
@@ -10219,6 +10220,37 @@ Creates a wishlist / title-request row.
 
 Returns a crate error when the database operation fails or inputs are invalid.
 
+#### LibraryStore::create_title_request_for
+
+```rust
+pub async fn create_title_request_for(
+    &self,
+    req: &NewTitleRequest,
+    work: Option<&WishWork>,
+) -> Result<TitleRequestRecord>
+```
+
+Creates a wishlist / title-request row for a known work.
+
+A wish that names a store edition the server looked up is for that
+listing's work: its resolution in the shared pool, with no holding.
+Without one, the wish's text and identifiers find or make the work
+([`Self::work_for_wish`](#librarystorework_for_wish)).
+
+##### Arguments
+
+* `req` - Insert / update request payload.
+* `work` - The work (and edition) of a pooled listing the wish
+  names, or `None` to resolve it from `req`.
+
+##### Returns
+
+The new wish, or the caller's open wish for the same work.
+
+##### Errors
+
+Returns a crate error when the database operation fails or inputs are invalid.
+
 #### LibraryStore::upsert_title_request_sources
 
 ```rust
@@ -10758,6 +10790,7 @@ pub struct NewTitleRequestSource {
     pub list_price_label: Option<String>,
     pub member_price_cents: Option<i64>,
     pub member_price_label: Option<String>,
+    pub listing_id: Option<String>,
 }
 ```
 
@@ -10790,6 +10823,9 @@ Input for upserting a per-storefront wishlist snapshot.
 - `list_price_label`: Storefront-formatted list price for display.
 - `member_price_cents`: Member/subscriber price in minor units, when known.
 - `member_price_label`: Storefront-formatted member price for display.
+- `listing_id`: The shared pool's listing for this store edition, when the server
+  looked it up at the store ([`crate::CatalogListing`](#cataloglisting)); `None` keeps
+  what the row already names.
 
 #### NewTitleRequestSource::needs_html_entity_decode
 
@@ -10991,6 +11027,24 @@ Partial update for user-defined book fields.
 - `is_finished`: Whether the listener marked the title finished (0/1 or bool).
 
 Implements: `Clone`, `Debug`, `Default`
+
+### WishWork
+
+```rust
+pub struct WishWork {
+    pub work_id: String,
+    pub edition_id: Option<String>,
+}
+```
+
+The work a wish is for, read from a store listing in the shared pool.
+
+**Fields**
+
+- `work_id`: `works.id` of the listing's resolution.
+- `edition_id`: `editions.id` the listing is an edition of.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Enums
 

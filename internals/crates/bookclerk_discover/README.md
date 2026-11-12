@@ -46,6 +46,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReview`](#titlereview) | struct | One Audible customer review for the title detail panel. |
 | [`TitleReviewsPage`](#titlereviewspage) | struct | One page of title reviews for infinite scroll. |
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
+| [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
 | [`gather_storefront_candidates`](#gather_storefront_candidates) | function | Expand storefront catalogs from local taste seeds; drop already-owned ids. |
 | [`select_taste_seeds`](#select_taste_seeds) | function | Pick local seed books for storefront expansion (finished / high-rated first). |
@@ -97,6 +98,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
+| [`pool_wish_editions`](#pool_wish_editions) | function | Asks each store about the editions a wish names and records the answers in the shared pool. |
 | [`EMBED_PAGE_WORKS`](#embed_page_works) | constant | Works read per page by `embed_dirty_works`; also the most texts one embedder call receives. |
 | [`MODEL_ALL_MINILM_L6_V2_Q`](#model_all_minilm_l6_v2_q) | constant | Quantized MiniLM-L6-v2 — ~22 MB ONNX, ~50 MB RAM, 384 dims. |
 | [`MODEL_LOCAL_HASH_V1`](#model_local_hash_v1) | constant | Local hash embedder id used when ONNX is unavailable / disabled. |
@@ -117,6 +119,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 | [`REQUEST_QUEUE_MAX_AGE`](#request_queue_max_age) | constant | How old the stored ranking may get before a read asks for a new pass, so taste changes no event announces (a book removed, a rating edited) still reach the queue within a day. |
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
+| [`MAX_WISH_EDITIONS`](#max_wish_editions) | constant | Most store editions looked up for one wish. A wish names a few; the cap bounds what a crafted request can make the server fetch. |
 
 ## Re-exports
 
@@ -1407,6 +1410,28 @@ Query for a page of Audible customer reviews.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
+### PooledEdition
+
+```rust
+pub struct PooledEdition {
+    pub source: String,
+    pub product_id: String,
+    pub listing_id: String,
+    pub work: Option<WishWork>,
+}
+```
+
+One store edition a wish names, as placed in the shared pool.
+
+**Fields**
+
+- `source`: Storefront plugin id the wish named (`libro`), lower-cased.
+- `product_id`: The store's product id the wish named.
+- `listing_id`: The `store_listings` row the store's answer resolved to.
+- `work`: The work and edition that listing resolved to, when it has a work.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ## Enums
 
 ### FeedState
@@ -2568,6 +2593,42 @@ On success, the inner `TitleReviewsPage` value.
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
 
+### pool_wish_editions
+
+```rust
+pub async fn pool_wish_editions(
+    library: &LibraryStore,
+    registry: &SourceRegistry,
+    editions: &[(String, String)],
+    hints: &[PurchaseHint],
+    region: &str,
+) -> Vec<PooledEdition>
+```
+
+Asks each store about the editions a wish names and records the answers
+in the shared pool.
+
+Editions are looked up concurrently, each within
+`EDITION_LOOKUP_TIMEOUT`. An edition whose store is not deployed, does
+not answer in time, fails or does not know the product is left out: the
+wish is still saved, with that edition's row naming no listing. Server
+side purchase hints for the same editions add the member price they
+quote to the pooled listing, since they also come from the store.
+
+#### Arguments
+
+* `library` - The library whose pool records the listings.
+* `registry` - The deployed storefronts.
+* `editions` - `(source, product_id)` pairs, in the wish's order; blank
+  and repeated pairs are skipped, and at most [`MAX_WISH_EDITIONS`](#max_wish_editions) are
+  asked about.
+* `hints` - Purchase hints the server resolved for the wish.
+* `region` - The marketplace the stores are asked about.
+
+#### Returns
+
+One entry per edition the pool now holds, in the order given.
+
 ## Constants
 
 ### EMBED_PAGE_WORKS
@@ -2749,3 +2810,12 @@ pub const SERIES_CAP: usize = 2;
 
 Most titles of one series on a shelf that is not about series, so one
 long series cannot crowd the others out.
+
+### MAX_WISH_EDITIONS
+
+```rust
+pub const MAX_WISH_EDITIONS: usize = 8;
+```
+
+Most store editions looked up for one wish. A wish names a few; the cap
+bounds what a crafted request can make the server fetch.
