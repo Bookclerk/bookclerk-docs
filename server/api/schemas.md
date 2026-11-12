@@ -338,6 +338,14 @@ Query or form_post fields from the IdP callback.
 - `error` *string or null* — IdP-reported deny/error; redirects the browser to `/?sso_error=denied`.
 - `user` *string or null* — Apple first-login name/email JSON (form_post only).
 
+## CapacityBody
+
+`POST /api/config/join/capacity` body: one library and the job cap to
+set for it.
+
+- `cluster_id` *string*, **required** — The library (owner cluster id).
+- `max_jobs` *integer (int32) or null*, **required** — The most jobs to run for the library at once (0 runs none); `null` gives it an equal share of the machine. Required: a body without it is refused rather than read as `null`. At least 0; at most 16.
+
 ## CatalogListing
 
 Whether the caller's books are listed to the libraries this install is
@@ -453,6 +461,8 @@ A library this install is a branch of: ids, origin and state, never key material
 - `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
 - `share_books` *boolean*, **required** — "Share this branch's books with the library".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
+- `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
 - `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
 - `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
 

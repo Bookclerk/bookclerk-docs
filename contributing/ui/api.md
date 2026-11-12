@@ -1006,6 +1006,22 @@ include_branches?: boolean;
 
 "Include books from my own branches" (on by default).
 
+##### job\_share?
+
+```ts
+job_share?: number;
+```
+
+Jobs the library may have running here now; absent while its link is not running.
+
+##### max\_jobs?
+
+```ts
+max_jobs?: number | null;
+```
+
+The most jobs this host runs for the library at once; `null` is an equal share of the machine.
+
 ##### node\_id
 
 ```ts

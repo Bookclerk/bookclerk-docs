@@ -1201,6 +1201,8 @@ Status `200`: Pending and granted cluster consents.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "max_jobs": 2,
+      "job_share": 2,
       "list_members_books": true,
       "running": true
     }
@@ -1372,6 +1374,25 @@ Schema:
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
             "example": true
+          },
+          "max_jobs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+            "example": 2,
+            "maximum": 16,
+            "minimum": 0
+          },
+          "job_share": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+            "example": 2,
+            "minimum": 0
           },
           "list_members_books": {
             "type": "boolean",
@@ -4204,6 +4225,8 @@ Status `200`: Whether this install has joined a library, and its state.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "max_jobs": 2,
+      "job_share": 2,
       "list_members_books": true,
       "running": true
     }
@@ -4309,6 +4332,25 @@ Schema:
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
             "example": true
+          },
+          "max_jobs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+            "example": 2,
+            "maximum": 16,
+            "minimum": 0
+          },
+          "job_share": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+            "example": 2,
+            "minimum": 0
           },
           "list_members_books": {
             "type": "boolean",
@@ -5577,6 +5619,8 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "max_jobs": 2,
+    "job_share": 2,
     "list_members_books": true,
     "running": true
   },
@@ -5660,6 +5704,25 @@ Schema:
               "type": "boolean",
               "description": "\"Include books from my own branches\".",
               "example": true
+            },
+            "max_jobs": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+              "example": 2,
+              "maximum": 16,
+              "minimum": 0
+            },
+            "job_share": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+              "example": 2,
+              "minimum": 0
             },
             "list_members_books": {
               "type": "boolean",
@@ -6232,6 +6295,8 @@ Status `200`: The join completed.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "max_jobs": 2,
+    "job_share": 2,
     "list_members_books": true,
     "running": true
   },
@@ -6313,6 +6378,25 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "max_jobs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+          "example": 2,
+          "maximum": 16,
+          "minimum": 0
+        },
+        "job_share": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+          "example": 2,
+          "minimum": 0
         },
         "list_members_books": {
           "type": "boolean",
@@ -6854,6 +6938,8 @@ Status `200`: Leaving started.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "max_jobs": 2,
+    "job_share": 2,
     "list_members_books": true,
     "running": true
   },
@@ -6926,6 +7012,25 @@ Schema:
           "type": "boolean",
           "description": "\"Include books from my own branches\".",
           "example": true
+        },
+        "max_jobs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+          "example": 2,
+          "maximum": 16,
+          "minimum": 0
+        },
+        "job_share": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+          "example": 2,
+          "minimum": 0
         },
         "list_members_books": {
           "type": "boolean",
@@ -12051,6 +12156,8 @@ Status `200`: The branch's sharing settings.
       "enrolled_at": "2026-10-29T09:02:41Z",
       "share_books": true,
       "include_branches": true,
+      "max_jobs": 2,
+      "job_share": 2,
       "list_members_books": true,
       "running": true
     }
@@ -12124,6 +12231,25 @@ Schema:
             "type": "boolean",
             "description": "\"Include books from my own branches\".",
             "example": true
+          },
+          "max_jobs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+            "example": 2,
+            "maximum": 16,
+            "minimum": 0
+          },
+          "job_share": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+            "example": 2,
+            "minimum": 0
           },
           "list_members_books": {
             "type": "boolean",
@@ -12458,6 +12584,8 @@ Status `200`: The sharing settings after the change.
     "enrolled_at": "2026-10-29T09:02:41Z",
     "share_books": true,
     "include_branches": true,
+    "max_jobs": 2,
+    "job_share": 2,
     "list_members_books": true,
     "running": true
   }
@@ -12529,6 +12657,25 @@ Schema:
           "description": "\"Include books from my own branches\".",
           "example": true
         },
+        "max_jobs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+          "example": 2,
+          "maximum": 16,
+          "minimum": 0
+        },
+        "job_share": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+          "example": 2,
+          "minimum": 0
+        },
         "list_members_books": {
           "type": "boolean",
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
@@ -12557,6 +12704,519 @@ Failed to parse the request body as JSON: expected value at line 1 column 1
 Schema:
 
 A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
+
+Status `404`: This install is not a branch of that library (`not_found`).
+
+```json
+{
+  "detail": "this install is not a branch of that library",
+  "error": "not_found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/config/join/capacity`
+
+`POST /api/config/join/capacity`: Settings → Library's job cap for one
+library this install is a branch of. The operator or an Owner (verified
+from the stored role); anyone else gets 403. The running link's share
+changes at once: its claims stop at the new share and its next
+heartbeat reports the library the new part of the machine. Jobs it
+already runs finish.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`CapacityBody`](schemas.md#capacitybody)
+
+- `cluster_id` *string*, **required** — The library (owner cluster id).
+- `max_jobs` *integer (int32) or null*, **required** — The most jobs to run for the library at once (0 runs none); `null` gives it an equal share of the machine. Required: a body without it is refused rather than read as `null`. At least 0; at most 16.
+
+### Responses
+
+- `200` — The link after the change, with its share of the machine now. Body: [`SharingChanged`](schemas.md#sharingchanged) (`application/json`)
+  - `cluster` *[`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The link with its settings as stored now.
+- `400` — `max_jobs` is missing or above 16 jobs (`invalid`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `404` — This install is not a branch of that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/capacity' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "max_jobs": 1}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/capacity' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "max_jobs": 1}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/join/capacity",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "max_jobs": 1},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/join/capacity", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "max_jobs": 1}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/join/capacity")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "max_jobs": 1}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The link after the change, with its share of the machine now.
+
+```json
+{
+  "cluster": {
+    "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "owner_origin": "https://books.example.com",
+    "node_id": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c",
+    "pinned": false,
+    "state": "active",
+    "enrolled_at": "2026-10-29T09:02:41Z",
+    "share_books": true,
+    "include_branches": true,
+    "max_jobs": 2,
+    "job_share": 2,
+    "list_members_books": true,
+    "running": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after `POST /api/config/join/sharing`.",
+  "required": [
+    "cluster"
+  ],
+  "properties": {
+    "cluster": {
+      "type": "object",
+      "description": "The link with its settings as stored now.",
+      "required": [
+        "cluster_id",
+        "owner_origin",
+        "node_id",
+        "pinned",
+        "state",
+        "enrolled_at",
+        "share_books",
+        "include_branches",
+        "list_members_books"
+      ],
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "description": "The library's cluster id.",
+          "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
+        },
+        "owner_origin": {
+          "type": "string",
+          "description": "The library's canonical origin.",
+          "example": "https://books.example.com"
+        },
+        "node_id": {
+          "type": "string",
+          "description": "The node id the library minted for this install.",
+          "example": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether the link pins the library's self-signed certificate.",
+          "example": false
+        },
+        "state": {
+          "type": "string",
+          "description": "`active`, `revoked`, or `left`.",
+          "example": "active"
+        },
+        "enrolled_at": {
+          "type": "string",
+          "description": "RFC 3339 enrollment time.",
+          "example": "2026-10-29T09:02:41Z"
+        },
+        "share_books": {
+          "type": "boolean",
+          "description": "\"Share this branch's books with the library\".",
+          "example": true
+        },
+        "include_branches": {
+          "type": "boolean",
+          "description": "\"Include books from my own branches\".",
+          "example": true
+        },
+        "max_jobs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+          "example": 2,
+          "maximum": 16,
+          "minimum": 0
+        },
+        "job_share": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+          "example": 2,
+          "minimum": 0
+        },
+        "list_members_books": {
+          "type": "boolean",
+          "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+          "example": true
+        },
+        "running": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether this install's client for the link is running now; only the join routes report it.",
+          "example": true
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: `max_jobs` is missing or above 16 jobs (`invalid`). As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "detail": "a library's job cap is 0 to 16 jobs",
+  "error": "invalid"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
 
 Status `401`: The caller is not signed in.
 

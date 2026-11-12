@@ -22,8 +22,11 @@ See `docs/adr/control-plane.md`.
 | [`AskReport`](#askreport) | struct | What `ask_branches` did. |
 | [`BranchListing`](#branchlisting) | struct | A `branch:<node>` listing and the work its edition belongs to. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
+| [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
+| [`JobCapRequest`](#jobcaprequest) | struct | A validated job cap change: the library it names (trimmed) and its new cap, `None` for an equal share. |
+| [`LinkJobCap`](#linkjobcap) | struct | The most jobs a branch runs for one library at once, as its operator set it: 0 (runs nothing for that library) to `LinkJobCap::MAX`. |
 | [`NewClusterLink`](#newclusterlink) | struct | What enrollment returned, to record with `record_cluster_link`. |
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
@@ -189,8 +192,10 @@ See `docs/adr/control-plane.md`.
 | [`load_cluster_link`](#load_cluster_link) | function | One cluster link. |
 | [`load_cluster_link_keys`](#load_cluster_link_keys) | function | Unseals the node keys of an active `link`. |
 | [`mark_cluster_link_revoked`](#mark_cluster_link_revoked) | function | Marks an **active** link still enrolled as `remote_node_id` `CLUSTER_LINK_REVOKED` (the owner closed with 4403 on that node's connection). A link this install already left stays `left`, and one a later join enrolled as another node keeps its new enrollment. |
+| [`parse_job_cap_request`](#parse_job_cap_request) | function | Parses and validates a `POST /api/config/join/capacity` body from its raw bytes, sans IO, the way the route reads it: JSON into `CapacityBody`, then `CapacityBody::validate`. |
 | [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
+| [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
 | [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
 | [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
@@ -867,6 +872,33 @@ Why the install is not empty, for the operator.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
 
+### CapacityBody
+
+```rust
+pub struct CapacityBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/capacity` body: one library and the job cap to
+set for it.
+
+#### CapacityBody::validate
+
+```rust
+pub fn validate(self) -> Result<JobCapRequest>
+```
+
+Checks the body: `max_jobs` must be present (`null` included) and at
+most [`LinkJobCap::MAX`](#linkjobcapmax).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when `max_jobs` is missing or above
+the maximum.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
 ### ClusterLink
 
 ```rust
@@ -880,6 +912,7 @@ pub struct ClusterLink {
     pub share_books: bool,
     pub include_branches: bool,
     pub ancestry: Vec<String>,
+    pub max_jobs: Option<LinkJobCap>,
     pub list_members_books: bool,
 }
 ```
@@ -901,6 +934,8 @@ One owner cluster this install enrolled into.
   only books acquired on this install itself).
 - `ancestry`: The owner library's ancestry as it last reported it: its own
   cluster id first, then each library above it.
+- `max_jobs`: The operator's cap on jobs run for this library at once; `None`
+  leaves the link its equal share of the machine.
 - `list_members_books`: "List my members' books to *library*" (on by default): catalog
   lookups from that library are answered with the members' books
   (except those of members who opted out) as well as the owner's.
@@ -975,6 +1010,65 @@ pub fn box_public_key(&self) -> [u8; 32]
 The X25519 public key the owner seals job secrets to.
 
 Implements: `Clone`, `Debug`
+
+### JobCapRequest
+
+```rust
+pub struct JobCapRequest {
+    pub cluster_id: String,
+    pub max_jobs: Option<LinkJobCap>,
+}
+```
+
+A validated job cap change: the library it names (trimmed) and its new
+cap, `None` for an equal share.
+
+**Fields**
+
+- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
+- `max_jobs`: The cap to store; `None` clears it (an equal share).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LinkJobCap
+
+```rust
+pub struct LinkJobCap(/* private */);
+```
+
+The most jobs a branch runs for one library at once, as its operator
+set it: 0 (runs nothing for that library) to [`LinkJobCap::MAX`](#linkjobcapmax).
+
+#### LinkJobCap::MAX
+
+```rust
+pub const MAX: u8 = 16
+```
+
+The highest cap an operator may set: the most job slots a branch
+ever counts its machine as having.
+
+#### LinkJobCap::new
+
+```rust
+pub fn new(jobs: u32) -> Result<Self>
+```
+
+A cap of `jobs`.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) above [`Self::MAX`](#linkjobcapmax).
+
+#### LinkJobCap::jobs
+
+```rust
+pub fn jobs(self) -> usize
+```
+
+The cap in jobs.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
 
 ### NewClusterLink
 
@@ -5669,6 +5763,22 @@ or enrolled as another node.
 
 Returns the write error.
 
+### parse_job_cap_request
+
+```rust
+pub fn parse_job_cap_request(body: &[u8]) -> Result<JobCapRequest>
+```
+
+Parses and validates a `POST /api/config/join/capacity` body from its
+raw bytes, sans IO, the way the route reads it: JSON into
+[`CapacityBody`](#capacitybody), then [`CapacityBody::validate`](#capacitybodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or duplicate fields, wrong types, numbers outside `u32`),
+a missing `max_jobs`, or a cap above [`LinkJobCap::MAX`](#linkjobcapmax).
+
 ### record_cluster_link
 
 ```rust
@@ -5711,6 +5821,25 @@ refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
 write error.
+
+### set_cluster_link_job_cap
+
+```rust
+pub async fn set_cluster_link_job_cap(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    max_jobs: Option<LinkJobCap>,
+) -> Result<bool>
+```
+
+Sets the most jobs this install runs for one library at once; `None`
+clears the cap, leaving the link its equal share of the machine.
+Answers false when no such link exists. The running client picks the
+new cap up on the next share update.
+
+#### Errors
+
+Returns the write error.
 
 ### set_cluster_link_listing
 

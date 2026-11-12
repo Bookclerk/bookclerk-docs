@@ -523,6 +523,7 @@ pub struct HostClientConfig {
     pub claim_kinds: Vec<String>,
     pub claims_after_refresh: bool,
     pub timing: ClientTiming,
+    pub share: Option<Receiver<usize>>,
 }
 ```
 
@@ -541,6 +542,12 @@ What one client connects with.
   can re-read what the owner deployed (which may have changed while
   this host was away) before work runs against it.
 - `timing`: Timers.
+- `share`: This link's share of the machine, in jobs, when the host shares its
+  capacity between several libraries and its own work. The claim loop
+  holds at most the smaller of this and [`Self::max_jobs`](#hostclientconfig); a share
+  that shrinks below the jobs held cancels none of them, it only
+  stops claims until enough finish. `None` holds up to
+  [`Self::max_jobs`](#hostclientconfig).
 
 ### HostClientHandle
 
