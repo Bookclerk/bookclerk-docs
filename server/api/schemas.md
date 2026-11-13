@@ -228,7 +228,7 @@ forwarded to `/join/approve`).
 - `code_challenge` *string*, **required** — PKCE S256 challenge.
 - `code_challenge_method` *string or null* — Must be `S256`.
 - `branch_name` *string or null* — The name the branch asks to join as.
-- `clerk_offer` *string or null* — `1` when the joining install offers to join as a clerk ([`bookclerk_node_proto::CLERK_OFFER_PARAM`]).
+- `shared_branch_offer` *string or null* — `1` when the joining install offers to join as a shared branch ([`bookclerk_node_proto::SHARED_BRANCH_OFFER_PARAM`]).
 
 ## BranchAvailability
 
@@ -247,9 +247,9 @@ One branch a title is available through.
 Includes every field of [`BranchAuthorizeParams`](#branchauthorizeparams).
 
 - `approve` *boolean*, **required** — True to let the branch join; false to deny.
-- `connection` *string or null* — `branch` (default) or `clerk`.
-- `step_up` *[`StepUp`](#stepup) or null* — The fresh second factor a clerk needs.
-- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a clerk. Defaults to false.
+- `connection` *string or null* — `branch` (default) or `shared_branch`.
+- `step_up` *[`StepUp`](#stepup) or null* — The fresh second factor a shared branch needs.
+- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a shared branch. Defaults to false.
 
 ## BranchConsentPage
 
@@ -375,7 +375,7 @@ kept them.
 - `code` *string* — The code from the library.
 - `state` *string* — The `state` it came back with.
 - `error` *string or null* — The library's `error` (`access_denied`), when it sent one.
-- `connection` *string or null* — The connection type the library's user chose (`clerk`; a branch when left out). The code is bound to it, so a changed value only fails the redeem.
+- `connection` *string or null* — The connection type the library's user chose (`shared_branch`; a branch when left out). The code is bound to it, so a changed value only fails the redeem.
 
 ## CallbackParams
 
@@ -468,25 +468,6 @@ chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
 
-## ClerkJoined
-
-JSON body once this install joined a library as a clerk.
-
-- `connection` *string*, **required** — Always `clerk`.
-- `cluster_id` *string*, **required** — The library's cluster id.
-- `node_id` *string*, **required** — The node id the library minted for this install.
-- `library_name` *string*, **required** — The library's name.
-- `database` *string*, **required** — The database plugin this install now runs (`postgres` or `d1`).
-- `master_key_wrapped` *boolean*, **required** — Whether the shared master key was wrapped with this install's password.
-- `restarting` *boolean*, **required** — Always `true`: the daemon restarts as an owner node right after answering.
-
-## ClerksResponse
-
-`GET /api/config/clerks` body.
-
-- `node_id` *string*, **required** — Id of the node that answered.
-- `nodes` *array of [`NodeView`](#nodeview)*, **required** — This node and the clerks the caller may see.
-
 ## ClusterConsentsResponse
 
 JSON body for `GET /api/config/cluster-consents`.
@@ -578,7 +559,7 @@ One allowed value for a storefront config option.
 
 ## ConnectionChoice
 
-What the consent page may offer: branch only, or a choice between branch and clerk for an Owner.
+What the consent page may offer: branch only, or a choice between branch and shared_branch for an Owner.
 
 Type: [`BranchOnlyChoice`](#branchonlychoice) or [`OwnerChoice`](#ownerchoice)
 
@@ -615,7 +596,7 @@ JSON body for `GET /connections`.
 
 How a joining install connects to a library.
 
-Type: one of `branch`, `clerk`
+Type: one of `branch`, `shared_branch`
 
 ## ConsentBody
 
@@ -1151,9 +1132,9 @@ One job's state in [`Body::JobStatuses`].
 
 ## JoinCompleted
 
-JSON body once a join completed: as a branch, or as a clerk.
+JSON body once a join completed: as a branch, or as a shared branch.
 
-Type: [`BranchJoined`](#branchjoined) or [`ClerkJoined`](#clerkjoined)
+Type: [`BranchJoined`](#branchjoined) or [`SharedBranchJoined`](#sharedbranchjoined)
 
 ## JoinConflict
 
@@ -1168,7 +1149,7 @@ JSON body for `POST /api/config/join/start`.
 - `authorize_url` *string*, **required** — The library's sign-in URL to open in the browser.
 - `library` *[`InspectedLibraryView`](#inspectedlibraryview)*, **required** — What the library said about itself.
 - `branch_name` *string*, **required** — The name this install asked to join as.
-- `clerk_offered` *boolean*, **required** — Whether joining as a clerk was offered.
+- `shared_branch_offered` *boolean*, **required** — Whether joining as a shared branch was offered.
 - `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
 
 ## JoinStatus
@@ -1177,8 +1158,8 @@ JSON body for `GET /api/config/join`.
 
 - `fresh` *boolean*, **required** — Whether this install has no users and no libraries yet.
 - `has_owner` *boolean*, **required** — Whether an Owner (or legacy administrator) exists here.
-- `clerk_eligible` *boolean*, **required** — Whether this install could still join a library as a clerk.
-- `clerk_problem` *string or null* — Why it cannot join as a clerk, when it cannot.
+- `shared_branch_eligible` *boolean*, **required** — Whether this install could still join a library as a shared branch.
+- `shared_branch_problem` *string or null* — Why it cannot join as a shared branch, when it cannot.
 - `default_branch_name` *string*, **required** — The name a join is offered under by default (this machine's name).
 - `links` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with whether its client runs.
 
@@ -1478,7 +1459,7 @@ One node with its latest heartbeat, budget and owner.
 - `cluster_id` *string*, **required** — The library's cluster id.
 - `node_id` *string*, **required** — The node id recorded for the joining install.
 - `connection` *[`ConnectionType`](#connectiontype)* — The connection type recorded (`branch` when left out).
-- `bootstrap` *string or null* — For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box key ([`crate::seal_clerk_bootstrap`]), as base64url without padding.
+- `bootstrap` *string or null* — For a shared branch: the [`crate::SharedBranchBootstrap`] sealed to the node's box key ([`crate::seal_shared_branch_bootstrap`]), as base64url without padding.
 - `accounts` *string or null* — For a branch whose user chose "Bring my store connections to this branch": the user's own store accounts as a [`crate::AccountBundle`] sealed to the node's box key ([`crate::seal_account_bundle`]), as base64url without padding. Left out when the user did not choose it or had none to bring.
 
 ## OAuthEnrollRequest
@@ -1745,12 +1726,12 @@ JSON body after the first Owner was created.
 
 ## OwnerChoice
 
-The consent page's connection block for an Owner, who may pick clerk.
+The consent page's connection block for an Owner, who may pick shared branch.
 
 - `choice` *boolean*, **required** — Always `true`.
 - `default` *string*, **required** — Always `branch`.
-- `clerk_available` *boolean*, **required** — Whether clerk may be chosen right now.
-- `clerk_reason` *string or null* — Why clerk is shown disabled, when it is.
+- `shared_branch_available` *boolean*, **required** — Whether shared branch may be chosen right now.
+- `shared_branch_reason` *string or null* — Why shared branch is shown disabled, when it is.
 - `step_up` *array of string*, **required** — The second factors the Owner can step up with (`totp`, `passkey`).
 
 ## OwnerInfo
@@ -2710,6 +2691,25 @@ One allowed value of an `enum` setting: the stored id and its label.
 - `id` *string*, **required** — Stored value.
 - `label` *string or null* — Operator-facing label; omitted when the id is shown.
 
+## SharedBranchesResponse
+
+`GET /api/config/shared-branches` body.
+
+- `node_id` *string*, **required** — Id of the node that answered.
+- `nodes` *array of [`NodeView`](#nodeview)*, **required** — This node and the shared branches the caller may see.
+
+## SharedBranchJoined
+
+JSON body once this install joined a library as a shared branch.
+
+- `connection` *string*, **required** — Always `shared_branch`.
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `node_id` *string*, **required** — The node id the library minted for this install.
+- `library_name` *string*, **required** — The library's name.
+- `database` *string*, **required** — The database plugin this install now runs (`postgres` or `d1`).
+- `master_key_wrapped` *boolean*, **required** — Whether the shared master key was wrapped with this install's password.
+- `restarting` *boolean*, **required** — Always `true`: the daemon restarts as an owner node right after answering.
+
 ## SharingBody
 
 `POST /api/config/join/sharing` body: one library and the settings to
@@ -2806,7 +2806,7 @@ JSON body for `GET /sources`.
 - `address` *string*, **required** — The library's address.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
-- `clerk` *boolean* — Offer to join as a clerk (an owner node that shares the library's database): only an empty install may, and its data is replaced.
+- `shared_branch` *boolean* — Offer to join as a shared branch (an owner node that shares the library's database): only an empty install may, and its data is replaced.
 
 ## StatusResponse
 
@@ -2825,7 +2825,7 @@ Library and daemon snapshot for `GET /api/status`.
 
 ## StepUp
 
-A fresh second factor for a clerk consent. `Debug` prints no code.
+A fresh second factor for a shared branch consent. `Debug` prints no code.
 
 Type: object
 

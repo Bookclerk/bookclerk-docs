@@ -41,10 +41,10 @@ recovers the whole credential.
 | [`uncache_master_key`](#uncache_master_key) | function | Drops `key` from the process cache when it is the cached DEK. |
 | [`discard_minted_master_key`](#discard_minted_master_key) | function | Delete a `master.key` this process just created and drop it from the cache. |
 | [`wrap_master_key`](#wrap_master_key) | function | Wrap an existing `BCK1` `master.key` with `password` (`BCK2`). |
-| [`install_master_key`](#install_master_key) | function | Installs `dek` as `{files_dir}/master.key`: a clerk joining a library receives the library's DEK (sealed to its node key, never the passphrase-wrapped file) and keeps it under its own `password`. |
+| [`install_master_key`](#install_master_key) | function | Installs `dek` as `{files_dir}/master.key`: a shared branch joining a library receives the library's DEK (sealed to its node key, never the passphrase-wrapped file) and keeps it under its own `password`. |
 | [`prepare_master_key_dir`](#prepare_master_key_dir) | function | Creates the directory that holds `master.key` and sets it to mode `0700` on Unix, as a first mint does. |
 | [`warn_unwrapped_master_key`](#warn_unwrapped_master_key) | function | Warns that the `master.key` at `path` was written as `BCK1` (the DEK unwrapped at rest), and how to wrap it. |
-| [`encode_master_key_file`](#encode_master_key_file) | function | The `master.key` file contents for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when `password` is set and non-empty after trimming, `BCK1` otherwise. A caller that stages the file itself (a clerk applying its bootstrap as one recoverable step) writes these bytes with mode `0600`. |
+| [`encode_master_key_file`](#encode_master_key_file) | function | The `master.key` file contents for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when `password` is set and non-empty after trimming, `BCK1` otherwise. A caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) writes these bytes with mode `0600`. |
 | [`seal_with_dek`](#seal_with_dek) | function | Seal plaintext with the DEK (random nonce). Fast — no Argon2. |
 | [`unseal_with_dek`](#unseal_with_dek) | function | Unseal ciphertext with the DEK. |
 | [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var that wraps the DEK in `master.key` (optional). |
@@ -283,7 +283,7 @@ pub fn install_master_key(
 ) -> Result<()>
 ```
 
-Installs `dek` as `{files_dir}/master.key`: a clerk joining a library
+Installs `dek` as `{files_dir}/master.key`: a shared branch joining a library
 receives the library's DEK (sealed to its node key, never the
 passphrase-wrapped file) and keeps it under its own `password`.
 
@@ -330,7 +330,7 @@ pub fn encode_master_key_file(
 The `master.key` file contents for `dek`: `BCK2` (Argon2id +
 XChaCha20-Poly1305) when `password` is set and non-empty after
 trimming, `BCK1` otherwise. A caller that stages the file itself (a
-clerk applying its bootstrap as one recoverable step) writes these
+shared branch applying its bootstrap as one recoverable step) writes these
 bytes with mode `0600`.
 
 #### Errors

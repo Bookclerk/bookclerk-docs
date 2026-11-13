@@ -82,5 +82,5 @@ stop (Ctrl+C, SIGTERM) or to restart onto new bootstrap files.
 #### Errors
 
 Returns an error when the configuration cannot be loaded, the host cannot
-start (the control plane, an interrupted clerk join, operator auth),
+start (the control plane, an interrupted shared branch join, operator auth),
 `daemon.listen` is invalid, or a restart cannot re-exec the binary.

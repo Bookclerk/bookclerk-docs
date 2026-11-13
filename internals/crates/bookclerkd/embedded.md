@@ -112,7 +112,7 @@ The running host.
 ##### Errors
 
 Returns an error when the configuration cannot be loaded or the host
-cannot start (an interrupted clerk join, a control plane that does
+cannot start (an interrupted shared branch join, a control plane that does
 not open, or operator auth that cannot be built).
 
 #### EmbeddedHost::handle

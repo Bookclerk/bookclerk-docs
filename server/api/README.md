@@ -67,7 +67,7 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`DELETE /api/auth/impersonate`](auth.md#delete-apiauthimpersonate) | Clear impersonation on the current operator session. |
 | [`GET /api/auth/branch-consent`](auth.md#get-apiauthbranch-consent) | `GET /api/auth/branch-consent?<authorize params>`: what the consent page shows. 400 `invalid_request` for a malformed request (the page then shows the problem and never redirects). |
 | [`POST /api/auth/branch-consent`](auth.md#post-apiauthbranch-consent) | `POST /api/auth/branch-consent`: approve or deny. Answers `{redirect}`, the URL to send the browser to: the branch's callback with a code (or `error=access_denied`). Approving needs an active signed-in user, host enrollment on, and a connection the transport policy allows. |
-| [`POST /api/auth/branch-consent/step-up`](auth.md#post-apiauthbranch-consentstep-up) | `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a clerk consent (an Owner with a passkey). Answers the WebAuthn request options with a `challenge_id` to send back in the consent's `step_up`. |
+| [`POST /api/auth/branch-consent/step-up`](auth.md#post-apiauthbranch-consentstep-up) | `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a shared branch consent (an Owner with a passkey). Answers the WebAuthn request options with a `challenge_id` to send back in the consent's `step_up`. |
 | [`POST /api/auth/logout`](auth.md#post-apiauthlogout) | Revokes hashed operator and portal sessions and clears both cookies. |
 | [`GET /api/auth/sessions`](auth.md#get-apiauthsessions) | List sessions for the current principal only (not every operator session). |
 | [`DELETE /api/auth/sessions/{id}`](auth.md#delete-apiauthsessionsid) | Revoke a session by id. Operators may revoke any operator session; portal users may only revoke their own. |
@@ -250,7 +250,7 @@ Live configuration domains and reloads.
 
 ### [Cluster](cluster.md)
 
-Nodes, clerks, branches, joining a library and host enrollment.
+Nodes, branches, joining a library and host enrollment.
 
 | Route | Summary |
 | --- | --- |
@@ -268,8 +268,8 @@ Nodes, clerks, branches, joining a library and host enrollment.
 | [`POST /api/config/join/invite`](cluster.md#post-apiconfigjoininvite) | `POST /api/config/join/invite`: join with a pasted branch invite. The link is redeemed once and dropped; it is never logged or echoed. A library slower than [`REDEEM_TIMEOUT`] is answered 504 `join_pending` while the join carries on and starts its client when it lands. |
 | [`POST /api/config/join/leave`](cluster.md#post-apiconfigjoinleave) | `POST /api/config/join/leave`: Leave library. The leave runs on its own task, so a request cut short (the client gone, or the API deadline) still records it once the library has been told. |
 | [`GET /api/config/nodes`](cluster.md#get-apiconfignodes) | `GET /api/config/nodes`: every node for an operator; the caller's own nodes for a node owner. |
-| [`DELETE /api/config/nodes/{node_id}`](cluster.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove an owner node (a clerk, or any node sharing this database) that is no longer running from the library's node list. The operator or an Owner may remove any; another user only one they own. A running node, this node, or a branch is refused (a branch is revoked instead). |
-| [`GET /api/config/clerks`](cluster.md#get-apiconfigclerks) | `GET /api/config/clerks`: the owner nodes (this one and its clerks) for Settings → Clerks, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets them remove any; another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
+| [`DELETE /api/config/nodes/{node_id}`](cluster.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove an owner node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. The operator or an Owner may remove any; another user only one they own. A running node, this node, or a branch is refused (a branch is revoked instead). |
+| [`GET /api/config/shared-branches`](cluster.md#get-apiconfigshared-branches) | `GET /api/config/shared-branches`: the owner nodes (this one and its shared branches) for Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets them remove any; another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
 | [`PUT /api/config/nodes/{node_id}/runtime`](cluster.md#put-apiconfignodesnode_idruntime) | `PUT /api/config/nodes/{node_id}/runtime`: edit a node's label, budgets, or drain switch. Applies at that node's next heartbeat. A node owner may edit only the nodes it owns. |
 | [`GET /api/config/node-invites`](cluster.md#get-apiconfignode-invites) | `GET /api/config/node-invites`: every link for the operator or an Owner; the caller's own links for anyone else, and with `?mine=true`. |
 | [`POST /api/config/node-invites`](cluster.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while host enrollment is on; the operator or an Owner may mint for any active user. |
@@ -314,7 +314,7 @@ Node-to-node enrollment, socket, artifacts and uploads; each route checks its ow
 | --- | --- |
 | [`POST /api/node/v1/enroll`](node-protocol.md#post-apinodev1enroll) | `POST /api/node/v1/enroll`: redeem an enrollment link. Answers `{cluster_id, node_id}`; 403 `transport_insecure` when the connection fails the transport policy, 403 `enrollment_refused` for any link that does not redeem. |
 | [`GET /api/node/v1/info`](node-protocol.md#get-apinodev1info) | `GET /api/node/v1/info`. |
-| [`POST /api/node/v1/enroll/oauth`](node-protocol.md#post-apinodev1enrolloauth) | `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in. Answers `{cluster_id, node_id}` for a branch, plus `connection` and the sealed `bootstrap` for a clerk; 403 `transport_insecure` for a refused connection, 403 `enrollment_refused` for a code that does not redeem (unknown, used, expired, another client's, a wrong verifier or redirect URI, enrollment off, or the user no longer active). |
+| [`POST /api/node/v1/enroll/oauth`](node-protocol.md#post-apinodev1enrolloauth) | `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in. Answers `{cluster_id, node_id}` for a branch, plus `connection` and the sealed `bootstrap` for a shared branch; 403 `transport_insecure` for a refused connection, 403 `enrollment_refused` for a code that does not redeem (unknown, used, expired, another client's, a wrong verifier or redirect URI, enrollment off, or the user no longer active). |
 | [`GET /api/node/v1/connect`](node-protocol.md#get-apinodev1connect) | `GET /api/node/v1/connect`: upgrade to the host-node socket after the transport check. 403 `transport_insecure` for a refused connection, 400 `subprotocol_required` without [`SUBPROTOCOL`]. |
 | [`GET /api/node/v1/artifacts/{sha256}`](node-protocol.md#get-apinodev1artifactssha256) | `GET /api/node/v1/artifacts/{sha256}`. |
 | [`PUT /api/node/v1/uploads/{upload_id}/files/{index}`](node-protocol.md#put-apinodev1uploadsupload_idfilesindex) | `PUT /api/node/v1/uploads/{upload_id}/files/{index}`. |

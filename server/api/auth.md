@@ -4259,7 +4259,7 @@ shows the problem and never redirects).
 - `code_challenge` (query) *string*, **required** — PKCE S256 challenge.
 - `code_challenge_method` (query) *string* — Must be `S256`.
 - `branch_name` (query) *string* — The name the branch asks to join as.
-- `clerk_offer` (query) *string* — `1` when the joining install offers to join as a clerk ([`bookclerk_node_proto::CLERK_OFFER_PARAM`]).
+- `shared_branch_offer` (query) *string* — `1` when the joining install offers to join as a shared branch ([`bookclerk_node_proto::SHARED_BRANCH_OFFER_PARAM`]).
 
 ### Responses
 
@@ -4435,11 +4435,11 @@ Schema:
         },
         {
           "type": "object",
-          "description": "An Owner may pick clerk, when it is available.",
+          "description": "An Owner may pick shared_branch, when it is available.",
           "required": [
             "choice",
             "default",
-            "clerk_available",
+            "shared_branch_available",
             "step_up"
           ],
           "properties": {
@@ -4453,17 +4453,17 @@ Schema:
               "description": "Always `branch`.",
               "example": "branch"
             },
-            "clerk_available": {
+            "shared_branch_available": {
               "type": "boolean",
-              "description": "Whether clerk may be chosen right now.",
+              "description": "Whether shared branch may be chosen right now.",
               "example": false
             },
-            "clerk_reason": {
+            "shared_branch_reason": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Why clerk is shown disabled, when it is.",
+              "description": "Why shared branch is shown disabled, when it is.",
               "example": "The joining server already holds library data of its own (or did not offer it), so it can only join as a branch."
             },
             "step_up": {
@@ -4790,25 +4790,25 @@ enrollment on, and a connection the transport policy allows.
 `application/json`: [`BranchConsentBody`](schemas.md#branchconsentbody)
 
 - `approve` *boolean*, **required** — True to let the branch join; false to deny.
-- `connection` *string or null* — `branch` (default) or `clerk`.
-- `step_up` *[`StepUp`](schemas.md#stepup) or null* — The fresh second factor a clerk needs.
-- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a clerk. Defaults to false.
+- `connection` *string or null* — `branch` (default) or `shared_branch`.
+- `step_up` *[`StepUp`](schemas.md#stepup) or null* — The fresh second factor a shared branch needs.
+- `bring_connections` *boolean* — True to send the user's store connections that may travel to the branch when it joins. Ignored for a shared branch. Defaults to false.
 
 ### Responses
 
 - `200` — `{redirect}` back to the branch. Body: [`ConsentRedirect`](schemas.md#consentredirect) (`application/json`)
   - `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
-- `400` — The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a clerk join (`clerk_not_offered`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `400` — The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a shared branch join (`shared_branch_not_offered`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a clerk join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
+- `403` — The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a shared branch join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
 - `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `409` — This library's database cannot be shared with a clerk (`database_not_shareable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `409` — This library's database cannot be shared with another server (`database_not_shareable`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `413` — The body is larger than 8 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -4904,11 +4904,11 @@ Schema:
 }
 ```
 
-Status `400`: The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a clerk join (`clerk_not_offered`).
+Status `400`: The body or its authorize parameters are invalid (`invalid_request`), or the joining server did not offer a shared branch join (`shared_branch_not_offered`).
 
 ```json
 {
-  "detail": "connection must be branch or clerk",
+  "detail": "connection must be branch or shared_branch",
   "error": "invalid_request"
 }
 ```
@@ -4983,7 +4983,7 @@ Schema:
 }
 ```
 
-Status `403`: The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a clerk join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller is not an active library user (`user_required`, `user_inactive`), this library is not accepting branches (`enrollment_disabled`), a shared branch join needs an Owner (`owner_required`) with a second factor (`step_up_unavailable`) that was confirmed (`step_up_required`) and passed (`step_up_failed`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -5111,11 +5111,11 @@ Schema:
 }
 ```
 
-Status `409`: This library's database cannot be shared with a clerk (`database_not_shareable`).
+Status `409`: This library's database cannot be shared with another server (`database_not_shareable`).
 
 ```json
 {
-  "detail": "This library keeps its database in a SQLite file that only this server can open. A clerk needs a PostgreSQL or Cloudflare D1 database.",
+  "detail": "This library keeps its database in a SQLite file that only this server can open. Sharing it needs a PostgreSQL or Cloudflare D1 database.",
   "error": "database_not_shareable"
 }
 ```
@@ -5326,7 +5326,7 @@ A `text/plain` body: a string.
 ## `POST /api/auth/branch-consent/step-up`
 
 `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a
-clerk consent (an Owner with a passkey). Answers the WebAuthn request
+shared branch consent (an Owner with a passkey). Answers the WebAuthn request
 options with a `challenge_id` to send back in the consent's `step_up`.
 
 **Access:** The operator, or any signed-in user.

@@ -6,9 +6,9 @@ A host node is a separate Bookclerk install that enrolled into an owner
 cluster with a single-use link ([`join_cluster`](#join_cluster)) or a sign-in at the
 owner ([`inspect_library`](#inspect_library), [`authorize_branch`](#authorize_branch),
 [`redeem_branch_code`](#redeem_branch_code)); it tells the owner when it leaves
-([`announce_leaving`](#announce_leaving)). An empty install may instead join as a clerk, an
+([`announce_leaving`](#announce_leaving)). An empty install may instead join as a shared branch, an
 owner node that shares the library's database and DEK
-([`redeem_clerk_code`](#redeem_clerk_code), [`apply_clerk_bootstrap`](#apply_clerk_bootstrap)). Its node keys are
+([`redeem_shared_branch_code`](#redeem_shared_branch_code), [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap)). Its node keys are
 sealed in its own database
 (`bookclerk_library::control_plane::record_cluster_link`). For every
 active link, [`HostClient`](#hostclient) keeps one socket to the owner's
@@ -53,10 +53,6 @@ job runs its guest are the daemon's.
 | [`BranchRedeem`](#branchredeem) | struct | What `redeem_branch_code` needs besides the keys. |
 | [`InspectedLibrary`](#inspectedlibrary) | struct | A library as `inspect_library` found it. |
 | [`RedeemedBranch`](#redeemedbranch) | struct | A branch sign-in the library redeemed and this install recorded. |
-| [`AppliedClerk`](#appliedclerk) | struct | What `apply_clerk_bootstrap` wrote. |
-| [`ClerkJoined`](#clerkjoined) | struct | A redeemed clerk sign-in. `Debug` prints no secret. |
-| [`PendingClerkJoin`](#pendingclerkjoin) | struct | A clerk join whose files are all in place but whose first start has not opened the library's database yet, or whose undoing was cut short. The daemon `confirm`s it once the database opens, or `revert`s it when it cannot, so a join to an unreachable database does not leave the server unable to start. |
-| [`RevertFailed`](#revertfailed) | struct | Why `PendingClerkJoin::revert` did not finish. |
 | [`CatalogBatchAccepted`](#catalogbatchaccepted) | struct | A recorded catalog batch (`HostClientHandle::catalog_sync`). |
 | [`CatalogSession`](#catalogsession) | struct | An opened catalog session (`HostClientHandle::catalog_begin`). |
 | [`ClientTiming`](#clienttiming) | struct | Timers of the client. The defaults follow the protocol constants. |
@@ -71,6 +67,10 @@ job runs its guest are the daemon's.
 | [`HostJobCtx`](#hostjobctx) | struct | Everything a runner gets for one job. |
 | [`HostJobError`](#hostjoberror) | struct | How a job failed: a stable kind and an operator-facing message. Neither may contain a secret. |
 | [`HostUpload`](#hostupload) | struct | An open upload of one title: its id and bearer token. The token is zeroized on drop and never shown by `Debug`. |
+| [`AppliedSharedBranch`](#appliedsharedbranch) | struct | What `apply_shared_branch_bootstrap` wrote. |
+| [`PendingSharedBranchJoin`](#pendingsharedbranchjoin) | struct | A shared branch join whose files are all in place but whose first start has not opened the library's database yet, or whose undoing was cut short. The daemon `confirm`s it once the database opens, or `revert`s it when it cannot, so a join to an unreachable database does not leave the server unable to start. |
+| [`RevertFailed`](#revertfailed) | struct | Why `PendingSharedBranchJoin::revert` did not finish. |
+| [`SharedBranchJoined`](#sharedbranchjoined) | struct | A redeemed shared branch sign-in. `Debug` prints no secret. |
 | [`BroughtConnections`](#broughtconnections) | enum | What became of the store connections a library sent with its person (`keep_brought_connections`). |
 | [`ClientExit`](#clientexit) | enum | Why `HostClient::run` returned. |
 | [`DialError`](#dialerror) | enum | Why the owner could not be reached. |
@@ -79,26 +79,24 @@ job runs its guest are the daemon's.
 | [`WriteBackError`](#writebackerror) | enum | Why a token write-back was not stored. |
 | [`announce_leaving`](#announce_leaving) | function | Tells the library of `link` that this install is leaving: connects with the link's keys (claiming nothing; `sampler` answers the connection's first heartbeat), sends `node.leaving`, and waits for the answer for up to `timeout`. Answers true when the library accepted it. Call it before the keys are deleted. |
 | [`authorize_branch`](#authorize_branch) | function | Starts a sign-in at `library` for this install as `branch_name`, coming back to `redirect_uri` (a loopback or https URL). |
-| [`authorize_join`](#authorize_join) | function | `authorize_branch`, optionally offering to join as a clerk (`offer_clerk`, `CLERK_OFFER_PARAM`): the consent page then lets an Owner of the library choose a clerk instead of a branch. Offer it only for an install that holds no library data of its own. |
+| [`authorize_join`](#authorize_join) | function | `authorize_branch`, optionally offering to join as a shared branch (`offer_shared_branch`, `SHARED_BRANCH_OFFER_PARAM`): the consent page then lets an Owner of the library choose a shared branch instead of a branch. Offer it only for an install that holds no library data of its own. |
 | [`bind_join_person`](#bind_join_person) | function | Binds the link a sign-in join recorded to the person on this install (`branch_person`): only they may add store connections to the library, or withdraw them from it, through that link. Every join path calls it after `redeem_branch_code`. |
 | [`inspect_library`](#inspect_library) | function | Reads what the library at `address` says about itself, under the transport policy (plain HTTP only on loopback). |
 | [`keep_brought_connections`](#keep_brought_connections) | function | Keeps the store connections a library sent with its person (`RedeemedBranch::accounts`) for the person on this install (`branch_person`), recording that they came from the library. |
 | [`library_origin`](#library_origin) | function | Normalizes what an operator typed (`owner.example:8443`, `https://owner.example/`) to a canonical origin. A bare `host[:port]` means `https`. |
 | [`redeem_branch_code`](#redeem_branch_code) | function | Redeems an approved sign-in: the library runs the same redeem as for a link (one node, a receipt, idempotent retries), then this install seals `keys` and records the link. The code and verifier go once in the request body and are never logged. |
-| [`apply_clerk_bootstrap`](#apply_clerk_bootstrap) | function | Writes `bootstrap` as this install's own bootstrap under `files_dir`: |
-| [`bootstrap_database_kind`](#bootstrap_database_kind) | function | The `[database].plugin` a clerk's bootstrap configures. |
-| [`checked_d1_api_base`](#checked_d1_api_base) | function | Checks the D1 API origin a library's bootstrap names, and returns it normalized. Every D1 query carries the joining server's own API token to that origin, so a clerk may only be pointed at Cloudflare's API over HTTPS. The library checks its own origin the same way before it offers a clerk join, so a library on another D1 endpoint cannot take clerks. |
-| [`database_guest_installed`](#database_guest_installed) | function | True when the database guest for `kind` is installed for `config`, so the daemon can open the library's database once the bootstrap is applied. A plugin directory that cannot be read counts as not installed. |
-| [`install_problem`](#install_problem) | function | Why this install may not join as a clerk now, or `None`. |
-| [`interrupted_clerk_join`](#interrupted_clerk_join) | function | Names the copies an interrupted clerk join left beside this install's bootstrap files, or `None` when there are none. The daemon refuses to start while any is there: a process that died while replacing the files leaves some new and some old, and starting on that mix would pair a database with the wrong node identity or key. The message says how to finish or undo the join by hand (see `apply_clerk_bootstrap`). |
-| [`pending_clerk_join`](#pending_clerk_join) | function | The clerk join this install applied but has not yet started on (or began undoing), if any. A record that cannot be read, or that names any file other than this install's own bootstrap files and their copies, is not used: copies left beside those files then stop the start (see `interrupted_clerk_join`). |
-| [`redeem_clerk_code`](#redeem_clerk_code) | function | Redeems an approved clerk sign-in and opens the bootstrap with the node's box secret. The code and verifier go once in the request body, and are registered for redaction (the caller unregisters them). |
 | [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own cluster id (A ← B ← A). Answers its ancestry, to record on the link. |
 | [`join_cluster`](#join_cluster) | function | Enrolls this install into the owner cluster named by `link`. |
 | [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own cluster id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
+| [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap) | function | Writes `bootstrap` as this install's own bootstrap under `files_dir`: |
+| [`bootstrap_database_kind`](#bootstrap_database_kind) | function | The `[database].plugin` a shared branch's bootstrap configures. |
+| [`checked_d1_api_base`](#checked_d1_api_base) | function | Checks the D1 API origin a library's bootstrap names, and returns it normalized. Every D1 query carries the joining server's own API token to that origin, so a shared branch may only be pointed at Cloudflare's API over HTTPS. The library checks its own origin the same way before it offers a shared branch join, so a library on another D1 endpoint cannot take shared branches. |
+| [`database_guest_installed`](#database_guest_installed) | function | True when the database guest for `kind` is installed for `config`, so the daemon can open the library's database once the bootstrap is applied. A plugin directory that cannot be read counts as not installed. |
+| [`install_problem`](#install_problem) | function | Why this install may not join as a shared branch now, or `None`. |
+| [`interrupted_shared_branch_join`](#interrupted_shared_branch_join) | function | Names the copies an interrupted shared branch join left beside this install's bootstrap files, or `None` when there are none. The daemon refuses to start while any is there: a process that died while replacing the files leaves some new and some old, and starting on that mix would pair a database with the wrong node identity or key. The message says how to finish or undo the join by hand (see `apply_shared_branch_bootstrap`). |
+| [`pending_shared_branch_join`](#pending_shared_branch_join) | function | The shared branch join this install applied but has not yet started on (or began undoing), if any. A record that cannot be read, or that names any file other than this install's own bootstrap files and their copies, is not used: copies left beside those files then stop the start (see `interrupted_shared_branch_join`). |
+| [`redeem_shared_branch_code`](#redeem_shared_branch_code) | function | Redeems an approved shared branch sign-in and opens the bootstrap with the node's box secret. The code and verifier go once in the request body, and are registered for redaction (the caller unregisters them). |
 | [`OwnerSocket`](#ownersocket) | type alias | The owner socket. |
-| [`CLERK_POSTGRES_URL_FILE`](#clerk_postgres_url_file) | constant | File under the files directory that holds a clerk's Postgres URL, mode `0600`. `[database.postgres].url_file` names it by its absolute path (a relative `url_file` would be read from the daemon's working directory). |
-| [`DATABASE_ENV_OVERRIDES`](#database_env_overrides) | constant | Environment variables that would outrank a clerk's `[database]` bootstrap; a clerk join is refused while one is set. |
 | [`AWAITING_HOST_CONSENT`](#awaiting_host_consent) | constant | Release reason for a job whose plugins this host's operator has not (or no longer) approved. |
 | [`KIND_NOT_RUN_HERE`](#kind_not_run_here) | constant | Release reason for a job of a kind this host does not run. |
 | [`MAX_ARTIFACT_BYTES`](#max_artifact_bytes) | constant | Largest artifact fetched from the owner (the library blob cap). |
@@ -106,6 +104,8 @@ job runs its guest are the daemon's.
 | [`SECRETS_UNOPENABLE`](#secrets_unopenable) | constant | Error kind reported when a job's secrets do not open with this node's box key. |
 | [`CONNECT_PATH`](#connect_path) | constant | Path of the node socket. |
 | [`ENROLL_PATH`](#enroll_path) | constant | Path of the enroll endpoint. |
+| [`DATABASE_ENV_OVERRIDES`](#database_env_overrides) | constant | Environment variables that would outrank a shared branch's `[database]` bootstrap; a shared branch join is refused while one is set. |
+| [`SHARED_BRANCH_POSTGRES_URL_FILE`](#shared_branch_postgres_url_file) | constant | File under the files directory that holds a shared branch's Postgres URL, mode `0600`. `[database.postgres].url_file` names it by its absolute path (a relative `url_file` would be read from the daemon's working directory). |
 
 ## Re-exports
 
@@ -278,133 +278,6 @@ A branch sign-in the library redeemed and this install recorded.
   choose it, had none to bring, or the box did not open (logged).
 
 Implements: `Debug`
-
-### AppliedClerk
-
-```rust
-pub struct AppliedClerk {
-    pub database: DatabasePluginKind,
-    pub wrapped: bool,
-    pub config_file: PathBuf,
-}
-```
-
-What [`apply_clerk_bootstrap`](#apply_clerk_bootstrap) wrote.
-
-**Fields**
-
-- `database`: The `[database].plugin` now configured.
-- `wrapped`: True when `master.key` is wrapped with this install's password.
-- `config_file`: The config file written.
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### ClerkJoined
-
-```rust
-pub struct ClerkJoined {
-    pub cluster_id: String,
-    pub node_id: String,
-    pub bootstrap: ClerkBootstrap,
-}
-```
-
-A redeemed clerk sign-in. `Debug` prints no secret.
-
-**Fields**
-
-- `cluster_id`: The library's cluster id.
-- `node_id`: The node id the library recorded (`kind = owner`).
-- `bootstrap`: The opened bootstrap.
-
-Implements: `Debug`
-
-### PendingClerkJoin
-
-```rust
-pub struct PendingClerkJoin {
-    /* private fields */
-}
-```
-
-A clerk join whose files are all in place but whose first start has not
-opened the library's database yet, or whose undoing was cut short. The
-daemon [`confirm`](#pendingclerkjoinconfirm)s it once the database opens, or
-[`revert`](#pendingclerkjoinrevert)s it when it cannot, so a join to an unreachable
-database does not leave the server unable to start.
-
-#### PendingClerkJoin::reverting
-
-```rust
-pub fn reverting(&self) -> bool
-```
-
-Whether an earlier start began putting the originals back and did not
-finish: the daemon then finishes the [`revert`](#pendingclerkjoinrevert) before
-anything else, and does not try the library's database again.
-
-#### PendingClerkJoin::confirm
-
-```rust
-pub fn confirm(self)
-```
-
-The library's database opened: drops the record, then the copies of
-the originals. The record goes first, so a crash part way leaves
-copies with no record, which the next start refuses on with
-[`interrupted_clerk_join`](#interrupted_clerk_join)'s instructions (its `config.toml` is the
-library's, so the copies are to be deleted). A copy that cannot be
-removed is logged, since it stops the next start.
-
-#### PendingClerkJoin::revert
-
-```rust
-pub fn revert(self) -> Result<(), RevertFailed>
-```
-
-The library's database did not open: puts every original back,
-removes the files the join created, and drops the record, so the
-next start runs on this install's own bootstrap again. The record is
-first marked [`reverting`](#pendingclerkjoinreverting), and every step can run
-again (a copy already moved back is gone, a created file already
-removed is absent), so a revert cut short by a crash or a failed
-rename is finished by the next start instead of leaving a mix.
-
-Before the revert starts, every recorded copy must still exist: a
-copy missing at that point was removed by hand, not moved back, so
-undoing the rest would leave a mix of this install's files and the
-library's.
-
-##### Errors
-
-Returns [`RevertFailed`](#revertfailed) with [`started`](#revertfailed)
-false when nothing was changed (a copy is missing, or the record could
-not be marked), so the record still says the join is applied. With
-`started` true it names the files that could not be put back; the
-record stays marked reverting, so the next start finishes the undo
-before anything else.
-
-Implements: `Debug`
-
-### RevertFailed
-
-```rust
-pub struct RevertFailed {
-    pub started: bool,
-    pub detail: String,
-}
-```
-
-Why [`PendingClerkJoin::revert`](#pendingclerkjoinrevert) did not finish.
-
-**Fields**
-
-- `started`: Whether the undo had begun: when true the record is marked
-  reverting and the next start finishes it; when false nothing was
-  changed and the record still says the join is applied.
-- `detail`: What went wrong, naming the files involved.
-
-Implements: `Debug`, `Display`
 
 ### CatalogBatchAccepted
 
@@ -1509,6 +1382,133 @@ zeroized on drop and never shown by `Debug`.
 
 Implements: `Debug`, `Drop`
 
+### AppliedSharedBranch
+
+```rust
+pub struct AppliedSharedBranch {
+    pub database: DatabasePluginKind,
+    pub wrapped: bool,
+    pub config_file: PathBuf,
+}
+```
+
+What [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap) wrote.
+
+**Fields**
+
+- `database`: The `[database].plugin` now configured.
+- `wrapped`: True when `master.key` is wrapped with this install's password.
+- `config_file`: The config file written.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PendingSharedBranchJoin
+
+```rust
+pub struct PendingSharedBranchJoin {
+    /* private fields */
+}
+```
+
+A shared branch join whose files are all in place but whose first start has not
+opened the library's database yet, or whose undoing was cut short. The
+daemon [`confirm`](#pendingsharedbranchjoinconfirm)s it once the database opens, or
+[`revert`](#pendingsharedbranchjoinrevert)s it when it cannot, so a join to an unreachable
+database does not leave the server unable to start.
+
+#### PendingSharedBranchJoin::reverting
+
+```rust
+pub fn reverting(&self) -> bool
+```
+
+Whether an earlier start began putting the originals back and did not
+finish: the daemon then finishes the [`revert`](#pendingsharedbranchjoinrevert) before
+anything else, and does not try the library's database again.
+
+#### PendingSharedBranchJoin::confirm
+
+```rust
+pub fn confirm(self)
+```
+
+The library's database opened: drops the record, then the copies of
+the originals. The record goes first, so a crash part way leaves
+copies with no record, which the next start refuses on with
+[`interrupted_shared_branch_join`](#interrupted_shared_branch_join)'s instructions (its `config.toml` is the
+library's, so the copies are to be deleted). A copy that cannot be
+removed is logged, since it stops the next start.
+
+#### PendingSharedBranchJoin::revert
+
+```rust
+pub fn revert(self) -> Result<(), RevertFailed>
+```
+
+The library's database did not open: puts every original back,
+removes the files the join created, and drops the record, so the
+next start runs on this install's own bootstrap again. The record is
+first marked [`reverting`](#pendingsharedbranchjoinreverting), and every step can run
+again (a copy already moved back is gone, a created file already
+removed is absent), so a revert cut short by a crash or a failed
+rename is finished by the next start instead of leaving a mix.
+
+Before the revert starts, every recorded copy must still exist: a
+copy missing at that point was removed by hand, not moved back, so
+undoing the rest would leave a mix of this install's files and the
+library's.
+
+##### Errors
+
+Returns [`RevertFailed`](#revertfailed) with [`started`](#revertfailed)
+false when nothing was changed (a copy is missing, or the record could
+not be marked), so the record still says the join is applied. With
+`started` true it names the files that could not be put back; the
+record stays marked reverting, so the next start finishes the undo
+before anything else.
+
+Implements: `Debug`
+
+### RevertFailed
+
+```rust
+pub struct RevertFailed {
+    pub started: bool,
+    pub detail: String,
+}
+```
+
+Why [`PendingSharedBranchJoin::revert`](#pendingsharedbranchjoinrevert) did not finish.
+
+**Fields**
+
+- `started`: Whether the undo had begun: when true the record is marked
+  reverting and the next start finishes it; when false nothing was
+  changed and the record still says the join is applied.
+- `detail`: What went wrong, naming the files involved.
+
+Implements: `Debug`, `Display`
+
+### SharedBranchJoined
+
+```rust
+pub struct SharedBranchJoined {
+    pub cluster_id: String,
+    pub node_id: String,
+    pub bootstrap: SharedBranchBootstrap,
+}
+```
+
+A redeemed shared branch sign-in. `Debug` prints no secret.
+
+**Fields**
+
+- `cluster_id`: The library's cluster id.
+- `node_id`: The node id the library recorded (`kind = owner`).
+- `bootstrap`: The opened bootstrap.
+
+Implements: `Debug`
+
 ## Enums
 
 ### BroughtConnections
@@ -1739,13 +1739,13 @@ pub fn authorize_join(
     library: &InspectedLibrary,
     redirect_uri: &str,
     branch_name: &str,
-    offer_clerk: bool,
+    offer_shared_branch: bool,
 ) -> Result<BranchAuthorization, JoinError>
 ```
 
-[`authorize_branch`](#authorize_branch), optionally offering to join as a clerk
-(`offer_clerk`, [`CLERK_OFFER_PARAM`](../bookclerk_node_proto/README.md#clerk_offer_param)): the consent page then lets an
-Owner of the library choose a clerk instead of a branch. Offer it only
+[`authorize_branch`](#authorize_branch), optionally offering to join as a shared branch
+(`offer_shared_branch`, [`SHARED_BRANCH_OFFER_PARAM`](../bookclerk_node_proto/README.md#shared_branch_offer_param)): the consent page then lets an
+Owner of the library choose a shared branch instead of a branch. Offer it only
 for an install that holds no library data of its own.
 
 #### Errors
@@ -1872,155 +1872,6 @@ same code again with the same verifier and keys gets the same node, so
 that one can be retried, naming that node in
 [`BranchRedeem::enrolled_node_id`](#branchredeem)).
 
-### apply_clerk_bootstrap
-
-```rust
-pub fn apply_clerk_bootstrap(
-    files_dir: &Path,
-    config_file: &Path,
-    bootstrap: &ClerkBootstrap,
-    password: Option<&str>,
-) -> Result<AppliedClerk, JoinError>
-```
-
-Writes `bootstrap` as this install's own bootstrap under `files_dir`:
-
-- `database-postgres.url` (Postgres only): the URL, mode `0600`;
-- `node-identity.json`: the node id the library recorded, bound to its
-  cluster;
-- `master.key`: the library's DEK, wrapped with `password` (this
-  install's `BOOKCLERK_AUTH_PASSWORD` or `[auth].password`) when set;
-- `[database]` in `config_file` (other settings kept): `postgres` with
-  `url_file` naming the URL file (never the URL itself in the TOML), or
-  `d1` with its ids (the D1 API token stays this node's
-  environment-only bootstrap).
-
-The files go in as one recoverable step. All the new contents are first
-written and synced beside their targets (hidden `.<name>.clerk-<hex>`
-files), and each existing target is copied to `<name>.pre-clerk`; a
-failure up to here changes no target. The targets are then replaced
-atomically one by one, in the order above. If one fails, the ones
-already replaced are put back from their copies (a target that did not
-exist before is removed), so the install keeps its own bootstrap; the
-error names any file that could not be put back. On success the copies
-stay, and `clerk-join.json` in `files_dir` records the join: the next start drops
-them once the library's database opens ([`PendingClerkJoin::confirm`](#pendingclerkjoinconfirm))
-and puts the originals back if it does not ([`PendingClerkJoin::revert`](#pendingclerkjoinrevert)).
-The caller restarts the daemon afterwards.
-
-A process that dies while replacing leaves the files before that point
-in the list new and the rest old, with every original still beside its
-file as `<name>.pre-clerk` and no record; a later apply refuses while a
-copy is there, and so does the daemon ([`interrupted_clerk_join`](#interrupted_clerk_join)), with
-instructions to finish the join by hand (when `config_file` is already
-new) or undo it. Staged `.<name>.clerk-<hex>` files left by such a crash
-are unused and can be deleted.
-
-#### Errors
-
-Returns [`JoinError::Record`](#joinerror) when a file cannot be written or the
-existing `config.toml` does not parse.
-
-### bootstrap_database_kind
-
-```rust
-pub fn bootstrap_database_kind(database: &ClerkDatabase) -> DatabasePluginKind
-```
-
-The `[database].plugin` a clerk's bootstrap configures.
-
-### checked_d1_api_base
-
-```rust
-pub fn checked_d1_api_base(api_base: &str) -> Result<String, JoinError>
-```
-
-Checks the D1 API origin a library's bootstrap names, and returns it
-normalized. Every D1 query carries the joining server's own API token
-to that origin, so a clerk may only be pointed at Cloudflare's API over
-HTTPS. The library checks its own origin the same way before it offers
-a clerk join, so a library on another D1 endpoint cannot take clerks.
-
-#### Errors
-
-Returns [`JoinError::Record`](#joinerror) when `api_base` is not an `https` URL on
-`api.cloudflare.com` (no other port, user name or password).
-
-### database_guest_installed
-
-```rust
-pub fn database_guest_installed(config: &Config, kind: DatabasePluginKind) -> bool
-```
-
-True when the database guest for `kind` is installed for `config`, so
-the daemon can open the library's database once the bootstrap is
-applied. A plugin directory that cannot be read counts as not
-installed.
-
-### install_problem
-
-```rust
-pub async fn install_problem(store: &LibraryStore) -> Result<Option<String>, JoinError>
-```
-
-Why this install may not join as a clerk now, or `None`.
-
-#### Errors
-
-Returns the read error.
-
-### interrupted_clerk_join
-
-```rust
-pub fn interrupted_clerk_join(files_dir: &Path, config_file: &Path) -> Option<String>
-```
-
-Names the copies an interrupted clerk join left beside this install's
-bootstrap files, or `None` when there are none. The daemon refuses to
-start while any is there: a process that died while replacing the files
-leaves some new and some old, and starting on that mix would pair a
-database with the wrong node identity or key. The message says how to
-finish or undo the join by hand (see [`apply_clerk_bootstrap`](#apply_clerk_bootstrap)).
-
-### pending_clerk_join
-
-```rust
-pub fn pending_clerk_join(
-    files_dir: &Path,
-    config_file: &Path,
-) -> Option<PendingClerkJoin>
-```
-
-The clerk join this install applied but has not yet started on (or
-began undoing), if any. A record that cannot be read, or that names any
-file other than this install's own bootstrap files and their copies, is
-not used: copies left beside those files then stop the start (see
-[`interrupted_clerk_join`](#interrupted_clerk_join)).
-
-### redeem_clerk_code
-
-```rust
-pub async fn redeem_clerk_code(
-    redeem: &BranchRedeem<'_>,
-    keys: &ClusterLinkKeys,
-) -> Result<ClerkJoined, JoinError>
-```
-
-Redeems an approved clerk sign-in and opens the bootstrap with the
-node's box secret. The code and verifier go once in the request body,
-and are registered for redaction (the caller unregisters them).
-
-#### Errors
-
-Returns [`JoinError`](#joinerror) when the library is unreachable or refuses (the
-code was approved for a branch, the user is no longer an Owner, or its
-database cannot be shared). Once the library has enrolled the node, an
-answer for another cluster or type, without a bootstrap, or with one
-that does not open for this node gives [`JoinError::Unsaved`](#joinerror) naming
-it. [`JoinError::is_retryable`](#joinerroris_retryable) tells which failures a repeat of the
-same exchange can fix (the library answers it with the same node and a
-freshly sealed bootstrap).
-
 ### check_join_ancestry
 
 ```rust
@@ -2082,6 +1933,158 @@ malformed, or would take this library's ancestry past what one can name
 Returns [`JoinError::Cycle`](#joinerror), [`JoinError::AncestryTooDeep`](#joinerror) or
 [`JoinError::Record`](#joinerror).
 
+### apply_shared_branch_bootstrap
+
+```rust
+pub fn apply_shared_branch_bootstrap(
+    files_dir: &Path,
+    config_file: &Path,
+    bootstrap: &SharedBranchBootstrap,
+    password: Option<&str>,
+) -> Result<AppliedSharedBranch, JoinError>
+```
+
+Writes `bootstrap` as this install's own bootstrap under `files_dir`:
+
+- `database-postgres.url` (Postgres only): the URL, mode `0600`;
+- `node-identity.json`: the node id the library recorded, bound to its
+  cluster;
+- `master.key`: the library's DEK, wrapped with `password` (this
+  install's `BOOKCLERK_AUTH_PASSWORD` or `[auth].password`) when set;
+- `[database]` in `config_file` (other settings kept): `postgres` with
+  `url_file` naming the URL file (never the URL itself in the TOML), or
+  `d1` with its ids (the D1 API token stays this node's
+  environment-only bootstrap).
+
+The files go in as one recoverable step. All the new contents are first
+written and synced beside their targets (hidden `.<name>.shared-branch-<hex>`
+files), and each existing target is copied to `<name>.pre-shared-branch`; a
+failure up to here changes no target. The targets are then replaced
+atomically one by one, in the order above. If one fails, the ones
+already replaced are put back from their copies (a target that did not
+exist before is removed), so the install keeps its own bootstrap; the
+error names any file that could not be put back. On success the copies
+stay, and `shared-branch-join.json` in `files_dir` records the join: the next start drops
+them once the library's database opens ([`PendingSharedBranchJoin::confirm`](#pendingsharedbranchjoinconfirm))
+and puts the originals back if it does not ([`PendingSharedBranchJoin::revert`](#pendingsharedbranchjoinrevert)).
+The caller restarts the daemon afterwards.
+
+A process that dies while replacing leaves the files before that point
+in the list new and the rest old, with every original still beside its
+file as `<name>.pre-shared-branch` and no record; a later apply refuses while a
+copy is there, and so does the daemon ([`interrupted_shared_branch_join`](#interrupted_shared_branch_join)), with
+instructions to finish the join by hand (when `config_file` is already
+new) or undo it. Staged `.<name>.shared-branch-<hex>` files left by such a crash
+are unused and can be deleted.
+
+#### Errors
+
+Returns [`JoinError::Record`](#joinerror) when a file cannot be written or the
+existing `config.toml` does not parse.
+
+### bootstrap_database_kind
+
+```rust
+pub fn bootstrap_database_kind(database: &SharedBranchDatabase) -> DatabasePluginKind
+```
+
+The `[database].plugin` a shared branch's bootstrap configures.
+
+### checked_d1_api_base
+
+```rust
+pub fn checked_d1_api_base(api_base: &str) -> Result<String, JoinError>
+```
+
+Checks the D1 API origin a library's bootstrap names, and returns it
+normalized. Every D1 query carries the joining server's own API token
+to that origin, so a shared branch may only be pointed at Cloudflare's API over
+HTTPS. The library checks its own origin the same way before it offers
+a shared branch join, so a library on another D1 endpoint cannot take shared branches.
+
+#### Errors
+
+Returns [`JoinError::Record`](#joinerror) when `api_base` is not an `https` URL on
+`api.cloudflare.com` (no other port, user name or password).
+
+### database_guest_installed
+
+```rust
+pub fn database_guest_installed(config: &Config, kind: DatabasePluginKind) -> bool
+```
+
+True when the database guest for `kind` is installed for `config`, so
+the daemon can open the library's database once the bootstrap is
+applied. A plugin directory that cannot be read counts as not
+installed.
+
+### install_problem
+
+```rust
+pub async fn install_problem(store: &LibraryStore) -> Result<Option<String>, JoinError>
+```
+
+Why this install may not join as a shared branch now, or `None`.
+
+#### Errors
+
+Returns the read error.
+
+### interrupted_shared_branch_join
+
+```rust
+pub fn interrupted_shared_branch_join(
+    files_dir: &Path,
+    config_file: &Path,
+) -> Option<String>
+```
+
+Names the copies an interrupted shared branch join left beside this install's
+bootstrap files, or `None` when there are none. The daemon refuses to
+start while any is there: a process that died while replacing the files
+leaves some new and some old, and starting on that mix would pair a
+database with the wrong node identity or key. The message says how to
+finish or undo the join by hand (see [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap)).
+
+### pending_shared_branch_join
+
+```rust
+pub fn pending_shared_branch_join(
+    files_dir: &Path,
+    config_file: &Path,
+) -> Option<PendingSharedBranchJoin>
+```
+
+The shared branch join this install applied but has not yet started on (or
+began undoing), if any. A record that cannot be read, or that names any
+file other than this install's own bootstrap files and their copies, is
+not used: copies left beside those files then stop the start (see
+[`interrupted_shared_branch_join`](#interrupted_shared_branch_join)).
+
+### redeem_shared_branch_code
+
+```rust
+pub async fn redeem_shared_branch_code(
+    redeem: &BranchRedeem<'_>,
+    keys: &ClusterLinkKeys,
+) -> Result<SharedBranchJoined, JoinError>
+```
+
+Redeems an approved shared branch sign-in and opens the bootstrap with the
+node's box secret. The code and verifier go once in the request body,
+and are registered for redaction (the caller unregisters them).
+
+#### Errors
+
+Returns [`JoinError`](#joinerror) when the library is unreachable or refuses (the
+code was approved for a branch, the user is no longer an Owner, or its
+database cannot be shared). Once the library has enrolled the node, an
+answer for another cluster or type, without a bootstrap, or with one
+that does not open for this node gives [`JoinError::Unsaved`](#joinerror) naming
+it. [`JoinError::is_retryable`](#joinerroris_retryable) tells which failures a repeat of the
+same exchange can fix (the library answers it with the same node and a
+freshly sealed bootstrap).
+
 ## Type aliases
 
 ### OwnerSocket
@@ -2093,26 +2096,6 @@ pub type OwnerSocket = WebSocketStream<Box<dyn OwnerIo>>;
 The owner socket.
 
 ## Constants
-
-### CLERK_POSTGRES_URL_FILE
-
-```rust
-pub const CLERK_POSTGRES_URL_FILE: &str = "database-postgres.url";
-```
-
-File under the files directory that holds a clerk's Postgres URL, mode
-`0600`. `[database.postgres].url_file` names it by its absolute path
-(a relative `url_file` would be read from the daemon's working
-directory).
-
-### DATABASE_ENV_OVERRIDES
-
-```rust
-pub const DATABASE_ENV_OVERRIDES: &[&str] = _;
-```
-
-Environment variables that would outrank a clerk's `[database]`
-bootstrap; a clerk join is refused while one is set.
 
 ### AWAITING_HOST_CONSENT
 
@@ -2172,3 +2155,23 @@ pub const ENROLL_PATH: &str = "/api/node/v1/enroll";
 ```
 
 Path of the enroll endpoint.
+
+### DATABASE_ENV_OVERRIDES
+
+```rust
+pub const DATABASE_ENV_OVERRIDES: &[&str] = _;
+```
+
+Environment variables that would outrank a shared branch's `[database]`
+bootstrap; a shared branch join is refused while one is set.
+
+### SHARED_BRANCH_POSTGRES_URL_FILE
+
+```rust
+pub const SHARED_BRANCH_POSTGRES_URL_FILE: &str = "database-postgres.url";
+```
+
+File under the files directory that holds a shared branch's Postgres URL, mode
+`0600`. `[database.postgres].url_file` names it by its absolute path
+(a relative `url_file` would be read from the daemon's working
+directory).

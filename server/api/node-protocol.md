@@ -611,7 +611,7 @@ A `text/plain` body: a string.
 
 `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in.
 Answers `{cluster_id, node_id}` for a branch, plus `connection` and the
-sealed `bootstrap` for a clerk; 403 `transport_insecure` for a refused
+sealed `bootstrap` for a shared branch; 403 `transport_insecure` for a refused
 connection, 403 `enrollment_refused` for a code that does not redeem
 (unknown, used, expired, another client's, a wrong verifier or
 redirect URI, enrollment off, or the user no longer active).
@@ -635,18 +635,18 @@ redirect URI, enrollment off, or the user no longer active).
 
 ### Responses
 
-- `200` — The install is enrolled: its cluster and node ids for a branch, and for a clerk also `connection` and the clerk bootstrap sealed to its box key. Body: [`OAuthEnrollAnswer`](schemas.md#oauthenrollanswer) (`application/json`)
+- `200` — The install is enrolled: its cluster and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key. Body: [`OAuthEnrollAnswer`](schemas.md#oauthenrollanswer) (`application/json`)
   - `cluster_id` *string*, **required** — The library's cluster id.
   - `node_id` *string*, **required** — The node id recorded for the joining install.
   - `connection` *[`ConnectionType`](schemas.md#connectiontype)* — The connection type recorded (`branch` when left out).
-  - `bootstrap` *string or null* — For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box key ([`crate::seal_clerk_bootstrap`]), as base64url without padding.
+  - `bootstrap` *string or null* — For a shared branch: the [`crate::SharedBranchBootstrap`] sealed to the node's box key ([`crate::seal_shared_branch_bootstrap`]), as base64url without padding.
   - `accounts` *string or null* — For a branch whose user chose "Bring my store connections to this branch": the user's own store accounts as a [`crate::AccountBundle`] sealed to the node's box key ([`crate::seal_account_bundle`]), as base64url without padding. Left out when the user did not choose it or had none to bring.
 - `400` — The body is not an enroll request, or its keys are not base64url. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`), or the code does not redeem: blank, unknown, used, expired, wrong verifier, or the user may no longer let a clerk join (`enrollment_refused`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
+- `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`), or the code does not redeem: blank, unknown, used, expired, wrong verifier, or the user may no longer let a shared branch join (`enrollment_refused`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) (`application/json`)
 - `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `409` — This library's database cannot be shared with a clerk (`database_not_shareable`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `409` — This library's database cannot be shared with another server (`database_not_shareable`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `413` — The body is larger than 16 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -703,7 +703,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The install is enrolled: its cluster and node ids for a branch, and for a clerk also `connection` and the clerk bootstrap sealed to its box key.
+Status `200`: The install is enrolled: its cluster and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key.
 
 ```json
 {
@@ -738,7 +738,7 @@ Schema:
       "description": "The connection type recorded (`branch` when left out).",
       "enum": [
         "branch",
-        "clerk"
+        "shared_branch"
       ]
     },
     "bootstrap": {
@@ -746,7 +746,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "For a clerk: the [`crate::ClerkBootstrap`] sealed to the node's box\nkey ([`crate::seal_clerk_bootstrap`]), as base64url without padding.",
+      "description": "For a shared branch: the [`crate::SharedBranchBootstrap`] sealed to the node's box\nkey ([`crate::seal_shared_branch_bootstrap`]), as base64url without padding.",
       "example": "Qm9va2NsZXJrIHNlYWxlZCBjbGVyayBib290c3RyYXA6IGVwaGVtZXJhbCBrZXkgKyBjaXBoZXJ0ZXh0"
     },
     "accounts": {
@@ -788,7 +788,7 @@ Schema:
 }
 ```
 
-Status `403`: The connection failed the transport policy (`transport_insecure`, with the check in `reason`), or the code does not redeem: blank, unknown, used, expired, wrong verifier, or the user may no longer let a clerk join (`enrollment_refused`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The connection failed the transport policy (`transport_insecure`, with the check in `reason`), or the code does not redeem: blank, unknown, used, expired, wrong verifier, or the user may no longer let a shared branch join (`enrollment_refused`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -915,7 +915,7 @@ Schema:
 }
 ```
 
-Status `409`: This library's database cannot be shared with a clerk (`database_not_shareable`).
+Status `409`: This library's database cannot be shared with another server (`database_not_shareable`).
 
 ```json
 {

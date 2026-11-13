@@ -1,6 +1,6 @@
 # Cluster
 
-Nodes, clerks, branches, joining a library and host enrollment.
+Nodes, branches, joining a library and host enrollment.
 
 Back to the [web API reference](README.md).
 
@@ -4167,8 +4167,8 @@ A `text/plain` body: a string.
 - `200` — Whether this install has joined a library, and its state. Body: [`JoinStatus`](schemas.md#joinstatus) (`application/json`)
   - `fresh` *boolean*, **required** — Whether this install has no users and no libraries yet.
   - `has_owner` *boolean*, **required** — Whether an Owner (or legacy administrator) exists here.
-  - `clerk_eligible` *boolean*, **required** — Whether this install could still join a library as a clerk.
-  - `clerk_problem` *string or null* — Why it cannot join as a clerk, when it cannot.
+  - `shared_branch_eligible` *boolean*, **required** — Whether this install could still join a library as a shared branch.
+  - `shared_branch_problem` *string or null* — Why it cannot join as a shared branch, when it cannot.
   - `default_branch_name` *string*, **required** — The name a join is offered under by default (this machine's name).
   - `links` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — Every library this install is a branch of, with whether its client runs.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -4181,7 +4181,7 @@ A `text/plain` body: a string.
   - `status` *integer* — The HTTP status, repeated.
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `502` — Whether this install may join as a clerk could not be checked: its own contents could not be read (`join_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `502` — Whether this install may join as a shared branch could not be checked: its own contents could not be read (`join_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -4233,8 +4233,8 @@ Status `200`: Whether this install has joined a library, and its state.
 {
   "fresh": false,
   "has_owner": true,
-  "clerk_eligible": false,
-  "clerk_problem": "this install already holds library data of its own",
+  "shared_branch_eligible": false,
+  "shared_branch_problem": "this install already holds library data of its own",
   "default_branch_name": "living-room",
   "links": [
     {
@@ -4267,7 +4267,7 @@ Schema:
   "required": [
     "fresh",
     "has_owner",
-    "clerk_eligible",
+    "shared_branch_eligible",
     "default_branch_name",
     "links"
   ],
@@ -4282,17 +4282,17 @@ Schema:
       "description": "Whether an Owner (or legacy administrator) exists here.",
       "example": true
     },
-    "clerk_eligible": {
+    "shared_branch_eligible": {
       "type": "boolean",
-      "description": "Whether this install could still join a library as a clerk.",
+      "description": "Whether this install could still join a library as a shared branch.",
       "example": false
     },
-    "clerk_problem": {
+    "shared_branch_problem": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Why it cannot join as a clerk, when it cannot.",
+      "description": "Why it cannot join as a shared branch, when it cannot.",
       "example": "this install already holds library data of its own"
     },
     "default_branch_name": {
@@ -4532,7 +4532,7 @@ Schema:
 }
 ```
 
-Status `502`: Whether this install may join as a clerk could not be checked: its own contents could not be read (`join_failed`).
+Status `502`: Whether this install may join as a shared branch could not be checked: its own contents could not be read (`join_failed`).
 
 ```json
 {
@@ -5043,7 +5043,7 @@ A `text/plain` body: a string.
 - `address` *string*, **required** — The library's address.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
-- `clerk` *boolean* — Offer to join as a clerk (an owner node that shares the library's database): only an empty install may, and its data is replaced.
+- `shared_branch` *boolean* — Offer to join as a shared branch (an owner node that shares the library's database): only an empty install may, and its data is replaced.
 
 ### Responses
 
@@ -5051,7 +5051,7 @@ A `text/plain` body: a string.
   - `authorize_url` *string*, **required** — The library's sign-in URL to open in the browser.
   - `library` *[`InspectedLibraryView`](schemas.md#inspectedlibraryview)*, **required** — What the library said about itself.
   - `branch_name` *string*, **required** — The name this install asked to join as.
-  - `clerk_offered` *boolean*, **required** — Whether joining as a clerk was offered.
+  - `shared_branch_offered` *boolean*, **required** — Whether joining as a shared branch was offered.
   - `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
 - `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
@@ -5061,7 +5061,7 @@ A `text/plain` body: a string.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library is not accepting new branches (`enrollment_disabled`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
-- `409` — The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a clerk join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `409` — The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -5137,7 +5137,7 @@ Status `200`: The library's sign-in URL to open.
     "needs_fingerprint": true
   },
   "branch_name": "living-room",
-  "clerk_offered": false,
+  "shared_branch_offered": false,
   "expires_in_secs": 600
 }
 ```
@@ -5152,7 +5152,7 @@ Schema:
     "authorize_url",
     "library",
     "branch_name",
-    "clerk_offered",
+    "shared_branch_offered",
     "expires_in_secs"
   ],
   "properties": {
@@ -5218,9 +5218,9 @@ Schema:
       "description": "The name this install asked to join as.",
       "example": "living-room"
     },
-    "clerk_offered": {
+    "shared_branch_offered": {
       "type": "boolean",
-      "description": "Whether joining as a clerk was offered.",
+      "description": "Whether joining as a shared branch was offered.",
       "example": false
     },
     "expires_in_secs": {
@@ -5394,7 +5394,7 @@ Schema:
 }
 ```
 
-Status `409`: The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a clerk join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`).
+Status `409`: The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`).
 
 ```json
 {
@@ -5569,12 +5569,12 @@ on success, refusal, or anything else.
 - `code` *string* — The code from the library.
 - `state` *string* — The `state` it came back with.
 - `error` *string or null* — The library's `error` (`access_denied`), when it sent one.
-- `connection` *string or null* — The connection type the library's user chose (`clerk`; a branch when left out). The code is bound to it, so a changed value only fails the redeem.
+- `connection` *string or null* — The connection type the library's user chose (`shared_branch`; a branch when left out). The code is bound to it, so a changed value only fails the redeem.
 
 ### Responses
 
 - `200` — The join completed. Body: [`JoinCompleted`](schemas.md#joincompleted) (`application/json`)
-- `400` — The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+- `400` — The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a shared branch join (`shared_branch_not_offered`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -5582,7 +5582,7 @@ on success, refusal, or anything else.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library's user did not approve (`denied`), the library refused the sign-in (`refused`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
-- `409` — This install holds data of its own for a clerk join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `409` — This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `410` — The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -5877,7 +5877,7 @@ Schema:
     },
     {
       "type": "object",
-      "description": "Joined as a clerk: this install restarts as an owner node of the library.",
+      "description": "Joined as a shared branch: this install restarts as an owner node of the library.",
       "required": [
         "connection",
         "cluster_id",
@@ -5890,8 +5890,8 @@ Schema:
       "properties": {
         "connection": {
           "type": "string",
-          "description": "Always `clerk`.",
-          "example": "clerk"
+          "description": "Always `shared_branch`.",
+          "example": "shared_branch"
         },
         "cluster_id": {
           "type": "string",
@@ -5926,15 +5926,15 @@ Schema:
       }
     }
   ],
-  "description": "JSON body once a join completed: as a branch, or as a clerk."
+  "description": "JSON body once a join completed: as a branch, or as a shared branch."
 }
 ```
 
-Status `400`: The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a clerk join (`clerk_not_offered`). As `text/plain`, when the body is not syntactically valid JSON.
+Status `400`: The callback carries no code or an unknown connection type (`invalid_request`), or the sign-in did not offer a shared branch join (`shared_branch_not_offered`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
-  "detail": "connection must be branch or clerk",
+  "detail": "connection must be branch or shared_branch",
   "error": "invalid_request"
 }
 ```
@@ -6090,7 +6090,7 @@ Schema:
 }
 ```
 
-Status `409`: This install holds data of its own for a clerk join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`).
+Status `409`: This install holds data of its own for a shared branch join (`not_empty`), the library's database plugin is not installed here (`database_guest_missing`), the D1 token is not set here (`d1_token_missing`), or joining would make a loop (`join_cycle`, `ancestry_too_deep`).
 
 ```json
 {
@@ -8187,7 +8187,7 @@ A `text/plain` body: a string.
 
 ## `DELETE /api/config/nodes/{node_id}`
 
-`DELETE /api/config/nodes/{node_id}`: remove an owner node (a clerk, or
+`DELETE /api/config/nodes/{node_id}`: remove an owner node (a shared branch, or
 any node sharing this database) that is no longer running from the
 library's node list. The operator or an Owner may remove any; another
 user only one they own. A running node, this node, or a branch is
@@ -8555,10 +8555,10 @@ Schema:
 
 A `text/plain` body: a string.
 
-## `GET /api/config/clerks`
+## `GET /api/config/shared-branches`
 
-`GET /api/config/clerks`: the owner nodes (this one and its clerks) for
-Settings → Clerks, shaped like `GET /api/config/nodes`. The operator or
+`GET /api/config/shared-branches`: the owner nodes (this one and its shared branches) for
+Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or
 an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets
 them remove any; another user only the ones they own, which the nodes
 listing already shows them. Branches are not listed.
@@ -8569,9 +8569,9 @@ listing already shows them. Branches are not listed.
 
 ### Responses
 
-- `200` — This node and its clerks. Body: [`ClerksResponse`](schemas.md#clerksresponse) (`application/json`)
+- `200` — This node and its shared branches. Body: [`SharedBranchesResponse`](schemas.md#sharedbranchesresponse) (`application/json`)
   - `node_id` *string*, **required** — Id of the node that answered.
-  - `nodes` *array of [`NodeView`](schemas.md#nodeview)*, **required** — This node and the clerks the caller may see.
+  - `nodes` *array of [`NodeView`](schemas.md#nodeview)*, **required** — This node and the shared branches the caller may see.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -8591,12 +8591,12 @@ listing already shows them. Branches are not listed.
 ### Example request
 
 ```console
-$ curl 'http://127.0.0.1:8787/api/config/clerks' \
+$ curl 'http://127.0.0.1:8787/api/config/shared-branches' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
 ```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clerks' `
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/shared-branches' `
     -Headers @{ Authorization = 'Bearer <operatorToken>' }
 ```
 
@@ -8604,14 +8604,14 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clerks' `
 import requests
 
 response = requests.get(
-    "http://127.0.0.1:8787/api/config/clerks",
+    "http://127.0.0.1:8787/api/config/shared-branches",
     headers={"Authorization": "Bearer <operatorToken>"},
 )
 print(response.status_code, response.text)
 ```
 
 ```javascript
-const response = await fetch("http://127.0.0.1:8787/api/config/clerks", {
+const response = await fetch("http://127.0.0.1:8787/api/config/shared-branches", {
   headers: { Authorization: "Bearer <operatorToken>" },
 });
 console.log(response.status, await response.text());
@@ -8620,7 +8620,7 @@ console.log(response.status, await response.text());
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .get("http://127.0.0.1:8787/api/config/clerks")
+    .get("http://127.0.0.1:8787/api/config/shared-branches")
     .header("Authorization", "Bearer <operatorToken>")
     .send()
     .await?;
@@ -8629,7 +8629,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: This node and its clerks.
+Status `200`: This node and its shared branches.
 
 ```json
 {
@@ -8705,7 +8705,7 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "`GET /api/config/clerks` body.",
+  "description": "`GET /api/config/shared-branches` body.",
   "required": [
     "node_id",
     "nodes"
@@ -9121,7 +9121,7 @@ Schema:
           }
         }
       },
-      "description": "This node and the clerks the caller may see."
+      "description": "This node and the shared branches the caller may see."
     }
   }
 }

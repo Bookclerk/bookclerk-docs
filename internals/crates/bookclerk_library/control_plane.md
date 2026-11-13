@@ -28,7 +28,6 @@ See `docs/adr/control-plane.md`.
 | [`AskReport`](#askreport) | struct | What `ask_branches` did. |
 | [`BranchListing`](#branchlisting) | struct | A `branch:<node>` listing and the work its edition belongs to. |
 | [`BranchOffer`](#branchoffer) | struct | One branch a work is available through, as Discover and search show it. |
-| [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
@@ -113,6 +112,7 @@ See `docs/adr/control-plane.md`.
 | [`ClusterSecret`](#clustersecret) | struct | Cluster id and fingerprint of the secret root aligned for this process. |
 | [`SemaphorePermit`](#semaphorepermit) | struct | One held permit: a slot lease of a semaphore. |
 | [`SemaphoreRequest`](#semaphorerequest) | struct | One semaphore a caller wants a permit of. |
+| [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`TemplateStrip`](#templatestrip) | struct | What `strip_install_state` removed. |
 | [`TitleNames`](#titlenames) | struct | The names a title's acquire writes on one destination, as the owner plans them, all without their extension. |
 | [`UploadDestination`](#uploaddestination) | struct | One output destination of the receiving owner node an upload is granted for, with where the title may be written there. |
@@ -224,9 +224,6 @@ See `docs/adr/control-plane.md`.
 | [`trusted_branches`](#trusted_branches) | function | The branches this library trusts, by node id. |
 | [`works_of_interest`](#works_of_interest) | function | The works this library wants its branches asked about: those of open wishes (most recently changed first), then those of Discover candidates (most recently fetched first), at most `limit`. |
 | [`works_of_listings`](#works_of_listings) | function | The work of each store listing in `listings`, by `(plugin key, product id)`, for listings the shared pool already holds. |
-| [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
-| [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its clerks) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
-| [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
 | [`decode_spki_pin`](#decode_spki_pin) | function | Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest. |
 | [`join_cycle`](#join_cycle) | function | This library's own cluster id when `parent_ancestry` names it: joining that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when it does not, or this install has no cluster identity yet. |
 | [`join_overflows_ancestry`](#join_overflows_ancestry) | function | True when joining a library that reports `parent_ancestry` would give this library more ancestors (itself and every library above it) than `bookclerk_node_proto::MAX_ANCESTRY`: `library_ancestry` would then leave the farthest out, and a library joining this one later could no longer be checked for a loop through them. An ancestry cut at that limit by the library itself always holds exactly the limit, so this refuses it too. Such a join is refused rather than cut short. |
@@ -270,7 +267,7 @@ See `docs/adr/control-plane.md`.
 | [`upsert_observation`](#upsert_observation) | function | Upserts one local observation. |
 | [`audit_count`](#audit_count) | function | Counts audit rows for one namespace. |
 | [`change_count`](#change_count) | function | Counts committed change notices for one namespace. |
-| [`authorized_enrollment_link`](#authorized_enrollment_link) | function | The link a branch or clerk sign-in redeems through: its id and secret are derived from the authorization code and the PKCE verifier, so a retry of the same exchange (same code, verifier and keys) finds the same link and answers from its receipt, and a wrong verifier can never redeem it. |
+| [`authorized_enrollment_link`](#authorized_enrollment_link) | function | The link a branch or shared branch sign-in redeems through: its id and secret are derived from the authorization code and the PKCE verifier, so a retry of the same exchange (same code, verifier and keys) finds the same link and answers from its receipt, and a wrong verifier can never redeem it. |
 | [`check_redeem_request`](#check_redeem_request) | function | Checks what a redeem would refuse as malformed before anything is written: its keys (canonical Curve25519 points) and `software_version`. A sign-in's redeem runs this before it spends its code, so a malformed request leaves the code for a corrected retry. |
 | [`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts) | function | Whether the user who approved the sign-in behind `link_id` chose to bring their store connections to the branch (`record_authorized_enrollment_link`). `false` for an unknown link and for every minted invite. |
 | [`format_enrollment_token`](#format_enrollment_token) | function | Formats `bcn1.<link_id>.<secret>[.<spki_pin>]`. |
@@ -289,8 +286,8 @@ See `docs/adr/control-plane.md`.
 | [`set_host_enrollment_enabled`](#set_host_enrollment_enabled) | function | Turns host enrollment on or off for the cluster. |
 | [`verify_cluster_owner`](#verify_cluster_owner) | function | Returns a `ConfigActor::ClusterOwner` when `user_id` is an active Owner. |
 | [`current_process_incarnation`](#current_process_incarnation) | function | This process's incarnation. Stable until the process exits. |
-| [`encode_node_identity_file`](#encode_node_identity_file) | function | The `NODE_IDENTITY_FILE` contents `install_node_identity` writes, for a caller that stages the file itself (a clerk applying its bootstrap as one recoverable step) with mode `0600`. |
-| [`install_node_identity`](#install_node_identity) | function | Writes the identity file for a node id the cluster already recorded, bound to `cluster_id`, replacing any file there atomically. A clerk joining a library takes the node id the library minted for it at redeem, so its first heartbeat lands on that `nodes` row. |
+| [`encode_node_identity_file`](#encode_node_identity_file) | function | The `NODE_IDENTITY_FILE` contents `install_node_identity` writes, for a caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) with mode `0600`. |
+| [`install_node_identity`](#install_node_identity) | function | Writes the identity file for a node id the cluster already recorded, bound to `cluster_id`, replacing any file there atomically. A shared branch joining a library takes the node id the library minted for it at redeem, so its first heartbeat lands on that `nodes` row. |
 | [`list_node_ids`](#list_node_ids) | function | Lists node ids, sorted. |
 | [`list_nodes`](#list_nodes) | function | Every node row, sorted by id. |
 | [`load_node`](#load_node) | function | Loads one node row. |
@@ -429,6 +426,9 @@ See `docs/adr/control-plane.md`.
 | [`renew_fenced_lease`](#renew_fenced_lease) | function | Extends `lease` by `ttl` only while the row still carries its holder and token. Unlike `acquire_lease`, it never takes a lease over. |
 | [`renew_permits`](#renew_permits) | function | Extends every permit in `permits` by `ttl` while its holder and token still own the slot. |
 | [`semaphore_slot_lease_name`](#semaphore_slot_lease_name) | function | Lease name of slot `slot` of semaphore `name`. |
+| [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
+| [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its shared branches) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
+| [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
@@ -1066,44 +1066,6 @@ One branch a work is available through, as Discover and search show it.
 - `product_id`: The store's product id.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### LibraryContents
-
-```rust
-pub struct LibraryContents {
-    pub users: u64,
-    pub accounts: u64,
-    pub books: u64,
-    pub libraries_joined: u64,
-}
-```
-
-What library data an install holds of its own.
-
-**Fields**
-
-- `users`: Users of any role.
-- `accounts`: Store accounts.
-- `books`: Books.
-- `libraries_joined`: Libraries this install is a branch of (not left).
-
-#### LibraryContents::is_empty
-
-```rust
-pub fn is_empty(&self) -> bool
-```
-
-True when the install holds no library data: it may join as a clerk.
-
-#### LibraryContents::reasons
-
-```rust
-pub fn reasons(&self) -> Vec<String>
-```
-
-Why the install is not empty, for the operator.
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
 
 ### CapacityBody
 
@@ -3124,7 +3086,7 @@ pub struct NewPendingJoin {
     pub library_name: String,
     pub branch_name: String,
     pub redirect_uri: String,
-    pub allow_clerk: bool,
+    pub allow_shared_branch: bool,
 }
 ```
 
@@ -3138,8 +3100,8 @@ What a joining daemon records when it starts a sign-in.
 - `library_name`: Library name the owner reported.
 - `branch_name`: Name this install joins as.
 - `redirect_uri`: Redirect URI of the authorization request.
-- `allow_clerk`: True when the operator offered to join as a clerk (the install was
-  empty); the callback may then apply a clerk bootstrap.
+- `allow_shared_branch`: True when the operator offered to join as a shared branch (the install was
+  empty); the callback may then apply a shared branch bootstrap.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -3153,7 +3115,7 @@ pub struct PendingJoin {
     pub library_name: String,
     pub branch_name: String,
     pub redirect_uri: String,
-    pub allow_clerk: bool,
+    pub allow_shared_branch: bool,
     pub expires_at: String,
 }
 ```
@@ -3168,7 +3130,7 @@ A pending join as stored (no secrets).
 - `library_name`: Library name.
 - `branch_name`: Branch name.
 - `redirect_uri`: Redirect URI.
-- `allow_clerk`: True when the operator offered to join as a clerk.
+- `allow_shared_branch`: True when the operator offered to join as a shared branch.
 - `expires_at`: RFC 3339 expiry.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
@@ -3903,6 +3865,44 @@ pub fn new(name: impl Into<String>, limit: u32) -> Self
 A request for one permit of `name` under `limit`.
 
 Implements: `Clone`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`
+
+### LibraryContents
+
+```rust
+pub struct LibraryContents {
+    pub users: u64,
+    pub accounts: u64,
+    pub books: u64,
+    pub libraries_joined: u64,
+}
+```
+
+What library data an install holds of its own.
+
+**Fields**
+
+- `users`: Users of any role.
+- `accounts`: Store accounts.
+- `books`: Books.
+- `libraries_joined`: Libraries this install is a branch of (not left).
+
+#### LibraryContents::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when the install holds no library data: it may join as a shared branch.
+
+#### LibraryContents::reasons
+
+```rust
+pub fn reasons(&self) -> Vec<String>
+```
+
+Why the install is not empty, for the operator.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
 
 ### TemplateStrip
 
@@ -6684,71 +6684,6 @@ does not hold, or whose edition has no work, is left out.
 
 Returns the read error.
 
-### library_contents
-
-```rust
-pub async fn library_contents(store: &LibraryStore) -> Result<LibraryContents>
-```
-
-Counts the library data this install holds of its own.
-
-#### Errors
-
-Returns the read error.
-
-### owner_nodes_visible_to
-
-```rust
-pub async fn owner_nodes_visible_to(
-    store: &LibraryStore,
-    actor: &EnrollmentActor,
-) -> Result<Vec<NodeRecord>>
-```
-
-The owner nodes (`kind = owner`: this one and its clerks) `actor` may
-see, by the rule [`remove_owner_node`](#remove_owner_node) removes them: the operator or an
-active Owner sees every one; another active user only the ones they own;
-an unknown or disabled user none.
-
-#### Errors
-
-Returns the read error.
-
-### remove_owner_node
-
-```rust
-pub async fn remove_owner_node(
-    store: &LibraryStore,
-    actor: &EnrollmentActor,
-    node_id: &str,
-    this_node: &str,
-) -> Result<()>
-```
-
-Removes owner node `node_id` from the library's node list, in one
-transaction: its `nodes` row (and with it its labels and credentials),
-status, event-subscriber registrations, secret handoffs, and plugin
-deployments with their observations. Only a node that is not
-running may go, and never `this_node`. The liveness check and the
-removal are one step: the node's status row is deleted only if it still
-holds the stale heartbeat that was checked, so a heartbeat that lands
-in between refuses the removal. A node that was only cut off from the
-database for longer than its liveness window can still be removed while
-it runs; its next heartbeat writes a status row again, but not its node
-row. Removing a node does not take back the
-database credentials or DEK it held; rotate those when it is not
-trusted any more.
-
-The operator or an Owner may remove any owner node; another user only
-one they own.
-
-#### Errors
-
-Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown node or one the
-caller may not see, [`LibraryError::Invalid`](README.md#libraryerror) for a host node (revoke
-it instead) or this node, [`LibraryError::Conflict`](README.md#libraryerror) while it is live,
-and the write error.
-
 ### decode_spki_pin
 
 ```rust
@@ -6854,7 +6789,7 @@ refused ([`join_overflows_ancestry`](#join_overflows_ancestry)); should a librar
 ancestry later, the list is cut at exactly the limit, which in turn
 refuses every join under it.
 
-A clerk shares its library's database, so it reports the same ancestry:
+A shared branch shares its library's database, so it reports the same ancestry:
 it is the same node of the tree.
 
 #### Errors
@@ -7600,7 +7535,7 @@ pub fn authorized_enrollment_link(
 ) -> (String, EnrollmentSecret)
 ```
 
-The link a branch or clerk sign-in redeems through: its id and secret are
+The link a branch or shared branch sign-in redeems through: its id and secret are
 derived from the authorization code and the PKCE verifier, so a retry of
 the same exchange (same code, verifier and keys) finds the same link and
 answers from its receipt, and a wrong verifier can never redeem it.
@@ -7848,10 +7783,10 @@ pub async fn redeem_enrollment_link_as(
 [`redeem_enrollment_link`](#redeem_enrollment_link) for a node of `kind`: the same canonical
 batch, recording `kind` on the `nodes` row.
 
-A [`super::NodeKind::Owner`](#nodekind) node (a clerk, which joined with a sign-in
+A [`super::NodeKind::Owner`](#nodekind) node (a shared branch, which joined with a sign-in
 an Owner approved as such) shares the library's database, so it gets no
 `node_credentials` row: it never dials the node socket. The kind is part
-of the request hash, so a retry of a branch redeem as a clerk (or the
+of the request hash, so a retry of a branch redeem as a shared branch (or the
 other way round) is refused as a spent link.
 
 #### Errors
@@ -7950,7 +7885,7 @@ pub fn encode_node_identity_file(node_id: &str, cluster_id: &str) -> Result<Vec<
 ```
 
 The [`NODE_IDENTITY_FILE`](#node_identity_file) contents [`install_node_identity`](#install_node_identity) writes, for
-a caller that stages the file itself (a clerk applying its bootstrap as
+a caller that stages the file itself (a shared branch applying its bootstrap as
 one recoverable step) with mode `0600`.
 
 #### Errors
@@ -7969,7 +7904,7 @@ pub fn install_node_identity(
 ```
 
 Writes the identity file for a node id the cluster already recorded,
-bound to `cluster_id`, replacing any file there atomically. A clerk
+bound to `cluster_id`, replacing any file there atomically. A shared branch
 joining a library takes the node id the library minted for it at
 redeem, so its first heartbeat lands on that `nodes` row.
 
@@ -10424,6 +10359,71 @@ pub fn semaphore_slot_lease_name(name: &str, slot: u32) -> String
 ```
 
 Lease name of slot `slot` of semaphore `name`.
+
+### library_contents
+
+```rust
+pub async fn library_contents(store: &LibraryStore) -> Result<LibraryContents>
+```
+
+Counts the library data this install holds of its own.
+
+#### Errors
+
+Returns the read error.
+
+### owner_nodes_visible_to
+
+```rust
+pub async fn owner_nodes_visible_to(
+    store: &LibraryStore,
+    actor: &EnrollmentActor,
+) -> Result<Vec<NodeRecord>>
+```
+
+The owner nodes (`kind = owner`: this one and its shared branches) `actor` may
+see, by the rule [`remove_owner_node`](#remove_owner_node) removes them: the operator or an
+active Owner sees every one; another active user only the ones they own;
+an unknown or disabled user none.
+
+#### Errors
+
+Returns the read error.
+
+### remove_owner_node
+
+```rust
+pub async fn remove_owner_node(
+    store: &LibraryStore,
+    actor: &EnrollmentActor,
+    node_id: &str,
+    this_node: &str,
+) -> Result<()>
+```
+
+Removes owner node `node_id` from the library's node list, in one
+transaction: its `nodes` row (and with it its labels and credentials),
+status, event-subscriber registrations, secret handoffs, and plugin
+deployments with their observations. Only a node that is not
+running may go, and never `this_node`. The liveness check and the
+removal are one step: the node's status row is deleted only if it still
+holds the stale heartbeat that was checked, so a heartbeat that lands
+in between refuses the removal. A node that was only cut off from the
+database for longer than its liveness window can still be removed while
+it runs; its next heartbeat writes a status row again, but not its node
+row. Removing a node does not take back the
+database credentials or DEK it held; rotate those when it is not
+trusted any more.
+
+The operator or an Owner may remove any owner node; another user only
+one they own.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown node or one the
+caller may not see, [`LibraryError::Invalid`](README.md#libraryerror) for a host node (revoke
+it instead) or this node, [`LibraryError::Conflict`](README.md#libraryerror) while it is live,
+and the write error.
 
 ### strip_install_state
 

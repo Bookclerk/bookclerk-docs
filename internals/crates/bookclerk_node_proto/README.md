@@ -67,8 +67,8 @@ A host that leaves sends [`Body::NodeLeaving`](#body); the owner revokes the
 node at once. Joining with a sign-in instead of a link is the OAuth
 code + PKCE flow of the built-in client [`BRANCH_CLIENT_ID`](#branch_client_id) ([`OwnerInfo`](#ownerinfo),
 [`OAuthEnrollRequest`](#oauthenrollrequest)). An Owner of the library may instead let the
-install join as a clerk (an owner node, [`ConnectionType::Clerk`](#connectiontype)): its
-redeem answer carries a [`ClerkBootstrap`](#clerkbootstrap) sealed to the node's box key.
+install join as a shared branch (an owner node, [`ConnectionType::SharedBranch`](#connectiontype)): its
+redeem answer carries a [`SharedBranchBootstrap`](#sharedbranchbootstrap) sealed to the node's box key.
 A branch's redeem answer may carry the signing-in user's own store
 accounts as an [`AccountBundle`](#accountbundle) sealed the same way, when the user
 chose to bring them.
@@ -86,7 +86,6 @@ bytes.
 | [`CatalogMetadata`](#catalogmetadata) | struct | Bibliographic metadata of a `CatalogTitle`. |
 | [`CatalogRef`](#catalogref) | struct | A title named by store and product id. |
 | [`CatalogTitle`](#catalogtitle) | struct | One title, as a branch shares it. |
-| [`ClerkBootstrap`](#clerkbootstrap) | struct | What a clerk receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = owner`). `Debug` prints no secret. |
 | [`AcquireTarget`](#acquiretarget) | struct | One title an acquire job should fetch on a host (`Body::AcquireTargets`). |
 | [`ClaimFilter`](#claimfilter) | struct | What a host is willing to claim (`claim.filter`). |
 | [`FileCopy`](#filecopy) | struct | Where one uploaded file is written: a destination and its key there. |
@@ -114,11 +113,10 @@ bytes.
 | [`SecretEntry`](#secretentry) | struct | One secret in a bundle. |
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
+| [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = owner`). `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
-| [`ClerkDatabase`](#clerkdatabase) | enum | The library's database, as a clerk needs it to connect. |
-| [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
 | [`ClaimScope`](#claimscope) | enum | Whose work a host takes from a library (`claim.filter.scope`), as the branch operator set it for that link. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
@@ -129,6 +127,8 @@ bytes.
 | [`LookupScheme`](#lookupscheme) | enum | Which kind of identifier a `LookupIdentifier` is. Only identifiers that name one edition or one work are asked about; anything else does not parse. |
 | [`RequestOutcome`](#requestoutcome) | enum | What a branch did with a claimed request. |
 | [`SealError`](#sealerror) | enum | Why a sealed box could not be made or opened. |
+| [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
+| [`SharedBranchDatabase`](#sharedbranchdatabase) | enum | The library's database, as a shared branch needs it to connect. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `cluster_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
@@ -143,9 +143,6 @@ bytes.
 | [`is_marketplace`](#is_marketplace) | function | True for a marketplace: empty, or up to `MAX_MARKETPLACE_BYTES` lowercase ASCII letters and digits. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
 | [`is_store_id`](#is_store_id) | function | True for a store id: a short lowercase token. |
-| [`clerk_bootstrap_aad`](#clerk_bootstrap_aad) | function | Associated data of a clerk bootstrap for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
-| [`open_clerk_bootstrap`](#open_clerk_bootstrap) | function | Opens a bootstrap made by `seal_clerk_bootstrap` with the joining node's box secret, for the cluster and node ids the redeem answered. |
-| [`seal_clerk_bootstrap`](#seal_clerk_bootstrap) | function | Seals `bootstrap` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`is_branch_name`](#is_branch_name) | function | True for a branch name: 1 to `MAX_BRANCH_NAME_BYTES` bytes, no control characters. |
@@ -176,6 +173,9 @@ bytes.
 | [`secret_update_aad`](#secret_update_aad) | function | Associated data of a token write-back from `node_id` for `secret_ref`, handed with `job_id` under `fence`. |
 | [`secrets_aad`](#secrets_aad) | function | Associated data of the secret bundle handed to `node_id` for `job_id` under lease generation `fence`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`upload_token_aad`](#upload_token_aad) | function | Associated data of the token for upload `upload_id`, granted to `node_id` for `job_id` under lease generation `fence`. |
+| [`open_shared_branch_bootstrap`](#open_shared_branch_bootstrap) | function | Opens a bootstrap made by `seal_shared_branch_bootstrap` with the joining node's box secret, for the cluster and node ids the redeem answered. |
+| [`seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap) | function | Seals `bootstrap` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
+| [`shared_branch_bootstrap_aad`](#shared_branch_bootstrap_aad) | function | Associated data of a shared branch bootstrap for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`artifact_transcript`](#artifact_transcript) | function | The bytes a host signs for an artifact request: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`auth_transcript`](#auth_transcript) | function | The bytes a host signs: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`canonical_origin`](#canonical_origin) | function | The ASCII origin (`scheme://host[:port]`) of an http(s) URL, with the default port and any path dropped and the host lowercased. |
@@ -204,11 +204,6 @@ bytes.
 | [`MAX_CATALOG_TITLE_BYTES`](#max_catalog_title_bytes) | constant | Largest serialized title in a batch. |
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
 | [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
-| [`CLERK_BOOTSTRAP_AAD_DOMAIN`](#clerk_bootstrap_aad_domain) | constant | Domain tag that starts the associated data of a clerk bootstrap. |
-| [`CLERK_BOOTSTRAP_VERSION`](#clerk_bootstrap_version) | constant | Version of `ClerkBootstrap`. |
-| [`CLERK_GRANTED_SCOPE`](#clerk_granted_scope) | constant | The scope a clerk code is granted (stored with the code at consent). |
-| [`CLERK_OFFER_PARAM`](#clerk_offer_param) | constant | Authorize-request parameter by which a joining install offers to join as a clerk (`clerk_offer=1`): it is empty, so its own data may be replaced. Without it the consent page offers a branch only. |
-| [`DEK_LEN`](#dek_len) | constant | Length of the data-encryption key. |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
@@ -242,6 +237,11 @@ bytes.
 | [`SECRETS_AAD_DOMAIN`](#secrets_aad_domain) | constant | Domain tag that starts the associated data of a secret bundle. |
 | [`SECRET_UPDATE_AAD_DOMAIN`](#secret_update_aad_domain) | constant | Domain tag that starts the associated data of a token write-back. |
 | [`UPLOAD_TOKEN_AAD_DOMAIN`](#upload_token_aad_domain) | constant | Domain tag that starts the associated data of an upload token. |
+| [`DEK_LEN`](#dek_len) | constant | Length of the data-encryption key. |
+| [`SHARED_BRANCH_BOOTSTRAP_AAD_DOMAIN`](#shared_branch_bootstrap_aad_domain) | constant | Domain tag that starts the associated data of a shared branch bootstrap. |
+| [`SHARED_BRANCH_BOOTSTRAP_VERSION`](#shared_branch_bootstrap_version) | constant | Version of `SharedBranchBootstrap`. |
+| [`SHARED_BRANCH_GRANTED_SCOPE`](#shared_branch_granted_scope) | constant | The scope a shared branch code is granted (stored with the code at consent). |
+| [`SHARED_BRANCH_OFFER_PARAM`](#shared_branch_offer_param) | constant | Authorize-request parameter by which a joining install offers to join as a shared branch (`shared_branch_offer=1`): it is empty, so its own data may be replaced. Without it the consent page offers a branch only. |
 | [`ARTIFACT_AUTH_SCHEME`](#artifact_auth_scheme) | constant | `Authorization` scheme of a signed artifact request: `Bookclerk-Node <node_id> <issued_at> <sig>`. |
 | [`ARTIFACT_DOMAIN`](#artifact_domain) | constant | Domain tag that starts every signed artifact request. |
 | [`ARTIFACT_REQUEST_MAX_SKEW_SECS`](#artifact_request_max_skew_secs) | constant | How far a signed artifact request's time may be from the owner's clock. |
@@ -476,32 +476,6 @@ pub fn manifest_digest(&self) -> String
 
 Lowercase hex SHA-256 of the title's manifest (primary key, PDF key
 and files, sorted by key): equal digests mean the same files.
-
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
-
-### ClerkBootstrap
-
-```rust
-pub struct ClerkBootstrap {
-    pub v: u32,
-    pub cluster_id: String,
-    pub node_id: String,
-    pub database: ClerkDatabase,
-    pub dek: SecretValue,
-}
-```
-
-What a clerk receives at redeem: the `[database]` bootstrap and the DEK,
-for the node id the library recorded (`kind = owner`). `Debug` prints no
-secret.
-
-**Fields**
-
-- `v`: [`CLERK_BOOTSTRAP_VERSION`](#clerk_bootstrap_version).
-- `cluster_id`: The library's cluster id.
-- `node_id`: The node id recorded for this clerk.
-- `database`: How to reach the library's database.
-- `dek`: The library's 32-byte data-encryption key.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -953,8 +927,8 @@ pub struct OAuthEnrollAnswer {
 - `cluster_id`: The library's cluster id.
 - `node_id`: The node id recorded for the joining install.
 - `connection`: The connection type recorded (`branch` when left out).
-- `bootstrap`: For a clerk: the [`crate::ClerkBootstrap`](#clerkbootstrap) sealed to the node's box
-  key ([`crate::seal_clerk_bootstrap`](#seal_clerk_bootstrap)), as base64url without padding.
+- `bootstrap`: For a shared branch: the [`crate::SharedBranchBootstrap`](#sharedbranchbootstrap) sealed to the node's box
+  key ([`crate::seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap)), as base64url without padding.
 - `accounts`: For a branch whose user chose "Bring my store connections to this
   branch": the user's own store accounts as a
   [`crate::AccountBundle`](#accountbundle) sealed to the node's box key
@@ -1281,6 +1255,32 @@ True when empty.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### SharedBranchBootstrap
+
+```rust
+pub struct SharedBranchBootstrap {
+    pub v: u32,
+    pub cluster_id: String,
+    pub node_id: String,
+    pub database: SharedBranchDatabase,
+    pub dek: SecretValue,
+}
+```
+
+What a shared branch receives at redeem: the `[database]` bootstrap and the DEK,
+for the node id the library recorded (`kind = owner`). `Debug` prints no
+secret.
+
+**Fields**
+
+- `v`: [`SHARED_BRANCH_BOOTSTRAP_VERSION`](#shared_branch_bootstrap_version).
+- `cluster_id`: The library's cluster id.
+- `node_id`: The node id recorded for this shared branch.
+- `database`: How to reach the library's database.
+- `dek`: The library's 32-byte data-encryption key.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### ArtifactRequest
 
 ```rust
@@ -1367,88 +1367,6 @@ owned editions with distinct (store, marketplace, product id).
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Enums
-
-### ClerkDatabase
-
-```rust
-pub enum ClerkDatabase {
-    Postgres { url: SecretValue },
-    D1 { account_id: String, database_id: String, api_base: String },
-}
-```
-
-The library's database, as a clerk needs it to connect.
-
-**Variants**
-
-- `Postgres`: PostgreSQL: the connection URL (it carries credentials).
-  - `url`: `postgres://user:password@host/db`.
-- `D1`: Cloudflare D1: the database's ids. The API token stays
-  environment-only bootstrap on each node and is never sent.
-  - `account_id`: Cloudflare account id.
-  - `database_id`: D1 database UUID.
-  - `api_base`: Cloudflare API base.
-
-#### ClerkDatabase::plugin
-
-```rust
-pub fn plugin(&self) -> &'static str
-```
-
-The `[database].plugin` id (`postgres`, `d1`).
-
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
-
-### ConnectionType
-
-```rust
-pub enum ConnectionType {
-    Branch,
-    Clerk,
-}
-```
-
-How a joining install connects to a library.
-
-**Variants**
-
-- `Branch`: A host node: its own database, work over the node socket (default).
-- `Clerk`: An owner node: shares the library's database and DEK.
-
-#### ConnectionType::as_str
-
-```rust
-pub fn as_str(self) -> &'static str
-```
-
-Stable text (`branch`, `clerk`).
-
-#### ConnectionType::parse
-
-```rust
-pub fn parse(raw: &str) -> Option<Self>
-```
-
-Parses `branch` or `clerk` (case-insensitive); anything else is
-`None`.
-
-#### ConnectionType::is_branch
-
-```rust
-pub fn is_branch(&self) -> bool
-```
-
-True for [`Self::Branch`](#connectiontype) (serde: the field is left out).
-
-#### ConnectionType::granted_scope
-
-```rust
-pub fn granted_scope(self) -> &'static str
-```
-
-The scope a code for this connection type is granted.
-
-Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### Body
 
@@ -2081,6 +1999,88 @@ Why a sealed box could not be made or opened.
 
 Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
+### ConnectionType
+
+```rust
+pub enum ConnectionType {
+    Branch,
+    SharedBranch,
+}
+```
+
+How a joining install connects to a library.
+
+**Variants**
+
+- `Branch`: A host node: its own database, work over the node socket (default).
+- `SharedBranch`: An owner node: shares the library's database and DEK.
+
+#### ConnectionType::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Stable text (`branch`, `shared_branch`).
+
+#### ConnectionType::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses `branch` or `shared_branch` (case-insensitive); anything else is
+`None`.
+
+#### ConnectionType::is_branch
+
+```rust
+pub fn is_branch(&self) -> bool
+```
+
+True for [`Self::Branch`](#connectiontype) (serde: the field is left out).
+
+#### ConnectionType::granted_scope
+
+```rust
+pub fn granted_scope(self) -> &'static str
+```
+
+The scope a code for this connection type is granted.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### SharedBranchDatabase
+
+```rust
+pub enum SharedBranchDatabase {
+    Postgres { url: SecretValue },
+    D1 { account_id: String, database_id: String, api_base: String },
+}
+```
+
+The library's database, as a shared branch needs it to connect.
+
+**Variants**
+
+- `Postgres`: PostgreSQL: the connection URL (it carries credentials).
+  - `url`: `postgres://user:password@host/db`.
+- `D1`: Cloudflare D1: the database's ids. The API token stays
+  environment-only bootstrap on each node and is never sent.
+  - `account_id`: Cloudflare account id.
+  - `database_id`: D1 database UUID.
+  - `api_base`: Cloudflare API base.
+
+#### SharedBranchDatabase::plugin
+
+```rust
+pub fn plugin(&self) -> &'static str
+```
+
+The `[database].plugin` id (`postgres`, `d1`).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### AuthError
 
 ```rust
@@ -2281,54 +2281,6 @@ pub fn is_store_id(store: &str) -> bool
 ```
 
 True for a store id: a short lowercase token.
-
-### clerk_bootstrap_aad
-
-```rust
-pub fn clerk_bootstrap_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
-```
-
-Associated data of a clerk bootstrap for `node_id` of `cluster_id`: the
-domain tag, then each field as a 4-byte big-endian length and its bytes.
-
-### open_clerk_bootstrap
-
-```rust
-pub fn open_clerk_bootstrap(
-    recipient_secret: &[u8; 32],
-    cluster_id: &str,
-    node_id: &str,
-    sealed: &str,
-) -> Result<ClerkBootstrap, SealError>
-```
-
-Opens a bootstrap made by [`seal_clerk_bootstrap`](#seal_clerk_bootstrap) with the joining
-node's box secret, for the cluster and node ids the redeem answered.
-
-#### Errors
-
-Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
-another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
-its content is malformed or names other ids.
-
-### seal_clerk_bootstrap
-
-```rust
-pub fn seal_clerk_bootstrap(
-    recipient: &[u8],
-    ephemeral_secret: &[u8; 32],
-    bootstrap: &ClerkBootstrap,
-) -> Result<String, SealError>
-```
-
-Seals `bootstrap` to the joining node's box key `recipient`, as
-base64url text for the redeem answer.
-
-#### Errors
-
-Returns [`SealError::Key`](#sealerror) for an invalid recipient key and
-[`SealError::Bundle`](#sealerror) for a bootstrap that is not version 1 or whose DEK
-is not 32 bytes.
 
 ### is_destination_id
 
@@ -2735,6 +2687,54 @@ pub fn upload_token_aad(
 Associated data of the token for upload `upload_id`, granted to
 `node_id` for `job_id` under lease generation `fence`.
 
+### open_shared_branch_bootstrap
+
+```rust
+pub fn open_shared_branch_bootstrap(
+    recipient_secret: &[u8; 32],
+    cluster_id: &str,
+    node_id: &str,
+    sealed: &str,
+) -> Result<SharedBranchBootstrap, SealError>
+```
+
+Opens a bootstrap made by [`seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap) with the joining
+node's box secret, for the cluster and node ids the redeem answered.
+
+#### Errors
+
+Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
+another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
+its content is malformed or names other ids.
+
+### seal_shared_branch_bootstrap
+
+```rust
+pub fn seal_shared_branch_bootstrap(
+    recipient: &[u8],
+    ephemeral_secret: &[u8; 32],
+    bootstrap: &SharedBranchBootstrap,
+) -> Result<String, SealError>
+```
+
+Seals `bootstrap` to the joining node's box key `recipient`, as
+base64url text for the redeem answer.
+
+#### Errors
+
+Returns [`SealError::Key`](#sealerror) for an invalid recipient key and
+[`SealError::Bundle`](#sealerror) for a bootstrap that is not version 1 or whose DEK
+is not 32 bytes.
+
+### shared_branch_bootstrap_aad
+
+```rust
+pub fn shared_branch_bootstrap_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+```
+
+Associated data of a shared branch bootstrap for `node_id` of `cluster_id`: the
+domain tag, then each field as a 4-byte big-endian length and its bytes.
+
 ### artifact_transcript
 
 ```rust
@@ -2999,48 +2999,6 @@ pub const MAX_MARKETPLACE_BYTES: usize = 16;
 ```
 
 Longest marketplace.
-
-### CLERK_BOOTSTRAP_AAD_DOMAIN
-
-```rust
-pub const CLERK_BOOTSTRAP_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 clerk-bootstrap";
-```
-
-Domain tag that starts the associated data of a clerk bootstrap.
-
-### CLERK_BOOTSTRAP_VERSION
-
-```rust
-pub const CLERK_BOOTSTRAP_VERSION: u32 = 1;
-```
-
-Version of [`ClerkBootstrap`](#clerkbootstrap).
-
-### CLERK_GRANTED_SCOPE
-
-```rust
-pub const CLERK_GRANTED_SCOPE: &str = "node:enroll node:clerk";
-```
-
-The scope a clerk code is granted (stored with the code at consent).
-
-### CLERK_OFFER_PARAM
-
-```rust
-pub const CLERK_OFFER_PARAM: &str = "clerk_offer";
-```
-
-Authorize-request parameter by which a joining install offers to join as
-a clerk (`clerk_offer=1`): it is empty, so its own data may be replaced.
-Without it the consent page offers a branch only.
-
-### DEK_LEN
-
-```rust
-pub const DEK_LEN: usize = 32;
-```
-
-Length of the data-encryption key.
 
 ### ITEM_JOB
 
@@ -3309,6 +3267,48 @@ pub const UPLOAD_TOKEN_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 upload-token";
 ```
 
 Domain tag that starts the associated data of an upload token.
+
+### DEK_LEN
+
+```rust
+pub const DEK_LEN: usize = 32;
+```
+
+Length of the data-encryption key.
+
+### SHARED_BRANCH_BOOTSTRAP_AAD_DOMAIN
+
+```rust
+pub const SHARED_BRANCH_BOOTSTRAP_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 shared-branch-bootstrap";
+```
+
+Domain tag that starts the associated data of a shared branch bootstrap.
+
+### SHARED_BRANCH_BOOTSTRAP_VERSION
+
+```rust
+pub const SHARED_BRANCH_BOOTSTRAP_VERSION: u32 = 1;
+```
+
+Version of [`SharedBranchBootstrap`](#sharedbranchbootstrap).
+
+### SHARED_BRANCH_GRANTED_SCOPE
+
+```rust
+pub const SHARED_BRANCH_GRANTED_SCOPE: &str = "node:enroll node:shared_branch";
+```
+
+The scope a shared branch code is granted (stored with the code at consent).
+
+### SHARED_BRANCH_OFFER_PARAM
+
+```rust
+pub const SHARED_BRANCH_OFFER_PARAM: &str = "shared_branch_offer";
+```
+
+Authorize-request parameter by which a joining install offers to join as
+a shared branch (`shared_branch_offer=1`): it is empty, so its own data may be replaced.
+Without it the consent page offers a branch only.
 
 ### ARTIFACT_AUTH_SCHEME
 
