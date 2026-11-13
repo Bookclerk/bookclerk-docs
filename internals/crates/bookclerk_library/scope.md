@@ -10,6 +10,11 @@ sees the same accounts, credentials, and books. Host code that needs the
 full store keeps its own [`LibraryStore`](README.md#librarystore) handle — this type does not
 expose one.
 
+| Item | Kind | Summary |
+| --- | --- | --- |
+| [`SourceScope`](#sourcescope) | struct | Host-enforced view of `LibraryStore` for one content-source plugin. |
+| [`RefreshKeeping`](#refreshkeeping) | enum | How a storefront's sign-ins may be held, as its manifest declares it, for `SourceScope::replace_refreshed_credentials`. |
+
 ## Structs
 
 ### SourceScope
@@ -432,6 +437,22 @@ Upsert opaque JSON credentials (external plugin login blob).
 
 Returns an error when the operation fails.
 
+#### SourceScope::keeping_branch
+
+```rust
+pub async fn keeping_branch(&self, account_id: &str) -> Result<Option<String>>
+```
+
+The branch that keeps this account's login fresh for this library
+(the branch it was shared with, once that branch has pushed a
+sign-in here; see [`crate::control_plane::confirmed_keeping_branch`](control_plane.md#confirmed_keeping_branch)),
+or `None` when this install keeps it. For a single-keeper storefront the host then saves
+none of its own refreshes of the account: the branch pushes them.
+
+##### Errors
+
+Returns the read error.
+
 #### SourceScope::replace_refreshed_credentials
 
 ```rust
@@ -440,6 +461,7 @@ pub async fn replace_refreshed_credentials(
     account_id: &str,
     sent: &Value,
     refreshed: &[u8],
+    keeping: RefreshKeeping,
 ) -> Result<bool>
 ```
 
@@ -452,7 +474,14 @@ account was signed in again (or refreshed by another call) after
 `sent` was read, the newer credentials stay and nothing is written.
 The check and the write are one host batch guarded on the sealed row
 read, so a sign-in that lands in between wins. Nothing is written
-when the account has no stored credentials (it was disconnected).
+when the account has no stored credentials (it was disconnected),
+nor, for a [`RefreshKeeping::SingleKeeper`](#refreshkeeping) storefront, once a branch
+has taken the account's sign-in over for this library (it has applied
+a push from one, a `node:` row in `account_credential_revisions`),
+checked in the same batch so a first push that lands in between wins
+too. A shared storefront ignores those rows: no branch takes its
+sign-ins over, so a row left from when it kept a single sign-in
+never blocks its saves.
 The new value is registered with log redaction before it is stored.
 
 ##### Arguments
@@ -461,6 +490,8 @@ The new value is registered with log redaction before it is stored.
 * `sent` - The credentials the host sent the guest.
 * `refreshed` - The credentials the guest handed back, already
   checked as one JSON object within the ABI bound.
+* `keeping` - How the storefront's manifest says its sign-ins may be
+  held, which decides whether a keeping branch fences the write.
 
 ##### Returns
 
@@ -484,3 +515,26 @@ Load opaque JSON credentials for an external (or first-party) account.
 Returns an error when the operation fails.
 
 Implements: `Clone`, `Debug`
+
+## Enums
+
+### RefreshKeeping
+
+```rust
+pub enum RefreshKeeping {
+    Shared,
+    SingleKeeper,
+}
+```
+
+How a storefront's sign-ins may be held, as its manifest declares it,
+for [`SourceScope::replace_refreshed_credentials`](#sourcescopereplace_refreshed_credentials).
+
+**Variants**
+
+- `Shared`: Every holder refreshes on its own; no branch takes a sign-in over,
+  so the library always saves its own refreshes.
+- `SingleKeeper`: One install refreshes each sign-in; once a branch keeps an account
+  for this library, the library's own refreshes of it are not saved.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`

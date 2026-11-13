@@ -706,6 +706,25 @@ Returns [`OwnerCallError::Refused`](#ownercallerror) with the library's reason, 
 [`OwnerCallError::Unavailable`](#ownercallerror) when no connection answered or the
 bundle could not be sealed.
 
+#### HostClientHandle::push_sign_in
+
+```rust
+pub async fn push_sign_in(
+    &self,
+    account: CarriedAccount,
+    revision: i64,
+) -> Result<KeeperOutcome, OwnerCallError>
+```
+
+Pushes the newest sign-in of one single-keeper store account this
+branch keeps up to the library (`accounts.update`), sealed like
+[`Self::offer_accounts`](#hostclienthandleoffer_accounts), at the keeper's `revision`.
+
+##### Errors
+
+Returns [`OwnerCallError::Refused`](#ownercallerror) when the library refuses it, or
+[`OwnerCallError::Unavailable`](#ownercallerror) when no connection answers.
+
 #### HostClientHandle::withdraw_account
 
 ```rust

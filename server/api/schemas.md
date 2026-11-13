@@ -644,7 +644,7 @@ lists it.
 - `source` *string*, **required** — Display alias of the storefront.
 - `account_id` *string*, **required** — Store account id.
 - `label` *string or null* — The account's display label, when it has one.
-- `travels` *boolean*, **required** — True when the storefront lets its login be used in more than one place, so the connection travels; false when it keeps one login that only this library refreshes.
+- `travels` *boolean*, **required** — True when the connection travels: a shareable storefront's, or a single-keeper one's that no other branch keeps yet (the branch then keeps its login fresh for this library). False when another branch already keeps it, or it does not fit one join's bundle.
 
 ## ConsentingUser
 

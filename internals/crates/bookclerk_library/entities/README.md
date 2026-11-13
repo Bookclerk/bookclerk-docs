@@ -12,6 +12,7 @@ at the record boundary and uses these entities (`Entity::find`,
 
 ## Modules
 
+- [`account_credential_revisions`](account_credential_revisions.md): SeaORM entity for the `account_credential_revisions` table: the newest sign-in of a single-keeper account that crossed each share (`control_plane::keeper`).
 - [`account_links`](account_links.md): SeaORM entity for the `account_links` table.
 - [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
 - [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).

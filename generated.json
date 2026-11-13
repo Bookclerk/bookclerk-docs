@@ -140,6 +140,7 @@
     "internals/crates/bookclerk_library/atomic_status",
     "internals/crates/bookclerk_library/secret_account_type",
     "internals/crates/bookclerk_library/secret_kind",
+    "internals/crates/bookclerk_library/entities/account_credential_revisions",
     "internals/crates/bookclerk_library/entities/account_links",
     "internals/crates/bookclerk_library/entities/account_scan_state",
     "internals/crates/bookclerk_library/entities/account_shares",

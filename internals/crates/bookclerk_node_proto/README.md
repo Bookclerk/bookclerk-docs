@@ -122,6 +122,7 @@ bytes.
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
 | [`ClaimScope`](#claimscope) | enum | Whose work a host takes from a library (`claim.filter.scope`), as the branch operator set it for that link. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
+| [`KeeperOutcome`](#keeperoutcome) | enum | What a library did with a keeper's `Body::AccountsUpdate`. |
 | [`KeyError`](#keyerror) | enum | Why a public key was refused. |
 | [`Availability`](#availability) | enum | How a branch can supply an edition. |
 | [`LookupFormat`](#lookupformat) | enum | A file format a branch has for an edition. |
@@ -1496,6 +1497,8 @@ pub enum Body {
     AccountsAdd { sealed: String },
     AccountsAdded { added: u64, already_here: u64, taken: u64, failed: u64, not_allowed: bool },
     AccountsRemove { plugin_key: String, account_id: String },
+    AccountsUpdate { sealed: String, revision: i64 },
+    AccountsUpdated { outcome: KeeperOutcome },
     CatalogQuestions {  },
     CatalogAsk { works: Vec<LookupWork> },
     CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
@@ -1790,6 +1793,20 @@ What a frame says, tagged by `type`.
   `error`.
   - `plugin_key`: Provenance-qualified plugin key of the storefront.
   - `account_id`: Store account id.
+- `AccountsUpdate`: Branch → library: the newest sign-in of one single-keeper store
+  account this branch keeps ("one refresh keeper" in the library
+  catalog network ADR). `sealed` is an [`crate::AccountBundle`](#accountbundle) of
+  exactly that account, sealed and bound like [`Body::AccountsAdd`](#body);
+  `revision` is the keeper's revision of the sign-in (milliseconds
+  since the Unix epoch of its newest secret write there, above 0).
+  The library replaces its copy only when the account is its
+  branch owner's, shared with this branch, and `revision` is above
+  the last one it applied from it. Answered with
+  [`Body::AccountsUpdated`](#body) or `error`.
+  - `sealed`: The sealed one-account bundle, base64url without padding.
+  - `revision`: The keeper's revision of the sign-in.
+- `AccountsUpdated`: Library → branch: what became of an [`Body::AccountsUpdate`](#body).
+  - `outcome`: What the library did with the sign-in.
 - `CatalogQuestions`: Branch → library: send the catalog questions waiting for this
   branch (see [`crate::LookupWork`](#lookupwork)). Answered with
   [`Body::CatalogAsk`](#body), or `error {code: "refused"}` when the node is
@@ -1880,6 +1897,28 @@ Why a frame was not accepted.
 - `Version`: `v` is not [`FRAME_VERSION`](#frame_version).
 
 Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### KeeperOutcome
+
+```rust
+pub enum KeeperOutcome {
+    Applied,
+    Stale,
+    NotShared,
+}
+```
+
+What a library did with a keeper's [`Body::AccountsUpdate`](#body).
+
+**Variants**
+
+- `Applied`: The library's copy now holds the pushed sign-in.
+- `Stale`: The library already applied this revision or a newer one from the
+  branch; nothing changed.
+- `NotShared`: The account is not the branch owner's here, or not shared with
+  this branch; nothing changed. The keeper stops pushing it here.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### KeyError
 

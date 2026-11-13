@@ -362,6 +362,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`proxy_txn::AtomicInterruptKind`](../bookclerk_db_exec/proxy_txn.md#atomicinterruptkind)
 - [`proxy_txn::AtomicInterruptPhase`](../bookclerk_db_exec/proxy_txn.md#atomicinterruptphase)
 - [`proxy_txn::ExecBudget`](../bookclerk_db_exec/proxy_txn.md#execbudget)
+- [`scope::RefreshKeeping`](scope.md#refreshkeeping)
 - [`scope::SourceScope`](scope.md#sourcescope)
 - [`secrets::b64_string_to_bytes`](secrets.md#b64_string_to_bytes)
 - [`secrets::build_sealed_record`](secrets.md#build_sealed_record)

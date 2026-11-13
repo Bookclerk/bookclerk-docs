@@ -73,6 +73,8 @@ See `docs/adr/control-plane.md`.
 | [`JobClaimLimits`](#jobclaimlimits) | struct | Cluster-wide permit counts a routed claim enforces. |
 | [`JobClaimRequest`](#jobclaimrequest) | struct | One routed claim attempt by one worker. |
 | [`RoutedJobClaim`](#routedjobclaim) | struct | A claimed job and the semaphore permits it holds. |
+| [`KeptShare`](#keptshare) | struct | One account this install shares with a library it joined, as the keeper sees it. |
+| [`SignIn`](#signin) | struct | An account's current sign-in on its keeper (`sign_in_revision`). |
 | [`ClusterLease`](#clusterlease) | struct | A held cluster lease. |
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
@@ -141,6 +143,7 @@ See `docs/adr/control-plane.md`.
 | [`NodeKind`](#nodekind) | enum | How a node joined the cluster. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingValue`](#settingvalue) | enum | One scalar setting. Nested objects and arrays are not representable. |
+| [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
@@ -202,7 +205,7 @@ See `docs/adr/control-plane.md`.
 | [`member_accounts`](#member_accounts) | function | The store accounts `user_id` has connected here: linked to any of the user's portal identities and still connected (`connection_status` is `active`), sorted by plugin key and account id. |
 | [`member_may_connect_accounts`](#member_may_connect_accounts) | function | Whether `user_id` may connect store accounts on this instance: an active user with no rule, or whose rule allows it. |
 | [`node_peer`](#node_peer) | function | The `account_shares.peer` of a branch node this library sent accounts to. |
-| [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 20 accounts; a repeat refreshes the time. |
+| [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 13 accounts; a repeat refreshes the time. |
 | [`record_accounts_sent_to`](#record_accounts_sent_to) | function | Records that `accounts` were sent to `peer` (`node_peer` for a branch, `link_peer` for a library this install offered them to), as `record_accounts_sent` does. |
 | [`revoke_unlinked_account`](#revoke_unlinked_account) | function | Takes back a store account a refused login stored: deletes its secrets and marks it `revoked` with scans off, in one atomic batch whose every statement applies only while no link holds the account. |
 | [`set_member_may_connect_accounts`](#set_member_may_connect_accounts) | function | Sets whether `user_id` may connect store accounts on this instance. |
@@ -323,6 +326,13 @@ See `docs/adr/control-plane.md`.
 | [`job_source_plugin_key`](#job_source_plugin_key) | function | The one plugin whose source guest runs `job`, or `None` when the job alone does not name exactly one. |
 | [`node_can_run_job`](#node_can_run_job) | function | True when `node_id` can run a job that requires `requires`. |
 | [`resolve_job_requirements`](#resolve_job_requirements) | function | The instances a new job must find on its claiming node. |
+| [`apply_keeper_update`](#apply_keeper_update) | function | Applies a keeper branch's push of one account's newest sign-in. |
+| [`confirmed_keeping_branch`](#confirmed_keeping_branch) | function | The branch that has taken over this account's sign-in for this library: its `keeping_branch`, once that branch has pushed a sign-in here (`accounts.update`). Until then the library still keeps the account itself (saves its own refreshes and takes write-backs), so a branch that was sent the account but could not keep it never leaves it unrefreshed. |
+| [`keeping_branch`](#keeping_branch) | function | The branch that keeps this account for this library: the node of its earliest-recorded share with a branch, or `None` when no branch holds it (this library keeps it). |
+| [`keeps_for_link`](#keeps_for_link) | function | True when this install keeps the account for the library it joined as `cluster_id` (it holds a share with that library). |
+| [`kept_shares`](#kept_shares) | function | Every account this install shares with a library it joined, each library once, with the revision last pushed there. |
+| [`record_pushed_revision`](#record_pushed_revision) | function | Records that the keeper sent `revision` of the account to the library `cluster_id` (whether it applied it or already had it), for the sign-in whose fingerprint is `observed` (`SignIn::fingerprint`). Never lowers the recorded revision. |
+| [`sign_in_revision`](#sign_in_revision) | function | The keeper's view of an account's sign-in: when its newest secret was written here and a fingerprint of all of them, or `None` when it has no secret. |
 | [`acquire_lease`](#acquire_lease) | function | Acquires or renews `name` for `holder` for `ttl`. |
 | [`acquire_lease_on`](#acquire_lease_on) | function | `acquire_lease` on a bare connection (schema migration runs before a `LibraryStore` exists). |
 | [`list_leases`](#list_leases) | function | Every lease row, held or expired, by name. |
@@ -2398,6 +2408,67 @@ A claimed job and the semaphore permits it holds.
   attempt; a release at handoff restores that state.
 
 Implements: `Clone`, `Debug`
+
+### KeptShare
+
+```rust
+pub struct KeptShare {
+    pub plugin_key: String,
+    pub account_id: String,
+    pub cluster_id: String,
+    pub pushed: i64,
+    pub observed: i64,
+}
+```
+
+One account this install shares with a library it joined, as the keeper
+sees it.
+
+**Fields**
+
+- `plugin_key`: Provenance-qualified plugin key of the storefront.
+- `account_id`: Store account id.
+- `cluster_id`: The library's cluster id.
+- `pushed`: The revision last sent to that library; 0 before the first push.
+- `observed`: The [`SignIn::fingerprint`](#signin) of the sign-in last sent; 0 before the
+  first push.
+
+#### KeptShare::next_revision
+
+```rust
+pub fn next_revision(&self, sign_in: &SignIn) -> Option<i64>
+```
+
+The revision to send for `sign_in`, or `None` when that sign-in was
+already sent. A sign-in counts as new whenever its fingerprint
+differs from the one last sent, and each push carries a revision
+above the last one sent (its write time, when that is higher), so
+the library takes it even after the clock went back.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### SignIn
+
+```rust
+pub struct SignIn {
+    pub at: i64,
+    pub fingerprint: i64,
+}
+```
+
+An account's current sign-in on its keeper ([`sign_in_revision`](#sign_in_revision)).
+
+**Fields**
+
+- `at`: Milliseconds since the Unix epoch of the account's newest secret
+  write here: the revision a push of it carries, unless that would
+  not be above the last one sent.
+- `fingerprint`: A non-zero fingerprint of every secret the account holds here (each
+  one's kind, name, sealed value and write time). Every secret write
+  seals with a fresh nonce, so any write changes it, even two in the
+  same millisecond or one whose time went back.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### ClusterLease
 
@@ -4838,6 +4909,26 @@ One scalar setting. Nested objects and arrays are not representable.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
 
+### KeeperUpdate
+
+```rust
+pub enum KeeperUpdate {
+    Applied,
+    Stale,
+    NotShared,
+}
+```
+
+What [`apply_keeper_update`](#apply_keeper_update) did.
+
+**Variants**
+
+- `Applied`: The account's secrets here now hold the pushed sign-in.
+- `Stale`: This revision, or a newer one, was already applied from the branch.
+- `NotShared`: The account is not `user_id`'s here, or not shared with the branch.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### LinkImportOutcome
 
 ```rust
@@ -6215,7 +6306,7 @@ pub async fn record_accounts_sent(
 
 Records that `accounts` were sent to the branch `node_id`
 (`account_shares`, direction [`SHARE_SENT`](#share_sent)), in atomic batches of at
-most 20 accounts; a repeat refreshes the time.
+most 13 accounts; a repeat refreshes the time.
 
 #### Errors
 
@@ -6234,6 +6325,13 @@ pub async fn record_accounts_sent_to(
 Records that `accounts` were sent to `peer` ([`node_peer`](#node_peer) for a
 branch, [`link_peer`](#link_peer) for a library this install offered them to), as
 [`record_accounts_sent`](#record_accounts_sent) does.
+
+Sending an account to a library again also forgets which sign-in this
+install last pushed there (`account_credential_revisions.observed`),
+keeping the revision: the library may have forgotten its keeper in
+between (the account was disconnected everywhere there), so the next
+push pass sends the current sign-in again even when it hasn't changed,
+which confirms this install as the keeper anew.
 
 #### Errors
 
@@ -8500,6 +8598,142 @@ deployed node-bound output.
 
 Returns [`LibraryError::Conflict`](README.md#libraryerror) when the required instances have no
 common deployment node, or an error when a read fails.
+
+### apply_keeper_update
+
+```rust
+pub async fn apply_keeper_update(
+    store: &LibraryStore,
+    user_id: i64,
+    node_id: &str,
+    account: &CarriedAccount,
+    revision: i64,
+) -> Result<KeeperUpdate>
+```
+
+Applies a keeper branch's push of one account's newest sign-in.
+
+One atomic batch replaces the account's secrets (re-sealed with this
+install's key) and records `revision`, every statement applied only
+while the account is linked to `user_id` (the branch's owner), shared
+with the branch `node_id`, and `revision` is above the last one applied
+from it. So a push that lost a race with a newer one, or that arrives
+after the person disconnected the account, changes nothing.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a revision that is not positive or
+an account without secrets, a seal error, or a read or write error.
+
+### confirmed_keeping_branch
+
+```rust
+pub async fn confirmed_keeping_branch(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Option<String>>
+```
+
+The branch that has taken over this account's sign-in for this library:
+its [`keeping_branch`](#keeping_branch), once that branch has pushed a sign-in here
+(`accounts.update`). Until then the library still keeps the account
+itself (saves its own refreshes and takes write-backs), so a branch that
+was sent the account but could not keep it never leaves it unrefreshed.
+
+#### Errors
+
+Returns the read error.
+
+### keeping_branch
+
+```rust
+pub async fn keeping_branch(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Option<String>>
+```
+
+The branch that keeps this account for this library: the node of its
+earliest-recorded share with a branch, or `None` when no branch holds
+it (this library keeps it).
+
+#### Errors
+
+Returns the read error.
+
+### keeps_for_link
+
+```rust
+pub async fn keeps_for_link(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+    cluster_id: &str,
+) -> Result<bool>
+```
+
+True when this install keeps the account for the library it joined as
+`cluster_id` (it holds a share with that library).
+
+#### Errors
+
+Returns the read error.
+
+### kept_shares
+
+```rust
+pub async fn kept_shares(store: &LibraryStore) -> Result<Vec<KeptShare>>
+```
+
+Every account this install shares with a library it joined, each library
+once, with the revision last pushed there.
+
+#### Errors
+
+Returns the read error.
+
+### record_pushed_revision
+
+```rust
+pub async fn record_pushed_revision(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+    cluster_id: &str,
+    revision: i64,
+    observed: i64,
+) -> Result<()>
+```
+
+Records that the keeper sent `revision` of the account to the library
+`cluster_id` (whether it applied it or already had it), for the sign-in
+whose fingerprint is `observed` ([`SignIn::fingerprint`](#signin)). Never lowers
+the recorded revision.
+
+#### Errors
+
+Returns the write error.
+
+### sign_in_revision
+
+```rust
+pub async fn sign_in_revision(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Option<SignIn>>
+```
+
+The keeper's view of an account's sign-in: when its newest secret was
+written here and a fingerprint of all of them, or `None` when it has no
+secret.
+
+#### Errors
+
+Returns the read error, or [`LibraryError::Invalid`](README.md#libraryerror) for a stored time
+that does not parse.
 
 ### acquire_lease
 
