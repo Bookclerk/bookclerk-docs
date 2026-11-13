@@ -11112,6 +11112,7 @@ Status `200`: The library's join settings and branches.
       "joined": true,
       "share_books": true,
       "include_branches": true,
+      "acquire_members_books": false,
       "titles": {
         "shared": 128,
         "delivered": 120,
@@ -11173,6 +11174,7 @@ Schema:
           "node_id",
           "created_at",
           "joined",
+          "acquire_members_books",
           "titles"
         ],
         "properties": {
@@ -11223,6 +11225,11 @@ Schema:
             ],
             "description": "\"Include books from my own branches\" as it last reported it; `null` until its first catalog sync.",
             "example": true
+          },
+          "acquire_members_books": {
+            "type": "boolean",
+            "description": "This library's \"Acquire all of this branch's members' books\": the\nbranch also sends the books its members acquired that it lists here,\nnot only its owner's.",
+            "example": false
           },
           "titles": {
             "type": "object",
@@ -12164,6 +12171,398 @@ Schema:
       "description": "Numeric HTTP status (duplicates the response status for clients).",
       "example": 404,
       "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/config/branches/members-books`
+
+`PUT /api/config/branches/members-books`: turn this library's "Acquire
+all of this branch's members' books" on or off for one branch.
+
+While on, the branch's catalog sync also sends the books its members
+acquired that it lists to this library (its "List my members' books"
+setting and each member's opt-out still decide), not only its owner's.
+A change restarts the branch's catalog pass, so books it no longer sends
+are withdrawn when that pass ends; files already delivered stay.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`MembersBooksBody`](schemas.md#membersbooksbody)
+
+- `node_id` *string*, **required** — The branch's node id, as Settings → Branches lists it.
+- `acquire` *boolean*, **required** — "Acquire all of this branch's members' books".
+
+### Responses
+
+- `200` — The setting after the change. Body: [`BranchMembersBooks`](schemas.md#branchmembersbooks) (`application/json`)
+  - `node_id` *string*, **required** — The branch.
+  - `acquire_members_books` *boolean*, **required** — "Acquire all of this branch's members' books", as stored.
+- `400` — The node id is malformed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `404` — No branch of this library has that node id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The branch's catalog sync kept changing under the write; retry. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branches/members-books' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c", "acquire": true}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/branches/members-books' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c", "acquire": true}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/branches/members-books",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c", "acquire": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/branches/members-books", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c", "acquire": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/branches/members-books")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c", "acquire": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The setting after the change.
+
+```json
+{
+  "node_id": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c",
+  "acquire_members_books": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after `PUT /api/config/branches/members-books`.",
+  "required": [
+    "node_id",
+    "acquire_members_books"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "The branch.",
+      "example": "2b7e1c4d-9f3a-4e8b-a6c5-0d1e2f3a4b5c"
+    },
+    "acquire_members_books": {
+      "type": "boolean",
+      "description": "\"Acquire all of this branch's members' books\", as stored.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The node id is malformed. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid node_id"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
+
+Status `404`: No branch of this library has that node id.
+
+```json
+{
+  "error": "not_a_branch"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `node_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The branch's catalog sync kept changing under the write; retry. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "service unavailable: the branch's catalog fence kept changing"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }

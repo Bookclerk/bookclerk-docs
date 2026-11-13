@@ -793,6 +793,46 @@ store: string;
 
 The store the branch has the book from (`audible`).
 
+##### work\_id
+
+```ts
+work_id: string;
+```
+
+This library's work the branch supplies; what [requestFromBranch](#requestfrombranch) asks for.
+
+***
+
+### BranchRequestQueued
+
+`POST /api/branch-requests` answer.
+
+#### Properties
+
+##### already\_queued
+
+```ts
+already_queued: boolean;
+```
+
+`true` when a request for this work to this branch was already waiting.
+
+##### job\_id
+
+```ts
+job_id: string;
+```
+
+The request's job, as `/api/jobs` lists it.
+
+##### node\_id
+
+```ts
+node_id: string;
+```
+
+The branch the request went to.
+
 ***
 
 ### CatalogListingView
@@ -1211,7 +1251,7 @@ node_id: string;
 
 ###### Inherited from
 
-[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-4)
+[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-5)
 
 ##### nodes
 
@@ -6283,6 +6323,29 @@ Bootstrap result including the one-time invite magic link.
 
 ***
 
+### branchesToAsk()
+
+```ts
+function branchesToAsk(through): object[];
+```
+
+The distinct branches a title is available through, one entry per
+branch, in the order given, with the label to ask each by.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `through` | [`BranchAvailability`](#branchavailability)[] \| `undefined` | The title's branch availability. |
+
+#### Returns
+
+`object`[]
+
+For example `[{ node_id, work_id, label: "Riley's branch" }]`.
+
+***
+
 ### cancelEventDelivery()
 
 ```ts
@@ -8052,6 +8115,34 @@ the Refresh button asks. A fetch already waiting absorbs the request.
 `Promise`\<[`DiscoverStatus`](#discoverstatus)\>
 
 The caller's Discover status once the fetch is queued.
+
+***
+
+### requestFromBranch()
+
+```ts
+function requestFromBranch(workId, nodeId): Promise<BranchRequestQueued>;
+```
+
+Asks a branch for a book it lists. The branch takes it automatically;
+the book arrives with the branch's next catalog sync.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `workId` | `string` | The title's work (`BranchAvailability.work_id`). |
+| `nodeId` | `string` | The branch to ask. |
+
+#### Returns
+
+`Promise`\<[`BranchRequestQueued`](#branchrequestqueued)\>
+
+The queued request.
+
+#### Throws
+
+404 when the branch no longer lists the title.
 
 ***
 

@@ -435,6 +435,7 @@ pub struct CatalogSession {
     pub ancestry: Vec<String>,
     pub destinations: Vec<String>,
     pub wanted: Vec<CatalogRef>,
+    pub members_books: bool,
 }
 ```
 
@@ -447,6 +448,8 @@ An opened catalog session ([`HostClientHandle::catalog_begin`](#hostclienthandle
 - `ancestry`: The library's ancestry, its own cluster id first.
 - `destinations`: The library node's destination ids, the primary first.
 - `wanted`: Titles whose files the library still wants.
+- `members_books`: The library's "Acquire all of this branch's members' books": send
+  the members' books this branch lists to it as well.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 

@@ -1489,7 +1489,7 @@ pub enum Body {
     Ack {  },
     NodeLeaving {  },
     CatalogBegin { share_books: bool, include_branches: bool },
-    CatalogSession { fence: i64, cursor: String, ancestry: Vec<String>, destinations: Vec<String>, wanted: Vec<CatalogRef> },
+    CatalogSession { fence: i64, cursor: String, ancestry: Vec<String>, destinations: Vec<String>, wanted: Vec<CatalogRef>, members_books: bool },
     CatalogSync { fence: i64, batch: u64, cursor: String, done: bool, titles: Vec<CatalogTitle> },
     CatalogAccepted { batch: u64, upserted: u64, skipped: u64, wanted: Vec<CatalogRef> },
     CatalogUpload { fence: i64, store: String, product_id: String, files: Vec<UploadFile> },
@@ -1736,6 +1736,10 @@ What a frame says, tagged by `type`.
   - `destinations`: The library node's output destination ids, the primary first;
     a catalog upload copies each file to every one under its key.
   - `wanted`: Titles recorded earlier whose files have not arrived yet.
+  - `members_books`: The library's "Acquire all of this branch's members' books":
+    when true, the branch also sends the books its members acquired
+    that it lists to this library, not only its owner's. Absent
+    (older libraries) reads as false.
 - `CatalogSync`: Branch → library: one batch of shared titles (no account or user
   fields; see [`crate::CatalogTitle`](#catalogtitle)). Answered with
   [`Body::CatalogAccepted`](#body), [`Body::Lost`](#body) (`item = "catalog"`), or

@@ -184,6 +184,7 @@ Implemented by: `HashEmbedder`, `OnnxEmbedder`
 
 ```rust
 pub struct BranchAvailability {
+    pub work_id: String,
     pub node_id: String,
     pub owner_name: Option<String>,
     pub store: String,
@@ -195,13 +196,15 @@ One branch a title is available through.
 
 **Fields**
 
+- `work_id`: This library's work the branch supplies: the `work_id` to send
+  `POST /api/branch-requests` to ask the branch for it.
 - `node_id`: The branch node id.
 - `owner_name`: The branch owner's display name, for "available through Riley's
   branch"; absent when the owner has none.
 - `store`: The store the branch has the book from.
 - `product_id`: The store's product id of the branch's copy.
 
-Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `From<BranchOffer>`, `PartialEq`, `Serialize`, `ToSchema`
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### CandidateFetchOptions
 

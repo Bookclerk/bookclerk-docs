@@ -16,6 +16,8 @@ See `docs/adr/control-plane.md`.
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
 | [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shares with this install, without its metadata or file manifest. |
 | [`ForwardableBranchTitle`](#forwardablebranchtitle) | struct | A title one of this install's branches shares, ready to pass on. |
+| [`MembersBooksBody`](#membersbooksbody) | struct | `PUT /api/config/branches/members-books` body: a branch, and whether this library acquires all of its members' books. |
+| [`MembersBooksChoice`](#membersbookschoice) | struct | A validated `MembersBooksBody`. |
 | [`BranchRequestAsk`](#branchrequestask) | struct | A validated `BranchRequestBody`: both ids trimmed and well formed. |
 | [`BranchRequestBody`](#branchrequestbody) | struct | `POST /api/branch-requests` body: the work to ask a branch for, and optionally which branch. |
 | [`BranchRequestPlan`](#branchrequestplan) | struct | The job a request for `work_id` becomes: which branch it goes to and what it asks for. |
@@ -75,7 +77,7 @@ See `docs/adr/control-plane.md`.
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
 | [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
-| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`), and the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`), but never one imported from that library (`books_imported_from_link`). With no single person, only the requested books. |
+| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
@@ -176,6 +178,8 @@ See `docs/adr/control-plane.md`.
 | [`listing_from_catalog_title`](#listing_from_catalog_title) | function | The listing a shared title describes, filed under `plugin_key`: its metadata, ASIN scoped to its marketplace, ISBN, and media kind from its content kind. |
 | [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since), leaving out titles whose edition already has audio here from another writer. |
 | [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Forgets the files branches left behind (entries "from a branch that left" and the like), of one branch or of every one: the `edition_files` records its catalog uploads wrote for editions nothing here holds any more. Answers how many editions' entries went. The files themselves stay in this library's outputs. |
+| [`parse_members_books_request`](#parse_members_books_request) | function | Parses and validates a `PUT /api/config/branches/members-books` body from its raw bytes, sans IO, the way the route reads it: JSON into `MembersBooksBody`, then `MembersBooksBody::validate`. |
+| [`set_branch_members_books`](#set_branch_members_books) | function | Turns "Acquire all of this branch's members' books" on or off for branch `node_id`. |
 | [`books_requested_by_link`](#books_requested_by_link) | function | On a branch: every book the library `cluster_id` asked for, by store identity, with when it last asked (an unreadable stamp reads as now, so the book is sent rather than skipped). Read in keyset pages no larger than the database plugin's `maxResultRows`. |
 | [`claim_branch_requests`](#claim_branch_requests) | function | Claims the requests waiting for branch `node_id`, oldest first. |
 | [`finish_branch_request`](#finish_branch_request) | function | Records what branch `node_id` did with the request `job_id` it claimed at lease `generation`. |
@@ -650,6 +654,7 @@ pub struct CatalogSessionOpened {
     pub fence: i64,
     pub cursor: String,
     pub wanted: Vec<CatalogRef>,
+    pub members_books: bool,
 }
 ```
 
@@ -660,6 +665,8 @@ An opened catalog session ([`begin_catalog`](#begin_catalog)).
 - `fence`: The new catalog fence.
 - `cursor`: Where the branch resumes (empty: from the start).
 - `wanted`: Titles recorded earlier whose files have not arrived.
+- `members_books`: This library's "Acquire all of this branch's members' books"
+  ([`super::set_branch_members_books`](#set_branch_members_books)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -710,6 +717,50 @@ A title one of this install's branches shares, ready to pass on.
 - `id`: The node holding's id.
 - `title`: The title as the branch shared it.
 - `updated_at`: RFC 3339 last change.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### MembersBooksBody
+
+```rust
+pub struct MembersBooksBody {
+    /* private fields */
+}
+```
+
+`PUT /api/config/branches/members-books` body: a branch, and whether
+this library acquires all of its members' books.
+
+#### MembersBooksBody::validate
+
+```rust
+pub fn validate(self) -> Result<MembersBooksChoice>
+```
+
+Checks the body: a well-formed node id, with surrounding whitespace
+removed.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed node id.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### MembersBooksChoice
+
+```rust
+pub struct MembersBooksChoice {
+    pub node_id: String,
+    pub acquire: bool,
+}
+```
+
+A validated [`MembersBooksBody`](#membersbooksbody).
+
+**Fields**
+
+- `node_id`: The branch's node id, trimmed: a valid node id.
+- `acquire`: The new choice.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -1936,6 +1987,7 @@ pub struct NodeRecord {
     pub owner_user_id: Option<i64>,
     pub share_books: Option<bool>,
     pub include_branches: Option<bool>,
+    pub acquire_members_books: bool,
 }
 ```
 
@@ -1967,6 +2019,8 @@ Durable node row plus the latest observation columns.
 - `share_books`: For a branch: "Share this branch's books" as it last reported it;
   empty until it does.
 - `include_branches`: For a branch: "Include books from my own branches", as reported.
+- `acquire_members_books`: For a branch: this library's "Acquire all of this branch's members'
+  books" ([`super::set_branch_members_books`](#set_branch_members_books)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -2518,19 +2572,30 @@ pub struct OwnerShareFilter {
 Which of this install's acquired books the catalog sync sends the
 library `cluster_id`: the branch owner's own books, those held by a
 store account connected here to the branch's person
-([`super::branch_person`](#branch_person)), and the books that library asked for
-through an interlibrary request and this branch still lists to it
-(`still_listed_requests`), but never one imported from that library
-([`books_imported_from_link`](#books_imported_from_link)). With no single person, only the
-requested books.
+([`super::branch_person`](#branch_person)); the books that library asked for through an
+interlibrary request and this branch still lists to it
+(`still_listed_requests`); and, while that library acquires all of this
+branch's members' books, the books of every store account this branch
+lists to it (`listed_accounts`). Never one imported from that library
+([`books_imported_from_link`](#books_imported_from_link)). With no single person, the owner's
+books are not among them.
 
 #### OwnerShareFilter::load
 
 ```rust
-pub async fn load(store: &LibraryStore, cluster_id: &str) -> Result<Self>
+pub async fn load(
+    store: &LibraryStore,
+    cluster_id: &str,
+    members_books: bool,
+) -> Result<Self>
 ```
 
 Reads the filter for the library `cluster_id` now.
+
+##### Arguments
+
+* `members_books` - That library's "Acquire all of this branch's
+  members' books", from its catalog session.
 
 ##### Errors
 
@@ -5670,6 +5735,55 @@ themselves stay in this library's outputs.
 #### Errors
 
 Returns the read or write error.
+
+### parse_members_books_request
+
+```rust
+pub fn parse_members_books_request(body: &[u8]) -> Result<MembersBooksChoice>
+```
+
+Parses and validates a `PUT /api/config/branches/members-books` body
+from its raw bytes, sans IO, the way the route reads it: JSON into
+[`MembersBooksBody`](#membersbooksbody), then [`MembersBooksBody::validate`](#membersbooksbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing field) or a
+malformed node id.
+
+### set_branch_members_books
+
+```rust
+pub async fn set_branch_members_books(
+    store: &LibraryStore,
+    node_id: &str,
+    on: bool,
+) -> Result<Option<bool>>
+```
+
+Turns "Acquire all of this branch's members' books" on or off for
+branch `node_id`.
+
+A change also clears the branch's catalog cursor and bumps its catalog
+fence: the pass under way is lost, and the branch's next catalog
+session (at most one sync interval later) starts from the start with
+the new choice. Setting the value it already has changes nothing.
+
+#### Arguments
+
+* `node_id` - The branch's node id.
+* `on` - The new choice.
+
+#### Returns
+
+`Some(on)` once stored, or `None` when `node_id` is not a branch (host
+node) of this library.
+
+#### Errors
+
+Returns [`LibraryError::Unavailable`](README.md#libraryerror) when the branch's catalog fence
+kept changing under the write, or the read or write error.
 
 ### books_requested_by_link
 

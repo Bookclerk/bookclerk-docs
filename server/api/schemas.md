@@ -234,6 +234,7 @@ forwarded to `/join/approve`).
 
 One branch a title is available through.
 
+- `work_id` *string*, **required** — This library's work the branch supplies: the `work_id` to send `POST /api/branch-requests` to ask the branch for it.
 - `node_id` *string*, **required** — The branch node id.
 - `owner_name` *string or null* — The branch owner's display name, for "available through Riley's branch"; absent when the owner has none.
 - `store` *string*, **required** — The store the branch has the book from.
@@ -288,6 +289,13 @@ JSON body after `PUT /api/config/branches`.
 
 - `enrollment` *boolean*, **required** — "Let new branches join", as stored.
 
+## BranchMembersBooks
+
+JSON body after `PUT /api/config/branches/members-books`.
+
+- `node_id` *string*, **required** — The branch.
+- `acquire_members_books` *boolean*, **required** — "Acquire all of this branch's members' books", as stored.
+
 ## BranchOnlyChoice
 
 The consent page's connection block when only a branch is offered.
@@ -336,6 +344,7 @@ One branch (host node) of this library.
 - `joined` *boolean*, **required** — Whether its credential is still valid (it has not left or been revoked).
 - `share_books` *boolean or null* — "Share this branch's books" as it last reported it; `null` until its first catalog sync.
 - `include_branches` *boolean or null* — "Include books from my own branches" as it last reported it; `null` until its first catalog sync.
+- `acquire_members_books` *boolean*, **required** — This library's "Acquire all of this branch's members' books": the branch also sends the books its members acquired that it lists here, not only its owner's.
 - `titles` *[`BranchTitleCounts`](#branchtitlecounts)*, **required** — Counts of the titles it shared.
 
 ## BrandInfo
@@ -1256,6 +1265,14 @@ TOTP code plus the challenge id from password login.
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (5-minute TTL, single use).
 - `code` *string*, **required** — Six-digit authenticator code.
+
+## MembersBooksBody
+
+`PUT /api/config/branches/members-books` body: a branch, and whether
+this library acquires all of its members' books.
+
+- `node_id` *string*, **required** — The branch's node id, as Settings → Branches lists it.
+- `acquire` *boolean*, **required** — "Acquire all of this branch's members' books".
 
 ## MeResponse
 

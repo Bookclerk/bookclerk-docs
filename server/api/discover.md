@@ -2561,11 +2561,17 @@ Schema:
                     "type": "object",
                     "description": "One branch a title is available through.",
                     "required": [
+                      "work_id",
                       "node_id",
                       "store",
                       "product_id"
                     ],
                     "properties": {
+                      "work_id": {
+                        "type": "string",
+                        "description": "This library's work the branch supplies: the `work_id` to send\n`POST /api/branch-requests` to ask the branch for it.",
+                        "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+                      },
                       "node_id": {
                         "type": "string",
                         "description": "The branch node id.",
@@ -3966,6 +3972,7 @@ Status `200`: A page of catalog results.
       ],
       "available_through": [
         {
+          "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
           "node_id": "node-7f3a",
           "store": "audible",
           "product_id": "B002V0QK4C"
@@ -4312,11 +4319,17 @@ Schema:
               "type": "object",
               "description": "One branch a title is available through.",
               "required": [
+                "work_id",
                 "node_id",
                 "store",
                 "product_id"
               ],
               "properties": {
+                "work_id": {
+                  "type": "string",
+                  "description": "This library's work the branch supplies: the `work_id` to send\n`POST /api/branch-requests` to ask the branch for it.",
+                  "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+                },
                 "node_id": {
                   "type": "string",
                   "description": "The branch node id.",
