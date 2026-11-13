@@ -67,6 +67,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PreparedOpen`](#preparedopen) | struct | Bindings passed to `PluginWorker.open`, plus the spawn config table. |
 | [`KvNamespaces`](#kvnamespaces) | struct | Host-owned facts a session needs before it can hand a guest its KV bindings: the library store plus the granted rows. |
 | [`LibraryKvNamespace`](#librarykvnamespace) | struct | `KvNamespace` server for one `(plugin_key, namespace)` on the library. |
+| [`OnDemandIntegration`](#ondemandintegration) | struct | Integration registry entry that starts its guest on the first call and stops it after `OnDemandIntegration::idle_timeout` without calls. |
 | [`OutboxQueueProducer`](#outboxqueueproducer) | struct | `QueueProducer` server for one binding of one invocation: validates a guest `QueueSendMessage` and appends it to the library outbox. |
 | [`QueueOutbox`](#queueoutbox) | struct | Host-owned facts a session needs before it can hand a guest its queue producer bindings: the outbox store plus the granted `(binding, queue)` pairs. |
 | [`BookclerkPackageMetadata`](#bookclerkpackagemetadata) | struct | `[package.metadata.bookclerk]` published on crates.io. |
@@ -219,6 +220,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`prepared_open_from_resolved`](#prepared_open_from_resolved) | function | Builds open bindings from a deployment's already resolved payloads. |
 | [`guest_reservation`](#guest_reservation) | function | CPU and memory one guest may use at most on this host: its grant's ceilings after `[plugins.jail]`, the numbers its jail enforces. The cluster scheduler accounts host budgets against these. |
 | [`plugin_data_dir`](#plugin_data_dir) | function | The private directory a plugin keeps state in. |
+| [`activates_on_demand`](#activates_on_demand) | function | True when a deployment of `manifest` may sleep while idle and start on the next call. |
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate plugin id segment used in crate names and `plugin.toml`. |
@@ -268,6 +270,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`VERSION_CACHE_DIR`](#version_cache_dir) | constant | Directory under `plugins/` holding materialized version trees. |
 | [`VERSION_CACHE_GRACE`](#version_cache_grace) | constant | How long an unreferenced cached digest survives before the sweep. |
 | [`KV_GRANT_BINDING`](#kv_grant_binding) | constant | Grant token that authorizes every `[[kv_namespaces]]` row of a plugin. |
+| [`TRIGGER_IDLE_TIMEOUT`](#trigger_idle_timeout) | constant | How long a trigger-driven guest stays up after its last call returns. |
 | [`CRATE_NAME_PREFIX`](#crate_name_prefix) | constant | Required crates.io name prefix: `bookclerk-plugin-{family}-{id}`. |
 | [`PRODUCT_KEYWORD`](#product_keyword) | constant | Shared crates.io keyword (`bookclerk`) expected on published plugin crates. |
 | [`REGISTRY_KEYWORD`](#registry_keyword) | constant | Keyword every published plugin crate should include. |
@@ -1151,6 +1154,20 @@ pub fn new(
 ```
 
 Runtime bound to the daemon's live registries.
+
+#### LiveDeploymentRuntime::on_demand_integration
+
+```rust
+pub fn on_demand_integration(
+    &self,
+    plugin_instance_id: &str,
+) -> Option<Arc<OnDemandIntegration>>
+```
+
+The on-demand integration registered for `plugin_instance_id`, if
+this process tracks one.
+
+Only reads the map, so a poisoned lock still yields it.
 
 #### LiveDeploymentRuntime::reconcile_lock
 
@@ -2315,6 +2332,77 @@ pub fn namespace(&self) -> &str
 Namespace this binding is scoped to.
 
 Implements: `KvNamespace`
+
+### OnDemandIntegration
+
+```rust
+pub struct OnDemandIntegration {
+    /* private fields */
+}
+```
+
+Integration registry entry that starts its guest on the first call and
+stops it after [`OnDemandIntegration::idle_timeout`](#ondemandintegrationidle_timeout) without calls.
+
+#### OnDemandIntegration::idle_timeout
+
+```rust
+pub fn idle_timeout(&self) -> Duration
+```
+
+Idle time after which the guest is stopped.
+
+#### OnDemandIntegration::is_retired
+
+```rust
+pub fn is_retired(&self) -> bool
+```
+
+True once the deployment stopped this proxy.
+
+#### OnDemandIntegration::is_awake
+
+```rust
+pub fn is_awake(&self) -> bool
+```
+
+True while a guest is running for this proxy.
+
+Returns false while a wake or a sleep holds the guest slot.
+
+#### OnDemandIntegration::guest_pid
+
+```rust
+pub fn guest_pid(&self) -> Option<u32>
+```
+
+Native pid of the running guest, if awake.
+
+#### OnDemandIntegration::wakes
+
+```rust
+pub fn wakes(&self) -> u64
+```
+
+Guests started on demand since the proxy was created.
+
+#### OnDemandIntegration::sleep_if_idle
+
+```rust
+pub async fn sleep_if_idle(&self) -> bool
+```
+
+Stops the guest when no call is in flight and the last one finished
+at least the idle timeout ago.
+
+A wake or call holding the slot makes this a no-op; the next sweep
+tries again.
+
+##### Returns
+
+True when a running guest was stopped.
+
+Implements: `Integration`
 
 ### OutboxQueueProducer
 
@@ -6134,6 +6222,25 @@ display alias. Invalid keys cannot be constructed.
 
 Returns an error when the operation fails.
 
+### activates_on_demand
+
+```rust
+pub fn activates_on_demand(manifest: &PluginManifest) -> bool
+```
+
+True when a deployment of `manifest` may sleep while idle and start on
+the next call.
+
+The plugin must belong only to the integration family and export no
+entrypoint that keeps session state or answers sign-in
+(`remoteLibrary`, `oidc`). A `cli` entrypoint is fine: the CLI starts its
+own session for each command. Its runtime must not be Python, whose
+guests take seconds to start (15 s and more on a quarter CPU).
+
+#### Arguments
+
+* `manifest` - the installed manifest the deployment spawns.
+
 ### family_keyword
 
 ```rust
@@ -6709,6 +6816,17 @@ pub const KV_GRANT_BINDING: &str = "plugin_kv";
 ```
 
 Grant token that authorizes every `[[kv_namespaces]]` row of a plugin.
+
+### TRIGGER_IDLE_TIMEOUT
+
+```rust
+pub const TRIGGER_IDLE_TIMEOUT: Duration = _;
+```
+
+How long a trigger-driven guest stays up after its last call returns.
+
+One minute matches the event delivery lease, so a burst of deliveries
+reuses one process while a quiet plugin is gone within a minute.
 
 ### CRATE_NAME_PREFIX
 
