@@ -37,40 +37,22 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Reader::get_parts
+#### Reader::get_media_kind
 
 ```rust
-pub fn get_parts(self) -> Result<Reader<'a, Owned>>
+pub fn get_media_kind(self) -> Result<MediaKind, NotInSchema>
 ```
 
-#### Reader::has_parts
+#### Reader::get_files
 
 ```rust
-pub fn has_parts(&self) -> bool
+pub fn get_files(self) -> Result<Reader<'a, Owned>>
 ```
 
-#### Reader::get_m4b_path
+#### Reader::has_files
 
 ```rust
-pub fn get_m4b_path(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_m4b_path
-
-```rust
-pub fn has_m4b_path(&self) -> bool
-```
-
-#### Reader::get_cover_path
-
-```rust
-pub fn get_cover_path(self) -> Result<Reader<'a>>
-```
-
-#### Reader::has_cover_path
-
-```rust
-pub fn has_cover_path(&self) -> bool
+pub fn has_files(&self) -> bool
 ```
 
 #### Reader::get_chapters
@@ -143,76 +125,40 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Builder::get_parts
+#### Builder::get_media_kind
 
 ```rust
-pub fn get_parts(self) -> Result<Builder<'a, Owned>>
+pub fn get_media_kind(self) -> Result<MediaKind, NotInSchema>
 ```
 
-#### Builder::set_parts
+#### Builder::set_media_kind
 
 ```rust
-pub fn set_parts(&mut self, value: Reader<'_, Owned>) -> Result<()>
+pub fn set_media_kind(&mut self, value: MediaKind)
 ```
 
-#### Builder::init_parts
+#### Builder::get_files
 
 ```rust
-pub fn init_parts(self, size: u32) -> Builder<'a, Owned>
+pub fn get_files(self) -> Result<Builder<'a, Owned>>
 ```
 
-#### Builder::has_parts
+#### Builder::set_files
 
 ```rust
-pub fn has_parts(&self) -> bool
+pub fn set_files(&mut self, value: Reader<'_, Owned>) -> Result<()>
 ```
 
-#### Builder::get_m4b_path
+#### Builder::init_files
 
 ```rust
-pub fn get_m4b_path(self) -> Result<Builder<'a>>
+pub fn init_files(self, size: u32) -> Builder<'a, Owned>
 ```
 
-#### Builder::set_m4b_path
+#### Builder::has_files
 
 ```rust
-pub fn set_m4b_path(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_m4b_path
-
-```rust
-pub fn init_m4b_path(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_m4b_path
-
-```rust
-pub fn has_m4b_path(&self) -> bool
-```
-
-#### Builder::get_cover_path
-
-```rust
-pub fn get_cover_path(self) -> Result<Builder<'a>>
-```
-
-#### Builder::set_cover_path
-
-```rust
-pub fn set_cover_path(&mut self, value: impl SetterInput<Owned>)
-```
-
-#### Builder::init_cover_path
-
-```rust
-pub fn init_cover_path(self, size: u32) -> Builder<'a>
-```
-
-#### Builder::has_cover_path
-
-```rust
-pub fn has_cover_path(&self) -> bool
+pub fn has_files(&self) -> bool
 ```
 
 #### Builder::get_chapters

@@ -31,6 +31,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`LoginCompleteParams`](#logincompleteparams) | struct | Params of `ContentSource.loginComplete`. |
 | [`AccountCredential`](#accountcredential) | struct | Host-sealed credentials for one account, delivered on `scan`. |
 | [`ScanParams`](#scanparams) | struct | Params of `ContentSource.scan`: one page of one account's scan pass. The host injects that account's sealed credentials so the plugin does not need a private credential store under `pluginDataDir`, and drives the pass page by page: the first call of a pass sends an empty `cursor`, every later call echoes the previous page's `nextCursor`. |
+| [`MediaSupport`](#mediasupport) | struct | Media a plugin works with, declared in `describe()` and in the manifest's `\[media\]` table. Required for plugins that export the storefront or metadata entrypoint: the host refuses to spawn one whose `workKinds` or `lists` is empty, holds `unspecified`, or is wider than its manifest, and refuses any record whose kinds fall outside the declaration. |
 | [`Identifier`](#identifier) | struct | One external identifier a storefront or metadata provider reports. |
 | [`Credit`](#credit) | struct | One credited contributor. Credits are listed in billing order. |
 | [`SeriesEntry`](#seriesentry) | struct | A work's place in one series. |
@@ -38,7 +39,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`ScanPage`](#scanpage) | struct | One page of an account's scan pass, the result of `ContentSource.scan`. A pass is the run of pages from an empty `cursor` to the page whose `nextCursor` is empty; `syncToken` and `complete` are read from that last page only. A guest that does not page answers the first call with every title, an empty `nextCursor` and `complete = true`. |
 | [`FetchOptions`](#fetchoptions) | struct | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
 | [`FetchTitleParams`](#fetchtitleparams) | struct | Params of `ContentSource.fetchTitle`. The plugin writes media under `cacheDir` and returns plain (DRM-free) paths. The host injects credentials; guests must not open `library.db` or `master.key`. |
-| [`PlainPart`](#plainpart) | struct | One plain audio part written under the cache directory. |
+| [`FetchedFile`](#fetchedfile) | struct | One file `fetchTitle` wrote under the cache directory. |
 | [`ChapterMarker`](#chaptermarker) | struct | One chapter marker of a fetched title. |
 | [`PlainFetch`](#plainfetch) | struct | Plain (DRM-free) fetch result. Sources always return decrypted media; DRM guests decrypt before responding. |
 | [`SourceAccounts`](#sourceaccounts) | struct | Success payload of `ContentSource.listAccounts`. |
@@ -92,12 +93,13 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
-| [`WorkKind`](#workkind) | enum | What kind of creative work a record describes (FRBR work). Ordinal 0 is the common case, so a guest that leaves it unset describes a book. |
-| [`ExpressionKind`](#expressionkind) | enum | How a work is realised (FRBR expression). Ordinal 0 is the common case for a storefront that sells audiobooks. |
-| [`MediaKind`](#mediakind) | enum | Physical or digital form of an edition (FRBR manifestation). Only `audiobook` and `podcastAudio` editions are acquire candidates. |
+| [`WorkKind`](#workkind) | enum | What family of creative work a record describes (FRBR work). Every record names one: `unspecified` is refused by the host, so a guest that forgets the field fails instead of silently describing a book. Whether a podcast work is a show or an episode is structural, not a kind: an episode names its show through `parentProductId`, a show names no parent. |
+| [`ExpressionKind`](#expressionkind) | enum | How a work is realised (FRBR expression): the kind of content you get, independent of the carrier. A translation is not a kind: the expression's language and its translator credits say it. `unspecified` is refused. |
+| [`MediaKind`](#mediakind) | enum | Carrier of an edition (FRBR manifestation): what form you receive. Whether the host acquires an edition depends on the storefront's `MediaSupport.fetches` and what the host supports, not on this value alone. `unspecified` is refused. |
 | [`IdentifierScheme`](#identifierscheme) | enum | Scheme of an external identifier. The scheme fixes whether the id names a work or an edition, and whether it is strong (unique) or weak (shared). |
 | [`CreditRole`](#creditrole) | enum | A contributor's responsibility for a work, expression or edition. |
 | [`CreditLevel`](#creditlevel) | enum | Which level a credit attaches to. Ordinal 0 is the role's usual level, so a guest sets this only when a credit departs from it. |
+| [`FetchedFileRole`](#fetchedfilerole) | enum | What one fetched file is to the edition it belongs to. |
 | [`CatalogSort`](#catalogsort) | enum | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
@@ -155,6 +157,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_account_credential`](#read_account_credential) | function | Decode a `AccountCredential` from a Cap'n Proto reader. |
 | [`write_scan_params`](#write_scan_params) | function | Encode a `ScanParams` onto a Cap'n Proto builder. |
 | [`read_scan_params`](#read_scan_params) | function | Decode a `ScanParams` from a Cap'n Proto reader. |
+| [`write_media_support`](#write_media_support) | function | Encode a `MediaSupport` onto a Cap'n Proto builder. |
+| [`read_media_support`](#read_media_support) | function | Decode a `MediaSupport` from a Cap'n Proto reader. |
 | [`write_identifier`](#write_identifier) | function | Encode a `Identifier` onto a Cap'n Proto builder. |
 | [`read_identifier`](#read_identifier) | function | Decode a `Identifier` from a Cap'n Proto reader. |
 | [`write_credit`](#write_credit) | function | Encode a `Credit` onto a Cap'n Proto builder. |
@@ -171,8 +175,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_fetch_options`](#read_fetch_options) | function | Decode a `FetchOptions` from a Cap'n Proto reader. |
 | [`write_fetch_title_params`](#write_fetch_title_params) | function | Encode a `FetchTitleParams` onto a Cap'n Proto builder. |
 | [`read_fetch_title_params`](#read_fetch_title_params) | function | Decode a `FetchTitleParams` from a Cap'n Proto reader. |
-| [`write_plain_part`](#write_plain_part) | function | Encode a `PlainPart` onto a Cap'n Proto builder. |
-| [`read_plain_part`](#read_plain_part) | function | Decode a `PlainPart` from a Cap'n Proto reader. |
+| [`write_fetched_file`](#write_fetched_file) | function | Encode a `FetchedFile` onto a Cap'n Proto builder. |
+| [`read_fetched_file`](#read_fetched_file) | function | Decode a `FetchedFile` from a Cap'n Proto reader. |
 | [`write_chapter_marker`](#write_chapter_marker) | function | Encode a `ChapterMarker` onto a Cap'n Proto builder. |
 | [`read_chapter_marker`](#read_chapter_marker) | function | Decode a `ChapterMarker` from a Cap'n Proto reader. |
 | [`write_plain_fetch`](#write_plain_fetch) | function | Encode a `PlainFetch` onto a Cap'n Proto builder. |
@@ -838,6 +842,32 @@ echoes the previous page's `nextCursor`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### MediaSupport
+
+```rust
+pub struct MediaSupport {
+    pub work_kinds: Vec<WorkKind>,
+    pub lists: Vec<MediaKind>,
+    pub fetches: Vec<MediaKind>,
+}
+```
+
+Media a plugin works with, declared in `describe()` and in the manifest's
+`\[media\]` table. Required for plugins that export the storefront or
+metadata entrypoint: the host refuses to spawn one whose `workKinds` or
+`lists` is empty, holds `unspecified`, or is wider than its manifest, and
+refuses any record whose kinds fall outside the declaration.
+
+**Fields**
+
+- `work_kinds`: Work kinds the plugin reports.
+- `lists`: Edition carriers the plugin reports in scans, catalog search and
+  metadata records.
+- `fetches`: Edition carriers `ContentSource.fetchTitle` can deliver; a subset of
+  `lists`. Empty for metadata providers and for stores that only list.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### Identifier
 
 ```rust
@@ -946,7 +976,7 @@ editions, maps the record onto one flat library row.
   `None` when absent (wire zero value).
 - `work_kind`: Kind of work the title is.
 - `expression_kind`: How the work is realised in this edition.
-- `media_kind`: Form of this edition.
+- `media_kind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `series_entries`: Series the work belongs to.
@@ -1082,24 +1112,30 @@ credentials; guests must not open `library.db` or `master.key`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
-### PlainPart
+### FetchedFile
 
 ```rust
-pub struct PlainPart {
+pub struct FetchedFile {
     pub path: String,
+    pub role: FetchedFileRole,
+    pub content_type: Option<String>,
     pub title: Option<String>,
     pub duration_ms: Option<u64>,
 }
 ```
 
-One plain audio part written under the cache directory.
+One file `fetchTitle` wrote under the cache directory.
 
 **Fields**
 
-- `path`: Absolute path to the part file under `cacheDir`.
-- `title`: Part title (disc / chapter label).
+- `path`: Absolute path to the file under `cacheDir`.
+- `role`: What the file is to the edition.
+- `content_type`: MIME type when the guest knows it (`audio/mp4`, `application/epub+zip`,
+  `image/jpeg`); the host sniffs the file either way.
   `None` when absent (wire zero value).
-- `duration_ms`: Duration of this part in milliseconds when known.
+- `title`: Part title (disc or chapter label), for a `part`.
+  `None` when absent (wire zero value).
+- `duration_ms`: Playing time of the file in milliseconds, for audio, when known.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -1126,9 +1162,8 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 
 ```rust
 pub struct PlainFetch {
-    pub parts: Vec<PlainPart>,
-    pub m4b_path: Option<String>,
-    pub cover_path: Option<String>,
+    pub media_kind: MediaKind,
+    pub files: Vec<FetchedFile>,
     pub chapters: Vec<ChapterMarker>,
     pub pdf_url: Option<String>,
     pub refreshed_credentials: Option<Vec<u8>>,
@@ -1140,13 +1175,13 @@ guests decrypt before responding.
 
 **Fields**
 
-- `parts`: Ordered audio part files written under the cache directory.
-- `m4b_path`: Single M4B path when the guest assembled one.
-  `None` when absent (wire zero value).
-- `cover_path`: Cover image path under the cache directory.
-  `None` when absent (wire zero value).
+- `media_kind`: Carrier of what was fetched. Must be one of the storefront's declared
+  `MediaSupport.fetches`; `unspecified` is refused.
+- `files`: The files the guest wrote under the cache directory: the edition's
+  ordered `part`s or one `whole` file, plus an optional `cover`.
 - `chapters`: Chapter markers; empty when unknown.
-- `pdf_url`: Companion PDF download URL when the store exposes one.
+- `pdf_url`: Companion PDF download URL when the store exposes one; the host
+  downloads it itself.
   `None` when absent (wire zero value).
 - `refreshed_credentials`: The account's credentials as the guest holds them after refreshing them
   during the fetch, as in `ScanPage.refreshedCredentials`. Empty when
@@ -1407,7 +1442,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `abridgement`: Whether the edition is abridged when the storefront says so.
 - `work_kind`: Kind of work the hit is.
 - `expression_kind`: How the work is realised in this edition.
-- `media_kind`: Form of this edition; print and ebook hits are never acquired.
+- `media_kind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `series_entries`: Series the work belongs to.
@@ -2170,7 +2205,7 @@ fields as `CatalogHit`, without store pricing.
 - `abridgement`: Whether the edition is abridged when the provider says so.
 - `work_kind`: Kind of work the record describes.
 - `expression_kind`: How the work is realised in this edition.
-- `media_kind`: Form of this edition.
+- `media_kind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `series_entries`: Series the work belongs to.
@@ -2491,22 +2526,25 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From
 
 ```rust
 pub enum WorkKind {
+    Unspecified,
     Book,
-    PodcastShow,
-    PodcastEpisode,
-    Drama,
+    Podcast,
 }
 ```
 
-What kind of creative work a record describes (FRBR work). Ordinal 0 is
-the common case, so a guest that leaves it unset describes a book.
+What family of creative work a record describes (FRBR work). Every record
+names one: `unspecified` is refused by the host, so a guest that forgets
+the field fails instead of silently describing a book. Whether a podcast
+work is a show or an episode is structural, not a kind: an episode names
+its show through `parentProductId`, a show names no parent.
 
 **Variants**
 
-- `Book`: A book: fiction or non-fiction, read or narrated.
-- `PodcastShow`: A podcast show; its episodes name it through `parentProductId`.
-- `PodcastEpisode`: One podcast episode, a child work of its show.
-- `Drama`: An original audio drama that is not an adaptation of a book.
+- `Unspecified`: Not set; the host refuses the record.
+- `Book`: A book: fiction or non-fiction, in any expression (read, narrated,
+  dramatised, illustrated) and on any carrier.
+- `Podcast`: A podcast: the show, or one episode of it when the record names a
+  parent.
 
 #### WorkKind::wire_name
 
@@ -2530,24 +2568,28 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From
 
 ```rust
 pub enum ExpressionKind {
-    Narration,
+    Unspecified,
     Text,
-    Translation,
+    Narration,
     Dramatisation,
-    PodcastAudio,
+    Graphic,
+    OriginalAudio,
 }
 ```
 
-How a work is realised (FRBR expression). Ordinal 0 is the common case
-for a storefront that sells audiobooks.
+How a work is realised (FRBR expression): the kind of content you get,
+independent of the carrier. A translation is not a kind: the expression's
+language and its translator credits say it. `unspecified` is refused.
 
 **Variants**
 
+- `Unspecified`: Not set; the host refuses the record.
+- `Text`: The written text, as sold in print and ebook editions.
 - `Narration`: A reading of the text by one or more narrators.
-- `Text`: The text itself, as sold in print and ebook editions.
-- `Translation`: A translation of the text into another language.
-- `Dramatisation`: A full-cast dramatisation or adaptation of the work.
-- `PodcastAudio`: The recorded audio of a podcast episode.
+- `Dramatisation`: A full-cast dramatisation or performance of the work.
+- `Graphic`: Sequential art: comics, graphic novels, manga.
+- `OriginalAudio`: Audio that is itself the first realisation rather than a reading of a
+  text: podcast episodes, lectures, single-voice originals.
 
 #### ExpressionKind::wire_name
 
@@ -2571,22 +2613,24 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From
 
 ```rust
 pub enum MediaKind {
-    Audiobook,
+    Unspecified,
+    Audio,
     Ebook,
     Print,
-    PodcastAudio,
 }
 ```
 
-Physical or digital form of an edition (FRBR manifestation). Only
-`audiobook` and `podcastAudio` editions are acquire candidates.
+Carrier of an edition (FRBR manifestation): what form you receive.
+Whether the host acquires an edition depends on the storefront's
+`MediaSupport.fetches` and what the host supports, not on this value
+alone. `unspecified` is refused.
 
 **Variants**
 
-- `Audiobook`: A downloadable audiobook.
-- `Ebook`: An ebook; shown in discover but never acquired.
-- `Print`: A printed book; shown in discover but never acquired.
-- `PodcastAudio`: Podcast episode audio.
+- `Unspecified`: Not set; the host refuses the record.
+- `Audio`: Downloadable audio: audiobooks and podcast episodes.
+- `Ebook`: A downloadable document: EPUB, PDF, CBZ and similar.
+- `Print`: A printed edition.
 
 #### MediaKind::wire_name
 
@@ -2734,6 +2778,45 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CreditLevel>`, `Hash`, `PartialEq`, `Serialize`
+
+### FetchedFileRole
+
+```rust
+pub enum FetchedFileRole {
+    Unspecified,
+    Part,
+    Whole,
+    Cover,
+}
+```
+
+What one fetched file is to the edition it belongs to.
+
+**Variants**
+
+- `Unspecified`: Not set; the host refuses a file without a role.
+- `Part`: One ordered piece of the edition (an audio part or chapter file, one
+  volume of a set). The host joins parts in list order.
+- `Whole`: The whole edition in one file (an assembled M4B, an EPUB, a PDF).
+- `Cover`: The edition's cover image.
+
+#### FetchedFileRole::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### FetchedFileRole::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<FetchedFileRole>`, `Hash`, `PartialEq`, `Serialize`
 
 ### CatalogSort
 
@@ -3537,6 +3620,30 @@ Decode a [`ScanParams`](#scanparams) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_media_support
+
+```rust
+pub fn write_media_support(b: Builder<'_>, v: &MediaSupport) -> Result<()>
+```
+
+Encode a [`MediaSupport`](#mediasupport) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_media_support
+
+```rust
+pub fn read_media_support(r: Reader<'_>) -> Result<MediaSupport>
+```
+
+Decode a [`MediaSupport`](#mediasupport) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### write_identifier
 
 ```rust
@@ -3729,25 +3836,25 @@ Decode a [`FetchTitleParams`](#fetchtitleparams) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
-### write_plain_part
+### write_fetched_file
 
 ```rust
-pub fn write_plain_part(b: Builder<'_>, v: &PlainPart) -> Result<()>
+pub fn write_fetched_file(b: Builder<'_>, v: &FetchedFile) -> Result<()>
 ```
 
-Encode a [`PlainPart`](#plainpart) onto a Cap'n Proto builder.
+Encode a [`FetchedFile`](#fetchedfile) onto a Cap'n Proto builder.
 
 #### Errors
 
 Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
 
-### read_plain_part
+### read_fetched_file
 
 ```rust
-pub fn read_plain_part(r: Reader<'_>) -> Result<PlainPart>
+pub fn read_fetched_file(r: Reader<'_>) -> Result<FetchedFile>
 ```
 
-Decode a [`PlainPart`](#plainpart) from a Cap'n Proto reader.
+Decode a [`FetchedFile`](#fetchedfile) from a Cap'n Proto reader.
 
 #### Errors
 
@@ -5569,7 +5676,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 105;
+pub const READ_ANY_COUNT: u8 = 106;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

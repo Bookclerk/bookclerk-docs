@@ -2267,6 +2267,18 @@ Re-exports [FEATURE_STREAMS](abi.md#feature_streams)
 
 ***
 
+### FetchedFile
+
+Re-exports [FetchedFile](generated.md#fetchedfile)
+
+***
+
+### FetchedFileRole
+
+Re-exports [FetchedFileRole](abi.md#fetchedfilerole)
+
+***
+
 ### FetchOptions
 
 Re-exports [FetchOptions](generated.md#fetchoptions)
@@ -2741,6 +2753,12 @@ Re-exports [MediaKind](abi.md#mediakind)
 
 ***
 
+### MediaSupport
+
+Re-exports [MediaSupport](generated.md#mediasupport)
+
+***
+
 ### MetadataChapter
 
 Re-exports [MetadataChapter](generated.md#metadatachapter)
@@ -2918,12 +2936,6 @@ Re-exports [PhysicalAccess](generated.md#physicalaccess)
 ### PlainFetch
 
 Re-exports [PlainFetch](generated.md#plainfetch)
-
-***
-
-### PlainPart
-
-Re-exports [PlainPart](generated.md#plainpart)
 
 ***
 

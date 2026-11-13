@@ -49,7 +49,8 @@ on write.
 
 Credits join by role, the first ISBN and ASIN fill the identifier
 columns (normalised), the first series entry fills the series columns,
-and the work kind becomes `content_kind`. An episode with no store
+and the work kind (with whether the record names a parent show) becomes
+`content_kind`. An episode with no store
 series id names its show through `parent_product_id`, which fills
 `series_asin` so the episode is filed under the show.
 
@@ -59,6 +60,7 @@ unscoped one, before an ASIN from another marketplace.
 #### Returns
 
 `None` for a record with a blank product id, which would overwrite
-another blank row, and for an ebook or print edition: the flat table has
+another blank row, for a record that leaves a kind unspecified (the
+host refuses those), and for an ebook or print edition: the flat table has
 no way to keep those out of acquire, so they are not stored until the
 library keeps editions.

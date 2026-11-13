@@ -161,6 +161,7 @@ submodules unless you need module-level docs.
 | [`encode_atomic_result`](#encode_atomic_result) | function | Encodes an atomic result; an oversized scalar after commit is `unavailable`. |
 | [`page_rows`](#page_rows) | function | Page a JSON array of rows. `limit == 0` means `MAX_LIST_PAGE`. |
 | [`manifest_capabilities`](#manifest_capabilities) | function | Parses `plugin.toml` source and returns the `PluginCapabilities` a guest must advertise from `describe()`. |
+| [`manifest_media`](#manifest_media) | function | Parses `plugin.toml` source and returns the `MediaSupport` a guest must advertise from `describe()`. |
 | [`fd_proc_path`](#fd_proc_path) | function | Builds the OS path that refers to an open descriptor by number. |
 | [`recv_passed_fd`](#recv_passed_fd) | function | Receives one file descriptor from the host side channel (SCM_RIGHTS). |
 | [`scan_page`](#scan_page) | function | Answers one `scan` call from the storefront's own pages. |
@@ -224,6 +225,8 @@ submodules unless you need module-level docs.
 - [`protocol::ExternalUser`](../../../internals/crates/bookclerk_plugin_abi/generated.md#externaluser)
 - [`protocol::FetchOptions`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchoptions)
 - [`protocol::FetchTitleParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchtitleparams)
+- [`protocol::FetchedFile`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchedfile)
+- [`protocol::FetchedFileRole`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchedfilerole)
 - [`protocol::Identifier`](../../../internals/crates/bookclerk_plugin_abi/generated.md#identifier)
 - [`protocol::IdentifierScheme`](../../../internals/crates/bookclerk_plugin_abi/generated.md#identifierscheme)
 - [`protocol::ListDealsParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#listdealsparams)
@@ -233,10 +236,10 @@ submodules unless you need module-level docs.
 - [`protocol::LoginResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#loginresult)
 - [`protocol::LoginStartResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#loginstartresult)
 - [`protocol::MediaKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#mediakind)
+- [`protocol::MediaSupport`](../../../internals/crates/bookclerk_plugin_abi/generated.md#mediasupport)
 - [`protocol::OutputLocalContextDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#outputlocalcontextdto)
 - [`protocol::OutputS3ContextDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#outputs3contextdto)
 - [`protocol::PlainFetch`](../../../internals/crates/bookclerk_plugin_abi/generated.md#plainfetch)
-- [`protocol::PlainPart`](../../../internals/crates/bookclerk_plugin_abi/generated.md#plainpart)
 - [`protocol::PortalAuthMode`](../../../internals/crates/bookclerk_plugin_abi/generated.md#portalauthmode)
 - [`protocol::PurchaseHint`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehint)
 - [`protocol::PurchaseHintParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintparams)
@@ -1390,6 +1393,34 @@ mode = "deny"
 "#).unwrap();
 assert_eq!(caps.entrypoints.len(), 1);
 ```
+
+### manifest_media
+
+```rust
+pub fn manifest_media(manifest_toml: &str) -> Result<MediaSupport, PluginError>
+```
+
+Parses `plugin.toml` source and returns the [`MediaSupport`](../../../internals/crates/bookclerk_plugin_abi/generated.md#mediasupport) a guest must
+advertise from `describe()`.
+
+The host refuses a storefront or metadata provider whose described media
+differs from its manifest's `[media]` table, so deriving it from the
+embedded manifest keeps the two equal.
+
+#### Arguments
+
+* `manifest_toml` - Contents of the plugin's `plugin.toml`, typically
+  `include_str!("../plugin.toml")`.
+
+#### Returns
+
+The `[media]` declaration in its wire shape; empty lists for a plugin
+without the table.
+
+#### Errors
+
+Returns `PluginErrorCode::Internal` when the manifest does not parse or
+fails validation (including a storefront without `[media]`).
 
 ### fd_proc_path
 

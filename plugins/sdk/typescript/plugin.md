@@ -5263,9 +5263,10 @@ Optional identity refinement returned by `BookclerkEntrypoint.describe()`.
 The launcher derives the full wire `PluginDescribe` from `plugin.toml`
 (`apiVersion`, `id`, `capabilities`, `configOptions`, `cli`, …); an author
 `describe()` may add or override presentation fields such as
-`displayName`, `brand`, or `rpcFeatures`. Identity, capabilities, and the
-`[[settings]]`-derived `configOptions` always come from the manifest: a
-guest list that differs from the manifest fails the spawn on the host.
+`displayName`, `brand`, or `rpcFeatures`. Identity, capabilities, the
+`[media]` declaration, and the `[[settings]]`-derived `configOptions`
+always come from the manifest: a guest list that differs from the
+manifest fails the spawn on the host.
 
 ***
 

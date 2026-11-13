@@ -145,7 +145,7 @@ An unchecked listing, field for field as a plugin reported it.
 - `product_id`: The store's own product id.
 - `work_kind`: Kind of work.
 - `expression_kind`: How the work is realised.
-- `media_kind`: Form of the edition.
+- `media_kind`: Carrier of the edition.
 - `language`: Content language code when known.
 - `abridgement`: Abridgement as reported.
 - `title`: Title.
@@ -157,7 +157,8 @@ An unchecked listing, field for field as a plugin reported it.
 - `credits`: Credits in billing order: name, role, and a level when the source
   departs from the role's usual one.
 - `series`: Series entries: name and position label.
-- `parent_product_id`: Parent show's product id, for a podcast episode.
+- `parent_product_id`: Parent show's product id, for a podcast episode (a podcast that names
+  its show).
 
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
@@ -190,7 +191,7 @@ A validated, normalised listing: the resolver's only input record.
 - `key`: The store, marketplace and product it is.
 - `work_kind`: Kind of work.
 - `expression_kind`: How the work is realised.
-- `media_kind`: Form of the edition.
+- `media_kind`: Carrier of the edition.
 - `language`: Lower-cased language code; `None` when unknown.
 - `abridgement`: Abridgement; [`Abridgement::Unknown`](kinds.md#abridgement) when the source did not say.
 - `title`: Title, whitespace collapsed.
@@ -217,14 +218,23 @@ Validates and normalises a draft.
 
 ##### Returns
 
-The normalised listing. Absent kinds take their common value
-(`book`, `narration`, `audiobook`); an episode keeps its parent id,
-and any other kind drops it.
+The normalised listing. A podcast keeps its parent id (an episode
+names its show); a book drops it.
 
 ##### Errors
 
-Returns [`ListingError`](#listingerror) when the plugin key, product id or title is
-blank, a text field is too long, or a list is over its limit.
+Returns [`ListingError`](#listingerror) when a kind is absent, the plugin key,
+product id or title is blank, a text field is too long, or a list is
+over its limit.
+
+#### Listing::is_episode
+
+```rust
+pub fn is_episode(&self) -> bool
+```
+
+Whether this listing is a podcast episode: a podcast that names its
+show. A podcast without a parent is the show.
 
 #### Listing::parent_key
 
@@ -345,6 +355,7 @@ pub enum ListingError {
     TooLong(&'static str),
     TooMany(&'static str),
     NegativeDuration,
+    MissingKind(&'static str),
 }
 ```
 
@@ -356,6 +367,8 @@ Why a draft listing was refused.
 - `TooLong`: A text field is longer than [`MAX_TEXT_BYTES`](#max_text_bytes).
 - `TooMany`: A list holds more entries than its limit.
 - `NegativeDuration`: The runtime is negative.
+- `MissingKind`: A kind (work, expression or media) is absent: every record names
+  all three, so a plugin that leaves one unspecified is refused.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 

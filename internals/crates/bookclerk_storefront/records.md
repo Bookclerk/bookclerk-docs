@@ -24,7 +24,7 @@ until the library schema stores works, expressions and editions
 | [`normalize_identifier`](#normalize_identifier) | function | The canonical form of an identifier value as a source printed it. |
 | [`content_kind`](#content_kind) | function | The flat `books.content_kind` value for a work kind. |
 | [`work_kind_from_label`](#work_kind_from_label) | function | The work kind for a store's own item-kind label (`episode`, `podcast`). |
-| [`audio_kinds`](#audio_kinds) | function | The expression and media kinds an audio storefront's item has, given its work kind: podcast shows and episodes are podcast audio, everything else is a narrated audiobook. |
+| [`audio_kinds`](#audio_kinds) | function | The expression and media kinds an audio storefront's item has, given its work kind: a podcast is original audio, a book a narration, and both come as downloadable audio. |
 | [`fill_credits`](#fill_credits) | function | Adds the credits of `fill` whose role `base` has none of, so a merge of two hits for one edition never overwrites the credits already known. |
 | [`fill_identifiers`](#fill_identifiers) | function | Adds the identifiers of `fill` whose scheme `base` has none of. |
 | [`NAME_SEPARATOR`](#name_separator) | constant | Separator the flat `books` row view uses between contributor names. |
@@ -182,12 +182,22 @@ shape is kept as the stripped text, since rejecting it would lose data.
 ### content_kind
 
 ```rust
-pub fn content_kind(kind: WorkKind) -> &'static str
+pub fn content_kind(kind: WorkKind, has_parent: bool) -> Option<&'static str>
 ```
 
 The flat `books.content_kind` value for a work kind.
 
-Drama has no flat kind of its own and reads as `book`.
+A podcast that names its show (`parent_product_id`) is an `episode`; a
+podcast without one is the show (`podcast`).
+
+#### Arguments
+
+* `kind` - The record's work kind.
+* `has_parent` - Whether the record names a parent show.
+
+#### Returns
+
+`None` for `WorkKind::Unspecified`, which the host refuses.
 
 ### work_kind_from_label
 
@@ -197,9 +207,10 @@ pub fn work_kind_from_label(label: &str) -> WorkKind
 
 The work kind for a store's own item-kind label (`episode`, `podcast`).
 
-Labels a storefront uses for podcast shows (`podcast`, `parent`,
-`podcastparent`, `season`) read as `WorkKind::PodcastShow`; anything
-else is a book.
+Labels a storefront uses for podcast episodes and shows (`episode`,
+`podcast`, `parent`, `podcastparent`, `season`) read as
+`WorkKind::Podcast`; anything else is a book. Whether a podcast is the
+show or an episode is then carried by `parent_product_id`.
 
 ### audio_kinds
 
@@ -208,8 +219,13 @@ pub fn audio_kinds(work: WorkKind) -> (ExpressionKind, MediaKind)
 ```
 
 The expression and media kinds an audio storefront's item has, given its
-work kind: podcast shows and episodes are podcast audio, everything else
-is a narrated audiobook.
+work kind: a podcast is original audio, a book a narration, and both
+come as downloadable audio.
+
+#### Returns
+
+`ExpressionKind::Unspecified` and `MediaKind::Unspecified` for an
+unspecified work kind, so the host refuses the record.
 
 ### fill_credits
 

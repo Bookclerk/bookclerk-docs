@@ -14,6 +14,7 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`FetchConversionError`](#fetchconversionerror) | enum | Why a fetch the guest answered cannot become a host `PlainFetch`. |
 | [`abridgement_from_flag`](#abridgement_from_flag) | function | Tri-state abridgement flag ↔ the host's `Option<bool>`. |
 | [`abridgement_to_flag`](#abridgement_to_flag) | function | Host `Option<bool>` view of the wire tri-state abridgement flag. |
 | [`catalog_field_to_abi`](#catalog_field_to_abi) | function | Wire facet for an optional host search field (`None` → `any`). |
@@ -30,6 +31,25 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`credentials_from_bytes`](#credentials_from_bytes) | function | Decodes an opaque credential blob into the JSON document guests store. |
 | [`DEFAULT_LIST_DEALS_LIMIT`](#default_list_deals_limit) | constant | `limit` sent for the host's `ContentSource::list_deals` when the caller omits one. |
 | [`DEFAULT_EXTERNAL_SORT_KEY`](#default_external_sort_key) | constant | Host-side registry sort key for guests that leave `sortKey` at zero. |
+
+## Enums
+
+### FetchConversionError
+
+```rust
+pub enum FetchConversionError {
+    CarrierNotAcquired(MediaKind),
+}
+```
+
+Why a fetch the guest answered cannot become a host [`PlainFetch`](README.md#plainfetch).
+
+**Variants**
+
+- `CarrierNotAcquired`: The host acquires audio editions only today; the fetch carried
+  another carrier.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ## Functions
 

@@ -456,7 +456,7 @@ One DRM-free audio part (chapter file or single book).
 - `title`: Optional chapter / part title for packaging and metadata.
 - `duration_ms`: Duration in milliseconds when known.
 
-Implements: `Clone`, `Debug`, `From<PlainAudioPart>`, `From<PlainPart>`
+Implements: `Clone`, `Debug`
 
 ### PlainFetch
 
@@ -481,7 +481,7 @@ return clear media here — the host never sees ciphertext or keys.
 - `chapters`: Chapter titles paired with start offsets in milliseconds.
 - `pdf_url`: Companion PDF download URL when the store exposes one.
 
-Implements: `Clone`, `Debug`, `From<PlainFetch>`
+Implements: `Clone`, `Debug`, `From<PlainFetch>`, `TryFrom<PlainFetch>`
 
 ### PurchaseHintOpts
 

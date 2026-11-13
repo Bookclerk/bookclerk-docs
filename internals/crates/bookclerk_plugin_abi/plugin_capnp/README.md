@@ -16,6 +16,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`IdentifierScheme`](#identifierscheme) | enum |  |
 | [`CreditRole`](#creditrole) | enum |  |
 | [`CreditLevel`](#creditlevel) | enum |  |
+| [`FetchedFileRole`](#fetchedfilerole) | enum |  |
 | [`CatalogSort`](#catalogsort) | enum |  |
 | [`CatalogField`](#catalogfield) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
@@ -159,6 +160,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`login_start_reply`](login_start_reply.md)
 - [`account_credential`](account_credential.md)
 - [`scan_params`](scan_params.md)
+- [`media_support`](media_support.md)
 - [`identifier`](identifier.md)
 - [`credit`](credit.md)
 - [`series_entry`](series_entry.md)
@@ -167,7 +169,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`scan_reply`](scan_reply.md)
 - [`fetch_options`](fetch_options.md)
 - [`fetch_title_params`](fetch_title_params.md)
-- [`plain_part`](plain_part.md)
+- [`fetched_file`](fetched_file.md)
 - [`chapter_marker`](chapter_marker.md)
 - [`plain_fetch`](plain_fetch.md)
 - [`fetch_title_reply`](fetch_title_reply.md)
@@ -355,10 +357,9 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CliArgKind>`, `HasTypeId`, `In
 
 ```rust
 pub enum WorkKind {
-    Book = 0,
-    PodcastShow = 1,
-    PodcastEpisode = 2,
-    Drama = 3,
+    Unspecified = 0,
+    Book = 1,
+    Podcast = 2,
 }
 ```
 
@@ -368,11 +369,12 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<WorkKind>`, `HasTypeId`, `Intr
 
 ```rust
 pub enum ExpressionKind {
-    Narration = 0,
+    Unspecified = 0,
     Text = 1,
-    Translation = 2,
+    Narration = 2,
     Dramatisation = 3,
-    PodcastAudio = 4,
+    Graphic = 4,
+    OriginalAudio = 5,
 }
 ```
 
@@ -382,10 +384,10 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ExpressionKind>`, `HasTypeId`,
 
 ```rust
 pub enum MediaKind {
-    Audiobook = 0,
-    Ebook = 1,
-    Print = 2,
-    PodcastAudio = 3,
+    Unspecified = 0,
+    Audio = 1,
+    Ebook = 2,
+    Print = 3,
 }
 ```
 
@@ -434,6 +436,19 @@ pub enum CreditLevel {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CreditLevel>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### FetchedFileRole
+
+```rust
+pub enum FetchedFileRole {
+    Unspecified = 0,
+    Part = 1,
+    Whole = 2,
+    Cover = 3,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<FetchedFileRole>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### CatalogSort
 

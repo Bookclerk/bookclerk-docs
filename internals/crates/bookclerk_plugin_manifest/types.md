@@ -9,6 +9,7 @@ Semantic rules that cannot be expressed in serde alone live in
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`MediaManifest`](#mediamanifest) | struct | `[media]`: the work kinds and edition carriers a storefront or metadata provider reports, and the carriers a storefront can download. |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
 | [`NetworkCapabilities`](#networkcapabilities) | struct | `[capabilities.network]` — mode plus optional workerd host allowlist. |
 | [`OwnUserAgent`](#ownuseragent) | struct | `[capabilities.network.own_user_agent]`: where a plugin keeps its own `User-Agent`. |
@@ -78,6 +79,41 @@ Semantic rules that cannot be expressed in serde alone live in
 - [`bookclerk_plugin_abi::PluginCapabilities`](../bookclerk_plugin_abi/generated.md#plugincapabilities)
 
 ## Structs
+
+### MediaManifest
+
+```rust
+pub struct MediaManifest {
+    pub works: Vec<WorkKind>,
+    pub lists: Vec<MediaKind>,
+    pub fetches: Vec<MediaKind>,
+}
+```
+
+`[media]`: the work kinds and edition carriers a storefront or metadata
+provider reports, and the carriers a storefront can download.
+
+Spellings are the wire names (`book`, `podcast`; `audio`, `ebook`,
+`print`). There is no default: a storefront or metadata provider
+without this table, or with an empty `works` or `lists`, is refused.
+
+**Fields**
+
+- `works`: Work kinds the plugin reports.
+- `lists`: Edition carriers the plugin reports in scans, catalog search and
+  metadata records.
+- `fetches`: Edition carriers `fetchTitle` can deliver; a subset of `lists`.
+  Storefronts only.
+
+#### MediaManifest::to_wire
+
+```rust
+pub fn to_wire(&self) -> MediaSupport
+```
+
+The declaration in its wire shape, as `describe()` returns it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### TcpCapability
 
@@ -689,6 +725,7 @@ pub struct PluginManifest {
     pub work_fs: Option<NamedBinding>,
     pub oauth: Option<NamedBinding>,
     pub credentials: Option<CredentialSharing>,
+    pub media: Option<MediaManifest>,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -758,10 +795,24 @@ rejected.
   between Bookclerk instances (`credentials`); see
   [`CredentialSharing`](#credentialsharing) and [`Self::credential_sharing`](#pluginmanifestcredential_sharing). Only a
   plugin with the `storefront` entrypoint may set it.
+- `media`: Media the plugin works with (`[media]`): required for plugins that
+  export the `storefront` or `metadata` entrypoint and forbidden for
+  every other plugin. `describe()` must return the same lists; see
+  [`MediaManifest`](#mediamanifest).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
 - `oidc`: Optional Bookclerk-as-IdP client templates (`[[oidc.clients]]`).
+
+#### PluginManifest::media_support
+
+```rust
+pub fn media_support(&self) -> MediaSupport
+```
+
+The declared `[media]` in its wire shape; empty lists when the table
+is left out (only valid for plugins that are neither storefronts
+nor metadata providers).
 
 #### PluginManifest::credential_sharing
 

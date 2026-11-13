@@ -1,4 +1,4 @@
-# bookclerk_plugin_abi::plugin_capnp::plain_part
+# bookclerk_plugin_abi::plugin_capnp::media_support
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -37,34 +37,40 @@ pub fn reborrow(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Reader::get_path
+#### Reader::get_work_kinds
 
 ```rust
-pub fn get_path(self) -> Result<Reader<'a>>
+pub fn get_work_kinds(self) -> Result<Reader<'a, WorkKind>>
 ```
 
-#### Reader::has_path
+#### Reader::has_work_kinds
 
 ```rust
-pub fn has_path(&self) -> bool
+pub fn has_work_kinds(&self) -> bool
 ```
 
-#### Reader::get_title
+#### Reader::get_lists
 
 ```rust
-pub fn get_title(self) -> Result<Reader<'a>>
+pub fn get_lists(self) -> Result<Reader<'a, MediaKind>>
 ```
 
-#### Reader::has_title
+#### Reader::has_lists
 
 ```rust
-pub fn has_title(&self) -> bool
+pub fn has_lists(&self) -> bool
 ```
 
-#### Reader::get_duration_ms
+#### Reader::get_fetches
 
 ```rust
-pub fn get_duration_ms(self) -> u64
+pub fn get_fetches(self) -> Result<Reader<'a, MediaKind>>
+```
+
+#### Reader::has_fetches
+
+```rust
+pub fn has_fetches(&self) -> bool
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
@@ -101,64 +107,76 @@ pub fn reborrow_as_reader(&self) -> Reader<'_>
 pub fn total_size(&self) -> Result<MessageSize>
 ```
 
-#### Builder::get_path
+#### Builder::get_work_kinds
 
 ```rust
-pub fn get_path(self) -> Result<Builder<'a>>
+pub fn get_work_kinds(self) -> Result<Builder<'a, WorkKind>>
 ```
 
-#### Builder::set_path
+#### Builder::set_work_kinds
 
 ```rust
-pub fn set_path(&mut self, value: impl SetterInput<Owned>)
+pub fn set_work_kinds(&mut self, value: impl SetterInput<Owned<WorkKind>>) -> Result<()>
 ```
 
-#### Builder::init_path
+#### Builder::init_work_kinds
 
 ```rust
-pub fn init_path(self, size: u32) -> Builder<'a>
+pub fn init_work_kinds(self, size: u32) -> Builder<'a, WorkKind>
 ```
 
-#### Builder::has_path
+#### Builder::has_work_kinds
 
 ```rust
-pub fn has_path(&self) -> bool
+pub fn has_work_kinds(&self) -> bool
 ```
 
-#### Builder::get_title
+#### Builder::get_lists
 
 ```rust
-pub fn get_title(self) -> Result<Builder<'a>>
+pub fn get_lists(self) -> Result<Builder<'a, MediaKind>>
 ```
 
-#### Builder::set_title
+#### Builder::set_lists
 
 ```rust
-pub fn set_title(&mut self, value: impl SetterInput<Owned>)
+pub fn set_lists(&mut self, value: impl SetterInput<Owned<MediaKind>>) -> Result<()>
 ```
 
-#### Builder::init_title
+#### Builder::init_lists
 
 ```rust
-pub fn init_title(self, size: u32) -> Builder<'a>
+pub fn init_lists(self, size: u32) -> Builder<'a, MediaKind>
 ```
 
-#### Builder::has_title
+#### Builder::has_lists
 
 ```rust
-pub fn has_title(&self) -> bool
+pub fn has_lists(&self) -> bool
 ```
 
-#### Builder::get_duration_ms
+#### Builder::get_fetches
 
 ```rust
-pub fn get_duration_ms(self) -> u64
+pub fn get_fetches(self) -> Result<Builder<'a, MediaKind>>
 ```
 
-#### Builder::set_duration_ms
+#### Builder::set_fetches
 
 ```rust
-pub fn set_duration_ms(&mut self, value: u64)
+pub fn set_fetches(&mut self, value: impl SetterInput<Owned<MediaKind>>) -> Result<()>
+```
+
+#### Builder::init_fetches
+
+```rust
+pub fn init_fetches(self, size: u32) -> Builder<'a, MediaKind>
+```
+
+#### Builder::has_fetches
+
+```rust
+pub fn has_fetches(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

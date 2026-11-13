@@ -14,7 +14,8 @@ the resolver's invariants after every step:
 - strong identifiers that name different editions never merge them;
   the listing reaches one and the conflict is recorded;
 - a work found by identifier or matcher has the listing's kind, and an
-  episode matched by text shares its parent show;
+  episode matched by text shares its parent show, while a book or a show
+  never matches an episode by text, and no work becomes its own parent;
 - a catalog listing (recorded with no holding) never gains a holding
   and never announces a holding or its own new link;
 - resolving the same input twice changes nothing.

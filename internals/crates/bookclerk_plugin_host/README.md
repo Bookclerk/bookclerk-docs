@@ -150,6 +150,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`validate_approved_grant`](#validate_approved_grant) | function | Validates and normalizes an operator-supplied grant against host hard caps. |
 | [`validate_described_capabilities`](#validate_described_capabilities) | function | Reject `describe()` capability claims that exceed the manifest and the covering grant. |
 | [`validate_described_config_options`](#validate_described_config_options) | function | Validates `describe().configOptions` against the manifest `[[settings]]`. |
+| [`validate_described_media`](#validate_described_media) | function | Checks the `media` a guest's `describe()` returns against its manifest. |
 | [`windows_session_active_processes`](#windows_session_active_processes) | function | Windows outer session Job active-process cap: baseline 5 plus `extra`. |
 | [`search_crates_io`](#search_crates_io) | function | Search crates.io for Bookclerk plugins. |
 | [`load_authorized_local_packages`](#load_authorized_local_packages) | function | Loads operator-placed archives under `$FILES_DIR/plugin-packages/<name>/`. |
@@ -295,13 +296,14 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 - [`bookclerk_plugin_sdk::ExpandCandidatesParams`](../bookclerk_plugin_abi/generated.md#expandcandidatesparams)
 - [`bookclerk_plugin_sdk::ExternalUser`](../bookclerk_plugin_abi/generated.md#externaluser)
 - [`bookclerk_plugin_sdk::FetchTitleParams`](../bookclerk_plugin_abi/generated.md#fetchtitleparams)
+- [`bookclerk_plugin_sdk::FetchedFile`](../bookclerk_plugin_abi/generated.md#fetchedfile)
+- [`bookclerk_plugin_sdk::FetchedFileRole`](../bookclerk_plugin_abi/generated.md#fetchedfilerole)
 - [`bookclerk_plugin_sdk::ListeningProgress`](../bookclerk_plugin_abi/generated.md#listeningprogress)
 - [`bookclerk_plugin_sdk::LoginCompleteParams`](../bookclerk_plugin_abi/generated.md#logincompleteparams)
 - [`bookclerk_plugin_sdk::LoginParams`](../bookclerk_plugin_abi/generated.md#loginparams)
 - [`bookclerk_plugin_sdk::LoginResult`](../bookclerk_plugin_abi/generated.md#loginresult)
 - [`bookclerk_plugin_sdk::LoginStartResult`](../bookclerk_plugin_abi/generated.md#loginstartresult)
 - [`bookclerk_plugin_sdk::PlainFetch`](../bookclerk_plugin_abi/generated.md#plainfetch)
-- [`bookclerk_plugin_sdk::PlainPart`](../bookclerk_plugin_abi/generated.md#plainpart)
 - [`bookclerk_plugin_sdk::PluginDescribe`](../bookclerk_plugin_abi/README.md#plugindescribe)
 - [`bookclerk_plugin_sdk::PurchaseHint`](../bookclerk_plugin_abi/generated.md#purchasehint)
 - [`bookclerk_plugin_sdk::PurchaseHintParams`](../bookclerk_plugin_abi/generated.md#purchasehintparams)
@@ -4991,6 +4993,34 @@ cannot widen or narrow its own writable keys at runtime.
 #### Errors
 
 Returns an error naming the first key or value that differs.
+
+### validate_described_media
+
+```rust
+pub fn validate_described_media(
+    manifest: &PluginManifest,
+    described: &PluginDescribe,
+) -> Result<()>
+```
+
+Checks the `media` a guest's `describe()` returns against its manifest.
+
+The manifest's `[media]` table is the authority: the host routes work to
+sleeping plugins from it without spawning them, so a guest may neither
+widen nor narrow it at runtime. The described declaration must name the
+same kinds (order and repeats ignored) and pass the same rules the
+manifest does.
+
+#### Arguments
+
+* `manifest` - Installed manifest for the plugin.
+* `described` - The guest's `describe()` reply.
+
+#### Errors
+
+Returns an error when the declaration differs from `[media]` or breaks a
+declaration rule (empty for a storefront or metadata provider, names
+`unspecified`, fetches a carrier it does not list).
 
 ### windows_session_active_processes
 

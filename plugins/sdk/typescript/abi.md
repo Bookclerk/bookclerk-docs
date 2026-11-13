@@ -112,6 +112,16 @@ Union of `EXPRESSION_KINDS` wire names.
 
 ***
 
+### FetchedFileRole
+
+```ts
+type FetchedFileRole = typeof FETCHED_FILE_ROLES[number];
+```
+
+Union of `FETCHED_FILE_ROLES` wire names.
+
+***
+
 ### IdentifierScheme
 
 ```ts
@@ -319,11 +329,12 @@ Ordinal-ordered `Entrypoint` wire names (index = Cap'n Proto ordinal).
 ### EXPRESSION\_KINDS
 
 ```ts
-const EXPRESSION_KINDS: readonly ["narration", "text", "translation", "dramatisation", "podcastAudio"];
+const EXPRESSION_KINDS: readonly ["unspecified", "text", "narration", "dramatisation", "graphic", "originalAudio"];
 ```
 
-How a work is realised (FRBR expression). Ordinal 0 is the common case
-for a storefront that sells audiobooks.
+How a work is realised (FRBR expression): the kind of content you get,
+independent of the carrier. A translation is not a kind: the expression's
+language and its translator credits say it. `unspecified` is refused.
 
 Ordinal-ordered `ExpressionKind` wire names (index = Cap'n Proto ordinal).
 
@@ -356,6 +367,18 @@ const FEATURE_STREAMS: "rpc.streams";
 ```
 
 Media moves through transferred `ByteRange` / `ByteSource` streams (`rpc.streams`).
+
+***
+
+### FETCHED\_FILE\_ROLES
+
+```ts
+const FETCHED_FILE_ROLES: readonly ["unspecified", "part", "whole", "cover"];
+```
+
+What one fetched file is to the edition it belongs to.
+
+Ordinal-ordered `FetchedFileRole` wire names (index = Cap'n Proto ordinal).
 
 ***
 
@@ -613,11 +636,13 @@ Maximum bytes returned by one `ByteSource.pull` (flow-control window).
 ### MEDIA\_KINDS
 
 ```ts
-const MEDIA_KINDS: readonly ["audiobook", "ebook", "print", "podcastAudio"];
+const MEDIA_KINDS: readonly ["unspecified", "audio", "ebook", "print"];
 ```
 
-Physical or digital form of an edition (FRBR manifestation). Only
-`audiobook` and `podcastAudio` editions are acquire candidates.
+Carrier of an edition (FRBR manifestation): what form you receive.
+Whether the host acquires an edition depends on the storefront's
+`MediaSupport.fetches` and what the host supports, not on this value
+alone. `unspecified` is refused.
 
 Ordinal-ordered `MediaKind` wire names (index = Cap'n Proto ordinal).
 
@@ -674,10 +699,13 @@ Ordinal-ordered `ResolvedSqlType` wire names (index = Cap'n Proto ordinal).
 ### WORK\_KINDS
 
 ```ts
-const WORK_KINDS: readonly ["book", "podcastShow", "podcastEpisode", "drama"];
+const WORK_KINDS: readonly ["unspecified", "book", "podcast"];
 ```
 
-What kind of creative work a record describes (FRBR work). Ordinal 0 is
-the common case, so a guest that leaves it unset describes a book.
+What family of creative work a record describes (FRBR work). Every record
+names one: `unspecified` is refused by the host, so a guest that forgets
+the field fails instead of silently describing a book. Whether a podcast
+work is a show or an episode is structural, not a kind: an episode names
+its show through `parentProductId`, a show names no parent.
 
 Ordinal-ordered `WorkKind` wire names (index = Cap'n Proto ordinal).

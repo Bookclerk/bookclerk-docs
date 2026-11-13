@@ -145,6 +145,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`LoginStartReplyErr`](#loginstartreplyerr) | class | `LoginStartReply` member `err`. |
 | [`AccountCredential`](#accountcredential) | class | Host-sealed credentials for one account, delivered on `scan`. |
 | [`ScanParams`](#scanparams) | class | Params of `ContentSource.scan`: one page of one account's scan pass. The host injects that account's sealed credentials so the plugin does not need a private credential store under `pluginDataDir`, and drives the pass page by page: the first call of a pass sends an empty `cursor`, every later call echoes the previous page's `nextCursor`. |
+| [`MediaSupport`](#mediasupport) | class | Media a plugin works with, declared in `describe()` and in the manifest's `[media]` table. Required for plugins that export the storefront or metadata entrypoint: the host refuses to spawn one whose `workKinds` or `lists` is empty, holds `unspecified`, or is wider than its manifest, and refuses any record whose kinds fall outside the declaration. |
 | [`Identifier`](#identifier) | class | One external identifier a storefront or metadata provider reports. |
 | [`Credit`](#credit) | class | One credited contributor. Credits are listed in billing order. |
 | [`SeriesEntry`](#seriesentry) | class | A work's place in one series. |
@@ -154,7 +155,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`ScanReplyErr`](#scanreplyerr) | class | `ScanReply` member `err`. |
 | [`FetchOptions`](#fetchoptions) | class | Fetch-relevant acquire knobs the host forwards so external load matches in-process. Packaging / naming knobs stay host-side. |
 | [`FetchTitleParams`](#fetchtitleparams) | class | Params of `ContentSource.fetchTitle`. The plugin writes media under `cacheDir` and returns plain (DRM-free) paths. The host injects credentials; guests must not open `library.db` or `master.key`. |
-| [`PlainPart`](#plainpart) | class | One plain audio part written under the cache directory. |
+| [`FetchedFile`](#fetchedfile) | class | One file `fetchTitle` wrote under the cache directory. |
 | [`ChapterMarker`](#chaptermarker) | class | One chapter marker of a fetched title. |
 | [`PlainFetch`](#plainfetch) | class | Plain (DRM-free) fetch result. Sources always return decrypted media; DRM guests decrypt before responding. |
 | [`FetchTitleReplyOk`](#fetchtitlereplyok) | class | `FetchTitleReply` member `ok`. |
@@ -318,12 +319,13 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`Entrypoint`](#entrypoint) | constant | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | constant | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | constant | Value kind for a `CliArgSpec`. |
-| [`WorkKind`](#workkind) | constant | What kind of creative work a record describes (FRBR work). Ordinal 0 is the common case, so a guest that leaves it unset describes a book. |
-| [`ExpressionKind`](#expressionkind) | constant | How a work is realised (FRBR expression). Ordinal 0 is the common case for a storefront that sells audiobooks. |
-| [`MediaKind`](#mediakind) | constant | Physical or digital form of an edition (FRBR manifestation). Only `audiobook` and `podcastAudio` editions are acquire candidates. |
+| [`WorkKind`](#workkind) | constant | What family of creative work a record describes (FRBR work). Every record names one: `unspecified` is refused by the host, so a guest that forgets the field fails instead of silently describing a book. Whether a podcast work is a show or an episode is structural, not a kind: an episode names its show through `parentProductId`, a show names no parent. |
+| [`ExpressionKind`](#expressionkind) | constant | How a work is realised (FRBR expression): the kind of content you get, independent of the carrier. A translation is not a kind: the expression's language and its translator credits say it. `unspecified` is refused. |
+| [`MediaKind`](#mediakind) | constant | Carrier of an edition (FRBR manifestation): what form you receive. Whether the host acquires an edition depends on the storefront's `MediaSupport.fetches` and what the host supports, not on this value alone. `unspecified` is refused. |
 | [`IdentifierScheme`](#identifierscheme) | constant | Scheme of an external identifier. The scheme fixes whether the id names a work or an edition, and whether it is strong (unique) or weak (shared). |
 | [`CreditRole`](#creditrole) | constant | A contributor's responsibility for a work, expression or edition. |
 | [`CreditLevel`](#creditlevel) | constant | Which level a credit attaches to. Ordinal 0 is the role's usual level, so a guest sets this only when a credit departs from it. |
+| [`FetchedFileRole`](#fetchedfilerole) | constant | What one fetched file is to the edition it belongs to. |
 | [`CatalogSort`](#catalogsort) | constant | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
@@ -572,6 +574,7 @@ Guest identity and negotiation surface returned by `describe()`.
 - `configOptions`: Discoverable config option groups for source UIs.
 - `cli`: Embedded CLI schema (same shape as `PluginCli.describe`); empty when unused.
 - `catalog`: Catalog behaviours a storefront declares so the host can use any store for catalog search without naming it; all false for other kinds.
+- `media`: Work kinds and edition carriers the plugin lists and fetches; required for storefronts and metadata providers, empty lists for every other kind (see `MediaSupport`).
 
 ### OidcClientTemplate
 
@@ -3206,6 +3209,24 @@ echoes the previous page's `nextCursor`.
 - `cursor`: Opaque position the guest returned as `ScanPage.nextCursor`; empty on the first page of a pass. At most `maxScanCursorBytes`.
 - `syncToken`: Opaque token the guest returned as `ScanPage.syncToken` at the end of the account's last pass; empty asks for a full pass. At most `maxScanCursorBytes`.
 
+### MediaSupport
+
+```python
+class MediaSupport(TypedDict)
+```
+
+Media a plugin works with, declared in `describe()` and in the manifest's
+`[media]` table. Required for plugins that export the storefront or
+metadata entrypoint: the host refuses to spawn one whose `workKinds` or
+`lists` is empty, holds `unspecified`, or is wider than its manifest, and
+refuses any record whose kinds fall outside the declaration.
+
+**Attributes**
+
+- `workKinds`: Work kinds the plugin reports.
+- `lists`: Edition carriers the plugin reports in scans, catalog search and metadata records.
+- `fetches`: Edition carriers `ContentSource.fetchTitle` can deliver; a subset of `lists`. Empty for metadata providers and for stores that only list.
+
 ### Identifier
 
 ```python
@@ -3269,7 +3290,7 @@ editions, maps the record onto one flat library row.
 - `subtitle`: Subtitle when distinct from `title`. Omitted when absent (wire zero value).
 - `workKind`: Kind of work the title is.
 - `expressionKind`: How the work is realised in this edition.
-- `mediaKind`: Form of this edition.
+- `mediaKind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `seriesEntries`: Series the work belongs to.
@@ -3377,19 +3398,21 @@ credentials; guests must not open `library.db` or `master.key`.
 - `sourceConfig`: Granted `[sources.<id>]` table as `application/json`.
 - `fetch`: Fetch-relevant acquire options.
 
-### PlainPart
+### FetchedFile
 
 ```python
-class PlainPart(TypedDict)
+class FetchedFile(TypedDict)
 ```
 
-One plain audio part written under the cache directory.
+One file `fetchTitle` wrote under the cache directory.
 
 **Attributes**
 
-- `path`: Absolute path to the part file under `cacheDir`.
-- `title`: Part title (disc / chapter label). Omitted when absent (wire zero value).
-- `durationMs`: Duration of this part in milliseconds when known. Omitted when absent (wire zero value).
+- `path`: Absolute path to the file under `cacheDir`.
+- `role`: What the file is to the edition.
+- `contentType`: MIME type when the guest knows it (`audio/mp4`, `application/epub+zip`, `image/jpeg`); the host sniffs the file either way. Omitted when absent (wire zero value).
+- `title`: Part title (disc or chapter label), for a `part`. Omitted when absent (wire zero value).
+- `durationMs`: Playing time of the file in milliseconds, for audio, when known. Omitted when absent (wire zero value).
 
 ### ChapterMarker
 
@@ -3415,11 +3438,10 @@ guests decrypt before responding.
 
 **Attributes**
 
-- `parts`: Ordered audio part files written under the cache directory.
-- `m4bPath`: Single M4B path when the guest assembled one. Omitted when absent (wire zero value).
-- `coverPath`: Cover image path under the cache directory. Omitted when absent (wire zero value).
+- `mediaKind`: Carrier of what was fetched. Must be one of the storefront's declared `MediaSupport.fetches`; `unspecified` is refused.
+- `files`: The files the guest wrote under the cache directory: the edition's ordered `part`s or one `whole` file, plus an optional `cover`.
 - `chapters`: Chapter markers; empty when unknown.
-- `pdfUrl`: Companion PDF download URL when the store exposes one. Omitted when absent (wire zero value).
+- `pdfUrl`: Companion PDF download URL when the store exposes one; the host downloads it itself. Omitted when absent (wire zero value).
 - `refreshedCredentials`: The account's credentials as the guest holds them after refreshing them during the fetch, as in `ScanPage.refreshedCredentials`. Empty when nothing changed. Omitted when absent (wire zero value).
 
 ### FetchTitleReplyOk
@@ -3625,7 +3647,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `abridgement`: Whether the edition is abridged when the storefront says so.
 - `workKind`: Kind of work the hit is.
 - `expressionKind`: How the work is realised in this edition.
-- `mediaKind`: Form of this edition; print and ebook hits are never acquired.
+- `mediaKind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `seriesEntries`: Series the work belongs to.
@@ -4565,7 +4587,7 @@ fields as `CatalogHit`, without store pricing.
 - `abridgement`: Whether the edition is abridged when the provider says so.
 - `workKind`: Kind of work the record describes.
 - `expressionKind`: How the work is realised in this edition.
-- `mediaKind`: Form of this edition.
+- `mediaKind`: Carrier of this edition.
 - `identifiers`: External identifiers (ISBN, ASIN, OpenLibrary ids).
 - `credits`: Credited contributors in billing order.
 - `seriesEntries`: Series the work belongs to.
@@ -6128,29 +6150,35 @@ Value kind for a `CliArgSpec`.
 ### WorkKind
 
 ```python
-WorkKind = Literal['book', 'podcastShow', 'podcastEpisode', 'drama']
+WorkKind = Literal['unspecified', 'book', 'podcast']
 ```
 
-What kind of creative work a record describes (FRBR work). Ordinal 0 is
-the common case, so a guest that leaves it unset describes a book.
+What family of creative work a record describes (FRBR work). Every record
+names one: `unspecified` is refused by the host, so a guest that forgets
+the field fails instead of silently describing a book. Whether a podcast
+work is a show or an episode is structural, not a kind: an episode names
+its show through `parentProductId`, a show names no parent.
 
 ### ExpressionKind
 
 ```python
-ExpressionKind = Literal['narration', 'text', 'translation', 'dramatisation', 'podcastAudio']
+ExpressionKind = Literal['unspecified', 'text', 'narration', 'dramatisation', 'graphic', 'orig...
 ```
 
-How a work is realised (FRBR expression). Ordinal 0 is the common case
-for a storefront that sells audiobooks.
+How a work is realised (FRBR expression): the kind of content you get,
+independent of the carrier. A translation is not a kind: the expression's
+language and its translator credits say it. `unspecified` is refused.
 
 ### MediaKind
 
 ```python
-MediaKind = Literal['audiobook', 'ebook', 'print', 'podcastAudio']
+MediaKind = Literal['unspecified', 'audio', 'ebook', 'print']
 ```
 
-Physical or digital form of an edition (FRBR manifestation). Only
-`audiobook` and `podcastAudio` editions are acquire candidates.
+Carrier of an edition (FRBR manifestation): what form you receive.
+Whether the host acquires an edition depends on the storefront's
+`MediaSupport.fetches` and what the host supports, not on this value
+alone. `unspecified` is refused.
 
 ### IdentifierScheme
 
@@ -6177,6 +6205,14 @@ CreditLevel = Literal['roleDefault', 'work', 'expression', 'edition']
 
 Which level a credit attaches to. Ordinal 0 is the role's usual level, so
 a guest sets this only when a credit departs from it.
+
+### FetchedFileRole
+
+```python
+FetchedFileRole = Literal['unspecified', 'part', 'whole', 'cover']
+```
+
+What one fetched file is to the edition it belongs to.
 
 ### CatalogSort
 

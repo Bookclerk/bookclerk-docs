@@ -24,26 +24,39 @@ until it is mapped.
 ### work_kind
 
 ```rust
-pub fn work_kind(kind: WorkKind) -> WorkKind
+pub fn work_kind(kind: WorkKind) -> Option<WorkKind>
 ```
 
 The resolver's work kind for a wire work kind.
 
+#### Returns
+
+`None` for `unspecified`, so `bookclerk_resolve::Listing::from_draft`
+refuses the record.
+
 ### expression_kind
 
 ```rust
-pub fn expression_kind(kind: ExpressionKind) -> ExpressionKind
+pub fn expression_kind(kind: ExpressionKind) -> Option<ExpressionKind>
 ```
 
 The resolver's expression kind for a wire expression kind.
 
+#### Returns
+
+`None` for `unspecified`, so the record is refused.
+
 ### media_kind
 
 ```rust
-pub fn media_kind(kind: MediaKind) -> MediaKind
+pub fn media_kind(kind: MediaKind) -> Option<MediaKind>
 ```
 
 The resolver's media kind for a wire media kind.
+
+#### Returns
+
+`None` for `unspecified`, so the record is refused.
 
 ### abridgement
 

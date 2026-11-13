@@ -30,6 +30,7 @@ pub enum ScanPageError {
     ForeignAccount { index: usize },
     EmptyProductId { index: usize },
     EmptyRemovedId { index: usize },
+    Media { index: usize, error: MediaError },
     RefreshedCredentialsTooLarge { bytes: usize },
     RefreshedCredentialsNotObject,
 }
@@ -55,6 +56,10 @@ Why the host refused a scan page; nothing from a refused page is written.
   - `index`: Index of the offending title in `books`.
 - `EmptyRemovedId`: A removed product id was empty.
   - `index`: Index of the offending id in `removed`.
+- `Media`: A title left a kind `unspecified` or named a work kind or carrier
+  outside the plugin's `MediaSupport` declaration.
+  - `index`: Index of the offending title in `books`.
+  - `error`: The rule the title broke.
 - `RefreshedCredentialsTooLarge`: `refreshedCredentials` was longer than `maxRefreshedCredentialBytes`.
   - `bytes`: Length of the blob in bytes.
 - `RefreshedCredentialsNotObject`: `refreshedCredentials` was not one JSON object, the encoding the host
@@ -71,13 +76,16 @@ pub fn validate_scan_page(
     page: &ScanPage,
     sent_cursor: &str,
     account_id: &str,
+    media: &MediaSupport,
 ) -> Result<(), ScanPageError>
 ```
 
 Checks one scan page against the ABI bounds and the pass that asked for it.
 
 A title whose `account_id` is empty belongs to the pass's account (the
-host fills it in); any other value must equal `account_id`.
+host fills it in); any other value must equal `account_id`. Every title
+must name a work kind, expression kind and carrier, and its work kind and
+carrier must be inside the plugin's declared `media`.
 
 #### Arguments
 
@@ -85,6 +93,7 @@ host fills it in); any other value must equal `account_id`.
 * `sent_cursor` - The cursor the host sent for this page; empty on the
   first page of a pass.
 * `account_id` - The account the pass scans.
+* `media` - The storefront's `MediaSupport` declaration.
 
 #### Errors
 

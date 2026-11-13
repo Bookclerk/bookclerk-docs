@@ -187,6 +187,18 @@ pub fn get_catalog(self) -> Result<Reader<'a>>
 pub fn has_catalog(&self) -> bool
 ```
 
+#### Reader::get_media
+
+```rust
+pub fn get_media(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_media
+
+```rust
+pub fn has_media(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -521,6 +533,30 @@ pub fn init_catalog(self) -> Builder<'a>
 pub fn has_catalog(&self) -> bool
 ```
 
+#### Builder::get_media
+
+```rust
+pub fn get_media(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_media
+
+```rust
+pub fn set_media(&mut self, value: Reader<'_>) -> Result<()>
+```
+
+#### Builder::init_media
+
+```rust
+pub fn init_media(self) -> Builder<'a>
+```
+
+#### Builder::has_media
+
+```rust
+pub fn has_media(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -559,6 +595,12 @@ pub fn get_cli(&self) -> Pipeline
 
 ```rust
 pub fn get_catalog(&self) -> Pipeline
+```
+
+#### Pipeline::get_media
+
+```rust
+pub fn get_media(&self) -> Pipeline
 ```
 
 Implements: `FromTypelessPipeline`

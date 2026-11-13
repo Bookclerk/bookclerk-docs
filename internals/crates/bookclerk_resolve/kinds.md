@@ -9,9 +9,9 @@ variant is appended to all three at once.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`WorkKind`](#workkind) | enum | What kind of creative work a work is (`works.kind`). |
+| [`WorkKind`](#workkind) | enum | What family of creative work a work is (`works.kind`). |
 | [`ExpressionKind`](#expressionkind) | enum | How a work is realised (`expressions.kind`). |
-| [`MediaKind`](#mediakind) | enum | Physical or digital form of an edition (`editions.media_kind`). |
+| [`MediaKind`](#mediakind) | enum | Carrier of an edition (`editions.media_kind`). |
 | [`Abridgement`](#abridgement) | enum | Whether an expression is abridged (`expressions.abridgement`). |
 | [`IdentifierScheme`](#identifierscheme) | enum | Scheme of an external identifier; it fixes level and strength. |
 | [`Strength`](#strength) | enum | Whether an edition identifier names exactly one edition. |
@@ -27,20 +27,19 @@ variant is appended to all three at once.
 ```rust
 pub enum WorkKind {
     Book,
-    PodcastShow,
-    PodcastEpisode,
-    Drama,
+    Podcast,
 }
 ```
 
-What kind of creative work a work is (`works.kind`).
+What family of creative work a work is (`works.kind`).
+
+Whether a podcast work is a show or an episode is structural: an
+episode has a parent work (`works.parent_work_id`), a show has none.
 
 **Variants**
 
-- `Book`: A book, fiction or non-fiction.
-- `PodcastShow`: A podcast show; its episodes are child works.
-- `PodcastEpisode`: One podcast episode, a child work of its show.
-- `Drama`: An original audio drama that adapts no book.
+- `Book`: A book, in any expression and on any carrier.
+- `Podcast`: A podcast: the show, or one episode of it when it has a parent.
 
 #### WorkKind::ALL
 
@@ -72,23 +71,27 @@ Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq
 
 ```rust
 pub enum ExpressionKind {
-    Narration,
     Text,
-    Translation,
+    Narration,
     Dramatisation,
-    PodcastAudio,
+    Graphic,
+    OriginalAudio,
 }
 ```
 
 How a work is realised (`expressions.kind`).
 
+A translation is not a kind: the expression's language and its
+translator credits say it.
+
 **Variants**
 
+- `Text`: The written text, as sold in print and ebook editions.
 - `Narration`: A reading of the text by one or more narrators.
-- `Text`: The text itself, as sold in print and ebook editions.
-- `Translation`: A translation of the text into another language.
-- `Dramatisation`: A full-cast dramatisation or adaptation.
-- `PodcastAudio`: The recorded audio of a podcast episode.
+- `Dramatisation`: A full-cast dramatisation or performance.
+- `Graphic`: Sequential art: comics, graphic novels, manga.
+- `OriginalAudio`: Audio that is itself the first realisation: podcast episodes,
+  lectures, single-voice originals.
 
 #### ExpressionKind::ALL
 
@@ -120,21 +123,19 @@ Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq
 
 ```rust
 pub enum MediaKind {
-    Audiobook,
+    Audio,
     Ebook,
     Print,
-    PodcastAudio,
 }
 ```
 
-Physical or digital form of an edition (`editions.media_kind`).
+Carrier of an edition (`editions.media_kind`).
 
 **Variants**
 
-- `Audiobook`: A downloadable audiobook.
-- `Ebook`: An ebook; never acquired.
-- `Print`: A printed book; never acquired.
-- `PodcastAudio`: Podcast episode audio.
+- `Audio`: Downloadable audio: audiobooks and podcast episodes.
+- `Ebook`: A downloadable document: EPUB, PDF, CBZ and similar.
+- `Print`: A printed edition.
 
 #### MediaKind::ALL
 
@@ -166,7 +167,7 @@ Parses a stored value; `None` for text that names no variant.
 pub const fn acquirable(self) -> bool
 ```
 
-Whether editions of this form are ever acquired.
+Whether the host acquires editions of this carrier today.
 
 Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 

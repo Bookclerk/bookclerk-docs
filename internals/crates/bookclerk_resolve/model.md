@@ -199,6 +199,7 @@ pub struct Snapshot {
     pub holding: Option<HoldingRow>,
     pub credited: Vec<(Level, String)>,
     pub works_with_series: Vec<String>,
+    pub works_with_episodes: Vec<String>,
 }
 ```
 
@@ -239,6 +240,10 @@ The caller fills it with:
   targets that have it, so a partial write is finished on the next
   scan rather than taken as complete.
 - `works_with_series`: Included works that have at least one series entry.
+- `works_with_episodes`: Included works that are another work's parent: shows with episodes.
+  
+  Read only for an episode listing, which never moves such a work under
+  a show; empty otherwise.
 
 #### Snapshot::edition
 
@@ -530,7 +535,9 @@ Administrator (`resolution_conflicts`).
 - `AmbiguousWork`: More than one stored work matches the listing's title and authors,
   so it joined none of them.
   - `work_ids`: The matching works.
-- `WorkKindMismatch`: A work identifier names a work of a different kind; it was not joined.
+- `WorkKindMismatch`: A work identifier names a work of a different kind, or a podcast at
+  another level (a show for an episode, or an episode for a show or a
+  book); it was not joined.
   - `work_id`: The work the identifier names.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
