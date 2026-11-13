@@ -78,6 +78,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`fetch_subject_candidates`](#fetch_subject_candidates) | function | Fetches one subject's storefront candidates and stores them store by store. |
 | [`load_subject_taste`](#load_subject_taste) | function | Loads one subject's taste. |
 | [`rank_subject_feed`](#rank_subject_feed) | function | Ranks one subject's stored candidates into shelves and stores the feed. |
+| [`refresh_subject_taste`](#refresh_subject_taste) | function | Loads `subject`'s taste from the library and stores it, so the next ranking reads it: what a candidate fetch does first, for a fetch that calls no storefront (`storefront_candidates = false`), whose taste events must still refresh the ranking. |
 | [`stored_subject_feed`](#stored_subject_feed) | function | Reads one subject's stored feed, drops their hidden shelves and joins each card's catalog metadata from the candidate pool. |
 | [`stored_subject_feed_state`](#stored_subject_feed_state) | function | Reads one subject's stored feed without joining its catalog metadata, for callers that need only whether it exists and when it was ranked. |
 | [`best_purchase_hint`](#best_purchase_hint) | function | Pick the lowest-priced hint (ties keep earlier order). Unpriced sort after priced. |
@@ -1297,7 +1298,7 @@ Taste context used to title and fill personalized shelves.
 - `linked_sources`: Lowercase storefront ids the subject has an account with, compared
   at member price when a card is placed on a store shelf.
 
-Implements: `Clone`, `Debug`, `Default`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
 ### TitleMeta
 
@@ -2145,6 +2146,25 @@ so a title bought since the fetch drops out.
 * `registry` - Unused for network; passed through to ranking.
 * `subject` - Whose feed to rank.
 * `opts` - Ranking options; `disabled_shelves` is ignored (applied on read).
+
+#### Errors
+
+Returns the library read or write error.
+
+### refresh_subject_taste
+
+```rust
+pub async fn refresh_subject_taste(
+    library: &LibraryStore,
+    subject: &DiscoverSubject,
+    opts: &RecommendOptions,
+) -> Result<(), DiscoverError>
+```
+
+Loads `subject`'s taste from the library and stores it, so the next
+ranking reads it: what a candidate fetch does first, for a fetch that
+calls no storefront (`storefront_candidates = false`), whose taste
+events must still refresh the ranking.
 
 #### Errors
 

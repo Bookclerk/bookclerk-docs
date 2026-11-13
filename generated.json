@@ -164,6 +164,7 @@
     "internals/crates/bookclerk_library/entities/discover_request_queue",
     "internals/crates/bookclerk_library/entities/discover_store_call_hits",
     "internals/crates/bookclerk_library/entities/discover_store_calls",
+    "internals/crates/bookclerk_library/entities/discover_tastes",
     "internals/crates/bookclerk_library/entities/domain_events",
     "internals/crates/bookclerk_library/entities/edition_files",
     "internals/crates/bookclerk_library/entities/edition_identifiers",

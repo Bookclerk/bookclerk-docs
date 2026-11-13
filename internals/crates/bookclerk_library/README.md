@@ -114,6 +114,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
+| [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
 | [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
@@ -124,6 +125,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ScannedTitle`](#scannedtitle) | struct | One title a storefront scan reported. |
 | [`StoreCallHit`](#storecallhit) | struct | One listing a cached storefront call answered. |
 | [`StoredCandidate`](#storedcandidate) | struct | One stored storefront candidate of a subject: the shared listing joined with what is personal to the subject. |
+| [`StoredDiscoverTaste`](#storeddiscovertaste) | struct | One subject's stored Discover taste. |
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
@@ -4603,6 +4605,26 @@ Who holds a recorded file key, and what the file is.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### HeldIdentifiers
+
+```rust
+pub struct HeldIdentifiers {
+    pub asins: BTreeSet<String>,
+    pub isbns: BTreeSet<String>,
+    pub product_ids: BTreeSet<String>,
+}
+```
+
+Which of a set of store identifiers belong to titles the library holds.
+
+**Fields**
+
+- `asins`: Upper-cased ASINs of held editions.
+- `isbns`: ISBNs of held editions, as stored (canonical ISBN-13).
+- `product_ids`: Store product ids of held listings.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### LibraryStore
 
 ```rust
@@ -4825,8 +4847,46 @@ Returns the database error.
 pub async fn forget_discover_subject(&self, subject: &DiscoverSubject) -> Result<()>
 ```
 
-Deletes every stored Discover row of one subject (candidates, feed
-and fetch marker).
+Deletes every stored Discover row of one subject (candidates, feed,
+taste and fetch marker).
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::put_discover_taste
+
+```rust
+pub async fn put_discover_taste(
+    &self,
+    subject: &DiscoverSubject,
+    taste_json: &str,
+    scope: SeedScope,
+) -> Result<()>
+```
+
+Stores one subject's taste, replacing the previous one.
+
+##### Arguments
+
+* `subject` - Whose taste it is.
+* `taste_json` - The taste, as the Discover crate encodes it.
+* `scope` - Seeds it comes from.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::get_discover_taste
+
+```rust
+pub async fn get_discover_taste(
+    &self,
+    subject: &DiscoverSubject,
+) -> Result<Option<StoredDiscoverTaste>>
+```
+
+Returns one subject's stored taste, when it has one.
 
 ##### Errors
 
@@ -7291,6 +7351,39 @@ holds a listing of one of their editions.
 ##### Returns
 
 The held ones.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::held_identifiers
+
+```rust
+pub async fn held_identifiers(
+    &self,
+    asins: &[String],
+    isbns: &[String],
+    product_ids: &[String],
+) -> Result<HeldIdentifiers>
+```
+
+Which of `asins`, `isbns` and `product_ids` belong to a title the
+library holds, so a ranking can drop candidates the library already
+has without reading the whole library.
+
+An ASIN or ISBN is held when it identifies an edition one of whose
+listings an account or a branch holds; a product id is held when a
+held listing carries it, on any store.
+
+##### Arguments
+
+* `asins` - ASINs to check, in any case.
+* `isbns` - ISBNs to check, as stored (canonical ISBN-13).
+* `product_ids` - Store product ids to check.
+
+##### Returns
+
+The held ones; ASINs upper-cased.
 
 ##### Errors
 
@@ -11450,6 +11543,26 @@ with what is personal to the subject.
 - `fetched_at`: When the store fetch that produced the row ran.
 
 Implements: `Clone`, `Debug`
+
+### StoredDiscoverTaste
+
+```rust
+pub struct StoredDiscoverTaste {
+    pub taste_json: String,
+    pub seed_scope: SeedScope,
+    pub computed_at: DateTime<Utc>,
+}
+```
+
+One subject's stored Discover taste.
+
+**Fields**
+
+- `taste_json`: The taste as JSON (`bookclerk_discover::StoredTaste`).
+- `seed_scope`: Seeds the taste comes from.
+- `computed_at`: When the taste was computed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### StoredFeed
 
