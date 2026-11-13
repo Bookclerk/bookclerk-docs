@@ -70,16 +70,16 @@ pub async fn guest_scan_page(
     access: GraphicAudioAccess,
     magento_password: Option<&str>,
     params: &ScanParams,
-    page: u32,
-) -> Result<ScanPage>
+) -> Result<ScanPage, PluginError>
 ```
 
 RPC scan: one page of one account's full pass (the host upserts books).
 
 GraphicAudio lists a library in one response with no paging or delta API,
-so every pass is full and ends `complete`. A library larger than
-`maxScanPageBooks` is split into pages of that size, and each later page
-lists the library again and takes its slice.
+so every pass is full and ends `complete`. The whole listing is one store
+page to the SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper: a library larger than
+`maxScanPageBooks` goes back in slices of that size, and each later slice
+lists the library again.
 
 `magento_password` is required for Magento web/zip listing unless a device
 token is present on the credentials (legacy Access App fallback).
@@ -90,14 +90,13 @@ token is present on the credentials (legacy Access App fallback).
 * `store_base_url` - Magento store base URL.
 * `access` - Which listing to use.
 * `magento_password` - The account password for the Magento listing.
-* `params` - The pass's account, credential and options.
-* `page` - The page the cursor names
-  ([`bookclerk_storefront::abi::page_from_cursor`](../bookclerk_storefront/abi.md#page_from_cursor)).
+* `params` - The pass's account, credential, options and cursor.
 
 #### Errors
 
-Returns an error when the credential is missing or invalid, or the
-listing fails.
+Returns `invalid_cursor` for a cursor this plugin did not write, and
+`internal` when the credential is missing or invalid or the listing
+fails.
 
 ### guest_fetch_title
 

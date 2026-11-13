@@ -82,6 +82,9 @@ continuation token and the delta state token the pass's first page
 returned (Audible sends it only there, so the pass carries it to the last
 page, which hands it to the host).
 
+It is the plugin's own store cursor: the SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper wraps
+it in the scan cursor the host sees.
+
 **Fields**
 
 - `continuation`: Continuation token of the next library page.
@@ -93,7 +96,7 @@ page, which hands it to the host).
 pub fn parse(cursor: &str) -> Result<Option<Self>, PluginError>
 ```
 
-Reads the cursor the host sent; the empty cursor starts a pass.
+Reads a store cursor this plugin wrote; the empty cursor starts a pass.
 
 ##### Errors
 
@@ -427,10 +430,7 @@ fails, or Amazon rejects the deregistration.
 ### guest_scan_page
 
 ```rust
-pub async fn guest_scan_page(
-    params: &ScanParams,
-    cursor: Option<AudibleScanCursor>,
-) -> Result<ScanPage>
+pub async fn guest_scan_page(params: &ScanParams) -> Result<ScanPage, PluginError>
 ```
 
 RPC scan: one page of one account's pass (the host upserts books).
@@ -440,18 +440,19 @@ added or revoked since that state token, revoked ASINs come back in
 `removed`, and the pass ends with `complete = false`. Without one the pass
 lists the whole active library and ends `complete`. Either way the last
 page returns the state token Audible issued for the pass, so the next
-pass can be a delta.
+pass can be a delta. The SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper pages Audible's
+library pages into scan replies.
 
 #### Arguments
 
-* `params` - The pass's account, credential, options and sync token.
-* `cursor` - Where the pass stands ([`AudibleScanCursor::parse`](#audiblescancursorparse));
-  `None` on the first page.
+* `params` - The pass's account, credential, options, cursor and sync
+  token.
 
 #### Errors
 
-Returns an error when the credential is missing or invalid, the page
-request fails, or the next cursor would exceed `maxScanCursorBytes`.
+Returns `invalid_cursor` for a cursor this plugin did not write, and
+`internal` when the credential is missing or invalid, the page request
+fails, or the next cursor would exceed `maxScanCursorBytes`.
 
 ### collect_account_books
 

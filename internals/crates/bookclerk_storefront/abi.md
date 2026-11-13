@@ -23,10 +23,9 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`login_params`](#login_params) | function | Builds guest login params. `plugin_data_dir` is the jail-granted data directory; the host fills `callback_ipc` / `callback_public_base` after it starts the OAuth callback proxy. |
 | [`parse_rfc3339`](#parse_rfc3339) | function | RFC 3339 wire timestamp as UTC; `None` when it does not parse. |
 | [`rfc3339`](#rfc3339) | function | RFC 3339 wire form of a host timestamp, for `ScanBook` date fields. |
-| [`page_from_cursor`](#page_from_cursor) | function | Store page a scan page-number cursor names: page 1 for the empty cursor a pass starts with, otherwise the page `page_cursor` wrote. |
-| [`page_cursor`](#page_cursor) | function | Cursor naming store page `page`, read back by `page_from_cursor`. |
+| [`store_page_from_cursor`](#store_page_from_cursor) | function | Store page a numbered store cursor names: page 1 for the empty store cursor that starts a pass, otherwise the page `store_page_cursor` wrote. |
+| [`store_page_cursor`](#store_page_cursor) | function | Store cursor naming the store page after this one, read back by `store_page_from_cursor`; empty when `next` is `None` (the last page). |
 | [`scan_credential`](#scan_credential) | function | The pass's credential document, checked against the account it scans. |
-| [`full_pass_page`](#full_pass_page) | function | One page of a full pass: the pass is complete once no page follows. |
 | [`credentials_to_bytes`](#credentials_to_bytes) | function | Encodes a credential document as the opaque bytes the ABI carries. |
 | [`credentials_from_bytes`](#credentials_from_bytes) | function | Decodes an opaque credential blob into the JSON document guests store. |
 | [`DEFAULT_LIST_DEALS_LIMIT`](#default_list_deals_limit) | constant | `limit` sent for the host's `ContentSource::list_deals` when the caller omits one. |
@@ -111,28 +110,33 @@ RFC 3339 wire form of a host timestamp, for `ScanBook` date fields.
 Sub-second precision is kept when the timestamp has it, so a round
 trip through the wire form returns the same instant.
 
-### page_from_cursor
+### store_page_from_cursor
 
 ```rust
-pub fn page_from_cursor(cursor: &str) -> Result<u32, PluginError>
+pub fn store_page_from_cursor(store_cursor: &str) -> Result<u32, PluginError>
 ```
 
-Store page a scan page-number cursor names: page 1 for the empty cursor a
-pass starts with, otherwise the page [`page_cursor`](#page_cursor) wrote.
+Store page a numbered store cursor names: page 1 for the empty store
+cursor that starts a pass, otherwise the page [`store_page_cursor`](#store_page_cursor) wrote.
+
+Storefronts with numbered library pages hand this to the SDK's
+`scan_page` helper as their own store cursor; the helper wraps it in the
+scan cursor the host sees.
 
 #### Errors
 
-Returns an `invalid_cursor` [`abi::PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) when the cursor is not
-one [`page_cursor`](#page_cursor) wrote (a page below 2 included), so the host restarts
-the pass.
+Returns an `invalid_cursor` [`abi::PluginError`](../bookclerk_plugin_abi/error.md#pluginerror) when the store cursor is
+not one [`store_page_cursor`](#store_page_cursor) wrote (a page below 2 included), so the
+host restarts the pass.
 
-### page_cursor
+### store_page_cursor
 
 ```rust
-pub fn page_cursor(page: u32) -> String
+pub fn store_page_cursor(next: Option<u32>) -> String
 ```
 
-Cursor naming store page `page`, read back by [`page_from_cursor`](#page_from_cursor).
+Store cursor naming the store page after this one, read back by
+[`store_page_from_cursor`](#store_page_from_cursor); empty when `next` is `None` (the last page).
 
 ### scan_credential
 
@@ -146,21 +150,6 @@ The pass's credential document, checked against the account it scans.
 
 Returns [`crate::SourceError::Auth`](README.md#sourceerror) when the host sent no credential,
 a credential for another account, or a blob that is not JSON.
-
-### full_pass_page
-
-```rust
-pub fn full_pass_page(
-    books: Vec<ScanBook>,
-    next_cursor: Option<String>,
-    store_pages: u32,
-) -> ScanPage
-```
-
-One page of a full pass: the pass is complete once no page follows.
-
-Storefronts without a delta API list every title on every pass, so the
-last page of a pass always says `complete` and leaves `syncToken` empty.
 
 ### credentials_to_bytes
 
