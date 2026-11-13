@@ -38,7 +38,9 @@ so routes that admit only a direct loopback connection (the tray
 handoff) and the node API's transport policy refuse it. The node API
 (`/api/node/...`) is for other nodes over TLS and is refused here before
 routing. The live socket (`/api/live`) needs a WebSocket, which a custom
-scheme cannot carry; it is refused, and the SPA falls back to polling.
+scheme cannot carry; it is refused here. The window hears the same
+frames from [`EmbeddedHost::live`](#embeddedhostlive) instead, which the shell forwards to
+the page over its own channel.
 
 **Responses** are collected whole, up to [`MAX_RESPONSE_BYTES`](#max_response_bytes) and
 [`RESPONSE_TIMEOUT`](#response_timeout); a custom scheme cannot stream.
@@ -52,9 +54,12 @@ scheme cannot carry; it is refused, and the SPA falls back to polling.
 
 ## Re-exports
 
+- [`bookclerk_window_policy::live_refusal`](../bookclerk_window_policy/README.md#live_refusal)
+- [`bookclerk_window_policy::LiveRefusal`](../bookclerk_window_policy/README.md#liverefusal)
 - [`bookclerk_window_policy::Navigation`](../bookclerk_window_policy/README.md#navigation)
 - [`bookclerk_window_policy::APP_ORIGINS`](../bookclerk_window_policy/README.md#app_origins)
 - [`bookclerk_window_policy::EMBEDDED_ORIGIN`](../bookclerk_window_policy/README.md#embedded_origin)
+- [`bookclerk_window_policy::MAIN_WINDOW_LABEL`](../bookclerk_window_policy/README.md#main_window_label)
 
 ## Structs
 
@@ -150,6 +155,23 @@ Decides whether the window may show `url`.
 
 What the window should do (see [`Navigation`](../bookclerk_window_policy/README.md#navigation)). A
 `Navigation::JoinReturn` also closes the join's sign-in window.
+
+#### EmbeddedHost::live
+
+```rust
+pub async fn live(&self, send: impl FnMut(String) -> bool + Send)
+```
+
+Feeds the live frames the SPA's `/api/live` socket would carry, for
+the shell to forward to the page: `hello` with every topic (the
+window is the operator), then a `changed` frame for each change.
+
+Runs until `send` answers false. The frames name topics only, as on
+the socket.
+
+##### Arguments
+
+* `send` - Takes each frame's JSON text; false stops the feed.
 
 #### EmbeddedHost::shutdown
 

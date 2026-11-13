@@ -26,8 +26,10 @@ window does:
 | --- | --- | --- |
 | [`Refusal`](#refusal) | enum | Why a request was refused before it reached the router. |
 | [`Navigation`](#navigation) | enum | Where the window may go, as `classify_navigation` decides. |
+| [`LiveRefusal`](#liverefusal) | enum | Why the desktop window's `live` command refused a caller. |
 | [`refusal`](#refusal-1) | function | Refuses requests from other origins and paths the window must not reach. |
 | [`classify_navigation`](#classify_navigation) | function | Where the window may go. |
+| [`live_refusal`](#live_refusal) | function | Decides whether a page may start the window's live updates, which carry the operator's feed. |
 | [`join_sign_in_ttl`](#join_sign_in_ttl) | function | How long the window may show the library's sign-in, from a successful join start's JSON answer. |
 | [`rewrite_request_headers`](#rewrite_request_headers) | function | The headers the router sees for an embedded request: the page's own, less credentials, origins and forwarding headers, plus `Host`, `Origin` (`EMBEDDED_ORIGIN`) and, when operator auth is on, the operator's bearer token. |
 | [`EMBEDDED_HOST`](#embedded_host) | constant | The `Host` every embedded request is routed under. |
@@ -37,6 +39,7 @@ window does:
 | [`NODE_API_PATH`](#node_api_path) | constant | The node API's path prefix: other nodes reach it over TLS, never the window. |
 | [`LIVE_PATH`](#live_path) | constant | The live WebSocket's path, which a custom scheme cannot carry. The same value as `bookclerkd`'s `live::LIVE_PATH` (a test there checks). |
 | [`MAX_JOIN_SIGN_IN_SECS`](#max_join_sign_in_secs) | constant | Longest sign-in a join start may open, in seconds, whatever its answer says. |
+| [`MAIN_WINDOW_LABEL`](#main_window_label) | constant | The label of the desktop app's one window, the only webview the `live` command answers. |
 
 ## Enums
 
@@ -84,6 +87,25 @@ Where the window may go, as [`classify_navigation`](#classify_navigation) decide
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### LiveRefusal
+
+```rust
+pub enum LiveRefusal {
+    OtherWebview,
+    ForeignPage,
+}
+```
+
+Why the desktop window's `live` command refused a caller.
+
+**Variants**
+
+- `OtherWebview`: A webview other than the main window called it.
+- `ForeignPage`: The calling page is not one of the app's own pages, such as a
+  library's sign-in page shown during a join.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ## Functions
 
 ### refusal
@@ -124,6 +146,26 @@ The app's own pages always; the library's return to
 `http://localhost/join/callback` (any loopback host and port) as a
 [`Navigation::JoinReturn`](#navigation) while a join is open; other `https` pages,
 or loopback `http` ones, only while a join is open.
+
+### live_refusal
+
+```rust
+pub fn live_refusal(webview_label: &str, page_url: &str) -> Option<LiveRefusal>
+```
+
+Decides whether a page may start the window's live updates, which carry
+the operator's feed.
+
+#### Arguments
+
+* `webview_label` - The calling webview's label.
+* `page_url` - The URL of the page that called, as the webview reports
+  it.
+
+#### Returns
+
+`None` when the main window's app page called; otherwise why it was
+refused. A wrong webview wins over a foreign page.
 
 ### join_sign_in_ttl
 
@@ -228,3 +270,12 @@ pub const MAX_JOIN_SIGN_IN_SECS: u64 = 3600;
 
 Longest sign-in a join start may open, in seconds, whatever its answer
 says.
+
+### MAIN_WINDOW_LABEL
+
+```rust
+pub const MAIN_WINDOW_LABEL: &str = "main";
+```
+
+The label of the desktop app's one window, the only webview the `live`
+command answers.
