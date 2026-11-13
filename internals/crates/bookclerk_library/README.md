@@ -113,6 +113,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
+| [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
@@ -536,12 +537,13 @@ pub trait AtomicTxnBackend: Send + Sync {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
-    fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'async_trait>(
+    fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
         &'life0 self,
         book_uuid: &'life1 str,
+        edition_id: Option<&'life2 str>,
         status: AcquireStatus,
-        storage_key: Option<&'life2 str>,
-        error_message: Option<&'life3 str>,
+        storage_key: Option<&'life3 str>,
+        error_message: Option<&'life4 str>,
         event: Option<PublishDomainEventSpec>,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
     where
@@ -549,7 +551,8 @@ pub trait AtomicTxnBackend: Send + Sync {
         'life0: 'async_trait,
         'life1: 'async_trait,
         'life2: 'async_trait,
-        'life3: 'async_trait,;
+        'life3: 'async_trait,
+        'life4: 'async_trait,;
     fn dispatch_event_deliveries<'life0, 'life1, 'life2, 'life3, 'async_trait>(
         &'life0 self,
         event_id: &'life1 str,
@@ -826,12 +829,13 @@ Persist a domain event in the outbox.
 #### AtomicTxnBackend::set_acquire_status
 
 ```rust
-fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'async_trait>(
+fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
     &'life0 self,
     book_uuid: &'life1 str,
+    edition_id: Option<&'life2 str>,
     status: AcquireStatus,
-    storage_key: Option<&'life2 str>,
-    error_message: Option<&'life3 str>,
+    storage_key: Option<&'life3 str>,
+    error_message: Option<&'life4 str>,
     event: Option<PublishDomainEventSpec>,
 ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
 where
@@ -840,9 +844,14 @@ where
     'life1: 'async_trait,
     'life2: 'async_trait,
     'life3: 'async_trait,
+    'life4: 'async_trait,
 ```
 
 Update acquire status and, when acquired, publish `book_acquired` in the same transaction.
+
+`edition_id` is the title's edition: its `edition_acquisitions` row
+is written in the same batch (only the title that acquired an edition,
+while it stays in the library, changes it).
 
 #### AtomicTxnBackend::dispatch_event_deliveries
 
@@ -3444,7 +3453,7 @@ pub struct TitleRequestRecord {
     pub work_key: String,
     pub work_id: String,
     pub edition_id: Option<String>,
-    pub resolved_book_uuid: Option<String>,
+    pub resolved_edition_id: Option<String>,
     pub cover_url: Option<String>,
     pub cover_path: Option<String>,
     pub sources: Vec<TitleRequestSourceRecord>,
@@ -3483,7 +3492,7 @@ Personal wishlist row (also contributes to the shared global queue while open).
   authors and the sources' identifiers on every read, never stored.
 - `work_id`: The work the wish is for; wishes for one work are one queue entry.
 - `edition_id`: The edition the wish named, when the library knows it.
-- `resolved_book_uuid`: Library `books.uuid` once the wishlist item is fulfilled.
+- `resolved_edition_id`: Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
 - `cover_url`: HTTPS URL for cover art when known.
 - `cover_path`: Same-origin path of this cover's processed images, set by the daemon
   when `cover_url` is an `https` URL. Append `/128`
@@ -4583,6 +4592,33 @@ Durable catalog enrichment fields (blurbs, subjects, provenance).
 
 Implements: `Clone`, `Debug`, `Default`
 
+### EditionAcquisition
+
+```rust
+pub struct EditionAcquisition {
+    pub edition_id: String,
+    pub status: AcquireStatus,
+    pub storage_key: Option<String>,
+    pub error_message: Option<String>,
+    pub title_uuid: String,
+    pub updated_at: String,
+}
+```
+
+An edition's acquire state (`edition_acquisitions`).
+
+**Fields**
+
+- `edition_id`: The edition id.
+- `status`: Where the edition's acquire stands; a status this build does not
+  know reads as [`AcquireStatus::NotAcquired`](#acquirestatus).
+- `storage_key`: Primary destination key of the edition's audio once acquired.
+- `error_message`: Last acquire failure message.
+- `title_uuid`: The library title (`books.uuid`) whose write set the state.
+- `updated_at`: RFC 3339 time of that write.
+
+Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
+
 ### EditionFile
 
 ```rust
@@ -5077,6 +5113,22 @@ store listing; `None` when the title is unknown or not resolved yet.
 ##### Errors
 
 Returns an error when a read fails.
+
+#### LibraryStore::edition_acquisition
+
+```rust
+pub async fn edition_acquisition(
+    &self,
+    edition_id: &str,
+) -> Result<Option<EditionAcquisition>>
+```
+
+An edition's acquire state; `None` when no title of it was ever
+queued or acquired.
+
+##### Errors
+
+Returns an error when the read fails.
 
 #### LibraryStore::file_owner_of_book
 
@@ -10534,6 +10586,12 @@ pub async fn set_acquire_status(
 
 Updates acquire status, storage key, and optional error message.
 
+The title's edition records the write too (`edition_acquisitions`,
+read with [`Self::edition_acquisition`](#librarystoreedition_acquisition)) in the same batch, and an
+acquired title's `book_acquired` event names that edition. An
+edition another title acquired keeps its state whatever this title
+writes, while that title stays in the library.
+
 ##### Arguments
 
 * `title_id` - Product id / ASIN / ISBN used as the title key.
@@ -10975,7 +11033,7 @@ pub async fn update_title_request_status(
     &self,
     uuid: &str,
     status: RequestStatus,
-    resolved_book_uuid: Option<&str>,
+    resolved_edition_id: Option<&str>,
 ) -> Result<()>
 ```
 
@@ -10985,7 +11043,7 @@ Updates the lifecycle status of a title request.
 
 * `uuid` - Book UUID.
 * `status` - Acquire or request status value.
-* `resolved_book_uuid` - `resolved_book_uuid` argument for this call.
+* `resolved_edition_id` - Edition that fulfilled the request, when it is now held.
 
 ##### Returns
 
@@ -11303,7 +11361,7 @@ pub struct NewTitleRequest {
     pub isbn: Option<String>,
     pub notes: Option<String>,
     pub status: RequestStatus,
-    pub resolved_book_uuid: Option<String>,
+    pub resolved_edition_id: Option<String>,
     pub cover_url: Option<String>,
 }
 ```
@@ -11321,7 +11379,7 @@ Input for creating a title request / wishlist row.
 - `isbn`: ISBN-10/13 the wisher gave, used like `title`.
 - `notes`: Free-form operator or requester notes.
 - `status`: Lifecycle status for the row (user, request, …).
-- `resolved_book_uuid`: Library `books.uuid` once the wishlist item is fulfilled.
+- `resolved_edition_id`: Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
 - `cover_url`: HTTPS URL for cover art when known.
 
 #### NewTitleRequest::needs_html_entity_decode
@@ -11665,7 +11723,7 @@ pub enum DbAtomicParams {
     ConfirmTotpEnrollment { user_id: i64, format: String, ciphertext: String, cipher_algorithm: Option<String>, cipher_nonce: Option<String>, kdf_algorithm: Option<String>, kdf_salt: Option<String>, kdf_m_cost: Option<i64>, kdf_t_cost: Option<i64>, kdf_p_cost: Option<i64>, created_at: String },
     DisableUserTotp { user_id: i64 },
     PublishDomainEvent { id: String, event_type: String, schema_version: i64, account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String, queue_name: String, content_type: String, deliver_after: String },
-    SetAcquireStatus { book_uuid: String, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
+    SetAcquireStatus { book_uuid: String, edition_id: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
     DispatchEventDeliveries { event_id: String, subscribers_json: String, mark_dispatched: bool },
     ClaimNextEventDelivery { owner: String, lease_secs: i64, plugin_ids_json: String, max_in_flight: i64 },
     LinkListing(Box<ListingLinkParams>),
@@ -11748,6 +11806,8 @@ Named atomic library operation compiled by the host into a generic plan.
   - `deliver_after`: RFC 3339 earliest delivery time; empty means now.
 - `SetAcquireStatus`: Update a book row and optionally publish `book_acquired` in the same batch.
   - `book_uuid`: Book UUID to update.
+  - `edition_id`: The title's edition, whose `edition_acquisitions` row is written
+    in the same batch; `None` when the title has no edition yet.
   - `status`: Acquire status string (`acquired`, `downloading`, …).
   - `storage_key`: Object-storage key for the primary audio artifact.
   - `error_message`: Optional failure message.
@@ -11994,6 +12054,15 @@ Acquire / download state for a title.
 - `Downloading`: Acquire pipeline is actively downloading this title.
 - `Acquired`: Primary audio artifact is stored and library status is liberated.
 - `Error`: Last acquire attempt failed; see `error_message` on the book row.
+
+#### AcquireStatus::ALL
+
+```rust
+pub const ALL: [Self; 5] = _
+```
+
+Every status, in pipeline order (the `edition_acquisitions.status`
+CHECK lists the same strings).
 
 #### AcquireStatus::as_str
 

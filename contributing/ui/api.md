@@ -5426,7 +5426,7 @@ title?: string | null;
 Wishlist / title-request row from `/api/wishlist`.
 
 Represents a user ask for a work (and optional acquire queue linkage via
-`resolved_book_uuid`).
+`resolved_edition_id`, the edition that fulfilled it).
 
 #### Properties
 
@@ -5542,10 +5542,10 @@ publisher?: string | null;
 purchase_hints?: PurchaseHint[];
 ```
 
-##### resolved\_book\_uuid
+##### resolved\_edition\_id
 
 ```ts
-resolved_book_uuid: string | null;
+resolved_edition_id: string | null;
 ```
 
 ##### series?

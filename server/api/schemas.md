@@ -2911,7 +2911,7 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
 - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
 - `edition_id` *string or null* — The edition the wish named, when the library knows it.
-- `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+- `resolved_edition_id` *string or null* — Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
 - `cover_url` *string or null* — HTTPS URL for cover art when known.
 - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
 - `sources` *array of [`TitleRequestSourceRecord`](#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).

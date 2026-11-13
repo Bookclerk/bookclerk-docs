@@ -27,7 +27,7 @@ Lists open wishlist rows for the caller (portal identity or operator-owned).
   - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
   - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
   - `edition_id` *string or null* — The edition the wish named, when the library knows it.
-  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `resolved_edition_id` *string or null* — Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
@@ -118,7 +118,7 @@ Status `200`: The caller's open requests.
     "work_key": "isbn:9780441478125",
     "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
     "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
-    "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
+    "resolved_edition_id": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
     "cover_url": "https://images.example.com/covers/9780441478125.jpg",
     "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
     "sources": [
@@ -293,12 +293,12 @@ Schema:
         "description": "The edition the wish named, when the library knows it.",
         "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
       },
-      "resolved_book_uuid": {
+      "resolved_edition_id": {
         "type": [
           "string",
           "null"
         ],
-        "description": "Library `books.uuid` once the wishlist item is fulfilled.",
+        "description": "Edition (`editions.id`) the library holds once the wishlist item is fulfilled.",
         "example": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31"
       },
       "cover_url": {
@@ -984,7 +984,7 @@ Creates a wishlist / title-request row for the authenticated caller.
   - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
   - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
   - `edition_id` *string or null* — The edition the wish named, when the library knows it.
-  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `resolved_edition_id` *string or null* — Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
@@ -1087,7 +1087,7 @@ Status `200`: The new request.
   "work_key": "isbn:9780441478125",
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
   "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
-  "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
+  "resolved_edition_id": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
   "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "sources": [
@@ -1259,12 +1259,12 @@ Schema:
       "description": "The edition the wish named, when the library knows it.",
       "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
     },
-    "resolved_book_uuid": {
+    "resolved_edition_id": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Library `books.uuid` once the wishlist item is fulfilled.",
+      "description": "Edition (`editions.id`) the library holds once the wishlist item is fulfilled.",
       "example": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31"
     },
     "cover_url": {
@@ -1960,7 +1960,7 @@ Cancels an open wishlist item the caller owns; others get 403.
   - `work_key` *string* — Bibliographic card key (`isbn:…` / `asin:…` / `soft:…`) clients use to match a wish to a catalog card. Derived from the work's title and authors and the sources' identifiers on every read, never stored.
   - `work_id` *string*, **required** — The work the wish is for; wishes for one work are one queue entry.
   - `edition_id` *string or null* — The edition the wish named, when the library knows it.
-  - `resolved_book_uuid` *string or null* — Library `books.uuid` once the wishlist item is fulfilled.
+  - `resolved_edition_id` *string or null* — Edition (`editions.id`) the library holds once the wishlist item is fulfilled.
   - `cover_url` *string or null* — HTTPS URL for cover art when known.
   - `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
   - `sources` *array of [`TitleRequestSourceRecord`](schemas.md#titlerequestsourcerecord)* — Per-storefront snapshots (empty for legacy rows).
@@ -2055,7 +2055,7 @@ Status `200`: The cancelled request.
   "work_key": "isbn:9780441478125",
   "work_id": "7c1e9a2b-3d4f-4e5a-9b6c-8d7e0f1a2b3c",
   "edition_id": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b",
-  "resolved_book_uuid": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
+  "resolved_edition_id": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31",
   "cover_url": "https://images.example.com/covers/9780441478125.jpg",
   "cover_path": "/api/covers/aHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGc.q2fW1n4bJm0Rg9xV3kTzPA",
   "sources": [
@@ -2227,12 +2227,12 @@ Schema:
       "description": "The edition the wish named, when the library knows it.",
       "example": "0b8e3f2a-5c1d-5e7f-9a2b-4c6d8e0f1a3b"
     },
-    "resolved_book_uuid": {
+    "resolved_edition_id": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Library `books.uuid` once the wishlist item is fulfilled.",
+      "description": "Edition (`editions.id`) the library holds once the wishlist item is fulfilled.",
       "example": "3f2c0d7e-9d4b-4a62-8b1e-6d0f7c2a9b31"
     },
     "cover_url": {

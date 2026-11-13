@@ -49,7 +49,7 @@ content-source plugins; this crate never sees license keys. See
 | [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | Like `planned_storage_key_for` but with an explicit replacement-rule set (used by reconcile to probe wildcard patterns across sanitization profiles). |
 | [`planned_title_folders`](#planned_title_folders) | function | The folders an acquire of `req` writes the title's files under on a destination with `req.options`: the folder of its planned audio key, which its sidecars, chapter files and parts share. When podcast episodes are saved to the parent's folder, the episode's own folder is included too, since a library without the parent's row names it so. An empty string is the destination's root (a template with no folder). |
 | [`planned_title_names`](#planned_title_names) | function | The title's planned names on the destination `req.options` describe: `PlannedTitleNames`. |
-| [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of another book of its edition, when one is already acquired and every destination holds its copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
+| [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of its edition, when another book of the edition acquired it (`edition_acquisitions`) and every destination holds the copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
 | [`extract_asins_from_key`](#extract_asins_from_key) | function | Extract Audible-like ASINs and ISBN-13 tokens from a storage key / file path. |
 | [`find_existing_for_book`](#find_existing_for_book) | function | Find an existing acquired file for a book (planned path or ASIN-in-path). |
 | [`find_existing_for_request`](#find_existing_for_request) | function | Same as `find_existing_for_book` but for a acquire request before DB status is Acquired. |
@@ -1104,9 +1104,9 @@ pub async fn share_acquired_sibling(
 ) -> Result<Option<String>>
 ```
 
-Marks `book` acquired at the files of another book of its edition, when
-one is already acquired and every destination holds its copy, so the
-edition is not fetched again. The edition's companion PDF is shared too
+Marks `book` acquired at the files of its edition, when another book
+of the edition acquired it (`edition_acquisitions`) and every
+destination holds the copy, so the edition is not fetched again. The edition's companion PDF is shared too
 when that book has one.
 
 A destination holds the copy when the sibling's primary key there is
