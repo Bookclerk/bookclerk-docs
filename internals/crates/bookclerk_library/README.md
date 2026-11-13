@@ -145,6 +145,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`JobResourceClass`](#jobresourceclass) | enum | Concurrency class that bounds how many jobs of this type run at once. |
 | [`JobState`](#jobstate) | enum | Lifecycle state of a durable job row. |
 | [`JobTrigger`](#jobtrigger) | enum | Who admitted the job (API vs periodic scheduler). |
+| [`PortalSessionKind`](#portalsessionkind) | enum | Where a user's session token is presented. |
 | [`PublishDomainEventOutcome`](#publishdomaineventoutcome) | enum | Result of `crate::LibraryStore::publish_domain_event`. |
 | [`RequestStatus`](#requeststatus) | enum | Wishlist row status (`open` while wishlisted; `cancelled` after un-wishlist). |
 | [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `host` \| `member`). |
@@ -3171,6 +3172,7 @@ pub struct PortalSessionRecord {
     pub user_agent: Option<String>,
     pub device_type: Option<String>,
     pub client_label: Option<String>,
+    pub kind: PortalSessionKind,
 }
 ```
 
@@ -3185,7 +3187,9 @@ Portal session row for session lists (includes hash for current-session match).
 - `last_used_at`: RFC 3339 last-used timestamp, when known.
 - `user_agent`: Raw User-Agent captured at session mint (optional).
 - `device_type`: Best-effort device class.
-- `client_label`: Best-effort OS / client label.
+- `client_label`: Best-effort OS / client label; for a client sign-in, the name the
+  client install gave itself.
+- `kind`: Where the token is presented.
 
 Implements: `Clone`, `Debug`
 
@@ -9336,6 +9340,51 @@ Create a portal session with optional client metadata.
 
 Returns an error when the operation fails.
 
+#### LibraryStore::insert_client_session
+
+```rust
+pub async fn insert_client_session(
+    &self,
+    token_hash: &str,
+    identity_id: i64,
+    expires_at: DateTime<Utc>,
+    label: &str,
+) -> Result<i64>
+```
+
+Creates a client sign-in session: a token a client install presents
+as `Authorization: Bookclerk-Client`, never as a cookie.
+
+##### Arguments
+
+* `token_hash` - SHA-256 hex of the token (the token is never stored).
+* `identity_id` - The user's portal identity.
+* `expires_at` - First expiry; each use moves it forward
+  ([`Self::get_client_session_identity`](#librarystoreget_client_session_identity)).
+* `label` - The name the client install gave itself, shown in the
+  user's session list.
+
+##### Returns
+
+The new session's row id.
+
+##### Errors
+
+Returns an error when the insert fails.
+
+#### LibraryStore::delete_client_session
+
+```rust
+pub async fn delete_client_session(&self, token_hash: &str) -> Result<bool>
+```
+
+Deletes a client sign-in session by token hash (the client signing
+itself out). A browser session with that hash is left alone.
+
+##### Errors
+
+Returns an error when the delete fails.
+
 #### LibraryStore::delete_portal_session
 
 ```rust
@@ -9419,11 +9468,34 @@ pub async fn get_portal_session_identity(
 ) -> Result<Option<PortalIdentity>>
 ```
 
-Resolve a valid portal session to its identity.
+Resolve a valid browser (cookie) session to its identity.
 
 Refreshes `portal_sessions.last_used_at` and `users.last_seen_at` at most
 once per minute so administrator presence can tell active from idle
 without a write on every request. `last_seen_at` is kept after logout.
+A client sign-in's token is not a browser session and resolves to
+nothing here.
+
+##### Errors
+
+Returns an error when the operation fails.
+
+#### LibraryStore::get_client_session_identity
+
+```rust
+pub async fn get_client_session_identity(
+    &self,
+    token_hash: &str,
+    idle: Duration,
+) -> Result<Option<PortalIdentity>>
+```
+
+Resolve a valid client sign-in session to its identity.
+
+Like [`Self::get_portal_session_identity`](#librarystoreget_portal_session_identity), but only for a `client`
+session, and each touch (at most once a minute) also moves its expiry
+to `idle` from now, so a client in use stays signed in and one left
+unused for `idle` is signed out.
 
 ##### Errors
 
@@ -12372,6 +12444,44 @@ pub fn parse(s: &str) -> Option<Self>
 Parses the canonical wire string; returns `None` when unknown.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### PortalSessionKind
+
+```rust
+pub enum PortalSessionKind {
+    Browser,
+    Client,
+}
+```
+
+Where a user's session token is presented.
+
+A token works only in its own place: a browser token only as the session
+cookie, a client token only as `Authorization: Bookclerk-Client`.
+
+**Variants**
+
+- `Browser`: A browser's session cookie.
+- `Client`: A client sign-in: a client install that shows the user's books from
+  this library without joining it as a node.
+
+#### PortalSessionKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Returns the column value.
+
+#### PortalSessionKind::parse
+
+```rust
+pub fn parse(s: &str) -> Option<Self>
+```
+
+Parses the column value; returns `None` when unknown.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### PublishDomainEventOutcome
 

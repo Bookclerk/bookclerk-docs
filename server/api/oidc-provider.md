@@ -238,7 +238,7 @@ Starts the authorization-code flow; unauthenticated users are sent to SPA login.
 
 ### Responses
 
-- `303` — A `bookclerk-branch` request is sent to the SPA consent page (`/join/approve`). No body.
+- `303` — A `bookclerk-branch` request is sent to the SPA consent page `/join/approve`, and a `bookclerk-client` request to `/client/approve`. No body.
 - `307` — Redirects to sign-in (no user session) or to the client with a code. No body.
 - `400` — The request is invalid. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body. A query string that cannot be parsed gets a plain-text line. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/html`); string (`text/plain`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
@@ -282,7 +282,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `303`: A `bookclerk-branch` request is sent to the SPA consent page (`/join/approve`). No body.
+Status `303`: A `bookclerk-branch` request is sent to the SPA consent page `/join/approve`, and a `bookclerk-client` request to `/client/approve`. No body.
 
 Status `307`: Redirects to sign-in (no user session) or to the client with a code. No body.
 

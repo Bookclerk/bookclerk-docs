@@ -5746,13 +5746,907 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/auth/client-consent`
+
+`GET /api/auth/client-consent?<authorize params>`: what the consent page
+shows. 400 `invalid_request` for a malformed request (the page then
+shows the problem and never redirects).
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `portalSession` or `operatorSession`
+
+### Parameters
+
+- `client_id` (query) *string*, **required** — Must be [`CLIENT_CLIENT_ID`].
+- `redirect_uri` (query) *string*, **required** — Where the code goes: loopback or https.
+- `response_type` (query) *string*, **required** — Must be `code`.
+- `scope` (query) *string* — Must be [`CLIENT_SCOPE`].
+- `state` (query) *string* — Echoed on the redirect.
+- `code_challenge` (query) *string*, **required** — PKCE S256 challenge.
+- `code_challenge_method` (query) *string* — Must be `S256`.
+- `client_name` (query) *string* — The name the client install gives itself, shown on the consent page and in the user's session list.
+
+### Responses
+
+- `200` — What the consent page shows. Body: [`ClientConsentPage`](schemas.md#clientconsentpage) (`application/json`)
+  - `library_name` *string*, **required** — This library's name.
+  - `client_name` *string*, **required** — The name the client gives itself.
+  - `redirect_origin` *string*, **required** — Origin of the client's redirect URI, for the page to name.
+  - `user` *[`ConsentingUser`](schemas.md#consentinguser)*, **required** — The signed-in user the client would sign in as.
+- `400` — The authorize parameters are invalid (`invalid_request`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not a library user (`user_required`; an operator session counts only while impersonating), the account is inactive (`user_inactive`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/client-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' \
+    -b 'bookclerk_portal_session=<portalSession>'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/client-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string' `
+    -WebSession $session
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/auth/client-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/client-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string", {
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/auth/client-consent?client_id=string&redirect_uri=string&response_type=string&code_challenge=string")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What the consent page shows.
+
+```json
+{
+  "library_name": "books.example.com",
+  "client_name": "Riley's laptop",
+  "redirect_origin": "http://127.0.0.1:41923",
+  "user": {
+    "id": 7,
+    "display_name": "Sam"
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/auth/client-consent`: what the consent page shows.",
+  "required": [
+    "library_name",
+    "client_name",
+    "redirect_origin",
+    "user"
+  ],
+  "properties": {
+    "library_name": {
+      "type": "string",
+      "description": "This library's name.",
+      "example": "books.example.com"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "The name the client gives itself.",
+      "example": "Riley's laptop"
+    },
+    "redirect_origin": {
+      "type": "string",
+      "description": "Origin of the client's redirect URI, for the page to name.",
+      "example": "http://127.0.0.1:41923"
+    },
+    "user": {
+      "type": "object",
+      "description": "The signed-in user the client would sign in as.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "description": "`users.id`.",
+          "example": 7
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name, when set.",
+          "example": "Sam"
+        }
+      }
+    }
+  }
+}
+```
+
+Status `400`: The authorize parameters are invalid (`invalid_request`).
+
+```json
+{
+  "detail": "the client needs a name of 1 to 64 characters",
+  "error": "invalid_request"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller is not a library user (`user_required`; an operator session counts only while impersonating), the account is inactive (`user_inactive`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`).
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "The session middleware's standard body (`error`, `message`, `status`).",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "A slug or a sentence in `error`.",
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "What went wrong, as the handler describes it.",
+              "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "A slug in `error` and a sentence in `detail`.",
+          "required": [
+            "error",
+            "detail"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Stable machine slug clients branch on.",
+              "example": "invalid_request"
+            },
+            "detail": {
+              "type": "string",
+              "description": "What went wrong, for the person reading the answer.",
+              "example": "the redirect URI must be loopback or https"
+            }
+          }
+        }
+      ],
+      "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `503`: The library could not be read; try again (`unavailable`), or this library's cluster row or origin is not available yet (`cluster_unavailable`, `origin_unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "cluster_unavailable"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/auth/client-consent`
+
+`POST /api/auth/client-consent`: approve or deny. Answers `{redirect}`,
+the URL to send the browser to: the client's callback with a code (or
+`error=access_denied`).
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `portalSession` or `operatorSession`
+
+### Request body
+
+`application/json`: [`ClientConsentBody`](schemas.md#clientconsentbody)
+
+- `approve` *boolean*, **required** — True to let the client sign in; false to deny.
+
+### Responses
+
+- `200` — `{redirect}` back to the client. Body: [`ConsentRedirect`](schemas.md#consentredirect) (`application/json`)
+  - `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
+- `400` — The body or its authorize parameters are invalid (`invalid_request`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not an active library user (`user_required`, `user_inactive`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`NodeRefusal`](schemas.md#noderefusal) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The body is larger than 8 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request is not `application/json`. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The library could not be read or the code could not be stored; try again (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/auth/client-consent' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{"client_id": "bookclerk-client", "redirect_uri": "http://127.0.0.1:41923/client/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/client-consent' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{"client_id": "bookclerk-client", "redirect_uri": "http://127.0.0.1:41923/client/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/auth/client-consent",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={"client_id": "bookclerk-client", "redirect_uri": "http://127.0.0.1:41923/client/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/auth/client-consent", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({"client_id": "bookclerk-client", "redirect_uri": "http://127.0.0.1:41923/client/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/auth/client-consent")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({"client_id": "bookclerk-client", "redirect_uri": "http://127.0.0.1:41923/client/callback", "response_type": "code", "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "approve": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: `{redirect}` back to the client.
+
+```json
+{
+  "redirect": "http://127.0.0.1:8787/api/config/join/callback?code=8f2c…&state=xyz"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after a branch consent was answered.",
+  "required": [
+    "redirect"
+  ],
+  "properties": {
+    "redirect": {
+      "type": "string",
+      "description": "Where to send the browser: the branch's callback with a code, or with `error=access_denied`.",
+      "example": "http://127.0.0.1:8787/api/config/join/callback?code=8f2c…&state=xyz"
+    }
+  }
+}
+```
+
+Status `400`: The body or its authorize parameters are invalid (`invalid_request`).
+
+```json
+{
+  "detail": "bad redirect",
+  "error": "invalid_request"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an active library user (`user_required`, `user_inactive`), the connection failed the transport policy (`transport_insecure`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "The connection failed the transport policy.",
+          "required": [
+            "error",
+            "reason"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Always `transport_insecure`.",
+              "example": "transport_insecure"
+            },
+            "reason": {
+              "type": "string",
+              "description": "The transport check that refused the connection (`plain_http`,\n`unknown_peer`, `untrusted_forwarding`, `proxy_proto_missing`,\n`proxy_proto_ambiguous`, `proxy_proto_not_https`,\n`public_origin_not_https`, `listener_mode_mismatch`,\n`node_api_misconfigured`).",
+              "example": "plain_http"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The session middleware's standard body (`error`, `message`, `status`).",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The handler refused with a slug in `error`.",
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "What went wrong, as the handler describes it.",
+              "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "The handler refused with a slug in `error` and a sentence in `detail`.",
+          "required": [
+            "error",
+            "detail"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Stable machine slug clients branch on.",
+              "example": "invalid_request"
+            },
+            "detail": {
+              "type": "string",
+              "description": "What went wrong, for the person reading the answer.",
+              "example": "the redirect URI must be loopback or https"
+            }
+          }
+        }
+      ],
+      "description": "A `403` from a node API route: the transport policy's refusal, the standard body, or the handler's own error; the route's examples name each."
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: The node API is not mounted on this listener (`node_api_unmounted`).
+
+```json
+{
+  "error": "node_api_unmounted"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The body is larger than 8 KiB.
+
+```json
+{
+  "error": "request too large"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request is not `application/json`.
+
+```json
+{
+  "error": "expected application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The library could not be read or the code could not be stored; try again (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "detail": "try again",
+  "error": "unavailable"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/auth/logout`
 
 Revokes hashed operator and portal sessions and clears both cookies.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -5762,11 +6656,11 @@ Revokes hashed operator and portal sessions and clears both cookies.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — A library card's session could not be ended (`sign_out_failed`); the card is still signed in, so try again. Clearing cookies does not end a card. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -5888,12 +6782,12 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -5903,42 +6797,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: A library card's session could not be ended (`sign_out_failed`); the card is still signed in, so try again. Clearing cookies does not end a card. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
   "status": 503
 }
 ```
@@ -5990,9 +6882,9 @@ A `text/plain` body: a string.
 
 List sessions for the current principal only (not every operator session).
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -6002,6 +6894,10 @@ List sessions for the current principal only (not every operator session).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `404` — The impersonated user has no sign-in identity. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -6201,7 +7097,8 @@ Schema:
                   "id",
                   "created_at",
                   "expires_at",
-                  "is_current"
+                  "is_current",
+                  "channel"
                 ],
                 "properties": {
                   "id": {
@@ -6256,6 +7153,14 @@ Schema:
                     ],
                     "description": "Raw User-Agent captured when the session was created.",
                     "example": "Mozilla/5.0 (Linux; Android 15) Chrome/131.0 Mobile"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "How the session is used: `browser` for a browser session, `client`\nfor a client sign-in (a library card), whose `client_label` is the\nname the client gave itself.",
+                    "enum": [
+                      "browser",
+                      "client"
+                    ]
                   }
                 }
               },
@@ -6325,6 +7230,49 @@ Schema:
       "examples": [
         404
       ]
+    }
+  }
+}
+```
+
+Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
+
+```json
+{
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -6478,9 +7426,9 @@ A `text/plain` body: a string.
 Revoke a session by id. Operators may revoke any operator session;
 portal users may only revoke their own.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Parameters
 
@@ -6494,10 +7442,10 @@ portal users may only revoke their own.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `404` — No such session, or it belongs to someone else. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -6628,12 +7576,12 @@ Schema:
 }
 ```
 
-Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -6643,31 +7591,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -6820,9 +7766,9 @@ A `text/plain` body: a string.
 
 Updates the caller's display name and/or email.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -6845,10 +7791,10 @@ Updates the caller's display name and/or email.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `404` — The caller's user no longer exists. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -7165,12 +8111,12 @@ Schema:
 }
 ```
 
-Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -7180,31 +8126,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -7421,9 +8365,9 @@ A `text/plain` body: a string.
 Reads whether the caller's books are listed to the libraries this
 install is a branch of.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -7435,10 +8379,10 @@ install is a branch of.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library could not be read. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -7578,12 +8522,12 @@ Schema:
 }
 ```
 
-Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -7593,31 +8537,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -7726,9 +8668,9 @@ A `text/plain` body: a string.
 Sets whether the caller's books are listed to the libraries this install
 is a branch of.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -7747,10 +8689,10 @@ is a branch of.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library could not be written. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -7912,12 +8854,12 @@ Schema:
 }
 ```
 
-Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -7927,31 +8869,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -8079,9 +9019,9 @@ A `text/plain` body: a string.
 
 Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -8101,10 +9041,10 @@ Accepts a JPEG/PNG/WebP upload and stores it under `files_dir/avatars`.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `413` — The image is larger than 1.5 MB. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -8306,12 +9246,12 @@ Schema:
 }
 ```
 
-Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -8321,31 +9261,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -8498,9 +9436,9 @@ A `text/plain` body: a string.
 
 Removes the caller's stored avatar, if any.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -8512,10 +9450,10 @@ Removes the caller's stored avatar, if any.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The files directory is unknown. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -8657,12 +9595,12 @@ Schema:
 }
 ```
 
-Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The session is impersonating a user, is a plain operator session, or has no first-party user. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -8672,31 +9610,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }

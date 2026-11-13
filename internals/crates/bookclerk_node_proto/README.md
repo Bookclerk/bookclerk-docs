@@ -73,6 +73,11 @@ A branch's redeem answer may carry the signing-in user's own store
 accounts as an [`AccountBundle`](#accountbundle) sealed the same way, when the user
 chose to bring them.
 
+An install can also sign in to a library as a person rather than join
+it as a node: a client ([`CLIENT_CLIENT_ID`](#client_client_id), [`ClientTokenAnswer`](#clienttokenanswer)),
+whose session token travels as `Authorization: Bookclerk-Client`
+([`parse_client_authorization`](#parse_client_authorization)).
+
 This crate is pure: no I/O, no clock, no randomness. The daemon (owner)
 and the host client share it so both sides sign and check the same
 bytes.
@@ -86,6 +91,11 @@ bytes.
 | [`CatalogMetadata`](#catalogmetadata) | struct | Bibliographic metadata of a `CatalogTitle`. |
 | [`CatalogRef`](#catalogref) | struct | A title named by store and product id. |
 | [`CatalogTitle`](#catalogtitle) | struct | One title, as a branch shares it. |
+| [`ClientAuthorizeParams`](#clientauthorizeparams) | struct | The authorization request a client consent is for (the query `/oidc/authorize` forwards to the library's `/client/approve` page). |
+| [`ClientTokenAnswer`](#clienttokenanswer) | struct | `POST /api/client/v1/token` answer. |
+| [`ClientTokenRequest`](#clienttokenrequest) | struct | `POST /api/client/v1/token` body: exactly these three strings, each once, and nothing else. |
+| [`ClientUser`](#clientuser) | struct | The person a client session signs in as. |
+| [`StoredClientCode`](#storedclientcode) | struct | What the library stored with an approved code, as the token exchange checks it. |
 | [`AcquireTarget`](#acquiretarget) | struct | One title an acquire job should fetch on a host (`Body::AcquireTargets`). |
 | [`ClaimFilter`](#claimfilter) | struct | What a host is willing to claim (`claim.filter`). |
 | [`FileCopy`](#filecopy) | struct | Where one uploaded file is written: a destination and its key there. |
@@ -143,6 +153,14 @@ bytes.
 | [`is_marketplace`](#is_marketplace) | function | True for a marketplace: empty, or up to `MAX_MARKETPLACE_BYTES` lowercase ASCII letters and digits. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
 | [`is_store_id`](#is_store_id) | function | True for a store id: a short lowercase token. |
+| [`client_exchange_matches`](#client_exchange_matches) | function | True when `request` redeems `stored`: the code belongs to `CLIENT_CLIENT_ID`, the redirect URI is the same, the method is S256 and the trimmed verifier hashes to the challenge (compared in constant time). |
+| [`client_request_problem`](#client_request_problem) | function | Why a client authorization request is malformed, or `None` when the library may show its consent page. |
+| [`is_client_name`](#is_client_name) | function | True for a client name: 1 to `MAX_CLIENT_NAME_BYTES` bytes, no control characters. |
+| [`is_client_token`](#is_client_token) | function | True for a session token: exactly `CLIENT_TOKEN_LEN` base64url characters. |
+| [`is_s256_challenge`](#is_s256_challenge) | function | True for an S256 code challenge: exactly 43 base64url characters. |
+| [`parse_client_authorization`](#parse_client_authorization) | function | The session token in an `Authorization` header value, when the value is exactly `Bookclerk-Client <token>`. |
+| [`parse_client_query`](#parse_client_query) | function | Parses an authorize query string (the raw query `/oidc/authorize` received), sans-IO so the fuzz target drives the same code. |
+| [`parse_client_token_request`](#parse_client_token_request) | function | Reads a `POST /api/client/v1/token` body. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`is_branch_name`](#is_branch_name) | function | True for a branch name: 1 to `MAX_BRANCH_NAME_BYTES` bytes, no control characters. |
@@ -204,6 +222,15 @@ bytes.
 | [`MAX_CATALOG_TITLE_BYTES`](#max_catalog_title_bytes) | constant | Largest serialized title in a batch. |
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
 | [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
+| [`CLIENT_AUTH_SCHEME`](#client_auth_scheme) | constant | The `Authorization` scheme a client sends its session token under. |
+| [`CLIENT_CLIENT_ID`](#client_client_id) | constant | The built-in public OAuth client a client install signs in through. It is never stored in the library's clients table. |
+| [`CLIENT_CODE_TTL_SECS`](#client_code_ttl_secs) | constant | Seconds an authorization code for `CLIENT_CLIENT_ID` lives. |
+| [`CLIENT_IDLE_DAYS`](#client_idle_days) | constant | Days a client session stays signed in without being used. Each use moves the expiry forward again. |
+| [`CLIENT_SCOPE`](#client_scope) | constant | The only scope `CLIENT_CLIENT_ID` may ask for. |
+| [`CLIENT_TOKEN_LEN`](#client_token_len) | constant | Length of a session token: base64url (no padding) of 32 random bytes. |
+| [`CLIENT_TOKEN_PATH`](#client_token_path) | constant | `POST`: redeem an approved client sign-in for a session token. |
+| [`MAX_CLIENT_NAME_BYTES`](#max_client_name_bytes) | constant | Longest client name sent. |
+| [`MAX_CLIENT_STATE_BYTES`](#max_client_state_bytes) | constant | Longest `state` an authorize request may carry. |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
@@ -478,6 +505,123 @@ Lowercase hex SHA-256 of the title's manifest (primary key, PDF key
 and files, sorted by key): equal digests mean the same files.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ClientAuthorizeParams
+
+```rust
+pub struct ClientAuthorizeParams {
+    pub client_id: String,
+    pub redirect_uri: String,
+    pub response_type: String,
+    pub scope: Option<String>,
+    pub state: Option<String>,
+    pub code_challenge: String,
+    pub code_challenge_method: Option<String>,
+    pub client_name: Option<String>,
+}
+```
+
+The authorization request a client consent is for (the query
+`/oidc/authorize` forwards to the library's `/client/approve` page).
+
+**Fields**
+
+- `client_id`: Must be [`CLIENT_CLIENT_ID`](#client_client_id).
+- `redirect_uri`: Where the code goes: loopback or https.
+- `response_type`: Must be `code`.
+- `scope`: Must be [`CLIENT_SCOPE`](#client_scope).
+- `state`: Echoed on the redirect.
+- `code_challenge`: PKCE S256 challenge.
+- `code_challenge_method`: Must be `S256`.
+- `client_name`: The name the client install gives itself, shown on the consent page
+  and in the user's session list.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `IntoParams`, `PartialEq`, `ToSchema`
+
+### ClientTokenAnswer
+
+```rust
+pub struct ClientTokenAnswer {
+    pub token: String,
+    pub cluster_id: String,
+    pub user: ClientUser,
+    pub idle_secs: i64,
+}
+```
+
+`POST /api/client/v1/token` answer.
+
+**Fields**
+
+- `token`: The session token, sent as `Authorization: Bookclerk-Client <token>`.
+  Shown once; the library keeps only its hash.
+- `cluster_id`: The library's cluster id.
+- `user`: The signed-in person on that library.
+- `idle_secs`: Seconds the session stays signed in unused; each use resets it.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ClientTokenRequest
+
+```rust
+pub struct ClientTokenRequest {
+    pub code: String,
+    pub code_verifier: String,
+    pub redirect_uri: String,
+}
+```
+
+`POST /api/client/v1/token` body: exactly these three strings, each
+once, and nothing else.
+
+**Fields**
+
+- `code`: The single-use code from the redirect.
+- `code_verifier`: The PKCE verifier whose S256 challenge the authorize request sent.
+- `redirect_uri`: The redirect URI the authorize request named.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ClientUser
+
+```rust
+pub struct ClientUser {
+    pub id: i64,
+    pub display_name: Option<String>,
+}
+```
+
+The person a client session signs in as.
+
+**Fields**
+
+- `id`: The user's id on the library.
+- `display_name`: The user's display name on the library, when set.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### StoredClientCode
+
+```rust
+pub struct StoredClientCode<'a> {
+    pub client_id: &'a str,
+    pub redirect_uri: &'a str,
+    pub method: &'a str,
+    pub challenge: &'a str,
+}
+```
+
+What the library stored with an approved code, as the token exchange
+checks it.
+
+**Fields**
+
+- `client_id`: The client the code was approved for.
+- `redirect_uri`: The redirect URI the authorize request named.
+- `method`: The PKCE method the authorize request named.
+- `challenge`: The PKCE challenge the authorize request sent.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### AcquireTarget
 
@@ -2282,6 +2426,130 @@ pub fn is_store_id(store: &str) -> bool
 
 True for a store id: a short lowercase token.
 
+### client_exchange_matches
+
+```rust
+pub fn client_exchange_matches(
+    stored: &StoredClientCode<'_>,
+    request: &ClientTokenRequest,
+) -> bool
+```
+
+True when `request` redeems `stored`: the code belongs to
+[`CLIENT_CLIENT_ID`](#client_client_id), the redirect URI is the same, the method is S256
+and the trimmed verifier hashes to the challenge (compared in constant
+time).
+
+#### Arguments
+
+* `stored` - The approved code's record.
+* `request` - The token request.
+
+#### Returns
+
+Whether the exchange may mint a library card.
+
+### client_request_problem
+
+```rust
+pub fn client_request_problem(params: &ClientAuthorizeParams) -> Option<&'static str>
+```
+
+Why a client authorization request is malformed, or `None` when the
+library may show its consent page.
+
+#### Arguments
+
+* `params` - The parsed request ([`parse_client_query`](#parse_client_query)).
+
+#### Returns
+
+A short reason, or `None`.
+
+### is_client_name
+
+```rust
+pub fn is_client_name(name: &str) -> bool
+```
+
+True for a client name: 1 to [`MAX_CLIENT_NAME_BYTES`](#max_client_name_bytes) bytes, no control
+characters.
+
+### is_client_token
+
+```rust
+pub fn is_client_token(token: &str) -> bool
+```
+
+True for a session token: exactly [`CLIENT_TOKEN_LEN`](#client_token_len) base64url
+characters.
+
+### is_s256_challenge
+
+```rust
+pub fn is_s256_challenge(raw: &str) -> bool
+```
+
+True for an S256 code challenge: exactly 43 base64url characters.
+
+### parse_client_authorization
+
+```rust
+pub fn parse_client_authorization(value: &[u8]) -> Option<&str>
+```
+
+The session token in an `Authorization` header value, when the value is
+exactly `Bookclerk-Client <token>`.
+
+The scheme is matched case-insensitively (RFC 9110 section 11.1); one
+space separates it from the token; the token must pass
+[`is_client_token`](#is_client_token). Anything else, including an operator `Bearer`
+token, is `None`.
+
+#### Arguments
+
+* `value` - The raw header value bytes.
+
+#### Returns
+
+The token, borrowed from `value`, or `None`.
+
+### parse_client_query
+
+```rust
+pub fn parse_client_query(raw: &str) -> Option<ClientAuthorizeParams>
+```
+
+Parses an authorize query string (the raw query `/oidc/authorize`
+received), sans-IO so the fuzz target drives the same code.
+
+#### Arguments
+
+* `raw` - The query string, without the `?`.
+
+#### Returns
+
+The parameters, or `None` when a parameter repeats, a required one is
+missing, or the shape is wrong. Unknown parameters are ignored.
+
+### parse_client_token_request
+
+```rust
+pub fn parse_client_token_request(body: &[u8]) -> Option<ClientTokenRequest>
+```
+
+Reads a `POST /api/client/v1/token` body.
+
+#### Arguments
+
+* `body` - The request body bytes, from another machine.
+
+#### Returns
+
+The request when the body is one JSON object with exactly `code`,
+`code_verifier` and `redirect_uri`, each a string written once, or
+`None`.
+
 ### is_destination_id
 
 ```rust
@@ -2999,6 +3267,80 @@ pub const MAX_MARKETPLACE_BYTES: usize = 16;
 ```
 
 Longest marketplace.
+
+### CLIENT_AUTH_SCHEME
+
+```rust
+pub const CLIENT_AUTH_SCHEME: &str = "Bookclerk-Client";
+```
+
+The `Authorization` scheme a client sends its session token under.
+
+### CLIENT_CLIENT_ID
+
+```rust
+pub const CLIENT_CLIENT_ID: &str = "bookclerk-client";
+```
+
+The built-in public OAuth client a client install signs in through. It
+is never stored in the library's clients table.
+
+### CLIENT_CODE_TTL_SECS
+
+```rust
+pub const CLIENT_CODE_TTL_SECS: i64 = 60;
+```
+
+Seconds an authorization code for [`CLIENT_CLIENT_ID`](#client_client_id) lives.
+
+### CLIENT_IDLE_DAYS
+
+```rust
+pub const CLIENT_IDLE_DAYS: i64 = 90;
+```
+
+Days a client session stays signed in without being used. Each use
+moves the expiry forward again.
+
+### CLIENT_SCOPE
+
+```rust
+pub const CLIENT_SCOPE: &str = "library:member";
+```
+
+The only scope [`CLIENT_CLIENT_ID`](#client_client_id) may ask for.
+
+### CLIENT_TOKEN_LEN
+
+```rust
+pub const CLIENT_TOKEN_LEN: usize = 43;
+```
+
+Length of a session token: base64url (no padding) of 32 random bytes.
+
+### CLIENT_TOKEN_PATH
+
+```rust
+pub const CLIENT_TOKEN_PATH: &str = "/api/client/v1/token";
+```
+
+`POST`: redeem an approved client sign-in for a session token.
+
+### MAX_CLIENT_NAME_BYTES
+
+```rust
+pub const MAX_CLIENT_NAME_BYTES: usize = 64;
+```
+
+Longest client name sent.
+
+### MAX_CLIENT_STATE_BYTES
+
+```rust
+pub const MAX_CLIENT_STATE_BYTES: usize = 512;
+```
+
+Longest `state` an authorize request may carry.
 
 ### ITEM_JOB
 

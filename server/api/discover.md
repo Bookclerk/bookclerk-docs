@@ -462,9 +462,9 @@ worker; later ones are served from the node's cover cache. Responses are
 immutable, since a path always names the same image, and carry an `ETag`
 so a client revalidating anyway gets `304 Not Modified`.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Parameters
 
@@ -479,7 +479,7 @@ so a client revalidating anyway gets `304 Not Modified`.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -591,12 +591,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -791,9 +791,9 @@ same address. Once upstream's freshness lifetime (one hour to seven
 days) runs out, Bookclerk serves its cached copy while it checks with the
 image host in the background.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Parameters
 
@@ -807,7 +807,7 @@ image host in the background.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -919,12 +919,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -1115,9 +1115,9 @@ cover service.
 The icon is the one the plugin names for its sign-in button. A plugin
 that is not deployed on this node, or names no icon, is a 404.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Parameters
 
@@ -1131,7 +1131,7 @@ that is not deployed on this node, or names no icon, is a 404.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1243,12 +1243,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -1439,9 +1439,9 @@ provisioning can wait for a new visitor's shelves before sending them in.
 It also queues the caller's fetch or ranking when the stored data is
 missing or stale, exactly as the Discover page read does.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -1453,7 +1453,7 @@ missing or stale, exactly as the Discover page read does.
   - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
   - `updating` *boolean*, **required** — True while a fetch or ranking for the caller is waiting or running.
 - `401` — The caller has no portal identity. Body: string (`text/plain`)
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1583,12 +1583,12 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -1696,9 +1696,9 @@ the Discover page's Refresh button asks. Unchanged store calls answer
 from the day's cache, so a refresh is cheap; a fetch already waiting
 absorbs the request.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -1710,7 +1710,7 @@ absorbs the request.
   - `candidates_fetched_at` *string or null* — RFC 3339 time the caller's last storefront fetch finished, when any.
   - `updating` *boolean*, **required** — True while a fetch or ranking for the caller is waiting or running.
 - `401` — The caller has no portal identity. Body: string (`text/plain`)
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1844,12 +1844,12 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -1970,9 +1970,9 @@ and queues a fetch or ranking when the stored data is missing or stale:
 `state` is `preparing` (no shelves yet), `refreshing` (stored shelves,
 newer ones queued) or `ready`.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Responses
 
@@ -1982,7 +1982,7 @@ newer ones queued) or `ready`.
   - `state` *[`FeedState`](schemas.md#feedstate) or null* — Whether these are the caller's current shelves, set by the daemon's read of the stored feed. Absent in a stored feed and from the CLI.
   - `computed_at` *string or null* — RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
 - `401` — The caller has no portal identity. Body: string (`text/plain`)
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2669,12 +2669,12 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -2779,9 +2779,9 @@ A `text/plain` body: a string.
 
 Resolves storefront price/availability for one title, forcing server-side preferred stores.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -2808,7 +2808,7 @@ Resolves storefront price/availability for one title, forcing server-side prefer
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -3182,12 +3182,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -3302,9 +3302,9 @@ A `text/plain` body: a string.
 
 Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -3321,7 +3321,7 @@ Resolves up to 24 purchase-hint queries with caller-derived preferred stores.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -3704,12 +3704,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -3834,9 +3834,9 @@ A `text/plain` body: a string.
 
 Runs a multi-store catalog search with a 15s wall budget and empty-query short circuit.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Parameters
 
@@ -3876,7 +3876,7 @@ Runs a multi-store catalog search with a 15s wall budget and empty-query short c
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -4449,12 +4449,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
 
 ```json
 {
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -4549,9 +4549,9 @@ A `text/plain` body: a string.
 
 Resolves Audnexus-style title metadata for one query.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -4596,7 +4596,7 @@ Resolves Audnexus-style title metadata for one query.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -5032,12 +5032,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -5152,9 +5152,9 @@ A `text/plain` body: a string.
 
 Resolves up to 24 title-metadata queries without failing the whole batch on one error.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -5171,7 +5171,7 @@ Resolves up to 24 title-metadata queries without failing the whole batch on one 
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -5617,12 +5617,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```
@@ -5737,9 +5737,9 @@ A `text/plain` body: a string.
 
 Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
 
-**Access:** The operator, or any library session.
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
 
 ### Request body
 
@@ -5765,7 +5765,7 @@ Fetches Audnexus reviews for an ASIN; rejects an empty ASIN with 400.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -6032,12 +6032,12 @@ Schema:
 }
 ```
 
-Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept client apps on this address.",
   "status": 403
 }
 ```

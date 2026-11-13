@@ -21,6 +21,7 @@ Each route lists the credentials it accepts and who may call it. The credentials
 
 | Name | Kind | Description |
 | --- | --- | --- |
+| `clientToken` | header `Authorization` | A client sign-in's session token (`POST /api/client/v1/token`), as `Authorization: Bookclerk-Client <token>`. Accepted only on routes any library session may use, over TLS except on loopback. |
 | `nodeSignature` | header `Authorization` | A node's signed request, as `Authorization: Bookclerk-Node <node_id> <issued_at> <signature>` with the node's identity key. |
 | `oidcAccessToken` | HTTP bearer | An access token from this daemon's OIDC token endpoint (`POST /oidc/token`), as `Authorization: Bearer <token>`. |
 | `operatorSession` | cookie `bookclerk_operator_session` | The operator's browser session, set by `POST /api/auth/login`. |
@@ -68,6 +69,8 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`GET /api/auth/branch-consent`](auth.md#get-apiauthbranch-consent) | `GET /api/auth/branch-consent?<authorize params>`: what the consent page shows. 400 `invalid_request` for a malformed request (the page then shows the problem and never redirects). |
 | [`POST /api/auth/branch-consent`](auth.md#post-apiauthbranch-consent) | `POST /api/auth/branch-consent`: approve or deny. Answers `{redirect}`, the URL to send the browser to: the branch's callback with a code (or `error=access_denied`). Approving needs an active signed-in user, host enrollment on, and a connection the transport policy allows. |
 | [`POST /api/auth/branch-consent/step-up`](auth.md#post-apiauthbranch-consentstep-up) | `POST /api/auth/branch-consent/step-up`: starts a passkey step-up for a shared branch consent (an Owner with a passkey). Answers the WebAuthn request options with a `challenge_id` to send back in the consent's `step_up`. |
+| [`GET /api/auth/client-consent`](auth.md#get-apiauthclient-consent) | `GET /api/auth/client-consent?<authorize params>`: what the consent page shows. 400 `invalid_request` for a malformed request (the page then shows the problem and never redirects). |
+| [`POST /api/auth/client-consent`](auth.md#post-apiauthclient-consent) | `POST /api/auth/client-consent`: approve or deny. Answers `{redirect}`, the URL to send the browser to: the client's callback with a code (or `error=access_denied`). |
 | [`POST /api/auth/logout`](auth.md#post-apiauthlogout) | Revokes hashed operator and portal sessions and clears both cookies. |
 | [`GET /api/auth/sessions`](auth.md#get-apiauthsessions) | List sessions for the current principal only (not every operator session). |
 | [`DELETE /api/auth/sessions/{id}`](auth.md#delete-apiauthsessionsid) | Revoke a session by id. Operators may revoke any operator session; portal users may only revoke their own. |
@@ -305,6 +308,14 @@ Store accounts a library user connects (the Accounts page).
 | [`POST /api/portal/audible/start`](accounts.md#post-apiportalaudiblestart) (deprecated) | Legacy `POST /audible/start` alias that forwards to Audible OAuth start. |
 | [`GET /api/portal/connections`](accounts.md#get-apiportalconnections) | Lists store accounts linked to the signed-in identity, including disabled sources. |
 | [`POST /api/portal/sources/{source}/connections/{account_id}/revoke`](accounts.md#post-apiportalsourcessourceconnectionsaccount_idrevoke) | Marks a store account revoked, signs it out, deletes its stored credentials, then unlinks it. |
+
+### [Client sign-in](client-sign-in.md)
+
+A client install's sign-in as a person: redeem an approved code for a session token.
+
+| Route | Summary |
+| --- | --- |
+| [`POST /api/client/v1/token`](client-sign-in.md#post-apiclientv1token) | `POST /api/client/v1/token`: redeem an approved client sign-in for a session token. The code is spent by any attempt, matching or not. |
 
 ### [Node protocol](node-protocol.md)
 

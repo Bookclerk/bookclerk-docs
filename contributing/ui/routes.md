@@ -146,7 +146,29 @@ sortKey?:
 sources?: string[];
 ```
 
+***
+
+### JoinPage
+
+```ts
+type JoinPage = "approve" | "client-approve" | "callback";
+```
+
+A page that sign-in flows from other installs own: a branch's consent
+(`approve`), a client app's consent (`client-approve`), or the joining
+install's callback (`callback`).
+
 ## Variables
+
+### CLIENT\_APPROVE\_PATH
+
+```ts
+const CLIENT_APPROVE_PATH: "/client/approve" = "/client/approve";
+```
+
+The library's consent page for a client app's sign-in (a library card).
+
+***
 
 ### JOIN\_APPROVE\_PATH
 
@@ -205,6 +227,28 @@ True when the path is owned by the React SPA.
 
 ***
 
+### isConsentPage()
+
+```ts
+function isConsentPage(page): boolean;
+```
+
+True for a consent page, which keeps its address across a sign-in.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `page` | [`JoinPage`](#joinpage) \| `null` | The page, from [joinPage](#joinpage-1). |
+
+#### Returns
+
+`boolean`
+
+Whether it is a branch's or a client app's consent page.
+
+***
+
 ### isInvitePath()
 
 ```ts
@@ -230,7 +274,7 @@ True for `/invite` (trailing slash ignored).
 ### joinPage()
 
 ```ts
-function joinPage(pathname?): "approve" | "callback" | null;
+function joinPage(pathname?): JoinPage | null;
 ```
 
 Which Join a library page this document is, if any.
@@ -243,9 +287,9 @@ Which Join a library page this document is, if any.
 
 #### Returns
 
-`"approve"` \| `"callback"` \| `null`
+[`JoinPage`](#joinpage) \| `null`
 
-`approve`, `callback`, or `null`.
+`approve`, `client-approve`, `callback`, or `null`.
 
 ***
 

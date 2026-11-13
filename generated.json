@@ -71,6 +71,7 @@
     "server/api/README",
     "server/api/accounts",
     "server/api/auth",
+    "server/api/client-sign-in",
     "server/api/cluster",
     "server/api/configuration",
     "server/api/discover",

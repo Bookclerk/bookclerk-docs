@@ -468,6 +468,62 @@ chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
 
+## ClientAuthorizeParams
+
+The authorization request a client consent is for (the query
+`/oidc/authorize` forwards to the library's `/client/approve` page).
+
+- `client_id` *string*, **required** — Must be [`CLIENT_CLIENT_ID`].
+- `redirect_uri` *string*, **required** — Where the code goes: loopback or https.
+- `response_type` *string*, **required** — Must be `code`.
+- `scope` *string or null* — Must be [`CLIENT_SCOPE`].
+- `state` *string or null* — Echoed on the redirect.
+- `code_challenge` *string*, **required** — PKCE S256 challenge.
+- `code_challenge_method` *string or null* — Must be `S256`.
+- `client_name` *string or null* — The name the client install gives itself, shown on the consent page and in the user's session list.
+
+## ClientConsentBody
+
+`POST /api/auth/client-consent` body.
+
+Includes every field of [`ClientAuthorizeParams`](#clientauthorizeparams).
+
+- `approve` *boolean*, **required** — True to let the client sign in; false to deny.
+
+## ClientConsentPage
+
+JSON body for `GET /api/auth/client-consent`: what the consent page shows.
+
+- `library_name` *string*, **required** — This library's name.
+- `client_name` *string*, **required** — The name the client gives itself.
+- `redirect_origin` *string*, **required** — Origin of the client's redirect URI, for the page to name.
+- `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the client would sign in as.
+
+## ClientTokenAnswer
+
+`POST /api/client/v1/token` answer.
+
+- `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Client <token>`. Shown once; the library keeps only its hash.
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `user` *[`ClientUser`](#clientuser)*, **required** — The signed-in person on that library.
+- `idle_secs` *integer (int64)*, **required** — Seconds the session stays signed in unused; each use resets it.
+
+## ClientTokenRequest
+
+`POST /api/client/v1/token` body: exactly these three strings, each
+once, and nothing else.
+
+- `code` *string*, **required** — The single-use code from the redirect.
+- `code_verifier` *string*, **required** — The PKCE verifier whose S256 challenge the authorize request sent.
+- `redirect_uri` *string*, **required** — The redirect URI the authorize request named.
+
+## ClientUser
+
+The person a client session signs in as.
+
+- `id` *integer (int64)*, **required** — The user's id on the library.
+- `display_name` *string or null* — The user's display name on the library, when set.
+
 ## ClusterConsentsResponse
 
 JSON body for `GET /api/config/cluster-consents`.
@@ -2226,6 +2282,15 @@ JSON body after a portal session was minted for a first-party user.
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
 
+## PortalSessionKind
+
+Where a user's session token is presented.
+
+A token works only in its own place: a browser token only as the session
+cookie, a client token only as `Authorization: Bookclerk-Client`.
+
+Type: one of `browser`, `client`
+
 ## PortalSessionView
 
 A portal (user) session as listed by `GET /api/auth/sessions`.
@@ -2238,6 +2303,7 @@ A portal (user) session as listed by `GET /api/auth/sessions`.
 - `client_label` *string or null* — Best-effort OS or client label from the User-Agent.
 - `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
 - `user_agent` *string or null* — Raw User-Agent captured when the session was created.
+- `channel` *[`PortalSessionKind`](#portalsessionkind)*, **required** — How the session is used: `browser` for a browser session, `client` for a client sign-in (a library card), whose `client_label` is the name the client gave itself.
 
 ## PostNodeInvite
 

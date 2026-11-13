@@ -2055,6 +2055,14 @@ Active auth session row visible to the current principal.
 
 #### Properties
 
+##### channel?
+
+```ts
+channel?: "browser" | "client" | null;
+```
+
+For a portal session: `browser`, or `client` for a client app's library card.
+
 ##### client\_label?
 
 ```ts
@@ -7338,7 +7346,11 @@ Clears the operator cookie session via `POST /api/auth/logout`.
 
 `Promise`\<`void`\>
 
-Resolves when the logout request finishes.
+Resolves when the library answered that the sign-out is done.
+
+#### Throws
+
+When the library answers anything else.
 
 ***
 
