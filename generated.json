@@ -778,6 +778,7 @@
     "internals/crates/bookclerk_tls/README",
     "internals/crates/bookclerk_tls/ureq",
     "internals/crates/bookclerk_tray/README",
+    "internals/crates/bookclerk_window_policy/README",
     "internals/crates/bookclerk_workerd/README",
     "internals/crates/bookclerk_workerd/bridge_http",
     "internals/crates/bookclerk_workerd/bridge_stdio",
@@ -793,6 +794,8 @@
     "internals/crates/bookclerk_workerd/pin",
     "internals/crates/bookclerk_workerd/socket_proxy",
     "internals/crates/bookclerk_workerd/unix_bind",
+    "internals/crates/bookclerkd/README",
+    "internals/crates/bookclerkd/embedded",
     "internals/crates/README"
    ]
   },
@@ -863,6 +866,8 @@
   "internals/crates/bookclerk_storefront": "crates/bookclerk-storefront",
   "internals/crates/bookclerk_tls": "crates/bookclerk-tls",
   "internals/crates/bookclerk_tray": "crates/bookclerk-tray",
-  "internals/crates/bookclerk_workerd": "crates/bookclerk-workerd"
+  "internals/crates/bookclerk_window_policy": "crates/bookclerk-window-policy",
+  "internals/crates/bookclerk_workerd": "crates/bookclerk-workerd",
+  "internals/crates/bookclerkd": "crates/bookclerkd"
  }
 }

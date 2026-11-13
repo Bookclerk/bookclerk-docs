@@ -64,7 +64,9 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_storefront`](bookclerk_storefront/README.md) | Types storefront guests share with the host: DTOs, ABI conversions and listing helpers, with no database, ORM or OpenAPI dependencies |
 | [`bookclerk_tls`](bookclerk_tls/README.md) | The one rustls crypto provider and HTTP client TLS settings for the Bookclerk hosts |
 | [`bookclerk_tray`](bookclerk_tray/README.md) | In-process system tray for bookclerkd (opens the web UI in a browser) |
+| [`bookclerk_window_policy`](bookclerk_window_policy/README.md) | What the desktop window's custom scheme lets a page reach: origin and path refusals, header rewrite, navigation |
 | [`bookclerk_workerd`](bookclerk_workerd/README.md) | Jailed workerd isolate launcher for Bookclerk script plugins |
+| [`bookclerkd`](bookclerkd/README.md) | Bookclerk daemon: scheduled scan, auto-acquire, HTTP control plane |
 
 ## Development and testing
 
