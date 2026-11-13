@@ -5863,6 +5863,17 @@ pdfUrl?: string;
 Companion PDF download URL when the store exposes one.
 Omitted when absent (wire zero value).
 
+##### refreshedCredentials?
+
+```ts
+refreshedCredentials?: Uint8Array<ArrayBufferLike>;
+```
+
+The account's credentials as the guest holds them after refreshing them
+during the fetch, as in `ScanPage.refreshedCredentials`. Empty when
+nothing changed.
+Omitted when absent (wire zero value).
+
 ***
 
 ### PlainPart
@@ -7547,6 +7558,20 @@ nextCursor: string;
 
 Opaque position of the next page; empty ends the pass. At most
 `maxScanCursorBytes`; never equal to the cursor this page answered.
+
+##### refreshedCredentials?
+
+```ts
+refreshedCredentials?: Uint8Array<ArrayBufferLike>;
+```
+
+The account's credentials as the guest holds them after refreshing them
+while producing this page (for example a renewed access token): the
+same encoding login returned, a JSON object of at most
+`maxRefreshedCredentialBytes`. The host stores them in place of the
+credentials it sent, unless the account was signed in again meanwhile,
+and sends them on the pass's later pages. Empty when nothing changed.
+Omitted when absent (wire zero value).
 
 ##### removed
 

@@ -559,6 +559,17 @@ Maximum already-separated operations across one `databaseMigrations` registratio
 
 ***
 
+### MAX\_REFRESHED\_CREDENTIAL\_BYTES
+
+```ts
+const MAX_REFRESHED_CREDENTIAL_BYTES: 65536;
+```
+
+Maximum bytes of refreshed credentials a storefront hands back
+(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`).
+
+***
+
 ### MAX\_SCALAR\_BYTES
 
 ```ts

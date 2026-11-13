@@ -411,6 +411,7 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_ops)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_registration_bytes)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_TOTAL_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_total_ops)
+- [`bookclerk_plugin_abi::MAX_REFRESHED_CREDENTIAL_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_refreshed_credential_bytes)
 - [`bookclerk_plugin_abi::MAX_SCALAR_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_scalar_bytes)
 - [`bookclerk_plugin_abi::MAX_SCAN_CURSOR_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_scan_cursor_bytes)
 - [`bookclerk_plugin_abi::MAX_SCAN_PAGE_BOOKS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_scan_page_books)

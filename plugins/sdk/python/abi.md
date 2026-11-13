@@ -3300,6 +3300,7 @@ title, an empty `nextCursor` and `complete = true`.
 - `syncToken`: On the last page: the opaque token the host sends as `ScanParams.syncToken` on the account's next pass; empty means the next pass is a full one. At most `maxScanCursorBytes`.
 - `complete`: On the last page: true when the pass listed every title the account holds (a full pass), false for a delta pass that listed only changes.
 - `storePages`: Storefront requests this page took.
+- `refreshedCredentials`: The account's credentials as the guest holds them after refreshing them while producing this page (for example a renewed access token): the same encoding login returned, a JSON object of at most `maxRefreshedCredentialBytes`. The host stores them in place of the credentials it sent, unless the account was signed in again meanwhile, and sends them on the pass's later pages. Empty when nothing changed. Omitted when absent (wire zero value).
 
 ### ScanReplyOk
 
@@ -3419,6 +3420,7 @@ guests decrypt before responding.
 - `coverPath`: Cover image path under the cache directory. Omitted when absent (wire zero value).
 - `chapters`: Chapter markers; empty when unknown.
 - `pdfUrl`: Companion PDF download URL when the store exposes one. Omitted when absent (wire zero value).
+- `refreshedCredentials`: The account's credentials as the guest holds them after refreshing them during the fetch, as in `ScanPage.refreshedCredentials`. Empty when nothing changed. Omitted when absent (wire zero value).
 
 ### FetchTitleReplyOk
 

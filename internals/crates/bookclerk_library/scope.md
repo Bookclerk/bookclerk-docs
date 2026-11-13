@@ -432,6 +432,45 @@ Upsert opaque JSON credentials (external plugin login blob).
 
 Returns an error when the operation fails.
 
+#### SourceScope::replace_refreshed_credentials
+
+```rust
+pub async fn replace_refreshed_credentials(
+    &self,
+    account_id: &str,
+    sent: &Value,
+    refreshed: &[u8],
+) -> Result<bool>
+```
+
+Stores the credentials a guest handed back after refreshing them
+(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`)
+in place of `sent`, the credentials the host gave it.
+
+Written only while the stored credentials are still `sent`: when the
+account was signed in again (or refreshed by another call) after
+`sent` was read, the newer credentials stay and nothing is written.
+The check and the write are one host batch guarded on the sealed row
+read, so a sign-in that lands in between wins. Nothing is written
+when the account has no stored credentials (it was disconnected).
+The new value is registered with log redaction before it is stored.
+
+##### Arguments
+
+* `account_id` - The account the guest refreshed.
+* `sent` - The credentials the host sent the guest.
+* `refreshed` - The credentials the guest handed back, already
+  checked as one JSON object within the ABI bound.
+
+##### Returns
+
+True when the refreshed credentials were stored.
+
+##### Errors
+
+Returns an error when `refreshed` is not JSON, or a read, the seal or
+the write fails.
+
 #### SourceScope::load_credentials_json
 
 ```rust

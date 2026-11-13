@@ -230,6 +230,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant | Maximum already-separated operations in one plugin-owned migration. |
 | [`MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](#max_plugin_migration_registration_bytes) | constant | Maximum aggregate UTF-8 bytes of plugin migration ids plus SQL in one `databaseMigrations` registration (Cap'n Proto framing is not counted). |
 | [`MAX_PLUGIN_MIGRATION_TOTAL_OPS`](#max_plugin_migration_total_ops) | constant | Maximum already-separated operations across one `databaseMigrations` registration (independent of the per-migration cap and of id+SQL UTF-8 bytes). |
+| [`MAX_REFRESHED_CREDENTIAL_BYTES`](#max_refreshed_credential_bytes) | constant | Longest refreshed credential blob a storefront may hand back in bytes (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`). |
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant | Maximum decoded size of an ordinary RPC scalar value (not a stream window). |
 | [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant | Longest scan cursor or sync token in bytes. |
 | [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant | Most titles, and separately most removed product ids, in one `ContentSource.scan` page. |
@@ -385,6 +386,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`db_stream::STREAM_FRAME_TARGET_BYTES`](db_stream.md#stream_frame_target_bytes)
 - [`scan_page::decode_scan_page_bytes`](scan_page.md#decode_scan_page_bytes)
 - [`scan_page::encode_scan_page_bytes`](scan_page.md#encode_scan_page_bytes)
+- [`scan_page::validate_refreshed_credentials`](scan_page.md#validate_refreshed_credentials)
 - [`scan_page::validate_scan_page`](scan_page.md#validate_scan_page)
 - [`scan_page::ScanPageError`](scan_page.md#scanpageerror)
 - [`settings_schema::is_valid_setting_key`](settings_schema.md#is_valid_setting_key)
@@ -6110,6 +6112,15 @@ pub const MAX_PLUGIN_MIGRATION_TOTAL_OPS: u32 = crate::plugin_capnp::MAX_PLUGIN_
 
 Maximum already-separated operations across one `databaseMigrations`
 registration (independent of the per-migration cap and of id+SQL UTF-8 bytes).
+
+### MAX_REFRESHED_CREDENTIAL_BYTES
+
+```rust
+pub const MAX_REFRESHED_CREDENTIAL_BYTES: u32 = crate::plugin_capnp::MAX_REFRESHED_CREDENTIAL_BYTES;
+```
+
+Longest refreshed credential blob a storefront may hand back in bytes
+(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`).
 
 ### MAX_SCALAR_BYTES
 

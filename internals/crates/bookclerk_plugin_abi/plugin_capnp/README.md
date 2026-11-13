@@ -32,6 +32,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant |  |
 | [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant |  |
 | [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant |  |
+| [`MAX_REFRESHED_CREDENTIAL_BYTES`](#max_refreshed_credential_bytes) | constant |  |
 | [`MAX_EVENT_CURSOR_BYTES`](#max_event_cursor_bytes) | constant |  |
 | [`MAX_IDENTIFIER_BYTES`](#max_identifier_bytes) | constant |  |
 | [`MAX_CRON_BYTES`](#max_cron_bytes) | constant |  |
@@ -595,6 +596,12 @@ pub const MAX_SCAN_PAGE_BOOKS: u32 = 500;
 
 ```rust
 pub const MAX_SCAN_CURSOR_BYTES: u32 = 4096;
+```
+
+### MAX_REFRESHED_CREDENTIAL_BYTES
+
+```rust
+pub const MAX_REFRESHED_CREDENTIAL_BYTES: u32 = 65536;
 ```
 
 ### MAX_EVENT_CURSOR_BYTES

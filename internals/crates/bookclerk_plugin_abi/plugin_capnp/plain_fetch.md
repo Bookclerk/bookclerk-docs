@@ -97,6 +97,18 @@ pub fn get_pdf_url(self) -> Result<Reader<'a>>
 pub fn has_pdf_url(&self) -> bool
 ```
 
+#### Reader::get_refreshed_credentials
+
+```rust
+pub fn get_refreshed_credentials(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_refreshed_credentials
+
+```rust
+pub fn has_refreshed_credentials(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -249,6 +261,30 @@ pub fn init_pdf_url(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_pdf_url(&self) -> bool
+```
+
+#### Builder::get_refreshed_credentials
+
+```rust
+pub fn get_refreshed_credentials(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_refreshed_credentials
+
+```rust
+pub fn set_refreshed_credentials(&mut self, value: Reader<'_>)
+```
+
+#### Builder::init_refreshed_credentials
+
+```rust
+pub fn init_refreshed_credentials(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_refreshed_credentials
+
+```rust
+pub fn has_refreshed_credentials(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

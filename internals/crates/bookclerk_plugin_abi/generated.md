@@ -974,6 +974,7 @@ pub struct ScanPage {
     pub sync_token: String,
     pub complete: bool,
     pub store_pages: u32,
+    pub refreshed_credentials: Option<Vec<u8>>,
 }
 ```
 
@@ -996,6 +997,13 @@ title, an empty `nextCursor` and `complete = true`.
 - `complete`: On the last page: true when the pass listed every title the account
   holds (a full pass), false for a delta pass that listed only changes.
 - `store_pages`: Storefront requests this page took.
+- `refreshed_credentials`: The account's credentials as the guest holds them after refreshing them
+  while producing this page (for example a renewed access token): the
+  same encoding login returned, a JSON object of at most
+  `maxRefreshedCredentialBytes`. The host stores them in place of the
+  credentials it sent, unless the account was signed in again meanwhile,
+  and sends them on the pass's later pages. Empty when nothing changed.
+  `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1123,6 +1131,7 @@ pub struct PlainFetch {
     pub cover_path: Option<String>,
     pub chapters: Vec<ChapterMarker>,
     pub pdf_url: Option<String>,
+    pub refreshed_credentials: Option<Vec<u8>>,
 }
 ```
 
@@ -1138,6 +1147,10 @@ guests decrypt before responding.
   `None` when absent (wire zero value).
 - `chapters`: Chapter markers; empty when unknown.
 - `pdf_url`: Companion PDF download URL when the store exposes one.
+  `None` when absent (wire zero value).
+- `refreshed_credentials`: The account's credentials as the guest holds them after refreshing them
+  during the fetch, as in `ScanPage.refreshedCredentials`. Empty when
+  nothing changed.
   `None` when absent (wire zero value).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`

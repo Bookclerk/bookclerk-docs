@@ -36,6 +36,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
+| [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an owner cluster handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
 | [`PendingStructural`](#pendingstructural) | struct | Newly requested capabilities awaiting operator consent: structural ones, and network destinations wider than the stored grant. |
@@ -481,6 +482,58 @@ The default is empty. [`LiveDeploymentRuntime`](#livedeploymentruntime) returns 
 so a deployment row that disappeared can be retired.
 
 Implemented by: `LiveDeploymentRuntime`
+
+### RefreshedCredentialSink
+
+```rust
+pub trait RefreshedCredentialSink: Send + Sync {
+    fn refreshed<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        account_id: &'life1 str,
+        credentials: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn latest(&self, account_id: &str) -> Option<Vec<u8>>;
+}
+```
+
+Receives the credentials a guest refreshed while it used credentials an
+owner cluster handed with a job (`ScanPage.refreshedCredentials`,
+`PlainFetch.refreshedCredentials`), already checked against the ABI
+bounds. The daemon writes them back to the owner under the job's fence.
+
+One sink serves a whole job, so the job's later guest calls (the next
+title of an acquire, a fetch after a scan) are sent the refreshed
+credentials ([`Self::latest`](#refreshedcredentialsinklatest)) rather than the stale handed ones.
+
+#### RefreshedCredentialSink::refreshed
+
+```rust
+fn refreshed<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    account_id: &'life1 str,
+    credentials: Vec<u8>,
+) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Hands back `credentials`, the guest's refreshed credentials for
+`account_id`. Failures are the sink's to log; the job goes on.
+
+#### RefreshedCredentialSink::latest
+
+```rust
+fn latest(&self, account_id: &str) -> Option<Vec<u8>>
+```
+
+The newest credentials handed to [`Self::refreshed`](#refreshedcredentialsinkrefreshed) for
+`account_id` during this job, if any; they replace the handed ones.
 
 ## Structs
 
@@ -1874,6 +1927,15 @@ Does not look up an instance by plugin key. See
 ##### Errors
 
 Returns an error when the guest cannot start or `open` fails.
+
+#### ExternalSource::with_refresh_sink
+
+```rust
+pub fn with_refresh_sink(self, sink: Arc<dyn RefreshedCredentialSink>) -> Self
+```
+
+Sends credentials the guest refreshes while using handed credentials
+to `sink` (see [`Self::with_handed_credentials`](#externalsourcewith_handed_credentials)).
 
 #### ExternalSource::with_handed_credentials
 

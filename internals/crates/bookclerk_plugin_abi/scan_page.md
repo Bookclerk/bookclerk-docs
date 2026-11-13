@@ -12,6 +12,7 @@ reaches the library. The `scan_page` fuzz target drives this function
 | --- | --- | --- |
 | [`ScanPageError`](#scanpageerror) | enum | Why the host refused a scan page; nothing from a refused page is written. |
 | [`validate_scan_page`](#validate_scan_page) | function | Checks one scan page against the ABI bounds and the pass that asked for it. |
+| [`validate_refreshed_credentials`](#validate_refreshed_credentials) | function | Checks credentials a storefront handed back after refreshing them (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`) before the host stores them: at most `maxRefreshedCredentialBytes`, and one JSON object, the encoding login credentials are stored in. An empty blob is the wire's "nothing changed" and is accepted; the host stores nothing for it. |
 | [`decode_scan_page_bytes`](#decode_scan_page_bytes) | function | Decodes an unpacked single-segment Cap'n Proto message whose root is a `ScanPage`, with a traversal budget derived from the input size. |
 | [`encode_scan_page_bytes`](#encode_scan_page_bytes) | function | Encodes `page` as an unpacked single-segment Cap'n Proto message, the inverse of `decode_scan_page_bytes`. |
 
@@ -29,6 +30,8 @@ pub enum ScanPageError {
     ForeignAccount { index: usize },
     EmptyProductId { index: usize },
     EmptyRemovedId { index: usize },
+    RefreshedCredentialsTooLarge { bytes: usize },
+    RefreshedCredentialsNotObject,
 }
 ```
 
@@ -52,6 +55,10 @@ Why the host refused a scan page; nothing from a refused page is written.
   - `index`: Index of the offending title in `books`.
 - `EmptyRemovedId`: A removed product id was empty.
   - `index`: Index of the offending id in `removed`.
+- `RefreshedCredentialsTooLarge`: `refreshedCredentials` was longer than `maxRefreshedCredentialBytes`.
+  - `bytes`: Length of the blob in bytes.
+- `RefreshedCredentialsNotObject`: `refreshedCredentials` was not one JSON object, the encoding the host
+  stores credentials in.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `From<ScanPageError>`, `PartialEq`
 
@@ -83,6 +90,28 @@ host fills it in); any other value must equal `account_id`.
 
 Returns the first [`ScanPageError`](#scanpageerror) the page breaks, checking the counts
 and lengths before any per-title field.
+
+### validate_refreshed_credentials
+
+```rust
+pub fn validate_refreshed_credentials(bytes: &[u8]) -> Result<(), ScanPageError>
+```
+
+Checks credentials a storefront handed back after refreshing them
+(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`)
+before the host stores them: at most `maxRefreshedCredentialBytes`, and
+one JSON object, the encoding login credentials are stored in. An empty
+blob is the wire's "nothing changed" and is accepted; the host stores
+nothing for it.
+
+#### Arguments
+
+* `bytes` - The blob the guest answered (untrusted).
+
+#### Errors
+
+Returns [`ScanPageError::RefreshedCredentialsTooLarge`](#scanpageerror) or
+[`ScanPageError::RefreshedCredentialsNotObject`](#scanpageerror).
 
 ### decode_scan_page_bytes
 
