@@ -1206,6 +1206,7 @@ Status `200`: Pending and granted cluster consents.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
+      "download": true,
       "running": true
     }
   ],
@@ -1336,7 +1337,8 @@ Schema:
           "include_branches",
           "work_for_members",
           "keep_member_copies",
-          "list_members_books"
+          "list_members_books",
+          "download"
         ],
         "properties": {
           "cluster_id": {
@@ -1411,6 +1413,11 @@ Schema:
           "list_members_books": {
             "type": "boolean",
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+            "example": true
+          },
+          "download": {
+            "type": "boolean",
+            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
             "example": true
           },
           "running": {
@@ -4244,6 +4251,7 @@ Status `200`: Whether this install has joined a library, and its state.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
+      "download": true,
       "running": true
     }
   ]
@@ -4308,7 +4316,8 @@ Schema:
           "include_branches",
           "work_for_members",
           "keep_member_copies",
-          "list_members_books"
+          "list_members_books",
+          "download"
         ],
         "properties": {
           "cluster_id": {
@@ -4383,6 +4392,11 @@ Schema:
           "list_members_books": {
             "type": "boolean",
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+            "example": true
+          },
+          "download": {
+            "type": "boolean",
+            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
             "example": true
           },
           "running": {
@@ -5652,6 +5666,7 @@ Status `200`: The join completed.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
+    "download": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -5694,7 +5709,8 @@ Schema:
             "include_branches",
             "work_for_members",
             "keep_member_copies",
-            "list_members_books"
+            "list_members_books",
+            "download"
           ],
           "properties": {
             "cluster_id": {
@@ -5769,6 +5785,11 @@ Schema:
             "list_members_books": {
               "type": "boolean",
               "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+              "example": true
+            },
+            "download": {
+              "type": "boolean",
+              "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
               "example": true
             },
             "running": {
@@ -6342,6 +6363,7 @@ Status `200`: The join completed.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
+    "download": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -6382,7 +6404,8 @@ Schema:
         "include_branches",
         "work_for_members",
         "keep_member_copies",
-        "list_members_books"
+        "list_members_books",
+        "download"
       ],
       "properties": {
         "cluster_id": {
@@ -6457,6 +6480,11 @@ Schema:
         "list_members_books": {
           "type": "boolean",
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+          "example": true
+        },
+        "download": {
+          "type": "boolean",
+          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
           "example": true
         },
         "running": {
@@ -6999,6 +7027,7 @@ Status `200`: Leaving started.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
+    "download": true,
     "running": true
   },
   "owner_notified": true
@@ -7030,7 +7059,8 @@ Schema:
         "include_branches",
         "work_for_members",
         "keep_member_copies",
-        "list_members_books"
+        "list_members_books",
+        "download"
       ],
       "properties": {
         "cluster_id": {
@@ -7105,6 +7135,11 @@ Schema:
         "list_members_books": {
           "type": "boolean",
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+          "example": true
+        },
+        "download": {
+          "type": "boolean",
+          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
           "example": true
         },
         "running": {
@@ -12231,6 +12266,7 @@ Status `200`: The branch's sharing settings.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
+      "download": true,
       "running": true
     }
   ]
@@ -12263,7 +12299,8 @@ Schema:
           "include_branches",
           "work_for_members",
           "keep_member_copies",
-          "list_members_books"
+          "list_members_books",
+          "download"
         ],
         "properties": {
           "cluster_id": {
@@ -12338,6 +12375,11 @@ Schema:
           "list_members_books": {
             "type": "boolean",
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+            "example": true
+          },
+          "download": {
+            "type": "boolean",
+            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
             "example": true
           },
           "running": {
@@ -12583,6 +12625,7 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
 - `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
 - `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
+- `download` *boolean or null* — "Use this computer to download": off makes this install a window of the library (it runs none of the library's work and shows the books the library holds for its person instead). Absent or `null` keeps the stored setting.
 
 ### Responses
 
@@ -12676,6 +12719,7 @@ Status `200`: The sharing settings after the change.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
+    "download": true,
     "running": true
   }
 }
@@ -12705,7 +12749,8 @@ Schema:
         "include_branches",
         "work_for_members",
         "keep_member_copies",
-        "list_members_books"
+        "list_members_books",
+        "download"
       ],
       "properties": {
         "cluster_id": {
@@ -12780,6 +12825,11 @@ Schema:
         "list_members_books": {
           "type": "boolean",
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+          "example": true
+        },
+        "download": {
+          "type": "boolean",
+          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
           "example": true
         },
         "running": {
@@ -12986,6 +13036,586 @@ Schema:
 A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/config/join/window`
+
+`GET /api/config/join/window`: the window view for the operator or an
+Owner: the books every library this install is a window of holds for
+this install's person, merged by work (`{clusters, books}`).
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The libraries this install is a window of, and their books for its person. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
+  - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+  - `books` *array of [`WindowEntryView`](schemas.md#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/window' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/window' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/join/window",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/join/window", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/join/window")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The libraries this install is a window of, and their books for its person.
+
+```json
+{
+  "clusters": [
+    {
+      "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "owner_origin": "https://books.example.com",
+      "node_id": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c",
+      "pinned": false,
+      "state": "active",
+      "enrolled_at": "2026-10-29T09:02:41Z",
+      "share_books": true,
+      "include_branches": true,
+      "work_for_members": false,
+      "keep_member_copies": false,
+      "max_jobs": 2,
+      "job_share": 2,
+      "list_members_books": true,
+      "download": true,
+      "running": true
+    }
+  ],
+  "books": [
+    {
+      "key": "work:0b8f2c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+      "work_id": "0b8f2c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+      "editions": [
+        {
+          "cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a",
+          "owner_origin": "https://books.example.com",
+          "store": "audible",
+          "marketplace": "us",
+          "product_id": "B0EXAMPLE1",
+          "formats": [
+            "audio"
+          ],
+          "title": "A Title"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body for `GET /api/config/join/window`.",
+  "required": [
+    "clusters",
+    "books"
+  ],
+  "properties": {
+    "clusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A library this install is a branch of: ids, origin and state, never key material.",
+        "required": [
+          "cluster_id",
+          "owner_origin",
+          "node_id",
+          "pinned",
+          "state",
+          "enrolled_at",
+          "share_books",
+          "include_branches",
+          "work_for_members",
+          "keep_member_copies",
+          "list_members_books",
+          "download"
+        ],
+        "properties": {
+          "cluster_id": {
+            "type": "string",
+            "description": "The library's cluster id.",
+            "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
+          },
+          "owner_origin": {
+            "type": "string",
+            "description": "The library's canonical origin.",
+            "example": "https://books.example.com"
+          },
+          "node_id": {
+            "type": "string",
+            "description": "The node id the library minted for this install.",
+            "example": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Whether the link pins the library's self-signed certificate.",
+            "example": false
+          },
+          "state": {
+            "type": "string",
+            "description": "`active`, `revoked`, or `left`.",
+            "example": "active"
+          },
+          "enrolled_at": {
+            "type": "string",
+            "description": "RFC 3339 enrollment time.",
+            "example": "2026-10-29T09:02:41Z"
+          },
+          "share_books": {
+            "type": "boolean",
+            "description": "\"Share this branch's books with the library\".",
+            "example": true
+          },
+          "include_branches": {
+            "type": "boolean",
+            "description": "\"Include books from my own branches\".",
+            "example": true
+          },
+          "work_for_members": {
+            "type": "boolean",
+            "description": "\"Download for other members of the library\": this install takes the library's work for its other members too, not only its owner's (off by default).",
+            "example": false
+          },
+          "keep_member_copies": {
+            "type": "boolean",
+            "description": "\"Keep copies of other members' books\": a book acquired here for another member is also written to this install's own destinations (off by default).",
+            "example": false
+          },
+          "max_jobs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine.",
+            "example": 2,
+            "maximum": 16,
+            "minimum": 0
+          },
+          "job_share": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs.",
+            "example": 2,
+            "minimum": 0
+          },
+          "list_members_books": {
+            "type": "boolean",
+            "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+            "example": true
+          },
+          "download": {
+            "type": "boolean",
+            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+            "example": true
+          },
+          "running": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether this install's client for the link is running now; only the join routes report it.",
+            "example": true
+          }
+        }
+      },
+      "description": "The libraries this install is a window of (active links with \"Use\nthis computer to download\" off)."
+    },
+    "books": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One work in [`WindowBooks`]: every edition its libraries hold for the person.",
+        "required": [
+          "key",
+          "editions"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "A key that stays the same while the entry's editions do.",
+            "example": "work:0b8f2c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f"
+          },
+          "work_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The work of this install's own library the entry was placed on, by\nidentifier; absent when none was.",
+            "example": "0b8f2c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f"
+          },
+          "editions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One edition in [`WindowBooks`], and the library that holds it.",
+              "required": [
+                "cluster_id",
+                "owner_origin",
+                "store",
+                "marketplace",
+                "product_id",
+                "formats",
+                "title"
+              ],
+              "properties": {
+                "cluster_id": {
+                  "type": "string",
+                  "description": "The library (owner cluster id) that holds it for this install's person.",
+                  "example": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
+                },
+                "owner_origin": {
+                  "type": "string",
+                  "description": "The library's origin.",
+                  "example": "https://books.example.com"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "The store's plain id.",
+                  "example": "audible"
+                },
+                "marketplace": {
+                  "type": "string",
+                  "description": "Lower-cased store marketplace; empty when the store has none.",
+                  "example": "us"
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "The store's product id.",
+                  "example": "B0EXAMPLE1"
+                },
+                "formats": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Formats that library has (`audio`, `pdf`); empty when unknown.",
+                  "example": [
+                    "audio"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "description": "The edition's title.",
+                  "example": "A Title"
+                },
+                "subtitle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Subtitle, when known.",
+                  "example": "A Novel"
+                },
+                "authors": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Authors as one display string, when known.",
+                  "example": "Ann Author"
+                },
+                "narrators": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Narrators as one display string, when known.",
+                  "example": "Ned Narrator"
+                },
+                "series": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Series name, when known.",
+                  "example": "The Series"
+                },
+                "series_index": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Position in the series, when known.",
+                  "example": "2"
+                },
+                "length_minutes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "Length in minutes, when known.",
+                  "example": 600
+                }
+              }
+            },
+            "description": "The editions, in library then store order; the first names the entry."
+          }
+        }
+      },
+      "description": "Their books for this install's person, one entry per work, by title."
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`).
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
+
+Status `500`: The library database could not be read.
 
 ```json
 {
@@ -14018,6 +14648,7 @@ Status `200`: The link after the change, with its share of the machine now.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
+    "download": true,
     "running": true
   }
 }
@@ -14047,7 +14678,8 @@ Schema:
         "include_branches",
         "work_for_members",
         "keep_member_copies",
-        "list_members_books"
+        "list_members_books",
+        "download"
       ],
       "properties": {
         "cluster_id": {
@@ -14122,6 +14754,11 @@ Schema:
         "list_members_books": {
           "type": "boolean",
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
+          "example": true
+        },
+        "download": {
+          "type": "boolean",
+          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
           "example": true
         },
         "running": {

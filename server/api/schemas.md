@@ -498,6 +498,7 @@ A library this install is a branch of: ids, origin and state, never key material
 - `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
 - `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
 - `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
+- `download` *boolean*, **required** — "Use this computer to download": the link takes the library's jobs and runs its plugins here. Off makes this install a window of the library: no jobs, no plugins, and the books the library holds for this install's person are shown instead.
 - `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
 
 ## ClusterScanBody
@@ -2687,6 +2688,7 @@ change for it.
 - `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
 - `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
 - `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
+- `download` *boolean or null* — "Use this computer to download": off makes this install a window of the library (it runs none of the library's work and shows the books the library holds for its person instead). Absent or `null` keeps the stored setting.
 
 ## SharingChanged
 
@@ -3198,6 +3200,39 @@ status, never the password hash.
 - `login_name` *string or null* — Local username for password login, when set.
 - `email` *string or null* — Contact email, when set.
 - `has_password` *boolean*, **required** — Whether a local password is stored for the user.
+
+## WindowBooks
+
+JSON body for `GET /api/config/join/window`.
+
+- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+- `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
+
+## WindowEditionView
+
+One edition in [`WindowBooks`], and the library that holds it.
+
+- `cluster_id` *string*, **required** — The library (owner cluster id) that holds it for this install's person.
+- `owner_origin` *string*, **required** — The library's origin.
+- `store` *string*, **required** — The store's plain id.
+- `marketplace` *string*, **required** — Lower-cased store marketplace; empty when the store has none.
+- `product_id` *string*, **required** — The store's product id.
+- `formats` *array of string*, **required** — Formats that library has (`audio`, `pdf`); empty when unknown.
+- `title` *string*, **required** — The edition's title.
+- `subtitle` *string or null* — Subtitle, when known.
+- `authors` *string or null* — Authors as one display string, when known.
+- `narrators` *string or null* — Narrators as one display string, when known.
+- `series` *string or null* — Series name, when known.
+- `series_index` *string or null* — Position in the series, when known.
+- `length_minutes` *integer (int64) or null* — Length in minutes, when known.
+
+## WindowEntryView
+
+One work in [`WindowBooks`]: every edition its libraries hold for the person.
+
+- `key` *string*, **required** — A key that stays the same while the entry's editions do.
+- `work_id` *string or null* — The work of this install's own library the entry was placed on, by identifier; absent when none was.
+- `editions` *array of [`WindowEditionView`](#windoweditionview)*, **required** — The editions, in library then store order; the first names the entry.
 
 ## WishlistPurchaseHint
 

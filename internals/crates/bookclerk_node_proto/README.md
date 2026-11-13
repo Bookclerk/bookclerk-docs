@@ -53,6 +53,11 @@ A library asks its branches whether they can supply works it knows
 questions and wakes the branch, which pulls them with
 [`Body::CatalogQuestions`](#body) and answers with [`Body::CatalogFound`](#body).
 
+A window (a branch whose link takes no work) reads the books the
+library holds for its person with [`Body::WindowBooks`](#body), page by page
+([`Body::WindowPage`](#body), [`WindowWork`](#windowwork)), and merges them by identifier
+with the other libraries it joined.
+
 A host that leaves sends [`Body::NodeLeaving`](#body); the owner revokes the
 node at once. Joining with a sign-in instead of a link is the OAuth
 code + PKCE flow of the built-in client [`BRANCH_CLIENT_ID`](#branch_client_id) ([`OwnerInfo`](#ownerinfo),
@@ -105,6 +110,7 @@ bytes.
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
+| [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
 | [`ClerkDatabase`](#clerkdatabase) | enum | The library's database, as a clerk needs it to connect. |
 | [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
@@ -168,6 +174,7 @@ bytes.
 | [`sign_auth`](#sign_auth) | function | Signs a handshake; the result is base64url without padding. |
 | [`verify_artifact_request`](#verify_artifact_request) | function | Verifies a signed artifact request with the node's enrolled key and checks its time against `now` (unix seconds). |
 | [`verify_auth`](#verify_auth) | function | Verifies a handshake signature with the node's enrolled public key. Uses strict verification (no malleable or small-order signatures). |
+| [`window_page_problem`](#window_page_problem) | function | Why a `crate::Body::WindowPage` is malformed, or `None`: at most `MAX_WINDOW_WORKS` well-formed works with distinct grouping keys, and a next cursor, when there is one, past `after` (the cursor the window asked with), so paging always moves forward. |
 | [`ACCOUNT_BUNDLE_AAD_DOMAIN`](#account_bundle_aad_domain) | constant | Domain tag that starts the associated data of an account bundle. |
 | [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version) | constant | Version of an `AccountBundle`. |
 | [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain) | constant | Domain tag that starts the associated data of an account offer: a branch's `AccountBundle` sent up to its library (`crate::Body::AccountsAdd`). A distinct tag keeps a bundle sealed in one direction from opening as the other. |
@@ -224,6 +231,7 @@ bytes.
 | [`ARTIFACT_REQUEST_MAX_SKEW_SECS`](#artifact_request_max_skew_secs) | constant | How far a signed artifact request's time may be from the owner's clock. |
 | [`AUTH_DOMAIN`](#auth_domain) | constant | Domain tag that starts every signed transcript. |
 | [`NONCE_LEN`](#nonce_len) | constant | Length of a challenge nonce. |
+| [`MAX_WINDOW_WORKS`](#max_window_works) | constant | Most works one `crate::Body::WindowPage` may carry. |
 | [`ARTIFACTS_PATH`](#artifacts_path) | constant | Path prefix of the owner's artifact endpoint: `GET /api/node/v1/artifacts/<archive_sha256>` with a signed `Authorization` (`sign_artifact_request`) streams one stored archive to a host that runs it. |
 | [`UPLOADS_PATH`](#uploads_path) | constant | Path prefix of the owner's upload endpoint (H-4 design, section 6): `PUT\|HEAD <prefix><upload_id>/files/<n>` streams one declared file and `POST <prefix><upload_id>/commit` commits the title, each with `Authorization: Bookclerk-Upload <token>` (`UPLOAD_AUTH_SCHEME`). |
 | [`UPLOAD_AUTH_SCHEME`](#upload_auth_scheme) | constant | `Authorization` scheme of the upload endpoint. |
@@ -1264,6 +1272,41 @@ What a handshake signature covers.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### WindowWork
+
+```rust
+pub struct WindowWork {
+    pub work: String,
+    pub identifiers: Vec<LookupIdentifier>,
+    pub editions: Vec<LookupEdition>,
+}
+```
+
+One work the library holds for the window's person.
+
+**Fields**
+
+- `work`: The library's own work id (or another key unique within the page)
+  that groups these editions; opaque to the window and never compared
+  across libraries.
+- `identifiers`: The work's identifiers in the library, strong ones first; at most
+  [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers), and empty when the library has none.
+- `editions`: The editions the person holds there; 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions),
+  each [`Availability::Owned`](#availability).
+
+#### WindowWork::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the work is malformed, or `None`: a grouping key
+([`is_work_ref`](#is_work_ref)), at most [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) distinct
+well-formed identifiers, and 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) well-formed
+owned editions with distinct (store, marketplace, product id).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### ClerkDatabase
@@ -1398,6 +1441,8 @@ pub enum Body {
     CatalogQuestions {  },
     CatalogAsk { works: Vec<LookupWork> },
     CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
+    WindowBooks { after: i64 },
+    WindowPage { works: Vec<WindowWork>, next: Option<i64> },
     Accepted {  },
     Unknown,
 }
@@ -1693,6 +1738,14 @@ What a frame says, tagged by `type`.
   - `answers`: The answers, at most [`crate::MAX_LOOKUP_WORKS`](#max_lookup_works).
   - `missing`: Works of the batch the branch looked up and cannot supply, so
     the library stops asking until the answer expires.
+- `WindowBooks`: Window → library: send the next page of the books this library
+  holds for the window's person (the node's owner). Answered with
+  [`Body::WindowPage`](#body), or `error {code: "refused"}` when the node is
+  not a branch this library trusts.
+  - `after`: The `next` cursor of the previous page; 0 for the first page.
+- `WindowPage`: Library → window: one page of the person's books.
+  - `works`: The works, at most [`crate::MAX_WINDOW_WORKS`](#max_window_works).
+  - `next`: The cursor to ask with for the next page; absent on the last.
 - `Accepted`: Owner → host: the request with this frame id was applied.
 - `Unknown`: A frame type this side does not know.
 
@@ -2602,6 +2655,21 @@ Uses strict verification (no malleable or small-order signatures).
 Returns [`AuthError`](#autherror) when the key is invalid, the signature is
 malformed, or it does not verify.
 
+### window_page_problem
+
+```rust
+pub fn window_page_problem(
+    after: i64,
+    works: &[WindowWork],
+    next: Option<i64>,
+) -> Option<&'static str>
+```
+
+Why a [`crate::Body::WindowPage`](#body) is malformed, or `None`: at most
+[`MAX_WINDOW_WORKS`](#max_window_works) well-formed works with distinct grouping keys, and a
+next cursor, when there is one, past `after` (the cursor the window
+asked with), so paging always moves forward.
+
 ## Constants
 
 ### ACCOUNT_BUNDLE_AAD_DOMAIN
@@ -3064,6 +3132,14 @@ pub const NONCE_LEN: usize = 32;
 ```
 
 Length of a challenge nonce.
+
+### MAX_WINDOW_WORKS
+
+```rust
+pub const MAX_WINDOW_WORKS: usize = 100;
+```
+
+Most works one [`crate::Body::WindowPage`](#body) may carry.
 
 ### ARTIFACTS_PATH
 

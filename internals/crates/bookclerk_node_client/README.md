@@ -825,6 +825,29 @@ the works it cannot supply.
 
 Returns [`OwnerCallError`](#ownercallerror).
 
+#### HostClientHandle::window_books
+
+```rust
+pub async fn window_books(
+    &self,
+    after: i64,
+) -> Result<(Vec<WindowWork>, Option<i64>), OwnerCallError>
+```
+
+`window.books`: one page of the books the library holds for this
+window's person, from cursor `after` (0 for the first page).
+
+##### Returns
+
+The page's works and the cursor of the next page (`None` on the
+last). A page that breaks the frame rules, or whose cursor does not
+move past `after`, is refused as [`OwnerCallError::Unavailable`](#ownercallerror).
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
+count this node as a branch.
+
 #### HostClientHandle::catalog_upload
 
 ```rust

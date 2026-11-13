@@ -114,6 +114,8 @@ See `docs/adr/control-plane.md`.
 | [`PluginArtifact`](#pluginartifact) | struct | One downloadable artifact of a version. |
 | [`PluginInstall`](#plugininstall) | struct | The active version pointer of one plugin key. |
 | [`PluginVersion`](#pluginversion) | struct | One installed version of a plugin. |
+| [`WindowEntry`](#windowentry) | struct | One work in the window's merged view. |
+| [`WindowEntryEdition`](#windowentryedition) | struct | One edition of a `WindowEntry`, and the library that holds it. |
 | [`EventsSettingsV1`](#eventssettingsv1) | struct | Typed `[events]` document, schema version 1. |
 | [`NodeRuntimeSettingsV1`](#noderuntimesettingsv1) | struct | Typed node-scoped runtime document, schema version 1. |
 | [`ConfigurationDocument`](#configurationdocument) | struct | A parsed domain document plus its revision metadata. |
@@ -217,6 +219,7 @@ See `docs/adr/control-plane.md`.
 | [`parse_sharing_request`](#parse_sharing_request) | function | Parses a `POST /api/config/join/sharing` body from its raw bytes, sans IO, the way the route reads it: JSON into `SharingBody`, then `SharingBody::into_request`. |
 | [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
+| [`set_cluster_link_download`](#set_cluster_link_download) | function | Sets the link's "Use this computer to download" setting. |
 | [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
 | [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
 | [`set_cluster_link_person`](#set_cluster_link_person) | function | Binds the link to the local user who joined the library through it. |
@@ -435,6 +438,13 @@ See `docs/adr/control-plane.md`.
 | [`load_active_version`](#load_active_version) | function | The active version of `plugin_key`, when a pointer names one. |
 | [`load_install`](#load_install) | function | The active pointer of `plugin_key`. |
 | [`load_version`](#load_version) | function | One version row. |
+| [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `owner_cluster_id` (its link downloads again, or was left). |
+| [`discard_window_read`](#discard_window_read) | function | Drops the rows a read cut short by a settings change wrote (stamped `seen_at`), so a read that began before downloading was turned on cannot put back the list the change cleared. |
+| [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `owner_cluster_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
+| [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `owner_cluster_id`, read under `seen_at` (`window_read_stamp`). |
+| [`window_books_page`](#window_books_page) | function | One page of the books this library holds for branch `node_id`'s owner, for the `window.books` frame. |
+| [`window_read_stamp`](#window_read_stamp) | function | A stamp for one complete read of a library's window books: pass it to every `record_window_page` of the read and then to `finish_window_read`. |
+| [`window_view`](#window_view) | function | The merged view of every library this install is a window of: the books each holds for the person, one entry per work, sorted by title. |
 | [`bootstrap_control_plane`](#bootstrap_control_plane) | function | Enrolls this files directory and imports `[events]` and `[output]` when their documents are absent. |
 | [`overlay_core_documents`](#overlay_core_documents) | function | Copies every authoritative cluster document in `session` onto `config`. |
 | [`overlay_events`](#overlay_events) | function | Copies the authoritative events document onto `config` for `cluster_id`. |
@@ -538,6 +548,7 @@ See `docs/adr/control-plane.md`.
 | [`UPLOAD_NUMBER_WILDCARD`](#upload_number_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more ASCII digits, where a part or chapter number goes. |
 | [`UPLOAD_TOKEN_TTL_SECS`](#upload_token_ttl_secs) | constant | How long a granted upload's token is accepted past its latest extension (the grant, an accepted file, or a renewal of the job's lease). |
 | [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in the library (`super::artifacts::put_artifact_blob`). |
+| [`WINDOW_BOOKS_READ`](#window_books_read) | constant | Most book rows one `window_books_page` reads. |
 | [`EVENTS_NAMESPACE`](#events_namespace) | constant | Namespace for the migrated `[events]` domain. |
 | [`NODE_RUNTIME_NAMESPACE`](#node_runtime_namespace) | constant | Namespace for node-scoped runtime settings. |
 | [`EVENTS_SCHEMA_VERSION`](#events_schema_version) | constant | Schema version of `EventsSettingsV1`. |
@@ -978,6 +989,7 @@ pub struct ClusterLink {
     pub keep_member_copies: bool,
     pub max_jobs: Option<LinkJobCap>,
     pub list_members_books: bool,
+    pub download: bool,
     pub person_user_id: Option<i64>,
 }
 ```
@@ -1008,6 +1020,10 @@ One owner cluster this install enrolled into.
 - `list_members_books`: "List my members' books to *library*" (on by default): catalog
   lookups from that library are answered with the members' books
   (except those of members who opted out) as well as the owner's.
+- `download`: "Use this computer to download" (on by default). Off makes this
+  install a window of that library: the link claims no jobs, runs none
+  of its plugins, and reads the books the library holds for this
+  install's person instead (`control_plane::window_books`).
 - `person_user_id`: The local user who joined the library through this link, when one
   could be named: the only person who may add store connections to
   that library, or withdraw them from it, through this link.
@@ -1100,6 +1116,7 @@ pub struct ClusterLinkSettings {
     pub list_members_books: Option<bool>,
     pub work_for_members: Option<bool>,
     pub keep_member_copies: Option<bool>,
+    pub download: Option<bool>,
 }
 ```
 
@@ -1114,6 +1131,9 @@ Every setting Settings → Library changes on one link at once; see
 - `work_for_members`: "Download for other members of *library*"; `None` keeps the stored
   value.
 - `keep_member_copies`: "Keep copies of other members' books"; `None` keeps the stored value.
+- `download`: "Use this computer to download"; `None` keeps the stored value.
+  Turning it on also clears the window's copy of the library's list
+  ([`set_cluster_link_download`](#set_cluster_link_download)).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -3959,6 +3979,65 @@ The artifact for `target`, falling back to a target-independent
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### WindowEntry
+
+```rust
+pub struct WindowEntry {
+    pub key: String,
+    pub work_id: Option<String>,
+    pub editions: Vec<WindowEntryEdition>,
+}
+```
+
+One work in the window's merged view.
+
+**Fields**
+
+- `key`: A key for the entry that stays the same while its rows do: the
+  local work id when it has one, else its first edition's library,
+  store, marketplace and product id.
+- `work_id`: The work of this install's library the entry was placed on, if any.
+- `editions`: Every edition held for the person, over every library, in library
+  then store order.
+
+#### WindowEntry::title
+
+```rust
+pub fn title(&self) -> &str
+```
+
+The entry's title: its first edition's.
+
+#### WindowEntry::formats
+
+```rust
+pub fn formats(&self) -> Vec<LookupFormat>
+```
+
+The formats any library has, deduplicated.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WindowEntryEdition
+
+```rust
+pub struct WindowEntryEdition {
+    pub owner_cluster_id: String,
+    pub owner_origin: String,
+    pub edition: LookupEdition,
+}
+```
+
+One edition of a [`WindowEntry`](#windowentry), and the library that holds it.
+
+**Fields**
+
+- `owner_cluster_id`: The library (owner cluster id) that holds it for the person.
+- `owner_origin`: The library's origin, for display.
+- `edition`: The edition as that library sent it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EventsSettingsV1
 
 ```rust
@@ -6390,6 +6469,38 @@ refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
 write error.
+
+### set_cluster_link_download
+
+```rust
+pub async fn set_cluster_link_download(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    download: bool,
+) -> Result<bool>
+```
+
+Sets the link's "Use this computer to download" setting.
+
+#### Arguments
+
+* `owner_cluster_id` - The library the link joined.
+* `download` - The new setting; `false` makes this install a window of
+  that library.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the value it already has still returns `true`.
+
+Turning downloading on also clears the window's copy of the library's
+list here, rather than leaving it to the window reader: the reader may
+not run before the setting is turned off again, and the old list would
+then show as the window's current one.
+
+#### Errors
+
+Returns the write error.
 
 ### set_cluster_link_job_cap
 
@@ -10388,6 +10499,169 @@ One version row.
 
 Returns an error when the read or decode fails.
 
+### clear_window_books
+
+```rust
+pub async fn clear_window_books(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+) -> Result<u64>
+```
+
+Drops every window book of library `owner_cluster_id` (its link
+downloads again, or was left).
+
+#### Returns
+
+How many rows were dropped.
+
+#### Errors
+
+Returns the write error.
+
+### discard_window_read
+
+```rust
+pub async fn discard_window_read(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    seen_at: &str,
+) -> Result<u64>
+```
+
+Drops the rows a read cut short by a settings change wrote (stamped
+`seen_at`), so a read that began before downloading was turned on
+cannot put back the list the change cleared.
+
+#### Returns
+
+How many rows were dropped.
+
+#### Errors
+
+Returns the write error.
+
+### finish_window_read
+
+```rust
+pub async fn finish_window_read(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    seen_at: &str,
+) -> Result<u64>
+```
+
+Ends a complete read of library `owner_cluster_id`'s window books: drops
+its rows that read (stamped `seen_at`) did not name. Rows are compared
+by stamp equality, not order, so a clock moved back between reads still
+drops what the new read left out.
+
+#### Returns
+
+How many rows were dropped.
+
+#### Errors
+
+Returns the write error.
+
+### record_window_page
+
+```rust
+pub async fn record_window_page(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    seen_at: &str,
+    works: &[WindowWork],
+) -> Result<usize>
+```
+
+Stores one `window.page` from library `owner_cluster_id`, read under
+`seen_at` ([`window_read_stamp`](#window_read_stamp)).
+
+Each edition becomes (or refreshes) one `window_books` row. Each work is
+placed on a work of this install's library when its strong identifiers
+reach exactly one; none otherwise. An ISBN never places a work: one can
+sit on editions of different works, and the local work joins rows from
+every library in the view.
+
+#### Arguments
+
+* `works` - The page, already validated against the frame rules.
+
+#### Returns
+
+How many editions were stored.
+
+#### Errors
+
+Returns a read or write error.
+
+### window_books_page
+
+```rust
+pub async fn window_books_page(
+    store: &LibraryStore,
+    node_id: &str,
+    after: i64,
+) -> Result<Option<(Vec<WindowWork>, Option<i64>)>>
+```
+
+One page of the books this library holds for branch `node_id`'s owner,
+for the `window.books` frame.
+
+Books are read in id order from cursor `after` (at most
+[`WINDOW_BOOKS_READ`](#window_books_read) rows, and no more than one database result page).
+Each is grouped under its work here (its key is the work id, or
+`book-<id>` when it has no work), with the work's identifiers; a work
+lists at most [`MAX_LOOKUP_EDITIONS`](../bookclerk_node_proto/README.md#max_lookup_editions) editions (where two of the
+person's accounts hold the same edition, one entry with every format
+either copy has).
+The page stops early once it would pass the frame budget or
+[`MAX_WINDOW_WORKS`](../bookclerk_node_proto/README.md#max_window_works) works; the books after that come on the next page.
+
+#### Arguments
+
+* `node_id` - The asking node; its owner is the person.
+* `after` - The cursor of the previous page (0 for the first).
+
+#### Returns
+
+`None` when `node_id` is not a branch this library trusts; otherwise
+the page's works and the cursor of the next page (`None` on the last).
+
+#### Errors
+
+Returns the read error.
+
+### window_read_stamp
+
+```rust
+pub fn window_read_stamp() -> String
+```
+
+A stamp for one complete read of a library's window books: pass it to
+every [`record_window_page`](#record_window_page) of the read and then to
+[`finish_window_read`](#finish_window_read).
+
+### window_view
+
+```rust
+pub async fn window_view(store: &LibraryStore) -> Result<Vec<WindowEntry>>
+```
+
+The merged view of every library this install is a window of: the books
+each holds for the person, one entry per work, sorted by title.
+
+Only active links with "Use this computer to download" off count. Rows
+are the same work when they reach the same work of this library, share
+a strong identifier (not an ISBN), or carry the same grouping key from
+one library. A row whose stored edition is missing or no longer parses
+is skipped.
+
+#### Errors
+
+Returns the read error.
+
 ### bootstrap_control_plane
 
 ```rust
@@ -11350,6 +11624,14 @@ pub const ARTIFACT_BLOB_SCHEME: &str = "blob:sha256:";
 
 Artifact URL scheme of an archive stored in the library
 ([`super::artifacts::put_artifact_blob`](#put_artifact_blob)).
+
+### WINDOW_BOOKS_READ
+
+```rust
+pub const WINDOW_BOOKS_READ: u64 = 200;
+```
+
+Most book rows one [`window_books_page`](#window_books_page) reads.
 
 ### EVENTS_NAMESPACE
 

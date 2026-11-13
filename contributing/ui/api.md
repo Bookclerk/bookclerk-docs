@@ -1071,6 +1071,14 @@ cluster_id: string;
 
 Id of the owner cluster; one link per cluster.
 
+##### download?
+
+```ts
+download?: boolean;
+```
+
+"Use this computer to download" (on by default); off makes this server a window.
+
 ##### enrolled\_at
 
 ```ts

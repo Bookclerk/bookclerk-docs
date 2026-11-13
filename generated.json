@@ -224,6 +224,8 @@
     "internals/crates/bookclerk_library/entities/users",
     "internals/crates/bookclerk_library/entities/webauthn_challenges",
     "internals/crates/bookclerk_library/entities/webauthn_credentials",
+    "internals/crates/bookclerk_library/entities/window_book_parts",
+    "internals/crates/bookclerk_library/entities/window_books",
     "internals/crates/bookclerk_library/entities/work_identifiers",
     "internals/crates/bookclerk_library/entities/works",
     "internals/crates/bookclerk_library/sql_plan/host_ir",
