@@ -93,7 +93,6 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`rank_request_queue_taste`](#rank_request_queue_taste) | function | Ranks every entry of the shared request queue against **household** taste, for the `discover_request_queue` job to store. |
 | [`recommend`](#recommend) | function | Build ranked recommendations for the operator (or a specific external user). |
 | [`recommend_feed`](#recommend_feed) | function | Personalized Discover feed (Netflix-style shelves) from the same candidate pool. |
-| [`queue_entry_key`](#queue_entry_key) | function | The key a queue entry's stored ranking is filed under: the library work its wishes are for. Every wish names a work, so one work is one entry whatever identifiers each wisher's store gave. |
 | [`read_request_queue`](#read_request_queue) | function | Builds the ranked queue from the open requests and the stored ranking. |
 | [`build_discover_feed`](#build_discover_feed) | function | Partitions scored recommendations into Discover shelves. |
 | [`flatten_feed`](#flatten_feed) | function | Flatten shelves into a unique score-sorted list (CLI / legacy). |
@@ -259,7 +258,7 @@ title on their wishlist.
 #### SeedTitle::from_book
 
 ```rust
-pub fn from_book(book: &BookRecord, region: &str) -> Self
+pub fn from_book(book: &TasteTitle, region: &str) -> Self
 ```
 
 A seed from a library book.
@@ -850,7 +849,7 @@ Implements: `Clone`, `Debug`
 ```rust
 pub struct SubjectTaste {
     pub scope: SeedScope,
-    pub books: Vec<BookRecord>,
+    pub books: Vec<TasteTitle>,
     pub weights: HashMap<String, f64>,
     pub listening: Vec<ListeningSignal>,
     pub wishlist: Vec<SeedTitle>,
@@ -1577,7 +1576,7 @@ Returns the library read error.
 pub async fn gather_storefront_candidates(
     _library: &LibraryStore,
     registry: &SourceRegistry,
-    seeds: &[BookRecord],
+    seeds: &[TasteTitle],
     owned_asins: &HashSet<String>,
     owned_isbns: &HashSet<String>,
     owned_product_keys: &HashSet<String>,
@@ -1609,9 +1608,9 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 
 ```rust
 pub fn select_taste_seeds(
-    books: &[BookRecord],
+    books: &[TasteTitle],
     listening_engagement_by_uuid: &HashMap<String, f64>,
-) -> Vec<BookRecord>
+) -> Vec<TasteTitle>
 ```
 
 Pick local seed books for storefront expansion (finished / high-rated first).
@@ -2101,7 +2100,9 @@ pub async fn load_subject_taste(
 Loads one subject's taste.
 
 A user or portal identity uses the books held by store accounts linked to
-them plus the household books they have listened to, the listening rows
+them, the household books they have listened to, and the works they
+finished, rated or tagged (a local user with no portal identity has only
+these), the listening rows
 recorded for them (by identity id, or by provider and external user id on
 rows recorded before the identity was known), and their open wishlist.
 While they have fewer than [`OWN_TASTE_THRESHOLD`](#own_taste_threshold) books and listens of
@@ -2447,9 +2448,8 @@ taste, for the `discover_request_queue` job to store.
 
 This ranking is **not** personalized: portal `external_user_id` filters are
 ignored so every viewer sees the same shared queue order (the household
-library and all listening progress). Wishlist rows keyed as ASIN vs ISBN
-for the same work are merged first, as the read merges them, so each
-ranking's [`crate::queue_entry_key`](#queue_entry_key) matches the entry the read builds.
+library and all listening progress). Every wish names its work, so one
+ranking per work matches the entry the read builds.
 
 Only taste is ranked here: the wish-count boost and the wish reasons are
 added when the queue is read, from the live counts, so a new wish moves an
@@ -2520,16 +2520,6 @@ On success, the inner `crate::shelves::DiscoverFeed` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### queue_entry_key
-
-```rust
-pub fn queue_entry_key(entry: &GlobalQueueEntry) -> String
-```
-
-The key a queue entry's stored ranking is filed under: the library work
-its wishes are for. Every wish names a work, so one work is one entry
-whatever identifiers each wisher's store gave.
 
 ### read_request_queue
 

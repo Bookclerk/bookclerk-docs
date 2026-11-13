@@ -74,6 +74,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`QueueWisher`](#queuewisher) | struct | Compact wisher shown on the global queue (avatar + label). |
 | [`SecurityAuditEvent`](#securityauditevent) | struct | Security audit event (elevate / impersonate / login / provision). |
 | [`StoredPasskey`](#storedpasskey) | struct | Stored WebAuthn credential (passkey JSON plus the label shown in Settings). |
+| [`TasteHolder`](#tasteholder) | struct | A storefront account that holds a work, as a `TasteTitle` lists it. |
+| [`TasteTitle`](#tastetitle) | struct | One work the library holds, as Discover reads it for taste and seeds. |
 | [`TitleRequestRecord`](#titlerequestrecord) | struct | Personal wishlist row (also contributes to the shared global queue while open). |
 | [`TitleRequestSourceRecord`](#titlerequestsourcerecord) | struct | Per-storefront catalog/pricing snapshot attached to a wishlist row. |
 | [`UserIntegrationHint`](#userintegrationhint) | struct | Storefront / integration connection summary for admin user lists. |
@@ -232,6 +234,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`interpret_typed_exec`](#interpret_typed_exec) | function | Maps a typed `ExecuteReply` onto a host `DbAtomicResult`. |
 | [`validate_execute_reply`](#validate_execute_reply) | function | Rejects a guest `ExecuteReply` that does not echo the sent request or exceeds negotiated caps. |
 | [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) | function | `validate_execute_reply` for a reply reassembled from `executeStreamed` frames. |
+| [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
@@ -3315,6 +3318,112 @@ Stored WebAuthn credential (passkey JSON plus the label shown in Settings).
 - `name`: Label chosen at registration; `None` for rows created before names existed.
 
 Implements: `Clone`, `Debug`
+
+### TasteHolder
+
+```rust
+pub struct TasteHolder {
+    pub plugin_key: String,
+    pub account_id: String,
+    pub source: String,
+}
+```
+
+A storefront account that holds a work, as a [`TasteTitle`](#tastetitle) lists it.
+
+**Fields**
+
+- `plugin_key`: The account's plugin key.
+- `account_id`: The account id at that plugin.
+- `source`: The account's storefront id (`accounts.source`), lowercase.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### TasteTitle
+
+```rust
+pub struct TasteTitle {
+    pub work_id: String,
+    pub edition_id: String,
+    pub plugin_key: String,
+    pub source: String,
+    pub product_id: String,
+    pub marketplace: String,
+    pub asin: Option<String>,
+    pub isbn: Option<String>,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub authors: Option<String>,
+    pub narrators: Option<String>,
+    pub series: Option<String>,
+    pub series_index: Option<String>,
+    pub series_store_id: Option<String>,
+    pub publisher: Option<String>,
+    pub categories: Option<String>,
+    pub subjects: Option<String>,
+    pub description: Option<String>,
+    pub language: Option<String>,
+    pub cover_url: Option<String>,
+    pub length_minutes: Option<i64>,
+    pub published_at: Option<String>,
+    pub is_abridged: bool,
+    pub is_podcast: bool,
+    pub purchased_at: Option<DateTime<Utc>>,
+    pub acquired: bool,
+    pub holders: Vec<TasteHolder>,
+    pub is_finished: bool,
+    pub rating_overall: Option<f32>,
+    pub rating_performance: Option<f32>,
+    pub rating_story: Option<f32>,
+    pub tags: Option<String>,
+}
+```
+
+One work the library holds, as Discover reads it for taste and seeds.
+
+Bibliographic fields come from the work (credits, series, subjects,
+description) and from a representative edition and store listing: one
+whose edition has files, else the most recently bought. The person's
+fields (`is_finished`, ratings, `tags`) start empty and are filled from
+`user_title_state` for whichever people the reader asks about.
+
+**Fields**
+
+- `work_id`: The work (`works.id`); the title's identity.
+- `edition_id`: The representative edition (`editions.id`).
+- `plugin_key`: Plugin key of the representative listing's store.
+- `source`: Storefront id of that store (an account's `source`), lowercase.
+- `product_id`: The representative listing's product id at its store.
+- `marketplace`: The representative listing's stored marketplace.
+- `asin`: The representative edition's ASIN, when it has one.
+- `isbn`: The representative edition's ISBN, when it has one.
+- `title`: The work's title.
+- `subtitle`: The edition's subtitle, when known.
+- `authors`: Names credited on the work (authors first), comma-separated.
+- `narrators`: Narrators credited on the work's expressions, comma-separated.
+- `series`: The first series the work belongs to.
+- `series_index`: The work's position in that series as printed (`"3"`, `"2.5"`).
+- `series_store_id`: The representative store's own id for the series, when it gave one.
+- `publisher`: The edition's first credited publisher.
+- `categories`: Store categories (serialized), from the listing or the work.
+- `subjects`: Subject tags of the work (serialized), when enriched.
+- `description`: The work's synopsis (may contain HTML).
+- `language`: The expression's language, when known.
+- `cover_url`: Cover art URL of the edition, else of the work.
+- `length_minutes`: The edition's running time in minutes, when known.
+- `published_at`: The edition's publication date as given, when known.
+- `is_abridged`: Whether the expression is abridged.
+- `is_podcast`: Whether the work is a podcast show or episode.
+- `purchased_at`: The newest purchase date of the representative listing's holders.
+- `acquired`: Whether the representative edition has files at a destination.
+- `holders`: The accounts that hold any edition of the work, by plugin and id.
+- `is_finished`: Whether the people asked about finished the work.
+- `rating_overall`: Their mean overall rating (0 to 5), when any gave one.
+- `rating_performance`: Their mean narration rating (0 to 5), when any gave one.
+- `rating_story`: Their mean story rating (0 to 5), when any gave one.
+- `tags`: Their tags, space-separated, each once.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
 ### TitleRequestRecord
 
@@ -6690,7 +6799,7 @@ part of the new ranking next to old rows, which only shifts order.
 
 ##### Arguments
 
-* `ranks` - One ranking per queue entry; a repeated `entry_key` keeps the last.
+* `ranks` - One ranking per queue entry; a repeated `work_id` keeps the last.
 
 ##### Errors
 
@@ -6705,7 +6814,7 @@ pub async fn list_request_queue_ranks(&self) -> Result<Vec<StoredQueueRank>>
 
 Lists every stored queue ranking row.
 
-Rows are read in id pages of a bounded size; a page whose result
+Rows are read in work id pages of a bounded size; a page whose result
 would exceed the plugin's `maxResultBytes` is halved and read again.
 A row whose reasons do not parse keeps its score with no reasons.
 
@@ -7124,6 +7233,67 @@ collected or the catalog ends.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
 than a result byte cap, or when a single row still exceeds it.
+
+#### LibraryStore::taste_titles
+
+```rust
+pub async fn taste_titles(&self) -> Result<Vec<TasteTitle>>
+```
+
+Every work the library holds, one [`TasteTitle`](#tastetitle) each, in work id
+order, with no person's state applied.
+
+A work is held when an account or a branch holds a listing of one
+of its editions. [`TasteTitle::holders`](#tastetitle) lists the accounts that
+hold it (a branch-held work has none).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::user_title_states_for_works
+
+```rust
+pub async fn user_title_states_for_works(
+    &self,
+    work_ids: &[String],
+) -> Result<Vec<UserTitleState>>
+```
+
+The stored state of every user for the given works, read in chunks.
+
+##### Arguments
+
+* `work_ids` - Works whose state to read.
+
+##### Returns
+
+The stored rows, ordered by work then user.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::held_works
+
+```rust
+pub async fn held_works(&self, work_ids: &[String]) -> Result<BTreeSet<String>>
+```
+
+The works among `work_ids` the library holds: an account or a branch
+holds a listing of one of their editions.
+
+##### Arguments
+
+* `work_ids` - Works to check.
+
+##### Returns
+
+The held ones.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::set_user_title_state
 
@@ -11166,8 +11336,7 @@ Implements: `Clone`, `Debug`, `Default`
 
 ```rust
 pub struct QueueRank {
-    pub entry_key: String,
-    pub work_id: Option<String>,
+    pub work_id: String,
     pub owned: bool,
     pub taste_score: f64,
     pub reasons: Vec<String>,
@@ -11178,8 +11347,8 @@ The taste ranking of one queue entry, as the ranking job computed it.
 
 **Fields**
 
-- `entry_key`: The entry this ranks: the library work id its wishes are for.
-- `work_id`: Library work the entry's wishes resolved to, when any.
+- `work_id`: The work (`works.id`) the entry's wishes are for, which identifies
+  the entry.
 - `owned`: True when the library already holds the entry's work.
 - `taste_score`: Household taste score before the wish-count boost. A non-finite
   value is stored as 0.
@@ -13807,6 +13976,31 @@ from retrying the same read in inline pieces.
 #### Errors
 
 As [`validate_execute_reply`](#validate_execute_reply).
+
+### apply_user_states
+
+```rust
+pub fn apply_user_states(
+    titles: &mut [TasteTitle],
+    states: &[UserTitleState],
+    users: &[i64],
+)
+```
+
+Applies the state of `users` to `titles`, merged per work.
+
+A work is finished when any of the users finished it; each rating is
+the mean of the users who gave one; tags are the users' tags joined,
+each tag once. A title without state from any of `users` keeps the
+unfinished, unrated, untagged default. `users` empty means every user
+whose state is in `states` (the household).
+
+#### Arguments
+
+* `titles` - Titles to fill, as [`LibraryStore::taste_titles`](#librarystoretaste_titles) returns
+  them.
+* `states` - Stored state rows for the titles' works.
+* `users` - Whose state counts; empty for everyone's.
 
 ### deliver_after_for
 
