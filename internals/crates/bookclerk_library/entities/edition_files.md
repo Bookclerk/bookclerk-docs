@@ -46,8 +46,8 @@ Row shape for one recorded file key.
 
 - `destination`: Output destination id (`local`, `s3`).
 - `storage_key`: Storage key on that destination.
-- `owner_kind`: `edition`, or `branch_title` for a title a branch shares here.
-- `owner_id`: The edition id, or the branch title's `uuid`.
+- `owner_kind`: `edition`: files belong to editions.
+- `owner_id`: The edition id.
 - `role`: What the file is ([`crate::FileRole`](../README.md#filerole)).
 - `lossless`: 1 for a lossless audio encoding; 0 otherwise or unknown (an integer,
   as every flag column is, so each database adapter decodes it alike).

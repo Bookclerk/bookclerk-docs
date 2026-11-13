@@ -132,6 +132,7 @@ bytes.
 | [`seal_account_offer`](#seal_account_offer) | function | Seals a branch's `bundle` to its library's owner box key `recipient` (`crate::Body::Welcome`), for `crate::Body::AccountsAdd`. The box is bound with `account_offer_aad`, so a joining bundle never opens as an offer, nor the other way round. |
 | [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain cluster id and there are at most `MAX_ANCESTRY`. |
 | [`is_cluster_id`](#is_cluster_id) | function | True for a plain cluster id in an ancestry. |
+| [`is_marketplace`](#is_marketplace) | function | True for a marketplace: empty, or up to `MAX_MARKETPLACE_BYTES` lowercase ASCII letters and digits. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
 | [`is_store_id`](#is_store_id) | function | True for a store id: a short lowercase token. |
 | [`clerk_bootstrap_aad`](#clerk_bootstrap_aad) | function | Associated data of a clerk bootstrap for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
@@ -191,6 +192,7 @@ bytes.
 | [`MAX_CATALOG_CURSOR_BYTES`](#max_catalog_cursor_bytes) | constant | Longest cursor. |
 | [`MAX_CATALOG_TITLE_BYTES`](#max_catalog_title_bytes) | constant | Largest serialized title in a batch. |
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
+| [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
 | [`CLERK_BOOTSTRAP_AAD_DOMAIN`](#clerk_bootstrap_aad_domain) | constant | Domain tag that starts the associated data of a clerk bootstrap. |
 | [`CLERK_BOOTSTRAP_VERSION`](#clerk_bootstrap_version) | constant | Version of `ClerkBootstrap`. |
 | [`CLERK_GRANTED_SCOPE`](#clerk_granted_scope) | constant | The scope a clerk code is granted (stored with the code at consent). |
@@ -409,6 +411,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialE
 pub struct CatalogTitle {
     pub store: String,
     pub product_id: String,
+    pub marketplace: String,
     pub metadata: CatalogMetadata,
     pub primary_key: String,
     pub pdf_key: Option<String>,
@@ -423,6 +426,9 @@ One title, as a branch shares it.
 - `store`: The store that sells it, as the store's plain id (`audible`,
   `libro`, ...).
 - `product_id`: The store's product id (ASIN, ISBN, ...).
+- `marketplace`: Lower-cased marketplace of the store listing (`us`, `uk`); empty
+  when the store has none. The receiving library scopes the ASIN to
+  it, so the title meets the same edition there.
 - `metadata`: Bibliographic metadata.
 - `primary_key`: Storage key of the primary audio file (one of `files`).
 - `pdf_key`: Storage key of the companion PDF (one of `files`), when shared.
@@ -442,8 +448,8 @@ The title's [`CatalogRef`](#catalogref).
 pub fn problem(&self) -> Option<&'static str>
 ```
 
-Why the title is malformed, or `None`: the store and product id, a
-non-empty bounded title and bounded metadata, between one and
+Why the title is malformed, or `None`: the store, product id and
+marketplace, a non-empty bounded title and bounded metadata, between one and
 [`MAX_UPLOAD_FILES`](#max_upload_files) files with distinct storage keys within
 [`MAX_UPLOAD_FILE_BYTES`](#max_upload_file_bytes), and the primary key (and PDF key) among
 them.
@@ -2106,6 +2112,15 @@ pub fn is_cluster_id(id: &str) -> bool
 
 True for a plain cluster id in an ancestry.
 
+### is_marketplace
+
+```rust
+pub fn is_marketplace(marketplace: &str) -> bool
+```
+
+True for a marketplace: empty, or up to [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes)
+lowercase ASCII letters and digits.
+
 ### is_product_id
 
 ```rust
@@ -2805,6 +2820,14 @@ pub const MAX_CATALOG_WANTED: usize = 200;
 ```
 
 Most titles one answer may say are wanted.
+
+### MAX_MARKETPLACE_BYTES
+
+```rust
+pub const MAX_MARKETPLACE_BYTES: usize = 16;
+```
+
+Longest marketplace.
 
 ### CLERK_BOOTSTRAP_AAD_DOMAIN
 

@@ -11,10 +11,11 @@ See `docs/adr/control-plane.md`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`BranchTitle`](#branchtitle) | struct | One title a branch shared, as the owner's Settings → Branches lists it. |
+| [`BranchTitle`](#branchtitle) | struct | One title a branch shares, as the owner's Settings → Branches lists it. |
 | [`BranchTitleCounts`](#branchtitlecounts) | struct | Counts of one branch's shared titles. |
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
-| [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shared with this install, without its metadata or file manifest. |
+| [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shares with this install, without its metadata or file manifest. |
+| [`ForwardableBranchTitle`](#forwardablebranchtitle) | struct | A title one of this install's branches shares, ready to pass on. |
 | [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
 | [`CarriedImport`](#carriedimport) | struct | What `import_carried_accounts` did with each account it was handed. |
 | [`MemberAccount`](#memberaccount) | struct | One store account a member connected here, as the join consent page lists it. Carries no secret. |
@@ -158,18 +159,19 @@ See `docs/adr/control-plane.md`.
 | [`NodeRuntimeReplace`](#noderuntimereplace) | enum | Outcome of `replace_node_runtime`. |
 | [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
 | [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
-| [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. With `done` (the last batch of a pass) while a pass from the start is under way, titles the pass did not name are withdrawn (detached); `done` on a resumed incremental pass changes nothing more. |
-| [`begin_catalog`](#begin_catalog) | function | Opens (or reopens) `node_id`'s catalog sync with the settings the branch reports: records them on its node row, bumps its catalog fence (frames under an older fence are lost from now on), and answers where to resume. A change of either setting restarts the pass from the start, so titles the new setting excludes are withdrawn when the pass ends; so does a session `FULL_CATALOG_PASS_EVERY` after the last full pass. With sharing off, every title the branch shared is marked detached (`stopped_sharing`). |
-| [`branch_provenance`](#branch_provenance) | function | The provenance text of titles shared by `node_id`. |
+| [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. Each other title is resolved into the library model and held by the branch (`holding_added` when new), and the holding's share state is written in one transaction with the cursor, each statement gated on the fence still being live, the branch still sharing and its credential live. A holding is stamped with the pass under way, and with `done` (the last batch of a pass) while a pass from the start is under way, the branch's holdings the pass did not name are removed (`withdrawn`) and the pass ends; `done` on a resumed incremental pass changes nothing more. |
+| [`begin_catalog`](#begin_catalog) | function | Opens (or reopens) `node_id`'s catalog sync with the settings the branch reports: records them on its node row, bumps its catalog fence (frames under an older fence are lost from now on), and answers where to resume. A change of either setting restarts the pass from the start, so titles the new setting excludes are withdrawn when the pass ends; so does a session `FULL_CATALOG_PASS_EVERY` after the last full pass. With sharing off, every title the branch shared is removed (`stopped_sharing`). |
+| [`branch_provenance`](#branch_provenance) | function | The provenance text of titles shared by `node_id`: the holder key of its node holdings. |
 | [`branch_title_counts`](#branch_title_counts) | function | `BranchTitleCounts` of `node_id`. |
 | [`catalog_fence_live`](#catalog_fence_live) | function | True while `fence` is `node_id`'s live catalog fence and it may share. |
-| [`detach_branch_titles`](#detach_branch_titles) | function | Marks every title `node_id` shares detached with `reason`; answers how many changed. Files already delivered stay where they are. |
-| [`forwardable_branch_title`](#forwardable_branch_title) | function | On a branch: the shared title `uuid` when it may still be passed on (still shared, files of its current manifest delivered). |
-| [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page) | function | On a branch: one keyset page of the titles its own branches shared with it (still shared), identity columns only, by surrogate id. |
+| [`detach_branch_titles`](#detach_branch_titles) | function | Removes every holding of `node_id` (it stopped sharing, left or was revoked; `reason` is logged), each with `holding_removed`; answers how many went. Files already delivered stay with their editions. |
+| [`forwardable_branch_title`](#forwardable_branch_title) | function | On a branch: the title shared through node holding `id` when it may still be passed on (still held, files of its current manifest delivered). |
+| [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page) | function | On a branch: one keyset page of the titles its own branches share with it, identity columns only, by holding id. |
 | [`grant_catalog_upload`](#grant_catalog_upload) | function | Opens an upload of one shared title's files, bound to `node_id`'s catalog `fence` and received by `receiving_node_id`. |
-| [`list_branch_titles`](#list_branch_titles) | function | Titles branches shared, of one branch or all, oldest first, at most `limit`. |
-| [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since). |
-| [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Removes detached entries ("from a branch that left" and the like), of one branch or of every one; answers how many. Only the library entries go: files already delivered stay in this library's outputs. |
+| [`list_branch_titles`](#list_branch_titles) | function | Titles branches share, of one branch or all, by holding id, at most `limit`. |
+| [`listing_from_catalog_title`](#listing_from_catalog_title) | function | The listing a shared title describes, filed under `plugin_key`: its metadata, ASIN scoped to its marketplace, ISBN, and media kind from its content kind. |
+| [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since), leaving out titles whose edition already has audio here from another writer. |
+| [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Forgets the files branches left behind (entries "from a branch that left" and the like), of one branch or of every one: the `edition_files` records its catalog uploads wrote for editions nothing here holds any more. Answers how many editions' entries went. The files themselves stay in this library's outputs. |
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
 | [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
 | [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
@@ -459,11 +461,9 @@ See `docs/adr/control-plane.md`.
 | [`LiveRevisions`](#liverevisions) | type alias | Every topic's revision, in `LiveTopic::ALL` order. |
 | [`AccountKey`](#accountkey) | type alias | A store account, keyed as in `accounts`: `(plugin_key, account_id)`. |
 | [`MAX_ARTIFACT_BLOB_BYTES`](#max_artifact_blob_bytes) | constant | Largest archive stored in the library, in bytes. |
-| [`BRANCH_TITLE_DETACHED`](#branch_title_detached) | constant | `branch_titles.state` of a title from a branch that stopped sharing, left, or withdrew it. |
-| [`BRANCH_TITLE_SHARED`](#branch_title_shared) | constant | `branch_titles.state` of a title its branch still shares. |
-| [`DETACHED_LEFT`](#detached_left) | constant | Detach reason: the branch left the library (or was revoked). |
-| [`DETACHED_STOPPED_SHARING`](#detached_stopped_sharing) | constant | Detach reason: the branch turned "Share this branch's books" off. |
-| [`DETACHED_WITHDRAWN`](#detached_withdrawn) | constant | Detach reason: a full pass of the branch's catalog no longer named it. |
+| [`DETACHED_LEFT`](#detached_left) | constant | Removal reason: the branch left the library (or was revoked). |
+| [`DETACHED_STOPPED_SHARING`](#detached_stopped_sharing) | constant | Removal reason: the branch turned "Share this branch's books" off. |
+| [`DETACHED_WITHDRAWN`](#detached_withdrawn) | constant | Removal reason: a full pass of the branch's catalog no longer named it. |
 | [`FORWARDABLE_KEYS_MAX_PAGE`](#forwardable_keys_max_page) | constant | Upper clamp for one `forwardable_branch_title_keys_page` read. |
 | [`FULL_CATALOG_PASS_EVERY`](#full_catalog_pass_every) | constant | How long a branch's catalog sync resumes incrementally before the library asks for a full pass again, so titles a branch no longer has (removed, or from a sub-branch that left) are withdrawn within a day. |
 | [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
@@ -582,17 +582,15 @@ pub struct BranchTitle {
     pub authors: Option<String>,
     pub primary_key: String,
     pub delivered: bool,
-    pub state: String,
-    pub detached_reason: Option<String>,
     pub updated_at: String,
 }
 ```
 
-One title a branch shared, as the owner's Settings → Branches lists it.
+One title a branch shares, as the owner's Settings → Branches lists it.
 
 **Fields**
 
-- `uuid`: Stable id.
+- `uuid`: The node holding's id (a catalog upload's `book_uuid`).
 - `provenance`: `node:<node_id>`.
 - `node_id`: The branch's node id.
 - `owner_user_id`: The user it belongs to here (the branch's owner).
@@ -602,11 +600,9 @@ One title a branch shared, as the owner's Settings → Branches lists it.
 - `authors`: Authors.
 - `primary_key`: Storage key of the primary audio file.
 - `delivered`: True once the current manifest's files arrived.
-- `state`: `shared` or `detached`.
-- `detached_reason`: `stopped_sharing`, `left` or `withdrawn`.
 - `updated_at`: RFC 3339 last change.
 
-Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
 
 ### BranchTitleCounts
 
@@ -624,7 +620,9 @@ Counts of one branch's shared titles.
 
 - `shared`: Titles it shares now.
 - `delivered`: Of those, titles whose files arrived.
-- `detached`: Titles marked detached (it stopped sharing, left, or withdrew them).
+- `detached`: Editions whose files it delivered that nothing in this library holds
+  any more (it stopped sharing, left, or withdrew them, and no store
+  account or other branch here holds them).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -652,8 +650,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct ForwardableBranchKey {
-    pub id: i64,
-    pub uuid: String,
+    pub id: String,
     pub store: String,
     pub product_id: String,
     pub updated_at: String,
@@ -661,22 +658,41 @@ pub struct ForwardableBranchKey {
 }
 ```
 
-The identity of one title a branch shared with this install, without
+The identity of one title a branch shares with this install, without
 its metadata or file manifest.
 
 Read in keyset pages by [`forwardable_branch_title_keys_page`](#forwardable_branch_title_keys_page); the full
-row is loaded only when it is needed, by [`forwardable_branch_title`](#forwardable_branch_title).
+title is loaded only when it is needed, by [`forwardable_branch_title`](#forwardable_branch_title).
 
 **Fields**
 
-- `id`: Surrogate row id; the keyset cursor of the page reader.
-- `uuid`: Stable title id (an upload's `book_uuid`).
+- `id`: The node holding's id; the keyset cursor of the page reader.
 - `store`: Store id (`audible`, `libro`, ...).
 - `product_id`: Store product id.
 - `updated_at`: RFC 3339 last change, as stored.
 - `delivered`: The files of the current manifest arrived here, so the title may be
   passed on. Rows without it are returned so a page's length still
   tells the caller whether more rows follow.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ForwardableBranchTitle
+
+```rust
+pub struct ForwardableBranchTitle {
+    pub id: String,
+    pub title: CatalogTitle,
+    pub updated_at: String,
+}
+```
+
+A title one of this install's branches shares, ready to pass on.
+
+**Fields**
+
+- `id`: The node holding's id.
+- `title`: The title as the branch shared it.
+- `updated_at`: RFC 3339 last change.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -3837,6 +3853,7 @@ pub struct UploadSession {
     pub received: BTreeSet<usize>,
     pub state: String,
     pub catalog_digest: Option<String>,
+    pub catalog_edition: Option<String>,
 }
 ```
 
@@ -3859,6 +3876,9 @@ One open upload, as the upload endpoint sees it.
 - `state`: `open`, `committed` or `aborted`.
 - `catalog_digest`: For a branch's catalog upload ([`Self::is_catalog`](#uploadsessionis_catalog)): the title's
   manifest digest at grant.
+- `catalog_edition`: For a branch's catalog upload: the edition the holding's listing
+  sold at grant. The upload writes under that edition's keys, so it
+  is recorded as delivered only while the listing still sells it.
 
 #### UploadSession::is_catalog
 
@@ -4217,7 +4237,8 @@ Outcome of [`accept_catalog_batch`](#accept_catalog_batch).
 - `Accepted`: The batch was recorded.
   - `upserted`: Titles recorded.
   - `skipped`: Titles skipped because this library already holds them for the
-    branch's owner (no echo back).
+    branch's owner (no echo back), or because they formed no valid
+    listing.
   - `wanted`: Titles whose files this library wants.
 - `Lost`: The fence is not live (or the branch no longer shares or is no
   longer trusted); nothing was recorded.
@@ -5268,15 +5289,16 @@ pub async fn accept_catalog_batch(
 
 Records one batch of `node_id`'s shared titles under `fence`, then the
 cursor after it. Every title is checked before any is written; a title
-this library already holds for the branch's owner is skipped. With
-`done` (the last batch of a pass) while a pass from the start is under
-way, titles the pass did not name are withdrawn (detached); `done` on
-a resumed incremental pass changes nothing more.
-
-Every write runs in one transaction, each statement gated on the fence
-still being live, the branch still sharing and its credential live: a
-concurrent revoke, leave or stop-sharing either lands after the whole
-batch (and detaches what it recorded) or the batch records nothing.
+this library already holds for the branch's owner is skipped. Each
+other title is resolved into the library model and held by the branch
+(`holding_added` when new), and the holding's share state is written
+in one transaction with the cursor, each statement gated on the fence
+still being live, the branch still sharing and its credential live. A
+holding is stamped with the pass under way, and with `done` (the last
+batch of a pass) while a pass from the start is under way, the
+branch's holdings the pass did not name are removed (`withdrawn`) and
+the pass ends; `done` on a resumed incremental pass changes nothing
+more.
 
 #### Errors
 
@@ -5299,7 +5321,7 @@ branch reports: records them on its node row, bumps its catalog fence
 to resume. A change of either setting restarts the pass from the start,
 so titles the new setting excludes are withdrawn when the pass ends; so
 does a session [`FULL_CATALOG_PASS_EVERY`](#full_catalog_pass_every) after the last full pass.
-With sharing off, every title the branch shared is marked detached
+With sharing off, every title the branch shared is removed
 (`stopped_sharing`).
 
 #### Errors
@@ -5312,7 +5334,8 @@ Returns an error when a read or write fails.
 pub fn branch_provenance(node_id: &str) -> String
 ```
 
-The provenance text of titles shared by `node_id`.
+The provenance text of titles shared by `node_id`: the holder key of
+its node holdings.
 
 ### branch_title_counts
 
@@ -5355,33 +5378,35 @@ pub async fn detach_branch_titles(
 ) -> Result<u64>
 ```
 
-Marks every title `node_id` shares detached with `reason`; answers how
-many changed. Files already delivered stay where they are.
+Removes every holding of `node_id` (it stopped sharing, left or was
+revoked; `reason` is logged), each with `holding_removed`; answers how
+many went. Files already delivered stay with their editions.
 
 #### Errors
 
-Returns the write error.
+Returns the read or write error.
 
 ### forwardable_branch_title
 
 ```rust
 pub async fn forwardable_branch_title(
     store: &LibraryStore,
-    uuid: &str,
-) -> Result<Option<Model>>
+    id: &str,
+) -> Result<Option<ForwardableBranchTitle>>
 ```
 
-On a branch: the shared title `uuid` when it may still be passed on
-(still shared, files of its current manifest delivered).
+On a branch: the title shared through node holding `id` when it may
+still be passed on (still held, files of its current manifest
+delivered).
 
 #### Arguments
 
 * `store` - This install's library.
-* `uuid` - The title's stable id, from a [`ForwardableBranchKey`](#forwardablebranchkey).
+* `id` - The holding id, from a [`ForwardableBranchKey`](#forwardablebranchkey).
 
 #### Returns
 
-The full row, or `None` when it is gone, detached or not delivered.
+The title, or `None` when the holding is gone or not delivered.
 
 #### Errors
 
@@ -5392,13 +5417,13 @@ Returns the read error.
 ```rust
 pub async fn forwardable_branch_title_keys_page(
     store: &LibraryStore,
-    after_id: Option<i64>,
+    after_id: Option<&str>,
     limit: u64,
 ) -> Result<Vec<ForwardableBranchKey>>
 ```
 
-On a branch: one keyset page of the titles its own branches shared with
-it (still shared), identity columns only, by surrogate id.
+On a branch: one keyset page of the titles its own branches share with
+it, identity columns only, by holding id.
 
 Only keys with [`ForwardableBranchKey::delivered`](#forwardablebranchkey) set may be passed on.
 
@@ -5436,16 +5461,17 @@ pub async fn grant_catalog_upload(
 Opens an upload of one shared title's files, bound to `node_id`'s
 catalog `fence` and received by `receiving_node_id`.
 
-Granted only while the fence is live, for a title the branch shares,
-when every file is copied to each of `destinations` (this node's, the
-primary first) under its manifest key, the files are exactly the
-recorded manifest, no key is one another title here already uses
-(`key_in_use`: the other title's audio, PDF or primary stem;
-`key_of_another_book`: any of a library book's keys or their
-sidecars), and no key lies in or below a folder holding another title's
-audio (`folder_of_another_book`: a library book's, or another branch's
-delivered title's). The keys are then claimed for this upload
-in `edition_files`, refused when another title holds one there.
+Granted only while the fence is live, for a title the branch holds
+here, when every file is copied to each of `destinations` (this node's,
+the primary first) under its manifest key, the files are exactly the
+shared manifest, the title's edition has no audio here from another
+writer (`edition_has_files`), no key is one another title here already
+uses (`key_in_use`: another edition's file, or a file beside one of its
+audio files with the same stem; `key_of_another_book`: any of a
+library book's keys or their sidecars), and no key lies in or below a
+folder holding another title's audio (`folder_of_another_book`). The
+keys are then claimed for this upload as the edition's in
+`edition_files`, refused when another title holds one there.
 
 #### Errors
 
@@ -5461,12 +5487,30 @@ pub async fn list_branch_titles(
 ) -> Result<Vec<BranchTitle>>
 ```
 
-Titles branches shared, of one branch or all, oldest first, at most
+Titles branches share, of one branch or all, by holding id, at most
 `limit`.
 
 #### Errors
 
 Returns the read error.
+
+### listing_from_catalog_title
+
+```rust
+pub fn listing_from_catalog_title(
+    title: &CatalogTitle,
+    plugin_key: &str,
+) -> Result<Listing, ListingError>
+```
+
+The listing a shared title describes, filed under `plugin_key`: its
+metadata, ASIN scoped to its marketplace, ISBN, and media kind from
+its content kind.
+
+#### Errors
+
+Returns [`resolve::ListingError`](../bookclerk_resolve/listing.md#listingerror) when the title fails listing
+validation.
 
 ### pending_deliveries
 
@@ -5479,7 +5523,8 @@ pub async fn pending_deliveries(
 ```
 
 Up to `limit` of `node_id`'s shared titles whose files have not
-arrived (or changed since).
+arrived (or changed since), leaving out titles whose edition already
+has audio here from another writer.
 
 #### Errors
 
@@ -5494,13 +5539,15 @@ pub async fn remove_detached_branch_titles(
 ) -> Result<u64>
 ```
 
-Removes detached entries ("from a branch that left" and the like), of
-one branch or of every one; answers how many. Only the library entries
-go: files already delivered stay in this library's outputs.
+Forgets the files branches left behind (entries "from a branch that
+left" and the like), of one branch or of every one: the
+`edition_files` records its catalog uploads wrote for editions nothing
+here holds any more. Answers how many editions' entries went. The files
+themselves stay in this library's outputs.
 
 #### Errors
 
-Returns the write error.
+Returns the read or write error.
 
 ### is_cache_setting_key
 
@@ -10881,30 +10928,13 @@ Largest archive stored in the library, in bytes.
 
 A larger local archive is referenced in place as a `file://` URL.
 
-### BRANCH_TITLE_DETACHED
-
-```rust
-pub const BRANCH_TITLE_DETACHED: &str = "detached";
-```
-
-`branch_titles.state` of a title from a branch that stopped sharing,
-left, or withdrew it.
-
-### BRANCH_TITLE_SHARED
-
-```rust
-pub const BRANCH_TITLE_SHARED: &str = "shared";
-```
-
-`branch_titles.state` of a title its branch still shares.
-
 ### DETACHED_LEFT
 
 ```rust
 pub const DETACHED_LEFT: &str = "left";
 ```
 
-Detach reason: the branch left the library (or was revoked).
+Removal reason: the branch left the library (or was revoked).
 
 ### DETACHED_STOPPED_SHARING
 
@@ -10912,7 +10942,7 @@ Detach reason: the branch left the library (or was revoked).
 pub const DETACHED_STOPPED_SHARING: &str = "stopped_sharing";
 ```
 
-Detach reason: the branch turned "Share this branch's books" off.
+Removal reason: the branch turned "Share this branch's books" off.
 
 ### DETACHED_WITHDRAWN
 
@@ -10920,7 +10950,7 @@ Detach reason: the branch turned "Share this branch's books" off.
 pub const DETACHED_WITHDRAWN: &str = "withdrawn";
 ```
 
-Detach reason: a full pass of the branch's catalog no longer named it.
+Removal reason: a full pass of the branch's catalog no longer named it.
 
 ### FORWARDABLE_KEYS_MAX_PAGE
 

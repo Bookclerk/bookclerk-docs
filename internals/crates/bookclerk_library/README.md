@@ -152,6 +152,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
 | [`HoldingSelection`](#holdingselection) | enum | Which holdings of one account a removal takes. |
+| [`NodeHoldingSelection`](#nodeholdingselection) | enum | Which holdings of one branch (node) a removal takes. |
 | [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
 | [`migrate_library_backend`](#migrate_library_backend) | function | Copy all library tables from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
@@ -4889,6 +4890,19 @@ The file owner of a library title: its edition
 
 Returns an error when a read fails.
 
+#### LibraryStore::file_owner_of_holding
+
+```rust
+pub async fn file_owner_of_holding(&self, holding_id: &str) -> Result<Option<FileOwner>>
+```
+
+The file owner of a node holding (`holdings.id`, a title a branch
+shares here): the edition its listing sells.
+
+##### Errors
+
+Returns an error when a read fails.
+
 #### LibraryStore::books_of_edition
 
 ```rust
@@ -4947,8 +4961,8 @@ pub async fn claim_edition_file(
     role: FileRole,
     sha256: Option<&str>,
     expected: Option<&EditionFile>,
-    branch_titles_hold: bool,
-    title: Option<&str>,
+    title: &str,
+    catalog: bool,
 ) -> Result<bool>
 ```
 
@@ -4959,10 +4973,7 @@ The claim succeeds when the key is unrecorded, already the owner's
 (any account's row of the same edition), or recorded for an owner
 that holds no key against this claim; answers false, changing
 nothing, when another edition holds it. An edition holds its keys
-against every claim while it exists. A title a branch shares here
-holds its keys only against another branch title's claim
-(`branch_titles_hold`, a catalog upload): a Host job's upload of a
-book takes them over, as an acquire on this node would. Each claim
+against every claim while it exists. Each claim
 is one conditional write, so of two uploads of different editions
 racing for one key only one wins.
 
@@ -4980,13 +4991,17 @@ did not replace.
 * `writer` - The host upload id.
 * `role`, `sha256` - What the file is and its declared digest.
 * `expected` - The record read before the claim.
-* `branch_titles_hold` - True for a catalog upload's claim.
-* `title` - The library title (`books.uuid`) a job upload writes
-  for. A key its edition already holds is taken over only when this
-  upload or an earlier upload of the same title wrote it, never one
-  an acquire or another account's upload wrote: the edition's files
-  are shared, so one account's node cannot replace them. `None` for
-  a catalog upload, whose branch title holds its keys alone.
+* `title` - What the upload writes for: the library title
+  (`books.uuid`) of a job upload, or the node holding
+  (`holdings.id`) of a catalog upload. A key its edition already
+  holds is taken over only when this upload or an earlier upload for
+  the same title (or, for a catalog upload, an earlier catalog upload
+  of the same branch) wrote it, never one an acquire or another
+  account's upload wrote: the edition's files are shared, so one node cannot
+  replace them. A job upload may also take over a key a branch's
+  catalog upload wrote (`catalog` false), as an acquire on this node
+  would replace a delivered copy with its own.
+* `catalog` - True for a catalog upload's claim.
 
 ##### Errors
 
@@ -5918,6 +5933,29 @@ Removes the account's holdings that `selection` names, publishing
 
 How many holdings were selected for removal (a concurrent writer may
 have kept or removed some of them first).
+
+##### Errors
+
+Returns an error when a read or a batch fails; holdings removed by
+earlier batches stay removed.
+
+#### LibraryStore::remove_node_holdings
+
+```rust
+pub async fn remove_node_holdings(
+    &self,
+    node_id: &str,
+    selection: NodeHoldingSelection<'_>,
+) -> Result<usize>
+```
+
+Removes the holdings of branch `node_id` that `selection` names,
+publishing `holding_removed` for each in the batch that deletes it.
+Files already delivered for them stay with their editions.
+
+##### Returns
+
+How many holdings were selected for removal.
 
 ##### Errors
 
@@ -12329,7 +12367,6 @@ Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 ```rust
 pub enum FileOwner {
     Edition(String),
-    BranchTitle(String),
 }
 ```
 
@@ -12339,8 +12376,6 @@ Who a recorded file key belongs to.
 
 - `Edition`: An edition (`editions.id`): every account row that holds it shares
   the file.
-- `BranchTitle`: A title a branch shares here (`branch_titles.uuid`), which has no
-  edition until branch titles become holdings.
 
 #### FileOwner::kind
 
@@ -12450,6 +12485,44 @@ Which holdings of one account a removal takes.
 - `All`: Every holding of the account (it was revoked).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### NodeHoldingSelection
+
+```rust
+pub enum NodeHoldingSelection<'a> {
+    UnseenBy { pass: &'a str, fence: i64 },
+    All,
+    AllUnderFence(i64),
+    Replaced { ids: &'a [String], fence: i64 },
+    UnsharedBefore(&'a str),
+}
+```
+
+Which holdings of one branch (node) a removal takes.
+
+**Variants**
+
+- `UnseenBy`: The node's holdings its catalog pass `pass` (the node's
+  `catalog_pass_started_at`) did not name, while that pass is still
+  the node's and `fence` still its catalog fence: a connection that
+  resumes the pass keeps what it links, and ends the pass itself.
+  - `pass`: The catalog pass id.
+  - `fence`: The catalog fence of the batch that ended the pass.
+- `All`: Every holding of the node (it left or was revoked).
+- `AllUnderFence`: Every holding of the node while `fence` is still the node's catalog
+  fence (it stopped sharing under that fence): a newer connection that
+  shares again keeps what it links.
+- `Replaced`: These holdings of the node, by id (ones a title's newer holding
+  replaced), while `fence` is still the node's catalog fence: a newer
+  connection may have taken them up again.
+  - `ids`: The holdings' ids.
+  - `fence`: The catalog fence the replacing batch was written under.
+- `UnsharedBefore`: The node's holdings created before this stamp that still carry no
+  share state: ones a catalog batch linked before finding its fence
+  gone. A holding a live batch has given its share state since stays,
+  and one newer than the stamp may belong to a batch still in flight.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### SeedScope
 

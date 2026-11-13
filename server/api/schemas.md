@@ -301,7 +301,7 @@ Counts of one branch's shared titles.
 
 - `shared` *integer (int64)*, **required** — Titles it shares now. At least 0.
 - `delivered` *integer (int64)*, **required** — Of those, titles whose files arrived. At least 0.
-- `detached` *integer (int64)*, **required** — Titles marked detached (it stopped sharing, left, or withdrew them). At least 0.
+- `detached` *integer (int64)*, **required** — Editions whose files it delivered that nothing in this library holds any more (it stopped sharing, left, or withdrew them, and no store account or other branch here holds them). At least 0.
 
 ## BranchTitlesRemoved
 

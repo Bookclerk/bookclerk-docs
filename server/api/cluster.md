@@ -11250,7 +11250,7 @@ Schema:
               "detached": {
                 "type": "integer",
                 "format": "int64",
-                "description": "Titles marked detached (it stopped sharing, left, or withdrew them).",
+                "description": "Editions whose files it delivered that nothing in this library holds\nany more (it stopped sharing, left, or withdrew them, and no store\naccount or other branch here holds them).",
                 "example": 3,
                 "minimum": 0
               }
