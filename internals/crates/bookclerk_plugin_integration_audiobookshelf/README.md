@@ -18,10 +18,14 @@ into `bookclerk` / `bookclerkd` for in-process execution.
 | [`AudiobookshelfConfig`](#audiobookshelfconfig) | struct | Audiobookshelf outbound integration. |
 | [`brand_for_id`](#brand_for_id) | function | Brand for a provider id when it aliases this plugin. |
 | [`matches_id`](#matches_id) | function | Whether `id` refers to this integration (`audiobookshelf` / `abs`). |
+| [`collect_listening_changes`](#collect_listening_changes) | function | Collect the listening-progress rows that changed since the last sync. |
 | [`collect_listening_snapshots`](#collect_listening_snapshots) | function | Collect listening-progress snapshots from ABS without writing the library DB. |
+| [`listening_migrations`](#listening_migrations) | function | The `database_migrations` registration for `LISTENING_STATE_BINDING`. |
+| [`listening_migrations_for`](#listening_migrations_for) | function | The `database_migrations` answer for `binding`. |
 | [`sync_listening_progress`](#sync_listening_progress) | function | Pull ABS user media progress into the library DB. |
 | [`oidc_client_templates`](#oidc_client_templates) | function | Bookclerk-as-IdP client templates declared by this plugin (`oidcClients`). |
 | [`BRAND`](#brand) | constant | Canonical ABS brand for connect-portal buttons. |
+| [`LISTENING_STATE_BINDING`](#listening_state_binding) | constant | `[[databases]]` binding the plugin keeps listening-sync memory in. |
 | [`ID`](#id) | constant | Integration id used in describe() and `[integrations.audiobookshelf]`. |
 
 ## Re-exports
@@ -406,6 +410,49 @@ pub fn matches_id(id: &str) -> bool
 
 Whether `id` refers to this integration (`audiobookshelf` / `abs`).
 
+### collect_listening_changes
+
+```rust
+pub async fn collect_listening_changes(
+    client: &AbsApiClient,
+    memory: Option<&DatabaseBinding>,
+    now: DateTime<Utc>,
+) -> Result<Vec<ListeningProgressSnapshot>>
+```
+
+Collect the listening-progress rows that changed since the last sync.
+
+With `memory`, each user's progress rows are fingerprinted (progress,
+position, duration, finished flag and last update). A row whose
+fingerprint matches what the last sync sent is skipped, along with the
+library item lookup it would need. Once a day per user every row is
+sent again. Without `memory` every row is sent, as [`collect_listening_snapshots`](#collect_listening_snapshots) does.
+
+The host upserts what it receives, so skipping a row it already holds
+changes nothing it stores.
+
+Every read and write is sized from the binding's limits (keyed pages
+when the session does not stream, `chunk()`ed batches), so the same code
+runs on every database the host may grant. Memory of users not synced
+for seven days is dropped.
+
+The memory is written only after every user has been collected, so a
+sync that fails part way records nothing it did not return. A memory
+call that fails never fails the sync: a read that fails sends that
+user's whole snapshot, and a write that fails leaves the memory holding
+at most what this sync returns (a user row is written after its item
+rows, and an item row missing from the memory reads as changed).
+
+#### Arguments
+
+* `client` - The ABS API client.
+* `memory` - The plugin's `LISTENING_STATE` database, when granted.
+* `now` - The time of this sync.
+
+#### Errors
+
+Returns an error when ABS cannot list its users.
+
 ### collect_listening_snapshots
 
 ```rust
@@ -421,6 +468,33 @@ Used by both the in-process sync path and the external plugin guest RPC.
 #### Errors
 
 Returns an error when the operation fails.
+
+### listening_migrations
+
+```rust
+pub fn listening_migrations() -> Vec<PluginMigration>
+```
+
+The `database_migrations` registration for [`LISTENING_STATE_BINDING`](#listening_state_binding).
+
+Two tables: `abs_listening_items` holds the fingerprint of each progress
+row as last sent (user, library item, fingerprint), and
+`abs_listening_users` when each user's whole snapshot was last sent and
+when the user was last synced. The `person` column holds a hash of the ABS
+user id, never the id.
+
+### listening_migrations_for
+
+```rust
+pub fn listening_migrations_for(binding: &str) -> Vec<PluginMigration>
+```
+
+The `database_migrations` answer for `binding`.
+
+#### Returns
+
+[`migrations`](#listening_migrations) for [`LISTENING_STATE_BINDING`](#listening_state_binding), nothing for any other
+binding.
 
 ### sync_listening_progress
 
@@ -458,6 +532,14 @@ pub const BRAND: Brand = _;
 ```
 
 Canonical ABS brand for connect-portal buttons.
+
+### LISTENING_STATE_BINDING
+
+```rust
+pub const LISTENING_STATE_BINDING: &str = "LISTENING_STATE";
+```
+
+`[[databases]]` binding the plugin keeps listening-sync memory in.
 
 ### ID
 

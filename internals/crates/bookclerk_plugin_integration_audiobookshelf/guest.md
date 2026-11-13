@@ -137,14 +137,19 @@ Returns an error when the operation fails.
 ```rust
 pub async fn guest_sync_listening(
     state: &Mutex<AbsGuestState>,
+    memory: Option<&DatabaseBinding>,
 ) -> Result<Vec<ListeningProgress>>
 ```
 
 Collect listening progress as typed ABI rows (host upserts).
 
+With the `LISTENING_STATE` database only rows that changed since the
+last sync come back, and each user's whole snapshot once a day (see
+[`collect_listening_changes`](README.md#collect_listening_changes)); without it every row does.
+
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when ABS cannot list its users.
 
 ### guest_authenticate_user
 

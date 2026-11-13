@@ -64,6 +64,7 @@ accepts. See `docs/plugins/database-limits.md`.
 | [`ScanDelta`](#scandelta) | struct | Hash-based delta state for one call of one account's pass. |
 | [`migrations`](#migrations) | function | The `database_migrations` registration for `SCAN_STATE_BINDING`. |
 | [`migrations_for`](#migrations_for) | function | The `database_migrations` answer for `binding`. |
+| [`read_keyed`](#read_keyed) | function | Every row a key-ordered query returns, read within the session's limits. |
 | [`SCAN_STATE_BINDING`](#scan_state_binding) | constant | `[[databases]]` binding first-party storefronts declare for this crate's state. |
 | [`RETENTION_SECONDS`](#retention_seconds) | constant | Seconds a pass is kept after it was last touched. The host asks for a full pass at least every seven days, so an older pass is never the base of a delta; this only reclaims accounts that stopped scanning. |
 
@@ -188,6 +189,45 @@ The `database_migrations` answer for `binding`.
 #### Returns
 
 [`migrations`](#migrations) for [`SCAN_STATE_BINDING`](#scan_state_binding), nothing for any other binding.
+
+### read_keyed
+
+```rust
+pub async fn read_keyed(
+    db: &DatabaseBinding,
+    sql: &str,
+    binds: Vec<DbValue>,
+    key: &str,
+) -> Result<Vec<HashMap<String, DbValue>>, PluginError>
+```
+
+Every row a key-ordered query returns, read within the session's limits.
+
+`sql` ends `AND <key> > ? ORDER BY <key> LIMIT ?`, where `<key>` is the
+unique text column named by `key`, which the query also returns; `binds`
+fills the placeholders before those two. When the session streams, one read with no
+lower bound and no row limit returns it all. When it does not, every read
+is held to the inline caps, so the rows come in pages keyed on `key`
+(never `OFFSET`), each sized from `maxResultRows`, halved whenever a
+page's bytes pass `maxResultBytes` and doubled again (up to
+`maxResultRows`) after each full page.
+
+#### Arguments
+
+* `db` - The plugin's database binding.
+* `sql` - The query, shaped as above.
+* `binds` - Values for the placeholders before the key bound and limit.
+* `key` - Name of the returned text column the rows are ordered on.
+
+#### Returns
+
+The rows in key order, each as column name to value.
+
+#### Errors
+
+Returns the binding's error, `limit_exceeded` included when a single row
+passes the inline caps, and `internal` when a paged row has no text
+`key` column.
 
 ## Constants
 
