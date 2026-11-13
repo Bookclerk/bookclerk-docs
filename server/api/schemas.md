@@ -2,6 +2,13 @@
 
 The request and response bodies of the [web API](README.md), in alphabetical order.
 
+## AccountRef
+
+One store account, by storefront plugin key and store account id.
+
+- `plugin_key` *string*, **required** — Provenance-qualified plugin key of the storefront, as sent.
+- `account_id` *string*, **required** — Store account id, as sent.
+
 ## AcquireRequestBody
 
 Optional body for `POST /api/library/acquire`.
@@ -38,6 +45,13 @@ Generic mutation result with success flag, message, and optional job id.
 - `plugin_key` *string*, **required** — Canonical plugin key.
 - `version` *string*, **required** — Version now active.
 - `revision` *integer (int64)*, **required** — Compare-and-swap revision of the pointer after the move.
+
+## AddConnectionsBody
+
+`POST /api/config/join/connections` body.
+
+- `cluster_id` *string*, **required** — The library (owner cluster id) to add the connections to.
+- `accounts` *array of [`AccountRef`](#accountref)*, **required** — The person's accounts to add; 1 to 64.
 
 ## ApiError
 
@@ -554,6 +568,17 @@ One linked store account on the portal Accounts page.
 - `source_enabled` *boolean*, **required** — Whether `[sources.<id>] enabled` is currently true (new connects blocked when false).
 - `brand` *[`BrandInfo`](#brandinfo) or null* — Storefront or integration brand when a plugin or fallback palette is available.
 
+## ConnectionsAdded
+
+JSON body after `POST /api/config/join/connections`.
+
+- `added` *integer (int64)*, **required** — Accounts now connected in the library for the person. At least 0.
+- `already_here` *integer (int64)*, **required** — Accounts the person had already connected there. At least 0.
+- `taken` *integer (int64)*, **required** — Accounts connected to someone else there; left as they are. At least 0.
+- `failed` *integer (int64)*, **required** — Accounts that could not be kept there. At least 0.
+- `not_sent` *integer (int64)*, **required** — Accounts not sent: not the person's, not connected, or of a storefront whose sign-ins can't be shared. At least 0.
+- `not_allowed` *boolean*, **required** — The library's operator does not let the person connect store accounts there; nothing was kept.
+
 ## ConnectionsResponse
 
 JSON body for `GET /connections`.
@@ -688,6 +713,22 @@ decision the row carries, so "the operator turned this off" never reads
 like "the scheduler put the replica elsewhere".
 
 Type: one of `present`, `absent`, `placed`, `unplaced`
+
+## DisconnectBody
+
+`POST /api/config/join/connections/disconnect` body.
+
+- `plugin_key` *string*, **required** — Provenance-qualified plugin key of the storefront.
+- `account_id` *string*, **required** — Store account id.
+- `everywhere` *boolean* — Also disconnect it in every linked library it was shared with; absent means `false`.
+
+## Disconnected
+
+JSON body after `POST /api/config/join/connections/disconnect`.
+
+- `here` *boolean*, **required** — The account was the person's here and is disconnected here now.
+- `libraries` *array of string*, **required** — Linked libraries (owner cluster ids) that confirmed the disconnect.
+- `unreached` *array of string*, **required** — Linked libraries that could not be reached or refused; the account stays connected there until the person disconnects it there.
 
 ## DiscoverFeed
 

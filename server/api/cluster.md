@@ -13065,6 +13065,845 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `POST /api/config/join/connections`
+
+`POST /api/config/join/connections`: "Add my connections to *library*".
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`AddConnectionsBody`](schemas.md#addconnectionsbody)
+
+- `cluster_id` *string*, **required** — The library (owner cluster id) to add the connections to.
+- `accounts` *array of [`AccountRef`](schemas.md#accountref)*, **required** — The person's accounts to add; 1 to 64.
+
+### Responses
+
+- `200` — What the library kept. Body: [`ConnectionsAdded`](schemas.md#connectionsadded) (`application/json`)
+  - `added` *integer (int64)*, **required** — Accounts now connected in the library for the person. At least 0.
+  - `already_here` *integer (int64)*, **required** — Accounts the person had already connected there. At least 0.
+  - `taken` *integer (int64)*, **required** — Accounts connected to someone else there; left as they are. At least 0.
+  - `failed` *integer (int64)*, **required** — Accounts that could not be kept there. At least 0.
+  - `not_sent` *integer (int64)*, **required** — Accounts not sent: not the person's, not connected, or of a storefront whose sign-ins can't be shared. At least 0.
+  - `not_allowed` *boolean*, **required** — The library's operator does not let the person connect store accounts there; nothing was kept.
+- `400` — No accounts, or more than 64 (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not the person this branch belongs to (`not_branch_person`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorDetail`](schemas.md#errordetail) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — This install is not a branch of that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `409` — The library refused the offer (`refused`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The library could not be reached (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/connections' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "accounts": [{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}]}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/connections' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "accounts": [{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}]}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/join/connections",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "accounts": [{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}]},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/join/connections", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "accounts": [{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}]}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/join/connections")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"cluster_id": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a", "accounts": [{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}]}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What the library kept.
+
+```json
+{
+  "added": 1,
+  "already_here": 0,
+  "taken": 0,
+  "failed": 0,
+  "not_sent": 0,
+  "not_allowed": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after `POST /api/config/join/connections`.",
+  "required": [
+    "added",
+    "already_here",
+    "taken",
+    "failed",
+    "not_sent",
+    "not_allowed"
+  ],
+  "properties": {
+    "added": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Accounts now connected in the library for the person.",
+      "example": 1,
+      "minimum": 0
+    },
+    "already_here": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Accounts the person had already connected there.",
+      "example": 0,
+      "minimum": 0
+    },
+    "taken": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Accounts connected to someone else there; left as they are.",
+      "example": 0,
+      "minimum": 0
+    },
+    "failed": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Accounts that could not be kept there.",
+      "example": 0,
+      "minimum": 0
+    },
+    "not_sent": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Accounts not sent: not the person's, not connected, or of a\nstorefront whose sign-ins can't be shared.",
+      "example": 0,
+      "minimum": 0
+    },
+    "not_allowed": {
+      "type": "boolean",
+      "description": "The library's operator does not let the person connect store\naccounts there; nothing was kept.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `400`: No accounts, or more than 64 (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "detail": "name between 1 and 64 accounts",
+  "error": "invalid_request"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller is not the person this branch belongs to (`not_branch_person`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: This install is not a branch of that library (`not_found`).
+
+```json
+{
+  "detail": "this install is not a branch of that library",
+  "error": "not_found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `409`: The library refused the offer (`refused`).
+
+```json
+{
+  "detail": "no_owner",
+  "error": "refused"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The library could not be reached (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "detail": "the library could not be reached; try again",
+  "error": "unavailable"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/config/join/connections/disconnect`
+
+`POST /api/config/join/connections/disconnect`: disconnects one of the
+person's store accounts here, and with `everywhere` in every linked
+library it was shared with.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`DisconnectBody`](schemas.md#disconnectbody)
+
+- `plugin_key` *string*, **required** — Provenance-qualified plugin key of the storefront.
+- `account_id` *string*, **required** — Store account id.
+- `everywhere` *boolean* — Also disconnect it in every linked library it was shared with; absent means `false`.
+
+### Responses
+
+- `200` — Where the account is disconnected now. Body: [`Disconnected`](schemas.md#disconnected) (`application/json`)
+  - `here` *boolean*, **required** — The account was the person's here and is disconnected here now.
+  - `libraries` *array of string*, **required** — Linked libraries (owner cluster ids) that confirmed the disconnect.
+  - `unreached` *array of string*, **required** — Linked libraries that could not be reached or refused; the account stays connected there until the person disconnects it there.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is not the person this branch belongs to (`not_branch_person`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorDetail`](schemas.md#errordetail) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/join/connections/disconnect' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/connections/disconnect' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/join/connections/disconnect",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/join/connections/disconnect", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/join/connections/disconnect")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"plugin_key": "platform:bookclerk/bookclerk-plugin-source-libro#libro", "account_id": "reader@example.com"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Where the account is disconnected now.
+
+```json
+{
+  "here": true,
+  "libraries": [
+    "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
+  ],
+  "unreached": []
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body after `POST /api/config/join/connections/disconnect`.",
+  "required": [
+    "here",
+    "libraries",
+    "unreached"
+  ],
+  "properties": {
+    "here": {
+      "type": "boolean",
+      "description": "The account was the person's here and is disconnected here now.",
+      "example": true
+    },
+    "libraries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Linked libraries (owner cluster ids) that confirmed the disconnect.",
+      "example": [
+        "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
+      ]
+    },
+    "unreached": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Linked libraries that could not be reached or refused; the account\nstays connected there until the person disconnects it there.",
+      "example": []
+    }
+  }
+}
+```
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller is not the person this branch belongs to (`not_branch_person`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `plugin_key` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/config/join/capacity`
 
 `POST /api/config/join/capacity`: Settings → Library's job cap for one

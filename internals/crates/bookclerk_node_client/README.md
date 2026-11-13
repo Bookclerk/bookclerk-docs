@@ -63,6 +63,7 @@ job runs its guest are the daemon's.
 | [`HostClient`](#hostclient) | struct | The host side of the node API for one cluster link. |
 | [`HostClientConfig`](#hostclientconfig) | struct | What one client connects with. |
 | [`HostClientHandle`](#hostclienthandle) | struct | Watches a running client. |
+| [`OfferedAccounts`](#offeredaccounts) | struct | What the library kept of an `HostClientHandle::offer_accounts`. |
 | [`OwnerEndpoint`](#ownerendpoint) | struct | Where and how to reach one owner. |
 | [`TlsProbe`](#tlsprobe) | struct | What a first TLS handshake showed of an owner's certificate, before any pin is known (`OwnerEndpoint::probe_json`). |
 | [`HandedSecrets`](#handedsecrets) | struct | The job's secrets, opened with this node's box key. Values are zeroized on drop and `Debug` shows only which rows they are. |
@@ -79,6 +80,7 @@ job runs its guest are the daemon's.
 | [`announce_leaving`](#announce_leaving) | function | Tells the library of `link` that this install is leaving: connects with the link's keys (claiming nothing; `sampler` answers the connection's first heartbeat), sends `node.leaving`, and waits for the answer for up to `timeout`. Answers true when the library accepted it. Call it before the keys are deleted. |
 | [`authorize_branch`](#authorize_branch) | function | Starts a sign-in at `library` for this install as `branch_name`, coming back to `redirect_uri` (a loopback or https URL). |
 | [`authorize_join`](#authorize_join) | function | `authorize_branch`, optionally offering to join as a clerk (`offer_clerk`, `CLERK_OFFER_PARAM`): the consent page then lets an Owner of the library choose a clerk instead of a branch. Offer it only for an install that holds no library data of its own. |
+| [`bind_join_person`](#bind_join_person) | function | Binds the link a sign-in join recorded to the person on this install (`branch_person`): only they may add store connections to the library, or withdraw them from it, through that link. Every join path calls it after `redeem_branch_code`. |
 | [`inspect_library`](#inspect_library) | function | Reads what the library at `address` says about itself, under the transport policy (plain HTTP only on loopback). |
 | [`keep_brought_connections`](#keep_brought_connections) | function | Keeps the store connections a library sent with its person (`RedeemedBranch::accounts`) for the person on this install (`branch_person`), recording that they came from the library. |
 | [`library_origin`](#library_origin) | function | Normalizes what an operator typed (`owner.example:8443`, `https://owner.example/`) to a canonical origin. A bare `host[:port]` means `https`. |
@@ -258,6 +260,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct RedeemedBranch {
     pub link: ClusterLink,
+    pub node_id: String,
     pub accounts: Option<AccountBundle>,
 }
 ```
@@ -266,7 +269,10 @@ A branch sign-in the library redeemed and this install recorded.
 
 **Fields**
 
-- `link`: The recorded link.
+- `link`: The recorded link, as stored after this enrollment (another join
+  may have replaced it since).
+- `node_id`: The node id this enrollment was minted: what the join binds its
+  person to, whatever the stored link names by then.
 - `accounts`: The store accounts the library's user chose to bring to this
   branch, opened with the link's box key; `None` when the user did not
   choose it, had none to bring, or the box did not open (logged).
@@ -677,6 +683,43 @@ Sends `body` on the live connection (waiting up to the request
 timeout for one) and answers the owner's frame, or `None` when no
 connection answered.
 
+#### HostClientHandle::offer_accounts
+
+```rust
+pub async fn offer_accounts(
+    &self,
+    accounts: Vec<CarriedAccount>,
+) -> Result<OfferedAccounts, OwnerCallError>
+```
+
+Offers the branch person's store `accounts` to the library ("Add my
+connections to *library*"): seals them to the live connection's
+owner box key, bound to the cluster and this node, and answers the
+library's report.
+
+##### Errors
+
+Returns [`OwnerCallError::Refused`](#ownercallerror) with the library's reason, or
+[`OwnerCallError::Unavailable`](#ownercallerror) when no connection answered or the
+bundle could not be sealed.
+
+#### HostClientHandle::withdraw_account
+
+```rust
+pub async fn withdraw_account(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<(), OwnerCallError>
+```
+
+Tells the library the person disconnected this store account
+everywhere; it removes their links to it there.
+
+##### Errors
+
+As [`Self::offer_accounts`](#hostclienthandleoffer_accounts).
+
 #### HostClientHandle::open_instance_secrets
 
 ```rust
@@ -836,6 +879,30 @@ Commits a catalog `upload`.
 Returns [`OwnerCallError`](#ownercallerror).
 
 Implements: `Clone`
+
+### OfferedAccounts
+
+```rust
+pub struct OfferedAccounts {
+    pub added: u64,
+    pub already_here: u64,
+    pub taken: u64,
+    pub failed: u64,
+    pub not_allowed: bool,
+}
+```
+
+What the library kept of an [`HostClientHandle::offer_accounts`](#hostclienthandleoffer_accounts).
+
+**Fields**
+
+- `added`: Accounts now connected there for the person.
+- `already_here`: Accounts the person had already connected there.
+- `taken`: Accounts connected to someone else there; left as they are.
+- `failed`: Accounts that could not be kept.
+- `not_allowed`: The library's operator does not let the person connect accounts.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### OwnerEndpoint
 
@@ -1603,6 +1670,38 @@ for an install that holds no library data of its own.
 #### Errors
 
 As [`authorize_branch`](#authorize_branch).
+
+### bind_join_person
+
+```rust
+pub async fn bind_join_person(
+    store: &LibraryStore,
+    preferred: Option<i64>,
+    redeemed: &RedeemedBranch,
+) -> Option<i64>
+```
+
+Binds the link a sign-in join recorded to the person on this install
+([`branch_person`](../bookclerk_library/control_plane.md#branch_person)): only they may add store connections to the library,
+or withdraw them from it, through that link. Every join path calls it
+after [`redeem_branch_code`](#redeem_branch_code).
+
+The binding names the node this join's own enrollment minted
+([`RedeemedBranch::node_id`](#redeemedbranch)), so a join another one replaced meanwhile
+binds nothing. A failure, or no person to name, leaves the link unbound
+(as [`record_cluster_link`](../bookclerk_library/control_plane.md#record_cluster_link) stored it): nobody can use it until the
+branch joins again.
+
+#### Arguments
+
+* `store` - This install's library.
+* `preferred` - The Owner who elevated into the operator session that
+  ran the join, when one did.
+* `redeemed` - What the join recorded.
+
+#### Returns
+
+The user the link is bound to, when one was.
 
 ### inspect_library
 

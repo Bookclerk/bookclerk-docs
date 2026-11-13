@@ -32,6 +32,11 @@ See `docs/adr/control-plane.md`.
 | [`NewClusterLink`](#newclusterlink) | struct | What enrollment returned, to record with `record_cluster_link`. |
 | [`SharingBody`](#sharingbody) | struct | `POST /api/config/join/sharing` body: one library and the settings to change for it. |
 | [`SharingRequest`](#sharingrequest) | struct | A sharing settings change: the library it names (trimmed) and the settings to write, each `None` setting left as stored. |
+| [`AccountRef`](#accountref) | struct | One store account, by storefront plugin key and store account id. |
+| [`AddConnectionsBody`](#addconnectionsbody) | struct | `POST /api/config/join/connections` body. |
+| [`AddConnectionsRequest`](#addconnectionsrequest) | struct | An "Add my connections" request: the library it names (trimmed) and the accounts picked, between 1 and `MAX_ADD_CONNECTIONS` of them. |
+| [`DisconnectBody`](#disconnectbody) | struct | `POST /api/config/join/connections/disconnect` body. |
+| [`DisconnectRequest`](#disconnectrequest) | struct | A disconnect request: the account and whether to reach every linked library it was shared with. |
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
@@ -115,6 +120,7 @@ See `docs/adr/control-plane.md`.
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
+| [`Withdrawn`](#withdrawn) | enum | What `withdraw_person_account` did. |
 | [`AnswersRecorded`](#answersrecorded) | enum | Outcome of `record_answers`. |
 | [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
 | [`DeploymentReplace`](#deploymentreplace) | enum | Outcome of `replace_plugin_deployment`. |
@@ -165,18 +171,23 @@ See `docs/adr/control-plane.md`.
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
 | [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
 | [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
+| [`account_share_peers`](#account_share_peers) | function | Every peer this install shared the store account with, in either direction (`account_shares`): `node_peer` and `link_peer` values, each once, sorted. |
 | [`accounts_to_carry`](#accounts_to_carry) | function | The store accounts `user_id` connected here that may travel to a branch (`member_accounts` whose plugin `shareable` accepts), each with its secrets unsealed. At most `MAX_BUNDLE_ACCOUNTS`; an account without a secret is left out (there is nothing to sign in with). |
+| [`accounts_to_carry_where`](#accounts_to_carry_where) | function | `accounts_to_carry` limited to the accounts `keep` accepts, by `(plugin_key, account_id)`, applied before the bundle's count and size limits so a picked account is never crowded out by unpicked ones. |
 | [`branch_person`](#branch_person) | function | The person on this install that store accounts brought from a library belong to: `preferred` (the Owner who elevated into the operator session that ran the join) while that user is still an active Owner, otherwise the only active Owner. `None` when neither settles it, for example on a new install with no Owner yet; the accounts are then not kept. |
 | [`identity_may_connect_accounts`](#identity_may_connect_accounts) | function | Whether the portal identity `identity_id` may connect store accounts here: the rule of the user it belongs to (`member_may_connect_accounts`). An identity that belongs to no first-party user (an integration's external user) has no member rule and may connect, as before; an unknown identity may not. |
 | [`import_carried_accounts`](#import_carried_accounts) | function | Imports the accounts a library sent with its person, for `user_id`, recording that they came from the library `cluster_id`. |
+| [`import_offered_accounts`](#import_offered_accounts) | function | Imports the accounts a branch offered up its link ("Add my connections to *library*") for `user_id`, the branch's owner, recording that they came from the node `node_id`. |
 | [`link_peer`](#link_peer) | function | The `account_shares.peer` of a library this install received accounts from. |
 | [`member_account_rules`](#member_account_rules) | function | Every stored rule, by user id (`true` = may connect). Users with no rule are left out; they may connect. |
 | [`member_accounts`](#member_accounts) | function | The store accounts `user_id` has connected here: linked to any of the user's portal identities and still connected (`connection_status` is `active`), sorted by plugin key and account id. |
 | [`member_may_connect_accounts`](#member_may_connect_accounts) | function | Whether `user_id` may connect store accounts on this instance: an active user with no rule, or whose rule allows it. |
 | [`node_peer`](#node_peer) | function | The `account_shares.peer` of a branch node this library sent accounts to. |
 | [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 20 accounts; a repeat refreshes the time. |
+| [`record_accounts_sent_to`](#record_accounts_sent_to) | function | Records that `accounts` were sent to `peer` (`node_peer` for a branch, `link_peer` for a library this install offered them to), as `record_accounts_sent` does. |
 | [`revoke_unlinked_account`](#revoke_unlinked_account) | function | Takes back a store account a refused login stored: deletes its secrets and marks it `revoked` with scans off, in one atomic batch whose every statement applies only while no link holds the account. |
 | [`set_member_may_connect_accounts`](#set_member_may_connect_accounts) | function | Sets whether `user_id` may connect store accounts on this instance. |
+| [`withdraw_person_account`](#withdraw_person_account) | function | Disconnects a store account "everywhere" on this library for the person `user_id`: removes every link from their identities to the account and, in the same atomic batch, deletes its secrets and marks it `revoked` with scans off when no other link holds it. A revoked account then loses its holdings (each with a `holding_removed` event) and its scan checkpoints, as `LibraryStore::revoke_credentials` does. |
 | [`answer_questions`](#answer_questions) | function | Answers questions a library sent this branch from this branch's own library. |
 | [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
 | [`branch_listing_key`](#branch_listing_key) | function | The plugin key of listings answered by branch `node_id`. |
@@ -208,10 +219,13 @@ See `docs/adr/control-plane.md`.
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
 | [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
 | [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
+| [`set_cluster_link_person`](#set_cluster_link_person) | function | Binds the link to the local user who joined the library through it. |
 | [`set_cluster_link_settings`](#set_cluster_link_settings) | function | Sets a link's sharing, listing and work settings in one statement, so a failed write leaves every one of them as it was. |
 | [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
 | [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
 | [`set_cluster_link_work`](#set_cluster_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
+| [`parse_add_connections_request`](#parse_add_connections_request) | function | Parses and validates a `POST /api/config/join/connections` body from its raw bytes, sans IO, the way the route reads it: JSON into `AddConnectionsBody`, then `AddConnectionsBody::validate`. |
+| [`parse_disconnect_request`](#parse_disconnect_request) | function | Parses a `POST /api/config/join/connections/disconnect` body from its raw bytes, sans IO, the way the route reads it: JSON into `DisconnectBody`, then `DisconnectBody::into_request`. |
 | [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
 | [`ensure_cron_cursor`](#ensure_cron_cursor) | function | Creates the cursor at `initial_last_ms` unless one exists, and returns the stored cursor. |
 | [`load_cron_cursor`](#load_cron_cursor) | function | Reads one cursor. |
@@ -455,6 +469,7 @@ See `docs/adr/control-plane.md`.
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
 | [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) | constant | `cluster_links.state` once the owner revoked this node (close 4403). |
+| [`MAX_ADD_CONNECTIONS`](#max_add_connections) | constant | Most accounts one "Add my connections" request names: as many as one sealed account bundle carries. |
 | [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
 | [`MAX_OBSERVATION_DETAIL_BYTES`](#max_observation_detail_bytes) | constant | Maximum UTF-8 size of an observation detail string. |
 | [`CLUSTER_SCOPE_ID`](#cluster_scope_id) | constant | Cluster scope instance. There is one cluster document per namespace. |
@@ -738,6 +753,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `E
 pub struct CarriedImport {
     pub imported: Vec<(String, String)>,
     pub already_here: Vec<(String, String)>,
+    pub unrecorded: Vec<(String, String)>,
     pub taken: Vec<(String, String)>,
     pub failed: Vec<(String, String)>,
     pub refused_by_rule: bool,
@@ -751,6 +767,10 @@ What [`import_carried_accounts`](#import_carried_accounts) did with each account
 - `imported`: `(plugin_key, account_id)` of each account now connected here for
   the person.
 - `already_here`: Accounts the person had already connected here; left as they are.
+- `unrecorded`: Of [`Self::already_here`](#carriedimport), the accounts whose record that this peer
+  holds them too could not be written (logged): they stay connected
+  here, but a disconnect everywhere from here would not reach that
+  peer until the same offer arrives again and records it.
 - `taken`: Accounts connected to someone else here; refused.
 - `failed`: Accounts that came without a secret, or whose write failed (logged);
   nothing of them was stored.
@@ -958,6 +978,7 @@ pub struct ClusterLink {
     pub keep_member_copies: bool,
     pub max_jobs: Option<LinkJobCap>,
     pub list_members_books: bool,
+    pub person_user_id: Option<i64>,
 }
 ```
 
@@ -987,6 +1008,9 @@ One owner cluster this install enrolled into.
 - `list_members_books`: "List my members' books to *library*" (on by default): catalog
   lookups from that library are answered with the members' books
   (except those of members who opted out) as well as the owner's.
+- `person_user_id`: The local user who joined the library through this link, when one
+  could be named: the only person who may add store connections to
+  that library, or withdraw them from it, through this link.
 
 #### ClusterLink::is_active
 
@@ -1211,6 +1235,107 @@ settings to write, each `None` setting left as stored.
 
 - `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
 - `settings`: The settings to write ([`set_cluster_link_settings`](#set_cluster_link_settings)).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### AccountRef
+
+```rust
+pub struct AccountRef {
+    pub plugin_key: String,
+    pub account_id: String,
+}
+```
+
+One store account, by storefront plugin key and store account id.
+
+**Fields**
+
+- `plugin_key`: Provenance-qualified plugin key of the storefront, as sent.
+- `account_id`: Store account id, as sent.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `ToSchema`
+
+### AddConnectionsBody
+
+```rust
+pub struct AddConnectionsBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/connections` body.
+
+#### AddConnectionsBody::validate
+
+```rust
+pub fn validate(self) -> Result<AddConnectionsRequest>
+```
+
+Checks the account count and returns the request.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when the body names no account or
+more than [`MAX_ADD_CONNECTIONS`](#max_add_connections).
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### AddConnectionsRequest
+
+```rust
+pub struct AddConnectionsRequest {
+    pub cluster_id: String,
+    pub accounts: Vec<AccountRef>,
+}
+```
+
+An "Add my connections" request: the library it names (trimmed) and the
+accounts picked, between 1 and [`MAX_ADD_CONNECTIONS`](#max_add_connections) of them.
+
+**Fields**
+
+- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
+- `accounts`: The accounts picked, in the order sent.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DisconnectBody
+
+```rust
+pub struct DisconnectBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/connections/disconnect` body.
+
+#### DisconnectBody::into_request
+
+```rust
+pub fn into_request(self) -> DisconnectRequest
+```
+
+The request the body makes.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### DisconnectRequest
+
+```rust
+pub struct DisconnectRequest {
+    pub account: AccountRef,
+    pub everywhere: bool,
+}
+```
+
+A disconnect request: the account and whether to reach every linked
+library it was shared with.
+
+**Fields**
+
+- `account`: The account, as sent.
+- `everywhere`: Also disconnect it in every linked library it was shared with.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4039,6 +4164,25 @@ Outcome of [`begin_catalog`](#begin_catalog).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### Withdrawn
+
+```rust
+pub enum Withdrawn {
+    Unlinked,
+    NotTheirs,
+}
+```
+
+What [`withdraw_person_account`](#withdraw_person_account) did.
+
+**Variants**
+
+- `Unlinked`: The person's links to the account were removed (and the account
+  taken back when no other link held it).
+- `NotTheirs`: The person had no link to the account here; nothing changed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### AnswersRecorded
 
 ```rust
@@ -5337,6 +5481,24 @@ Returns the error `edit` returned, an error when the edited body is
 invalid or the actor may not write, or [`LibraryError::Conflict`](README.md#libraryerror) when
 the document keeps changing underneath.
 
+### account_share_peers
+
+```rust
+pub async fn account_share_peers(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Vec<String>>
+```
+
+Every peer this install shared the store account with, in either
+direction (`account_shares`): [`node_peer`](#node_peer) and [`link_peer`](#link_peer) values,
+each once, sorted.
+
+#### Errors
+
+Returns the read error.
+
 ### accounts_to_carry
 
 ```rust
@@ -5358,6 +5520,31 @@ without a secret is left out (there is nothing to sign in with).
 * `user_id` - The member who chose to bring their connections.
 * `shareable` - Whether a plugin key's store credentials may be held by
   several instances (`credentials = "shareable"` in its `plugin.toml`).
+
+#### Errors
+
+Returns a read error, or the unseal error of a secret.
+
+### accounts_to_carry_where
+
+```rust
+pub async fn accounts_to_carry_where(
+    store: &LibraryStore,
+    user_id: i64,
+    keep: &dyn Fn(&str, &str) -> bool + Send + Sync,
+) -> Result<Vec<CarriedAccount>>
+```
+
+[`accounts_to_carry`](#accounts_to_carry) limited to the accounts `keep` accepts, by
+`(plugin_key, account_id)`, applied before the bundle's count and size
+limits so a picked account is never crowded out by unpicked ones.
+
+#### Arguments
+
+* `store` - This library.
+* `user_id` - The member whose connections travel.
+* `keep` - Whether an account may travel (its storefront shareable,
+  and picked when the person picks some).
 
 #### Errors
 
@@ -5431,6 +5618,29 @@ overwritten, even when it is connected while the import runs.
 
 Returns a read error from before any account is written. An account
 whose own write fails is reported in [`CarriedImport::failed`](#carriedimport).
+
+### import_offered_accounts
+
+```rust
+pub async fn import_offered_accounts(
+    store: &LibraryStore,
+    user_id: i64,
+    node_id: &str,
+    accounts: &[CarriedAccount],
+) -> Result<CarriedImport>
+```
+
+Imports the accounts a branch offered up its link ("Add my connections
+to *library*") for `user_id`, the branch's owner, recording that they
+came from the node `node_id`.
+
+The same rules as [`import_carried_accounts`](#import_carried_accounts) apply: refused whole
+under this library's rule, each account in its own guarded batch, and
+an account connected here before is never overwritten.
+
+#### Errors
+
+As [`import_carried_accounts`](#import_carried_accounts).
 
 ### link_peer
 
@@ -5513,6 +5723,24 @@ most 20 accounts; a repeat refreshes the time.
 
 Returns the write error.
 
+### record_accounts_sent_to
+
+```rust
+pub async fn record_accounts_sent_to(
+    store: &LibraryStore,
+    peer: &str,
+    accounts: &[CarriedAccount],
+) -> Result<()>
+```
+
+Records that `accounts` were sent to `peer` ([`node_peer`](#node_peer) for a
+branch, [`link_peer`](#link_peer) for a library this install offered them to), as
+[`record_accounts_sent`](#record_accounts_sent) does.
+
+#### Errors
+
+Returns the write error.
+
 ### revoke_unlinked_account
 
 ```rust
@@ -5555,6 +5783,31 @@ none. Accounts the member already connected stay connected.
 
 Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user and the write
 error.
+
+### withdraw_person_account
+
+```rust
+pub async fn withdraw_person_account(
+    store: &LibraryStore,
+    user_id: i64,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Withdrawn>
+```
+
+Disconnects a store account "everywhere" on this library for the
+person `user_id`: removes every link from their identities to the
+account and, in the same atomic batch, deletes its secrets and marks it
+`revoked` with scans off when no other link holds it. A revoked account
+then loses its holdings (each with a `holding_removed` event) and its
+scan checkpoints, as [`LibraryStore::revoke_credentials`](README.md#librarystorerevoke_credentials) does.
+
+An account another member is linked to keeps that member's link,
+secrets and status.
+
+#### Errors
+
+Returns a read or write error.
 
 ### answer_questions
 
@@ -6110,7 +6363,9 @@ The key row is written first: a link row never exists without keys, and
 a key row left by a failed write is replaced by the next enrollment.
 When the re-enrollment minted a different node id, the earlier node's
 key row is deleted once the new link row is stored, so the sealed
-private keys of a node the owner no longer knows are not kept.
+private keys of a node the owner no longer knows are not kept. The link
+is stored with no person bound (a re-enrollment unbinds it); the join
+binds one with [`set_cluster_link_person`](#set_cluster_link_person).
 
 #### Errors
 
@@ -6176,6 +6431,37 @@ Sets the link's "List my members' books to *library*" setting.
 
 Whether the link exists (`false` when there is no such link); setting
 the value it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
+
+### set_cluster_link_person
+
+```rust
+pub async fn set_cluster_link_person(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    remote_node_id: &str,
+    person_user_id: Option<i64>,
+) -> Result<bool>
+```
+
+Binds the link to the local user who joined the library through it.
+
+Only that person may add their store connections to the library, or
+withdraw them from it, through this link.
+
+#### Arguments
+
+* `owner_cluster_id` - The library the link joined.
+* `remote_node_id` - The node id that join enrolled as: a join another
+  one replaced since binds nothing.
+* `person_user_id` - The local user who joined (`None` unbinds it).
+
+#### Returns
+
+Whether the link exists as that node (`false` otherwise).
 
 #### Errors
 
@@ -6275,6 +6561,40 @@ scope from its next consent check.
 #### Errors
 
 Returns the write error.
+
+### parse_add_connections_request
+
+```rust
+pub fn parse_add_connections_request(body: &[u8]) -> Result<AddConnectionsRequest>
+```
+
+Parses and validates a `POST /api/config/join/connections` body from its
+raw bytes, sans IO, the way the route reads it: JSON into
+[`AddConnectionsBody`](#addconnectionsbody), then [`AddConnectionsBody::validate`](#addconnectionsbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (not an object, an account that is not an object, unknown or
+duplicate fields, missing fields, wrong types) or that name no account
+or more than [`MAX_ADD_CONNECTIONS`](#max_add_connections).
+
+### parse_disconnect_request
+
+```rust
+pub fn parse_disconnect_request(body: &[u8]) -> Result<DisconnectRequest>
+```
+
+Parses a `POST /api/config/join/connections/disconnect` body from its
+raw bytes, sans IO, the way the route reads it: JSON into
+[`DisconnectBody`](#disconnectbody), then [`DisconnectBody::into_request`](#disconnectbodyinto_request).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape: not an object, unknown or duplicate fields, a missing
+`plugin_key` or `account_id`, or a value of the wrong type (`everywhere`
+is a boolean when present; `null` is refused).
 
 ### claim_cron_fire
 
@@ -10456,6 +10776,15 @@ pub const CLUSTER_LINK_REVOKED: &str = "revoked";
 ```
 
 `cluster_links.state` once the owner revoked this node (close 4403).
+
+### MAX_ADD_CONNECTIONS
+
+```rust
+pub const MAX_ADD_CONNECTIONS: usize = bookclerk_node_proto::MAX_BUNDLE_ACCOUNTS;
+```
+
+Most accounts one "Add my connections" request names: as many as one
+sealed account bundle carries.
 
 ### CRON_FIRE_MAX_ATTEMPTS
 

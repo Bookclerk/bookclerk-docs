@@ -117,10 +117,13 @@ bytes.
 | [`SealError`](#sealerror) | enum | Why a sealed box could not be made or opened. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
+| [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `cluster_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
 | [`check_account_bundle`](#check_account_bundle) | function | Checks `bundle` against every rule `parse_account_bundle` applies. |
 | [`open_account_bundle`](#open_account_bundle) | function | Opens a bundle made by `seal_account_bundle` with the joining node's box secret, for the cluster and node ids the redeem answered. |
+| [`open_account_offer`](#open_account_offer) | function | Opens an offer made by `seal_account_offer` with the library's owner box secret, for the cluster id and the node id of the authenticated connection it arrived on. |
 | [`parse_account_bundle`](#parse_account_bundle) | function | Parses the opened bytes of an account bundle for `node_id` of `cluster_id` and checks it (`check_account_bundle`). Sans-IO: the branch runs it on what `open` returns, and the fuzz target runs it on arbitrary bytes. |
 | [`seal_account_bundle`](#seal_account_bundle) | function | Seals `bundle` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
+| [`seal_account_offer`](#seal_account_offer) | function | Seals a branch's `bundle` to its library's owner box key `recipient` (`crate::Body::Welcome`), for `crate::Body::AccountsAdd`. The box is bound with `account_offer_aad`, so a joining bundle never opens as an offer, nor the other way round. |
 | [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain cluster id and there are at most `MAX_ANCESTRY`. |
 | [`is_cluster_id`](#is_cluster_id) | function | True for a plain cluster id in an ancestry. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
@@ -167,6 +170,7 @@ bytes.
 | [`verify_auth`](#verify_auth) | function | Verifies a handshake signature with the node's enrolled public key. Uses strict verification (no malleable or small-order signatures). |
 | [`ACCOUNT_BUNDLE_AAD_DOMAIN`](#account_bundle_aad_domain) | constant | Domain tag that starts the associated data of an account bundle. |
 | [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version) | constant | Version of an `AccountBundle`. |
+| [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain) | constant | Domain tag that starts the associated data of an account offer: a branch's `AccountBundle` sent up to its library (`crate::Body::AccountsAdd`). A distinct tag keeps a bundle sealed in one direction from opening as the other. |
 | [`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes) | constant | Largest opened bundle accepted, in bytes. A bundle at every limit above would be far larger; this keeps the redeem answer small. |
 | [`MAX_ACCOUNT_SECRETS`](#max_account_secrets) | constant | Most secrets one carried account holds. |
 | [`MAX_BUNDLE_ACCOUNTS`](#max_bundle_accounts) | constant | Most accounts one bundle carries. |
@@ -1388,6 +1392,9 @@ pub enum Body {
     CatalogSync { fence: i64, batch: u64, cursor: String, done: bool, titles: Vec<CatalogTitle> },
     CatalogAccepted { batch: u64, upserted: u64, skipped: u64, wanted: Vec<CatalogRef> },
     CatalogUpload { fence: i64, store: String, product_id: String, files: Vec<UploadFile> },
+    AccountsAdd { sealed: String },
+    AccountsAdded { added: u64, already_here: u64, taken: u64, failed: u64, not_allowed: bool },
+    AccountsRemove { plugin_key: String, account_id: String },
     CatalogQuestions {  },
     CatalogAsk { works: Vec<LookupWork> },
     CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
@@ -1651,6 +1658,28 @@ What a frame says, tagged by `type`.
   - `product_id`: Product id of the title.
   - `files`: The title's files, in upload order, each copied to every
     destination of the session under its manifest key.
+- `AccountsAdd`: Branch → library: add the branch person's store connections to this
+  library ("Add my connections to *library*"). `sealed` is an
+  [`crate::AccountBundle`](#accountbundle) sealed to the connection's owner box key
+  ([`Body::Welcome`](#body)) and bound to the cluster and node ids
+  ([`crate::seal_account_offer`](#seal_account_offer)). The library keeps them for the
+  user its node row names as the branch's owner, under that user's
+  account rule. Answered with [`Body::AccountsAdded`](#body) or `error`.
+  - `sealed`: The sealed bundle, base64url without padding.
+- `AccountsAdded`: Library → branch: what became of an [`Body::AccountsAdd`](#body).
+  - `added`: Accounts now connected here for the person.
+  - `already_here`: Accounts the person had already connected here.
+  - `taken`: Accounts connected to someone else here; left as they are.
+  - `failed`: Accounts that could not be kept.
+  - `not_allowed`: The library's operator does not let the person connect store
+    accounts there; nothing was kept.
+- `AccountsRemove`: Branch → library: the person disconnected this store account
+  everywhere. The library unlinks it from the branch owner's
+  identities when it came from this branch's person, and takes it
+  back once no link holds it. Answered with [`Body::Accepted`](#body) or
+  `error`.
+  - `plugin_key`: Provenance-qualified plugin key of the storefront.
+  - `account_id`: Store account id.
 - `CatalogQuestions`: Branch → library: send the catalog questions waiting for this
   branch (see [`crate::LookupWork`](#lookupwork)). Answered with
   [`Body::CatalogAsk`](#body), or `error {code: "refused"}` when the node is
@@ -1881,6 +1910,16 @@ Associated data of the account bundle for `node_id` of `cluster_id`:
 the domain tag, then each field as a 4-byte big-endian length and its
 bytes.
 
+### account_offer_aad
+
+```rust
+pub fn account_offer_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+```
+
+Associated data of an account offer from `node_id` to its library
+`cluster_id`: [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain), then the two ids as in
+[`account_bundle_aad`](#account_bundle_aad).
+
 ### check_account_bundle
 
 ```rust
@@ -1918,6 +1957,25 @@ box secret, for the cluster and node ids the redeem answered.
 Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
 another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
 its content is refused by [`parse_account_bundle`](#parse_account_bundle).
+
+### open_account_offer
+
+```rust
+pub fn open_account_offer(
+    recipient_secret: &[u8; 32],
+    cluster_id: &str,
+    node_id: &str,
+    sealed: &str,
+) -> Result<AccountBundle, SealError>
+```
+
+Opens an offer made by [`seal_account_offer`](#seal_account_offer) with the library's owner
+box secret, for the cluster id and the node id of the authenticated
+connection it arrived on.
+
+#### Errors
+
+As [`open_account_bundle`](#open_account_bundle).
 
 ### parse_account_bundle
 
@@ -1958,6 +2016,25 @@ text for the redeem answer.
 Returns [`SealError::Key`](#sealerror) for an invalid recipient key and
 [`SealError::Bundle`](#sealerror) for a bundle [`check_account_bundle`](#check_account_bundle) refuses for
 its own ids, or whose JSON is over [`MAX_ACCOUNT_BUNDLE_BYTES`](#max_account_bundle_bytes).
+
+### seal_account_offer
+
+```rust
+pub fn seal_account_offer(
+    recipient: &[u8],
+    ephemeral_secret: &[u8; 32],
+    bundle: &AccountBundle,
+) -> Result<String, SealError>
+```
+
+Seals a branch's `bundle` to its library's owner box key `recipient`
+([`crate::Body::Welcome`](#body)), for [`crate::Body::AccountsAdd`](#body). The box is
+bound with [`account_offer_aad`](#account_offer_aad), so a joining bundle never opens as an
+offer, nor the other way round.
+
+#### Errors
+
+As [`seal_account_bundle`](#seal_account_bundle).
 
 ### is_ancestry
 
@@ -2542,6 +2619,17 @@ pub const ACCOUNT_BUNDLE_VERSION: u32 = 1;
 ```
 
 Version of an [`AccountBundle`](#accountbundle).
+
+### ACCOUNT_OFFER_AAD_DOMAIN
+
+```rust
+pub const ACCOUNT_OFFER_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 account-offer";
+```
+
+Domain tag that starts the associated data of an account offer: a
+branch's [`AccountBundle`](#accountbundle) sent up to its library
+([`crate::Body::AccountsAdd`](#body)). A distinct tag keeps a bundle sealed in
+one direction from opening as the other.
 
 ### MAX_ACCOUNT_BUNDLE_BYTES
 
