@@ -54,23 +54,29 @@ Returns an error when the operation fails.
 pub async fn guest_scan_page(
     base_url: &str,
     params: &ScanParams,
+    scan_state: Option<&DatabaseBinding>,
 ) -> Result<ScanPage, PluginError>
 ```
 
 RPC scan: one page of one account's full pass (the host upserts books).
 
-Libro.fm has no delta API, so every pass lists the whole library and
-ends `complete`. The SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper pages the store's
-numbered library pages into scan replies.
+Libro.fm has no delta API, so every pass fetches the whole library. With
+the `SCAN_STATE` database, [`ScanDelta`](../bookclerk_scan_delta/README.md#scandelta) sends the host only titles that
+are new or changed since the last pass, and the product ids that
+disappeared; without it every pass is full and ends `complete`. The SDK's
+[`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper pages the store's numbered library pages into scan
+replies.
 
 #### Arguments
 
 * `base_url` - Libro.fm API base URL.
-* `params` - The pass's account, credential and cursor.
+* `params` - The pass's account, credential, cursor and sync token.
+* `scan_state` - The `SCAN_STATE` database, when granted.
 
 #### Errors
 
-Returns `invalid_cursor` for a cursor this plugin did not write, and
+Returns `invalid_cursor` for a cursor or sync token this plugin cannot
+use, the database's error when scan state cannot be kept, and
 `internal` when the credential is missing or invalid or the page request
 fails.
 

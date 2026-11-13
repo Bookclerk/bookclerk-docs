@@ -70,14 +70,17 @@ pub async fn guest_scan_page(
     access: GraphicAudioAccess,
     magento_password: Option<&str>,
     params: &ScanParams,
+    scan_state: Option<&DatabaseBinding>,
 ) -> Result<ScanPage, PluginError>
 ```
 
 RPC scan: one page of one account's full pass (the host upserts books).
 
 GraphicAudio lists a library in one response with no paging or delta API,
-so every pass is full and ends `complete`. The whole listing is one store
-page to the SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper: a library larger than
+so every pass fetches the whole library. With the `SCAN_STATE` database,
+[`ScanDelta`](../bookclerk_scan_delta/README.md#scandelta) sends the host only titles that are new or changed since the
+last pass, and the product ids that disappeared; without it every pass is
+full and ends `complete`. The whole listing is one store page to the SDK's [`scan_page`](../../../plugins/sdk/rust/README.md#scan_page) helper: a library larger than
 `maxScanPageBooks` goes back in slices of that size, and each later slice
 lists the library again.
 
@@ -90,11 +93,14 @@ token is present on the credentials (legacy Access App fallback).
 * `store_base_url` - Magento store base URL.
 * `access` - Which listing to use.
 * `magento_password` - The account password for the Magento listing.
-* `params` - The pass's account, credential, options and cursor.
+* `params` - The pass's account, credential, options, cursor and sync
+  token.
+* `scan_state` - The `SCAN_STATE` database, when granted.
 
 #### Errors
 
-Returns `invalid_cursor` for a cursor this plugin did not write, and
+Returns `invalid_cursor` for a cursor or sync token this plugin cannot
+use, the database's error when scan state cannot be kept, and
 `internal` when the credential is missing or invalid or the listing
 fails.
 

@@ -58,6 +58,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_plugin_host`](bookclerk_plugin_host/README.md) | External plugin host: discovery, spawn, consent, and workerd-fronted guests |
 | [`bookclerk_resolve`](bookclerk_resolve/README.md) | Sans-IO resolver that maps store listings to FRBR works, expressions and editions |
 | [`bookclerk_sandbox`](bookclerk_sandbox/README.md) | Portable, unprivileged process confinement (Landlock/seccomp, Seatbelt, AppContainer) |
+| [`bookclerk_scan_delta`](bookclerk_scan_delta/README.md) | Hash-based scan deltas for first-party storefronts with no change feed, kept in the plugin's own database |
 | [`bookclerk_search`](bookclerk_search/README.md) | Full-text library search (Tantivy; classic Lucene parity) |
 | [`bookclerk_source`](bookclerk_source/README.md) | Host-side ContentSource trait and source registry; re-exports the storefront types guests share |
 | [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local and S3 storage backends for acquired audiobooks |
