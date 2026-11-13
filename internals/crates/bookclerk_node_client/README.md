@@ -825,6 +825,42 @@ the works it cannot supply.
 
 Returns [`OwnerCallError`](#ownercallerror).
 
+#### HostClientHandle::requests_claim
+
+```rust
+pub async fn requests_claim(&self) -> Result<Vec<BranchRequest>, OwnerCallError>
+```
+
+`requests.claim`: claims the interlibrary requests the library has
+for this branch, at most [`bookclerk_node_proto::MAX_CLAIMED_REQUESTS`](../bookclerk_node_proto/README.md#max_claimed_requests)
+(empty when none waits). A list that breaks the frame rules is
+refused as [`OwnerCallError::Unavailable`](#ownercallerror); its leases then expire
+and the requests go back to pending.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
+count this node as a branch.
+
+#### HostClientHandle::request_finish
+
+```rust
+pub async fn request_finish(
+    &self,
+    job: &str,
+    generation: i64,
+    outcome: RequestOutcome,
+) -> Result<(), OwnerCallError>
+```
+
+`requests.finish`: reports what this branch did with one claimed
+request.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Lost` when the lease is no longer this
+branch's.
+
 #### HostClientHandle::window_books
 
 ```rust

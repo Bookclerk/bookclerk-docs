@@ -1194,6 +1194,7 @@ Schema:
           "discover_request_queue",
           "cache_sweep",
           "search_index_rebuild",
+          "branch_request",
           "invalid"
         ]
       },

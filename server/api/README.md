@@ -157,6 +157,7 @@ Titles users have asked for.
 | [`POST /api/wishlist`](wishlist.md#post-apiwishlist) | Creates a wishlist / title-request row for the authenticated caller. |
 | [`DELETE /api/wishlist/{uuid}`](wishlist.md#delete-apiwishlistuuid) | Cancels an open wishlist item the caller owns; others get 403. |
 | [`GET /api/request-queue`](wishlist.md#get-apirequest-queue) | Reads the shared open-request queue from its stored ranking. |
+| [`POST /api/branch-requests`](wishlist.md#post-apibranch-requests) | Asks a branch for a book it listed. |
 
 ### [Jobs](jobs.md)
 

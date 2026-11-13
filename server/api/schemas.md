@@ -295,6 +295,22 @@ The consent page's connection block when only a branch is offered.
 - `choice` *boolean*, **required** — Always `false`.
 - `default` *string*, **required** — Always `branch`.
 
+## BranchRequestBody
+
+`POST /api/branch-requests` body: the work to ask a branch for, and
+optionally which branch.
+
+- `work_id` *string*, **required** — This library's work id, as Discover and search name it.
+- `node_id` *string or null* — The branch to ask, from the work's `available_through`; absent or `null` asks the first branch that lists the work.
+
+## BranchRequestQueued
+
+`POST /api/branch-requests` answer.
+
+- `job_id` *string*, **required** — The request's job (kind `branch_request`), as `/api/jobs` lists it.
+- `node_id` *string*, **required** — The branch the request went to.
+- `already_queued` *boolean*, **required** — `true` when a request for this work to this branch was already waiting or being taken; `job_id` is that request.
+
 ## BranchTitleCounts
 
 Counts of one branch's shared titles.
@@ -1105,7 +1121,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `branch_request`, `invalid`
 
 ## JobState
 

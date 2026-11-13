@@ -3392,3 +3392,297 @@ request timed out
 Schema:
 
 A `text/plain` body: a string.
+
+## `POST /api/branch-requests`
+
+Asks a branch for a book it listed.
+
+The work must currently be available through a branch this library
+trusts (its `available_through` in Discover and search). The branch
+takes the request automatically for anything it listed; the book
+arrives with the branch's catalog sync and is then held through that
+branch. Asking again while a request for the same work and branch
+waits returns that request.
+
+**Access:** The operator, or any library session.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`BranchRequestBody`](schemas.md#branchrequestbody)
+
+- `work_id` *string*, **required** — This library's work id, as Discover and search name it.
+- `node_id` *string or null* — The branch to ask, from the work's `available_through`; absent or `null` asks the first branch that lists the work.
+
+### Responses
+
+- `200` — The request was queued for the branch. Body: [`BranchRequestQueued`](schemas.md#branchrequestqueued) (`application/json`)
+  - `job_id` *string*, **required** — The request's job (kind `branch_request`), as `/api/jobs` lists it.
+  - `node_id` *string*, **required** — The branch the request went to.
+  - `already_queued` *boolean*, **required** — `true` when a request for this work to this branch was already waiting or being taken; `job_id` is that request.
+- `400` — The work or node id is malformed. As `text/plain`, when the body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No branch this library trusts (or not the named one) currently lists the work. Body: string (`text/plain`)
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library could not be read or written. Body: string (`text/plain`)
+- `503` — The job queue is full; try again later. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: string (`text/plain`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/branch-requests' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/branch-requests' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/branch-requests",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/branch-requests", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/branch-requests")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The request was queued for the branch.
+
+```json
+{
+  "job_id": "branch_request-5e0f2a1c-7b3d-4c6e-8f9a-1b2c3d4e5f6a",
+  "node_id": "9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e",
+  "already_queued": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`POST /api/branch-requests` answer.",
+  "required": [
+    "job_id",
+    "node_id",
+    "already_queued"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "The request's job (kind `branch_request`), as `/api/jobs` lists it.",
+      "example": "branch_request-5e0f2a1c-7b3d-4c6e-8f9a-1b2c3d4e5f6a"
+    },
+    "node_id": {
+      "type": "string",
+      "description": "The branch the request went to.",
+      "example": "9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+    },
+    "already_queued": {
+      "type": "boolean",
+      "description": "`true` when a request for this work to this branch was already\nwaiting or being taken; `job_id` is that request.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `400`: The work or node id is malformed. As `text/plain`, when the body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No branch this library trusts (or not the named one) currently lists the work.
+
+```text
+book not found: work 0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b through a branch
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `work_id` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library could not be read or written.
+
+```text
+ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `503`: The job queue is full; try again later. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```text
+the job queue is full
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.

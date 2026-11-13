@@ -16,6 +16,9 @@ See `docs/adr/control-plane.md`.
 | [`CatalogSessionOpened`](#catalogsessionopened) | struct | An opened catalog session (`begin_catalog`). |
 | [`ForwardableBranchKey`](#forwardablebranchkey) | struct | The identity of one title a branch shares with this install, without its metadata or file manifest. |
 | [`ForwardableBranchTitle`](#forwardablebranchtitle) | struct | A title one of this install's branches shares, ready to pass on. |
+| [`BranchRequestAsk`](#branchrequestask) | struct | A validated `BranchRequestBody`: both ids trimmed and well formed. |
+| [`BranchRequestBody`](#branchrequestbody) | struct | `POST /api/branch-requests` body: the work to ask a branch for, and optionally which branch. |
+| [`BranchRequestPlan`](#branchrequestplan) | struct | The job a request for `work_id` becomes: which branch it goes to and what it asks for. |
 | [`CacheSettingsV1`](#cachesettingsv1) | struct | Typed `core.cache` document, schema version 1. |
 | [`CarriedImport`](#carriedimport) | struct | What `import_carried_accounts` did with each account it was handed. |
 | [`MemberAccount`](#memberaccount) | struct | One store account a member connected here, as the join consent page lists it. Carries no secret. |
@@ -72,7 +75,7 @@ See `docs/adr/control-plane.md`.
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
 | [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
-| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: only the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`), and never one imported from that library (`books_imported_from_link`). With no single person, nothing. |
+| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`), and the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`), but never one imported from that library (`books_imported_from_link`). With no single person, only the requested books. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
@@ -123,6 +126,7 @@ See `docs/adr/control-plane.md`.
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
+| [`RequestFinished`](#requestfinished) | enum | What `finish_branch_request` did. |
 | [`Withdrawn`](#withdrawn) | enum | What `withdraw_person_account` did. |
 | [`AnswersRecorded`](#answersrecorded) | enum | Outcome of `record_answers`. |
 | [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
@@ -172,6 +176,13 @@ See `docs/adr/control-plane.md`.
 | [`listing_from_catalog_title`](#listing_from_catalog_title) | function | The listing a shared title describes, filed under `plugin_key`: its metadata, ASIN scoped to its marketplace, ISBN, and media kind from its content kind. |
 | [`pending_deliveries`](#pending_deliveries) | function | Up to `limit` of `node_id`'s shared titles whose files have not arrived (or changed since), leaving out titles whose edition already has audio here from another writer. |
 | [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Forgets the files branches left behind (entries "from a branch that left" and the like), of one branch or of every one: the `edition_files` records its catalog uploads wrote for editions nothing here holds any more. Answers how many editions' entries went. The files themselves stay in this library's outputs. |
+| [`books_requested_by_link`](#books_requested_by_link) | function | On a branch: every book the library `cluster_id` asked for, by store identity, with when it last asked (an unreadable stamp reads as now, so the book is sent rather than skipped). Read in keyset pages no larger than the database plugin's `maxResultRows`. |
+| [`claim_branch_requests`](#claim_branch_requests) | function | Claims the requests waiting for branch `node_id`, oldest first. |
+| [`finish_branch_request`](#finish_branch_request) | function | Records what branch `node_id` did with the request `job_id` it claimed at lease `generation`. |
+| [`notify_requests_queued`](#notify_requests_queued) | function | Wakes branch `node_id` after a request for it was admitted. Best effort: the branch also claims on every connection and on a timer. |
+| [`parse_branch_request`](#parse_branch_request) | function | Parses and validates a `POST /api/branch-requests` body from its raw bytes, sans IO, the way the route reads it: JSON into `BranchRequestBody`, then `BranchRequestBody::validate`. |
+| [`plan_branch_request`](#plan_branch_request) | function | Plans an interlibrary request for `work_id`. |
+| [`record_link_request`](#record_link_request) | function | On a branch: records that the library `cluster_id` asked for `book`, so the catalog sync sends it there. A book already recorded for that library is left as it is. |
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
 | [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
 | [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
@@ -194,6 +205,7 @@ See `docs/adr/control-plane.md`.
 | [`withdraw_person_account`](#withdraw_person_account) | function | Disconnects a store account "everywhere" on this library for the person `user_id`: removes every link from their identities to the account and, in the same atomic batch, deletes its secrets and marks it `revoked` with scans off when no other link holds it. A revoked account then loses its holdings (each with a `holding_removed` event) and its scan checkpoints, as `LibraryStore::revoke_credentials` does. |
 | [`answer_questions`](#answer_questions) | function | Answers questions a library sent this branch from this branch's own library. |
 | [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
+| [`book_for_request`](#book_for_request) | function | The book of this library that fulfils an interlibrary request: a book this branch would list for the request's work (`answer_questions`'s rules: the owner's always, members' only with `list_members_books` on and when they did not opt out) whose store, marketplace and product id are the request's. A copy already acquired wins, then the first row. `None` when this branch no longer lists that edition to the library. |
 | [`branch_listing_key`](#branch_listing_key) | function | The plugin key of listings answered by branch `node_id`. |
 | [`branch_listings_for_works`](#branch_listings_for_works) | function | The current branch listings of `work_ids`: those a branch this library still trusts named within `BRANCH_LISTING_TTL`. |
 | [`branch_offers_for_works`](#branch_offers_for_works) | function | The branches each of `work_ids` is currently available through. |
@@ -406,7 +418,7 @@ See `docs/adr/control-plane.md`.
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
-| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. |
+| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
 | [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
 | [`job_item_accounts`](#job_item_accounts) | function | The store accounts a scan or acquire touches: its items. |
@@ -466,6 +478,11 @@ See `docs/adr/control-plane.md`.
 | [`DETACHED_WITHDRAWN`](#detached_withdrawn) | constant | Removal reason: a full pass of the branch's catalog no longer named it. |
 | [`FORWARDABLE_KEYS_MAX_PAGE`](#forwardable_keys_max_page) | constant | Upper clamp for one `forwardable_branch_title_keys_page` read. |
 | [`FULL_CATALOG_PASS_EVERY`](#full_catalog_pass_every) | constant | How long a branch's catalog sync resumes incrementally before the library asks for a full pass again, so titles a branch no longer has (removed, or from a sub-branch that left) are withdrawn within a day. |
+| [`REQUEST_ACCEPTED`](#request_accepted) | constant | Progress text of a request its branch accepted. |
+| [`REQUEST_BRANCH_FAILED`](#request_branch_failed) | constant | `error_kind` of a request its branch could not take now. |
+| [`REQUEST_LEASE_SECS`](#request_lease_secs) | constant | How long a branch holds a claimed request before it goes back to pending. Taking a request is a few local reads and writes on the branch, so this is generous. |
+| [`REQUEST_NOT_LISTED`](#request_not_listed) | constant | `error_kind` of a request its branch no longer lists. |
+| [`REQUEST_WORK_GONE`](#request_work_gone) | constant | `error_kind` of a request whose work has nothing left to ask by (it was merged away, or lost every identifier) when its branch came for it. |
 | [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
 | [`CACHE_SCHEMA_VERSION`](#cache_schema_version) | constant | Schema version of `CacheSettingsV1`. |
 | [`CACHE_SETTING_KEYS`](#cache_setting_keys) | constant | Settings keys the cache document owns, in display order. |
@@ -696,6 +713,69 @@ A title one of this install's branches shares, ready to pass on.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### BranchRequestAsk
+
+```rust
+pub struct BranchRequestAsk {
+    pub work_id: String,
+    pub node_id: Option<String>,
+}
+```
+
+A validated [`BranchRequestBody`]: both ids trimmed and well formed.
+
+**Fields**
+
+- `work_id`: The work id: 1 to 64 ASCII letters, digits and `-`.
+- `node_id`: The branch's node id, when the body named one: a valid node id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### BranchRequestBody
+
+```rust
+pub struct BranchRequestBody {
+    /* private fields */
+}
+```
+
+`POST /api/branch-requests` body: the work to ask a branch for, and
+optionally which branch.
+
+#### BranchRequestBody::validate
+
+```rust
+pub fn validate(self) -> Result<BranchRequestAsk>
+```
+
+Checks the body: a well-formed work id and, when present, node id
+(each with surrounding whitespace removed).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed work or node id.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### BranchRequestPlan
+
+```rust
+pub struct BranchRequestPlan {
+    pub node_id: String,
+    pub payload: JobPayload,
+}
+```
+
+The job a request for `work_id` becomes: which branch it goes to and
+what it asks for.
+
+**Fields**
+
+- `node_id`: The branch node the job is pinned to.
+- `payload`: The job's payload ([`JobKind::BranchRequest`](README.md#jobkind)).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### CacheSettingsV1
 
 ```rust
@@ -882,6 +962,7 @@ pub struct BranchListing {
     pub node_id: String,
     pub work_id: String,
     pub store: String,
+    pub marketplace: String,
     pub product_id: String,
     pub observed_at: DateTime<Utc>,
 }
@@ -895,6 +976,8 @@ A `branch:<node>` listing and the work its edition belongs to.
 - `node_id`: The branch node it is available through.
 - `work_id`: The work it supplies.
 - `store`: The store the branch has it from (`audible`).
+- `marketplace`: Lower-cased marketplace of the listing; empty when the store has
+  none.
 - `product_id`: The store's product id.
 - `observed_at`: When the branch last named it.
 
@@ -2433,10 +2516,13 @@ pub struct OwnerShareFilter {
 ```
 
 Which of this install's acquired books the catalog sync sends the
-library `cluster_id`: only the branch owner's own books, those held by
-a store account connected here to the branch's person
-([`super::branch_person`](#branch_person)), and never one imported from that library
-([`books_imported_from_link`](#books_imported_from_link)). With no single person, nothing.
+library `cluster_id`: the branch owner's own books, those held by a
+store account connected here to the branch's person
+([`super::branch_person`](#branch_person)), and the books that library asked for
+through an interlibrary request and this branch still lists to it
+(`still_listed_requests`), but never one imported from that library
+([`books_imported_from_link`](#books_imported_from_link)). With no single person, only the
+requested books.
 
 #### OwnerShareFilter::load
 
@@ -2457,6 +2543,17 @@ pub fn admits(&self, key: &AcquiredBookKey) -> bool
 ```
 
 True when the book `key` names is sent.
+
+#### OwnerShareFilter::requested_at
+
+```rust
+pub fn requested_at(&self, key: &AcquiredBookKey) -> Option<DateTime<Utc>>
+```
+
+When the library last asked for the book `key` names, if it asked
+and this branch still lists it. The catalog sync orders a requested
+book no earlier than this, so a book already past the sync's cursor
+still goes up on the next pass.
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -4264,6 +4361,27 @@ Outcome of [`begin_catalog`](#begin_catalog).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### RequestFinished
+
+```rust
+pub enum RequestFinished {
+    Recorded,
+    Lost,
+    Refused,
+}
+```
+
+What [`finish_branch_request`](#finish_branch_request) did.
+
+**Variants**
+
+- `Recorded`: The outcome was recorded on the job.
+- `Lost`: The lease is no longer the branch's (it expired and moved on, the
+  job was cancelled, or the job is not a request for this branch).
+- `Refused`: The node is not a branch this library trusts.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### Withdrawn
 
 ```rust
@@ -4761,6 +4879,7 @@ pub enum NodeMessage {
     ConfigurationChanged { scope_type: String, scope_id: String, namespace: String, revision: i64 },
     NodeRevoked { node_id: String },
     CatalogAsked {  },
+    RequestsQueued {  },
 }
 ```
 
@@ -4798,6 +4917,9 @@ enum (`{"type": "deployment.changed", ...}`).
 - `CatalogAsked`: Catalog questions wait for this branch
   (`control_plane::catalog_lookup`). The branch pulls them with
   `catalog.questions`; the message itself carries none.
+- `RequestsQueued`: Interlibrary requests wait for this branch
+  (`control_plane::branch_requests`). The branch claims them with
+  `requests.claim`; the message itself carries none.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5549,6 +5671,142 @@ themselves stay in this library's outputs.
 
 Returns the read or write error.
 
+### books_requested_by_link
+
+```rust
+pub async fn books_requested_by_link(
+    store: &LibraryStore,
+    cluster_id: &str,
+) -> Result<BTreeMap<HeldBookKey, DateTime<Utc>>>
+```
+
+On a branch: every book the library `cluster_id` asked for, by store
+identity, with when it last asked (an unreadable stamp reads as now, so
+the book is sent rather than skipped). Read in keyset pages no larger
+than the database plugin's `maxResultRows`.
+
+#### Errors
+
+Returns an error when a read fails.
+
+### claim_branch_requests
+
+```rust
+pub async fn claim_branch_requests(
+    store: &LibraryStore,
+    node_id: &str,
+) -> Result<Option<Vec<BranchRequest>>>
+```
+
+Claims the requests waiting for branch `node_id`, oldest first.
+
+A request is waiting while its job is pending, pinned to this branch,
+and due. Each is leased to the branch ([`remote_lease_owner`](#remote_lease_owner)) for
+[`REQUEST_LEASE_SECS`](#request_lease_secs). A request whose work has no identifier left to
+ask by is failed (`work_gone`) instead of sent.
+
+#### Returns
+
+`None` when `node_id` is not a branch this library trusts; otherwise
+at most [`MAX_CLAIMED_REQUESTS`](../bookclerk_node_proto/README.md#max_claimed_requests) claimed requests.
+
+#### Errors
+
+Returns a read or write error.
+
+### finish_branch_request
+
+```rust
+pub async fn finish_branch_request(
+    store: &LibraryStore,
+    node_id: &str,
+    job_id: &str,
+    generation: i64,
+    outcome: RequestOutcome,
+) -> Result<RequestFinished>
+```
+
+Records what branch `node_id` did with the request `job_id` it claimed
+at lease `generation`.
+
+#### Errors
+
+Returns a read or write error.
+
+### notify_requests_queued
+
+```rust
+pub async fn notify_requests_queued(store: &LibraryStore, node_id: &str)
+```
+
+Wakes branch `node_id` after a request for it was admitted. Best
+effort: the branch also claims on every connection and on a timer.
+
+### parse_branch_request
+
+```rust
+pub fn parse_branch_request(body: &[u8]) -> Result<BranchRequestAsk>
+```
+
+Parses and validates a `POST /api/branch-requests` body from its raw
+bytes, sans IO, the way the route reads it: JSON into
+[`BranchRequestBody`](#branchrequestbody), then [`BranchRequestBody::validate`](#branchrequestbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing `work_id`) or a
+malformed id.
+
+### plan_branch_request
+
+```rust
+pub async fn plan_branch_request(
+    store: &LibraryStore,
+    work_id: &str,
+    node_id: Option<&str>,
+    trigger: JobTrigger,
+) -> Result<BranchRequestPlan>
+```
+
+Plans an interlibrary request for `work_id`.
+
+The listing comes from [`super::branch_listings_for_works`]: answers a
+trusted branch gave within [`super::BRANCH_LISTING_TTL`](#branch_listing_ttl). With
+`node_id`, only that branch's listings count; without, the first branch
+in node order. Within a branch the first listing (store, product id)
+is asked for; the branch picks which of its people's copies to send.
+
+#### Arguments
+
+* `work_id` - This library's work.
+* `node_id` - The branch to ask, or `None` for any that lists the work.
+* `trigger` - Who asked (`api` for a member, `scheduler` for an
+  automatic request).
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) when no trusted branch (or not the
+named one) currently lists the work, or the read error.
+
+### record_link_request
+
+```rust
+pub async fn record_link_request(
+    store: &LibraryStore,
+    cluster_id: &str,
+    book: &BookRecord,
+) -> Result<()>
+```
+
+On a branch: records that the library `cluster_id` asked for `book`,
+so the catalog sync sends it there. A book already recorded for that
+library is left as it is.
+
+#### Errors
+
+Returns an error when the write fails.
+
 ### is_cache_setting_key
 
 ```rust
@@ -5989,6 +6247,33 @@ library does not have is skipped. Each branch with a new question gets a
 #### Errors
 
 Returns a read or write error.
+
+### book_for_request
+
+```rust
+pub async fn book_for_request(
+    store: &LibraryStore,
+    request: &BranchRequest,
+    list_members_books: bool,
+) -> Result<Option<BookRecord>>
+```
+
+The book of this library that fulfils an interlibrary request: a book
+this branch would list for the request's work
+([`answer_questions`](#answer_questions)'s rules: the owner's always, members' only with
+`list_members_books` on and when they did not opt out) whose store,
+marketplace and product id are the request's. A copy already acquired
+wins, then the first row. `None` when this branch no longer lists that
+edition to the library.
+
+#### Arguments
+
+* `request` - The claimed request (already validated).
+* `list_members_books` - The link's "List my members' books" setting.
+
+#### Errors
+
+Returns the read error.
 
 ### branch_listing_key
 
@@ -9849,7 +10134,10 @@ pub fn claimant_may_run(claimant: Claimant, job: &JobRecord) -> bool
 
 True when a `claimant` may run `job` at all, whatever it is trusted
 with: a forced or PDF-only acquire runs only on a node that holds the
-library database, since the host acquire path does neither.
+library database, since the host acquire path does neither. An
+interlibrary request ([`JobKind::BranchRequest`](README.md#jobkind)) is never run through
+the routed claim: only its branch claims it, over `requests.claim`
+(`super::claim_branch_requests`).
 
 ### handoff_routed_job
 
@@ -10972,6 +11260,49 @@ pub const FULL_CATALOG_PASS_EVERY: Duration = _;
 How long a branch's catalog sync resumes incrementally before the
 library asks for a full pass again, so titles a branch no longer has
 (removed, or from a sub-branch that left) are withdrawn within a day.
+
+### REQUEST_ACCEPTED
+
+```rust
+pub const REQUEST_ACCEPTED: &str = "accepted by the branch; the book arrives with its catalog sync";
+```
+
+Progress text of a request its branch accepted.
+
+### REQUEST_BRANCH_FAILED
+
+```rust
+pub const REQUEST_BRANCH_FAILED: &str = "branch_failed";
+```
+
+`error_kind` of a request its branch could not take now.
+
+### REQUEST_LEASE_SECS
+
+```rust
+pub const REQUEST_LEASE_SECS: u64 = 300;
+```
+
+How long a branch holds a claimed request before it goes back to
+pending. Taking a request is a few local reads and writes on the
+branch, so this is generous.
+
+### REQUEST_NOT_LISTED
+
+```rust
+pub const REQUEST_NOT_LISTED: &str = "not_listed";
+```
+
+`error_kind` of a request its branch no longer lists.
+
+### REQUEST_WORK_GONE
+
+```rust
+pub const REQUEST_WORK_GONE: &str = "work_gone";
+```
+
+`error_kind` of a request whose work has nothing left to ask by (it was
+merged away, or lost every identifier) when its branch came for it.
 
 ### CACHE_NAMESPACE
 

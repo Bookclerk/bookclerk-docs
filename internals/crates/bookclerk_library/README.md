@@ -42,6 +42,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`AccountRecord`](#accountrecord) | struct | Account row stored in the Bookclerk DB. |
 | [`AcquireStatusCounts`](#acquirestatuscounts) | struct | `books` row counts per `AcquireStatus`, read in one grouped query (see `LibraryStore::count_books_by_status`). |
 | [`BookRecord`](#bookrecord) | struct | Book / library item (one ownership row per store product per account). |
+| [`BranchRequestTarget`](#branchrequesttarget) | struct | What a `JobKind::BranchRequest` asks its branch for: a work of this library, and the store listing the branch answered for it (`control_plane::catalog_lookup`). The branch is told the work by its identifiers, never by this id. |
 | [`ClaimTicketRecord`](#claimticketrecord) | struct | Claim ticket metadata (token plaintext is never stored). |
 | [`DomainEventRecord`](#domaineventrecord) | struct | Immutable outbox envelope. |
 | [`EmbeddingRecord`](#embeddingrecord) | struct | Stored embedding vector metadata (blob fetched separately when needed). |
@@ -204,6 +205,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prove_plugin_migration_sequence`](#prove_plugin_migration_sequence) | function | Proves a complete registration with one evolving `SqlTypeEnv`. |
 | [`require_history_prefix`](#require_history_prefix) | function | Fail closed unless durable history is an exact prefix of `registered`. |
 | [`sql_string_literal`](#sql_string_literal) | function | SQL string literal with `'` doubled. |
+| [`branch_request_dedup_key`](#branch_request_dedup_key) | function | Dedup key of a `JobKind::BranchRequest`: one active request per `(branch node, work)`. |
 | [`catalog_subscribers_for_event`](#catalog_subscribers_for_event) | function | Enabled catalog rows that match `event` type, schema version, and filter. |
 | [`collapse_live_subscriber_nodes`](#collapse_live_subscriber_nodes) | function | Collapse live per-node rows into one catalog record per `plugin_id`. |
 | [`content_kind_from_classic`](#content_kind_from_classic) | function | Map classic EF `ContentType` to bookclerk `content_kind`. |
@@ -2120,6 +2122,32 @@ Audible ASIN for Audible license / catalog APIs when one is known.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
+### BranchRequestTarget
+
+```rust
+pub struct BranchRequestTarget {
+    pub work_id: String,
+    pub store: String,
+    pub marketplace: String,
+    pub product_id: String,
+}
+```
+
+What a [`JobKind::BranchRequest`](#jobkind) asks its branch for: a work of this
+library, and the store listing the branch answered for it
+(`control_plane::catalog_lookup`). The branch is told the work by its
+identifiers, never by this id.
+
+**Fields**
+
+- `work_id`: This library's work id.
+- `store`: Store of the branch listing, as its plain id (`audible`).
+- `marketplace`: Lower-cased marketplace of the listing; empty when the store has
+  none.
+- `product_id`: The store's product id of the listing.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### ClaimTicketRecord
 
 ```rust
@@ -2795,6 +2823,7 @@ pub struct JobPayload {
     pub scheduled_time_ms: Option<i64>,
     pub subject: Option<String>,
     pub node_id: Option<String>,
+    pub branch_request: Option<BranchRequestTarget>,
 }
 ```
 
@@ -2854,6 +2883,8 @@ JSON command envelope stored on a job row.
   to another node, the unrouted [`crate::LibraryStore::claim_next_job`](#librarystoreclaim_next_job)
   never claims a pinned job, and the requirements sweep fails one whose
   node has stopped heartbeating (`control_plane::sweep_job_requirements`).
+- `branch_request`: For [`JobKind::BranchRequest`]: the work asked for and the branch
+  listing it was asked from.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -7487,6 +7518,26 @@ Fail a running job when `fence` still owns the generation.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the update fails.
 
+#### LibraryStore::fail_job_without_retry
+
+```rust
+pub async fn fail_job_without_retry(
+    &self,
+    fence: &JobFence,
+    error_kind: &str,
+    error_message: &str,
+) -> Result<bool>
+```
+
+Fail a running job for good when `fence` still owns the generation:
+like [`Self::fail_job`](#librarystorefail_job), but the job does not go back to `pending`
+whatever attempts it has left. For an outcome another try cannot
+change (an interlibrary request its branch no longer lists).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the update fails.
+
 #### LibraryStore::request_job_cancel
 
 ```rust
@@ -11754,6 +11805,7 @@ pub enum JobKind {
     DiscoverRequestQueue,
     CacheSweep,
     SearchIndexRebuild,
+    BranchRequest,
     Invalid,
 }
 ```
@@ -11783,12 +11835,17 @@ Kind of durable daemon work stored in the `jobs` table.
 - `SearchIndexRebuild`: Rebuild one node's full-text search index from the library
   (`search_index_rebuild`); only the node named by
   [`JobPayload::node_id`](#jobpayload) claims it.
+- `BranchRequest`: An interlibrary request (`branch_request`): send this library a
+  book one of its branches listed. Pinned by
+  [`JobPayload::node_id`](#jobpayload) to that branch, which claims it over the
+  node socket (`requests.claim`) and never through the plugin job
+  path; no node of this library runs it.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 12] = _
+pub const ALL: [Self; 13] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -13388,6 +13445,15 @@ pub fn sql_string_literal(value: &str) -> String
 ```
 
 SQL string literal with `'` doubled.
+
+### branch_request_dedup_key
+
+```rust
+pub fn branch_request_dedup_key(node_id: &str, work_id: &str) -> String
+```
+
+Dedup key of a [`JobKind::BranchRequest`]: one active request per
+`(branch node, work)`.
 
 ### catalog_subscribers_for_event
 

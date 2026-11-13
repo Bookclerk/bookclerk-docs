@@ -53,6 +53,11 @@ A library asks its branches whether they can supply works it knows
 questions and wakes the branch, which pulls them with
 [`Body::CatalogQuestions`](#body) and answers with [`Body::CatalogFound`](#body).
 
+A member's request for a book a branch listed is a job on the library
+pinned to that branch ([`BranchRequest`](#branchrequest)): the branch claims it with
+[`Body::RequestsClaim`](#body) and reports with [`Body::RequestFinish`](#body); the
+book itself travels up through the catalog sync.
+
 A window (a branch whose link takes no work) reads the books the
 library holds for its person with [`Body::WindowBooks`](#body), page by page
 ([`Body::WindowPage`](#body), [`WindowWork`](#windowwork)), and merges them by identifier
@@ -105,6 +110,7 @@ bytes.
 | [`LookupEdition`](#lookupedition) | struct | One edition a branch can supply. |
 | [`LookupIdentifier`](#lookupidentifier) | struct | One identifier of the work a question is about. |
 | [`LookupWork`](#lookupwork) | struct | One question: "can you supply this work?". |
+| [`BranchRequest`](#branchrequest) | struct | One request a branch claimed: "send this library that book". |
 | [`SecretEntry`](#secretentry) | struct | One secret in a bundle. |
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
@@ -120,6 +126,7 @@ bytes.
 | [`Availability`](#availability) | enum | How a branch can supply an edition. |
 | [`LookupFormat`](#lookupformat) | enum | A file format a branch has for an edition. |
 | [`LookupScheme`](#lookupscheme) | enum | Which kind of identifier a `LookupIdentifier` is. Only identifiers that name one edition or one work are asked about; anything else does not parse. |
+| [`RequestOutcome`](#requestoutcome) | enum | What a branch did with a claimed request. |
 | [`SealError`](#sealerror) | enum | Why a sealed box could not be made or opened. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
@@ -151,6 +158,9 @@ bytes.
 | [`found_problem`](#found_problem) | function | Why a `crate::Body::CatalogFound` is malformed, or `None`: at most `MAX_LOOKUP_WORKS` works named in all, each once, every answer well-formed and every missing work a correlation key. |
 | [`is_work_ref`](#is_work_ref) | function | True for a correlation key: 1 to `MAX_WORK_REF_BYTES` ASCII letters, digits and `-`. |
 | [`questions_problem`](#questions_problem) | function | Why a list of questions is malformed, or `None`: at most `MAX_LOOKUP_WORKS` well-formed questions, each about a different work. |
+| [`claimed_problem`](#claimed_problem) | function | Why a list of claimed requests is malformed, or `None`: at most `MAX_CLAIMED_REQUESTS` well-formed requests, each for a different job. |
+| [`finish_problem`](#finish_problem) | function | The problem with a `requests.finish {job, generation}` a library received, or `None` when both are ones it could have handed out. |
+| [`is_request_job`](#is_request_job) | function | True for a request's job id: 1 to `MAX_REQUEST_JOB_BYTES` ASCII letters, digits, `-` and `_`. |
 | [`instance_secrets_aad`](#instance_secrets_aad) | function | Associated data of `instance_id`'s `SECRETS` handed to `node_id` at document `revision`. |
 | [`open`](#open) | function | Opens a box sealed to the public key of `recipient_secret`. |
 | [`open_instance_secrets`](#open_instance_secrets) | function | Opens a payload made by `seal_instance_secrets` with the node's box secret. |
@@ -222,6 +232,9 @@ bytes.
 | [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) | constant | Most identifiers one `LookupWork` may carry. |
 | [`MAX_LOOKUP_WORKS`](#max_lookup_works) | constant | Most works one `crate::Body::CatalogAsk` or `crate::Body::CatalogFound` may name. |
 | [`MAX_WORK_REF_BYTES`](#max_work_ref_bytes) | constant | Longest correlation key (`LookupWork::work`). |
+| [`ITEM_REQUEST`](#item_request) | constant | The work item name of a request in a `crate::Body::Lost` answer. |
+| [`MAX_CLAIMED_REQUESTS`](#max_claimed_requests) | constant | Most requests one `crate::Body::RequestsClaimed` may carry. |
+| [`MAX_REQUEST_JOB_BYTES`](#max_request_job_bytes) | constant | Longest job id a request may carry. |
 | [`INSTANCE_SECRETS_AAD_DOMAIN`](#instance_secrets_aad_domain) | constant | Domain tag that starts the associated data of an instance's `SECRETS`. |
 | [`SEALED_BOX_INFO`](#sealed_box_info) | constant | HKDF info string of a sealed box. |
 | [`SEALED_BOX_OVERHEAD`](#sealed_box_overhead) | constant | Bytes a sealed box adds to its plaintext (ephemeral key and tag). |
@@ -1144,6 +1157,45 @@ well-formed identifiers.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### BranchRequest
+
+```rust
+pub struct BranchRequest {
+    pub job: String,
+    pub generation: i64,
+    pub work: LookupWork,
+    pub store: String,
+    pub marketplace: String,
+    pub product_id: String,
+}
+```
+
+One request a branch claimed: "send this library that book".
+
+**Fields**
+
+- `job`: The library's job id; the branch echoes it when it finishes.
+- `generation`: The job's lease generation; together with the job id and the
+  branch's node id it is the fence the finish is checked against.
+- `work`: The work, by identifier, as a catalog question names it.
+- `store`: The store of the listing the branch answered with, as its plain id
+  (`audible`).
+- `marketplace`: Lower-cased marketplace of that listing; empty when the store has
+  none.
+- `product_id`: The store's product id of that listing.
+
+#### BranchRequest::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the request is malformed, or `None`: a job id
+([`is_request_job`](#is_request_job)), a positive generation, a well-formed work, and
+a store id, marketplace and product id within the catalog rules.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### SecretEntry
 
 ```rust
@@ -1447,6 +1499,9 @@ pub enum Body {
     CatalogQuestions {  },
     CatalogAsk { works: Vec<LookupWork> },
     CatalogFound { answers: Vec<LookupAnswer>, missing: Vec<String> },
+    RequestsClaim {  },
+    RequestsClaimed { requests: Vec<BranchRequest> },
+    RequestFinish { job: String, generation: i64, outcome: RequestOutcome },
     WindowBooks { after: i64 },
     WindowPage { works: Vec<WindowWork>, next: Option<i64> },
     Accepted {  },
@@ -1744,6 +1799,20 @@ What a frame says, tagged by `type`.
   - `answers`: The answers, at most [`crate::MAX_LOOKUP_WORKS`](#max_lookup_works).
   - `missing`: Works of the batch the branch looked up and cannot supply, so
     the library stops asking until the answer expires.
+- `RequestsClaim`: Branch → library: claim the interlibrary requests waiting for this
+  branch (see [`crate::BranchRequest`](#branchrequest)). Answered with
+  [`Body::RequestsClaimed`](#body), or `error {code: "refused"}` when the
+  node is not a branch this library trusts.
+- `RequestsClaimed`: Library → branch: the requests now leased to it, at most
+  [`crate::MAX_CLAIMED_REQUESTS`](#max_claimed_requests); empty when none waits.
+  - `requests`: The requests now leased to the asking branch, at most [`crate::MAX_CLAIMED_REQUESTS`](#max_claimed_requests).
+- `RequestFinish`: Branch → library: what it did with one claimed request. Answered
+  with [`Body::Accepted`](#body), [`Body::Lost`](#body) (item
+  [`crate::ITEM_REQUEST`](#item_request)) when the lease is no longer the branch's,
+  or `error`.
+  - `job`: The request's job id.
+  - `generation`: The lease generation it was claimed under.
+  - `outcome`: What the branch did.
 - `WindowBooks`: Window → library: send the next page of the books this library
   holds for the window's person (the node's owner). Answered with
   [`Body::WindowPage`](#body), or `error {code: "refused"}` when the node is
@@ -1914,6 +1983,38 @@ pub fn is_scoped(self) -> bool
 True for the one scheme scoped to a marketplace (ASIN).
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### RequestOutcome
+
+```rust
+pub enum RequestOutcome {
+    Accepted,
+    NotListed,
+    Failed,
+}
+```
+
+What a branch did with a claimed request.
+
+**Variants**
+
+- `Accepted`: The branch took it: the book is queued or already on the branch,
+  and reaches the library through the branch's catalog sync.
+- `NotListed`: The branch no longer lists the book to this library (nobody here
+  holds it, the holder opted out, or sharing is off). Final: the
+  library does not ask again.
+- `Failed`: The branch could not take it now (a local read or write failed).
+  The library retries it while the job has attempts left.
+
+#### RequestOutcome::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The outcome as the library records it on the job.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### SealError
 
@@ -2311,6 +2412,33 @@ pub fn questions_problem(works: &[LookupWork]) -> Option<&'static str>
 
 Why a list of questions is malformed, or `None`: at most
 [`MAX_LOOKUP_WORKS`](#max_lookup_works) well-formed questions, each about a different work.
+
+### claimed_problem
+
+```rust
+pub fn claimed_problem(requests: &[BranchRequest]) -> Option<&'static str>
+```
+
+Why a list of claimed requests is malformed, or `None`: at most
+[`MAX_CLAIMED_REQUESTS`](#max_claimed_requests) well-formed requests, each for a different job.
+
+### finish_problem
+
+```rust
+pub fn finish_problem(job: &str, generation: i64) -> Option<&'static str>
+```
+
+The problem with a `requests.finish {job, generation}` a library
+received, or `None` when both are ones it could have handed out.
+
+### is_request_job
+
+```rust
+pub fn is_request_job(job: &str) -> bool
+```
+
+True for a request's job id: 1 to [`MAX_REQUEST_JOB_BYTES`](#max_request_job_bytes) ASCII
+letters, digits, `-` and `_`.
 
 ### instance_secrets_aad
 
@@ -3066,6 +3194,30 @@ pub const MAX_WORK_REF_BYTES: usize = 64;
 ```
 
 Longest correlation key ([`LookupWork::work`](#lookupwork)).
+
+### ITEM_REQUEST
+
+```rust
+pub const ITEM_REQUEST: &str = "request";
+```
+
+The work item name of a request in a [`crate::Body::Lost`](#body) answer.
+
+### MAX_CLAIMED_REQUESTS
+
+```rust
+pub const MAX_CLAIMED_REQUESTS: usize = 16;
+```
+
+Most requests one [`crate::Body::RequestsClaimed`](#body) may carry.
+
+### MAX_REQUEST_JOB_BYTES
+
+```rust
+pub const MAX_REQUEST_JOB_BYTES: usize = 96;
+```
+
+Longest job id a request may carry.
 
 ### INSTANCE_SECRETS_AAD_DOMAIN
 
