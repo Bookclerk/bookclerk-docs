@@ -155,7 +155,7 @@ type JoinPage = "approve" | "client-approve" | "callback";
 ```
 
 A page that sign-in flows from other installs own: a branch's consent
-(`approve`), a client app's consent (`client-approve`), or the joining
+(`approve`), a clerk's consent (`client-approve`), or the joining
 install's callback (`callback`).
 
 ## Variables
@@ -166,7 +166,7 @@ install's callback (`callback`).
 const CLIENT_APPROVE_PATH: "/client/approve" = "/client/approve";
 ```
 
-The library's consent page for a client app's sign-in (a library card).
+The library's consent page for a clerk's sign-in (a library card).
 
 ***
 
@@ -245,7 +245,7 @@ True for a consent page, which keeps its address across a sign-in.
 
 `boolean`
 
-Whether it is a branch's or a client app's consent page.
+Whether it is a branch's or a clerk's consent page.
 
 ***
 

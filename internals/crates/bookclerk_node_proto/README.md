@@ -223,7 +223,7 @@ bytes.
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
 | [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
 | [`CLIENT_AUTH_SCHEME`](#client_auth_scheme) | constant | The `Authorization` scheme a client sends its session token under. |
-| [`CLIENT_CLIENT_ID`](#client_client_id) | constant | The built-in public OAuth client a client install signs in through. It is never stored in the library's clients table. |
+| [`CLIENT_CLIENT_ID`](#client_client_id) | constant | The built-in public OAuth client a clerk signs in through. It is never stored in the library's clients table. |
 | [`CLIENT_CODE_TTL_SECS`](#client_code_ttl_secs) | constant | Seconds an authorization code for `CLIENT_CLIENT_ID` lives. |
 | [`CLIENT_IDLE_DAYS`](#client_idle_days) | constant | Days a client session stays signed in without being used. Each use moves the expiry forward again. |
 | [`CLIENT_SCOPE`](#client_scope) | constant | The only scope `CLIENT_CLIENT_ID` may ask for. |
@@ -533,7 +533,7 @@ The authorization request a client consent is for (the query
 - `state`: Echoed on the redirect.
 - `code_challenge`: PKCE S256 challenge.
 - `code_challenge_method`: Must be `S256`.
-- `client_name`: The name the client install gives itself, shown on the consent page
+- `client_name`: The name the clerk gives itself, shown on the consent page
   and in the user's session list.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `IntoParams`, `PartialEq`, `ToSchema`
@@ -3282,7 +3282,7 @@ The `Authorization` scheme a client sends its session token under.
 pub const CLIENT_CLIENT_ID: &str = "bookclerk-client";
 ```
 
-The built-in public OAuth client a client install signs in through. It
+The built-in public OAuth client a clerk signs in through. It
 is never stored in the library's clients table.
 
 ### CLIENT_CODE_TTL_SECS

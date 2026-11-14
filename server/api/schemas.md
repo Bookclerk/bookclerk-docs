@@ -480,7 +480,7 @@ The authorization request a client consent is for (the query
 - `state` *string or null* — Echoed on the redirect.
 - `code_challenge` *string*, **required** — PKCE S256 challenge.
 - `code_challenge_method` *string or null* — Must be `S256`.
-- `client_name` *string or null* — The name the client install gives itself, shown on the consent page and in the user's session list.
+- `client_name` *string or null* — The name the clerk gives itself, shown on the consent page and in the user's session list.
 
 ## ClientConsentBody
 

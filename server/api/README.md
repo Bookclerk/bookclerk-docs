@@ -311,7 +311,7 @@ Store accounts a library user connects (the Accounts page).
 
 ### [Client sign-in](client-sign-in.md)
 
-A client install's sign-in as a person: redeem an approved code for a session token.
+A clerk's sign-in as a person: redeem an approved code for a session token.
 
 | Route | Summary |
 | --- | --- |

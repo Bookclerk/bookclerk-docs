@@ -2054,7 +2054,7 @@ Status `403`: A library card sent over plain HTTP from another machine gets `tra
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -2363,7 +2363,7 @@ Status `403`: A library card sent over plain HTTP from another machine gets `tra
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```

@@ -3188,7 +3188,7 @@ Portal session row for session lists (includes hash for current-session match).
 - `user_agent`: Raw User-Agent captured at session mint (optional).
 - `device_type`: Best-effort device class.
 - `client_label`: Best-effort OS / client label; for a client sign-in, the name the
-  client install gave itself.
+  clerk gave itself.
 - `kind`: Where the token is presented.
 
 Implements: `Clone`, `Debug`
@@ -9352,7 +9352,7 @@ pub async fn insert_client_session(
 ) -> Result<i64>
 ```
 
-Creates a client sign-in session: a token a client install presents
+Creates a client sign-in session: a token a clerk presents
 as `Authorization: Bookclerk-Client`, never as a cookie.
 
 ##### Arguments
@@ -9361,7 +9361,7 @@ as `Authorization: Bookclerk-Client`, never as a cookie.
 * `identity_id` - The user's portal identity.
 * `expires_at` - First expiry; each use moves it forward
   ([`Self::get_client_session_identity`](#librarystoreget_client_session_identity)).
-* `label` - The name the client install gave itself, shown in the
+* `label` - The name the clerk gave itself, shown in the
   user's session list.
 
 ##### Returns
@@ -12462,7 +12462,7 @@ cookie, a client token only as `Authorization: Bookclerk-Client`.
 **Variants**
 
 - `Browser`: A browser's session cookie.
-- `Client`: A client sign-in: a client install that shows the user's books from
+- `Client`: A client sign-in: a clerk that shows the user's books from
   this library without joining it as a node.
 
 #### PortalSessionKind::as_str

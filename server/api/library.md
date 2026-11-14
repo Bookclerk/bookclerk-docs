@@ -2028,7 +2028,7 @@ Status `403`: A signed-in user who must enroll a second factor first gets `mfa_e
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -2733,7 +2733,7 @@ Status `403`: A signed-in user who must enroll a second factor first gets `mfa_e
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -3041,7 +3041,7 @@ Status `403`: A signed-in user who must enroll a second factor first gets `mfa_e
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```

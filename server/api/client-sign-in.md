@@ -1,6 +1,6 @@
 # Client sign-in
 
-A client install's sign-in as a person: redeem an approved code for a session token.
+A clerk's sign-in as a person: redeem an approved code for a session token.
 
 Back to the [web API reference](README.md).
 

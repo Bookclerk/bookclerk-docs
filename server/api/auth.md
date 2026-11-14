@@ -5765,7 +5765,7 @@ shows the problem and never redirects).
 - `state` (query) *string* — Echoed on the redirect.
 - `code_challenge` (query) *string*, **required** — PKCE S256 challenge.
 - `code_challenge_method` (query) *string* — Must be `S256`.
-- `client_name` (query) *string* — The name the client install gives itself, shown on the consent page and in the user's session list.
+- `client_name` (query) *string* — The name the clerk gives itself, shown on the consent page and in the user's session list.
 
 ### Responses
 
@@ -6787,7 +6787,7 @@ Status `403`: A library card sent over plain HTTP from another machine gets `tra
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -7240,7 +7240,7 @@ Status `403`: A library card sent over plain HTTP from another machine gets `tra
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -7581,7 +7581,7 @@ Status `403`: A library card sent over plain HTTP from another machine gets `tra
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -8116,7 +8116,7 @@ Status `403`: The session is impersonating a user, is a plain operator session, 
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -8527,7 +8527,7 @@ Status `403`: The session is impersonating a user, is a plain operator session, 
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -8859,7 +8859,7 @@ Status `403`: The session is impersonating a user, is a plain operator session, 
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -9251,7 +9251,7 @@ Status `403`: The session is impersonating a user, is a plain operator session, 
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```
@@ -9600,7 +9600,7 @@ Status `403`: The session is impersonating a user, is a plain operator session, 
 ```json
 {
   "error": "client_sign_in_unavailable",
-  "message": "This library does not accept client apps on this address.",
+  "message": "This library does not accept clerks on this address.",
   "status": 403
 }
 ```

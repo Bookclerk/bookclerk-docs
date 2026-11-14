@@ -2061,7 +2061,7 @@ Active auth session row visible to the current principal.
 channel?: "browser" | "client" | null;
 ```
 
-For a portal session: `browser`, or `client` for a client app's library card.
+For a portal session: `browser`, or `client` for a clerk's library card.
 
 ##### client\_label?
 
