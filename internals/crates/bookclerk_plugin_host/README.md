@@ -35,6 +35,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`OnDemandStatus`](#ondemandstatus) | trait | What the deployment reconciler reads from, and does to, any on-demand proxy. |
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
 | [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an owner cluster handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
@@ -67,7 +68,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PreparedOpen`](#preparedopen) | struct | Bindings passed to `PluginWorker.open`, plus the spawn config table. |
 | [`KvNamespaces`](#kvnamespaces) | struct | Host-owned facts a session needs before it can hand a guest its KV bindings: the library store plus the granted rows. |
 | [`LibraryKvNamespace`](#librarykvnamespace) | struct | `KvNamespace` server for one `(plugin_key, namespace)` on the library. |
-| [`OnDemandIntegration`](#ondemandintegration) | struct | Integration registry entry that starts its guest on the first call and stops it after `OnDemandIntegration::idle_timeout` without calls. |
+| [`OnDemandIntegration`](#ondemandintegration) | struct | Integration registry entry that starts its guest on the first call and stops it after the idle timeout without calls. |
+| [`OnDemandSource`](#ondemandsource) | struct | Source registry entry that starts its storefront guest on the first call and stops it after the idle timeout without calls. |
 | [`OutboxQueueProducer`](#outboxqueueproducer) | struct | `QueueProducer` server for one binding of one invocation: validates a guest `QueueSendMessage` and appends it to the library outbox. |
 | [`QueueOutbox`](#queueoutbox) | struct | Host-owned facts a session needs before it can hand a guest its queue producer bindings: the outbox store plus the granted `(binding, queue)` pairs. |
 | [`BookclerkPackageMetadata`](#bookclerkpackagemetadata) | struct | `[package.metadata.bookclerk]` published on crates.io. |
@@ -221,6 +223,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`guest_reservation`](#guest_reservation) | function | CPU and memory one guest may use at most on this host: its grant's ceilings after `[plugins.jail]`, the numbers its jail enforces. The cluster scheduler accounts host budgets against these. |
 | [`plugin_data_dir`](#plugin_data_dir) | function | The private directory a plugin keeps state in. |
 | [`activates_on_demand`](#activates_on_demand) | function | True when a deployment of `manifest` may sleep while idle and start on the next call. |
+| [`storefront_activates_on_demand`](#storefront_activates_on_demand) | function | True when a storefront deployment of `manifest` may sleep while idle. |
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate plugin id segment used in crate names and `plugin.toml`. |
@@ -271,6 +274,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`VERSION_CACHE_GRACE`](#version_cache_grace) | constant | How long an unreferenced cached digest survives before the sweep. |
 | [`KV_GRANT_BINDING`](#kv_grant_binding) | constant | Grant token that authorizes every `[[kv_namespaces]]` row of a plugin. |
 | [`TRIGGER_IDLE_TIMEOUT`](#trigger_idle_timeout) | constant | How long a trigger-driven guest stays up after its last call returns. |
+| [`STOREFRONT_IDLE_TIMEOUT`](#storefront_idle_timeout) | constant | How long a storefront stays up after its last call returns. |
 | [`CRATE_NAME_PREFIX`](#crate_name_prefix) | constant | Required crates.io name prefix: `bookclerk-plugin-{family}-{id}`. |
 | [`PRODUCT_KEYWORD`](#product_keyword) | constant | Shared crates.io keyword (`bookclerk`) expected on published plugin crates. |
 | [`REGISTRY_KEYWORD`](#registry_keyword) | constant | Keyword every published plugin crate should include. |
@@ -351,6 +355,85 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 - [`manifest::MAX_EMBEDDED_LOGO_BYTES`](../bookclerk_plugin_manifest/logo.md#max_embedded_logo_bytes)
 
 ## Traits
+
+### OnDemandStatus
+
+```rust
+pub trait OnDemandStatus: Send + Sync {
+    fn is_retired(&self) -> bool;
+    fn retire<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn is_awake(&self) -> bool;
+    fn guest_pid(&self) -> Option<u32>;
+    fn wakes(&self) -> u64;
+    fn idle_timeout(&self) -> Duration;
+}
+```
+
+What the deployment reconciler reads from, and does to, any on-demand
+proxy.
+
+#### OnDemandStatus::is_retired
+
+```rust
+fn is_retired(&self) -> bool
+```
+
+True once the deployment stopped the proxy; it does not wake again
+unless a rollback revives it.
+
+#### OnDemandStatus::retire
+
+```rust
+fn retire<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Stops the proxy for good: a running guest stops and later calls
+fail, including calls through a registry snapshot a job still holds.
+
+#### OnDemandStatus::is_awake
+
+```rust
+fn is_awake(&self) -> bool
+```
+
+True while a guest is running. False while a wake or a sleep holds
+the guest slot.
+
+#### OnDemandStatus::guest_pid
+
+```rust
+fn guest_pid(&self) -> Option<u32>
+```
+
+Native pid of the running guest, if awake.
+
+#### OnDemandStatus::wakes
+
+```rust
+fn wakes(&self) -> u64
+```
+
+Guests started on demand since the proxy was created.
+
+#### OnDemandStatus::idle_timeout
+
+```rust
+fn idle_timeout(&self) -> Duration
+```
+
+Idle time after which the guest is stopped.
+
+Implemented by: `OnDemandIntegration`, `OnDemandSource`
 
 ### DeploymentRuntime
 
@@ -1155,17 +1238,14 @@ pub fn new(
 
 Runtime bound to the daemon's live registries.
 
-#### LiveDeploymentRuntime::on_demand_integration
+#### LiveDeploymentRuntime::on_demand
 
 ```rust
-pub fn on_demand_integration(
-    &self,
-    plugin_instance_id: &str,
-) -> Option<Arc<OnDemandIntegration>>
+pub fn on_demand(&self, plugin_instance_id: &str) -> Option<Arc<dyn OnDemandStatus>>
 ```
 
-The on-demand integration registered for `plugin_instance_id`, if
-this process tracks one.
+The on-demand proxy registered for `plugin_instance_id`, if this
+process tracks one.
 
 Only reads the map, so a poisoned lock still yields it.
 
@@ -1204,13 +1284,14 @@ still accepting writes. Other instances of the same plugin key stay.
 #### LiveDeploymentRuntime::forget_guest
 
 ```rust
-pub fn forget_guest(&self, plugin_instance_id: &str)
+pub async fn forget_guest(&self, plugin_instance_id: &str)
 ```
 
 Drops the tracked guest for `plugin_instance_id` without taking the source registry.
 
-Config reload already holds that registry. Dropping this entry stops the
-process once the registry no longer keeps the session.
+Config reload already holds that registry. Dropping this entry stops a
+resident process once the registry no longer keeps the session; an
+on-demand proxy is retired so no snapshot of it can wake it again.
 
 ##### Panics
 
@@ -2342,49 +2423,7 @@ pub struct OnDemandIntegration {
 ```
 
 Integration registry entry that starts its guest on the first call and
-stops it after [`OnDemandIntegration::idle_timeout`](#ondemandintegrationidle_timeout) without calls.
-
-#### OnDemandIntegration::idle_timeout
-
-```rust
-pub fn idle_timeout(&self) -> Duration
-```
-
-Idle time after which the guest is stopped.
-
-#### OnDemandIntegration::is_retired
-
-```rust
-pub fn is_retired(&self) -> bool
-```
-
-True once the deployment stopped this proxy.
-
-#### OnDemandIntegration::is_awake
-
-```rust
-pub fn is_awake(&self) -> bool
-```
-
-True while a guest is running for this proxy.
-
-Returns false while a wake or a sleep holds the guest slot.
-
-#### OnDemandIntegration::guest_pid
-
-```rust
-pub fn guest_pid(&self) -> Option<u32>
-```
-
-Native pid of the running guest, if awake.
-
-#### OnDemandIntegration::wakes
-
-```rust
-pub fn wakes(&self) -> u64
-```
-
-Guests started on demand since the proxy was created.
+stops it after the idle timeout without calls.
 
 #### OnDemandIntegration::sleep_if_idle
 
@@ -2392,17 +2431,38 @@ Guests started on demand since the proxy was created.
 pub async fn sleep_if_idle(&self) -> bool
 ```
 
-Stops the guest when no call is in flight and the last one finished
-at least the idle timeout ago.
-
-A wake or call holding the slot makes this a no-op; the next sweep
-tries again.
+Stops the guest now if it has been idle for the timeout.
 
 ##### Returns
 
 True when a running guest was stopped.
 
-Implements: `Integration`
+Implements: `Integration`, `OnDemandStatus`
+
+### OnDemandSource
+
+```rust
+pub struct OnDemandSource {
+    /* private fields */
+}
+```
+
+Source registry entry that starts its storefront guest on the first call
+and stops it after the idle timeout without calls.
+
+#### OnDemandSource::sleep_if_idle
+
+```rust
+pub async fn sleep_if_idle(&self) -> bool
+```
+
+Stops the guest now if it has been idle for the timeout.
+
+##### Returns
+
+True when a running guest was stopped.
+
+Implements: `ContentSource`, `OnDemandStatus`
 
 ### OutboxQueueProducer
 
@@ -6241,6 +6301,21 @@ guests take seconds to start (15 s and more on a quarter CPU).
 
 * `manifest` - the installed manifest the deployment spawns.
 
+### storefront_activates_on_demand
+
+```rust
+pub fn storefront_activates_on_demand(manifest: &PluginManifest) -> bool
+```
+
+True when a storefront deployment of `manifest` may sleep while idle.
+
+The plugin must belong only to the source family and must not be
+Python, whose guests take seconds to start.
+
+#### Arguments
+
+* `manifest` - the installed manifest the deployment spawns.
+
 ### family_keyword
 
 ```rust
@@ -6827,6 +6902,18 @@ How long a trigger-driven guest stays up after its last call returns.
 
 One minute matches the event delivery lease, so a burst of deliveries
 reuses one process while a quiet plugin is gone within a minute.
+
+### STOREFRONT_IDLE_TIMEOUT
+
+```rust
+pub const STOREFRONT_IDLE_TIMEOUT: Duration = _;
+```
+
+How long a storefront stays up after its last call returns.
+
+Storefront work comes in bursts (a scan pages through a library, an
+acquire fetches several parts, Discover asks for a page of hints), so
+the timeout is longer than for trigger-driven plugins.
 
 ### CRATE_NAME_PREFIX
 
