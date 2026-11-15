@@ -78,9 +78,11 @@ accounts as an [`AccountBundle`](#accountbundle) sealed the same way, when the u
 chose to bring them.
 
 An install can also sign in to a library as a person rather than join
-it as a node: a client ([`CLERK_CLIENT_ID`](#clerk_client_id), [`ClerkTokenAnswer`](#clerktokenanswer)),
+it as a node: a clerk ([`CLERK_CLIENT_ID`](#clerk_client_id), [`ClerkTokenAnswer`](#clerktokenanswer)),
 whose session token travels as `Authorization: Bookclerk-Clerk`
-([`parse_clerk_authorization`](#parse_clerk_authorization)).
+([`parse_clerk_authorization`](#parse_clerk_authorization)). With it the clerk holds the clerk
+socket at [`CLERK_CONNECT_PATH`](#clerk_connect_path) ([`ClerkFrame`](#clerkframe), [`LibraryFrame`](#libraryframe)):
+changed topics and pages of the person's books, never work.
 
 This crate is pure: no I/O, no clock, no randomness. The daemon (owner)
 and the host client share it so both sides sign and check the same
@@ -132,6 +134,10 @@ bytes.
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
+| [`ClerkFrame`](#clerkframe) | enum | A frame from a clerk to a library. |
+| [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` frame. |
+| [`ClerkTopic`](#clerktopic) | enum | Something a clerk hears about on the socket. Each names the routes to read again; the socket itself carries no row data. |
+| [`LibraryFrame`](#libraryframe) | enum | A frame from a library to a clerk. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
 | [`ClaimScope`](#claimscope) | enum | Whose work a host takes from a library (`claim.filter.scope`), as the branch operator set it for that link. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
@@ -166,6 +172,9 @@ bytes.
 | [`parse_clerk_authorization`](#parse_clerk_authorization) | function | The session token in an `Authorization` header value, when the value is exactly `Bookclerk-Clerk <token>`. |
 | [`parse_clerk_query`](#parse_clerk_query) | function | Parses an authorize query string (the raw query `/oidc/authorize` received), sans-IO so the fuzz target drives the same code. |
 | [`parse_clerk_token_request`](#parse_clerk_token_request) | function | Reads a `POST /api/clerk/v1/token` body. |
+| [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
+| [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (an integer, not negative), each once. |
+| [`parse_library_frame`](#parse_library_frame) | function | Reads a frame a library sent: at most `crate::MAX_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`scan_pass_end_problem`](#scan_pass_end_problem) | function | Why a `Body::ScanPassEnd` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id and a sync token of at most `MAX_SCAN_SYNC_TOKEN_BYTES` with no control characters. |
@@ -238,6 +247,12 @@ bytes.
 | [`CLERK_TOKEN_PATH`](#clerk_token_path) | constant | `POST`: redeem an approved clerk sign-in for a session token. |
 | [`MAX_CLERK_NAME_BYTES`](#max_clerk_name_bytes) | constant | Longest clerk name sent. |
 | [`MAX_CLERK_STATE_BYTES`](#max_clerk_state_bytes) | constant | Longest `state` an authorize request may carry. |
+| [`CLERK_CONNECT_PATH`](#clerk_connect_path) | constant | Path of the clerk socket. |
+| [`CLERK_SOCKET_VERSION`](#clerk_socket_version) | constant | The `v` every frame carries. |
+| [`CLERK_SUBPROTOCOL`](#clerk_subprotocol) | constant | The WebSocket subprotocol a clerk must offer. |
+| [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes) | constant | Largest frame a library accepts from a clerk, in bytes; a `books` frame is under 50. |
+| [`MAX_CLERK_TOPICS`](#max_clerk_topics) | constant | Most topic names one `hello` or `changed` frame may carry, known or not. |
+| [`MAX_CLERK_TOPIC_BYTES`](#max_clerk_topic_bytes) | constant | Longest topic name, in bytes. |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
@@ -1546,6 +1561,130 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Enums
 
+### ClerkFrame
+
+```rust
+pub enum ClerkFrame {
+    Books { after: i64 },
+}
+```
+
+A frame from a clerk to a library.
+
+**Variants**
+
+- `Books`: `books`: the page of the person's books after `after` (0 for the
+  first page; never negative).
+  - `after`: The cursor of the previous page.
+
+#### ClerkFrame::encode
+
+```rust
+pub fn encode(&self) -> String
+```
+
+The frame's JSON text, as a clerk sends it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ClerkSocketError
+
+```rust
+pub enum ClerkSocketError {
+    Invalid,
+    Unavailable,
+}
+```
+
+Why the library did not answer a `books` frame.
+
+**Variants**
+
+- `Invalid`: The clerk sent a frame the library could not read.
+- `Unavailable`: The library could not read the books just now; ask again later.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ClerkTopic
+
+```rust
+pub enum ClerkTopic {
+    Library,
+    Discover,
+}
+```
+
+Something a clerk hears about on the socket. Each names the routes to
+read again; the socket itself carries no row data.
+
+**Variants**
+
+- `Library`: The library's books changed: read the person's books again.
+- `Discover`: The person's stored Discover shelves may have changed.
+
+#### ClerkTopic::ALL
+
+```rust
+pub const ALL: [Self; 2] = _
+```
+
+Every topic.
+
+#### ClerkTopic::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The topic's wire name.
+
+#### ClerkTopic::from_name
+
+```rust
+pub fn from_name(name: &str) -> Option<Self>
+```
+
+The topic named `name`, or `None` for a name this version does not
+know.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### LibraryFrame
+
+```rust
+pub enum LibraryFrame {
+    Hello { topics: BTreeSet<ClerkTopic> },
+    Changed { topics: BTreeSet<ClerkTopic> },
+    BooksPage { after: i64, works: Vec<WindowWork>, next: Option<i64> },
+    Error { code: ClerkSocketError },
+}
+```
+
+A frame from a library to a clerk.
+
+**Variants**
+
+- `Hello`: `hello`: the topics this card hears about, sent once.
+  - `topics`: The topics, without names this version does not know.
+- `Changed`: `changed`: these topics changed.
+  - `topics`: The topics, without names this version does not know.
+- `BooksPage`: `books.page`: one page of the person's books.
+  - `after`: The cursor the clerk asked with.
+  - `works`: At most [`crate::MAX_WINDOW_WORKS`](#max_window_works) works.
+  - `next`: The cursor of the next page; `None` on the last page.
+- `Error`: `error`: a `books` frame was not answered.
+  - `code`: Why.
+
+#### LibraryFrame::encode
+
+```rust
+pub fn encode(&self) -> String
+```
+
+The frame's JSON text, as a library sends it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### Body
 
 ```rust
@@ -2614,6 +2753,57 @@ The request when the body is one JSON object with exactly `code`,
 `code_verifier` and `redirect_uri`, each a string written once, or
 `None`.
 
+### is_topic_name
+
+```rust
+pub fn is_topic_name(name: &str) -> bool
+```
+
+True when `name` could be a topic name: 1 to [`MAX_CLERK_TOPIC_BYTES`](#max_clerk_topic_bytes)
+bytes of lowercase ASCII letters, digits, `_` and `.`.
+
+### parse_clerk_frame
+
+```rust
+pub fn parse_clerk_frame(text: &[u8]) -> Option<ClerkFrame>
+```
+
+Reads a frame a clerk sent: at most [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes), one JSON
+object with exactly `v` (1), `type` (`books`) and `after` (an integer,
+not negative), each once.
+
+#### Arguments
+
+* `text` - The frame's bytes.
+
+#### Returns
+
+The frame, or `None` when it breaks any rule.
+
+### parse_library_frame
+
+```rust
+pub fn parse_library_frame(text: &[u8]) -> Option<LibraryFrame>
+```
+
+Reads a frame a library sent: at most [`crate::MAX_FRAME_BYTES`](#max_frame_bytes), one
+JSON object with `v` (1), a known `type`, and exactly that type's fields,
+each once.
+
+- `hello` and `changed`: `topics`, at most [`MAX_CLERK_TOPICS`](#max_clerk_topics) names,
+  each [`is_topic_name`](#is_topic_name); names this version does not know are dropped.
+- `books.page`: `after` (not negative), `works`, and `next` unless it is
+  the last page, passing [`crate::window_page_problem`](#window_page_problem).
+- `error`: a [`ClerkSocketError`](#clerksocketerror) `code`.
+
+#### Arguments
+
+* `text` - The frame's bytes.
+
+#### Returns
+
+The frame, or `None` when it breaks any rule.
+
 ### is_destination_id
 
 ```rust
@@ -3430,6 +3620,55 @@ pub const MAX_CLERK_STATE_BYTES: usize = 512;
 ```
 
 Longest `state` an authorize request may carry.
+
+### CLERK_CONNECT_PATH
+
+```rust
+pub const CLERK_CONNECT_PATH: &str = "/api/clerk/v1/connect";
+```
+
+Path of the clerk socket.
+
+### CLERK_SOCKET_VERSION
+
+```rust
+pub const CLERK_SOCKET_VERSION: u8 = 1;
+```
+
+The `v` every frame carries.
+
+### CLERK_SUBPROTOCOL
+
+```rust
+pub const CLERK_SUBPROTOCOL: &str = "bookclerk-clerk.v1";
+```
+
+The WebSocket subprotocol a clerk must offer.
+
+### MAX_CLERK_FRAME_BYTES
+
+```rust
+pub const MAX_CLERK_FRAME_BYTES: usize = _;
+```
+
+Largest frame a library accepts from a clerk, in bytes; a `books` frame
+is under 50.
+
+### MAX_CLERK_TOPICS
+
+```rust
+pub const MAX_CLERK_TOPICS: usize = 16;
+```
+
+Most topic names one `hello` or `changed` frame may carry, known or not.
+
+### MAX_CLERK_TOPIC_BYTES
+
+```rust
+pub const MAX_CLERK_TOPIC_BYTES: usize = 32;
+```
+
+Longest topic name, in bytes.
 
 ### ITEM_JOB
 

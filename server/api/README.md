@@ -318,6 +318,7 @@ A clerk's sign-in as a person: redeem an approved code for a session token.
 | Route | Summary |
 | --- | --- |
 | [`POST /api/clerk/v1/token`](clerk-sign-in.md#post-apiclerkv1token) | `POST /api/clerk/v1/token`: redeem an approved clerk sign-in for a session token. The code is spent by any attempt, matching or not. |
+| [`GET /api/clerk/v1/connect`](clerk-sign-in.md#get-apiclerkv1connect) | `GET /api/clerk/v1/connect`: upgrade to the clerk socket after the transport check and the library card. |
 
 ### [Node protocol](node-protocol.md)
 

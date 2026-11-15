@@ -476,6 +476,7 @@ See `docs/adr/control-plane.md`.
 | [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `owner_cluster_id` (its link downloads again, or was left). |
 | [`discard_window_read`](#discard_window_read) | function | Drops the rows a read cut short by a settings change wrote (stamped `seen_at`), so a read that began before downloading was turned on cannot put back the list the change cleared. |
 | [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `owner_cluster_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
+| [`person_books_page`](#person_books_page) | function | One page of the books this library holds for a person, as a clerk signed in with that person's library card reads them over the client socket (`GET /api/clerk/v1/connect`): the same works, grouping and limits as `window_books_page`, for the person the card belongs to rather than a branch node's owner. |
 | [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `owner_cluster_id`, read under `seen_at` (`window_read_stamp`). |
 | [`window_books_page`](#window_books_page) | function | One page of the books this library holds for branch `node_id`'s owner, for the `window.books` frame. |
 | [`window_read_stamp`](#window_read_stamp) | function | A stamp for one complete read of a library's window books: pass it to every `record_window_page` of the read and then to `finish_window_read`. |
@@ -11415,6 +11416,35 @@ How many rows were dropped.
 #### Errors
 
 Returns the write error.
+
+### person_books_page
+
+```rust
+pub async fn person_books_page(
+    store: &LibraryStore,
+    user_id: i64,
+    after: i64,
+) -> Result<(Vec<WindowWork>, Option<i64>)>
+```
+
+One page of the books this library holds for a person, as a clerk
+signed in with that person's library card reads them over the client
+socket (`GET /api/clerk/v1/connect`): the same works, grouping and
+limits as [`window_books_page`](#window_books_page), for the person the card belongs to
+rather than a branch node's owner.
+
+#### Arguments
+
+* `user_id` - The person: the card's user on this library.
+* `after` - The cursor of the previous page (0 for the first).
+
+#### Returns
+
+The page's works and the cursor of the next page (`None` on the last).
+
+#### Errors
+
+Returns the read error.
 
 ### record_window_page
 
