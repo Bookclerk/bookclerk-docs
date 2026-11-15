@@ -72,6 +72,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`LibraryKvNamespace`](#librarykvnamespace) | struct | `KvNamespace` server for one `(plugin_key, namespace)` on the library. |
 | [`OnDemandIntegration`](#ondemandintegration) | struct | Integration registry entry that starts its guest on the first call and stops it after the idle timeout without calls. |
 | [`OnDemandSource`](#ondemandsource) | struct | Source registry entry that starts its storefront guest on the first call and stops it after the idle timeout without calls. |
+| [`HeldSession`](#heldsession) | struct | A guest session lent to a caller, with the hold that keeps an on-demand guest up. |
+| [`OnDemandStorage`](#ondemandstorage) | struct | Destination registry entry that starts its storage guest on a call and stops it after the idle timeout without calls. |
 | [`OutboxQueueProducer`](#outboxqueueproducer) | struct | `QueueProducer` server for one binding of one invocation: validates a guest `QueueSendMessage` and appends it to the library outbox. |
 | [`QueueOutbox`](#queueoutbox) | struct | Host-owned facts a session needs before it can hand a guest its queue producer bindings: the outbox store plus the granted `(binding, queue)` pairs. |
 | [`BookclerkPackageMetadata`](#bookclerkpackagemetadata) | struct | `[package.metadata.bookclerk]` published on crates.io. |
@@ -88,6 +90,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`SpawnHealth`](#spawnhealth) | enum | Result of spawn plus the health RPC. |
 | [`StateScope`](#statescope) | enum | Whose library a guest works for, which keeps one library's plugin state apart from another's on the same install. |
 | [`PluginError`](#pluginerror) | enum | Failures from discovery, RPC, consent, or plugin adapters. |
+| [`DestinationSession`](#destinationsession) | enum | A deployed destination's guest, as handed to a job that calls the guest's entrypoints directly. |
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
@@ -226,6 +229,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`plugin_data_dir`](#plugin_data_dir) | function | The private directory a plugin keeps state in. |
 | [`activates_on_demand`](#activates_on_demand) | function | True when a deployment of `manifest` may sleep while idle and start on the next call. |
 | [`storefront_activates_on_demand`](#storefront_activates_on_demand) | function | True when a storefront deployment of `manifest` may sleep while idle. |
+| [`storage_activates_on_demand`](#storage_activates_on_demand) | function | True when a storage deployment of `manifest` may sleep while idle. |
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate plugin id segment used in crate names and `plugin.toml`. |
@@ -277,6 +281,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`KV_GRANT_BINDING`](#kv_grant_binding) | constant | Grant token that authorizes every `[[kv_namespaces]]` row of a plugin. |
 | [`TRIGGER_IDLE_TIMEOUT`](#trigger_idle_timeout) | constant | How long a trigger-driven guest stays up after its last call returns. |
 | [`STOREFRONT_IDLE_TIMEOUT`](#storefront_idle_timeout) | constant | How long a storefront stays up after its last call returns. |
+| [`STORAGE_IDLE_TIMEOUT`](#storage_idle_timeout) | constant | How long a storage destination stays up after its last call returns. |
 | [`CRATE_NAME_PREFIX`](#crate_name_prefix) | constant | Required crates.io name prefix: `bookclerk-plugin-{family}-{id}`. |
 | [`PRODUCT_KEYWORD`](#product_keyword) | constant | Shared crates.io keyword (`bookclerk`) expected on published plugin crates. |
 | [`REGISTRY_KEYWORD`](#registry_keyword) | constant | Keyword every published plugin crate should include. |
@@ -435,7 +440,7 @@ fn idle_timeout(&self) -> Duration
 
 Idle time after which the guest is stopped.
 
-Implemented by: `OnDemandIntegration`, `OnDemandSource`
+Implemented by: `OnDemandIntegration`, `OnDemandSource`, `OnDemandStorage`
 
 ### DeploymentRuntime
 
@@ -1699,7 +1704,7 @@ pub fn plugin_session(
     &self,
     plugin_id: &str,
     account_id: &str,
-) -> Option<Arc<PluginSession>>
+) -> Option<DestinationSession>
 ```
 
 Plugin session for `plugin_id` and `account_id`, when that guest was loaded.
@@ -1715,7 +1720,7 @@ pub fn require_plugin_session(
     &self,
     plugin_id: &str,
     account_id: &str,
-) -> Result<Arc<PluginSession>, String>
+) -> Result<DestinationSession, String>
 ```
 
 [`Self::plugin_session`](#destinationregistryplugin_session) that reports same-key ambiguity.
@@ -2519,6 +2524,63 @@ Stops the guest now if it has been idle for the timeout.
 True when a running guest was stopped.
 
 Implements: `ContentSource`, `OnDemandStatus`
+
+### HeldSession
+
+```rust
+pub struct HeldSession {
+    pub session: Arc<PluginSession>,
+    /* private fields */
+}
+```
+
+A guest session lent to a caller, with the hold that keeps an on-demand
+guest up.
+
+**Fields**
+
+- `session`: The running guest's session.
+
+### OnDemandStorage
+
+```rust
+pub struct OnDemandStorage {
+    /* private fields */
+}
+```
+
+Destination registry entry that starts its storage guest on a call and
+stops it after the idle timeout without calls.
+
+Cloning shares the guest: every clone is the same destination.
+
+#### OnDemandStorage::sleep_if_idle
+
+```rust
+pub async fn sleep_if_idle(&self) -> bool
+```
+
+Stops the guest now if it has been idle for the timeout.
+
+##### Returns
+
+True when a running guest was stopped.
+
+#### OnDemandStorage::session
+
+```rust
+pub async fn session(&self) -> Result<HeldSession, String>
+```
+
+The running guest's session, starting the guest when asleep, held
+awake until the returned value is dropped.
+
+##### Errors
+
+Returns an error when the proxy is retired, the guest cannot start, or
+the guest has no session (a test double).
+
+Implements: `Clone`, `OnDemandStatus`, `StorageBackend`
 
 ### OutboxQueueProducer
 
@@ -4285,6 +4347,38 @@ Relies on the structured [`Self::Unavailable`](#pluginerror) variant (guest ABI
 `D1 HTTP` strings: permanent 4xx from D1 is `internal` / `invalid_params`.
 
 Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<PluginError>`
+
+### DestinationSession
+
+```rust
+pub enum DestinationSession {
+    Resident(Arc<PluginSession>),
+    OnDemand(Arc<OnDemandStorage>),
+}
+```
+
+A deployed destination's guest, as handed to a job that calls the
+guest's entrypoints directly.
+
+**Variants**
+
+- `Resident`: A guest that is always running.
+- `OnDemand`: A guest that sleeps while idle; [`Self::lend`](#destinationsessionlend) starts it.
+
+#### DestinationSession::lend
+
+```rust
+pub async fn lend(&self) -> Result<HeldSession, String>
+```
+
+The guest's session, starting the guest when it sleeps; it stays
+awake until the returned value is dropped.
+
+##### Errors
+
+Returns an error when an on-demand guest was retired or cannot start.
+
+Implements: `Clone`
 
 ### Activate
 
@@ -6372,6 +6466,23 @@ Python, whose guests take seconds to start.
 
 * `manifest` - the installed manifest the deployment spawns.
 
+### storage_activates_on_demand
+
+```rust
+pub fn storage_activates_on_demand(manifest: &PluginManifest) -> bool
+```
+
+True when a storage deployment of `manifest` may sleep while idle.
+
+The plugin must belong only to the storage family and must not be
+Python, whose guests take seconds to start. The deployment also requires
+a host-side backend (the first-party `s3` or `local` package); other
+storage guests stay running.
+
+#### Arguments
+
+* `manifest` - the installed manifest the deployment spawns.
+
 ### family_keyword
 
 ```rust
@@ -6970,6 +7081,18 @@ How long a storefront stays up after its last call returns.
 Storefront work comes in bursts (a scan pages through a library, an
 acquire fetches several parts, Discover asks for a page of hints), so
 the timeout is longer than for trigger-driven plugins.
+
+### STORAGE_IDLE_TIMEOUT
+
+```rust
+pub const STORAGE_IDLE_TIMEOUT: Duration = _;
+```
+
+How long a storage destination stays up after its last call returns.
+
+Storage work comes in bursts (an acquire writes several parts and a
+cover, a library scan pages through the inventory), so the timeout
+matches storefronts.
 
 ### CRATE_NAME_PREFIX
 
