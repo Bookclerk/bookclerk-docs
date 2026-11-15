@@ -26,6 +26,7 @@ Optional body for `POST /api/library/acquire`.
 - `account` *string or null* — Restrict acquire to this store account.
 - `plugin_instance_id` *string or null* — When set, fetch through this deployed plugin instance.
 - `titles` *array of string* — More title ids; each (with the single filter above) becomes its own job.
+- `editions` *array of string* — Editions to acquire (`id` of an edition in a work's detail). Each becomes one job for a title that sells it in an account the caller may acquire for (in `account` when that is set); the edition's titles share its files.
 - `force` *boolean* — Re-download titles already acquired.
 - `pdf_only` *boolean* — Fetch only each title's companion PDF.
 

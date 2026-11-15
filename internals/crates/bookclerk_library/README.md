@@ -12597,6 +12597,7 @@ pub enum EntityKind {
     Account,
     Book,
     Work,
+    Edition,
     TitleRequest,
     User,
     PortalIdentity,
@@ -12637,6 +12638,7 @@ such as `enrollment link`.
 - `Account`: A store account, keyed by plugin and account id.
 - `Book`: A library title (`books` row).
 - `Work`: A work of the library data model.
+- `Edition`: An edition of the library data model.
 - `TitleRequest`: A title request (wishlist entry).
 - `User`: A user.
 - `PortalIdentity`: A portal identity linked to a user.
@@ -12668,7 +12670,7 @@ such as `enrollment link`.
 #### EntityKind::ALL
 
 ```rust
-pub const ALL: [Self; 30] = _
+pub const ALL: [Self; 31] = _
 ```
 
 Every kind, in declaration order.

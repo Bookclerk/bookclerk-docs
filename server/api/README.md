@@ -131,6 +131,7 @@ Books in the library, scans and acquires.
 | [`GET /api/library/books/{uuid}/cover`](library.md#get-apilibrarybooksuuidcover) | Serves the JPEG cover sidecar from the deployed local destination, or 404 when no local destination runs on this node. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
+| [`GET /api/library/editions/{id}/cover`](library.md#get-apilibraryeditionsidcover) | Serves the JPEG cover written beside an edition's acquired file on this node's local destination. |
 
 ### [Discover](discover.md)
 

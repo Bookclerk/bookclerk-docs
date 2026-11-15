@@ -438,6 +438,7 @@ See `docs/adr/control-plane.md`.
 | [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
+| [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
 | [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
 | [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
@@ -10634,6 +10635,50 @@ Read in keyset pages no larger than the database plugin's
 #### Errors
 
 Returns an error when a read fails.
+
+### acquire_titles_of_editions
+
+```rust
+pub async fn acquire_titles_of_editions(
+    store: &LibraryStore,
+    requester: ScanRequester,
+    account: Option<&str>,
+    plugin_instance_id: Option<&str>,
+    editions: &[String],
+) -> Result<Vec<String>>
+```
+
+The library titles an acquire by edition queues: for each edition, one
+title (`books.uuid`) that sells it in an account `requester` may
+acquire for, and in `account` when one is named.
+
+An edition's titles share its files, so acquiring one of them acquires
+the edition. Each title is still planned by [`plan_acquire`](#plan_acquire), which
+checks the requester again.
+
+#### Arguments
+
+* `store` - The library.
+* `requester` - Who asks; a member is limited to their own accounts.
+* `account` - When named (an id or label), only titles in that account.
+* `plugin_instance_id` - When the acquire is pinned to a plugin
+  instance, only titles on that instance's plugin, so the title picked
+  is one the pinned plan keeps.
+* `editions` - Edition ids (`editions.id`); blanks and repeats are
+  skipped.
+
+#### Returns
+
+One title uuid per edition, in the order the editions were given.
+
+#### Errors
+
+- [`LibraryError::Invalid`](README.md#libraryerror) when every edition id given is blank, the
+  pinned instance id does not parse, or an edition has no title in the
+  library (or none in `account` or on the pinned plugin).
+- [`LibraryError::Forbidden`](README.md#libraryerror) when an edition's titles are all in
+  accounts the requester may not acquire for.
+- [`LibraryError::Orm`](README.md#libraryerror) when a read fails.
 
 ### book_matches_title
 
