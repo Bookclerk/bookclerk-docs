@@ -1,12 +1,12 @@
-# Client sign-in
+# Clerk sign-in
 
 A clerk's sign-in as a person: redeem an approved code for a session token.
 
 Back to the [web API reference](README.md).
 
-## `POST /api/client/v1/token`
+## `POST /api/clerk/v1/token`
 
-`POST /api/client/v1/token`: redeem an approved client sign-in for a
+`POST /api/clerk/v1/token`: redeem an approved clerk sign-in for a
 session token. The code is spent by any attempt, matching or not.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
@@ -15,7 +15,7 @@ session token. The code is spent by any attempt, matching or not.
 
 ### Request body
 
-`application/json`: [`ClientTokenRequest`](schemas.md#clienttokenrequest)
+`application/json`: [`ClerkTokenRequest`](schemas.md#clerktokenrequest)
 
 - `code` *string*, **required** — The single-use code from the redirect.
 - `code_verifier` *string*, **required** — The PKCE verifier whose S256 challenge the authorize request sent.
@@ -23,10 +23,10 @@ session token. The code is spent by any attempt, matching or not.
 
 ### Responses
 
-- `200` — The session token (shown once), this library's cluster id, the signed-in user and how long the session stays signed in unused. Body: [`ClientTokenAnswer`](schemas.md#clienttokenanswer) (`application/json`)
-  - `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Client <token>`. Shown once; the library keeps only its hash.
+- `200` — The session token (shown once), this library's cluster id, the signed-in user and how long the session stays signed in unused. Body: [`ClerkTokenAnswer`](schemas.md#clerktokenanswer) (`application/json`)
+  - `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Clerk <token>`. Shown once; the library keeps only its hash.
   - `cluster_id` *string*, **required** — The library's cluster id.
-  - `user` *[`ClientUser`](schemas.md#clientuser)*, **required** — The signed-in person on that library.
+  - `user` *[`ClerkUser`](schemas.md#clerkuser)*, **required** — The signed-in person on that library.
   - `idle_secs` *integer (int64)*, **required** — Seconds the session stays signed in unused; each use resets it.
 - `400` — The body is not a token request (`invalid_request`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -44,34 +44,34 @@ session token. The code is spent by any attempt, matching or not.
 ### Example request
 
 ```console
-$ curl 'http://127.0.0.1:8787/api/client/v1/token' \
+$ curl 'http://127.0.0.1:8787/api/clerk/v1/token' \
     -X POST \
     -H 'Content-Type: application/json' \
-    -d '{"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/client/callback"}'
+    -d '{"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/clerk/callback"}'
 ```
 
 ```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/client/v1/token' `
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/clerk/v1/token' `
     -Method Post `
     -ContentType 'application/json' `
-    -Body '{"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/client/callback"}'
+    -Body '{"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/clerk/callback"}'
 ```
 
 ```python
 import requests
 
 response = requests.post(
-    "http://127.0.0.1:8787/api/client/v1/token",
-    json={"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/client/callback"},
+    "http://127.0.0.1:8787/api/clerk/v1/token",
+    json={"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/clerk/callback"},
 )
 print(response.status_code, response.text)
 ```
 
 ```javascript
-const response = await fetch("http://127.0.0.1:8787/api/client/v1/token", {
+const response = await fetch("http://127.0.0.1:8787/api/clerk/v1/token", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/client/callback"}),
+  body: JSON.stringify({"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/clerk/callback"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -79,8 +79,8 @@ console.log(response.status, await response.text());
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .post("http://127.0.0.1:8787/api/client/v1/token")
-    .json(&serde_json::json!({"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/client/callback"}))
+    .post("http://127.0.0.1:8787/api/clerk/v1/token")
+    .json(&serde_json::json!({"code": "q8Zl0m3VnS2xR7bW4cYd1eTf6gUh9iJk5LoNpQrStUv", "code_verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", "redirect_uri": "http://127.0.0.1:41923/clerk/callback"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -107,7 +107,7 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "`POST /api/client/v1/token` answer.",
+  "description": "`POST /api/clerk/v1/token` answer.",
   "required": [
     "token",
     "cluster_id",
@@ -117,7 +117,7 @@ Schema:
   "properties": {
     "token": {
       "type": "string",
-      "description": "The session token, sent as `Authorization: Bookclerk-Client <token>`.\nShown once; the library keeps only its hash.",
+      "description": "The session token, sent as `Authorization: Bookclerk-Clerk <token>`.\nShown once; the library keeps only its hash.",
       "example": "Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2FycGx5"
     },
     "cluster_id": {

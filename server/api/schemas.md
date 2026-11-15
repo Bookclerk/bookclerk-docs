@@ -474,58 +474,58 @@ chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
 
-## ClientAuthorizeParams
+## ClerkAuthorizeParams
 
-The authorization request a client consent is for (the query
-`/oidc/authorize` forwards to the library's `/client/approve` page).
+The authorization request a clerk consent is for (the query
+`/oidc/authorize` forwards to the library's `/clerk/approve` page).
 
-- `client_id` *string*, **required** — Must be [`CLIENT_CLIENT_ID`].
+- `client_id` *string*, **required** — Must be [`CLERK_CLIENT_ID`].
 - `redirect_uri` *string*, **required** — Where the code goes: loopback or https.
 - `response_type` *string*, **required** — Must be `code`.
-- `scope` *string or null* — Must be [`CLIENT_SCOPE`].
+- `scope` *string or null* — Must be [`CLERK_SCOPE`].
 - `state` *string or null* — Echoed on the redirect.
 - `code_challenge` *string*, **required** — PKCE S256 challenge.
 - `code_challenge_method` *string or null* — Must be `S256`.
-- `client_name` *string or null* — The name the clerk gives itself, shown on the consent page and in the user's session list.
+- `clerk_name` *string or null* — The name the clerk gives itself, shown on the consent page and in the user's session list.
 
-## ClientConsentBody
+## ClerkConsentBody
 
-`POST /api/auth/client-consent` body.
+`POST /api/auth/clerk-consent` body.
 
-Includes every field of [`ClientAuthorizeParams`](#clientauthorizeparams).
+Includes every field of [`ClerkAuthorizeParams`](#clerkauthorizeparams).
 
-- `approve` *boolean*, **required** — True to let the client sign in; false to deny.
+- `approve` *boolean*, **required** — True to let the clerk sign in; false to deny.
 
-## ClientConsentPage
+## ClerkConsentPage
 
-JSON body for `GET /api/auth/client-consent`: what the consent page shows.
+JSON body for `GET /api/auth/clerk-consent`: what the consent page shows.
 
 - `library_name` *string*, **required** — This library's name.
-- `client_name` *string*, **required** — The name the client gives itself.
-- `redirect_origin` *string*, **required** — Origin of the client's redirect URI, for the page to name.
-- `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the client would sign in as.
+- `clerk_name` *string*, **required** — The name the clerk gives itself.
+- `redirect_origin` *string*, **required** — Origin of the clerk's redirect URI, for the page to name.
+- `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the clerk would sign in as.
 
-## ClientTokenAnswer
+## ClerkTokenAnswer
 
-`POST /api/client/v1/token` answer.
+`POST /api/clerk/v1/token` answer.
 
-- `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Client <token>`. Shown once; the library keeps only its hash.
+- `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Clerk <token>`. Shown once; the library keeps only its hash.
 - `cluster_id` *string*, **required** — The library's cluster id.
-- `user` *[`ClientUser`](#clientuser)*, **required** — The signed-in person on that library.
+- `user` *[`ClerkUser`](#clerkuser)*, **required** — The signed-in person on that library.
 - `idle_secs` *integer (int64)*, **required** — Seconds the session stays signed in unused; each use resets it.
 
-## ClientTokenRequest
+## ClerkTokenRequest
 
-`POST /api/client/v1/token` body: exactly these three strings, each
+`POST /api/clerk/v1/token` body: exactly these three strings, each
 once, and nothing else.
 
 - `code` *string*, **required** — The single-use code from the redirect.
 - `code_verifier` *string*, **required** — The PKCE verifier whose S256 challenge the authorize request sent.
 - `redirect_uri` *string*, **required** — The redirect URI the authorize request named.
 
-## ClientUser
+## ClerkUser
 
-The person a client session signs in as.
+The person a clerk session signs in as.
 
 - `id` *integer (int64)*, **required** — The user's id on the library.
 - `display_name` *string or null* — The user's display name on the library, when set.
@@ -2357,9 +2357,9 @@ JSON body after a portal session was minted for a first-party user.
 Where a user's session token is presented.
 
 A token works only in its own place: a browser token only as the session
-cookie, a client token only as `Authorization: Bookclerk-Client`.
+cookie, a library card only as `Authorization: Bookclerk-Clerk`.
 
-Type: one of `browser`, `client`
+Type: one of `browser`, `clerk`
 
 ## PortalSessionView
 
@@ -2373,7 +2373,7 @@ A portal (user) session as listed by `GET /api/auth/sessions`.
 - `client_label` *string or null* — Best-effort OS or client label from the User-Agent.
 - `device_type` *string or null* — Best-effort device class (`desktop`, `mobile`, `tablet`, `api`).
 - `user_agent` *string or null* — Raw User-Agent captured when the session was created.
-- `channel` *[`PortalSessionKind`](#portalsessionkind)*, **required** — How the session is used: `browser` for a browser session, `client` for a client sign-in (a library card), whose `client_label` is the name the client gave itself.
+- `channel` *[`PortalSessionKind`](#portalsessionkind)*, **required** — How the session is used: `browser` for a browser session, `clerk` for a library card, whose `client_label` is the name the clerk gave itself.
 
 ## PostNodeInvite
 

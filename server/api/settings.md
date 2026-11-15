@@ -1885,9 +1885,9 @@ A `text/plain` body: a string.
 
 Loads preferences for the caller with a 3s timeout, creating defaults when missing.
 
-**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
 
 ### Responses
 
@@ -1900,7 +1900,7 @@ Loads preferences for the caller with a 3s timeout, creating defaults when missi
   - `discover_excluded_sources` *array of string*, **required** — Lowercased store ids hidden from Discover results.
   - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
 - `401` — No signed-in caller. Body: string (`text/plain`)
-- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2049,11 +2049,11 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
+Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
 
 ```json
 {
-  "error": "client_sign_in_unavailable",
+  "error": "clerk_sign_in_unavailable",
   "message": "This library does not accept clerks on this address.",
   "status": 403
 }
@@ -2159,9 +2159,9 @@ A `text/plain` body: a string.
 
 Merges a preferences PATCH onto the caller’s stored row and writes it back.
 
-**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
 
 ### Request body
 
@@ -2187,7 +2187,7 @@ Merges a preferences PATCH onto the caller’s stored row and writes it back.
   - `theme` *string*, **required** — Appearance preference (`system`, `light`, or `dark`).
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — No signed-in caller. Body: string (`text/plain`)
-- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `403` — A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2358,11 +2358,11 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "client_sign_in_unavailable",
+  "error": "clerk_sign_in_unavailable",
   "message": "This library does not accept clerks on this address.",
   "status": 403
 }

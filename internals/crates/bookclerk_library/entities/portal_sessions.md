@@ -47,7 +47,7 @@ Row shape for this table (`DeriveEntityModel`).
 - `device_type`: Best-effort device class (`desktop` / `mobile` / `tablet` / `api`).
 - `client_label`: Best-effort OS / client label (`Windows`, `Android`, `API`, …).
 - `kind`: Where the token is presented: `browser` (the session cookie) or
-  `client` (a client sign-in's `Authorization: Bookclerk-Client`
+  `clerk` (a library card, sent as `Authorization: Bookclerk-Clerk`
   header); see [`crate::models::PortalSessionKind`](../README.md#portalsessionkind).
 
 #### Model::into_ex

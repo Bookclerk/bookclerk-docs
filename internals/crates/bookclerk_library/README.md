@@ -3230,7 +3230,7 @@ Portal session row for session lists (includes hash for current-session match).
 - `last_used_at`: RFC 3339 last-used timestamp, when known.
 - `user_agent`: Raw User-Agent captured at session mint (optional).
 - `device_type`: Best-effort device class.
-- `client_label`: Best-effort OS / client label; for a client sign-in, the name the
+- `client_label`: Best-effort OS / client label; for a library card, the name the
   clerk gave itself.
 - `kind`: Where the token is presented.
 
@@ -9818,10 +9818,10 @@ Create a portal session with optional client metadata.
 
 Returns an error when the operation fails.
 
-#### LibraryStore::insert_client_session
+#### LibraryStore::insert_clerk_session
 
 ```rust
-pub async fn insert_client_session(
+pub async fn insert_clerk_session(
     &self,
     token_hash: &str,
     identity_id: i64,
@@ -9830,15 +9830,15 @@ pub async fn insert_client_session(
 ) -> Result<i64>
 ```
 
-Creates a client sign-in session: a token a clerk presents
-as `Authorization: Bookclerk-Client`, never as a cookie.
+Creates a clerk sign-in session: a token a clerk presents
+as `Authorization: Bookclerk-Clerk`, never as a cookie.
 
 ##### Arguments
 
 * `token_hash` - SHA-256 hex of the token (the token is never stored).
 * `identity_id` - The user's portal identity.
 * `expires_at` - First expiry; each use moves it forward
-  ([`Self::get_client_session_identity`](#librarystoreget_client_session_identity)).
+  ([`Self::get_clerk_session_identity`](#librarystoreget_clerk_session_identity)).
 * `label` - The name the clerk gave itself, shown in the
   user's session list.
 
@@ -9850,13 +9850,13 @@ The new session's row id.
 
 Returns an error when the insert fails.
 
-#### LibraryStore::delete_client_session
+#### LibraryStore::delete_clerk_session
 
 ```rust
-pub async fn delete_client_session(&self, token_hash: &str) -> Result<bool>
+pub async fn delete_clerk_session(&self, token_hash: &str) -> Result<bool>
 ```
 
-Deletes a client sign-in session by token hash (the client signing
+Deletes a clerk sign-in session by token hash (the clerk signing
 itself out). A browser session with that hash is left alone.
 
 ##### Errors
@@ -9951,24 +9951,24 @@ Resolve a valid browser (cookie) session to its identity.
 Refreshes `portal_sessions.last_used_at` and `users.last_seen_at` at most
 once per minute so administrator presence can tell active from idle
 without a write on every request. `last_seen_at` is kept after logout.
-A client sign-in's token is not a browser session and resolves to
+A library card is not a browser session and resolves to
 nothing here.
 
 ##### Errors
 
 Returns an error when the operation fails.
 
-#### LibraryStore::get_client_session_identity
+#### LibraryStore::get_clerk_session_identity
 
 ```rust
-pub async fn get_client_session_identity(
+pub async fn get_clerk_session_identity(
     &self,
     token_hash: &str,
     idle: Duration,
 ) -> Result<Option<PortalIdentity>>
 ```
 
-Resolve a valid client sign-in session to its identity.
+Resolve a valid clerk sign-in session to its identity.
 
 Like [`Self::get_portal_session_identity`](#librarystoreget_portal_session_identity), but only for a `client`
 session, and each touch (at most once a minute) also moves its expiry
@@ -13047,20 +13047,20 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Part
 ```rust
 pub enum PortalSessionKind {
     Browser,
-    Client,
+    Clerk,
 }
 ```
 
 Where a user's session token is presented.
 
 A token works only in its own place: a browser token only as the session
-cookie, a client token only as `Authorization: Bookclerk-Client`.
+cookie, a library card only as `Authorization: Bookclerk-Clerk`.
 
 **Variants**
 
 - `Browser`: A browser's session cookie.
-- `Client`: A client sign-in: a clerk that shows the user's books from
-  this library without joining it as a node.
+- `Clerk`: A library card: a clerk that shows the user's books from this
+  library without joining it as a node.
 
 #### PortalSessionKind::as_str
 
