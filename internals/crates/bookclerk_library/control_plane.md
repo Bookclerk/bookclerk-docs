@@ -100,6 +100,8 @@ See `docs/adr/control-plane.md`.
 | [`RemoteApproval`](#remoteapproval) | struct | What an operator approves. |
 | [`RemoteArtifactRef`](#remoteartifactref) | struct | The archive an owner asks this host to fetch: the version's artifact for this host's target. |
 | [`RemotePluginConsent`](#remotepluginconsent) | struct | One owner plugin of one owner cluster, as this install sees it. |
+| [`HandedPassEnd`](#handedpassend) | struct | How a Host's pass of one account ended. |
+| [`ScanSighting`](#scansighting) | struct | A product a Host's pass listed that has no library row to write (its record maps onto no flat row, an ebook for instance), so the owner only marks the account's holding of it seen by the pass. |
 | [`JobSecret`](#jobsecret) | struct | One unsealed secret handed with a job. The value is zeroized on drop and never shown by `Debug`. |
 | [`JobSecretRef`](#jobsecretref) | struct | Names one store-account secret a job is handed. Carries no secret material. |
 | [`RemoteClaimSettings`](#remoteclaimsettings) | struct | What a Host's claim settles on: the routing and lease settings of the owner node serving it. |
@@ -396,7 +398,12 @@ See `docs/adr/control-plane.md`.
 | [`record_remote_plugin_request`](#record_remote_plugin_request) | function | Records what the owner asks to run here: `version` of `plugin_key` with the owner's approved grant, fetched from `artifact`. A stored approval is kept; whether it still covers the new request is decided when the grant is evaluated (and an approval of another archive never does, `RemotePluginConsent::approved_artifact_matches`). Writes nothing when the request is unchanged. |
 | [`remote_request_digest`](#remote_request_digest) | function | The digest an operator approves a request by: SHA-256 (lowercase hex) over the requested version, the owner's grant exactly as recorded and the archive's URL, digest and payload-root digest, each length-prefixed, so any change to any of them gives another digest. |
 | [`revoke_remote_plugin`](#revoke_remote_plugin) | function | Clears the approval of `plugin_key` of `cluster_id`, keeping its request, and records the revoke so no automatic approval brings it back. Answers the row, or `None` when nothing is recorded. |
+| [`accept_scan_pass_end`](#accept_scan_pass_end) | function | Records how a Host's pass of one account ended. |
+| [`accept_scan_removed`](#accept_scan_removed) | function | Removes the holdings a Host's delta pass reported gone from one account. |
 | [`accept_scan_results`](#accept_scan_results) | function | Validates one batch of a Host's scan rows and writes it to the library. |
+| [`accept_scan_rows`](#accept_scan_rows) | function | Validates one batch of a Host's scan rows and writes it to the library, marking every listed product seen by the Host's pass. |
+| [`handed_pass_id`](#handed_pass_id) | function | The pass id a Host's scan of `job_id` under lease generation `generation` stamps on the holdings its rows list (`holdings.seen_pass`). |
+| [`handed_sync_token`](#handed_sync_token) | function | The sync token the owner hands with a Host scan of one account: the stored token while the account's last complete pass is recent enough to build on, otherwise empty (a full pass), as a local pass would start. |
 | [`claim_remote_job`](#claim_remote_job) | function | Claims the best job `node_id` may run and unseals its secrets. |
 | [`finish_remote_job`](#finish_remote_job) | function | Completes or fails the job `node_id` holds at `generation`, then gives its semaphore permits back. |
 | [`job_secret_refs`](#job_secret_refs) | function | The store-account secrets `job` needs on a Host. |
@@ -3574,6 +3581,50 @@ that changed any of them needs approval again.
 * `artifact` - The archive about to be fetched.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
+
+### HandedPassEnd
+
+```rust
+pub struct HandedPassEnd<'a> {
+    pub account_id: &'a str,
+    pub sync_token: &'a str,
+    pub complete: bool,
+    pub full: bool,
+}
+```
+
+How a Host's pass of one account ended.
+
+**Fields**
+
+- `account_id`: The account the pass scanned.
+- `sync_token`: The token the plugin returned for the account's next pass; empty
+  when it keeps none.
+- `complete`: The pass listed every title the account holds.
+- `full`: The pass was full (sent no sync token), so its rows are everything
+  the account holds when it is also complete.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ScanSighting
+
+```rust
+pub struct ScanSighting {
+    pub account_id: String,
+    pub product_id: String,
+}
+```
+
+A product a Host's pass listed that has no library row to write (its
+record maps onto no flat row, an ebook for instance), so the owner only
+marks the account's holding of it seen by the pass.
+
+**Fields**
+
+- `account_id`: The account the pass listed it for.
+- `product_id`: The storefront product id it listed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### JobSecret
 
@@ -9748,6 +9799,71 @@ back. Answers the row, or `None` when nothing is recorded.
 
 Returns an error when a read or the write fails.
 
+### accept_scan_pass_end
+
+```rust
+pub async fn accept_scan_pass_end(
+    store: &LibraryStore,
+    node_id: &str,
+    job_id: &str,
+    generation: i64,
+    plugin_key: &str,
+    end: HandedPassEnd<'_>,
+) -> Result<ScanAccept>
+```
+
+Records how a Host's pass of one account ended.
+
+A complete full pass listed every title the account holds, so the
+account's holdings no row of this job and fence listed are removed
+first. Then the sync token is stored and, for a complete pass, the
+time of the last complete pass, as a local pass's end records them.
+
+#### Returns
+
+[`ScanAccept::Accepted`](#scanaccept) with the holdings removed in `upserted`, or why
+nothing was recorded.
+
+#### Errors
+
+Returns an error when a read or a write fails.
+
+### accept_scan_removed
+
+```rust
+pub async fn accept_scan_removed(
+    store: &LibraryStore,
+    node_id: &str,
+    job_id: &str,
+    generation: i64,
+    plugin_key: &str,
+    account_id: &str,
+    product_ids: &[String],
+) -> Result<ScanAccept>
+```
+
+Removes the holdings a Host's delta pass reported gone from one account.
+
+#### Arguments
+
+* `store` - The owner's library.
+* `node_id` - The Host.
+* `job_id` - The scan job.
+* `generation` - The lease generation the Host holds.
+* `plugin_key` - The job's source plugin.
+* `account_id` - The account the ids left.
+* `product_ids` - The ids, as `bookclerk_node_proto::scan_removed_problem`
+  accepts them.
+
+#### Returns
+
+[`ScanAccept::Accepted`](#scanaccept) with the holdings removed in `upserted`, or why
+nothing was removed.
+
+#### Errors
+
+Returns an error when a read or a write fails.
+
 ### accept_scan_results
 
 ```rust
@@ -9763,14 +9879,67 @@ pub async fn accept_scan_results(
 
 Validates one batch of a Host's scan rows and writes it to the library.
 
-`books` are the rows as the guest produced them; their `uuid`,
-`plugin_key` and `source` are ignored and set here (`source` from the
-account row), so a Host cannot address an existing row by id or label
-its rows as another plugin's.
+The same as [`accept_scan_rows`](#accept_scan_rows) with no sightings beyond the rows.
 
 #### Errors
 
 Returns an error when a read or a write fails.
+
+### accept_scan_rows
+
+```rust
+pub async fn accept_scan_rows(
+    store: &LibraryStore,
+    node_id: &str,
+    job_id: &str,
+    generation: i64,
+    plugin_key: &str,
+    books: Vec<impl Into<ScannedTitle>>,
+    sightings: Vec<ScanSighting>,
+) -> Result<ScanAccept>
+```
+
+Validates one batch of a Host's scan rows and writes it to the library,
+marking every listed product seen by the Host's pass.
+
+`books` are the rows as the guest produced them; their `uuid`,
+`plugin_key` and `source` are ignored and set here (`source` from the
+account row), so a Host cannot address an existing row by id or label
+its rows as another plugin's. `sightings` are products the same batch
+listed that map onto no row; they pass the same account checks and are
+only marked seen, so a complete full pass's prune keeps them.
+
+#### Errors
+
+Returns an error when a read or a write fails.
+
+### handed_pass_id
+
+```rust
+pub fn handed_pass_id(job_id: &str, generation: i64) -> String
+```
+
+The pass id a Host's scan of `job_id` under lease generation
+`generation` stamps on the holdings its rows list
+(`holdings.seen_pass`).
+
+### handed_sync_token
+
+```rust
+pub async fn handed_sync_token(
+    store: &LibraryStore,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<String>
+```
+
+The sync token the owner hands with a Host scan of one account: the
+stored token while the account's last complete pass is recent enough to
+build on, otherwise empty (a full pass), as a local pass would start.
+
+#### Errors
+
+Returns an error when the read fails.
 
 ### claim_remote_job
 

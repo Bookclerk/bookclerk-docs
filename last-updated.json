@@ -3,7 +3,7 @@
  "pages": {
   "README": "2026-11-13T17:07:25Z",
   "adr/README": "2026-11-12T06:14:59Z",
-  "adr/control-plane": "2026-11-14T02:31:13Z",
+  "adr/control-plane": "2026-11-14T23:44:28Z",
   "adr/event-delivery-model": "2026-11-14T03:19:19Z",
   "adr/first-party-identity": "2026-11-06T00:46:07Z",
   "adr/library-catalog-network": "2026-11-14T02:31:13Z",
@@ -24,7 +24,7 @@
   "contributing/ci": "2026-11-14T01:58:55Z",
   "contributing/code-documentation": "2026-11-06T00:46:07Z",
   "contributing/devcontainer": "2026-11-12T23:05:26Z",
-  "contributing/fuzzing": "2026-11-14T02:31:13Z",
+  "contributing/fuzzing": "2026-11-14T23:44:28Z",
   "contributing/licensing": "2026-11-13T14:11:47Z",
   "contributing/packaging": "2026-11-10T01:16:30Z",
   "contributing/research/README": "2026-11-06T00:46:07Z",
@@ -82,7 +82,7 @@
   "internals/crates/bookclerk_library/README": "2026-11-14T03:04:00Z",
   "internals/crates/bookclerk_library/atomic_status": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_library/column_read": "2026-11-11T11:12:39Z",
-  "internals/crates/bookclerk_library/control_plane": "2026-11-13T20:09:55Z",
+  "internals/crates/bookclerk_library/control_plane": "2026-11-15T00:18:44Z",
   "internals/crates/bookclerk_library/email": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_library/entities/README": "2026-11-13T22:01:56Z",
   "internals/crates/bookclerk_library/entities/account_credential_revisions": "2026-11-13T14:43:39Z",
@@ -197,8 +197,8 @@
   "internals/crates/bookclerk_mp4/edit": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_mp4/fixture": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_naming/README": "2026-11-06T01:24:45Z",
-  "internals/crates/bookclerk_node_client/README": "2026-11-13T20:09:55Z",
-  "internals/crates/bookclerk_node_proto/README": "2026-11-14T03:04:00Z",
+  "internals/crates/bookclerk_node_client/README": "2026-11-15T00:18:44Z",
+  "internals/crates/bookclerk_node_proto/README": "2026-11-15T00:18:44Z",
   "internals/crates/bookclerk_plugin_abi/README": "2026-11-14T14:55:33Z",
   "internals/crates/bookclerk_plugin_abi/backup_ops": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_plugin_abi/db": "2026-11-06T01:24:45Z",
@@ -695,7 +695,7 @@
   "internals/crates/bookclerk_plugin_echo_native_rust/cli": "2026-11-11T07:09:57Z",
   "internals/crates/bookclerk_plugin_echo_native_rust/notes": "2026-11-11T07:09:57Z",
   "internals/crates/bookclerk_plugin_echo_workerd_rust/README": "2026-11-06T01:24:45Z",
-  "internals/crates/bookclerk_plugin_host/README": "2026-11-14T03:51:47Z",
+  "internals/crates/bookclerk_plugin_host/README": "2026-11-15T00:18:44Z",
   "internals/crates/bookclerk_plugin_integration_audiobookshelf/README": "2026-11-13T21:25:27Z",
   "internals/crates/bookclerk_plugin_integration_audiobookshelf/guest": "2026-11-13T21:25:27Z",
   "internals/crates/bookclerk_plugin_manifest/README": "2026-11-14T14:55:33Z",
@@ -764,7 +764,7 @@
   "internals/discovery": "2026-11-13T15:49:46Z",
   "internals/guest-jail": "2026-11-13T13:49:21Z",
   "internals/jobs": "2026-11-13T15:49:46Z",
-  "internals/node-api": "2026-11-13T17:07:25Z",
+  "internals/node-api": "2026-11-14T23:44:28Z",
   "internals/storage-bounds": "2026-10-15T05:47:38Z",
   "internals/tls": "2026-11-08T23:49:18Z",
   "internals/windows-appcontainer": "2026-10-26T06:25:36Z",
@@ -853,6 +853,6 @@
   "server/plugins": "2026-11-14T03:19:19Z",
   "server/security": "2026-11-12T23:43:01Z",
   "server/sign-in": "2026-11-14T02:31:13Z",
-  "server/stores": "2026-11-13T14:11:47Z"
+  "server/stores": "2026-11-14T23:44:28Z"
  }
 }

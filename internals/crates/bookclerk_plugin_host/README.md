@@ -58,6 +58,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`ExternalDatabase`](#externaldatabase) | struct | External database backend spawned for `[database].plugin`. |
 | [`ExternalIntegration`](#externalintegration) | struct | External integration backed by a discovered plugin binary. |
 | [`ExternalSource`](#externalsource) | struct | External content source backed by a discovered plugin binary. |
+| [`HandedPass`](#handedpass) | struct | How one account's pass of a handed scan ended. |
+| [`HandedScan`](#handedscan) | struct | What a scan with handed credentials found (`ExternalSource::scan_handed`). |
 | [`HostControlPlane`](#hostcontrolplane) | struct | Open control plane for this process. |
 | [`NodeEnrollment`](#nodeenrollment) | struct | Result of `enroll_node`: the bootstrap half of a host control plane. |
 | [`PresentDeployment`](#presentdeployment) | struct | A deployment the database wants present on this node, joined with the instance row and the local install it will run. |
@@ -2051,14 +2053,23 @@ for every guest call: no library is read for credentials, and
 #### ExternalSource::scan_handed
 
 ```rust
-pub async fn scan_handed(&self, opts: ScanOptions) -> Result<Vec<ScanBook>>
+pub async fn scan_handed(
+    &self,
+    opts: ScanOptions,
+    sync_tokens: &HashMap<String, String>,
+) -> Result<HandedScan>
 ```
 
 Scans with the handed credentials and answers the guest's rows
-unwritten (the owner validates and writes them).
+unwritten, with how each account's pass ended (the owner validates
+and writes them, removes what a pass found gone, and keeps the sync
+tokens).
 
 `opts.accounts` narrows the scan to those account ids; empty means
-every handed account.
+every handed account. An account with a token in `sync_tokens` (the
+owner's, from its last complete pass) runs a delta pass from it; the
+others run full passes. A pass whose token the guest refuses
+restarts once as a full pass, and its report says so.
 
 ##### Errors
 
@@ -2094,6 +2105,51 @@ pub fn guest_pid(&self) -> Option<u32>
 Native guest pid, when the session recorded one.
 
 Implements: `ContentSource`
+
+### HandedPass
+
+```rust
+pub struct HandedPass {
+    pub account_id: String,
+    pub removed: Vec<String>,
+    pub sync_token: String,
+    pub complete: bool,
+    pub full: bool,
+}
+```
+
+How one account's pass of a handed scan ended.
+
+**Fields**
+
+- `account_id`: The account.
+- `removed`: Product ids the pass reported gone from the account (a delta pass's
+  removals).
+- `sync_token`: The plugin's token for the account's next pass; empty when it keeps
+  none.
+- `complete`: The pass listed every title the account holds.
+- `full`: The pass was full (sent no token, or restarted after its token was
+  refused), so with `complete` its rows are all the account holds.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### HandedScan
+
+```rust
+pub struct HandedScan {
+    pub rows: Vec<ScanBook>,
+    pub passes: Vec<HandedPass>,
+}
+```
+
+What a scan with handed credentials found ([`ExternalSource::scan_handed`](#externalsourcescan_handed)).
+
+**Fields**
+
+- `rows`: Every account's rows, unwritten.
+- `passes`: How each account's pass ended, in the order the accounts ran.
+
+Implements: `Debug`, `Default`
 
 ### HostControlPlane
 

@@ -1261,6 +1261,48 @@ rows written. At most
 
 Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
 
+#### HostJobCtx::send_scan_removed
+
+```rust
+pub async fn send_scan_removed(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    product_ids: Vec<String>,
+) -> Result<u64, OwnerCallError>
+```
+
+Sends product ids a delta pass of `account_id` found gone to the
+owner, which removes those holdings; answers how many it removed.
+Sent after the job's rows, at most
+[`bookclerk_node_proto::MAX_SCAN_REMOVED_IDS`](../bookclerk_node_proto/README.md#max_scan_removed_ids) ids per call.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
+
+#### HostJobCtx::send_scan_pass_end
+
+```rust
+pub async fn send_scan_pass_end(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    sync_token: &str,
+    complete: bool,
+    full: bool,
+) -> Result<u64, OwnerCallError>
+```
+
+Tells the owner how the pass of `account_id` ended, after its rows
+and removals: the owner keeps `sync_token` for the account's next
+pass and, after a complete full pass, removes the account's holdings
+this job's rows did not list. Answers how many it removed.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
+
 #### HostJobCtx::acquire_plan
 
 ```rust

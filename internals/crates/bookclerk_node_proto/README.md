@@ -36,7 +36,11 @@ sealed with [`seal_instance_secrets`](#seal_instance_secrets)), reports
 [`ARTIFACTS_PATH`](#artifacts_path) with a request signed by [`sign_artifact_request`](#sign_artifact_request).
 
 A scan run on a host returns its rows in fenced [`Body::ScanResults`](#body)
-batches; the owner validates and writes them. An acquire asks
+batches; the owner validates and writes them. Each account's pass then
+reports the ids a delta pass found gone ([`Body::ScanRemoved`](#body)) and how
+it ended ([`Body::ScanPassEnd`](#body)), so the owner keeps the account's sync
+token ([`WorkJob::scan_tokens`](#workjob) hands it back) and prunes after a
+complete full pass. An acquire asks
 [`Body::AcquirePlan`](#body) for its titles, then for each title asks
 [`Body::UploadGrant`](#body) and streams the files over HTTP at
 [`UPLOADS_PATH`](#uploads_path) with the token sealed in [`Body::UploadGranted`](#body); the
@@ -108,6 +112,7 @@ bytes.
 | [`RemoteDeployment`](#remotedeployment) | struct | One deployment that targets a host (`deployments.items`). |
 | [`RemoteVersion`](#remoteversion) | struct | The active version of a plugin a host is asked to run. |
 | [`ScanImport`](#scanimport) | struct | The owner's library import settings a host scan runs with. |
+| [`ScanToken`](#scantoken) | struct | The sync token an owner holds for one account a host scan covers. |
 | [`UploadAnswer`](#uploadanswer) | struct | Answer of the upload endpoint (every status carries one). |
 | [`UploadCommitRequest`](#uploadcommitrequest) | struct | Body of `POST <UPLOADS_PATH><upload_id>/commit`. |
 | [`UploadFile`](#uploadfile) | struct | One file of an upload (`Body::UploadGrant`). Its content crosses the network once and is written to every copy, each destination under the key that destination's own naming options give it. |
@@ -163,6 +168,8 @@ bytes.
 | [`parse_client_token_request`](#parse_client_token_request) | function | Reads a `POST /api/client/v1/token` body. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
+| [`scan_pass_end_problem`](#scan_pass_end_problem) | function | Why a `Body::ScanPassEnd` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id and a sync token of at most `MAX_SCAN_SYNC_TOKEN_BYTES` with no control characters. |
+| [`scan_removed_problem`](#scan_removed_problem) | function | Why a `Body::ScanRemoved` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id, at most `MAX_SCAN_REMOVED_IDS` product ids, each non-blank, at most `MAX_SCAN_PRODUCT_ID_BYTES` and free of control characters. |
 | [`is_branch_name`](#is_branch_name) | function | True for a branch name: 1 to `MAX_BRANCH_NAME_BYTES` bytes, no control characters. |
 | [`is_branch_redirect_uri`](#is_branch_redirect_uri) | function | True for a redirect URI `BRANCH_CLIENT_ID` may use: an absolute `https` URL, or an `http` URL whose host is a loopback IP literal or `localhost` (RFC 8252 section 7.3), with no user info and no fragment. |
 | [`is_library_name`](#is_library_name) | function | True for a library name: 1 to `MAX_LIBRARY_NAME_BYTES` bytes, no control characters. |
@@ -235,7 +242,11 @@ bytes.
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
 | [`MAX_SCAN_BATCH_ROWS`](#max_scan_batch_rows) | constant | Most rows one `Body::ScanResults` batch may carry. |
+| [`MAX_SCAN_PRODUCT_ID_BYTES`](#max_scan_product_id_bytes) | constant | Longest product id a `Body::ScanRemoved` batch may carry. |
+| [`MAX_SCAN_REMOVED_IDS`](#max_scan_removed_ids) | constant | Most product ids one `Body::ScanRemoved` batch may carry (a scan page's own cap). |
 | [`MAX_SCAN_ROW_BYTES`](#max_scan_row_bytes) | constant | Largest serialized row in a `Body::ScanResults` batch. |
+| [`MAX_SCAN_SYNC_TOKEN_BYTES`](#max_scan_sync_token_bytes) | constant | Longest sync token a `Body::ScanPassEnd` or `ScanToken` may carry (a scan page's own cap). |
+| [`MAX_SCAN_TOKENS`](#max_scan_tokens) | constant | Most `ScanToken`s one `WorkJob` may carry. |
 | [`MAX_STATUS_JOBS`](#max_status_jobs) | constant | Most job ids one `Body::JobStatus` may ask about. |
 | [`MAX_UPLOAD_COPIES`](#max_upload_copies) | constant | Most destinations one uploaded file may be written to. |
 | [`MAX_UPLOAD_FILES`](#max_upload_files) | constant | Most files one upload may declare. |
@@ -938,6 +949,24 @@ The owner's library import settings a host scan runs with.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### ScanToken
+
+```rust
+pub struct ScanToken {
+    pub account_id: String,
+    pub sync_token: String,
+}
+```
+
+The sync token an owner holds for one account a host scan covers.
+
+**Fields**
+
+- `account_id`: The store account.
+- `sync_token`: The token, at most [`MAX_SCAN_SYNC_TOKEN_BYTES`](#max_scan_sync_token_bytes).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### UploadAnswer
 
 ```rust
@@ -1031,6 +1060,7 @@ pub struct WorkJob {
     pub attempt: i64,
     pub scan_import: Option<ScanImport>,
     pub for_node_owner: bool,
+    pub scan_tokens: Vec<ScanToken>,
 }
 ```
 
@@ -1049,6 +1079,10 @@ A job handed to a host.
   who owns the node: the branch's own books. A branch keeps its own
   copy of another member's book only when its operator asked for
   that. Absent means false.
+- `scan_tokens`: For a scan: the sync token the owner holds for each handed account
+  whose last complete pass is recent enough to build on. The host's
+  guest runs a delta pass from it; an account without one runs a full
+  pass. At most [`MAX_SCAN_TOKENS`](#max_scan_tokens) entries. Absent means none.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1540,6 +1574,8 @@ pub enum Body {
     SecretUpdate { job_id: String, fence: i64, secret_ref: SecretRef, sealed_value: String },
     ScanResults { job_id: String, fence: i64, plugin_key: String, batch: u64, books: Vec<Value> },
     ScanAccepted { batch: u64, upserted: u64 },
+    ScanRemoved { job_id: String, fence: i64, plugin_key: String, account_id: String, batch: u64, product_ids: Vec<String> },
+    ScanPassEnd { job_id: String, fence: i64, plugin_key: String, account_id: String, sync_token: String, complete: bool, full: bool },
     AcquirePlan { job_id: String, fence: i64 },
     AcquireTargets { targets: Vec<AcquireTarget>, destinations: Vec<PlanDestination> },
     UploadGrant { job_id: String, fence: i64, book_uuid: String, primary_key: String, pdf_key: Option<String>, files: Vec<UploadFile> },
@@ -1725,9 +1761,37 @@ What a frame says, tagged by `type`.
   - `batch`: Batch number, from 1, for the logs.
   - `books`: Book rows as the guest's `ScanBook` (camelCase JSON objects);
     at most [`MAX_SCAN_BATCH_ROWS`](#max_scan_batch_rows).
-- `ScanAccepted`: Owner → host: a results batch was written.
-  - `batch`: The batch number.
-  - `upserted`: Rows written.
+- `ScanAccepted`: Owner → host: a results batch was written, or a
+  [`Body::ScanRemoved`](#body) or [`Body::ScanPassEnd`](#body) was applied.
+  - `batch`: The batch number (`0` for a pass end).
+  - `upserted`: Rows written, or for a removals batch or a pass end the holdings
+    removed.
+- `ScanRemoved`: Host → owner: product ids a delta pass reported gone from one
+  account, sent after the job's rows and before that account's
+  [`Body::ScanPassEnd`](#body). The owner checks the fence, the node's trust
+  and the account as for a row naming it, then removes those
+  holdings. Answered with [`Body::ScanAccepted`](#body), [`Body::Lost`](#body), or
+  `error {code: "refused"}`.
+  - `job_id`: Job the pass belongs to.
+  - `fence`: Lease generation the host holds.
+  - `plugin_key`: The job's source plugin key.
+  - `account_id`: The account the titles left.
+  - `batch`: Batch number, from 1, for the logs.
+  - `product_ids`: At most [`MAX_SCAN_REMOVED_IDS`](#max_scan_removed_ids) product ids.
+- `ScanPassEnd`: Host → owner: how one account's pass ended, after all its rows and
+  removals. The owner stores the sync token for the account's next
+  pass and, after a complete full pass, removes the account's
+  holdings this job's rows did not list. Answered with
+  [`Body::ScanAccepted`](#body), [`Body::Lost`](#body), or `error {code: "refused"}`.
+  - `job_id`: Job the pass belongs to.
+  - `fence`: Lease generation the host holds.
+  - `plugin_key`: The job's source plugin key.
+  - `account_id`: The account the pass scanned.
+  - `sync_token`: The plugin's token for the account's next pass, at most
+    [`MAX_SCAN_SYNC_TOKEN_BYTES`](#max_scan_sync_token_bytes); empty when it keeps none.
+  - `complete`: The pass listed every title the account holds.
+  - `full`: The pass was full: it was sent no sync token, or restarted as a
+    full pass after its token was refused.
 - `AcquirePlan`: Host → owner: what an acquire job should fetch here. Answered with
   [`Body::AcquireTargets`](#body), [`Body::Lost`](#body), or `error`.
   - `job_id`: The acquire job.
@@ -2569,6 +2633,31 @@ segment, no backslash or control character, not absolute, at most
 [`MAX_UPLOAD_KEY_BYTES`](#max_upload_key_bytes), and never a Windows path that leaves the
 destination's root (`colon_is_safe`).
 
+### scan_pass_end_problem
+
+```rust
+pub fn scan_pass_end_problem(account_id: &str, sync_token: &str) -> Option<&'static str>
+```
+
+Why a [`Body::ScanPassEnd`](#body) the owner received is malformed, or `None`
+when it is one a host could send: a non-blank account id and a sync
+token of at most [`MAX_SCAN_SYNC_TOKEN_BYTES`](#max_scan_sync_token_bytes) with no control
+characters.
+
+### scan_removed_problem
+
+```rust
+pub fn scan_removed_problem(
+    account_id: &str,
+    product_ids: &[String],
+) -> Option<&'static str>
+```
+
+Why a [`Body::ScanRemoved`](#body) the owner received is malformed, or `None`
+when it is one a host could send: a non-blank account id, at most
+[`MAX_SCAN_REMOVED_IDS`](#max_scan_removed_ids) product ids, each non-blank, at most
+[`MAX_SCAN_PRODUCT_ID_BYTES`](#max_scan_product_id_bytes) and free of control characters.
+
 ### is_branch_name
 
 ```rust
@@ -3374,6 +3463,23 @@ pub const MAX_SCAN_BATCH_ROWS: usize = 200;
 
 Most rows one [`Body::ScanResults`](#body) batch may carry.
 
+### MAX_SCAN_PRODUCT_ID_BYTES
+
+```rust
+pub const MAX_SCAN_PRODUCT_ID_BYTES: usize = 512;
+```
+
+Longest product id a [`Body::ScanRemoved`](#body) batch may carry.
+
+### MAX_SCAN_REMOVED_IDS
+
+```rust
+pub const MAX_SCAN_REMOVED_IDS: usize = 500;
+```
+
+Most product ids one [`Body::ScanRemoved`](#body) batch may carry (a scan
+page's own cap).
+
 ### MAX_SCAN_ROW_BYTES
 
 ```rust
@@ -3381,6 +3487,23 @@ pub const MAX_SCAN_ROW_BYTES: usize = _;
 ```
 
 Largest serialized row in a [`Body::ScanResults`](#body) batch.
+
+### MAX_SCAN_SYNC_TOKEN_BYTES
+
+```rust
+pub const MAX_SCAN_SYNC_TOKEN_BYTES: usize = 4096;
+```
+
+Longest sync token a [`Body::ScanPassEnd`](#body) or [`ScanToken`](#scantoken) may carry
+(a scan page's own cap).
+
+### MAX_SCAN_TOKENS
+
+```rust
+pub const MAX_SCAN_TOKENS: usize = 256;
+```
+
+Most [`ScanToken`](#scantoken)s one [`WorkJob`](#workjob) may carry.
 
 ### MAX_STATUS_JOBS
 
