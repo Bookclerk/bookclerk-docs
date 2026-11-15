@@ -3630,7 +3630,7 @@ Schema:
 Status `404`: No branch this library trusts (or not the named one) currently lists the work.
 
 ```text
-book not found: work 0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b through a branch
+work 0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b on any branch not found
 ```
 
 Schema:

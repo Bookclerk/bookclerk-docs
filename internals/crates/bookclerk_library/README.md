@@ -32,6 +32,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`RestorePlan`](#restoreplan) | struct | Library restore result plus plugin units for the host to apply. |
 | [`SchemaBackupOpts`](#schemabackupopts) | struct | Optional in-place backup taken before applying ups or downs. |
 | [`ValidatedBackup`](#validatedbackup) | struct | Recovery point whose objects, schema, and typed rows have been verified. |
+| [`Missing`](#missing) | struct | What a `LibraryError::NotFound` could not find: the kind of row and, when the caller named one, its id. |
 | [`SchemaApplyOptions`](#schemaapplyoptions) | struct | Options for `apply_host_schema_with_options`. |
 | [`SchemaBatch`](#schemabatch) | struct | Canonical schema apply batch: already-separate host statements plus marker. |
 | [`InProcessSqlite`](#inprocesssqlite) | struct | Runs compiled named plans on a local SeaORM SQLite connection. |
@@ -137,6 +138,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`BackupResolve`](#backupresolve) | enum | How `resolve_backup_spec` located a recovery point. |
 | [`CanonicalRestoreKind`](#canonicalrestorekind) | enum | How restore applies DDL companions. |
 | [`DatabaseUnitKind`](#databaseunitkind) | enum | Logical kind of one database unit in a recovery point. |
+| [`EntityKind`](#entitykind) | enum | The kind of thing a `LibraryError::NotFound` could not find. |
 | [`LibraryError`](#libraryerror) | enum | Failures from library store, schema apply, secrets, or config. |
 | [`AcquireStatus`](#acquirestatus) | enum | Acquire / download state for a title. |
 | [`EnqueueOutcome`](#enqueueoutcome) | enum | Result of admitting a job into the durable queue. |
@@ -1759,6 +1761,29 @@ Recovery point whose objects, schema, and typed rows have been verified.
 - `plugin_units`: Plugin binding units (already verified).
 
 Implements: `Clone`, `Debug`
+
+### Missing
+
+```rust
+pub struct Missing {
+    pub entity: EntityKind,
+    pub id: Option<String>,
+}
+```
+
+What a [`LibraryError::NotFound`](#libraryerror) could not find: the kind of row and,
+when the caller named one, its id.
+
+Displays as `<entity> <id> not found`, or `<entity> not found` without
+an id, so an error body names the missing thing rather than presuming a
+book.
+
+**Fields**
+
+- `entity`: The kind of row.
+- `id`: The id the caller asked for, when it named one.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
 
 ### SchemaApplyOptions
 
@@ -12009,6 +12034,99 @@ Logical kind of one database unit in a recovery point.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### EntityKind
+
+```rust
+pub enum EntityKind {
+    Account,
+    Book,
+    Work,
+    TitleRequest,
+    User,
+    PortalIdentity,
+    OperatorSession,
+    Passkey,
+    OidcState,
+    WebauthnChallenge,
+    Node,
+    EnrollmentLink,
+    PendingJoin,
+    ClusterIdentity,
+    ClusterLink,
+    ClusterNodeKeys,
+    Configuration,
+    PluginInstance,
+    PluginDeployment,
+    Placement,
+    PluginVersion,
+    VersionPointer,
+    SettingsSchema,
+    RemoteConsent,
+    BranchRequest,
+    DomainEvent,
+    EventDelivery,
+    Job,
+    SavedFilter,
+    ClaimTicket,
+}
+```
+
+The kind of thing a [`LibraryError::NotFound`](#libraryerror) could not find.
+
+Each variant displays as the lower-case phrase an error message uses,
+such as `enrollment link`.
+
+**Variants**
+
+- `Account`: A store account, keyed by plugin and account id.
+- `Book`: A library title (`books` row).
+- `Work`: A work of the library data model.
+- `TitleRequest`: A title request (wishlist entry).
+- `User`: A user.
+- `PortalIdentity`: A portal identity linked to a user.
+- `OperatorSession`: An operator session.
+- `Passkey`: A registered passkey.
+- `OidcState`: An OpenID Connect relying-party sign-in state.
+- `WebauthnChallenge`: A WebAuthn ceremony challenge.
+- `Node`: A cluster node.
+- `EnrollmentLink`: A node enrollment link.
+- `PendingJoin`: A pending join of this host to another library.
+- `ClusterIdentity`: This cluster's identity.
+- `ClusterLink`: A link to another library.
+- `ClusterNodeKeys`: The node keys a linked library published.
+- `Configuration`: A configuration document, by namespace.
+- `PluginInstance`: A plugin instance.
+- `PluginDeployment`: A plugin deployment.
+- `Placement`: A plugin instance's scheduler placement.
+- `PluginVersion`: An installed plugin version.
+- `VersionPointer`: A plugin's active version pointer.
+- `SettingsSchema`: A plugin's pinned settings schema.
+- `RemoteConsent`: A remote plugin consent.
+- `BranchRequest`: A request from a linked library.
+- `DomainEvent`: A domain event on the outbox.
+- `EventDelivery`: An event delivery.
+- `Job`: A job.
+- `SavedFilter`: A saved library filter.
+- `ClaimTicket`: A claim ticket.
+
+#### EntityKind::ALL
+
+```rust
+pub const ALL: [Self; 30] = _
+```
+
+Every kind, in declaration order.
+
+#### EntityKind::as_str
+
+```rust
+pub const fn as_str(self) -> &'static str
+```
+
+The phrase an error message names this kind with.
+
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `PartialEq`
+
 ### LibraryError
 
 ```rust
@@ -12017,7 +12135,7 @@ pub enum LibraryError {
     Orm(DbErr),
     Config(ConfigError),
     Io(Error),
-    NotFound(String),
+    NotFound(Missing),
     LastAdministrator,
     LastOwner,
     InvalidEmail,
@@ -12038,7 +12156,7 @@ Failures from library store, schema apply, secrets, or config.
 - `Orm`: SeaORM / database-plugin failure (`DbErr`).
 - `Config`: Configuration load or validation failure.
 - `Io`: Filesystem or other I/O failure.
-- `NotFound`: Requested book (or similar library row) was not found.
+- `NotFound`: A requested row was not found; the payload names what and which.
 - `LastAdministrator`: Demoting or disabling the last active administrator is refused.
 - `LastOwner`: Demoting, disabling, or deleting the last active owner is refused.
 - `InvalidEmail`: Contact email failed library-backed syntax validation.
@@ -12056,6 +12174,28 @@ Failures from library store, schema apply, secrets, or config.
   Not retryable as is: the caller narrows the request (fewer rows, fewer
   statements) or switches to a transport that fits.
 - `Other`: Catch-all for otherwise unclassified failures.
+
+#### LibraryError::not_found
+
+```rust
+pub fn not_found(entity: EntityKind, id: impl Display) -> Self
+```
+
+A [`Self::NotFound`](#libraryerror) for `entity` with the id `id`.
+
+##### Arguments
+
+* `entity` - The kind of row that is missing.
+* `id` - The id that was asked for, as the caller names it.
+
+#### LibraryError::missing
+
+```rust
+pub const fn missing(entity: EntityKind) -> Self
+```
+
+A [`Self::NotFound`](#libraryerror) for `entity` without an id (a singleton, or a
+lookup by something other than an id).
 
 #### LibraryError::from_db_err
 

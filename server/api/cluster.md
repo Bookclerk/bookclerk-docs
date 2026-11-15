@@ -709,7 +709,7 @@ Status `404`: No such node.
 
 ```json
 {
-  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e not found"
 }
 ```
 
@@ -1041,7 +1041,7 @@ Status `404`: No such node or user.
 
 ```json
 {
-  "error": "book not found: user 42"
+  "error": "user 42 not found"
 }
 ```
 
@@ -8425,7 +8425,7 @@ Status `404`: No such node, or not one the caller administers.
 
 ```json
 {
-  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e not found"
 }
 ```
 
@@ -9623,7 +9623,7 @@ Status `404`: The operator named a node that does not exist.
 
 ```json
 {
-  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e not found"
 }
 ```
 
@@ -10506,7 +10506,7 @@ Status `404`: No such user.
 
 ```json
 {
-  "error": "book not found: user 7"
+  "error": "user 7 not found"
 }
 ```
 
@@ -10893,7 +10893,7 @@ Status `404`: No such link, or not one the caller may see.
 
 ```json
 {
-  "error": "book not found: enrollment link 5f1e2d3c4b5a69788796a5b4c3d2e1f0"
+  "error": "enrollment link 5f1e2d3c4b5a69788796a5b4c3d2e1f0 not found"
 }
 ```
 
@@ -15754,7 +15754,7 @@ Status `404`: No such host, or not one the caller may see.
 
 ```json
 {
-  "error": "book not found: node 7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
+  "error": "node 7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c not found"
 }
 ```
 

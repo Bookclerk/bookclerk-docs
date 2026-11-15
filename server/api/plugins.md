@@ -905,7 +905,7 @@ Status `404`: No such plugin, or it has no pinned schema.
 
 ```json
 {
-  "error": "book not found: plugin `source-libro` has no pinned settings schema; install it on a node first"
+  "error": "settings schema of plugin source-libro not found"
 }
 ```
 
@@ -1220,7 +1220,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -1738,7 +1738,7 @@ Status `404`: No such instance, or it has no document yet.
 
 ```json
 {
-  "error": "book not found: configuration plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b is not initialized"
+  "error": "configuration of plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2124,7 +2124,7 @@ Status `404`: No such instance, or its plugin has no pinned schema.
 
 ```json
 {
-  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -2520,7 +2520,7 @@ Status `404`: No such instance or node.
 
 ```json
 {
-  "error": "book not found: node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+  "error": "node 9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e not found"
 }
 ```
 
@@ -2981,7 +2981,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -3330,7 +3330,7 @@ Status `404`: No such instance.
 
 ```json
 {
-  "error": "book not found: plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
 }
 ```
 
@@ -5393,7 +5393,7 @@ Status `404`: No such plugin or version.
 
 ```json
 {
-  "error": "book not found: version source-libro 0.4.2"
+  "error": "plugin version source-libro 0.4.2 not found"
 }
 ```
 
