@@ -71,6 +71,38 @@ summary?: string[];
 
 ## Interfaces
 
+### AccountHolder
+
+A listing held by a store account.
+
+#### Properties
+
+##### account\_id
+
+```ts
+account_id: string;
+```
+
+The account's id on that storefront.
+
+##### kind
+
+```ts
+kind: "account";
+```
+
+Discriminant.
+
+##### plugin\_key
+
+```ts
+plugin_key: string;
+```
+
+The account's storefront plugin (`audible`, `libro`, ...).
+
+***
+
 ### ActionResponse
 
 Ack payload for scan / acquire job triggers.
@@ -1251,7 +1283,7 @@ node_id: string;
 
 ###### Inherited from
 
-[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-5)
+[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-6)
 
 ##### nodes
 
@@ -1569,6 +1601,126 @@ updating: boolean;
 ```
 
 True while a fetch or ranking for the caller is waiting or running.
+
+***
+
+### Edition
+
+One edition of a work, with its listings.
+
+#### Properties
+
+##### abridgement
+
+```ts
+abridgement: Abridgement;
+```
+
+Whether it is abridged.
+
+##### acquire\_status
+
+```ts
+acquire_status: AcquireStatus;
+```
+
+Its acquire state.
+
+##### cover\_path
+
+```ts
+cover_path: string | null;
+```
+
+Same-origin path of its processed cover; see [coverSrc](#coversrc).
+
+##### duration\_minutes
+
+```ts
+duration_minutes: number | null;
+```
+
+Runtime in minutes, when known.
+
+##### expression\_id
+
+```ts
+expression_id: string;
+```
+
+Its expression.
+
+##### expression\_kind
+
+```ts
+expression_kind: ExpressionKind;
+```
+
+How the expression renders the work.
+
+##### id
+
+```ts
+id: string;
+```
+
+Edition id; acquire takes it in `editions`.
+
+##### language
+
+```ts
+language: string | null;
+```
+
+Language code, when known.
+
+##### listings
+
+```ts
+listings: Listing[];
+```
+
+Store listings that sell it.
+
+##### media\_kind
+
+```ts
+media_kind: MediaKind;
+```
+
+How it is consumed.
+
+##### published\_at
+
+```ts
+published_at: string | null;
+```
+
+Publication date (ISO-8601), when known.
+
+##### subtitle
+
+```ts
+subtitle: string | null;
+```
+
+Subtitle, when known.
+
+##### title
+
+```ts
+title: string;
+```
+
+Edition title.
+
+##### work\_id
+
+```ts
+work_id: string;
+```
+
+The work it belongs to (an episode for a podcast's editions).
 
 ***
 
@@ -1926,6 +2078,54 @@ entry even when their `work_key`s differ, so match on this first.
 ```ts
 work_key: string;
 ```
+
+***
+
+### Holding
+
+One holding of a store listing.
+
+#### Properties
+
+##### added\_at
+
+```ts
+added_at: string;
+```
+
+When the library first saw it (ISO-8601).
+
+##### entitlement
+
+```ts
+entitlement: Entitlement;
+```
+
+How it is held.
+
+##### holder
+
+```ts
+holder: Holder;
+```
+
+Who holds it.
+
+##### id
+
+```ts
+id: string;
+```
+
+Holding id.
+
+##### purchased\_at
+
+```ts
+purchased_at: string | null;
+```
+
+When the store says it was bought (ISO-8601), when known.
 
 ***
 
@@ -2343,6 +2543,62 @@ status: string;
 
 ***
 
+### Listing
+
+One store listing of an edition.
+
+#### Properties
+
+##### holdings
+
+```ts
+holdings: Holding[];
+```
+
+Who holds it.
+
+##### id
+
+```ts
+id: string;
+```
+
+Listing id.
+
+##### marketplace
+
+```ts
+marketplace: string;
+```
+
+Marketplace code (`us`, `uk`, …).
+
+##### plugin\_key
+
+```ts
+plugin_key: string;
+```
+
+Storefront plugin (`audible`, `libro`, …).
+
+##### product\_id
+
+```ts
+product_id: string;
+```
+
+The store's product id (ASIN, ISBN, …).
+
+##### url
+
+```ts
+url: string | null;
+```
+
+The listing's store page, when known.
+
+***
+
 ### NodeCapabilities
 
 What the caller may do on the nodes it was sent.
@@ -2374,6 +2630,30 @@ scope: "all" | "owned";
 ```
 
 `all` for an operator; `owned` for a user who owns nodes.
+
+***
+
+### NodeHolder
+
+A listing held by a branch library's node.
+
+#### Properties
+
+##### kind
+
+```ts
+kind: "node";
+```
+
+Discriminant.
+
+##### node\_id
+
+```ts
+node_id: string;
+```
+
+The holding node's id.
 
 ***
 
@@ -5766,7 +6046,354 @@ theme: ThemePreference;
 
 Appearance: `system` follows the OS (fallback light); `light` / `dark` pin it.
 
+***
+
+### WorkDetail
+
+One work from `GET /api/library/works/{id}`.
+
+#### Properties
+
+##### authors
+
+```ts
+authors: string[];
+```
+
+Authors (or hosts).
+
+##### description
+
+```ts
+description: string | null;
+```
+
+Description, when known (may contain light HTML).
+
+##### editions
+
+```ts
+editions: Edition[];
+```
+
+Its editions.
+
+##### id
+
+```ts
+id: string;
+```
+
+Work id.
+
+##### kind
+
+```ts
+kind: WorkKind;
+```
+
+Book or podcast.
+
+##### series
+
+```ts
+series: string | null;
+```
+
+Series name, when in one.
+
+##### series\_position
+
+```ts
+series_position: string | null;
+```
+
+Position within the series.
+
+##### state?
+
+```ts
+state?: WorkState | null;
+```
+
+The caller's own state; absent when they recorded none.
+
+##### title
+
+```ts
+title: string;
+```
+
+Display title.
+
+***
+
+### WorksPage
+
+A page of works and the cursor of the next one.
+
+#### Properties
+
+##### next\_cursor?
+
+```ts
+next_cursor?: string | null;
+```
+
+Pass as `cursor` for the next page; absent on the last.
+
+##### works
+
+```ts
+works: WorkSummary[];
+```
+
+The page's works.
+
+***
+
+### WorksQuery
+
+Filters and paging for [fetchWorks](#fetchworks).
+
+#### Properties
+
+##### account?
+
+```ts
+account?: string;
+```
+
+Only works held on this account id.
+
+##### cursor?
+
+```ts
+cursor?: string;
+```
+
+The previous page's `next_cursor`.
+
+##### kind?
+
+```ts
+kind?: WorkKind;
+```
+
+Only books or only podcasts.
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Page size (the daemon caps it at 200).
+
+##### media\_kind?
+
+```ts
+media_kind?: MediaKind;
+```
+
+Only works with an edition of this media kind.
+
+##### q?
+
+```ts
+q?: string;
+```
+
+Search text; matches come best first and `sort` is ignored.
+
+##### sort?
+
+```ts
+sort?: WorkSort;
+```
+
+Page order without `q`.
+
+##### status?
+
+```ts
+status?: AcquireStatus | "all";
+```
+
+Only works in this acquire state (`all` or omitted for every state).
+
+***
+
+### WorkState
+
+The caller's own state for a work.
+
+#### Properties
+
+##### is\_finished
+
+```ts
+is_finished: boolean;
+```
+
+Whether they finished it.
+
+##### rating\_overall
+
+```ts
+rating_overall: number | null;
+```
+
+Overall rating (0–5).
+
+##### rating\_performance
+
+```ts
+rating_performance: number | null;
+```
+
+Performance rating (0–5).
+
+##### rating\_story
+
+```ts
+rating_story: number | null;
+```
+
+Story rating (0–5).
+
+##### tags
+
+```ts
+tags: string | null;
+```
+
+Space-separated tags.
+
+***
+
+### WorkSummary
+
+One work row from `GET /api/library/works`: a book or podcast once,
+however many editions and accounts hold it.
+
+#### Properties
+
+##### acquire\_status
+
+```ts
+acquire_status: AcquireStatus;
+```
+
+The work's acquire state, summed over its editions.
+
+##### added\_at
+
+```ts
+added_at: string;
+```
+
+When the newest holding was added (ISO-8601).
+
+##### authors
+
+```ts
+authors: string | null;
+```
+
+Authors (or hosts), comma-separated, when known.
+
+##### cover\_edition\_id
+
+```ts
+cover_edition_id: string | null;
+```
+
+Edition whose cover the row shows.
+
+##### cover\_path
+
+```ts
+cover_path: string | null;
+```
+
+Same-origin path of that cover's processed images; see [coverSrc](#coversrc).
+
+##### edition\_count
+
+```ts
+edition_count: number;
+```
+
+Editions of the work in the library.
+
+##### holding\_count
+
+```ts
+holding_count: number;
+```
+
+Holdings of the work's listings.
+
+##### id
+
+```ts
+id: string;
+```
+
+Work id; opens the detail at `/api/library/works/{id}`.
+
+##### kind
+
+```ts
+kind: WorkKind;
+```
+
+Book or podcast.
+
+##### media\_kinds
+
+```ts
+media_kinds: MediaKind[];
+```
+
+Media kinds the work's editions come in.
+
+##### series
+
+```ts
+series: string | null;
+```
+
+Series name when the work is in one.
+
+##### series\_position
+
+```ts
+series_position: string | null;
+```
+
+Position within the series (text, so `1.5` keeps its spelling).
+
+##### title
+
+```ts
+title: string;
+```
+
+Display title.
+
 ## Type Aliases
+
+### Abridgement
+
+```ts
+type Abridgement = "unknown" | "unabridged" | "abridged";
+```
+
+Whether an expression is abridged.
+
+***
 
 ### AcquireStatus
 
@@ -5920,6 +6547,46 @@ type DiscoverFeedState = "ready" | "refreshing" | "preparing";
 ```
 
 How current a stored Discover feed is.
+
+***
+
+### Entitlement
+
+```ts
+type Entitlement = "purchase" | "plus" | "loan" | "free";
+```
+
+How a holder came to hold a listing.
+
+***
+
+### ExpressionKind
+
+```ts
+type ExpressionKind = "text" | "narration" | "dramatisation" | "graphic" | "original_audio";
+```
+
+How an expression renders its work.
+
+***
+
+### Holder
+
+```ts
+type Holder = AccountHolder | NodeHolder;
+```
+
+Who holds a listing: a store account, or a branch library's node.
+
+***
+
+### MediaKind
+
+```ts
+type MediaKind = "audio" | "ebook" | "print";
+```
+
+How an edition is consumed.
 
 ***
 
@@ -6109,6 +6776,26 @@ type TitleReviewsSort = "MostHelpful" | "MostRecent";
 
 Audible review sort modes for title detail.
 
+***
+
+### WorkKind
+
+```ts
+type WorkKind = "book" | "podcast";
+```
+
+What a work is: a book, or a podcast (its show).
+
+***
+
+### WorkSort
+
+```ts
+type WorkSort = "title" | "author" | "added";
+```
+
+How `/api/library/works` orders a page (ignored while searching).
+
 ## Variables
 
 ### endElevate
@@ -6148,6 +6835,29 @@ Acknowledges a dead-lettered delivery (no further retry).
 `Promise`\<[`ActionResponse`](#actionresponse)\>
 
 Action ack from the daemon.
+
+***
+
+### acquirableEditions()
+
+```ts
+function acquirableEditions(work): string[];
+```
+
+The editions of `work` an acquire should queue: those someone holds
+that are not acquired or on their way.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `work` | [`WorkDetail`](#workdetail) | A work's detail. |
+
+#### Returns
+
+`string`[]
+
+Edition ids for [triggerAcquire](#triggeracquire)'s `editions`.
 
 ***
 
@@ -6671,6 +7381,29 @@ Resolves when TOTP is disabled.
 
 ***
 
+### editionCoverUrl()
+
+```ts
+function editionCoverUrl(editionId): string;
+```
+
+Builds the authenticated URL of the cover an acquire wrote beside an
+edition's file (404 when this node has none).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `editionId` | `string` | Edition id. |
+
+#### Returns
+
+`string`
+
+Relative URL under `/api/library/editions/.../cover`.
+
+***
+
 ### elevate()
 
 ```ts
@@ -7157,6 +7890,50 @@ Loads the current user's wishlist items.
 `Promise`\<[`TitleRequest`](#titlerequest)[]\>
 
 Title-request rows.
+
+***
+
+### fetchWork()
+
+```ts
+function fetchWork(id): Promise<WorkDetail>;
+```
+
+Fetches one work with its editions, listings, holdings and own state.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `string` | Work id. |
+
+#### Returns
+
+`Promise`\<[`WorkDetail`](#workdetail)\>
+
+The work.
+
+***
+
+### fetchWorks()
+
+```ts
+function fetchWorks(query): Promise<WorksPage>;
+```
+
+Fetches one page of the library's works.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `query` | [`WorksQuery`](#worksquery) | Filters, order and the cursor of the page to read. |
+
+#### Returns
+
+`Promise`\<[`WorksPage`](#workspage)\>
+
+The page and the next page's cursor.
 
 ***
 
@@ -8538,14 +9315,16 @@ Resolves when the session cookie is set.
 function triggerAcquire(body): Promise<ActionResponse>;
 ```
 
-Queues acquire for a library book by uuid and/or ASIN.
+Queues an acquire: everything pending when the body names nothing, or
+the named editions or title.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `body` | \{ `asin?`: `string`; `uuid?`: `string`; \} | Target identifiers (`uuid` and/or `asin`). |
+| `body` | \{ `asin?`: `string`; `editions?`: `string`[]; `uuid?`: `string`; \} | `editions` (ids from a work's detail), or a title by `uuid` / `asin`. |
 | `body.asin?` | `string` | - |
+| `body.editions?` | `string`[] | - |
 | `body.uuid?` | `string` | - |
 
 #### Returns
