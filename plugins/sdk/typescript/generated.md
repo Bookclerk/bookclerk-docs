@@ -470,6 +470,16 @@ secrets: ExtensibleConfig;
 `SECRETS`: granted secret values as `application/json`; empty payload
 when the manifest declares no `[secrets]`.
 
+##### sockets?
+
+```ts
+sockets?: Sockets | null;
+```
+
+`SOCKETS`: host-brokered outbound WebSockets that stay open while the
+guest sleeps; null unless `[sockets]` is declared and granted.
+Null when the guest does not export this capability.
+
 ##### storage?
 
 ```ts
@@ -2864,6 +2874,15 @@ scheduledHandler?: ScheduledHandler | null;
 ```
 
 `[triggers] crons` trigger: `scheduled(controller)` handler.
+Null when the guest does not export this capability.
+
+##### socketHandler?
+
+```ts
+socketHandler?: SocketHandler | null;
+```
+
+`[sockets]` handler: messages and closes on host-brokered sockets.
 Null when the guest does not export this capability.
 
 ##### storage?
@@ -6061,6 +6080,15 @@ queueProducers: string[];
 
 Queues the guest may send to through its `[[queues.producers]]` bindings.
 
+##### sockets
+
+```ts
+sockets: boolean;
+```
+
+True when the guest declared `[sockets]`: it receives the host-brokered
+`Sockets` binding and may export a `SocketHandler` for pushed messages.
+
 ***
 
 ### PluginCli
@@ -7970,6 +7998,407 @@ Omitted when absent (wire zero value).
 
 ***
 
+### SocketAutoResponse
+
+A heartbeat the broker answers itself: when `request` arrives byte for byte,
+it sends `response` and does not wake the guest.
+
+#### Properties
+
+##### request
+
+```ts
+request: SocketFrame;
+```
+
+Frame to match, at most `maxSocketAutoResponseBytes`.
+
+##### response
+
+```ts
+response: SocketFrame;
+```
+
+Frame to send back, at most `maxSocketAutoResponseBytes`.
+
+***
+
+### SocketClosed
+
+Argument of `SocketHandler.closed`.
+
+#### Properties
+
+##### attachment
+
+```ts
+attachment: Uint8Array;
+```
+
+The socket's last attachment.
+
+##### clean
+
+```ts
+clean: boolean;
+```
+
+True when the close handshake completed.
+
+##### code
+
+```ts
+code: number;
+```
+
+WebSocket close code; 1006 when the connection dropped without one.
+
+##### reason?
+
+```ts
+reason?: string;
+```
+
+Close reason the peer sent; empty when none.
+Omitted when absent (wire zero value).
+
+##### socket
+
+```ts
+socket: string;
+```
+
+Socket that closed; its id is not reused.
+
+***
+
+### SocketConnectRequest
+
+Arguments of `Sockets.connect`.
+
+#### Properties
+
+##### attachment
+
+```ts
+attachment: Uint8Array;
+```
+
+Initial attachment, at most `maxSocketAttachmentBytes`.
+
+##### autoResponses
+
+```ts
+autoResponses: SocketAutoResponse[];
+```
+
+Heartbeats the broker answers, at most `maxSocketAutoResponses`.
+
+##### headers
+
+```ts
+headers: SocketHeader[];
+```
+
+Extra request headers, at most `maxSocketHeaders`.
+
+##### protocols
+
+```ts
+protocols: string[];
+```
+
+Requested subprotocols, at most `maxSocketHeaders`.
+
+##### url
+
+```ts
+url: string;
+```
+
+`wss://` or `ws://` URL, at most `maxSocketUrlBytes`. The host must be on
+the plugin's network grant.
+
+***
+
+### SocketHandler
+
+Guest handler for host-brokered sockets (`Entrypoints.socketHandler`).
+
+#### Methods
+
+##### closed()
+
+```ts
+closed(event): Promise<EmptyReply>;
+```
+
+A socket closed, by the remote side, the network, or the host.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `event` | [`SocketClosed`](#socketclosed) | Socket, close code, and attachment. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+##### message()
+
+```ts
+message(event): Promise<EmptyReply>;
+```
+
+One message arrived on an open socket.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `event` | [`SocketMessage`](#socketmessage) | Socket, frame, and attachment. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+***
+
+### SocketHeader
+
+One request header on `Sockets.connect`.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Header name; the broker refuses hop-by-hop and WebSocket handshake names.
+
+##### value
+
+```ts
+value: string;
+```
+
+Header value. May carry a credential: the host never logs it.
+
+***
+
+### SocketInfo
+
+One open host-brokered socket.
+
+#### Properties
+
+##### attachment
+
+```ts
+attachment: Uint8Array;
+```
+
+Current attachment.
+
+##### protocol?
+
+```ts
+protocol?: string;
+```
+
+Subprotocol the server chose; empty when none.
+Omitted when absent (wire zero value).
+
+##### socket
+
+```ts
+socket: string;
+```
+
+Host-minted socket id, stable for the socket's life.
+
+##### url
+
+```ts
+url: string;
+```
+
+URL the socket was opened to, without credentials.
+
+***
+
+### SocketList
+
+Success payload of `Sockets.list`.
+
+#### Properties
+
+##### sockets
+
+```ts
+sockets: SocketInfo[];
+```
+
+Open sockets, oldest first.
+
+***
+
+### SocketMessage
+
+Argument of `SocketHandler.message`.
+
+#### Properties
+
+##### attachment
+
+```ts
+attachment: Uint8Array;
+```
+
+The socket's attachment when the message arrived.
+
+##### frame
+
+```ts
+frame: SocketFrame;
+```
+
+The message.
+
+##### socket
+
+```ts
+socket: string;
+```
+
+Socket the message arrived on.
+
+***
+
+### Sockets
+
+Host-brokered outbound WebSockets, granted through `Bindings.sockets`.
+
+The guest asks for a socket; a broker the host runs for the plugin
+instance dials it under the plugin's network grant and keeps it open while
+the guest sleeps, in the manner of hibernatable Workers WebSockets. Each
+incoming message wakes the guest and arrives on
+`Entrypoints.socketHandler`. Heartbeat pairs declared at connect are
+answered by the broker without waking the guest.
+
+#### Methods
+
+##### close()
+
+```ts
+close(
+   socket, 
+   code, 
+   reason
+): Promise<EmptyReply>;
+```
+
+Close a socket; closing an unknown or closed socket is not an error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `socket` | `string` | Socket id. |
+| `code` | `number` | WebSocket close code; zero sends 1000. |
+| `reason` | `string` | Close reason, at most 123 UTF-8 bytes. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+##### connect()
+
+```ts
+connect(request): Promise<SocketConnectReply>;
+```
+
+Open a socket; it is owned by the plugin instance, not this invocation.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`SocketConnectRequest`](#socketconnectrequest) | Target, subprotocols, headers, heartbeats. |
+
+###### Returns
+
+`Promise`\<[`SocketConnectReply`](#socketconnectreply)\>
+
+[SocketConnectReply](#socketconnectreply)
+
+##### list()
+
+```ts
+list(): Promise<SocketListReply>;
+```
+
+The instance's open sockets, for a guest that just woke.
+
+###### Returns
+
+`Promise`\<[`SocketListReply`](#socketlistreply)\>
+
+[SocketListReply](#socketlistreply)
+
+##### send()
+
+```ts
+send(socket, frame): Promise<EmptyReply>;
+```
+
+Send one message on an open socket.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `socket` | `string` | Socket id from `connect` or `list`. |
+| `frame` | [`SocketFrame`](#socketframe) | Message, at most `maxSocketFrameBytes`. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+##### setAttachment()
+
+```ts
+setAttachment(socket, attachment): Promise<EmptyReply>;
+```
+
+Replace the attachment the host keeps for a socket.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `socket` | `string` | Socket id. |
+| `attachment` | `Uint8Array` | Opaque bytes, at most `maxSocketAttachmentBytes`. |
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+***
+
 ### Source
 
 Read-only byte source for job inputs (not a storefront).
@@ -9270,6 +9699,60 @@ type SchemaAction =
 ```
 
 CREATE/DROP action recorded on a proof.
+
+***
+
+### SocketConnectReply
+
+```ts
+type SocketConnectReply = 
+  | {
+  kind: "ok";
+  value: SocketInfo;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Sockets.connect`.
+
+***
+
+### SocketFrame
+
+```ts
+type SocketFrame = 
+  | {
+  kind: "text";
+  value: string;
+}
+  | {
+  kind: "binary";
+  value: Uint8Array;
+};
+```
+
+One WebSocket message.
+
+***
+
+### SocketListReply
+
+```ts
+type SocketListReply = 
+  | {
+  kind: "ok";
+  value: SocketList;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Sockets.list`.
 
 ***
 

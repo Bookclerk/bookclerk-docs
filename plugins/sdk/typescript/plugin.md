@@ -5324,7 +5324,12 @@ and a store without a bulk endpoint still returns the titles it priced.
 ### TRIGGER\_FAMILIES
 
 ```ts
-const TRIGGER_FAMILIES: Readonly<Record<"eventConsumer" | "queueConsumer" | "scheduledHandler" | "jobRunner", string>>;
+const TRIGGER_FAMILIES: Readonly<Record<
+  | "eventConsumer"
+  | "queueConsumer"
+  | "scheduledHandler"
+  | "jobRunner"
+| "socketHandler", string>>;
 ```
 
 Wire names of the trigger families the launcher may ask `openInvocation` about.
@@ -5341,6 +5346,7 @@ Filters requested entrypoint / trigger family names against the manifest
 capabilities: named entrypoints must be declared in `entrypoints`,
 `eventConsumer` needs a non-empty `consumes`, `queueConsumer` needs a
 non-empty `queueConsumers`, `scheduledHandler` needs a non-empty `crons`,
+`socketHandler` needs `sockets` (`[sockets]` in the manifest),
 and `jobRunner` needs `jobs` or the `storage`
 entrypoint (storage guests run the host `stream_copy` job). Unknown names
 and a missing manifest fail closed.

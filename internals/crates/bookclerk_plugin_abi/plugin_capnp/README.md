@@ -44,6 +44,13 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant |  |
 | [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
+| [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
+| [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant |  |
+| [`MAX_SOCKETS_PER_INSTANCE`](#max_sockets_per_instance) | constant |  |
+| [`MAX_SOCKET_AUTO_RESPONSES`](#max_socket_auto_responses) | constant |  |
+| [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant |  |
+| [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant |  |
+| [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_TOTAL_OPS`](#max_plugin_migration_total_ops) | constant |  |
@@ -127,6 +134,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`named_queue`](named_queue.md)
 - [`kv_namespace`](kv_namespace/README.md)
 - [`named_kv`](named_kv.md)
+- [`sockets`](sockets/README.md)
+- [`socket_handler`](socket_handler/README.md)
 - [`content_source`](content_source/README.md)
 - [`remote_library`](remote_library/README.md)
 - [`plugin_cli`](plugin_cli/README.md)
@@ -240,6 +249,16 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`cover_image`](cover_image.md)
 - [`cover_images`](cover_images.md)
 - [`cover_images_reply`](cover_images_reply.md)
+- [`socket_frame`](socket_frame.md)
+- [`socket_header`](socket_header.md)
+- [`socket_auto_response`](socket_auto_response.md)
+- [`socket_connect_request`](socket_connect_request.md)
+- [`socket_info`](socket_info.md)
+- [`socket_connect_reply`](socket_connect_reply.md)
+- [`socket_list`](socket_list.md)
+- [`socket_list_reply`](socket_list_reply.md)
+- [`socket_message`](socket_message.md)
+- [`socket_closed`](socket_closed.md)
 - [`db_value`](db_value.md)
 - [`db_column`](db_column.md)
 - [`db_row`](db_row.md)
@@ -677,6 +696,48 @@ pub const MAX_COVER_HEADER_BYTES: u32 = 1024;
 
 ```rust
 pub const MAX_KV_KEY_BYTES: u32 = 512;
+```
+
+### MAX_SOCKET_FRAME_BYTES
+
+```rust
+pub const MAX_SOCKET_FRAME_BYTES: u32 = 262144;
+```
+
+### MAX_SOCKET_ATTACHMENT_BYTES
+
+```rust
+pub const MAX_SOCKET_ATTACHMENT_BYTES: u32 = 2048;
+```
+
+### MAX_SOCKETS_PER_INSTANCE
+
+```rust
+pub const MAX_SOCKETS_PER_INSTANCE: u32 = 8;
+```
+
+### MAX_SOCKET_AUTO_RESPONSES
+
+```rust
+pub const MAX_SOCKET_AUTO_RESPONSES: u32 = 4;
+```
+
+### MAX_SOCKET_AUTO_RESPONSE_BYTES
+
+```rust
+pub const MAX_SOCKET_AUTO_RESPONSE_BYTES: u32 = 256;
+```
+
+### MAX_SOCKET_URL_BYTES
+
+```rust
+pub const MAX_SOCKET_URL_BYTES: u32 = 2048;
+```
+
+### MAX_SOCKET_HEADERS
+
+```rust
+pub const MAX_SOCKET_HEADERS: u32 = 16;
 ```
 
 ### MAX_KV_METADATA_BYTES

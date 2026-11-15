@@ -145,6 +145,12 @@ pub fn get_crons(self) -> Result<Reader<'a>>
 pub fn has_crons(&self) -> bool
 ```
 
+#### Reader::get_sockets
+
+```rust
+pub fn get_sockets(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -396,6 +402,18 @@ pub fn init_crons(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_crons(&self) -> bool
+```
+
+#### Builder::get_sockets
+
+```rust
+pub fn get_sockets(self) -> bool
+```
+
+#### Builder::set_sockets
+
+```rust
+pub fn set_sockets(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

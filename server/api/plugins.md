@@ -6204,7 +6204,8 @@ Status `200`: What the plugin asks for and what is granted.
       "secrets",
       "plugin_kv",
       "work_fs",
-      "oauth"
+      "oauth",
+      "sockets"
     ]
   },
   "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
@@ -7281,7 +7282,8 @@ Schema:
             "secrets",
             "plugin_kv",
             "work_fs",
-            "oauth"
+            "oauth",
+            "sockets"
           ]
         }
       }
@@ -7825,7 +7827,8 @@ Status `200`: The grant was stored.
       "secrets",
       "plugin_kv",
       "work_fs",
-      "oauth"
+      "oauth",
+      "sockets"
     ]
   },
   "host_user_agent": "bookclerk/0.1.0 (+https://bookclerk.app)"
@@ -8902,7 +8905,8 @@ Schema:
             "secrets",
             "plugin_kv",
             "work_fs",
-            "oauth"
+            "oauth",
+            "sockets"
           ]
         }
       }

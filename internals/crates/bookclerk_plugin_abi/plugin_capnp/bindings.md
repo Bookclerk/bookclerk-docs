@@ -145,6 +145,18 @@ pub fn get_kv(self) -> Result<Reader<'a, Owned>>
 pub fn has_kv(&self) -> bool
 ```
 
+#### Reader::get_sockets
+
+```rust
+pub fn get_sockets(self) -> Result<Client>
+```
+
+#### Reader::has_sockets
+
+```rust
+pub fn has_sockets(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -377,6 +389,24 @@ pub fn init_kv(self, size: u32) -> Builder<'a, Owned>
 pub fn has_kv(&self) -> bool
 ```
 
+#### Builder::get_sockets
+
+```rust
+pub fn get_sockets(self) -> Result<Client>
+```
+
+#### Builder::set_sockets
+
+```rust
+pub fn set_sockets(&mut self, value: Client)
+```
+
+#### Builder::has_sockets
+
+```rust
+pub fn has_sockets(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -421,6 +451,12 @@ pub fn get_cancel(&self) -> Client
 
 ```rust
 pub fn get_storage(&self) -> Client
+```
+
+#### Pipeline::get_sockets
+
+```rust
+pub fn get_sockets(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

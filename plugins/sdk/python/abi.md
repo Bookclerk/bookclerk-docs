@@ -108,6 +108,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NamedQueue`](#namedqueue) | class | One named queue producer delivered on `Bindings.queues`. |
 | [`KvNamespace`](#kvnamespace) | class | Durable key/value namespace: a Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names, granted through `Bindings.kv`. Values live in the cluster, so an instance moved to another host reads its own keys. |
 | [`NamedKv`](#namedkv) | class | One named durable namespace delivered on `Bindings.kv`. |
+| [`Sockets`](#sockets) | class | Host-brokered outbound WebSockets, granted through `Bindings.sockets`. |
+| [`SocketHandler`](#sockethandler) | class | Guest handler for host-brokered sockets (`Entrypoints.socketHandler`). |
 | [`ContentSource`](#contentsource) | class | Storefront content source (not byte Source). Every method takes and returns typed structs from the "Typed method payloads" section. |
 | [`RemoteLibrary`](#remotelibrary) | class | `remoteLibrary` entrypoint: long-running remote-library lifecycle (start / stop, library rescan, listening sync, external-user polling). Event delivery is `EventConsumer`; credential verification is `Oidc`. |
 | [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
@@ -246,6 +248,19 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CoverImages`](#coverimages) | class | Success payload of `CoverFetcher.fetchCovers`. |
 | [`CoverImagesReplyOk`](#coverimagesreplyok) | class | `CoverImagesReply` member `ok`. |
 | [`CoverImagesReplyErr`](#coverimagesreplyerr) | class | `CoverImagesReply` member `err`. |
+| [`SocketFrameText`](#socketframetext) | class | `SocketFrame` member `text`. |
+| [`SocketFrameBinary`](#socketframebinary) | class | `SocketFrame` member `binary`. |
+| [`SocketHeader`](#socketheader) | class | One request header on `Sockets.connect`. |
+| [`SocketAutoResponse`](#socketautoresponse) | class | A heartbeat the broker answers itself: when `request` arrives byte for byte, it sends `response` and does not wake the guest. |
+| [`SocketConnectRequest`](#socketconnectrequest) | class | Arguments of `Sockets.connect`. |
+| [`SocketInfo`](#socketinfo) | class | One open host-brokered socket. |
+| [`SocketConnectReplyOk`](#socketconnectreplyok) | class | `SocketConnectReply` member `ok`. |
+| [`SocketConnectReplyErr`](#socketconnectreplyerr) | class | `SocketConnectReply` member `err`. |
+| [`SocketList`](#socketlist) | class | Success payload of `Sockets.list`. |
+| [`SocketListReplyOk`](#socketlistreplyok) | class | `SocketListReply` member `ok`. |
+| [`SocketListReplyErr`](#socketlistreplyerr) | class | `SocketListReply` member `err`. |
+| [`SocketMessage`](#socketmessage) | class | Argument of `SocketHandler.message`. |
+| [`SocketClosed`](#socketclosed) | class | Argument of `SocketHandler.closed`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -380,6 +395,9 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataRecordsReply`](#metadatarecordsreply) | constant | Result union of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChaptersReply`](#metadatachaptersreply) | constant | Result union of `MetadataProvider.chapters`. |
 | [`CoverImagesReply`](#coverimagesreply) | constant | Result union of `CoverFetcher.fetchCovers`. |
+| [`SocketFrame`](#socketframe) | constant | One WebSocket message. |
+| [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
+| [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
@@ -674,6 +692,7 @@ the binding.
 - `storage`: `WORK_FS`: host-granted object storage for durable plugin files (work filesystem); null unless `[work_fs]` is granted. Job input/output travel on `JobRunner.job(controller)`, never here. Null when the guest does not export this capability.
 - `queues`: Named `[[queues.producers]]` bindings: one host-served producer per binding, each sending into the queue the row names. Empty when the manifest declares none.
 - `kv`: Named `[[kv_namespaces]]` bindings: one host-served durable namespace per binding, scoped to this plugin. Empty when the manifest declares none.
+- `sockets`: `SOCKETS`: host-brokered outbound WebSockets that stay open while the guest sleeps; null unless `[sockets]` is declared and granted. Null when the guest does not export this capability.
 
 ### Entrypoints
 
@@ -699,6 +718,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `scheduledHandler`: `[triggers] crons` trigger: `scheduled(controller)` handler. Null when the guest does not export this capability.
 - `metadata`: `metadata` entrypoint. Null when the guest does not export this capability.
 - `covers`: `covers` entrypoint. Null when the guest does not export this capability.
+- `socketHandler`: `[sockets]` handler: messages and closes on host-brokered sockets. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -2193,6 +2213,141 @@ One named durable namespace delivered on `Bindings.kv`.
 - `namespace`: Namespace the binding is scoped to.
 - `kv`: Host-served namespace. Null when the guest does not export this capability.
 
+### Sockets
+
+```python
+class Sockets(Protocol)
+```
+
+Host-brokered outbound WebSockets, granted through `Bindings.sockets`.
+
+The guest asks for a socket; a broker the host runs for the plugin
+instance dials it under the plugin's network grant and keeps it open while
+the guest sleeps, in the manner of hibernatable Workers WebSockets. Each
+incoming message wakes the guest and arrives on
+`Entrypoints.socketHandler`. Heartbeat pairs declared at connect are
+answered by the broker without waking the guest.
+
+#### Sockets.connect
+
+```python
+async def connect(self, request: SocketConnectRequest) -> SocketConnectReply
+```
+
+Open a socket; it is owned by the plugin instance, not this invocation.
+
+**Args**
+
+- `request`: Target, subprotocols, headers, heartbeats.
+
+**Returns**
+
+`SocketConnectReply`
+
+#### Sockets.send
+
+```python
+async def send(self, socket: str, frame: SocketFrame) -> EmptyReply
+```
+
+Send one message on an open socket.
+
+**Args**
+
+- `socket`: Socket id from `connect` or `list`.
+- `frame`: Message, at most `maxSocketFrameBytes`.
+
+**Returns**
+
+`EmptyReply`
+
+#### Sockets.close
+
+```python
+async def close(self, socket: str, code: int, reason: str) -> EmptyReply
+```
+
+Close a socket; closing an unknown or closed socket is not an error.
+
+**Args**
+
+- `socket`: Socket id.
+- `code`: WebSocket close code; zero sends 1000.
+- `reason`: Close reason, at most 123 UTF-8 bytes.
+
+**Returns**
+
+`EmptyReply`
+
+#### Sockets.set_attachment
+
+```python
+async def set_attachment(self, socket: str, attachment: bytes) -> EmptyReply
+```
+
+Replace the attachment the host keeps for a socket.
+
+**Args**
+
+- `socket`: Socket id.
+- `attachment`: Opaque bytes, at most `maxSocketAttachmentBytes`.
+
+**Returns**
+
+`EmptyReply`
+
+#### Sockets.list
+
+```python
+async def list(self) -> SocketListReply
+```
+
+The instance's open sockets, for a guest that just woke.
+
+**Returns**
+
+`SocketListReply`
+
+### SocketHandler
+
+```python
+class SocketHandler(Protocol)
+```
+
+Guest handler for host-brokered sockets (`Entrypoints.socketHandler`).
+
+#### SocketHandler.message
+
+```python
+async def message(self, event: SocketMessage) -> EmptyReply
+```
+
+One message arrived on an open socket.
+
+**Args**
+
+- `event`: Socket, frame, and attachment.
+
+**Returns**
+
+`EmptyReply`
+
+#### SocketHandler.closed
+
+```python
+async def closed(self, event: SocketClosed) -> EmptyReply
+```
+
+A socket closed, by the remote side, the network, or the host.
+
+**Args**
+
+- `event`: Socket, close code, and attachment.
+
+**Returns**
+
+`EmptyReply`
+
 ### ContentSource
 
 ```python
@@ -2761,6 +2916,7 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `queueConsumers`: Queues the default entrypoint consumes (`queue(batch)` trigger).
 - `queueProducers`: Queues the guest may send to through its `[[queues.producers]]` bindings.
 - `crons`: Five-field UTC cron schedules the default entrypoint handles (`scheduled(controller)` trigger, `[triggers] crons`), normalized to single spaces.
+- `sockets`: True when the guest declared `[sockets]`: it receives the host-brokered `Sockets` binding and may export a `SocketHandler` for pushed messages.
 
 ### CatalogCapabilities
 
@@ -4792,6 +4948,196 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### SocketFrameText
+
+```python
+class SocketFrameText(TypedDict)
+```
+
+`SocketFrame` member `text`.
+
+Text message, UTF-8.
+
+**Attributes**
+
+- `kind`: Always `"text"`.
+- `value`: Text message, UTF-8.
+
+### SocketFrameBinary
+
+```python
+class SocketFrameBinary(TypedDict)
+```
+
+`SocketFrame` member `binary`.
+
+Binary message.
+
+**Attributes**
+
+- `kind`: Always `"binary"`.
+- `value`: Binary message.
+
+### SocketHeader
+
+```python
+class SocketHeader(TypedDict)
+```
+
+One request header on `Sockets.connect`.
+
+**Attributes**
+
+- `name`: Header name; the broker refuses hop-by-hop and WebSocket handshake names.
+- `value`: Header value. May carry a credential: the host never logs it.
+
+### SocketAutoResponse
+
+```python
+class SocketAutoResponse(TypedDict)
+```
+
+A heartbeat the broker answers itself: when `request` arrives byte for byte,
+it sends `response` and does not wake the guest.
+
+**Attributes**
+
+- `request`: Frame to match, at most `maxSocketAutoResponseBytes`.
+- `response`: Frame to send back, at most `maxSocketAutoResponseBytes`.
+
+### SocketConnectRequest
+
+```python
+class SocketConnectRequest(TypedDict)
+```
+
+Arguments of `Sockets.connect`.
+
+**Attributes**
+
+- `url`: `wss://` or `ws://` URL, at most `maxSocketUrlBytes`. The host must be on the plugin's network grant.
+- `protocols`: Requested subprotocols, at most `maxSocketHeaders`.
+- `headers`: Extra request headers, at most `maxSocketHeaders`.
+- `autoResponses`: Heartbeats the broker answers, at most `maxSocketAutoResponses`.
+- `attachment`: Initial attachment, at most `maxSocketAttachmentBytes`.
+
+### SocketInfo
+
+```python
+class SocketInfo(TypedDict)
+```
+
+One open host-brokered socket.
+
+**Attributes**
+
+- `socket`: Host-minted socket id, stable for the socket's life.
+- `url`: URL the socket was opened to, without credentials.
+- `protocol`: Subprotocol the server chose; empty when none. Omitted when absent (wire zero value).
+- `attachment`: Current attachment.
+
+### SocketConnectReplyOk
+
+```python
+class SocketConnectReplyOk(TypedDict)
+```
+
+`SocketConnectReply` member `ok`.
+
+Success: the handshake finished and the socket is open.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the handshake finished and the socket is open.
+
+### SocketConnectReplyErr
+
+```python
+class SocketConnectReplyErr(TypedDict)
+```
+
+`SocketConnectReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### SocketList
+
+```python
+class SocketList(TypedDict)
+```
+
+Success payload of `Sockets.list`.
+
+**Attributes**
+
+- `sockets`: Open sockets, oldest first.
+
+### SocketListReplyOk
+
+```python
+class SocketListReplyOk(TypedDict)
+```
+
+`SocketListReply` member `ok`.
+
+Success: the open sockets.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the open sockets.
+
+### SocketListReplyErr
+
+```python
+class SocketListReplyErr(TypedDict)
+```
+
+`SocketListReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### SocketMessage
+
+```python
+class SocketMessage(TypedDict)
+```
+
+Argument of `SocketHandler.message`.
+
+**Attributes**
+
+- `socket`: Socket the message arrived on.
+- `frame`: The message.
+- `attachment`: The socket's attachment when the message arrived.
+
+### SocketClosed
+
+```python
+class SocketClosed(TypedDict)
+```
+
+Argument of `SocketHandler.closed`.
+
+**Attributes**
+
+- `socket`: Socket that closed; its id is not reused.
+- `code`: WebSocket close code; 1006 when the connection dropped without one.
+- `reason`: Close reason the peer sent; empty when none. Omitted when absent (wire zero value).
+- `clean`: True when the close handshake completed.
+- `attachment`: The socket's last attachment.
+
 ### DbValueNull
 
 ```python
@@ -6649,6 +6995,30 @@ CoverImagesReply = Union[CoverImagesReplyOk, CoverImagesReplyErr]
 ```
 
 Result union of `CoverFetcher.fetchCovers`.
+
+### SocketFrame
+
+```python
+SocketFrame = Union[SocketFrameText, SocketFrameBinary]
+```
+
+One WebSocket message.
+
+### SocketConnectReply
+
+```python
+SocketConnectReply = Union[SocketConnectReplyOk, SocketConnectReplyErr]
+```
+
+Result union of `Sockets.connect`.
+
+### SocketListReply
+
+```python
+SocketListReply = Union[SocketListReplyOk, SocketListReplyErr]
+```
+
+Result union of `Sockets.list`.
 
 ### DbValue
 

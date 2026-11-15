@@ -134,6 +134,7 @@ assert_eq!(manifest.id, "echo");
 - [`types::DEFAULT_SECRETS_BINDING`](types.md#default_secrets_binding)
 - [`types::DEFAULT_WORK_FS_BINDING`](types.md#default_work_fs_binding)
 - [`types::DEFAULT_OAUTH_BINDING`](types.md#default_oauth_binding)
+- [`types::DEFAULT_SOCKETS_BINDING`](types.md#default_sockets_binding)
 - [`types::DEFAULT_KV_BINDING`](types.md#default_kv_binding)
 - [`types::DEFAULT_EVENTS_BINDING`](types.md#default_events_binding)
 - [`types::CONFIG_BINDING`](types.md#config_binding)

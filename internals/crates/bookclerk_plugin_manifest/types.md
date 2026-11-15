@@ -55,6 +55,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_SECRETS_BINDING`](#default_secrets_binding) | constant | Default `binding` for `[secrets]`. |
 | [`DEFAULT_WORK_FS_BINDING`](#default_work_fs_binding) | constant | Default `binding` for `[work_fs]`. |
 | [`DEFAULT_OAUTH_BINDING`](#default_oauth_binding) | constant | Default `binding` for `[oauth]`. |
+| [`DEFAULT_SOCKETS_BINDING`](#default_sockets_binding) | constant | Default `binding` for `[sockets]`. |
 | [`DEFAULT_KV_BINDING`](#default_kv_binding) | constant | Default `binding` for `[[kv_namespaces]]`. |
 | [`DEFAULT_EVENTS_BINDING`](#default_events_binding) | constant | Default `binding` for `[[events.producers]]`. |
 | [`CONFIG_BINDING`](#config_binding) | constant | Binding name the host uses for operator config (`[vars]`). |
@@ -209,6 +210,7 @@ pub struct BindingCapabilities {
     pub plugin_kv: bool,
     pub work_fs: bool,
     pub oauth: bool,
+    pub sockets: bool,
     pub databases: Vec<String>,
 }
 ```
@@ -232,6 +234,10 @@ jail layout, consent, and env injection uniformly.
   
   With native outbound, this upgrades jail network need to
   [`JailNetworkNeed::Listen`](#jailnetworkneed).
+- `sockets`: Guest may open host-brokered WebSockets (`[sockets]`): the
+  `Sockets` binding plus the `SocketHandler` entrypoint that receives
+  pushed messages while the process sleeps. Every target must also pass
+  the `[capabilities.network]` grant.
 - `databases`: Named plugin-owned database bindings (`[[databases]] binding = "DB"`).
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
@@ -724,6 +730,7 @@ pub struct PluginManifest {
     pub queues: QueuesManifest,
     pub work_fs: Option<NamedBinding>,
     pub oauth: Option<NamedBinding>,
+    pub sockets: Option<NamedBinding>,
     pub credentials: Option<CredentialSharing>,
     pub media: Option<MediaManifest>,
     pub capabilities: CapabilitiesManifest,
@@ -791,6 +798,13 @@ rejected.
   `core.events` queue; `[queues]` names plugin-owned queues.
 - `work_fs`: Host-mediated work filesystem binding (`[work_fs]`).
 - `oauth`: OAuth callback tunnel binding (`[oauth]`).
+- `sockets`: Host-brokered WebSocket binding (`[sockets]`, default `SOCKETS`).
+  
+  The host holds each socket the guest opens, answers declared
+  heartbeats itself, and wakes the guest's `SocketHandler` only when a
+  real message arrives, so the guest process may sleep in between. Needs
+  `[capabilities.network] mode = "outbound"`; every URL must also pass
+  the network grant.
 - `credentials`: How the store accounts this storefront connects may be shared
   between Bookclerk instances (`credentials`); see
   [`CredentialSharing`](#credentialsharing) and [`Self::credential_sharing`](#pluginmanifestcredential_sharing). Only a
@@ -1059,7 +1073,7 @@ Names of the non-database bindings this manifest exposes on `env`.
 ##### Returns
 
 `CONFIG` (when `[vars]` is present), the resolved `[secrets]`,
-`[work_fs]`, `[oauth]` names, every `[[kv_namespaces]]` binding,
+`[work_fs]`, `[oauth]`, `[sockets]` names, every `[[kv_namespaces]]` binding,
 every distinct `[[events.producers]]` binding, and every
 `[[queues.producers]]` binding, in that order.
 
@@ -1599,6 +1613,14 @@ pub const DEFAULT_OAUTH_BINDING: &str = "OAUTH";
 ```
 
 Default `binding` for `[oauth]`.
+
+### DEFAULT_SOCKETS_BINDING
+
+```rust
+pub const DEFAULT_SOCKETS_BINDING: &str = "SOCKETS";
+```
+
+Default `binding` for `[sockets]`.
 
 ### DEFAULT_KV_BINDING
 

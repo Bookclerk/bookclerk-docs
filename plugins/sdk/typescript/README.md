@@ -3359,6 +3359,78 @@ Re-exports [SeriesEntry](generated.md#seriesentry)
 
 ***
 
+### SocketAutoResponse
+
+Re-exports [SocketAutoResponse](generated.md#socketautoresponse)
+
+***
+
+### SocketClosed
+
+Re-exports [SocketClosed](generated.md#socketclosed)
+
+***
+
+### SocketConnectReply
+
+Re-exports [SocketConnectReply](generated.md#socketconnectreply)
+
+***
+
+### SocketConnectRequest
+
+Re-exports [SocketConnectRequest](generated.md#socketconnectrequest)
+
+***
+
+### SocketFrame
+
+Re-exports [SocketFrame](generated.md#socketframe)
+
+***
+
+### SocketHandler
+
+Re-exports [SocketHandler](generated.md#sockethandler-1)
+
+***
+
+### SocketHeader
+
+Re-exports [SocketHeader](generated.md#socketheader)
+
+***
+
+### SocketInfo
+
+Re-exports [SocketInfo](generated.md#socketinfo)
+
+***
+
+### SocketList
+
+Re-exports [SocketList](generated.md#socketlist)
+
+***
+
+### SocketListReply
+
+Re-exports [SocketListReply](generated.md#socketlistreply)
+
+***
+
+### SocketMessage
+
+Re-exports [SocketMessage](generated.md#socketmessage)
+
+***
+
+### Sockets
+
+Re-exports [Sockets](generated.md#sockets-3)
+
+***
+
 ### Source
 
 Re-exports [Source](plugin.md#source-2)

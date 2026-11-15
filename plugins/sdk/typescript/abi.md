@@ -623,6 +623,77 @@ Maximum titles, and separately removed product ids, in one `ScanPage`.
 
 ***
 
+### MAX\_SOCKET\_ATTACHMENT\_BYTES
+
+```ts
+const MAX_SOCKET_ATTACHMENT_BYTES: 2048;
+```
+
+Largest per-socket attachment the host keeps for a sleeping guest.
+
+***
+
+### MAX\_SOCKET\_AUTO\_RESPONSE\_BYTES
+
+```ts
+const MAX_SOCKET_AUTO_RESPONSE_BYTES: 256;
+```
+
+Largest heartbeat request or response frame, in bytes.
+
+***
+
+### MAX\_SOCKET\_AUTO\_RESPONSES
+
+```ts
+const MAX_SOCKET_AUTO_RESPONSES: 4;
+```
+
+Most heartbeat pairs one `Sockets.connect` may declare.
+
+***
+
+### MAX\_SOCKET\_FRAME\_BYTES
+
+```ts
+const MAX_SOCKET_FRAME_BYTES: 262144;
+```
+
+Largest WebSocket message, text or binary, that `Sockets.send` accepts or
+`SocketHandler.message` delivers.
+
+***
+
+### MAX\_SOCKET\_HEADERS
+
+```ts
+const MAX_SOCKET_HEADERS: 16;
+```
+
+Most request headers, and separately subprotocols, on one `Sockets.connect`.
+
+***
+
+### MAX\_SOCKET\_URL\_BYTES
+
+```ts
+const MAX_SOCKET_URL_BYTES: 2048;
+```
+
+Longest `SocketConnectRequest.url`, in bytes.
+
+***
+
+### MAX\_SOCKETS\_PER\_INSTANCE
+
+```ts
+const MAX_SOCKETS_PER_INSTANCE: 8;
+```
+
+Most host-brokered sockets one plugin instance may hold open at once.
+
+***
+
 ### MAX\_STREAM\_WINDOW\_BYTES
 
 ```ts

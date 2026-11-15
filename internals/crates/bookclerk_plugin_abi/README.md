@@ -83,6 +83,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`QueueProducer`](#queueproducer) | trait | Queue producer binding: host-served send into the queue a `[[queues.producers]]` row names (`Bindings::queues`). |
 | [`RemoteLibrary`](#remotelibrary) | trait | `remoteLibrary` entrypoint: long-running remote-library lifecycle. |
 | [`ScheduledHandler`](#scheduledhandler) | trait | `[triggers] crons` handler (`Entrypoints::scheduled_handler`), the Workers `scheduled(controller)` trigger. |
+| [`SocketHandler`](#sockethandler) | trait | `[sockets]` handler: what arrives on host-brokered sockets. |
+| [`Sockets`](#sockets) | trait | Host-brokered outbound WebSockets granted on `Bindings::sockets`. |
 | [`Source`](#source) | trait | Source capability that can open a named object as a stream. |
 | [`GuestReceiptPersist`](#guestreceiptpersist) | struct | Host-stamped hint for adapters to persist guest replay payload before COMMIT. |
 | [`AdapterExecuteRequest`](#adapterexecuterequest) | struct | Adapter execute payload: canonical SQL, structured proofs, optional receipt. |
@@ -131,6 +133,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`QueueProducerClient`](#queueproducerclient) | struct | Guest-side client for a host queue producer binding (`QueueProducer`). |
 | [`RemoteLibraryClient`](#remotelibraryclient) | struct | Cap'n Proto client for `RemoteLibrary`. |
 | [`ScheduledHandlerClient`](#scheduledhandlerclient) | struct | Cap'n Proto client for `ScheduledHandler` (host → guest cron fire). |
+| [`SocketHandlerClient`](#sockethandlerclient) | struct | Host-side client for a guest's `SocketHandler`. |
+| [`SocketsClient`](#socketsclient) | struct | Guest-side client for the host `Sockets` binding. |
 | [`SourceClient`](#sourceclient) | struct | Host-side `Source` over a capnp source stub. |
 | [`SourceServer`](#sourceserver) | struct | Cap'n Proto server wrapping a `Source`. |
 | [`CopyResult`](#copyresult) | struct | Result of a server-side copy. |
@@ -157,6 +161,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`LikePatternSrc`](#likepatternsrc) | enum | Proven LIKE pattern sources in one canonical statement. |
 | [`EventReadCodec`](#eventreadcodec) | enum | Which `EVENTS.read` Cap'n Proto struct `roundtrip_event_read_message` decodes. |
 | [`EventReadMessage`](#eventreadmessage) | enum | A value `roundtrip_event_read_message` decoded. |
+| [`SocketCodec`](#socketcodec) | enum | Which socket Cap'n Proto struct `roundtrip_socket_message` decodes. |
+| [`SocketWireMessage`](#socketwiremessage) | enum | A value `roundtrip_socket_message` decoded. |
 | [`EventResult`](#eventresult) | enum | Per-event result of `crate::EventConsumer::event`. |
 | [`JobOutcome`](#joboutcome) | enum | Outcome of `crate::JobRunner::job`. |
 | [`capnp_u32_len`](#capnp_u32_len) | function | Converts a Rust list length into a Cap'n Proto `UInt32` list size. |
@@ -200,6 +206,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`connect_plugin`](#connect_plugin) | function | Connects as the client side of a two-party vat. |
 | [`pull_byte_source_to_writer`](#pull_byte_source_to_writer) | function | Pulls `source` into `writer` using bounded windows. |
 | [`roundtrip_event_read_message`](#roundtrip_event_read_message) | function | Decodes one unpacked single-segment `EventReadRequest` or `EventReadPage` message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The fuzz target and its replay test drive this, so they reach the same bounds checks a peer's bytes do. |
+| [`roundtrip_socket_message`](#roundtrip_socket_message) | function | Decodes one unpacked single-segment `SocketConnectRequest` or `SocketMessage` with the codec the RPC server and client use, then checks `read(write(v)) == v`. The `socket_request` fuzz target and its replay test drive this, so they reach the same decoder a peer's bytes do; the caller then applies `crate::sockets` checks to the value. |
 | [`serve_plugin`](#serve_plugin) | function | Serves `plugin` as the bootstrap object on a two-party vat over `reader`/`writer`. |
 | [`serve_plugin_stdio`](#serve_plugin_stdio) | function | Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSet`. |
 | [`MAX_PLUGIN_MIGRATION_ID_BYTES`](#max_plugin_migration_id_bytes) | constant | Maximum UTF-8 bytes of one plugin-chosen migration id. |
@@ -234,6 +241,13 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant | Maximum decoded size of an ordinary RPC scalar value (not a stream window). |
 | [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant | Longest scan cursor or sync token in bytes. |
 | [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant | Most titles, and separately most removed product ids, in one `ContentSource.scan` page. |
+| [`MAX_SOCKETS_PER_INSTANCE`](#max_sockets_per_instance) | constant | Most host-brokered sockets one plugin instance may hold open at once. |
+| [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant | Largest per-socket attachment the host keeps, in bytes. |
+| [`MAX_SOCKET_AUTO_RESPONSES`](#max_socket_auto_responses) | constant | Most heartbeat pairs one `Sockets.connect` may declare. |
+| [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant | Largest heartbeat request or response frame, in bytes. |
+| [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant | Largest WebSocket message `Sockets.send` accepts or `SocketHandler.message` delivers, in bytes. |
+| [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant | Most request headers, and separately subprotocols, on one `Sockets.connect`. |
+| [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant | Longest `Sockets.connect` URL, in bytes. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`apiVersion` / `plugin.toml` `api_version`). |
 | [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
@@ -501,6 +515,14 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::CoverCondition`](generated.md#covercondition)
 - [`generated::CoverImage`](generated.md#coverimage)
 - [`generated::CoverImages`](generated.md#coverimages)
+- [`generated::SocketFrame`](generated.md#socketframe)
+- [`generated::SocketHeader`](generated.md#socketheader)
+- [`generated::SocketAutoResponse`](generated.md#socketautoresponse)
+- [`generated::SocketConnectRequest`](generated.md#socketconnectrequest)
+- [`generated::SocketInfo`](generated.md#socketinfo)
+- [`generated::SocketList`](generated.md#socketlist)
+- [`generated::SocketMessage`](generated.md#socketmessage)
+- [`generated::SocketClosed`](generated.md#socketclosed)
 - [`generated::write_event_consumer_spec`](generated.md#write_event_consumer_spec)
 - [`generated::read_event_consumer_spec`](generated.md#read_event_consumer_spec)
 - [`generated::write_plugin_capabilities`](generated.md#write_plugin_capabilities)
@@ -713,6 +735,26 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_cover_images`](generated.md#read_cover_images)
 - [`generated::write_cover_images_reply`](generated.md#write_cover_images_reply)
 - [`generated::read_cover_images_reply`](generated.md#read_cover_images_reply)
+- [`generated::write_socket_frame`](generated.md#write_socket_frame)
+- [`generated::read_socket_frame`](generated.md#read_socket_frame)
+- [`generated::write_socket_header`](generated.md#write_socket_header)
+- [`generated::read_socket_header`](generated.md#read_socket_header)
+- [`generated::write_socket_auto_response`](generated.md#write_socket_auto_response)
+- [`generated::read_socket_auto_response`](generated.md#read_socket_auto_response)
+- [`generated::write_socket_connect_request`](generated.md#write_socket_connect_request)
+- [`generated::read_socket_connect_request`](generated.md#read_socket_connect_request)
+- [`generated::write_socket_info`](generated.md#write_socket_info)
+- [`generated::read_socket_info`](generated.md#read_socket_info)
+- [`generated::write_socket_connect_reply`](generated.md#write_socket_connect_reply)
+- [`generated::read_socket_connect_reply`](generated.md#read_socket_connect_reply)
+- [`generated::write_socket_list`](generated.md#write_socket_list)
+- [`generated::read_socket_list`](generated.md#read_socket_list)
+- [`generated::write_socket_list_reply`](generated.md#write_socket_list_reply)
+- [`generated::read_socket_list_reply`](generated.md#read_socket_list_reply)
+- [`generated::write_socket_message`](generated.md#write_socket_message)
+- [`generated::read_socket_message`](generated.md#read_socket_message)
+- [`generated::write_socket_closed`](generated.md#write_socket_closed)
+- [`generated::read_socket_closed`](generated.md#read_socket_closed)
 - [`generated::READ_ANY_COUNT`](generated.md#read_any_count)
 - [`generated::read_any_message`](generated.md#read_any_message)
 - [`generated::RoundTripFailure`](generated.md#roundtripfailure)
@@ -739,6 +781,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`package_version`](package_version.md): `plugin.toml` `version` as a semantic version.
 - [`scan_page`](scan_page.md): Validation of one `ContentSource.scan` page before the host writes it.
 - [`settings_schema`](settings_schema.md): Operator-facing plugin settings schema (`[[settings]]` in `plugin.toml`).
+- [`sockets`](sockets.md): Sans-IO checks for host-brokered sockets (`Bindings.sockets`).
 - [`sql_desugar`](sql_desugar.md): Host semantic desugars for canonical Bookclerk SQL.
 - [`sql_types`](sql_types.md): Bookclerk SQL v1 types, CAST matrix, and fail-closed expression checking.
 - [`plugin_capnp`](plugin_capnp/README.md): Generated Cap'n Proto RPC interfaces (`schema/plugin.capnp`).
@@ -2915,6 +2958,187 @@ Runs one cron fire to completion.
 
 Implemented by: `ScheduledHandlerClient`
 
+### SocketHandler
+
+```rust
+pub trait SocketHandler {
+    fn message<'life0, 'async_trait>(
+        &'life0 self,
+        _event: SocketMessage,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn closed<'life0, 'async_trait>(
+        &'life0 self,
+        _event: SocketClosed,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+`[sockets]` handler: what arrives on host-brokered sockets.
+
+#### SocketHandler::message
+
+```rust
+fn message<'life0, 'async_trait>(
+    &'life0 self,
+    _event: SocketMessage,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+One message arrived on an open socket.
+
+#### SocketHandler::closed
+
+```rust
+fn closed<'life0, 'async_trait>(
+    &'life0 self,
+    _event: SocketClosed,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+A socket closed. The default ignores it.
+
+Implemented by: `SocketHandlerClient`
+
+### Sockets
+
+```rust
+pub trait Sockets {
+    fn connect<'life0, 'async_trait>(
+        &'life0 self,
+        request: SocketConnectRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<SocketInfo>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn send<'life0, 'async_trait>(
+        &'life0 self,
+        socket: String,
+        frame: SocketFrame,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn close<'life0, 'async_trait>(
+        &'life0 self,
+        socket: String,
+        code: u16,
+        reason: String,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn set_attachment<'life0, 'async_trait>(
+        &'life0 self,
+        socket: String,
+        attachment: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn list<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<SocketInfo>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+Host-brokered outbound WebSockets granted on [`Bindings::sockets`](#bindings).
+
+A broker the host runs for the plugin instance holds each socket, so a
+socket outlives the invocation that opened it and stays open while the
+guest sleeps. Messages arrive on [`Entrypoints::socket_handler`](#entrypoints).
+
+#### Sockets::connect
+
+```rust
+fn connect<'life0, 'async_trait>(
+    &'life0 self,
+    request: SocketConnectRequest,
+) -> Pin<Box<dyn Future<Output = Result<SocketInfo>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Opens a socket to `request.url`, which must be on the plugin's
+network grant, and returns it once the handshake finished.
+
+#### Sockets::send
+
+```rust
+fn send<'life0, 'async_trait>(
+    &'life0 self,
+    socket: String,
+    frame: SocketFrame,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Sends one message on an open socket.
+
+#### Sockets::close
+
+```rust
+fn close<'life0, 'async_trait>(
+    &'life0 self,
+    socket: String,
+    code: u16,
+    reason: String,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Closes a socket; closing an unknown or closed socket is not an error.
+A zero `code` sends 1000.
+
+#### Sockets::set_attachment
+
+```rust
+fn set_attachment<'life0, 'async_trait>(
+    &'life0 self,
+    socket: String,
+    attachment: Vec<u8>,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Replaces the attachment the host keeps for a socket.
+
+#### Sockets::list
+
+```rust
+fn list<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<Vec<SocketInfo>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+The instance's open sockets, oldest first.
+
+Implemented by: `SocketsClient`
+
 ### Source
 
 ```rust
@@ -3515,6 +3739,7 @@ pub struct Bindings {
     pub storage: Option<Box<dyn Destination>>,
     pub queues: Vec<NamedQueueBinding>,
     pub kv: Vec<NamedKvBinding>,
+    pub sockets: Option<Box<dyn Sockets>>,
 }
 ```
 
@@ -3537,6 +3762,8 @@ declare (or the operator did not grant) the binding.
   [`JobController`](#jobcontroller), never here.
 - `queues`: Named `[[queues.producers]]` bindings; empty when none is granted.
 - `kv`: Named `[[kv_namespaces]]` bindings; empty when none is granted.
+- `sockets`: `SOCKETS`: host-brokered WebSockets; `None` unless `[sockets]` is
+  granted.
 
 #### Bindings::from_values
 
@@ -3613,6 +3840,7 @@ pub struct Entrypoints {
     pub scheduled_handler: Option<Box<dyn ScheduledHandler>>,
     pub metadata: Option<Box<dyn MetadataProvider>>,
     pub covers: Option<Box<dyn CoverFetcher>>,
+    pub socket_handler: Option<Box<dyn SocketHandler>>,
 }
 ```
 
@@ -3636,6 +3864,7 @@ allow, so a guest cannot widen its surface here.
 - `scheduled_handler`: `[triggers] crons` trigger.
 - `metadata`: `metadata` entrypoint.
 - `covers`: `covers` entrypoint.
+- `socket_handler`: `[sockets]` handler.
 
 Implements: `Default`
 
@@ -3949,6 +4178,7 @@ pub struct HostBindings {
     pub storage: Option<Arc<dyn Destination>>,
     pub queues: Vec<(String, String, Arc<dyn QueueProducer>)>,
     pub kv: Vec<(String, String, Arc<dyn KvNamespace>)>,
+    pub sockets: Option<Arc<dyn Sockets>>,
 }
 ```
 
@@ -3964,6 +4194,7 @@ guest receives on `open`.
 - `storage`: `WORK_FS` object storage; `None` unless `[work_fs]` is granted.
 - `queues`: Named `[[queues.producers]]` producers as `(binding, queue, producer)`.
 - `kv`: Named `[[kv_namespaces]]` namespaces as `(binding, namespace, kv)`.
+- `sockets`: `SOCKETS` broker link; `None` unless `[sockets]` is granted.
 
 #### HostBindings::from_values
 
@@ -4116,6 +4347,7 @@ pub struct OpenedEntrypoints {
     pub scheduled_handler: Option<ScheduledHandlerClient>,
     pub metadata: Option<MetadataProviderClient>,
     pub covers: Option<CoverFetcherClient>,
+    pub socket_handler: Option<SocketHandlerClient>,
 }
 ```
 
@@ -4136,6 +4368,7 @@ means the guest did not export that entrypoint.
 - `scheduled_handler`: `[triggers] crons` trigger.
 - `metadata`: `metadata` entrypoint.
 - `covers`: `covers` entrypoint.
+- `socket_handler`: `[sockets]` handler.
 
 Implements: `Default`
 
@@ -4351,6 +4584,46 @@ Wraps a `ScheduledHandler` capability client (any transport that
 yields one, including the bookclerk-workerd `/invoke` hook).
 
 Implements: `Clone`, `ScheduledHandler`
+
+### SocketHandlerClient
+
+```rust
+pub struct SocketHandlerClient {
+    /* private fields */
+}
+```
+
+Host-side client for a guest's [`SocketHandler`](#sockethandler).
+
+#### SocketHandlerClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps a `SocketHandler` capability client.
+
+Implements: `Clone`, `SocketHandler`
+
+### SocketsClient
+
+```rust
+pub struct SocketsClient {
+    /* private fields */
+}
+```
+
+Guest-side client for the host [`Sockets`](#sockets) binding.
+
+#### SocketsClient::new
+
+```rust
+pub fn new(client: Client) -> Self
+```
+
+Wraps a `Sockets` capability client.
+
+Implements: `Clone`, `Sockets`
 
 ### SourceClient
 
@@ -5119,6 +5392,43 @@ A value [`roundtrip_event_read_message`](#roundtrip_event_read_message) decoded.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### SocketCodec
+
+```rust
+pub enum SocketCodec {
+    ConnectRequest,
+    Message,
+}
+```
+
+Which socket Cap'n Proto struct [`roundtrip_socket_message`](#roundtrip_socket_message) decodes.
+
+**Variants**
+
+- `ConnectRequest`: `SocketConnectRequest`, which the host decodes from a guest.
+- `Message`: `SocketMessage`, which a guest decodes from the host (and the host
+  decodes from the broker before delivery).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### SocketWireMessage
+
+```rust
+pub enum SocketWireMessage {
+    ConnectRequest(SocketConnectRequest),
+    Message(SocketMessage),
+}
+```
+
+A value [`roundtrip_socket_message`](#roundtrip_socket_message) decoded.
+
+**Variants**
+
+- `ConnectRequest`: A decoded `SocketConnectRequest`.
+- `Message`: A decoded `SocketMessage`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EventResult
 
 ```rust
@@ -5859,6 +6169,36 @@ The decoded value, for the caller to check against its own bounds.
 bound; [`RoundTripFailure::Codec`](generated.md#roundtripfailure) when a decoded value does not survive
 `write` then `read` intact.
 
+### roundtrip_socket_message
+
+```rust
+pub fn roundtrip_socket_message(
+    codec: SocketCodec,
+    bytes: &[u8],
+) -> Result<SocketWireMessage, RoundTripFailure>
+```
+
+Decodes one unpacked single-segment `SocketConnectRequest` or
+`SocketMessage` with the codec the RPC server and client use, then checks
+`read(write(v)) == v`. The `socket_request` fuzz target and its replay
+test drive this, so they reach the same decoder a peer's bytes do; the
+caller then applies [`crate::sockets`](sockets.md) checks to the value.
+
+#### Arguments
+
+* `codec` - Which struct the message holds.
+* `bytes` - The message, as `capnp::serialize` writes it.
+
+#### Returns
+
+The decoded value.
+
+#### Errors
+
+[`RoundTripFailure::Rejected`](generated.md#roundtripfailure) when the bytes do not decode;
+[`RoundTripFailure::Codec`](generated.md#roundtripfailure) when a decoded value does not survive `write`
+then `read` intact.
+
 ### serve_plugin
 
 ```rust
@@ -6164,6 +6504,64 @@ pub const MAX_SCAN_PAGE_BOOKS: u32 = crate::plugin_capnp::MAX_SCAN_PAGE_BOOKS;
 
 Most titles, and separately most removed product ids, in one
 `ContentSource.scan` page.
+
+### MAX_SOCKETS_PER_INSTANCE
+
+```rust
+pub const MAX_SOCKETS_PER_INSTANCE: u32 = crate::plugin_capnp::MAX_SOCKETS_PER_INSTANCE;
+```
+
+Most host-brokered sockets one plugin instance may hold open at once.
+
+### MAX_SOCKET_ATTACHMENT_BYTES
+
+```rust
+pub const MAX_SOCKET_ATTACHMENT_BYTES: u32 = crate::plugin_capnp::MAX_SOCKET_ATTACHMENT_BYTES;
+```
+
+Largest per-socket attachment the host keeps, in bytes.
+
+### MAX_SOCKET_AUTO_RESPONSES
+
+```rust
+pub const MAX_SOCKET_AUTO_RESPONSES: u32 = crate::plugin_capnp::MAX_SOCKET_AUTO_RESPONSES;
+```
+
+Most heartbeat pairs one `Sockets.connect` may declare.
+
+### MAX_SOCKET_AUTO_RESPONSE_BYTES
+
+```rust
+pub const MAX_SOCKET_AUTO_RESPONSE_BYTES: u32 = crate::plugin_capnp::MAX_SOCKET_AUTO_RESPONSE_BYTES;
+```
+
+Largest heartbeat request or response frame, in bytes.
+
+### MAX_SOCKET_FRAME_BYTES
+
+```rust
+pub const MAX_SOCKET_FRAME_BYTES: u32 = crate::plugin_capnp::MAX_SOCKET_FRAME_BYTES;
+```
+
+Largest WebSocket message `Sockets.send` accepts or
+`SocketHandler.message` delivers, in bytes.
+
+### MAX_SOCKET_HEADERS
+
+```rust
+pub const MAX_SOCKET_HEADERS: u32 = crate::plugin_capnp::MAX_SOCKET_HEADERS;
+```
+
+Most request headers, and separately subprotocols, on one
+`Sockets.connect`.
+
+### MAX_SOCKET_URL_BYTES
+
+```rust
+pub const MAX_SOCKET_URL_BYTES: u32 = crate::plugin_capnp::MAX_SOCKET_URL_BYTES;
+```
+
+Longest `Sockets.connect` URL, in bytes.
 
 ### MAX_STREAM_WINDOW_BYTES
 

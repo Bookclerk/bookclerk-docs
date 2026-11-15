@@ -90,6 +90,13 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CoverCondition`](#covercondition) | struct | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
 | [`CoverImage`](#coverimage) | struct | What happened to one requested URL. |
 | [`CoverImages`](#coverimages) | struct | Success payload of `CoverFetcher.fetchCovers`. |
+| [`SocketHeader`](#socketheader) | struct | One request header on `Sockets.connect`. |
+| [`SocketAutoResponse`](#socketautoresponse) | struct | A heartbeat the broker answers itself: when `request` arrives byte for byte, it sends `response` and does not wake the guest. |
+| [`SocketConnectRequest`](#socketconnectrequest) | struct | Arguments of `Sockets.connect`. |
+| [`SocketInfo`](#socketinfo) | struct | One open host-brokered socket. |
+| [`SocketList`](#socketlist) | struct | Success payload of `Sockets.list`. |
+| [`SocketMessage`](#socketmessage) | struct | Argument of `SocketHandler.message`. |
+| [`SocketClosed`](#socketclosed) | struct | Argument of `SocketHandler.closed`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -104,6 +111,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
+| [`SocketFrame`](#socketframe) | enum | One WebSocket message. |
 | [`RoundTripFailure`](#roundtripfailure) | enum | Why `roundtrip_any_message` could not show `read(write(v)) == v`. |
 | [`write_event_consumer_spec`](#write_event_consumer_spec) | function | Encode a `EventConsumerSpec` onto a Cap'n Proto builder. |
 | [`read_event_consumer_spec`](#read_event_consumer_spec) | function | Decode a `EventConsumerSpec` from a Cap'n Proto reader. |
@@ -317,6 +325,26 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_cover_images`](#read_cover_images) | function | Decode a `CoverImages` from a Cap'n Proto reader. |
 | [`write_cover_images_reply`](#write_cover_images_reply) | function | Encode a `CoverImagesReply` union from a typed result. |
 | [`read_cover_images_reply`](#read_cover_images_reply) | function | Decode a `CoverImagesReply` union into a typed result. |
+| [`write_socket_frame`](#write_socket_frame) | function | Encode a `SocketFrame` union. |
+| [`read_socket_frame`](#read_socket_frame) | function | Decode a `SocketFrame` union. |
+| [`write_socket_header`](#write_socket_header) | function | Encode a `SocketHeader` onto a Cap'n Proto builder. |
+| [`read_socket_header`](#read_socket_header) | function | Decode a `SocketHeader` from a Cap'n Proto reader. |
+| [`write_socket_auto_response`](#write_socket_auto_response) | function | Encode a `SocketAutoResponse` onto a Cap'n Proto builder. |
+| [`read_socket_auto_response`](#read_socket_auto_response) | function | Decode a `SocketAutoResponse` from a Cap'n Proto reader. |
+| [`write_socket_connect_request`](#write_socket_connect_request) | function | Encode a `SocketConnectRequest` onto a Cap'n Proto builder. |
+| [`read_socket_connect_request`](#read_socket_connect_request) | function | Decode a `SocketConnectRequest` from a Cap'n Proto reader. |
+| [`write_socket_info`](#write_socket_info) | function | Encode a `SocketInfo` onto a Cap'n Proto builder. |
+| [`read_socket_info`](#read_socket_info) | function | Decode a `SocketInfo` from a Cap'n Proto reader. |
+| [`write_socket_connect_reply`](#write_socket_connect_reply) | function | Encode a `SocketConnectReply` union from a typed result. |
+| [`read_socket_connect_reply`](#read_socket_connect_reply) | function | Decode a `SocketConnectReply` union into a typed result. |
+| [`write_socket_list`](#write_socket_list) | function | Encode a `SocketList` onto a Cap'n Proto builder. |
+| [`read_socket_list`](#read_socket_list) | function | Decode a `SocketList` from a Cap'n Proto reader. |
+| [`write_socket_list_reply`](#write_socket_list_reply) | function | Encode a `SocketListReply` union from a typed result. |
+| [`read_socket_list_reply`](#read_socket_list_reply) | function | Decode a `SocketListReply` union into a typed result. |
+| [`write_socket_message`](#write_socket_message) | function | Encode a `SocketMessage` onto a Cap'n Proto builder. |
+| [`read_socket_message`](#read_socket_message) | function | Decode a `SocketMessage` from a Cap'n Proto reader. |
+| [`write_socket_closed`](#write_socket_closed) | function | Encode a `SocketClosed` onto a Cap'n Proto builder. |
+| [`read_socket_closed`](#read_socket_closed) | function | Decode a `SocketClosed` from a Cap'n Proto reader. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -357,6 +385,7 @@ pub struct PluginCapabilities {
     pub queue_consumers: Vec<String>,
     pub queue_producers: Vec<String>,
     pub crons: Vec<String>,
+    pub sockets: bool,
 }
 ```
 
@@ -377,6 +406,8 @@ it with `plugin.toml` and the operator grant; widening is rejected at spawn.
 - `crons`: Five-field UTC cron schedules the default entrypoint handles
   (`scheduled(controller)` trigger, `\[triggers\] crons`), normalized to
   single spaces.
+- `sockets`: True when the guest declared `\[sockets\]`: it receives the host-brokered
+  `Sockets` binding and may export a `SocketHandler` for pushed messages.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -2396,6 +2427,152 @@ Success payload of `CoverFetcher.fetchCovers`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### SocketHeader
+
+```rust
+pub struct SocketHeader {
+    pub name: String,
+    pub value: String,
+}
+```
+
+One request header on `Sockets.connect`.
+
+**Fields**
+
+- `name`: Header name; the broker refuses hop-by-hop and WebSocket handshake names.
+- `value`: Header value. May carry a credential: the host never logs it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketAutoResponse
+
+```rust
+pub struct SocketAutoResponse {
+    pub request: SocketFrame,
+    pub response: SocketFrame,
+}
+```
+
+A heartbeat the broker answers itself: when `request` arrives byte for byte,
+it sends `response` and does not wake the guest.
+
+**Fields**
+
+- `request`: Frame to match, at most `maxSocketAutoResponseBytes`.
+- `response`: Frame to send back, at most `maxSocketAutoResponseBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketConnectRequest
+
+```rust
+pub struct SocketConnectRequest {
+    pub url: String,
+    pub protocols: Vec<String>,
+    pub headers: Vec<SocketHeader>,
+    pub auto_responses: Vec<SocketAutoResponse>,
+    pub attachment: Vec<u8>,
+}
+```
+
+Arguments of `Sockets.connect`.
+
+**Fields**
+
+- `url`: `wss://` or `ws://` URL, at most `maxSocketUrlBytes`. The host must be on
+  the plugin's network grant.
+- `protocols`: Requested subprotocols, at most `maxSocketHeaders`.
+- `headers`: Extra request headers, at most `maxSocketHeaders`.
+- `auto_responses`: Heartbeats the broker answers, at most `maxSocketAutoResponses`.
+- `attachment`: Initial attachment, at most `maxSocketAttachmentBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketInfo
+
+```rust
+pub struct SocketInfo {
+    pub socket: String,
+    pub url: String,
+    pub protocol: Option<String>,
+    pub attachment: Vec<u8>,
+}
+```
+
+One open host-brokered socket.
+
+**Fields**
+
+- `socket`: Host-minted socket id, stable for the socket's life.
+- `url`: URL the socket was opened to, without credentials.
+- `protocol`: Subprotocol the server chose; empty when none.
+  `None` when absent (wire zero value).
+- `attachment`: Current attachment.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketList
+
+```rust
+pub struct SocketList {
+    pub sockets: Vec<SocketInfo>,
+}
+```
+
+Success payload of `Sockets.list`.
+
+**Fields**
+
+- `sockets`: Open sockets, oldest first.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketMessage
+
+```rust
+pub struct SocketMessage {
+    pub socket: String,
+    pub frame: SocketFrame,
+    pub attachment: Vec<u8>,
+}
+```
+
+Argument of `SocketHandler.message`.
+
+**Fields**
+
+- `socket`: Socket the message arrived on.
+- `frame`: The message.
+- `attachment`: The socket's attachment when the message arrived.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketClosed
+
+```rust
+pub struct SocketClosed {
+    pub socket: String,
+    pub code: u16,
+    pub reason: Option<String>,
+    pub clean: bool,
+    pub attachment: Vec<u8>,
+}
+```
+
+Argument of `SocketHandler.closed`.
+
+**Fields**
+
+- `socket`: Socket that closed; its id is not reused.
+- `code`: WebSocket close code; 1006 when the connection dropped without one.
+- `reason`: Close reason the peer sent; empty when none.
+  `None` when absent (wire zero value).
+- `clean`: True when the close handshake completed.
+- `attachment`: The socket's last attachment.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### Entrypoint
@@ -2950,7 +3127,25 @@ Per-message outcome inside a `QueueConsumer.queue` batch reply.
 - `Ack`: Handled; the host marks the message delivered.
 - `Retry`: Redeliver later.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketFrame
+
+```rust
+pub enum SocketFrame {
+    Text(String),
+    Binary(Vec<u8>),
+}
+```
+
+One WebSocket message.
+
+**Variants**
+
+- `Text`: Text message, UTF-8.
+- `Binary`: Binary message.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### RoundTripFailure
 
@@ -5624,6 +5819,255 @@ Decode a `CoverImagesReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_socket_frame
+
+```rust
+pub fn write_socket_frame(b: Builder<'_>, v: &SocketFrame) -> Result<()>
+```
+
+Encode a `SocketFrame` union.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_socket_frame
+
+```rust
+pub fn read_socket_frame(r: Reader<'_>) -> Result<SocketFrame>
+```
+
+Decode a `SocketFrame` union.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_socket_header
+
+```rust
+pub fn write_socket_header(b: Builder<'_>, v: &SocketHeader) -> Result<()>
+```
+
+Encode a [`SocketHeader`](#socketheader) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_header
+
+```rust
+pub fn read_socket_header(r: Reader<'_>) -> Result<SocketHeader>
+```
+
+Decode a [`SocketHeader`](#socketheader) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_auto_response
+
+```rust
+pub fn write_socket_auto_response(b: Builder<'_>, v: &SocketAutoResponse) -> Result<()>
+```
+
+Encode a [`SocketAutoResponse`](#socketautoresponse) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_auto_response
+
+```rust
+pub fn read_socket_auto_response(r: Reader<'_>) -> Result<SocketAutoResponse>
+```
+
+Decode a [`SocketAutoResponse`](#socketautoresponse) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_connect_request
+
+```rust
+pub fn write_socket_connect_request(
+    b: Builder<'_>,
+    v: &SocketConnectRequest,
+) -> Result<()>
+```
+
+Encode a [`SocketConnectRequest`](#socketconnectrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_connect_request
+
+```rust
+pub fn read_socket_connect_request(r: Reader<'_>) -> Result<SocketConnectRequest>
+```
+
+Decode a [`SocketConnectRequest`](#socketconnectrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_info
+
+```rust
+pub fn write_socket_info(b: Builder<'_>, v: &SocketInfo) -> Result<()>
+```
+
+Encode a [`SocketInfo`](#socketinfo) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_info
+
+```rust
+pub fn read_socket_info(r: Reader<'_>) -> Result<SocketInfo>
+```
+
+Decode a [`SocketInfo`](#socketinfo) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_connect_reply
+
+```rust
+pub fn write_socket_connect_reply(
+    b: Builder<'_>,
+    v: &Result<SocketInfo, PluginError>,
+) -> Result<()>
+```
+
+Encode a `SocketConnectReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_socket_connect_reply
+
+```rust
+pub fn read_socket_connect_reply(r: Reader<'_>) -> Result<Result<SocketInfo, PluginError>>
+```
+
+Decode a `SocketConnectReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_socket_list
+
+```rust
+pub fn write_socket_list(b: Builder<'_>, v: &SocketList) -> Result<()>
+```
+
+Encode a [`SocketList`](#socketlist) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_list
+
+```rust
+pub fn read_socket_list(r: Reader<'_>) -> Result<SocketList>
+```
+
+Decode a [`SocketList`](#socketlist) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_list_reply
+
+```rust
+pub fn write_socket_list_reply(
+    b: Builder<'_>,
+    v: &Result<SocketList, PluginError>,
+) -> Result<()>
+```
+
+Encode a `SocketListReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_socket_list_reply
+
+```rust
+pub fn read_socket_list_reply(r: Reader<'_>) -> Result<Result<SocketList, PluginError>>
+```
+
+Decode a `SocketListReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_socket_message
+
+```rust
+pub fn write_socket_message(b: Builder<'_>, v: &SocketMessage) -> Result<()>
+```
+
+Encode a [`SocketMessage`](#socketmessage) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_message
+
+```rust
+pub fn read_socket_message(r: Reader<'_>) -> Result<SocketMessage>
+```
+
+Decode a [`SocketMessage`](#socketmessage) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_socket_closed
+
+```rust
+pub fn write_socket_closed(b: Builder<'_>, v: &SocketClosed) -> Result<()>
+```
+
+Encode a [`SocketClosed`](#socketclosed) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_closed
+
+```rust
+pub fn read_socket_closed(r: Reader<'_>) -> Result<SocketClosed>
+```
+
+Decode a [`SocketClosed`](#socketclosed) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### read_any_message
 
 ```rust
@@ -5676,7 +6120,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 106;
+pub const READ_ANY_COUNT: u8 = 116;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are
