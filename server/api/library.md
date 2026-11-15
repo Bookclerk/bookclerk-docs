@@ -3181,7 +3181,8 @@ Lists the library's works, one page at a time.
 
 Each work appears once however many editions, stores and accounts hold
 it; a podcast is listed as its show. Pass `next_cursor` back as
-`cursor` (with the same `sort`) for the next page.
+`cursor` (with the same `sort`) for the next page. With `q`, works that
+match come best first; pass `next_cursor` back with the same `q`.
 
 **Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
 
@@ -3189,12 +3190,13 @@ it; a podcast is listed as its show. Pass `next_cursor` back as
 
 ### Parameters
 
+- `q` (query) *string* — Search text (Lucene-style); matches titles, authors, narrators, series and store ids. Works then come best match first and `sort` is not used.
 - `sort` (query) *one of `title`, `author`, `added`* — Order of the page (default `title`).
 - `media_kind` (query) *one of `audio`, `ebook`, `print`* — Only works with an edition on this carrier.
 - `kind` (query) *one of `book`, `podcast`* — Only works of this kind.
 - `status` (query) *one of `not_acquired`, `queued`, `downloading`, `acquired`, `error`* — Only works whose furthest acquire state is this one.
 - `account` (query) *string* — Only works held by this store account id.
-- `cursor` (query) *string* — `next_cursor` of the previous page, under the same `sort`.
+- `cursor` (query) *string* — `next_cursor` of the previous page, under the same `sort` (or the same `q`).
 - `limit` (query) *integer (int64)* — Page size, clamped to 1–200 (default 40).
 
 ### Responses
@@ -3202,7 +3204,7 @@ it; a podcast is listed as its show. Pass `next_cursor` back as
 - `200` — A page of works. Body: [`WorksPage`](schemas.md#workspage) (`application/json`)
   - `works` *array of [`WorkSummaryJson`](schemas.md#worksummaryjson)*, **required** — The works, in the requested order.
   - `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
-- `400` — A filter or the cursor is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `400` — A filter, the query or the cursor is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -3214,10 +3216,8 @@ it; a podcast is listed as its show. Pass `next_cursor` back as
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3431,7 +3431,7 @@ Schema:
 }
 ```
 
-Status `400`: A filter or the cursor is invalid.
+Status `400`: A filter, the query or the cursor is invalid.
 
 ```json
 {
@@ -3573,13 +3573,11 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
+  "error": "the search index is being built; try again shortly"
 }
 ```
 
@@ -3588,29 +3586,15 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
     }
   }
 }

@@ -101,6 +101,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EditionListing`](#editionlisting) | struct | One store listing of an edition. |
 | [`ListingHolding`](#listingholding) | struct | One holding of a listing. |
 | [`WorkDetail`](#workdetail) | struct | A top-level work with everything its detail view shows. |
+| [`WorkSearchDoc`](#worksearchdoc) | struct | The searchable text of one held top-level work. |
 | [`CatalogListing`](#cataloglisting) | struct | One title a store's catalog answer reported. |
 | [`CatalogListingRecord`](#cataloglistingrecord) | struct | A stored catalog listing, as Discover and the wishlist read it. |
 | [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
@@ -4298,6 +4299,37 @@ A top-level work with everything its detail view shows.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### WorkSearchDoc
+
+```rust
+pub struct WorkSearchDoc {
+    pub work_id: String,
+    pub title: String,
+    pub other_titles: Vec<String>,
+    pub authors: Vec<String>,
+    pub narrators: Vec<String>,
+    pub series: Vec<String>,
+    pub identifiers: Vec<String>,
+}
+```
+
+The searchable text of one held top-level work.
+
+**Fields**
+
+- `work_id`: The work (a podcast's show, never an episode).
+- `title`: The work's title.
+- `other_titles`: Distinct edition and listing titles and subtitles other than
+  [`Self::title`](#worksearchdoc) (episode titles, for a show).
+- `authors`: Authors (hosts, for a podcast), from the model's credits and the
+  listings' author text.
+- `narrators`: Narrators, from the listings' narrator text.
+- `series`: Series names, from the model and the listings.
+- `identifiers`: Product ids of the listings and identifier values (ISBN, ASIN and
+  others) of the editions, lowercased.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### CatalogListing
 
 ```rust
@@ -6565,6 +6597,29 @@ The last work id of this page, or `None` when the walk is done.
 Returns [`LibraryError::Orm`](#libraryerror) or a batch error when a read or write
 fails.
 
+#### LibraryStore::top_level_work_ids_page
+
+```rust
+pub async fn top_level_work_ids_page(
+    &self,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<Vec<String>>
+```
+
+One page of top-level work ids (podcast shows, not their episodes)
+in id order, for a walk over every work.
+
+##### Arguments
+
+* `after` - The last id of the previous page; `None` to start.
+* `limit` - Most ids to return, further capped at the database's
+  result-row limit.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
 #### LibraryStore::library_index_built
 
 ```rust
@@ -6613,6 +6668,29 @@ The work a listing's edition belongs to.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::library_works_by_ids
+
+```rust
+pub async fn library_works_by_ids(
+    &self,
+    ids: &[String],
+    query: &WorkPageQuery,
+) -> Result<Vec<LibraryWorkRow>>
+```
+
+The rows of `ids` that pass `query`'s filters, in the order of
+`ids` (a search's relevance order); `query`'s order, cursor and
+limit are not used. Unheld works and ids with no row are left out.
+
+##### Arguments
+
+* `ids` - Top-level work ids.
+* `query` - The filters to apply.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::library_works_page
 
@@ -7996,6 +8074,31 @@ One user's own state for one work.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::work_search_document
+
+```rust
+pub async fn work_search_document(
+    &self,
+    work_id: &str,
+) -> Result<(String, Option<WorkSearchDoc>)>
+```
+
+The search document of `work_id`'s top-level work.
+
+##### Arguments
+
+* `work_id` - A work; an episode stands for its show.
+
+##### Returns
+
+The top-level work's id and its document, or `None` for the document
+when the work is gone or no longer held (its document is then
+removed from the index).
+
+##### Errors
+
+Returns [`crate::LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::enqueue_job
 

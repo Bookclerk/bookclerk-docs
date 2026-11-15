@@ -14,6 +14,8 @@ Style: `docs/contributing/code-documentation.md`.
 | [`SearchEngine`](#searchengine) | struct | On-disk Tantivy search engine (classic Lucene `SearchEngine` parity). |
 | [`SearchHit`](#searchhit) | struct | One search hit. |
 | [`SearchPage`](#searchpage) | struct | One page of search hits in title order, and how many documents match. |
+| [`WorkMatches`](#workmatches) | struct | One window of a query's matches. |
+| [`WorkSearchIndex`](#worksearchindex) | struct | On-disk Tantivy index of works. |
 | [`SavedFilter`](#savedfilter) | struct | A saved filter expression (Bookclerk quick-filter parity). |
 | [`SearchError`](#searcherror) | enum | Errors from opening, writing, or querying the Tantivy index. |
 | [`normalize_lucene_query`](#normalize_lucene_query) | function | Normalize a classic Libation/Lucene query for Tantivy's parser. |
@@ -338,6 +340,173 @@ One page of search hits in title order, and how many documents match.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### WorkMatches
+
+```rust
+pub struct WorkMatches {
+    pub ids: Vec<String>,
+    pub total: usize,
+}
+```
+
+One window of a query's matches.
+
+**Fields**
+
+- `ids`: Work ids in the window, best match first.
+- `total`: How many documents the query matches in all.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkSearchIndex
+
+```rust
+pub struct WorkSearchIndex {
+    /* private fields */
+}
+```
+
+On-disk Tantivy index of works.
+
+#### WorkSearchIndex::dir_beside
+
+```rust
+pub fn dir_beside(search_index_dir: &Path) -> PathBuf
+```
+
+The works index directory beside the per-title index in
+`search_index_dir` (`search_index_works/` next to `search_index/`).
+
+#### WorkSearchIndex::open
+
+```rust
+pub fn open(dir: &Path) -> Result<Self>
+```
+
+Opens or creates the works index in `dir`, replacing an index of
+another layout.
+
+##### Errors
+
+Returns [`SearchError::Index`](#searcherror) when the directory or index cannot be
+opened.
+
+#### WorkSearchIndex::open_for_search
+
+```rust
+pub fn open_for_search(dir: &Path) -> Result<Self>
+```
+
+Opens the index in `dir` for searching only: nothing is created or
+replaced, so a search never races a writer over the directory.
+
+##### Errors
+
+Returns [`SearchError::NotReady`](#searcherror) when `dir` holds no index of the
+current layout (the rebuild has not run yet), or
+[`SearchError::Index`](#searcherror) when it cannot be opened.
+
+#### WorkSearchIndex::is_complete
+
+```rust
+pub fn is_complete(dir: &Path) -> bool
+```
+
+True when a full rebuild of the current layout has finished in `dir`.
+
+#### WorkSearchIndex::mark_incomplete
+
+```rust
+pub fn mark_incomplete(&self) -> Result<()>
+```
+
+Forgets that the index was fully rebuilt, so the daemon queues a new
+rebuild.
+
+##### Errors
+
+Returns [`SearchError::Index`](#searcherror) when the marker cannot be removed.
+
+#### WorkSearchIndex::refresh_works
+
+```rust
+pub async fn refresh_works(
+    &self,
+    library: &LibraryStore,
+    work_ids: &[String],
+) -> Result<usize>
+```
+
+Replaces the documents of `work_ids` with what the library holds
+now: a held work's document is written again, and an unheld or
+missing work's is removed.
+
+##### Returns
+
+How many documents were written.
+
+##### Errors
+
+Returns [`SearchError::Busy`](#searcherror) when another writer holds the index,
+or the library or index error.
+
+#### WorkSearchIndex::rebuild
+
+```rust
+pub async fn rebuild(&self, library: &LibraryStore) -> Result<usize>
+```
+
+Rebuilds the whole index from the library, walking every top-level
+work in pages, then leaves the rebuild marker.
+
+##### Returns
+
+How many documents were written.
+
+##### Errors
+
+Returns [`SearchError::Busy`](#searcherror) when another writer holds the index,
+or the library or index error.
+
+#### WorkSearchIndex::open_and_match_ids
+
+```rust
+pub async fn open_and_match_ids(
+    dir: PathBuf,
+    query: String,
+    offset: usize,
+    limit: usize,
+) -> Result<WorkMatches>
+```
+
+Opens the index in `dir` for searching and reads one window of a
+query's matches without blocking the caller's task (see
+[`Self::open_for_search`](#worksearchindexopen_for_search) and [`Self::match_ids`](#worksearchindexmatch_ids)).
+
+##### Errors
+
+Propagates open and query failures.
+
+#### WorkSearchIndex::match_ids
+
+```rust
+pub fn match_ids(
+    &self,
+    raw_query: &str,
+    offset: usize,
+    limit: usize,
+) -> Result<WorkMatches>
+```
+
+The work ids of the `limit` matches of `raw_query` after the first
+`offset`, best first (ties in index order), and the total match
+count. Only the window's documents are read. Blocking.
+
+##### Errors
+
+Returns [`SearchError::Query`](#searcherror) for a query that does not parse, or
+[`SearchError::Index`](#searcherror) when the index cannot be read.
+
 ### SavedFilter
 
 ```rust
@@ -364,6 +533,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 pub enum SearchError {
     Index(String),
     Busy,
+    NotReady,
     Query(String),
     Library(LibraryError),
 }
@@ -376,6 +546,8 @@ Errors from opening, writing, or querying the Tantivy index.
 - `Index`: Index open / writer / commit failure (operator-facing detail).
 - `Busy`: Another writer (a rebuild, an event refresh, or the CLI) holds the
   index lock; the write can be retried shortly.
+- `NotReady`: The index has not been built under the current layout yet; the
+  daemon's rebuild job is building it.
 - `Query`: Query parse failure after Lucene-style normalization.
 - `Library`: Failure loading library rows while rebuilding the index.
 
