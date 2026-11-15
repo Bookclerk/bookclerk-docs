@@ -93,6 +93,14 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NamedAtomicBackend`](#namedatomicbackend) | struct | An `AtomicTxnBackend` that compiles every named operation and hands the plan to a `NamedAtomicRunner`. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
+| [`LibraryWorkRow`](#libraryworkrow) | struct | One row of the page index, as list views show it. |
+| [`WorkCursor`](#workcursor) | struct | Where the next page of a `WorkSort` order starts: the sort values of the last row returned. |
+| [`WorkPage`](#workpage) | struct | One page of library works. |
+| [`WorkPageQuery`](#workpagequery) | struct | Filters and position of one page of library works. |
+| [`EditionDetail`](#editiondetail) | struct | One edition of a work with its expression and listings. |
+| [`EditionListing`](#editionlisting) | struct | One store listing of an edition. |
+| [`ListingHolding`](#listingholding) | struct | One holding of a listing. |
+| [`WorkDetail`](#workdetail) | struct | A top-level work with everything its detail view shows. |
 | [`CatalogListing`](#cataloglisting) | struct | One title a store's catalog answer reported. |
 | [`CatalogListingRecord`](#cataloglistingrecord) | struct | A stored catalog listing, as Discover and the wishlist read it. |
 | [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
@@ -153,6 +161,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `host` \| `member`). |
 | [`UserStatus`](#userstatus) | enum | First-party user status. |
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
+| [`WorkSort`](#worksort) | enum | How a page of library works is ordered. |
+| [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
@@ -240,6 +250,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`interpret_typed_exec`](#interpret_typed_exec) | function | Maps a typed `ExecuteReply` onto a host `DbAtomicResult`. |
 | [`validate_execute_reply`](#validate_execute_reply) | function | Rejects a guest `ExecuteReply` that does not echo the sent request or exceeds negotiated caps. |
 | [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) | function | `validate_execute_reply` for a reply reassembled from `executeStreamed` frames. |
+| [`sort_title`](#sort_title) | function | The sort key of a title: lower case, with one leading English article dropped, so "The Hobbit" sorts under h. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
@@ -270,6 +281,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`BOOKCLERK_SCHEMA_NAMESPACE`](#bookclerk_schema_namespace) | constant | Ledger namespace for host library schema and Bookclerk-owned binding bootstrap. |
 | [`MAX_PLUGIN_MIGRATION_APPLY_ATTEMPTS`](#max_plugin_migration_apply_attempts) | constant | Bounded retries for **one** expected plugin migration apply unit. |
 | [`CORE_EVENTS_QUEUE`](#core_events_queue) | constant | Queue that carries the domain-event bus (`[events]` producers and consumers). |
+| [`EDITION_ACQUIRE_CHANGED`](#edition_acquire_changed) | constant | Host event type published with an edition's acquire state change other than becoming acquired (payload `editionId`, `titleId`, `status`). |
 | [`EVENT_DELIVERY_DEFAULT_RETENTION_SECS`](#event_delivery_default_retention_secs) | constant | How long a delivery may wait, due but never leased, before the host expires it when its consumer declares no `message_retention_period`: one day. A consumer that is deployed but not running stops accumulating work after this, and catches up through the event stream instead. |
 | [`EVENT_DELIVERY_MAX_ATTEMPTS`](#event_delivery_max_attempts) | constant | Default max delivery attempts before dead-letter. |
 | [`EVENT_RESOURCE_CLASS_NETWORK`](#event_resource_class_network) | constant | Default delivery resource class (`network`). |
@@ -289,6 +301,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`SCHEMA_STATE_UNRELEASED`](#schema_state_unreleased) | constant | On-disk `bookclerk_schema_migrations.state` for an unreleased development pack. |
 | [`EVENT_STREAM_SCAN_FACTOR`](#event_stream_scan_factor) | constant | Rows one `LibraryStore::read_event_stream` call may examine per event it may return. |
 | [`EVENT_STREAM_SETTLE_SECS`](#event_stream_settle_secs) | constant | Seconds an outbox row must age before `LibraryStore::read_event_stream` returns it. `created_at` is stamped before the insert commits, so a publication can commit after a newer one; a read that stops short of the last few seconds never moves its cursor past a row that has yet to appear. Newer events still reach subscribers through delivery. |
+| [`LIBRARY_INDEX_LAYOUT`](#library_index_layout) | constant | Layout of `library_work_rows` this binary writes. A library with no finished build of this layout is rebuilt; bump it when a change to how rows are derived needs every row rewritten. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
@@ -311,6 +324,11 @@ the external guest RPC. This crate owns the greenfield schema
 - [`bookclerk_plugin_abi::AdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#adapterbackupops)
 - [`bookclerk_plugin_abi::GuestSqlPolicy`](../bookclerk_plugin_abi/guest_sql.md#guestsqlpolicy)
 - [`bookclerk_plugin_abi::SharedAdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#sharedadapterbackupops)
+- [`bookclerk_resolve::Abridgement`](../bookclerk_resolve/kinds.md#abridgement)
+- [`bookclerk_resolve::Entitlement`](../bookclerk_resolve/kinds.md#entitlement)
+- [`bookclerk_resolve::ExpressionKind`](../bookclerk_resolve/kinds.md#expressionkind)
+- [`bookclerk_resolve::MediaKind`](../bookclerk_resolve/kinds.md#mediakind)
+- [`bookclerk_resolve::WorkKind`](../bookclerk_resolve/kinds.md#workkind)
 - [`bookclerk_storefront::text::decode_html_entities`](../bookclerk_storefront/text.md#decode_html_entities)
 - [`bookclerk_storefront::text::decode_html_entities_cow`](../bookclerk_storefront/text.md#decode_html_entities_cow)
 - [`bookclerk_storefront::text::decode_html_entities_in_place`](../bookclerk_storefront/text.md#decode_html_entities_in_place)
@@ -4027,6 +4045,259 @@ Parsed client presentation for a session row.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### LibraryWorkRow
+
+```rust
+pub struct LibraryWorkRow {
+    pub work_id: String,
+    pub kind: WorkKind,
+    pub title: String,
+    pub authors: Option<String>,
+    pub series: Option<String>,
+    pub series_position: Option<String>,
+    pub cover_edition_id: Option<String>,
+    pub media_kinds: Vec<MediaKind>,
+    pub acquire_status: AcquireStatus,
+    pub edition_count: u64,
+    pub holding_count: u64,
+    pub added_at: String,
+}
+```
+
+One row of the page index, as list views show it.
+
+**Fields**
+
+- `work_id`: The work.
+- `kind`: Book or podcast.
+- `title`: Display title.
+- `authors`: Authors (or hosts) joined for display.
+- `series`: First series name.
+- `series_position`: Position in [`Self::series`](#libraryworkrow).
+- `cover_edition_id`: The edition whose cover the list shows.
+- `media_kinds`: Media kinds of the work's editions, sorted.
+- `acquire_status`: The furthest acquire state any edition reached.
+- `edition_count`: How many editions the work has.
+- `holding_count`: How many holdings the work's listings have.
+- `added_at`: RFC 3339 time of the newest holding.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkCursor
+
+```rust
+pub struct WorkCursor {
+    pub sort: WorkSort,
+    pub key: String,
+    pub title: Option<String>,
+    pub work_id: String,
+}
+```
+
+Where the next page of a [`WorkSort`](#worksort) order starts: the sort values of
+the last row returned.
+
+**Fields**
+
+- `sort`: The order the cursor belongs to; a cursor is refused under another.
+- `key`: The last row's primary sort value (sort title, sort author or
+  added-at stamp).
+- `title`: The last row's sort title; set for [`WorkSort::Author`](#worksort), whose ties
+  break on title.
+- `work_id`: The last row's work id, the final tie-break.
+
+#### WorkCursor::encode
+
+```rust
+pub fn encode(&self) -> String
+```
+
+The opaque token a client sends back: URL-safe base64 of the JSON.
+
+#### WorkCursor::decode
+
+```rust
+pub fn decode(token: &str) -> Result<Self>
+```
+
+Parses a token from [`Self::encode`](#workcursorencode).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) when the token is not one this
+library issued.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### WorkPage
+
+```rust
+pub struct WorkPage {
+    pub works: Vec<LibraryWorkRow>,
+    pub next: Option<WorkCursor>,
+}
+```
+
+One page of library works.
+
+**Fields**
+
+- `works`: The rows, in the requested order.
+- `next`: Where the next page starts; `None` on the last page.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkPageQuery
+
+```rust
+pub struct WorkPageQuery {
+    pub sort: WorkSort,
+    pub media_kind: Option<MediaKind>,
+    pub kind: Option<WorkKind>,
+    pub status: Option<AcquireStatus>,
+    pub account: Option<String>,
+    pub after: Option<WorkCursor>,
+    pub limit: u64,
+}
+```
+
+Filters and position of one page of library works.
+
+**Fields**
+
+- `sort`: Order of the page.
+- `media_kind`: Only works with an edition of this media kind.
+- `kind`: Only works of this kind.
+- `status`: Only works whose furthest acquire state is this one.
+- `account`: Only works held by this store account id (any plugin).
+- `after`: Continue after this cursor.
+- `limit`: Most rows to return; at least 1.
+
+Implements: `Clone`, `Debug`, `Default`
+
+### EditionDetail
+
+```rust
+pub struct EditionDetail {
+    pub id: String,
+    pub work_id: String,
+    pub expression_id: String,
+    pub expression_kind: ExpressionKind,
+    pub language: Option<String>,
+    pub abridgement: Abridgement,
+    pub media_kind: MediaKind,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub published_at: Option<String>,
+    pub duration_minutes: Option<i64>,
+    pub cover_url: Option<String>,
+    pub acquire_status: AcquireStatus,
+    pub listings: Vec<EditionListing>,
+}
+```
+
+One edition of a work with its expression and listings.
+
+**Fields**
+
+- `id`: Edition id.
+- `work_id`: The work the edition realises: the work itself, or one of a show's
+  episodes.
+- `expression_id`: The expression the edition carries.
+- `expression_kind`: How the expression realises the work.
+- `language`: The expression's language tag, when known.
+- `abridgement`: Whether the expression is abridged.
+- `media_kind`: Carrier of the edition.
+- `title`: The edition's title.
+- `subtitle`: The edition's subtitle.
+- `published_at`: Publication date as the store gave it.
+- `duration_minutes`: Running time in minutes, for audio.
+- `cover_url`: Cover image URL from the store, when known.
+- `acquire_status`: The edition's acquire state.
+- `listings`: The edition's listings, by id.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
+### EditionListing
+
+```rust
+pub struct EditionListing {
+    pub id: String,
+    pub plugin_key: String,
+    pub marketplace: String,
+    pub product_id: String,
+    pub url: Option<String>,
+    pub holdings: Vec<ListingHolding>,
+}
+```
+
+One store listing of an edition.
+
+**Fields**
+
+- `id`: Listing id.
+- `plugin_key`: The storefront plugin that lists it.
+- `marketplace`: Store marketplace (`us`, `uk`, …), empty when the store has one.
+- `product_id`: The store's product id (ASIN, ISBN, product UUID, …).
+- `url`: The product page, when known.
+- `holdings`: The listing's holdings, by id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ListingHolding
+
+```rust
+pub struct ListingHolding {
+    pub id: String,
+    pub holder: HoldingHolder,
+    pub entitlement: Entitlement,
+    pub purchased_at: Option<String>,
+    pub added_at: String,
+}
+```
+
+One holding of a listing.
+
+**Fields**
+
+- `id`: Holding id.
+- `holder`: Who holds the listing.
+- `entitlement`: On what terms the holder has it.
+- `purchased_at`: RFC 3339 purchase time, when the store reported one.
+- `added_at`: RFC 3339 time the holding was first recorded.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### WorkDetail
+
+```rust
+pub struct WorkDetail {
+    pub id: String,
+    pub kind: WorkKind,
+    pub title: String,
+    pub description: Option<String>,
+    pub authors: Vec<String>,
+    pub series: Option<String>,
+    pub series_position: Option<String>,
+    pub editions: Vec<EditionDetail>,
+}
+```
+
+A top-level work with everything its detail view shows.
+
+**Fields**
+
+- `id`: Work id.
+- `kind`: Book or podcast.
+- `title`: Display title.
+- `description`: Blurb or synopsis (may contain HTML).
+- `authors`: Authors (hosts for a podcast), in billing order.
+- `series`: First series name.
+- `series_position`: Position in [`Self::series`](#workdetail).
+- `editions`: Editions, by id; a show's episodes' editions included.
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
 ### CatalogListing
 
 ```rust
@@ -6244,6 +6515,122 @@ How many holdings were selected for removal.
 Returns an error when a read or a batch fails; holdings removed by
 earlier batches stay removed.
 
+#### LibraryStore::refresh_library_works
+
+```rust
+pub async fn refresh_library_works(&self, work_ids: &[String]) -> Result<u64>
+```
+
+Refreshes the page index rows of `work_ids` (an episode refreshes its
+show): writes each work's row (an unheld work's with a holding count
+of 0, which pages skip) and deletes the row of a work that is gone.
+
+##### Arguments
+
+* `work_ids` - Works whose editions, listings or holdings changed.
+
+##### Returns
+
+How many rows were written or deleted (a write skipped because a
+later refresh already wrote the row is not counted).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) or a batch error when a read or write
+fails.
+
+#### LibraryStore::rebuild_library_index_page
+
+```rust
+pub async fn rebuild_library_index_page(
+    &self,
+    after: Option<&str>,
+) -> Result<Option<String>>
+```
+
+Refreshes one page of the rebuild: the works with an id after
+`after`, in id order, as [`LibraryStore::refresh_library_works`](#librarystorerefresh_library_works)
+does.
+
+##### Arguments
+
+* `after` - The last work id of the previous page; `None` to start.
+
+##### Returns
+
+The last work id of this page, or `None` when the walk is done.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) or a batch error when a read or write
+fails.
+
+#### LibraryStore::library_index_built
+
+```rust
+pub async fn library_index_built(&self) -> Result<bool>
+```
+
+True when the page index has a finished build of
+[`LIBRARY_INDEX_LAYOUT`](#library_index_layout).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::finish_library_index_build
+
+```rust
+pub async fn finish_library_index_build(&self) -> Result<()>
+```
+
+Records a finished build of [`LIBRARY_INDEX_LAYOUT`](#library_index_layout).
+
+##### Errors
+
+Returns a batch error when the write fails.
+
+#### LibraryStore::work_of_edition
+
+```rust
+pub async fn work_of_edition(&self, edition_id: &str) -> Result<Option<String>>
+```
+
+The works an edition belongs to (one, unless it was just moved).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::work_of_listing
+
+```rust
+pub async fn work_of_listing(&self, listing_id: &str) -> Result<Option<String>>
+```
+
+The work a listing's edition belongs to.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::library_works_page
+
+```rust
+pub async fn library_works_page(&self, query: &WorkPageQuery) -> Result<WorkPage>
+```
+
+One page of the library's works from the page index.
+
+##### Arguments
+
+* `query` - Order, filters, cursor and page size.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) when the cursor belongs to another
+order, or [`LibraryError::Orm`](#libraryerror) when the read fails.
+
 #### LibraryStore::owned_work_for
 
 ```rust
@@ -7543,6 +7930,72 @@ user.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::library_work_detail
+
+```rust
+pub async fn library_work_detail(&self, work_id: &str) -> Result<Option<WorkDetail>>
+```
+
+One top-level work with its editions, listings and holdings.
+
+##### Arguments
+
+* `work_id` - The work. A podcast episode's id reads as missing:
+  its show is the work the library lists.
+
+##### Returns
+
+`None` when there is no such top-level work.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::edition_cover_urls
+
+```rust
+pub async fn edition_cover_urls(
+    &self,
+    edition_ids: &[String],
+) -> Result<HashMap<String, String>>
+```
+
+The store cover URLs of `edition_ids`, for a page of index rows
+(each names its cover edition).
+
+##### Returns
+
+Edition id to cover URL; editions with no cover are left out.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::user_title_state
+
+```rust
+pub async fn user_title_state(
+    &self,
+    user_id: i64,
+    work_id: &str,
+) -> Result<Option<UserTitleState>>
+```
+
+One user's own state for one work.
+
+##### Arguments
+
+* `user_id` - The user (`users.id`).
+* `work_id` - The work (`works.id`).
+
+##### Returns
+
+`None` when the user recorded nothing for the work.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
 #### LibraryStore::enqueue_job
 
@@ -12369,6 +12822,7 @@ pub enum JobKind {
     DiscoverRequestQueue,
     CacheSweep,
     SearchIndexRebuild,
+    LibraryIndexRebuild,
     BranchRequest,
     Invalid,
 }
@@ -12399,6 +12853,9 @@ Kind of durable daemon work stored in the `jobs` table.
 - `SearchIndexRebuild`: Rebuild one node's full-text search index from the library
   (`search_index_rebuild`); only the node named by
   [`JobPayload::node_id`](#jobpayload) claims it.
+- `LibraryIndexRebuild`: Rebuild the library's page index (`library_work_rows`) from the
+  library model (`library_index_rebuild`); one for the whole cluster,
+  any node claims it.
 - `BranchRequest`: An interlibrary request (`branch_request`): send this library a
   book one of its branches listed. Pinned by
   [`JobPayload::node_id`](#jobpayload) to that branch, which claims it over the
@@ -12409,7 +12866,7 @@ Kind of durable daemon work stored in the `jobs` table.
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 13] = _
+pub const ALL: [Self; 14] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -12835,6 +13292,47 @@ pub fn checksum(&self) -> Option<&str>
 Checksum when the database has applied Bookclerk schema.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
+
+### WorkSort
+
+```rust
+pub enum WorkSort {
+    Title,
+    Author,
+    Added,
+}
+```
+
+How a page of library works is ordered.
+
+**Variants**
+
+- `Title`: By title sort key, A to Z.
+- `Author`: By the first author's sort name, then title.
+- `Added`: Newest holding first ("recently added").
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### HoldingHolder
+
+```rust
+pub enum HoldingHolder {
+    Account { plugin_key: String, account_id: String },
+    Node { node_id: String },
+}
+```
+
+Who holds a listing.
+
+**Variants**
+
+- `Account`: A store account, by plugin and account id.
+  - `plugin_key`: The account's plugin.
+  - `account_id`: The account id at that plugin.
+- `Node`: A branch library's node, by node id.
+  - `node_id`: The node id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### OfferAudience
 
@@ -14410,6 +14908,19 @@ from retrying the same read in inline pieces.
 
 As [`validate_execute_reply`](#validate_execute_reply).
 
+### sort_title
+
+```rust
+pub fn sort_title(title: &str) -> String
+```
+
+The sort key of a title: lower case, with one leading English article
+dropped, so "The Hobbit" sorts under h.
+
+#### Arguments
+
+* `title` - The display title.
+
 ### apply_user_states
 
 ```rust
@@ -14787,6 +15298,15 @@ pub const CORE_EVENTS_QUEUE: &str = "core.events";
 
 Queue that carries the domain-event bus (`[events]` producers and consumers).
 
+### EDITION_ACQUIRE_CHANGED
+
+```rust
+pub const EDITION_ACQUIRE_CHANGED: &str = "edition_acquire_changed";
+```
+
+Host event type published with an edition's acquire state change other
+than becoming acquired (payload `editionId`, `titleId`, `status`).
+
 ### EVENT_DELIVERY_DEFAULT_RETENTION_SECS
 
 ```rust
@@ -14958,6 +15478,16 @@ returns it. `created_at` is stamped before the insert commits, so a
 publication can commit after a newer one; a read that stops short of the
 last few seconds never moves its cursor past a row that has yet to
 appear. Newer events still reach subscribers through delivery.
+
+### LIBRARY_INDEX_LAYOUT
+
+```rust
+pub const LIBRARY_INDEX_LAYOUT: i64 = 1;
+```
+
+Layout of `library_work_rows` this binary writes. A library with no
+finished build of this layout is rebuilt; bump it when a change to how
+rows are derived needs every row rewritten.
 
 ### CATALOG_LISTING_REFRESH
 

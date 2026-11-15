@@ -53,6 +53,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`job_secret_handoffs`](job_secret_handoffs.md): SeaORM entity for `job_secret_handoffs`: which store-account secrets a Host was handed with a job, per lease generation.
 - [`job_temp_paths`](job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.
 - [`jobs`](jobs.md): SeaORM entity for the durable daemon `jobs` table.
+- [`library_index_builds`](library_index_builds.md): SeaORM entity for `library_index_builds`: finished page index builds.
+- [`library_work_rows`](library_work_rows.md): SeaORM entity for `library_work_rows`: the library's page index.
 - [`link_imports`](link_imports.md): SeaORM entity for `link_imports`: on a branch, the branch owner's books acquired for a library it joined and imported into this library as well (written by `control_plane::link_imports`). The catalog sync never sends a library a book recorded here for it.
 - [`link_requests`](link_requests.md): SeaORM entity for `link_requests`: on a branch, the books a library it joined asked for through an interlibrary request (written by `control_plane::branch_requests`). The catalog sync sends that library a book recorded here for it, although the book is a member's.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.

@@ -2,6 +2,12 @@
 
 The request and response bodies of the [web API](README.md), in alphabetical order.
 
+## AbridgementJson
+
+Whether an expression is abridged.
+
+Type: one of `unknown`, `unabridged`, `abridged`
+
 ## AccountRef
 
 One store account, by storefront plugin key and store account id.
@@ -879,6 +885,25 @@ the metadata every domain response carries before its settings.
 - `updated_at` *string*, **required** — RFC 3339 time of the last write.
 - `updated_by` *string*, **required** — Audit identity of the last writer.
 
+## EditionJson
+
+One edition of a work.
+
+- `id` *string*, **required** — Edition id.
+- `work_id` *string*, **required** — The work it realises: this work, or one of a show's episodes.
+- `expression_id` *string*, **required** — The expression it carries.
+- `expression_kind` *[`ExpressionKindJson`](#expressionkindjson)*, **required** — How the expression realises the work.
+- `language` *string or null* — The expression's language tag, when known.
+- `abridgement` *[`AbridgementJson`](#abridgementjson)*, **required** — Whether the expression is abridged.
+- `media_kind` *[`MediaKindJson`](#mediakindjson)*, **required** — Carrier of the edition.
+- `title` *string*, **required** — The edition's title.
+- `subtitle` *string or null* — The edition's subtitle.
+- `published_at` *string or null* — Publication date as the store gave it.
+- `duration_minutes` *integer (int64) or null* — Running time in minutes, for audio.
+- `cover_path` *string or null* — Same-origin path of the edition's cover, when it has one.
+- `acquire_status` *[`AcquireStatus`](#acquirestatus)*, **required** — The edition's acquire state.
+- `listings` *array of [`ListingJson`](#listingjson)*, **required** — The edition's store listings.
+
 ## Elevated
 
 JSON body after a successful Owner elevation.
@@ -930,6 +955,12 @@ An enrollment link as the invites routes list it; never its secret.
 - `redeemed_node_id` *string or null* — Node the redeem created.
 - `revoked_at` *string or null* — RFC 3339 revoke time.
 - `state` *string*, **required** — `pending`, `redeemed`, `revoked`, or `expired` right now.
+
+## EntitlementJson
+
+On what terms a holder has a listing.
+
+Type: one of `purchase`, `plus`, `loan`, `free`
 
 ## ErrorAnswer
 
@@ -1018,6 +1049,12 @@ Typed `[events]` document, schema version 1.
 - `dead_letter_retention_days` *integer (int64)*, **required** — Days to keep dead-lettered deliveries. At least 0.
 - `concurrency` *integer (int32)*, **required** — Local delivery workers and the cluster in-flight cap. At least 0.
 
+## ExpressionKindJson
+
+How an expression realises its work (`expressions.kind`).
+
+Type: one of `text`, `narration`, `dramatisation`, `graphic`, `original_audio`
+
 ## FeedState
 
 How current a stored Discover feed is.
@@ -1043,6 +1080,22 @@ node's `[plugins.jail]` limits.
 Liveness payload for unauthenticated `GET /health`.
 
 - `status` *string*, **required** — Always `ok` when the process can serve HTTP.
+
+## HolderJson
+
+Who holds a listing.
+
+Type: object
+
+## HoldingJson
+
+One holding of a listing.
+
+- `id` *string*, **required** — Holding id.
+- `holder` *[`HolderJson`](#holderjson)*, **required** — Who holds the listing.
+- `entitlement` *[`EntitlementJson`](#entitlementjson)*, **required** — On what terms.
+- `purchased_at` *string or null* — RFC 3339 purchase time, when the store reported one.
+- `added_at` *string*, **required** — RFC 3339 time the holding was first recorded.
 
 ## HostEnrollment
 
@@ -1167,7 +1220,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `branch_request`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `invalid`
 
 ## JobState
 
@@ -1267,6 +1320,17 @@ One sign-in identity linked to a user.
 - `external_user_id` *string*, **required** — Provider-stable subject.
 - `label` *string or null* — Operator-facing label, when the provider supplied one.
 
+## ListingJson
+
+One store listing of an edition.
+
+- `id` *string*, **required** — Listing id.
+- `plugin_key` *string*, **required** — The storefront plugin that lists it.
+- `marketplace` *string*, **required** — Store marketplace; empty when the store has one.
+- `product_id` *string*, **required** — The store's product id.
+- `url` *string or null* — The product page, when known.
+- `holdings` *array of [`HoldingJson`](#holdingjson)*, **required** — The listing's holdings.
+
 ## LoginBegin
 
 Login-name or email used to start a discoverable-less passkey login.
@@ -1302,6 +1366,12 @@ TOTP code plus the challenge id from password login.
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (5-minute TTL, single use).
 - `code` *string*, **required** — Six-digit authenticator code.
+
+## MediaKindJson
+
+Carrier of an edition (`editions.media_kind`).
+
+Type: one of `audio`, `ebook`, `print`
 
 ## MembersBooksBody
 
@@ -3355,3 +3425,58 @@ Storefront edition key for wishlist / queue payloads.
 
 - `source` *string*, **required** — Content-source plugin id (`audible`, `libro`, …).
 - `product_id` *string*, **required** — Storefront product id (ASIN, ISBN, UUID, …).
+
+## WorkDetailJson
+
+`GET /api/library/works/{id}` answer.
+
+- `id` *string*, **required** — Work id.
+- `kind` *[`WorkKindJson`](#workkindjson)*, **required** — Book or podcast.
+- `title` *string*, **required** — Display title.
+- `description` *string or null* — Blurb or synopsis (may contain HTML).
+- `authors` *array of string*, **required** — Authors (hosts for a podcast), in billing order.
+- `series` *string or null* — First series the work belongs to.
+- `series_position` *string or null* — Position in `series`.
+- `editions` *array of [`EditionJson`](#editionjson)*, **required** — Editions; a show's episodes' editions included.
+- `state` *[`WorkStateJson`](#workstatejson) or null* — The caller's own state; absent for the operator or when the caller recorded nothing.
+
+## WorkKindJson
+
+Book or podcast (`works.kind`).
+
+Type: one of `book`, `podcast`
+
+## WorksPage
+
+A page of `GET /api/library/works`.
+
+- `works` *array of [`WorkSummaryJson`](#worksummaryjson)*, **required** — The works, in the requested order.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
+
+## WorkStateJson
+
+The caller's own state for a work.
+
+- `is_finished` *boolean*, **required** — Whether the caller finished the work.
+- `rating_overall` *number (double) or null* — Overall rating, 0 to 5.
+- `rating_performance` *number (double) or null* — Narration rating, 0 to 5.
+- `rating_story` *number (double) or null* — Story rating, 0 to 5.
+- `tags` *string or null* — The caller's tags, as one serialized string.
+
+## WorkSummaryJson
+
+One work in a page of `GET /api/library/works`.
+
+- `id` *string*, **required** — Work id.
+- `kind` *[`WorkKindJson`](#workkindjson)*, **required** — Book or podcast.
+- `title` *string*, **required** — Display title.
+- `authors` *string or null* — Authors (hosts for a podcast), joined for display.
+- `series` *string or null* — First series the work belongs to.
+- `series_position` *string or null* — Position in `series`, as the store gave it.
+- `cover_edition_id` *string or null* — The edition whose cover the list shows.
+- `cover_path` *string or null* — Same-origin path of that cover, when it has one.
+- `media_kinds` *array of [`MediaKindJson`](#mediakindjson)*, **required** — Carriers of the work's editions.
+- `acquire_status` *[`AcquireStatus`](#acquirestatus)*, **required** — The furthest acquire state any edition reached.
+- `edition_count` *integer (int64)*, **required** — How many editions the work has. At least 0.
+- `holding_count` *integer (int64)*, **required** — How many holdings the work's listings have. At least 0.
+- `added_at` *string*, **required** — RFC 3339 time of the newest holding.

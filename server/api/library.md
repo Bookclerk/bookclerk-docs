@@ -3174,3 +3174,1172 @@ request timed out
 Schema:
 
 A `text/plain` body: a string.
+
+## `GET /api/library/works`
+
+Lists the library's works, one page at a time.
+
+Each work appears once however many editions, stores and accounts hold
+it; a podcast is listed as its show. Pass `next_cursor` back as
+`cursor` (with the same `sort`) for the next page.
+
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
+
+### Parameters
+
+- `sort` (query) *one of `title`, `author`, `added`* — Order of the page (default `title`).
+- `media_kind` (query) *one of `audio`, `ebook`, `print`* — Only works with an edition on this carrier.
+- `kind` (query) *one of `book`, `podcast`* — Only works of this kind.
+- `status` (query) *one of `not_acquired`, `queued`, `downloading`, `acquired`, `error`* — Only works whose furthest acquire state is this one.
+- `account` (query) *string* — Only works held by this store account id.
+- `cursor` (query) *string* — `next_cursor` of the previous page, under the same `sort`.
+- `limit` (query) *integer (int64)* — Page size, clamped to 1–200 (default 40).
+
+### Responses
+
+- `200` — A page of works. Body: [`WorksPage`](schemas.md#workspage) (`application/json`)
+  - `works` *array of [`WorkSummaryJson`](schemas.md#worksummaryjson)*, **required** — The works, in the requested order.
+  - `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
+- `400` — A filter or the cursor is invalid. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/works",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/works")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: A page of works.
+
+```json
+{
+  "works": [
+    {
+      "id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+      "kind": "book",
+      "title": "The Left Hand of Darkness",
+      "authors": "Ursula K. Le Guin",
+      "series": "Hainish Cycle",
+      "series_position": "4",
+      "cover_edition_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+      "cover_path": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ",
+      "media_kinds": [
+        "audio"
+      ],
+      "acquire_status": "not_acquired",
+      "edition_count": 2,
+      "holding_count": 3,
+      "added_at": "2026-11-14T09:30:00.000000Z"
+    }
+  ],
+  "next_cursor": "eyJzb3J0IjoidGl0bGUiLCJrZXkiOiJsZWZ0IGhhbmQiLCJ3b3JrX2lkIjoiMGI4ZiJ9"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A page of `GET /api/library/works`.",
+  "required": [
+    "works"
+  ],
+  "properties": {
+    "works": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One work in a page of `GET /api/library/works`.",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "media_kinds",
+          "acquire_status",
+          "edition_count",
+          "holding_count",
+          "added_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Work id.",
+            "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Book or podcast.",
+            "enum": [
+              "book",
+              "podcast"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title.",
+            "example": "The Left Hand of Darkness"
+          },
+          "authors": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Authors (hosts for a podcast), joined for display.",
+            "example": "Ursula K. Le Guin"
+          },
+          "series": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "First series the work belongs to.",
+            "example": "Hainish Cycle"
+          },
+          "series_position": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Position in `series`, as the store gave it.",
+            "example": "4"
+          },
+          "cover_edition_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition whose cover the list shows.",
+            "example": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+          },
+          "cover_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Same-origin path of that cover, when it has one.",
+            "example": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ"
+          },
+          "media_kinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Carrier of an edition (`editions.media_kind`).",
+              "enum": [
+                "audio",
+                "ebook",
+                "print"
+              ]
+            },
+            "description": "Carriers of the work's editions."
+          },
+          "acquire_status": {
+            "type": "string",
+            "description": "The furthest acquire state any edition reached.",
+            "enum": [
+              "not_acquired",
+              "queued",
+              "downloading",
+              "acquired",
+              "error"
+            ]
+          },
+          "edition_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many editions the work has.",
+            "example": 2,
+            "minimum": 0
+          },
+          "holding_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many holdings the work's listings have.",
+            "example": 3,
+            "minimum": 0
+          },
+          "added_at": {
+            "type": "string",
+            "description": "RFC 3339 time of the newest holding.",
+            "example": "2026-11-14T09:30:00.000000Z"
+          }
+        }
+      },
+      "description": "The works, in the requested order."
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Pass as `cursor` for the next page; absent on the last page.",
+      "example": "eyJzb3J0IjoidGl0bGUiLCJrZXkiOiJsZWZ0IGhhbmQiLCJ3b3JrX2lkIjoiMGI4ZiJ9"
+    }
+  }
+}
+```
+
+Status `400`: A filter or the cursor is invalid.
+
+```json
+{
+  "error": "invalid page cursor"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
+
+```json
+{
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/works/{id}`
+
+Reads one work with its editions, listings, holdings and the caller's
+own state.
+
+**Access:** The operator, or any library session, including a client sign-in's token (refused with 403 `transport_insecure` off loopback without TLS, or `client_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clientToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Work id (a podcast's show).
+
+### Responses
+
+- `200` — The work. Body: [`WorkDetailJson`](schemas.md#workdetailjson) (`application/json`)
+  - `id` *string*, **required** — Work id.
+  - `kind` *[`WorkKindJson`](schemas.md#workkindjson)*, **required** — Book or podcast.
+  - `title` *string*, **required** — Display title.
+  - `description` *string or null* — Blurb or synopsis (may contain HTML).
+  - `authors` *array of string*, **required** — Authors (hosts for a podcast), in billing order.
+  - `series` *string or null* — First series the work belongs to.
+  - `series_position` *string or null* — Position in `series`.
+  - `editions` *array of [`EditionJson`](schemas.md#editionjson)*, **required** — Editions; a show's episodes' editions included.
+  - `state` *[`WorkStateJson`](schemas.md#workstatejson) or null* — The caller's own state; absent for the operator or when the caller recorded nothing.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such work. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/works/<id>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/works/<id>' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/works/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/works/<id>", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/works/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The work.
+
+```json
+{
+  "id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+  "kind": "book",
+  "title": "The Left Hand of Darkness",
+  "description": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender.",
+  "authors": [
+    "Ursula K. Le Guin"
+  ],
+  "series": "Hainish Cycle",
+  "series_position": "4",
+  "editions": [
+    {
+      "id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+      "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+      "expression_id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+      "expression_kind": "text",
+      "language": "en",
+      "abridgement": "unknown",
+      "media_kind": "audio",
+      "title": "The Left Hand of Darkness",
+      "subtitle": "A Hainish Novel",
+      "published_at": "2009-11-25",
+      "duration_minutes": 682,
+      "cover_path": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ",
+      "acquire_status": "not_acquired",
+      "listings": [
+        {
+          "id": "3c4d5e6f-7081-4923-8a4b-5c6d7e8f9012",
+          "plugin_key": "audible",
+          "marketplace": "us",
+          "product_id": "B002V0QK4C",
+          "holdings": []
+        }
+      ]
+    }
+  ],
+  "state": {
+    "is_finished": true,
+    "rating_overall": 4.5,
+    "rating_performance": 4.0,
+    "rating_story": 5.0,
+    "tags": "classics"
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/library/works/{id}` answer.",
+  "required": [
+    "id",
+    "kind",
+    "title",
+    "authors",
+    "editions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Work id.",
+      "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Book or podcast.",
+      "enum": [
+        "book",
+        "podcast"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title.",
+      "example": "The Left Hand of Darkness"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Blurb or synopsis (may contain HTML).",
+      "example": "An envoy to the planet Gethen must win the trust of a people who have no fixed gender."
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Authors (hosts for a podcast), in billing order.",
+      "example": [
+        "Ursula K. Le Guin"
+      ]
+    },
+    "series": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "First series the work belongs to.",
+      "example": "Hainish Cycle"
+    },
+    "series_position": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Position in `series`.",
+      "example": "4"
+    },
+    "editions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One edition of a work.",
+        "required": [
+          "id",
+          "work_id",
+          "expression_id",
+          "expression_kind",
+          "abridgement",
+          "media_kind",
+          "title",
+          "acquire_status",
+          "listings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Edition id.",
+            "example": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+          },
+          "work_id": {
+            "type": "string",
+            "description": "The work it realises: this work, or one of a show's episodes.",
+            "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+          },
+          "expression_id": {
+            "type": "string",
+            "description": "The expression it carries.",
+            "example": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d"
+          },
+          "expression_kind": {
+            "type": "string",
+            "description": "How the expression realises the work.",
+            "enum": [
+              "text",
+              "narration",
+              "dramatisation",
+              "graphic",
+              "original_audio"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The expression's language tag, when known.",
+            "example": "en"
+          },
+          "abridgement": {
+            "type": "string",
+            "description": "Whether the expression is abridged.",
+            "enum": [
+              "unknown",
+              "unabridged",
+              "abridged"
+            ]
+          },
+          "media_kind": {
+            "type": "string",
+            "description": "Carrier of the edition.",
+            "enum": [
+              "audio",
+              "ebook",
+              "print"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "The edition's title.",
+            "example": "The Left Hand of Darkness"
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition's subtitle.",
+            "example": "A Hainish Novel"
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Publication date as the store gave it.",
+            "example": "2009-11-25"
+          },
+          "duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Running time in minutes, for audio.",
+            "example": 682
+          },
+          "cover_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Same-origin path of the edition's cover, when it has one.",
+            "example": "/api/covers/eyJ1IjoiaHR0cHM6Ly9pbWFnZXMuZXhhbXBsZS5jb20vYy5qcGcifQ"
+          },
+          "acquire_status": {
+            "type": "string",
+            "description": "The edition's acquire state.",
+            "enum": [
+              "not_acquired",
+              "queued",
+              "downloading",
+              "acquired",
+              "error"
+            ]
+          },
+          "listings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One store listing of an edition.",
+              "required": [
+                "id",
+                "plugin_key",
+                "marketplace",
+                "product_id",
+                "holdings"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Listing id.",
+                  "example": "3c4d5e6f-7081-4923-8a4b-5c6d7e8f9012"
+                },
+                "plugin_key": {
+                  "type": "string",
+                  "description": "The storefront plugin that lists it.",
+                  "example": "audible"
+                },
+                "marketplace": {
+                  "type": "string",
+                  "description": "Store marketplace; empty when the store has one.",
+                  "example": "us"
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "The store's product id.",
+                  "example": "B002V0QK4C"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The product page, when known.",
+                  "example": "https://www.audible.com/pd/B002V0QK4C"
+                },
+                "holdings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One holding of a listing.",
+                    "required": [
+                      "id",
+                      "holder",
+                      "entitlement",
+                      "added_at"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Holding id.",
+                        "example": "4d5e6f70-8192-4a3b-9c4d-5e6f708192a3"
+                      },
+                      "holder": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "description": "A store account.",
+                            "required": [
+                              "plugin_key",
+                              "account_id",
+                              "kind"
+                            ],
+                            "properties": {
+                              "plugin_key": {
+                                "type": "string",
+                                "description": "The account's storefront plugin.",
+                                "example": "audible"
+                              },
+                              "account_id": {
+                                "type": "string",
+                                "description": "The account id at that plugin.",
+                                "example": "acct-7f3a"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "account"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "description": "A branch library's node.",
+                            "required": [
+                              "node_id",
+                              "kind"
+                            ],
+                            "properties": {
+                              "node_id": {
+                                "type": "string",
+                                "description": "The node id.",
+                                "example": "9b1c7d2e-4f3a-4b6c-8d1e-2f3a4b5c6d7e"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "node"
+                                ]
+                              }
+                            }
+                          }
+                        ],
+                        "description": "Who holds the listing."
+                      },
+                      "entitlement": {
+                        "type": "string",
+                        "description": "On what terms.",
+                        "enum": [
+                          "purchase",
+                          "plus",
+                          "loan",
+                          "free"
+                        ]
+                      },
+                      "purchased_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "RFC 3339 purchase time, when the store reported one.",
+                        "example": "2024-03-02T18:04:11Z"
+                      },
+                      "added_at": {
+                        "type": "string",
+                        "description": "RFC 3339 time the holding was first recorded.",
+                        "example": "2026-11-14T09:30:00.000000Z"
+                      }
+                    }
+                  },
+                  "description": "The listing's holdings."
+                }
+              }
+            },
+            "description": "The edition's store listings."
+          }
+        }
+      },
+      "description": "Editions; a show's episodes' editions included."
+    },
+    "state": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The caller's own state; absent for the operator or when the caller\nrecorded nothing.",
+          "required": [
+            "is_finished"
+          ],
+          "properties": {
+            "is_finished": {
+              "type": "boolean",
+              "description": "Whether the caller finished the work.",
+              "example": true
+            },
+            "rating_overall": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "description": "Overall rating, 0 to 5.",
+              "example": 4.5
+            },
+            "rating_performance": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "description": "Narration rating, 0 to 5.",
+              "example": 4.0
+            },
+            "rating_story": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double",
+              "description": "Story rating, 0 to 5.",
+              "example": 5.0
+            },
+            "tags": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The caller's tags, as one serialized string.",
+              "example": "classics"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `client_sign_in_unavailable`.
+
+```json
+{
+  "error": "client_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such work.
+
+```json
+{
+  "error": "work 0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.

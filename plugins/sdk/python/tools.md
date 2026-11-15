@@ -602,7 +602,7 @@ Longest `message_retention_period` in seconds (14 days), as in Cloudflare Queues
 ### HOST_EVENT_TYPES
 
 ```python
-HOST_EVENT_TYPES = frozenset({'book_acquired', 'edition_linked', 'edition_updated', 'holding_add...
+HOST_EVENT_TYPES = frozenset({'book_acquired', 'edition_acquire_changed', 'edition_linked', 'edi...
 ```
 
 Domain event types only the host emits; plugins consume them but cannot produce them.

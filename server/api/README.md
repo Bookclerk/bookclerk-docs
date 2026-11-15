@@ -129,6 +129,8 @@ Books in the library, scans and acquires.
 | [`GET /api/library/books`](library.md#get-apilibrarybooks) | Lists or searches library titles with optional account/status filters and pagination. |
 | [`GET /api/library/books/{uuid}`](library.md#get-apilibrarybooksuuid) | Returns one title by UUID, or 404 when it is absent. |
 | [`GET /api/library/books/{uuid}/cover`](library.md#get-apilibrarybooksuuidcover) | Serves the JPEG cover sidecar from the deployed local destination, or 404 when no local destination runs on this node. |
+| [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
+| [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
 
 ### [Discover](discover.md)
 

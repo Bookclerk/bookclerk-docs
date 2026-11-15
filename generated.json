@@ -182,6 +182,8 @@
     "internals/crates/bookclerk_library/entities/job_secret_handoffs",
     "internals/crates/bookclerk_library/entities/job_temp_paths",
     "internals/crates/bookclerk_library/entities/jobs",
+    "internals/crates/bookclerk_library/entities/library_index_builds",
+    "internals/crates/bookclerk_library/entities/library_work_rows",
     "internals/crates/bookclerk_library/entities/link_imports",
     "internals/crates/bookclerk_library/entities/link_requests",
     "internals/crates/bookclerk_library/entities/listening_progress",
