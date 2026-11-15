@@ -11,6 +11,9 @@ Release packaging aligned with `docs/plugins/registry.md` artifact naming.
 | [`package_plugins`](#package_plugins) | function | Packages discovered plugin guests into the release artifacts directory. |
 | [`package_hosts`](#package_hosts) | function | Packages host binaries (`bookclerk`, `bookclerkd`, helpers) into artifacts. |
 | [`package_platform`](#package_platform) | function | Packages platform-only guests (sqlite / local) into artifacts. |
+| [`stage_desktop_runtime`](#stage_desktop_runtime) | function | Stages the host runtime the desktop app's packages carry. |
+| [`tauri_build_command`](#tauri_build_command) | function | The `cargo tauri build` call that bundles the desktop app with the packaging configs, run in the desktop crate. |
+| [`DESKTOP_RUNTIME_STAGE`](#desktop_runtime_stage) | constant | Where `stage_desktop_runtime` puts the desktop app's runtime, under `target/`. `crates/bookclerk-desktop/tauri.packaging.json` bundles this folder as the app's `runtime/` resource. |
 
 ## Functions
 
@@ -143,3 +146,62 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 #### Panics
 
 Panics when an internal invariant does not hold.
+
+### stage_desktop_runtime
+
+```rust
+pub fn stage_desktop_runtime(root: &Path, version: &str) -> Result<PathBuf>
+```
+
+Stages the host runtime the desktop app's packages carry.
+
+Builds the platform bundle ([`package_platform`]: release helpers,
+`workerd` and the platform plugins), adds the web app (`ui/dist`), and
+leaves the result in `target/desktop-runtime/`, where the packaging
+config picks it up. The bundle's install ledger and lock are dropped, as
+the container image does: the app's files directory keeps its own. So
+are the `bookclerk` and `bookclerkd` binaries: the app runs the host
+in-process, and nothing would put them on the `PATH`.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+* `version` - Version stamped into the platform plugins' receipts.
+
+#### Returns
+
+The staged runtime directory.
+
+#### Errors
+
+Returns an error when the platform bundle, the web app or a copy fails,
+or the staged runtime lacks a helper the desktop app needs.
+
+### tauri_build_command
+
+```rust
+pub fn tauri_build_command(root: &Path) -> Command
+```
+
+The `cargo tauri build` call that bundles the desktop app with the
+packaging configs, run in the desktop crate.
+
+#### Arguments
+
+* `root` - Cargo workspace root directory.
+
+#### Returns
+
+The command, not yet run.
+
+## Constants
+
+### DESKTOP_RUNTIME_STAGE
+
+```rust
+pub const DESKTOP_RUNTIME_STAGE: &str = "desktop-runtime";
+```
+
+Where [`stage_desktop_runtime`](#stage_desktop_runtime) puts the desktop app's runtime, under
+`target/`. `crates/bookclerk-desktop/tauri.packaging.json` bundles this
+folder as the app's `runtime/` resource.

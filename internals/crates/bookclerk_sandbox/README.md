@@ -82,6 +82,7 @@ use so a missing jail can never pass silently.
 | [`canonicalize`](#canonicalize) | function | `std::fs::canonicalize` that also works inside a Windows AppContainer. |
 | [`create_process_path`](#create_process_path) | function | Path passed to `CreateProcess`, `Command`, or a child that parses Win32 paths. |
 | [`helper_search_dirs`](#helper_search_dirs) | function | Directories a host searches for a helper it ships beside itself. |
+| [`packaged_runtime_dirs`](#packaged_runtime_dirs) | function | Where an installed desktop app keeps the host's runtime, relative to its executable. |
 | [`require_absolute_or_name`](#require_absolute_or_name) | function | Absolute path with no NUL, or a single PATH lookup name (`cargo`, `python3`). |
 | [`require_absolute_spawn_path`](#require_absolute_spawn_path) | function | Like `require_absolute_or_name`, but the path must be absolute (no PATH names). |
 | [`require_existing_regular_file`](#require_existing_regular_file) | function | Existing regular file after resolving relative paths against the process cwd. |
@@ -112,6 +113,7 @@ use so a missing jail can never pass silently.
 | [`SPAWN_DIAG_MAX_LINES`](#spawn_diag_max_lines) | constant | Maximum lines in that ring. The byte cap is the budget; this only stops a flood of tiny lines. |
 | [`SPAWN_DIAG_RECORD_BYTES`](#spawn_diag_record_bytes) | constant | Maximum bytes stored for one diagnostic line, cut on a UTF-8 boundary. |
 | [`SPAWN_DIAG_TOTAL_BYTES`](#spawn_diag_total_bytes) | constant | Maximum bytes retained in the process-wide diagnostic ring. |
+| [`DESKTOP_RUNTIME_DIR`](#desktop_runtime_dir) | constant | The folder inside the desktop app's resources that holds the host's runtime: its helper binaries, `workerd`, the bundled platform plugins (`plugins/`) and the web app (`ui/dist`). |
 | [`PLUGIN_FD_CHANNEL`](#plugin_fd_channel) | constant | Reserved descriptor number for a native SCM_RIGHTS side channel (fd 3). |
 | [`PLUGIN_FD_CHANNEL_ENV`](#plugin_fd_channel_env) | constant | Environment variable naming `PLUGIN_FD_CHANNEL`. |
 | [`SPEC_ENV`](#spec_env) | constant | Environment variable carrying the JSON `Spec` to `bookclerk-jail`. |
@@ -1709,7 +1711,9 @@ follows. Cargo has used two layouts for test binaries:
 * `<profile>/build/<package>/<hash>/out/<test>-<hash>` (from Rust 1.100).
 
 Only these exact shapes add the profile directory, so an installed host
-still finds helpers only beside itself. The result names directories;
+still finds helpers only beside itself. The desktop app's installed
+packages are the one other shape: its runtime directories
+([`packaged_runtime_dirs`](#packaged_runtime_dirs)) follow. The result names directories;
 callers still validate any helper they find in them.
 
 #### Arguments
@@ -1718,7 +1722,40 @@ callers still validate any helper they find in them.
 
 #### Returns
 
-One or two directories, nearest first. Empty when `exe` has no parent.
+Directories nearest first: beside `exe`, then the Cargo profile directory
+or the desktop app's runtime directories when `exe` has one of those
+shapes. Empty when `exe` has no parent.
+
+### packaged_runtime_dirs
+
+```rust
+pub fn packaged_runtime_dirs(exe: &Path) -> Vec<PathBuf>
+```
+
+Where an installed desktop app keeps the host's runtime, relative to its
+executable.
+
+The desktop app's packages cannot put the helpers beside the executable
+on every platform: a Linux package installs the executable in `/usr/bin`
+and its resources in `/usr/lib/<product>`, and a macOS app keeps them in
+`Contents/Resources`. So for an executable named `bookclerk-desktop` this
+names the [`DESKTOP_RUNTIME_DIR`](#desktop_runtime_dir) folder in each of those resource
+directories (and beside the executable, as Windows installs it). Any
+other executable gets none, so the daemon and CLI still find helpers only
+beside themselves.
+
+Every candidate is a fixed path relative to the executable, never taken
+from the environment or the working directory: whoever can write there
+can already replace the executable. Callers check what they find.
+
+#### Arguments
+
+* `exe` - Path of the running executable, usually `std::env::current_exe()`.
+
+#### Returns
+
+The candidate directories, nearest first, whether or not they exist.
+Empty unless `exe` is the desktop app's executable.
 
 ### require_absolute_or_name
 
@@ -2075,6 +2112,16 @@ pub const SPAWN_DIAG_TOTAL_BYTES: usize = _;
 ```
 
 Maximum bytes retained in the process-wide diagnostic ring.
+
+### DESKTOP_RUNTIME_DIR
+
+```rust
+pub const DESKTOP_RUNTIME_DIR: &str = "runtime";
+```
+
+The folder inside the desktop app's resources that holds the host's
+runtime: its helper binaries, `workerd`, the bundled platform plugins
+(`plugins/`) and the web app (`ui/dist`).
 
 ### PLUGIN_FD_CHANNEL
 
