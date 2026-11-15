@@ -93,6 +93,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`NamedAtomicBackend`](#namedatomicbackend) | struct | An `AtomicTxnBackend` that compiles every named operation and hands the plan to a `NamedAtomicRunner`. |
 | [`SchemaWalk`](#schemawalk) | struct | Result of walking a host migration plan from one version to another. |
 | [`SessionClientInfo`](#sessionclientinfo) | struct | Parsed client presentation for a session row. |
+| [`FacetValue`](#facetvalue) | struct | One value of a facet value list. |
+| [`FacetValuesPage`](#facetvaluespage) | struct | One page of a facet value list. |
 | [`LibraryWorkRow`](#libraryworkrow) | struct | One row of the page index, as list views show it. |
 | [`WorkCursor`](#workcursor) | struct | Where the next page of a `WorkSort` order starts: the sort values of the last row returned. |
 | [`WorkPage`](#workpage) | struct | One page of library works. |
@@ -162,6 +164,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `host` \| `member`). |
 | [`UserStatus`](#userstatus) | enum | First-party user status. |
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
+| [`FacetValuesOf`](#facetvaluesof) | enum | Whose values a facet value list reads. |
+| [`WorkFacet`](#workfacet) | enum | A filter value list of the page index (`library_work_facets`). |
+| [`WorkFilter`](#workfilter) | enum | One filter on a page of library works. |
 | [`WorkSort`](#worksort) | enum | How a page of library works is ordered. |
 | [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
@@ -251,6 +256,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`interpret_typed_exec`](#interpret_typed_exec) | function | Maps a typed `ExecuteReply` onto a host `DbAtomicResult`. |
 | [`validate_execute_reply`](#validate_execute_reply) | function | Rejects a guest `ExecuteReply` that does not echo the sent request or exceeds negotiated caps. |
 | [`validate_streamed_execute_reply`](#validate_streamed_execute_reply) | function | `validate_execute_reply` for a reply reassembled from `executeStreamed` frames. |
+| [`facet_key`](#facet_key) | function | The key a facet value or tag is stored and matched under: trimmed and lower-cased, so "Fantasy" and "fantasy " are one value. |
 | [`sort_title`](#sort_title) | function | The sort key of a title: lower case, with one leading English article dropped, so "The Hobbit" sorts under h. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
@@ -4046,6 +4052,45 @@ Parsed client presentation for a session row.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### FacetValue
+
+```rust
+pub struct FacetValue {
+    pub key: String,
+    pub value: String,
+    pub works: u64,
+}
+```
+
+One value of a facet value list.
+
+**Fields**
+
+- `key`: The value's [`facet_key`](#facet_key), the list's order and cursor.
+- `value`: The value as shown (one of its spellings).
+- `works`: How many held works have it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### FacetValuesPage
+
+```rust
+pub struct FacetValuesPage {
+    pub values: Vec<FacetValue>,
+    pub next: Option<String>,
+}
+```
+
+One page of a facet value list.
+
+**Fields**
+
+- `values`: The values, by key.
+- `next`: The last key returned, where the next page starts; `None` on the
+  last page.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### LibraryWorkRow
 
 ```rust
@@ -4062,6 +4107,8 @@ pub struct LibraryWorkRow {
     pub edition_count: u64,
     pub holding_count: u64,
     pub added_at: String,
+    pub length_minutes: Option<u64>,
+    pub purchased_at: Option<String>,
 }
 ```
 
@@ -4081,6 +4128,8 @@ One row of the page index, as list views show it.
 - `edition_count`: How many editions the work has.
 - `holding_count`: How many holdings the work's listings have.
 - `added_at`: RFC 3339 time of the newest holding.
+- `length_minutes`: Runtime in minutes of the longest held edition, when known.
+- `purchased_at`: RFC 3339 time of the newest purchase a store reported.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4101,10 +4150,10 @@ the last row returned.
 **Fields**
 
 - `sort`: The order the cursor belongs to; a cursor is refused under another.
-- `key`: The last row's primary sort value (sort title, sort author or
-  added-at stamp).
-- `title`: The last row's sort title; set for [`WorkSort::Author`](#worksort), whose ties
-  break on title.
+- `key`: The last row's primary sort value (sort title, sort author, added-at
+  stamp, series key, purchase stamp or runtime in minutes).
+- `title`: The last row's sort title; set for [`WorkSort::Author`](#worksort) and
+  [`WorkSort::Series`](#worksort), whose ties break on title.
 - `work_id`: The last row's work id, the final tie-break.
 
 #### WorkCursor::encode
@@ -4157,6 +4206,7 @@ pub struct WorkPageQuery {
     pub kind: Option<WorkKind>,
     pub status: Option<AcquireStatus>,
     pub account: Option<String>,
+    pub filter: Option<WorkFilter>,
     pub after: Option<WorkCursor>,
     pub limit: u64,
 }
@@ -4171,6 +4221,7 @@ Filters and position of one page of library works.
 - `kind`: Only works of this kind.
 - `status`: Only works whose furthest acquire state is this one.
 - `account`: Only works held by this store account id (any plugin).
+- `filter`: Only works that pass this filter.
 - `after`: Continue after this cursor.
 - `limit`: Most rows to return; at least 1.
 
@@ -6692,6 +6743,30 @@ limit are not used. Unheld works and ids with no row are left out.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::library_facet_values
+
+```rust
+pub async fn library_facet_values(
+    &self,
+    of: FacetValuesOf,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<FacetValuesPage>
+```
+
+One page of the values a facet has across the held works, by key.
+
+##### Arguments
+
+* `of` - The facet, or the user whose tags to list.
+* `after` - The `next` key of the previous page; `None` to start.
+* `limit` - Most values to return; at least 1, further capped at the
+  database's result-row limit.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
 #### LibraryStore::library_works_page
 
 ```rust
@@ -7949,7 +8024,9 @@ pub async fn set_user_title_state(
 Records `fields` as `user_id`'s state for `work_id`.
 
 Fields left `None` keep their stored value (a new row starts
-unfinished, unrated and untagged). The write is one atomic batch.
+unfinished, unrated and untagged). New tags also replace the work's
+`user_work_tags` rows, which the library page filters by. The write
+is one atomic batch.
 
 ##### Arguments
 
@@ -13398,6 +13475,95 @@ Checksum when the database has applied Bookclerk schema.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
 
+### FacetValuesOf
+
+```rust
+pub enum FacetValuesOf {
+    Facet(WorkFacet),
+    Tags(i64),
+}
+```
+
+Whose values a facet value list reads.
+
+**Variants**
+
+- `Facet`: A facet of the page index.
+- `Tags`: One user's tags (`users.id`).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### WorkFacet
+
+```rust
+pub enum WorkFacet {
+    Author,
+    Narrator,
+    Series,
+    Genre,
+    Publisher,
+    Source,
+}
+```
+
+A filter value list of the page index (`library_work_facets`).
+
+**Variants**
+
+- `Author`: Authors (hosts, for a podcast).
+- `Narrator`: Narrators.
+- `Series`: Series names.
+- `Genre`: Genres (store categories).
+- `Publisher`: Publishers.
+- `Source`: Storefront plugins the work is held through.
+
+#### WorkFacet::ALL
+
+```rust
+pub const ALL: [Self; 6] = _
+```
+
+Every facet, in the order a work's values are written.
+
+#### WorkFacet::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored `facet` value.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+
+### WorkFilter
+
+```rust
+pub enum WorkFilter {
+    Facet { facet: WorkFacet, value: String },
+    Tag { user_id: Option<i64>, tag: String },
+    Finished { user_id: Option<i64>, finished: bool },
+}
+```
+
+One filter on a page of library works.
+
+**Variants**
+
+- `Facet`: Works with this value under a facet (matched by [`facet_key`](#facet_key)). An
+  empty series value matches works in no series.
+  - `facet`: The facet.
+  - `value`: The value.
+- `Tag`: Works the user tagged with this tag (matched by [`facet_key`](#facet_key)). With
+  no user (an operator token), nothing matches.
+  - `user_id`: The user (`users.id`) whose tags count.
+  - `tag`: The tag.
+- `Finished`: Works the user marked finished, or did not. With no user, no work is
+  finished.
+  - `user_id`: The user (`users.id`) whose state counts.
+  - `finished`: `true` for finished works, `false` for the rest.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### WorkSort
 
 ```rust
@@ -13405,6 +13571,9 @@ pub enum WorkSort {
     Title,
     Author,
     Added,
+    Series,
+    Purchased,
+    Length,
 }
 ```
 
@@ -13415,6 +13584,11 @@ How a page of library works is ordered.
 - `Title`: By title sort key, A to Z.
 - `Author`: By the first author's sort name, then title.
 - `Added`: Newest holding first ("recently added").
+- `Series`: By first series name and position, then title; works in no series
+  last.
+- `Purchased`: Newest purchase first; works no store reported a purchase time for
+  last.
+- `Length`: Longest runtime first; works with no known runtime last.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -15012,6 +15186,19 @@ from retrying the same read in inline pieces.
 #### Errors
 
 As [`validate_execute_reply`](#validate_execute_reply).
+
+### facet_key
+
+```rust
+pub fn facet_key(value: &str) -> String
+```
+
+The key a facet value or tag is stored and matched under: trimmed and
+lower-cased, so "Fantasy" and "fantasy " are one value.
+
+#### Arguments
+
+* `value` - A value as shown or as a client sent it.
 
 ### sort_title
 

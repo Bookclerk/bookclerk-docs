@@ -156,63 +156,6 @@ rather than a JSON array.
 
 Type: binary
 
-## BookRecord
-
-Book / library item (one ownership row per store product per account).
-
-- `id` *integer (int64)*, **required** — Surrogate primary key assigned by the database.
-- `uuid` *string*, **required** — Stable UUID for this row (API / foreign-key identity).
-- `plugin_key` *string*, **required** — Provenance-qualified PluginKey that owns the account.
-- `source` *string*, **required** — Display alias of the owning plugin (`audible`, `libro`, …).
-- `account_id` *string*, **required** — Store or operator account id this row belongs to.
-- `product_id` *string*, **required** — Storefront product id (ASIN, ISBN, UUID, …).
-- `asin` *string or null* — Audible ASIN when known (`None` for Libro-only rows without enrichment).
-- `isbn` *string or null* — ISBN-13 when known (Libro always; Audible when the API provides it).
-- `marketplace` *string*, **required** — Store marketplace / locale code (for example `us`, `uk`).
-- `title` *string*, **required** — Display title of the work or edition.
-- `authors` *string or null* — Comma-separated or JSON author list from the storefront.
-- `narrators` *string or null* — Comma-separated or JSON narrator list when present.
-- `series` *string or null* — Series name when the title belongs to a series.
-- `series_index` *string or null* — Position within the series (storefront string form).
-- `series_asin` *string or null* — Audible series / podcast-parent ASIN (`Series.AudibleSeriesId`).
-- `acquire_status` *[`AcquireStatus`](#acquirestatus)*, **required** — Download/acquire pipeline state (`not_acquired`, `queued`, …).
-- `storage_key` *string or null* — Object-storage key for the primary audio artifact, if acquired.
-- `error_message` *string or null* — Last acquire/convert failure message for operators.
-- `purchased_at` *string (date-time) or null* — RFC 3339 purchase time from the storefront, when known.
-- `tags` *string or null* — Operator or storefront tags (serialized string).
-- `rating_overall` *number (float) or null* — Overall user rating from the storefront, if any.
-- `rating_performance` *number (float) or null* — Narration/performance rating from the storefront, if any.
-- `rating_story` *number (float) or null* — Story rating from the storefront, if any.
-- `is_finished` *boolean*, **required** — Whether the listener marked the title finished (0/1 or bool).
-- `pdf_status` *[`AcquireStatus`](#acquirestatus)*, **required** — Companion PDF acquire state (`not_acquired`, `acquired`, …).
-- `pdf_storage_key` *string or null* — Object-storage key for the companion PDF, if present.
-- `publisher` *string or null* — Publisher name from metadata enrichment or the storefront.
-- `length_minutes` *integer (int64) or null* — Runtime in whole minutes when the storefront reports it.
-- `is_abridged` *boolean*, **required** — Whether the edition is abridged (0/1 or bool).
-- `content_kind` *string*, **required** — Title kind: `book`, `episode`, `podcast`, ….
-- `categories` *string or null* — Storefront category / genre path list (serialized).
-- `subtitle` *string or null* — Optional subtitle from bibliographic metadata.
-- `published_at` *string (date-time) or null* — Publication date string from the storefront or enrichment.
-- `description` *string or null* — Blurb / synopsis text (may contain HTML).
-- `language` *string or null* — BCP-47 or storefront language code when known.
-- `cover_url` *string or null* — HTTPS URL for cover art when known.
-- `cover_path` *string or null* — Same-origin path of this cover's processed images, set by the daemon when `cover_url` is an `https` URL; never stored. Append `/128` (thumbnail), `/360` (card) or `/full`, so a client can show covers without loading `cover_url` from another site.
-- `subjects` *string or null* — Subject / topic tags (often from Open Library; `;`- or `,`-separated).
-- `enrich_source` *string or null* — Plugin or catalog that last enriched bibliographic fields.
-- `enrich_confidence` *number (double) or null* — 0–1 confidence score for the last enrichment pass.
-- `enrich_updated_at` *string (date-time) or null* — RFC 3339 time of the last enrichment write.
-- `created_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was inserted.
-- `updated_at` *string (date-time)*, **required** — RFC 3339 timestamp when the row was last modified.
-
-## BooksResponse
-
-Paginated library listing.
-
-- `books` *array of [`BookRecord`](#bookrecord)*, **required** — Current page of title records.
-- `total` *integer*, **required** — Match count before pagination. At least 0.
-- `limit` *integer*, **required** — Applied page size. At least 0.
-- `offset` *integer*, **required** — Applied skip count. At least 0.
-
 ## BootstrapRequest
 
 Operator-only body for creating the first Owner when none exist.
@@ -1055,6 +998,20 @@ Typed `[events]` document, schema version 1.
 How an expression realises its work (`expressions.kind`).
 
 Type: one of `text`, `narration`, `dramatisation`, `graphic`, `original_audio`
+
+## FacetValueJson
+
+One value of a facet.
+
+- `value` *string*, **required** — The value, as `value` of `GET /api/library/works` takes it.
+- `works` *integer (int64)*, **required** — How many held works have it. At least 0.
+
+## FacetValuesJson
+
+A page of `GET /api/library/works/facets/{facet}`.
+
+- `values` *array of [`FacetValueJson`](#facetvaluejson)*, **required** — The values, in order of their lower-cased spelling.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
 
 ## FeedState
 
@@ -3481,3 +3438,5 @@ One work in a page of `GET /api/library/works`.
 - `edition_count` *integer (int64)*, **required** — How many editions the work has. At least 0.
 - `holding_count` *integer (int64)*, **required** — How many holdings the work's listings have. At least 0.
 - `added_at` *string*, **required** — RFC 3339 time of the newest holding.
+- `length_minutes` *integer (int64) or null* — Runtime in minutes of the longest held edition, when known. At least 0.
+- `purchased_at` *string or null* — RFC 3339 time of the newest purchase a store reported.

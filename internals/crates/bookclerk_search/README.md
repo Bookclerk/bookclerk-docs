@@ -199,9 +199,8 @@ Open an index and search it without blocking the caller's task.
 Both [`SearchEngine::open`](#searchengineopen) and [`SearchEngine::search`](#searchenginesearch) do synchronous
 disk work — opening builds the schema and touches the index directory,
 and querying reads and scores segments. Calling them directly from an
-async handler stalls a runtime worker for the whole query, which on the
-daemon's `/api/library/books?q=` path meant one search could hold up
-unrelated requests.
+async handler stalls a runtime worker for the whole query, so one
+search could hold up unrelated requests.
 
 ##### Errors
 
@@ -467,6 +466,37 @@ How many documents were written.
 
 Returns [`SearchError::Busy`](#searcherror) when another writer holds the index,
 or the library or index error.
+
+#### WorkSearchIndex::rebuild_waiting
+
+```rust
+pub async fn rebuild_waiting(
+    &self,
+    library: &LibraryStore,
+    max_wait: Duration,
+) -> Result<usize>
+```
+
+[`Self::rebuild`](#worksearchindexrebuild), waiting while another writer holds the index.
+
+A running daemon refreshes this index from library events, and each
+refresh holds the writer for a moment. A rebuild that finds the
+index busy has written nothing, so it pauses (100 ms, doubling to
+2 s) and tries again until `max_wait` has passed.
+
+##### Arguments
+
+* `library` - The library the works are read from.
+* `max_wait` - How long to keep trying while the index is busy.
+
+##### Returns
+
+How many documents were written.
+
+##### Errors
+
+Returns [`SearchError::Busy`](#searcherror) when the index is still busy after
+`max_wait`, and any other error of [`Self::rebuild`](#worksearchindexrebuild) at once.
 
 #### WorkSearchIndex::open_and_match_ids
 

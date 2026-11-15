@@ -363,385 +363,6 @@ user?: AuthMeUser;
 
 ***
 
-### BookRecord
-
-Library book row from `/api/library/books`.
-
-Field names match the daemon JSON (`snake_case`). Use `uuid` for acquire /
-cover URLs; `asin` / `isbn` are store product ids when known.
-
-#### Properties
-
-##### account\_id
-
-```ts
-account_id: string;
-```
-
-Sealed account id that owns this title.
-
-##### acquire\_status
-
-```ts
-acquire_status: AcquireStatus;
-```
-
-Pipeline state for the main audio acquire job.
-
-##### asin
-
-```ts
-asin: string | null;
-```
-
-Audible ASIN when the source provides one.
-
-##### authors
-
-```ts
-authors: string | null;
-```
-
-Semicolon- or comma-separated author list.
-
-##### categories
-
-```ts
-categories: string | null;
-```
-
-Genre / category list from the store (often `;`- or `,`-separated).
-
-##### content\_kind
-
-```ts
-content_kind: string;
-```
-
-Content kind slug (`audiobook`, `podcast`, …).
-
-##### cover\_path?
-
-```ts
-cover_path?: string | null;
-```
-
-Same-origin path of this cover's processed images; see [coverSrc](#coversrc).
-
-##### cover\_url
-
-```ts
-cover_url: string | null;
-```
-
-Remote or proxied cover image URL.
-
-##### created\_at
-
-```ts
-created_at: string;
-```
-
-Row insert time (ISO-8601).
-
-##### description
-
-```ts
-description: string | null;
-```
-
-Long-form description / blurb (may contain light HTML).
-
-##### enrich\_confidence
-
-```ts
-enrich_confidence: number | null;
-```
-
-Enrichment confidence score (0–1) when present.
-
-##### enrich\_source
-
-```ts
-enrich_source: string | null;
-```
-
-Enrichment provider id that last wrote metadata.
-
-##### enrich\_updated\_at
-
-```ts
-enrich_updated_at: string | null;
-```
-
-When enrichment last ran (ISO-8601).
-
-##### error\_message
-
-```ts
-error_message: string | null;
-```
-
-Last acquire / scan error message when status is `error`.
-
-##### id
-
-```ts
-id: number;
-```
-
-Library row primary key.
-
-##### is\_abridged
-
-```ts
-is_abridged: boolean;
-```
-
-True when the edition is abridged.
-
-##### is\_finished
-
-```ts
-is_finished: boolean;
-```
-
-Whether the listener marked the title finished.
-
-##### isbn
-
-```ts
-isbn: string | null;
-```
-
-ISBN-13 / ISBN-10 when the source provides one.
-
-##### language
-
-```ts
-language: string | null;
-```
-
-BCP-47-ish language code from the store.
-
-##### length\_minutes
-
-```ts
-length_minutes: number | null;
-```
-
-Runtime length in minutes when known.
-
-##### marketplace
-
-```ts
-marketplace: string;
-```
-
-Marketplace / locale code (`us`, `uk`, …).
-
-##### narrators
-
-```ts
-narrators: string | null;
-```
-
-Semicolon- or comma-separated narrator list.
-
-##### pdf\_status
-
-```ts
-pdf_status: AcquireStatus;
-```
-
-Pipeline state for companion PDF acquire.
-
-##### pdf\_storage\_key
-
-```ts
-pdf_storage_key: string | null;
-```
-
-Destination key for an acquired companion PDF.
-
-##### product\_id
-
-```ts
-product_id: string;
-```
-
-Store-native product id (ASIN, ISBN, UUID, …).
-
-##### published\_at
-
-```ts
-published_at: string | null;
-```
-
-Original publication date (ISO-8601 date or datetime).
-
-##### publisher
-
-```ts
-publisher: string | null;
-```
-
-Publisher name when known.
-
-##### purchased\_at
-
-```ts
-purchased_at: string | null;
-```
-
-Purchase / library-add timestamp from the store (ISO-8601).
-
-##### rating\_overall
-
-```ts
-rating_overall: number | null;
-```
-
-Overall community rating (0–5) when enriched.
-
-##### rating\_performance
-
-```ts
-rating_performance: number | null;
-```
-
-Performance / narrator rating when enriched.
-
-##### rating\_story
-
-```ts
-rating_story: number | null;
-```
-
-Story rating when enriched.
-
-##### series
-
-```ts
-series: string | null;
-```
-
-Series name when known.
-
-##### series\_asin
-
-```ts
-series_asin: string | null;
-```
-
-Audible series / podcast-parent ASIN when known.
-
-##### series\_index
-
-```ts
-series_index: string | null;
-```
-
-Position within the series (string to preserve `#1.5` styles).
-
-##### source
-
-```ts
-source: string;
-```
-
-Storefront plugin id (`audible`, `libro`, …).
-
-##### storage\_key
-
-```ts
-storage_key: string | null;
-```
-
-Destination object key after a successful acquire.
-
-##### subjects
-
-```ts
-subjects: string | null;
-```
-
-Subject / BISAC-style tags when enriched.
-
-##### subtitle
-
-```ts
-subtitle: string | null;
-```
-
-Subtitle when the store provides one.
-
-##### tags
-
-```ts
-tags: string | null;
-```
-
-Space-separated user tags.
-
-##### title
-
-```ts
-title: string;
-```
-
-Display title.
-
-##### updated\_at
-
-```ts
-updated_at: string;
-```
-
-Row last update time (ISO-8601).
-
-##### uuid
-
-```ts
-uuid: string;
-```
-
-Stable book uuid used by acquire / cover / detail APIs.
-
-***
-
-### BooksResponse
-
-Paginated library books list payload.
-
-#### Properties
-
-##### books
-
-```ts
-books: BookRecord[];
-```
-
-##### limit
-
-```ts
-limit: number;
-```
-
-##### offset
-
-```ts
-offset: number;
-```
-
-##### total
-
-```ts
-total: number;
-```
-
-***
-
 ### BootstrapAdministratorResponse
 
 Bootstrap response for the first owner.
@@ -1893,6 +1514,54 @@ suspended: number;
 ```ts
 suspensions_total?: number;
 ```
+
+***
+
+### FacetValue
+
+One value of a facet, from `GET /api/library/works/facets/{facet}`.
+
+#### Properties
+
+##### value
+
+```ts
+value: string;
+```
+
+The value, as [WorksQuery.value](#value-4) takes it.
+
+##### works
+
+```ts
+works: number;
+```
+
+How many held works have it.
+
+***
+
+### FacetValuesPage
+
+A page of a facet's values and the cursor of the next one.
+
+#### Properties
+
+##### next\_cursor?
+
+```ts
+next_cursor?: string | null;
+```
+
+Pass as `cursor` for the next page; absent on the last.
+
+##### values
+
+```ts
+values: FacetValue[];
+```
+
+The page's values, by their lower-cased spelling.
 
 ***
 
@@ -6174,6 +5843,14 @@ cursor?: string;
 
 The previous page's `next_cursor`.
 
+##### facet?
+
+```ts
+facet?: WorkFacet;
+```
+
+Only works with [WorksQuery.value](#value-4) under this facet.
+
 ##### kind?
 
 ```ts
@@ -6221,6 +5898,14 @@ status?: AcquireStatus | "all";
 ```
 
 Only works in this acquire state (`all` or omitted for every state).
+
+##### value?
+
+```ts
+value?: string;
+```
+
+The facet's value; an empty series value means works in no series.
 
 ***
 
@@ -6351,6 +6036,14 @@ kind: WorkKind;
 
 Book or podcast.
 
+##### length\_minutes?
+
+```ts
+length_minutes?: number | null;
+```
+
+Runtime in minutes of the longest held edition, when known.
+
 ##### media\_kinds
 
 ```ts
@@ -6358,6 +6051,14 @@ media_kinds: MediaKind[];
 ```
 
 Media kinds the work's editions come in.
+
+##### purchased\_at?
+
+```ts
+purchased_at?: string | null;
+```
+
+When the newest purchase a store reported happened (ISO-8601).
 
 ##### series
 
@@ -6778,6 +6479,25 @@ Audible review sort modes for title detail.
 
 ***
 
+### WorkFacet
+
+```ts
+type WorkFacet = 
+  | "author"
+  | "narrator"
+  | "series"
+  | "genre"
+  | "publisher"
+  | "source"
+  | "tag"
+  | "progress";
+```
+
+What `facet` and `value` filter works by: a value list of the page index,
+the caller's own tags, or their progress (`finished` / `not_finished`).
+
+***
+
 ### WorkKind
 
 ```ts
@@ -6791,7 +6511,7 @@ What a work is: a book, or a podcast (its show).
 ### WorkSort
 
 ```ts
-type WorkSort = "title" | "author" | "added";
+type WorkSort = "title" | "author" | "series" | "purchased" | "added" | "length";
 ```
 
 How `/api/library/works` orders a page (ignored while searching).
@@ -7134,28 +6854,6 @@ The image URL, or `null` when there is no usable path.
 
 ***
 
-### coverUrl()
-
-```ts
-function coverUrl(uuid): string;
-```
-
-Builds the authenticated cover image URL for a library book.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `uuid` | `string` | Book uuid. |
-
-#### Returns
-
-`string`
-
-Relative URL under `/api/library/books/.../cover`.
-
-***
-
 ### createOidcClient()
 
 ```ts
@@ -7442,35 +7140,6 @@ Resolves when elevation is cleared.
 
 ***
 
-### fetchBooks()
-
-```ts
-function fetchBooks(params): Promise<BooksResponse>;
-```
-
-Fetches one page of library books for the Library table.
-
-Omits `status` (or passes `all`) to include every acquire state. Default page
-size is 40 when `limit` is omitted.
-
-#### Parameters
-
-| Parameter | Type | Description |
-| ------ | ------ | ------ |
-| `params` | \{ `limit?`: `number`; `offset?`: `number`; `q?`: `string`; `status?`: `string`; \} | Optional search string, acquire-status filter, and pagination. |
-| `params.limit?` | `number` | - |
-| `params.offset?` | `number` | - |
-| `params.q?` | `string` | - |
-| `params.status?` | `string` | - |
-
-#### Returns
-
-`Promise`\<[`BooksResponse`](#booksresponse)\>
-
-Paginated books plus total count for the pager.
-
-***
-
 ### fetchCatalogListing()
 
 ```ts
@@ -7540,6 +7209,29 @@ Lists recent event deliveries for the Library strip.
 `Promise`\<[`EventDeliveryInfo`](#eventdeliveryinfo)[]\>
 
 Delivery rows from `/api/events/deliveries`.
+
+***
+
+### fetchFacetValues()
+
+```ts
+function fetchFacetValues(facet, cursor?): Promise<FacetValuesPage>;
+```
+
+Fetches one page of a facet's values across the library's held works.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `facet` | \| `"source"` \| `"author"` \| `"series"` \| `"narrator"` \| `"genre"` \| `"publisher"` \| `"tag"` | The facet (not `progress`, whose values are fixed). |
+| `cursor?` | `string` | The previous page's `next_cursor`; omitted for the first. |
+
+#### Returns
+
+`Promise`\<[`FacetValuesPage`](#facetvaluespage)\>
+
+The page and the next page's cursor.
 
 ***
 
@@ -9101,10 +8793,10 @@ than 2 characters. Language defaults to the browser locale unless
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `q` | `string` | Free-text query (minimum 2 characters after trim). |
-| `opts?` | \{ `allLanguages?`: `boolean`; `cursor?`: `string` \| `null`; `field?`: `"author"` \| `"narrator"` \| `"series"` \| `"genre"`; `filters?`: [`CatalogSearchFilters`](#catalogsearchfilters); `lang?`: `string`; `limit?`: `number`; `page_size?`: `number`; `sort?`: [`CatalogSearchSort`](#catalogsearchsort); `sort_dir?`: [`CatalogSortDir`](#catalogsortdir); \} | Pagination cursor, sort, language, and server-side facet filters. |
+| `opts?` | \{ `allLanguages?`: `boolean`; `cursor?`: `string` \| `null`; `field?`: `"author"` \| `"series"` \| `"narrator"` \| `"genre"`; `filters?`: [`CatalogSearchFilters`](#catalogsearchfilters); `lang?`: `string`; `limit?`: `number`; `page_size?`: `number`; `sort?`: [`CatalogSearchSort`](#catalogsearchsort); `sort_dir?`: [`CatalogSortDir`](#catalogsortdir); \} | Pagination cursor, sort, language, and server-side facet filters. |
 | `opts.allLanguages?` | `boolean` | When true, do not hard-filter by language. |
 | `opts.cursor?` | `string` \| `null` | - |
-| `opts.field?` | `"author"` \| `"narrator"` \| `"series"` \| `"genre"` | - |
+| `opts.field?` | `"author"` \| `"series"` \| `"narrator"` \| `"genre"` | - |
 | `opts.filters?` | [`CatalogSearchFilters`](#catalogsearchfilters) | - |
 | `opts.lang?` | `string` | - |
 | `opts.limit?` | `number` | **Deprecated** use page_size |

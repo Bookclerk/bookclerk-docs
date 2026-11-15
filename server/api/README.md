@@ -126,11 +126,9 @@ Books in the library, scans and acquires.
 | --- | --- |
 | [`POST /api/library/scan`](library.md#post-apilibraryscan) | Plans and enqueues a library scan; returns the accepted job ids. |
 | [`POST /api/library/acquire`](library.md#post-apilibraryacquire) | Plans and enqueues acquire jobs; returns the accepted job ids. |
-| [`GET /api/library/books`](library.md#get-apilibrarybooks) | Lists or searches library titles with optional account/status filters and pagination. |
-| [`GET /api/library/books/{uuid}`](library.md#get-apilibrarybooksuuid) | Returns one title by UUID, or 404 when it is absent. |
-| [`GET /api/library/books/{uuid}/cover`](library.md#get-apilibrarybooksuuidcover) | Serves the JPEG cover sidecar from the deployed local destination, or 404 when no local destination runs on this node. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
+| [`GET /api/library/works/facets/{facet}`](library.md#get-apilibraryworksfacetsfacet) | Lists the values a facet has across the library's held works, with how many works have each, for the library page's filter menus. `tag` lists the caller's own tags (none for an operator token). |
 | [`GET /api/library/editions/{id}/cover`](library.md#get-apilibraryeditionsidcover) | Serves the JPEG cover written beside an edition's acquired file on this node's local destination. |
 
 ### [Discover](discover.md)
