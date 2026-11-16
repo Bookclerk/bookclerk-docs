@@ -148,6 +148,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`StoredDiscoverTaste`](#storeddiscovertaste) | struct | One subject's stored Discover taste. |
 | [`StoredFeed`](#storedfeed) | struct | One subject's stored, ranked Discover feed. |
 | [`StoredQueueRank`](#storedqueuerank) | struct | One stored queue ranking row. |
+| [`TitleHolding`](#titleholding) | struct | The edition a library title sells and the account holding it is held by: the key its acquire writes are recorded under. |
 | [`UserBookFields`](#userbookfields) | struct | Partial update for user-defined book fields. |
 | [`WishWork`](#wishwork) | struct | The work a wish is for, read from a store listing in the shared pool. |
 | [`DbAtomicParams`](#dbatomicparams) | enum | Named atomic library operation compiled by the host into a generic plan. |
@@ -582,7 +583,7 @@ pub trait AtomicTxnBackend: Send + Sync {
     fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
         &'life0 self,
         book_uuid: &'life1 str,
-        edition_id: Option<&'life2 str>,
+        title: Option<&'life2 TitleHolding>,
         status: AcquireStatus,
         storage_key: Option<&'life3 str>,
         error_message: Option<&'life4 str>,
@@ -874,7 +875,7 @@ Persist a domain event in the outbox.
 fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
     &'life0 self,
     book_uuid: &'life1 str,
-    edition_id: Option<&'life2 str>,
+    title: Option<&'life2 TitleHolding>,
     status: AcquireStatus,
     storage_key: Option<&'life3 str>,
     error_message: Option<&'life4 str>,
@@ -891,9 +892,9 @@ where
 
 Update acquire status and, when acquired, publish `book_acquired` in the same transaction.
 
-`edition_id` is the title's edition: its `edition_acquisitions` row
-is written in the same batch (only the title that acquired an edition,
-while it stays in the library, changes it).
+`title` is the title's edition and account holding: the edition's
+`edition_acquisitions` row is written in the same batch (only the
+holding that acquired an edition, while it exists, changes it).
 
 #### AtomicTxnBackend::dispatch_event_deliveries
 
@@ -5130,13 +5131,34 @@ One title an account holds, as acquire reads it from the library model.
 - `status`: The edition's acquire state; not acquired when no title of it was
   ever queued.
 - `storage_key`: Primary destination key of the edition's audio once acquired.
-- `acquired_by`: The library title (`books.uuid`) whose write set the edition's
-  audio state; `None` when no title of it was ever queued.
+- `acquired_by`: The account holding (`holdings.id`) whose title's write set the
+  edition's audio state; `None` when no title of it was ever queued,
+  or when that holding no longer exists (its account was revoked or
+  its title relinked), so no title owns the state any more.
 - `pdf_status`: The edition's companion PDF state.
 - `pdf_storage_key`: Destination key of the companion PDF once acquired.
-- `pdf_acquired_by`: The library title (`books.uuid`) whose write set the PDF state.
+- `pdf_acquired_by`: The account holding (`holdings.id`) whose title's write set the
+  PDF state; `None` as for [`Self::acquired_by`](#acquiretitle).
 - `book_uuid`: The flat `books` row of this account's title, while that table
   exists: the status writes are still keyed by it.
+
+#### AcquireTitle::acquired_here
+
+```rust
+pub fn acquired_here(&self) -> bool
+```
+
+True when this title's holding set the edition's audio state: the
+one whose writes change it once acquired.
+
+#### AcquireTitle::pdf_acquired_here
+
+```rust
+pub fn pdf_acquired_here(&self) -> bool
+```
+
+True when this title's holding set the edition's companion PDF
+state.
 
 #### AcquireTitle::asin_or_isbn
 
@@ -5284,11 +5306,11 @@ pub struct EditionAcquisition {
     pub status: AcquireStatus,
     pub storage_key: Option<String>,
     pub error_message: Option<String>,
-    pub title_uuid: String,
+    pub holding_id: String,
     pub updated_at: String,
     pub pdf_status: AcquireStatus,
     pub pdf_storage_key: Option<String>,
-    pub pdf_title_uuid: Option<String>,
+    pub pdf_holding_id: Option<String>,
 }
 ```
 
@@ -5301,13 +5323,14 @@ An edition's acquire state (`edition_acquisitions`).
   know reads as [`AcquireStatus::NotAcquired`](#acquirestatus).
 - `storage_key`: Primary destination key of the edition's audio once acquired.
 - `error_message`: Last acquire failure message.
-- `title_uuid`: The library title (`books.uuid`) whose write set the state.
+- `holding_id`: The account holding (`holdings.id`) whose title's write set the
+  state.
 - `updated_at`: RFC 3339 time of that write.
 - `pdf_status`: Where the edition's companion PDF acquire stands; a status this
   build does not know reads as [`AcquireStatus::NotAcquired`](#acquirestatus).
 - `pdf_storage_key`: Destination key of the companion PDF once acquired.
-- `pdf_title_uuid`: The library title (`books.uuid`) whose write set the PDF state;
-  `None` until a PDF write happens.
+- `pdf_holding_id`: The account holding (`holdings.id`) whose title's write set the PDF
+  state; `None` until a PDF write happens.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 
@@ -5931,6 +5954,20 @@ pub async fn edition_of_book(&self, book_uuid: &str) -> Result<Option<String>>
 
 The edition a library title (`books.uuid`) resolves to, through its
 store listing; `None` when the title is unknown or not resolved yet.
+
+##### Errors
+
+Returns an error when a read fails.
+
+#### LibraryStore::title_holding_of_book
+
+```rust
+pub async fn title_holding_of_book(&self, book_uuid: &str) -> Result<Option<TitleHolding>>
+```
+
+The edition a library title (`books.uuid`) sells and its account's
+holding of the listing; `None` when the title is unknown, not
+resolved yet, or no longer held by its account.
 
 ##### Errors
 
@@ -13049,6 +13086,25 @@ One stored queue ranking row.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### TitleHolding
+
+```rust
+pub struct TitleHolding {
+    pub edition_id: String,
+    pub holding_id: String,
+}
+```
+
+The edition a library title sells and the account holding it is held
+by: the key its acquire writes are recorded under.
+
+**Fields**
+
+- `edition_id`: The edition the title's listing sells.
+- `holding_id`: The account's holding of that listing (`holdings.id`).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### UserBookFields
 
 ```rust
@@ -13110,7 +13166,7 @@ pub enum DbAtomicParams {
     ConfirmTotpEnrollment { user_id: i64, format: String, ciphertext: String, cipher_algorithm: Option<String>, cipher_nonce: Option<String>, kdf_algorithm: Option<String>, kdf_salt: Option<String>, kdf_m_cost: Option<i64>, kdf_t_cost: Option<i64>, kdf_p_cost: Option<i64>, created_at: String },
     DisableUserTotp { user_id: i64 },
     PublishDomainEvent { id: String, event_type: String, schema_version: i64, account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String, queue_name: String, content_type: String, deliver_after: String },
-    SetAcquireStatus { book_uuid: String, edition_id: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
+    SetAcquireStatus { book_uuid: String, edition_id: Option<String>, holding_id: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
     DispatchEventDeliveries { event_id: String, subscribers_json: String, mark_dispatched: bool },
     ClaimNextEventDelivery { owner: String, lease_secs: i64, plugin_ids_json: String, max_in_flight: i64 },
     LinkListing(Box<ListingLinkParams>),
@@ -13195,6 +13251,9 @@ Named atomic library operation compiled by the host into a generic plan.
   - `book_uuid`: Book UUID to update.
   - `edition_id`: The title's edition, whose `edition_acquisitions` row is written
     in the same batch; `None` when the title has no edition yet.
+  - `holding_id`: The account holding (`holdings.id`) the title is held by, which
+    the edition's row records as the writer; the edition's row is
+    left alone without one.
   - `status`: Acquire status string (`acquired`, `downloading`, …).
   - `storage_key`: Object-storage key for the primary audio artifact.
   - `error_message`: Optional failure message.
