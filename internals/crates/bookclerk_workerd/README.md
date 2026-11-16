@@ -44,5 +44,7 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`inherited_link`](inherited_link.md): Open a host-inherited sibling link (`fd:<n>` / `handle:<n>`) as a Tokio stream.
 - [`invoke`](invoke.md): `POST /invoke`: the Cap'n Proto data plane between the launcher and the adapter isolate.
 - [`pin`](pin.md): Pinned Cloudflare `workerd` release metadata shared with `bookclerk-dev`.
+- [`socket_broker`](socket_broker.md): The socket broker: holds a plugin instance's WebSockets while its guest sleeps.
 - [`socket_proxy`](socket_proxy.md): Host-mediated TCP proxy for native-behind-workerd guests.
+- [`socket_table`](socket_table.md): The socket broker's bookkeeping, without I/O.
 - [`unix_bind`](unix_bind.md): Unix-domain listeners that stay under `sockaddr_un` limits.

@@ -204,11 +204,13 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`cover_sink_slot`](#cover_sink_slot) | function | Parses a `CoverFetcher.fetchCovers` sink key into the URL index it names. |
 | [`byte_source_from_async_read`](#byte_source_from_async_read) | function | Returns a `ByteSource` client that pulls from `reader`. |
 | [`connect_plugin`](#connect_plugin) | function | Connects as the client side of a two-party vat. |
+| [`connect_socket_broker`](#connect_socket_broker) | function | Connects the host's side of the host-to-broker link (see `serve_socket_broker`). |
 | [`pull_byte_source_to_writer`](#pull_byte_source_to_writer) | function | Pulls `source` into `writer` using bounded windows. |
 | [`roundtrip_event_read_message`](#roundtrip_event_read_message) | function | Decodes one unpacked single-segment `EventReadRequest` or `EventReadPage` message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The fuzz target and its replay test drive this, so they reach the same bounds checks a peer's bytes do. |
 | [`roundtrip_socket_message`](#roundtrip_socket_message) | function | Decodes one unpacked single-segment `SocketConnectRequest` or `SocketMessage` with the codec the RPC server and client use, then checks `read(write(v)) == v`. The `socket_request` fuzz target and its replay test drive this, so they reach the same decoder a peer's bytes do; the caller then applies `crate::sockets` checks to the value. |
 | [`serve_plugin`](#serve_plugin) | function | Serves `plugin` as the bootstrap object on a two-party vat over `reader`/`writer`. |
 | [`serve_plugin_stdio`](#serve_plugin_stdio) | function | Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSet`. |
+| [`serve_socket_broker`](#serve_socket_broker) | function | Serves the socket broker's side of the host-to-broker link. |
 | [`MAX_PLUGIN_MIGRATION_ID_BYTES`](#max_plugin_migration_id_bytes) | constant | Maximum UTF-8 bytes of one plugin-chosen migration id. |
 | [`PLUGIN_MIGRATIONS_TABLE`](#plugin_migrations_table) | constant | Host-private plugin-binding migration journal (not a plugin-owned table). |
 | [`PHYSICAL_STAR_COLUMN`](#physical_star_column) | constant | Column name recorded for `SELECT *` / `alias.*` / `RETURNING *` on a physical table. |
@@ -6121,6 +6123,35 @@ Connects as the client side of a two-party vat.
 Must run inside a `tokio::task::LocalSet`. The returned [`RpcSystem`](https://docs.rs/capnp_rpc/latest/capnp_rpc/struct.RpcSystem.html) must be
 spawned with `tokio::task::spawn_local`.
 
+### connect_socket_broker
+
+```rust
+pub fn connect_socket_broker<R, W>(
+    reader: R,
+    writer: W,
+    handler: Arc<dyn SocketHandler>,
+) -> (SocketsClient, RpcSystem<Side>)
+where
+    R: AsyncRead + Unpin + 'static,
+    W: AsyncWrite + Unpin + 'static,
+```
+
+Connects the host's side of the host-to-broker link (see
+[`serve_socket_broker`](#serve_socket_broker)).
+
+Must run inside a `tokio::task::LocalSet`. The returned [`capnp_rpc::RpcSystem`](https://docs.rs/capnp_rpc/latest/capnp_rpc/struct.RpcSystem.html) must
+be spawned with `tokio::task::spawn_local`; the link lasts as long as it
+runs.
+
+#### Arguments
+
+* `reader` / `writer` - The link to the broker.
+* `handler` - Where the broker delivers messages and closes.
+
+#### Returns
+
+The broker's [`Sockets`](#sockets) and the link's RPC system.
+
 ### pull_byte_source_to_writer
 
 ```rust
@@ -6232,6 +6263,40 @@ Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSe
 #### Errors
 
 Returns a plugin error when the vat fails.
+
+### serve_socket_broker
+
+```rust
+pub async fn serve_socket_broker<R, W>(
+    reader: R,
+    writer: W,
+    make: impl FnOnce(SocketHandlerClient) -> Arc<dyn Sockets>,
+) -> Result<()>
+where
+    R: AsyncRead + Unpin + 'static,
+    W: AsyncWrite + Unpin + 'static,
+```
+
+Serves the socket broker's side of the host-to-broker link.
+
+The broker is a separate jailed process that holds a plugin instance's
+sockets while its guest sleeps. On this one connection each side serves
+the other: the broker's bootstrap capability is `Sockets` (the host
+forwards a guest's calls to it), and the host's is `SocketHandler` (the
+broker delivers messages and closes through it). The broker is the
+two-party server side; [`connect_socket_broker`](#connect_socket_broker) is the host's half.
+
+Must run inside a `tokio::task::LocalSet`. Returns when the host hangs
+up.
+
+#### Arguments
+
+* `reader` / `writer` - The link to the host.
+* `make` - Builds the broker's [`Sockets`](#sockets) from the host's handler.
+
+#### Errors
+
+Returns an internal error when the link fails.
 
 ## Constants
 

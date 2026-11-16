@@ -8239,6 +8239,32 @@ removed from the index).
 
 Returns [`crate::LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::work_search_documents
+
+```rust
+pub async fn work_search_documents(
+    &self,
+    work_ids: &[String],
+) -> Result<Vec<(String, Option<WorkSearchDoc>)>>
+```
+
+The search documents of the top-level works of `work_ids`, read
+together in a few chunked lookups.
+
+##### Arguments
+
+* `work_ids` - Works; an episode stands for its show.
+
+##### Returns
+
+One entry per distinct top-level work, in id order: its id and its
+document, or `None` for the document when the work is gone or no
+longer held (its document is then removed from the index).
+
+##### Errors
+
+Returns [`crate::LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::enqueue_job
 
 ```rust
