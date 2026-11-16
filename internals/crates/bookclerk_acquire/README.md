@@ -1100,7 +1100,7 @@ The title's planned names on the destination `req.options` describe:
 pub async fn share_acquired_sibling(
     library: &LibraryStore,
     destinations: &[(&str, &dyn StorageBackend)],
-    book: &BookRecord,
+    title: &AcquireTitle,
 ) -> Result<Option<String>>
 ```
 

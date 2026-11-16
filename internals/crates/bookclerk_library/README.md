@@ -5071,8 +5071,10 @@ pub struct AcquireTitle {
     pub published_at: Option<DateTime<Utc>>,
     pub status: AcquireStatus,
     pub storage_key: Option<String>,
+    pub acquired_by: Option<String>,
     pub pdf_status: AcquireStatus,
     pub pdf_storage_key: Option<String>,
+    pub pdf_acquired_by: Option<String>,
     pub book_uuid: Option<String>,
 }
 ```
@@ -5108,8 +5110,11 @@ One title an account holds, as acquire reads it from the library model.
 - `status`: The edition's acquire state; not acquired when no title of it was
   ever queued.
 - `storage_key`: Primary destination key of the edition's audio once acquired.
+- `acquired_by`: The library title (`books.uuid`) whose write set the edition's
+  audio state; `None` when no title of it was ever queued.
 - `pdf_status`: The edition's companion PDF state.
 - `pdf_storage_key`: Destination key of the companion PDF once acquired.
+- `pdf_acquired_by`: The library title (`books.uuid`) whose write set the PDF state.
 - `book_uuid`: The flat `books` row of this account's title, while that table
   exists: the status writes are still keyed by it.
 
