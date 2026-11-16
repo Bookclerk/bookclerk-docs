@@ -29,6 +29,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`EventBatch`](#eventbatch) | class | One `event(batch)` delivery (`EventBatch` struct), Workers `MessageBatch`-shaped. |
 | [`EventMessage`](#eventmessage) | class | One delivered domain event. |
 | [`GuestDatabase`](#guestdatabase) | class | Host-granted SQL transport behind a named `[[databases]]` binding. |
+| [`HostWebSocket`](#hostwebsocket) | class | One host-held WebSocket, shaped like a hibernatable Workers `WebSocket`. |
 | [`JobController`](#jobcontroller) | class | Everything one job invocation may touch. |
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
 | [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
@@ -41,10 +42,13 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`QueueMessage`](#queuemessage) | class | One delivered queue message (`QueueMessage` struct), Workers `Message`-shaped. |
 | [`RemoteLibraryEntrypoint`](#remotelibraryentrypoint) | class | `remoteLibrary` entrypoint: lifecycle, rescan, listening sync, user polling. |
 | [`ScheduledController`](#scheduledcontroller) | class | One `[triggers] crons` fire, as `scheduled(controller)` receives it. |
+| [`SocketsBinding`](#socketsbinding) | class | `[sockets]` binding (`env.SOCKETS`): dial host-held WebSockets. |
 | [`StorageEntrypoint`](#storageentrypoint) | class | `storage` entrypoint (`Destination` interface): an object store the host writes to. |
 | [`StorefrontEntrypoint`](#storefrontentrypoint) | class | `storefront` entrypoint (`ContentSource` interface). |
 | [`cli_args`](#cli_args) | function | Turn `CliInvokeParams.args` (`[{name, value}]`) into a `{name: value}` dict. |
 | [`decode_extensible_config`](#decode_extensible_config) | function | Decode an `ExtensibleConfig` into the plain value on `env.CONFIG`. |
+| [`decode_socket_attachment`](#decode_socket_attachment) | function | Decode stored socket attachment bytes. |
+| [`encode_socket_attachment`](#encode_socket_attachment) | function | Encode a socket attachment as the host stores it: UTF-8 JSON. |
 | [`event_batch_results`](#event_batch_results) | function | Translate recorded outcomes into the wire `EventResult` list. |
 | [`granted_databases`](#granted_databases) | function | Build named `DatabaseBinding` objects over `POST /db/execute`. |
 | [`job_outcome_for`](#job_outcome_for) | function | Translate a `job()` return / raise into the wire `JobOutcome`. |
@@ -52,9 +56,11 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`json_payload`](#json_payload) | function | Wrap a JSON-serializable value as an `application/json` `ExtensibleConfig`. |
 | [`py`](#py) | function | Convert a JS value delivered over Workers RPC into plain Python. |
 | [`queue_batch_results`](#queue_batch_results) | function | Translate recorded outcomes into the wire `QueueResult` list. |
+| [`socket_message_data`](#socket_message_data) | function | The message a handler receives for one wire frame. |
 | [`transport_database`](#transport_database) | function | Wrap an adapter `GrantedDatabaseTransport` stub as a `DatabaseBinding`. |
 | [`transport_kv`](#transport_kv) | function | Wrap the adapter's granted KV stub as a `KvNamespace`. |
 | [`transport_queue`](#transport_queue) | function | Wrap the adapter's granted queue stub as a `QueueBinding`. |
+| [`transport_sockets`](#transport_sockets) | function | Wrap the adapter's granted sockets stub as a `SocketsBinding`. |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`). |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `Destination.copy` (`storage.copy`). |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `ByteRange` / `ByteSource` streams (`rpc.streams`). |
@@ -64,6 +70,8 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](#max_plugin_migration_registration_bytes) | constant | Maximum aggregate UTF-8 bytes of plugin migration ids plus SQL in one `databaseMigrations` registration. |
 | [`MAX_PLUGIN_MIGRATION_TOTAL_OPS`](#max_plugin_migration_total_ops) | constant | Maximum already-separated operations across one `databaseMigrations` registration. |
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant | Maximum decoded size of an ordinary RPC scalar value (not a stream window). |
+| [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant | Largest per-socket attachment the host keeps for a sleeping guest. |
+| [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant | Largest WebSocket message, text or binary, that `Sockets.send` accepts or `SocketHandler.message` delivers. |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`plugin.toml` `api_version` / `describe().apiVersion`). |
 
@@ -262,6 +270,30 @@ completes the fire; raising has the host retry the same fire.
 **Raises**
 
 - `PluginError`: `unsupported` when the author defines no `scheduled`.
+
+#### BookclerkEntrypoint.bookclerkSocketMessage
+
+```python
+async def bookclerkSocketMessage(self, context: Any=None, wire: Any=None) -> None
+```
+
+Adapter dispatch: one host-held socket message to `web_socket_message(ws, message)`.
+
+Text arrives as `str`, binary as `bytes`.
+
+**Raises**
+
+- `PluginError`: `unsupported` when the author defines no handler.
+
+#### BookclerkEntrypoint.bookclerkSocketClosed
+
+```python
+async def bookclerkSocketClosed(self, context: Any=None, wire: Any=None) -> None
+```
+
+Adapter dispatch: a host-held socket closed, to `web_socket_close(ws, code, reason, was_clean)`.
+
+Without a handler the close is acknowledged and ignored.
 
 #### BookclerkEntrypoint.bookclerkJob
 
@@ -601,6 +633,74 @@ The adapter's capability advertisement for this session.
 **Raises**
 
 - `PluginError`: `unsupported` on a host that predates the method.
+
+### HostWebSocket
+
+```python
+class HostWebSocket
+```
+
+One host-held WebSocket, shaped like a hibernatable Workers `WebSocket`.
+
+The broker owns the connection; this handle only names it, so it stays
+valid across invocations and the guest may sleep between messages.
+
+**Attributes**
+
+- `id`: Socket id the host assigned (`connect` / `get_web_sockets`).
+- `url`: URL the socket dialed, without credentials.
+- `protocol`: Subprotocol the server chose, or an empty string.
+
+#### HostWebSocket.__init__
+
+```python
+def __init__(self, stub: Any, fields: Any) -> None
+```
+
+#### HostWebSocket.send
+
+```python
+async def send(self, message: str | bytes) -> None
+```
+
+Send one message.
+
+**Args**
+
+- `message`: `str` (text frame) or bytes (binary frame), at most `MAX_SOCKET_FRAME_BYTES` bytes.
+
+#### HostWebSocket.close
+
+```python
+async def close(self, code: int=0, reason: str='') -> None
+```
+
+Close the socket.
+
+**Args**
+
+- `code`: Close code; `0` sends 1000.
+- `reason`: Close reason, at most 123 UTF-8 bytes.
+
+#### HostWebSocket.serialize_attachment
+
+```python
+async def serialize_attachment(self, value: Any) -> None
+```
+
+Store a JSON value with the socket, handed back with every message.
+
+**Args**
+
+- `value`: JSON-serializable value of at most `MAX_SOCKET_ATTACHMENT_BYTES` encoded bytes; `None` clears it.
+
+#### HostWebSocket.deserialize_attachment
+
+```python
+def deserialize_attachment(self) -> Any
+```
+
+The stored attachment value, or `None` when none is set.
 
 ### JobController
 
@@ -1311,6 +1411,60 @@ Builds the controller from a wire `ScheduledController`.
 
 The controller with every field present.
 
+### SocketsBinding
+
+```python
+class SocketsBinding
+```
+
+`[sockets]` binding (`env.SOCKETS`): dial host-held WebSockets.
+
+Every URL must pass the plugin's network grant. Messages arrive on the
+default entrypoint's `web_socket_message(ws, message)`, closes on
+`web_socket_close(ws, code, reason, was_clean)`.
+
+#### SocketsBinding.__init__
+
+```python
+def __init__(self, stub: Any) -> None
+```
+
+#### SocketsBinding.connect
+
+```python
+async def connect(
+    self,
+    url: str,
+    *,
+    protocols: list[str] | None=None,
+    headers: dict[str, str] | list[tuple[str, str]] | None=None,
+    auto_responses: list[tuple[str | bytes, str | bytes]] | None=None,
+    attachment: Any=None,
+) -> HostWebSocket
+```
+
+Open one socket the host holds.
+
+**Args**
+
+- `url`: `wss://` or `ws://` URL on the network grant.
+- `protocols`: Requested subprotocols.
+- `headers`: Extra request headers (values may be credentials).
+- `auto_responses`: `(request, response)` heartbeat pairs the host answers without waking the guest.
+- `attachment`: Initial JSON attachment.
+
+**Returns**
+
+The socket handle.
+
+#### SocketsBinding.get_web_sockets
+
+```python
+async def get_web_sockets(self) -> list[HostWebSocket]
+```
+
+The plugin's open sockets, oldest first.
+
 ### StorageEntrypoint
 
 ```python
@@ -1571,6 +1725,43 @@ Decode an `ExtensibleConfig` into the plain value on `env.CONFIG`.
 The parsed JSON object for JSON media types (`{}` when empty or
 malformed); `{"mediaType", "text"}` for other media types.
 
+### decode_socket_attachment
+
+```python
+def decode_socket_attachment(data: bytes) -> Any
+```
+
+Decode stored socket attachment bytes.
+
+**Args**
+
+- `data`: Bytes the host kept.
+
+**Returns**
+
+The JSON value, `None` when empty, or the text itself when the bytes
+are not JSON (an attachment another SDK stored).
+
+### encode_socket_attachment
+
+```python
+def encode_socket_attachment(value: Any) -> bytes
+```
+
+Encode a socket attachment as the host stores it: UTF-8 JSON.
+
+**Args**
+
+- `value`: JSON-serializable value; `None` stores no bytes.
+
+**Returns**
+
+At most `MAX_SOCKET_ATTACHMENT_BYTES` bytes.
+
+**Raises**
+
+- `PluginError`: `invalid_params` when JSON cannot encode the value, `payload_too_large` when it does not fit.
+
 ### event_batch_results
 
 ```python
@@ -1720,6 +1911,22 @@ Translate recorded outcomes into the wire `QueueResult` list.
 
 One flat `{"kind": ...}` result per message, in delivery order.
 
+### socket_message_data
+
+```python
+def socket_message_data(frame: Any) -> str | bytes
+```
+
+The message a handler receives for one wire frame.
+
+**Args**
+
+- `frame`: Decoded wire `SocketFrame` (`{"kind", "value"}`).
+
+**Returns**
+
+`str` for a text frame, `bytes` for a binary one.
+
 ### transport_database
 
 ```python
@@ -1763,6 +1970,22 @@ Wrap the adapter's granted queue stub as a [`QueueBinding`](#queuebinding).
 **Args**
 
 - `stub`: `QueueBinding`-shaped JS stub from the granted context.
+
+**Returns**
+
+The author-facing binding.
+
+### transport_sockets
+
+```python
+def transport_sockets(stub: Any) -> SocketsBinding
+```
+
+Wrap the adapter's granted sockets stub as a [`SocketsBinding`](#socketsbinding).
+
+**Args**
+
+- `stub`: `SocketsTransport`-shaped JS stub from the granted context.
 
 **Returns**
 
@@ -1841,6 +2064,23 @@ MAX_SCALAR_BYTES: int = 262144
 ```
 
 Maximum decoded size of an ordinary RPC scalar value (not a stream window).
+
+### MAX_SOCKET_ATTACHMENT_BYTES
+
+```python
+MAX_SOCKET_ATTACHMENT_BYTES: int = 2048
+```
+
+Largest per-socket attachment the host keeps for a sleeping guest.
+
+### MAX_SOCKET_FRAME_BYTES
+
+```python
+MAX_SOCKET_FRAME_BYTES: int = 262144
+```
+
+Largest WebSocket message, text or binary, that `Sockets.send` accepts or
+`SocketHandler.message` delivers.
 
 ### MAX_STREAM_WINDOW_BYTES
 

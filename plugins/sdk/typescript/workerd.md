@@ -993,6 +993,12 @@ Re-exports [HealthOk](generated.md#healthok)
 
 ***
 
+### HostWebSocket
+
+Re-exports [HostWebSocket](env.md#hostwebsocket)
+
+***
+
 ### Identifier
 
 Re-exports [Identifier](generated.md#identifier)
@@ -1269,6 +1275,12 @@ Re-exports [NamedQueue](plugin.md#namedqueue)
 
 ***
 
+### NamedSockets
+
+Re-exports [NamedSockets](plugin.md#namedsockets)
+
+***
+
 ### ObjectInfo
 
 Re-exports [ObjectInfo](plugin.md#objectinfo)
@@ -1476,6 +1488,36 @@ Re-exports [SeriesEntry](generated.md#seriesentry)
 ### shouldSkipRemainingGuestWork
 
 Re-exports [shouldSkipRemainingGuestWork](README.md#shouldskipremainingguestwork)
+
+***
+
+### SocketAutoResponsePair
+
+Re-exports [SocketAutoResponsePair](env.md#socketautoresponsepair)
+
+***
+
+### SocketConnectOptions
+
+Re-exports [SocketConnectOptions](env.md#socketconnectoptions)
+
+***
+
+### SocketMessageData
+
+Re-exports [SocketMessageData](env.md#socketmessagedata)
+
+***
+
+### SocketsBinding
+
+Re-exports [SocketsBinding](env.md#socketsbinding)
+
+***
+
+### SocketSendData
+
+Re-exports [SocketSendData](env.md#socketsenddata)
 
 ***
 

@@ -450,6 +450,53 @@ Adapter dispatch for `shutdown()`.
 
 Resolves when the author hook has run.
 
+##### bookclerkSocketClosed()
+
+```ts
+bookclerkSocketClosed(context, wire): Promise<void>;
+```
+
+**`Internal`**
+
+Adapter dispatch for `SocketHandler.closed`. Without a
+`webSocketClose` handler the close is acknowledged and ignored.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `wire` | `Partial`\<[`SocketClosed`](generated.md#socketclosed)\> | Wire `SocketClosed`. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the author's handler completes.
+
+##### bookclerkSocketMessage()
+
+```ts
+bookclerkSocketMessage(context, wire): Promise<void>;
+```
+
+**`Internal`**
+
+Adapter dispatch for `SocketHandler.message`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `wire` | `Partial`\<[`SocketMessage`](generated.md#socketmessage)\> | Wire `SocketMessage`. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+Resolves when the author's handler completes.
+
 ##### databaseMigrations()?
 
 ```ts
@@ -598,6 +645,58 @@ shutdown?(): void | Promise<void>;
 ```
 
 Releases guest resources.
+
+###### Returns
+
+`void` \| `Promise`\<`void`\>
+
+##### webSocketClose()?
+
+```ts
+webSocketClose?(
+   ws, 
+   code, 
+   reason, 
+   wasClean
+): void | Promise<void>;
+```
+
+`[sockets]` handler, the Workers `webSocketClose(ws, code, reason,
+wasClean)`: a host-brokered socket closed, by the server, the network,
+or the host (1006 when the connection dropped or the host stopped the
+socket's broker). The socket's id is never reused.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ws` | [`HostWebSocket`](env.md#hostwebsocket) |
+| `code` | `number` |
+| `reason` | `string` |
+| `wasClean` | `boolean` |
+
+###### Returns
+
+`void` \| `Promise`\<`void`\>
+
+##### webSocketMessage()?
+
+```ts
+webSocketMessage?(ws, message): void | Promise<void>;
+```
+
+`[sockets]` handler, the Workers `webSocketMessage(ws, message)`: one
+message arrived on a host-brokered socket while the plugin may have been
+asleep. `ws` carries the socket's id and its attachment as it was when
+the message arrived. Throwing reports the failure to the host; the
+socket stays open.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ws` | [`HostWebSocket`](env.md#hostwebsocket) |
+| `message` | [`SocketMessageData`](env.md#socketmessagedata) |
 
 ###### Returns
 
@@ -3974,7 +4073,7 @@ plus the grant tokens the adapter exchanges for the author's `EVENTS` and
 
 #### Extends
 
-- `Omit`\<[`GrantedContext`](#grantedcontext), `"databases"` \| `"queues"` \| `"kv"`\>
+- `Omit`\<[`GrantedContext`](#grantedcontext), `"databases"` \| `"queues"` \| `"kv"` \| `"sockets"`\>
 
 #### Properties
 
@@ -4057,6 +4156,14 @@ Granted secret values as `application/json`.
 ###### Inherited from
 
 [`GrantedContext`](#grantedcontext).[`secrets`](#secrets-1)
+
+##### sockets?
+
+```ts
+sockets?: Record<string, string>;
+```
+
+`[sockets]` binding → sockets-only bearer for `/sockets/*`.
 
 ##### storage?
 
@@ -4266,6 +4373,14 @@ secrets?: ExtensibleConfig;
 ```
 
 Granted secret values as `application/json`.
+
+##### sockets?
+
+```ts
+sockets?: NamedSockets[];
+```
+
+The `[sockets]` binding, when granted (at most one entry).
 
 ##### storage?
 
@@ -4688,6 +4803,18 @@ Granted secret values as `application/json`.
 
 [`GrantedContext`](#grantedcontext).[`secrets`](#secrets-1)
 
+##### sockets?
+
+```ts
+sockets?: NamedSockets[];
+```
+
+The `[sockets]` binding, when granted (at most one entry).
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`sockets`](#sockets-1)
+
 ##### storage?
 
 ```ts
@@ -4859,6 +4986,30 @@ queue: QueueBinding;
 ```
 
 Ready producer (crosses the adapter → author RPC boundary).
+
+***
+
+### NamedSockets
+
+The granted `[sockets]` binding on the granted context.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Binding name (`env.<name>`, `SOCKETS` unless renamed).
+
+##### sockets
+
+```ts
+sockets: SocketsTransport;
+```
+
+The adapter's grant (crosses the adapter → author RPC boundary).
 
 ***
 
@@ -5122,6 +5273,8 @@ type AuthorStub = Pick<BookclerkEntrypoint,
   | "bookclerkEvent"
   | "bookclerkQueue"
   | "bookclerkScheduled"
+  | "bookclerkSocketMessage"
+  | "bookclerkSocketClosed"
   | "bookclerkJob"
   | "bookclerkDatabaseMigrations"
 | "bookclerkShutdown">;

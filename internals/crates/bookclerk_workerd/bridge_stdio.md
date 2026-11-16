@@ -29,7 +29,7 @@ host without entering JavaScript memory.
 
 ```rust
 pub enum Backend {
-    Author,
+    Author { sockets_binding: String },
     Native(PluginClient),
 }
 ```
@@ -41,6 +41,8 @@ Data plane behind the workerd control plane.
 - `Author`: Author isolate (`runtime = "workerd"`): every entrypoint call is a
   Cap'n Proto `POST /invoke` (or a streamed body route) on the bridge
   worker.
+  - `sockets_binding`: Name the `[sockets]` binding takes on the author's `env`
+    (`binding = "..."`, default `SOCKETS`).
 - `Native`: Verified native guest (inherited `BOOKCLERK_GATEWAY_GUEST_RPC`): entrypoint calls
   are typed Cap'n Proto forwards to the guest's own capabilities. The
   client must have been created with `connect_plugin` on this `LocalSet`

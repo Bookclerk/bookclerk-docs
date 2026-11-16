@@ -62,6 +62,14 @@ SECRETS?: JsonObject;
 
 `[secrets]` values, decoded from the granted `SECRETS` payload.
 
+##### SOCKETS?
+
+```ts
+SOCKETS?: SocketsBinding;
+```
+
+`[sockets]` host-brokered WebSockets (default name).
+
 ##### WORK\_FS?
 
 ```ts
@@ -183,6 +191,125 @@ types?: string[];
 
 Event types to return; each must be a granted `[[events.consumers]]`
 type. Empty or omitted means every granted type.
+
+***
+
+### HostWebSocket
+
+One host-brokered WebSocket, shaped like a hibernatable Workers WebSocket.
+
+The host holds the connection while the plugin sleeps and wakes the
+plugin's `webSocketMessage` / `webSocketClose` handlers when something
+arrives. The object is a handle: it carries the socket's id and the
+attachment as it was when the handle was made, and each method is one call
+to the host.
+
+#### Properties
+
+##### id
+
+```ts
+readonly id: string;
+```
+
+Host-minted id, stable for the socket's life and never reused.
+
+##### protocol
+
+```ts
+readonly protocol: string;
+```
+
+Subprotocol the server chose; empty when none or unknown.
+
+##### url
+
+```ts
+readonly url: string;
+```
+
+URL the socket was opened to, without credentials; empty in a handler.
+
+#### Methods
+
+##### close()
+
+```ts
+close(code?, reason?): Promise<void>;
+```
+
+Close the socket. Closing a closed socket is not an error.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `code?` | `number` | Close code; omitted sends 1000. |
+| `reason?` | `string` | Close reason, at most 123 UTF-8 bytes. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+##### deserializeAttachment()
+
+```ts
+deserializeAttachment(): unknown;
+```
+
+The attachment as this handle last saw it.
+
+###### Returns
+
+`unknown`
+
+The stored value, or `null` when none is set.
+
+##### send()
+
+```ts
+send(message): Promise<void>;
+```
+
+Send one message.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `message` | [`SocketSendData`](#socketsenddata) | Text or bytes, at most `MAX_SOCKET_FRAME_BYTES`. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+###### Throws
+
+PluginError `not_found` when the socket has closed.
+
+##### serializeAttachment()
+
+```ts
+serializeAttachment(value): Promise<void>;
+```
+
+Replace the attachment the host keeps for this socket and hands back
+with every message, so state survives the plugin sleeping. The value is
+stored as JSON and must encode to at most `MAX_SOCKET_ATTACHMENT_BYTES`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `value` | `unknown` | JSON-serializable value; `null` or `undefined` clears it. |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+###### Throws
+
+PluginError `payload_too_large` when it does not fit.
 
 ***
 
@@ -685,6 +812,128 @@ Seconds before the message may be delivered; `0` means now.
 
 ***
 
+### SocketAutoResponsePair
+
+A heartbeat the host answers itself, like a Workers
+`WebSocketRequestResponsePair`: when a message equal to `request` (same
+kind, same bytes) arrives, the host sends `response` and does not wake the
+plugin.
+
+#### Properties
+
+##### request
+
+```ts
+request: SocketSendData;
+```
+
+Message to match, 1 to `MAX_SOCKET_AUTO_RESPONSE_BYTES` bytes.
+
+##### response
+
+```ts
+response: SocketSendData;
+```
+
+Message to send back, 1 to `MAX_SOCKET_AUTO_RESPONSE_BYTES` bytes.
+
+***
+
+### SocketConnectOptions
+
+Options for [SocketsBinding.connect](#connect).
+
+#### Properties
+
+##### attachment?
+
+```ts
+attachment?: unknown;
+```
+
+Initial attachment, as [HostWebSocket.serializeAttachment](#serializeattachment) would
+store it.
+
+##### autoResponses?
+
+```ts
+autoResponses?: SocketAutoResponsePair[];
+```
+
+Heartbeats the host answers without waking the plugin, at most 4.
+
+##### headers?
+
+```ts
+headers?: Record<string, string> | [string, string][];
+```
+
+Extra request headers, at most 16. Values may be credentials; the host
+never logs them. Handshake and hop-by-hop headers are refused.
+
+##### protocols?
+
+```ts
+protocols?: string[];
+```
+
+Subprotocols to request (`Sec-WebSocket-Protocol`), at most 16.
+
+***
+
+### SocketsBinding
+
+`SOCKETS` binding (`[sockets]`, renamed by `binding = "..."`): outbound
+WebSockets the host holds open while the plugin sleeps. Messages and
+closes reach the default entrypoint's `webSocketMessage(ws, message)` and
+`webSocketClose(ws, code, reason, wasClean)`.
+
+#### Methods
+
+##### connect()
+
+```ts
+connect(url, options?): Promise<HostWebSocket>;
+```
+
+Open a socket once the handshake finishes. It belongs to the plugin
+instance and outlives this invocation.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `url` | `string` | `wss://` or `ws://` URL on the plugin's network grant. |
+| `options?` | [`SocketConnectOptions`](#socketconnectoptions) | Subprotocols, headers, heartbeats and attachment. |
+
+###### Returns
+
+`Promise`\<[`HostWebSocket`](#hostwebsocket)\>
+
+The open socket.
+
+###### Throws
+
+PluginError `forbidden` for a host outside the network grant,
+  `limit_exceeded` when the instance already holds `MAX_SOCKETS_PER_INSTANCE`
+  sockets.
+
+##### getWebSockets()
+
+```ts
+getWebSockets(): Promise<HostWebSocket[]>;
+```
+
+The instance's open sockets, oldest first, for a plugin that just woke.
+
+###### Returns
+
+`Promise`\<[`HostWebSocket`](#hostwebsocket)[]\>
+
+One handle per open socket.
+
+***
+
 ### StorageBinding
 
 `WORK_FS` binding: host-granted object storage for durable plugin files.
@@ -880,3 +1129,24 @@ Event a guest publishes; the host stamps id, `source`, and `accountId`.
 | Name | Type | Description |
 | ------ | ------ | ------ |
 | `payload?` | `Uint8Array` \| [`JsonObject`](#jsonobject) \| `unknown`[] \| `string` | Payload bytes or a JSON-serializable value encoded as UTF-8 JSON. |
+
+***
+
+### SocketMessageData
+
+```ts
+type SocketMessageData = string | ArrayBuffer;
+```
+
+A message that arrived on a host-brokered socket: text as a string, binary
+as an `ArrayBuffer` (as Workers delivers to `webSocketMessage`).
+
+***
+
+### SocketSendData
+
+```ts
+type SocketSendData = string | ArrayBuffer | ArrayBufferView;
+```
+
+A message to send on a host-brokered socket.

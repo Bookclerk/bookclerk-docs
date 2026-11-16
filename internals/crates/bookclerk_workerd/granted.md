@@ -4,7 +4,8 @@ Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job`
 streams (`Source` / `Destination` / `ProgressSink`), the job's
 `Cancellation` long poll (`/cancel`), named database sessions
 (`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox binding
-(`/events/publish`, `/events/read`).
+(`/events/publish`, `/events/read`), and the `SOCKETS` broker binding
+(`/sockets/*`, parsed in [`crate::granted_sockets`](granted_sockets.md)).
 
 HTTP accept/read/write runs on the multi-thread runtime (`tokio::spawn`) so
 it is not starved by the Cap'n Proto vat `LocalSet`. Stub calls stay on the
@@ -74,6 +75,7 @@ pub struct GrantedSlot {
     pub events: Option<Rc<dyn EventPublisher>>,
     pub queue: Option<Rc<dyn QueueProducer>>,
     pub kv: Option<Rc<dyn KvNamespace>>,
+    pub sockets: Option<Rc<dyn Sockets>>,
 }
 ```
 
@@ -102,6 +104,16 @@ or an `EVENTS` publisher.
 - `queue`: Host queue producer, when this grant is one `[[queues.producers]]`
   binding.
 - `kv`: Host KV namespace, when this grant is one `[[kv_namespaces]]` binding.
+- `sockets`: Host socket broker, when this grant is the `SOCKETS` binding.
+
+#### GrantedSlot::sockets_only
+
+```rust
+pub fn sockets_only(sockets: Rc<dyn Sockets>, expires: Instant) -> Self
+```
+
+A grant that only reaches the instance's socket broker over
+`/sockets/*` (no streams, no database, no events, no KV).
 
 #### GrantedSlot::kv_only
 

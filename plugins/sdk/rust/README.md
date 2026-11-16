@@ -69,6 +69,20 @@ Older SDKs that only opened a pathname or named-pipe proxy cannot reach
 the host and fail closed; rebuild guests against this SDK. Pathname,
 `abstract:` and `\\.\pipe\` forms remain for tests.
 
+## Pushed sockets
+
+A plugin that declares `[sockets]` (see
+[Pushed sockets](../../abi.md#pushed-sockets-sockets)) receives `Sockets`
+on `Bindings::sockets` in `open` and may return a `SocketHandler` on
+`Entrypoints::socket_handler`. The host holds each connection, answers the
+declared heartbeats and calls the handler once per message, so the plugin
+process may sleep in between. The `sockets` module wraps one socket id
+in `HostWebSocket` (`send_text`, `close`, `serialize_attachment`,
+`deserialize_attachment`), the same surface the TypeScript and Python
+SDKs give their handlers, and `text_heartbeat("2", "3")` builds a
+heartbeat pair. Attachments are JSON of at most 2 KiB, so a socket reads
+the same from every SDK.
+
 ## Author tools
 
 The `bookclerk-plugin` author CLI (`check`, `fmt`, `sync-embed`,
@@ -119,6 +133,7 @@ points are:
 | Native guest (`runtime = "native"`) | [`PluginWorker`](../../../internals/crates/bookclerk_plugin_abi/README.md#pluginworker) / [`serve`](#serve) (`api_version = 3`) |
 | Fetch / upload work paths | [`fetch_work_dir`](#fetch_work_dir), [`upload_file_path`](#upload_file_path) |
 | Mediated TCP sockets | [`connect_socket`](net.md#connect) / [`net`](net.md) (Workers `connect()` equivalent) |
+| Host-held WebSockets that let the plugin sleep (`[sockets]`) | [`sockets`](sockets.md) / [`HostWebSocket`](sockets.md#hostwebsocket) |
 | Native HTTPS through the socket proxy | feature `http` → `http::Client` |
 | OAuth callback without guest listen | [`callback_tunnel`](callback_tunnel.md) |
 | Workerd / Wasm guests | [`workerd`](workerd.md) + npm `@bookclerk/plugin-sdk` |
@@ -260,6 +275,16 @@ submodules unless you need module-level docs.
 - [`protocol::WorkKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#workkind)
 - [`protocol::MAX_RPC_LINE_BYTES`](protocol.md#max_rpc_line_bytes)
 - [`protocol::PROTOCOL_NAME`](protocol.md#protocol_name)
+- [`sockets::HostWebSocket`](sockets.md#hostwebsocket)
+- [`sockets::SocketAutoResponse`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketautoresponse)
+- [`sockets::SocketClosed`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketclosed)
+- [`sockets::SocketConnectRequest`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketconnectrequest)
+- [`sockets::SocketFrame`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketframe)
+- [`sockets::SocketHandler`](../../../internals/crates/bookclerk_plugin_abi/README.md#sockethandler)
+- [`sockets::SocketHeader`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketheader)
+- [`sockets::SocketInfo`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketinfo)
+- [`sockets::SocketMessage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketmessage)
+- [`sockets::Sockets`](../../../internals/crates/bookclerk_plugin_abi/README.md#sockets)
 - [`bookclerk_plugin_abi::byte_source_from_async_read`](../../../internals/crates/bookclerk_plugin_abi/README.md#byte_source_from_async_read)
 - [`bookclerk_plugin_abi::canonical_execute_request_hash`](../../../internals/crates/bookclerk_plugin_abi/README.md#canonical_execute_request_hash)
 - [`bookclerk_plugin_abi::connect_plugin`](../../../internals/crates/bookclerk_plugin_abi/README.md#connect_plugin)
@@ -430,6 +455,7 @@ submodules unless you need module-level docs.
 - [`mux`](mux.md): Bidirectional multiplexed byte streams with per-stream credit windows.
 - [`net`](net.md): Mediated TCP sockets for native guests (Workers `connect()` equivalent).
 - [`protocol`](protocol.md): Shared role method names and typed method payloads.
+- [`sockets`](sockets.md): Host-brokered WebSockets (`[sockets]`) for native guests.
 - [`workerd`](workerd.md): Workerd guest bridge — same `crate::PluginWorker` contract as native.
 - [`methods`](methods.md): Role capability method name constants (camelCase wire strings).
 
