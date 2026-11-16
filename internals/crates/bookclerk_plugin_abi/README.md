@@ -193,6 +193,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`decode_execute_stream_frame_bytes`](#decode_execute_stream_frame_bytes) | function | Decodes one standalone `ExecuteStreamFrame` message whose traversal is capped at `max_bytes` (at least the scalar ceiling). |
 | [`encoded_db_capabilities_reply_bytes`](#encoded_db_capabilities_reply_bytes) | function | Encodes a standalone Cap'n `DbCapabilitiesReply` (`ok` or `err`). |
 | [`encoded_db_value_bytes`](#encoded_db_value_bytes) | function | Encodes a standalone Cap'n `DbValue` message (unpacked stream). |
+| [`encoded_db_value_len`](#encoded_db_value_len) | function | Length in bytes of `encoded_db_value_bytes`'s output, worked out from the value instead of encoding it. |
 | [`encoded_execute_reply_bytes`](#encoded_execute_reply_bytes) | function | Encodes a standalone Cap'n `ExecuteReply` message (unpacked stream). |
 | [`encoded_execute_request_bytes`](#encoded_execute_request_bytes) | function | Encodes a standalone Cap'n `ExecuteRequest` message (unpacked stream). |
 | [`encoded_execute_result_reply_bytes`](#encoded_execute_result_reply_bytes) | function | Encodes a standalone Cap'n `ExecuteAtomicReply` (`ok` or `err`). |
@@ -5945,6 +5946,28 @@ Encodes a standalone Cap'n `DbValue` message (unpacked stream).
 
 Returns [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a [`DbValue::Text`](db_value.md#dbvalue) contains
 U+0000, or [`PluginError::internal`](error.md#pluginerrorinternal) when the message cannot be serialized.
+
+### encoded_db_value_len
+
+```rust
+pub fn encoded_db_value_len(v: &DbValue) -> Result<usize>
+```
+
+Length in bytes of [`encoded_db_value_bytes`](#encoded_db_value_bytes)'s output, worked out from
+the value instead of encoding it.
+
+A bind's payload size is checked against `maxPayloadBytes` for every
+statement, so this runs once per bind. Encoding each value allocated
+and zeroed a fresh 8 KiB first segment; the layout is fixed, so the
+size follows from the value alone: the one-segment table (8 bytes), the
+root pointer (one word), the `DbValue` struct (its data and pointer
+words), and for TEXT the bytes plus their NUL terminator, or for BLOB
+the bytes, each rounded up to whole words.
+
+#### Errors
+
+Returns [`PluginError::invalid_params`](error.md#pluginerrorinvalid_params) when a [`DbValue::Text`](db_value.md#dbvalue) contains
+U+0000, as [`encoded_db_value_bytes`](#encoded_db_value_bytes) does.
 
 ### encoded_execute_reply_bytes
 

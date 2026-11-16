@@ -46,6 +46,8 @@ those lowerers.
 | [`note_encoded_result_bytes`](#note_encoded_result_bytes) | function | Adds `extra` encoded JSON bytes toward `max_result_bytes`. |
 | [`query_physical_sql`](#query_physical_sql) | function | Queries canonical SQL on a physical engine the adapter opened. |
 | [`query_physical_sql_typed`](#query_physical_sql_typed) | function | `query_physical_sql` with an optional hash-bound proof (TEXT collate / INTEGER overflow on Postgres). |
+| [`sea_cell_utf8_len`](#sea_cell_utf8_len) | function | UTF-8 length of the cell `sea_value_to_json` maps `v` onto, as `json_cell_utf8_len` measures it, without building the cell. |
+| [`sea_value_json_len`](#sea_value_json_len) | function | Compact JSON length of the cell `sea_value_to_json` maps `v` onto. |
 | [`sea_value_to_json`](#sea_value_to_json) | function | Maps a SeaORM cell onto JSON for plan interpretation. |
 | [`lower_canonical_ddl_to_postgres`](#lower_canonical_ddl_to_postgres) | function | Lowers one canonical Bookclerk **DDL** statement onto PostgreSQL. |
 | [`lower_canonical_ddl_to_postgres_with`](#lower_canonical_ddl_to_postgres_with) | function | `lower_canonical_ddl_to_postgres` using `env` for tie-break column types. |
@@ -667,6 +669,12 @@ pub fn encoded_proxy_row_len<'a>(
 
 Encoded JSON length of a SeaORM proxy row (keys, numbers, punctuation).
 
+The length of the compact JSON object [`sea_value_to_json`](#sea_value_to_json) would build
+from the row, worked out without building it: every result row is
+measured against `maxResultBytes`, and cloning each cell into a map and
+printing it cost more than reading the row. Names must be distinct, as
+a row's column names are.
+
 ### execute_physical_sql
 
 ```rust
@@ -752,6 +760,23 @@ INTEGER overflow on Postgres).
 #### Errors
 
 Returns when the proof is not bound to `sql` or the engine rejects the work.
+
+### sea_cell_utf8_len
+
+```rust
+pub fn sea_cell_utf8_len(v: &Value) -> usize
+```
+
+UTF-8 length of the cell [`sea_value_to_json`](#sea_value_to_json) maps `v` onto, as
+[`json_cell_utf8_len`](#json_cell_utf8_len) measures it, without building the cell.
+
+### sea_value_json_len
+
+```rust
+pub fn sea_value_json_len(v: &Value) -> usize
+```
+
+Compact JSON length of the cell [`sea_value_to_json`](#sea_value_to_json) maps `v` onto.
 
 ### sea_value_to_json
 

@@ -28,6 +28,7 @@ execute the statements as one transaction and return a typed
 | [`validate_execute_request`](#validate_execute_request) | function | Rejects a typed `ExecuteRequest` that exceeds negotiated guest limits. |
 | [`validate_proven_execute_request`](#validate_proven_execute_request) | function | After host typecheck, reject a resolved batch whose proven lowered size exceeds negotiated `maxLoweredStatementBytes`. |
 | [`authorize_typed_request`](#authorize_typed_request) | function | Host-authorizes a guest typed batch: overwrite statement kinds, enforce negotiated caps, and stamp the canonical Cap'n request hash. |
+| [`admit_typed_request`](#admit_typed_request) | function | Whether `authorize_typed_request` would accept `req`, without paying for its digest. |
 | [`execute_guest_atomic_with`](#execute_guest_atomic_with) | function | Authorizes, receipt-wraps, executes, and unwraps one guest typed batch. |
 | [`authorize_guest_typed_request`](#authorize_guest_typed_request) | function | Authorizes a **guest-authored** typed batch. |
 | [`wake_page_for_max_binds`](#wake_page_for_max_binds) | function | Wake page size from negotiated `maxBinds` (SET/EXISTS overhead is 4 binds). |
@@ -370,6 +371,26 @@ An empty `operationId` is replaced with a fresh UUID.
 
 Returns [`crate::LibraryError::Other`](../README.md#libraryerror) when the request exceeds caps, the
 retry hash does not match, or the canonical digest cannot be encoded.
+
+### admit_typed_request
+
+```rust
+pub fn admit_typed_request(req: &mut ExecuteRequest, caps: &DbCapabilities) -> Result<()>
+```
+
+Whether [`authorize_typed_request`](#authorize_typed_request) would accept `req`, without paying
+for its digest.
+
+A host read probes each chunk of a lookup with this before sending it,
+and the proxy then authorizes the statement for real, so the probe's
+digest was thrown away. The probe stamps a placeholder of the digest's
+exact length instead, so the size limits see the same request bytes, and
+checks the TEXT the digest's encoding would have refused.
+
+#### Errors
+
+The errors of [`authorize_typed_request`](#authorize_typed_request), except a retry-token
+mismatch: `req` must carry no `requestHash`.
 
 ### execute_guest_atomic_with
 
