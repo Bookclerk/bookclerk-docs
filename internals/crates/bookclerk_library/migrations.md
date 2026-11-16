@@ -60,6 +60,8 @@ Adapters lower canonical DDL at the execution edge
 | [`require_single_migration_statement`](#require_single_migration_statement) | function | Packs `sql` and requires exactly one statement. |
 | [`current_canonical_table_names`](#current_canonical_table_names) | function | Host table names declared by `current_canonical_schema`, plus `bookclerk_schema_migrations`. |
 | [`host_sql_type_env`](#host_sql_type_env) | function | Column types implied by `current_canonical_schema`, plus the `bookclerk_schema_migrations` ledger created before any plan step. |
+| [`host_sql_type_env_ref`](#host_sql_type_env_ref) | function | `host_sql_type_env` without the copy: the environment parsed once per process. |
+| [`host_stamp_catalog`](#host_stamp_catalog) | function | `host_sql_type_env` merged with the host bookkeeping tables, prepared once per process so stamping a host request does not copy the schema. |
 | [`host_migration_plan`](#host_migration_plan) | function | Frozen host migration steps. Empty until a release cut copies `unreleased_ops` into version 1. |
 | [`SCHEMA_VERSION`](#schema_version) | constant | Highest **frozen** schema version this binary knows (`0` while the plan is empty). |
 | [`SCHEMA_MIGRATIONS_DDL`](#schema_migrations_ddl) | constant | Host bookkeeping table created before applying plan versions. |
@@ -794,6 +796,24 @@ pub fn host_sql_type_env() -> SqlTypeEnv
 
 Column types implied by [`current_canonical_schema`](#current_canonical_schema), plus the
 `bookclerk_schema_migrations` ledger created before any plan step.
+
+### host_sql_type_env_ref
+
+```rust
+pub fn host_sql_type_env_ref() -> &'static SqlTypeEnv
+```
+
+[`host_sql_type_env`](#host_sql_type_env) without the copy: the environment parsed once per
+process.
+
+### host_stamp_catalog
+
+```rust
+pub fn host_stamp_catalog() -> &'static StampCatalog
+```
+
+[`host_sql_type_env`](#host_sql_type_env) merged with the host bookkeeping tables, prepared
+once per process so stamping a host request does not copy the schema.
 
 ### host_migration_plan
 

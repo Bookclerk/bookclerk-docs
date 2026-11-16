@@ -15,6 +15,7 @@ those lowerers.
 | --- | --- | --- |
 | [`AtomicSession`](#atomicsession) | struct | Session-level cancel / deadline for one atomic attempt (not hashed). |
 | [`ExecCaps`](#execcaps) | struct | Per-statement result bounds. Row/byte `0` means unlimited at execute time. |
+| [`StampCatalog`](#stampcatalog) | struct | A catalog merged with the host's bookkeeping tables, ready to stamp proofs against. |
 | [`DbErrorClass`](#dberrorclass) | enum | Portable Bookclerk SQL error category. |
 | [`PhysicalEngine`](#physicalengine) | enum | Real engine the adapter opened. |
 | [`SqlExecTarget`](#sqlexectarget) | enum | How leftover host SQL reaches a SeaORM connection. |
@@ -82,7 +83,9 @@ those lowerers.
 | [`proofs_for_host_plan`](#proofs_for_host_plan) | function | Host plans may include already-lowered schema companions (`PRAGMA`, `CREATE FUNCTION`, …) and greenfield DDL. Those get a hash-bound empty proof. Canonical DML is typed against the merged schema in statement order. |
 | [`query_canonical_stamped`](#query_canonical_stamped) | function | Stamp leftover canonical SQL, then query it with sqlite-shaped transport. |
 | [`stamp_adapter_execute`](#stamp_adapter_execute) | function | Host-stamped `AdapterExecuteRequest` for first-party adapter execute. |
+| [`stamp_adapter_execute_with`](#stamp_adapter_execute_with) | function | `stamp_adapter_execute` against an already prepared `StampCatalog`. |
 | [`stamp_host_proofs`](#stamp_host_proofs) | function | Stamps 1:1 proofs for host-authored canonical SQL (planner / SeaORM). |
+| [`stamp_host_proofs_with`](#stamp_host_proofs_with) | function | `stamp_host_proofs` against an already prepared `StampCatalog`. |
 
 ## Re-exports
 
@@ -237,6 +240,32 @@ row budgets in place of the inline result caps.
 `None` when `caps` advertises no streamed budget.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `From<u32>`
+
+### StampCatalog
+
+```rust
+pub struct StampCatalog {
+    /* private fields */
+}
+```
+
+A catalog merged with the host's bookkeeping tables, ready to stamp
+proofs against.
+
+[`stamp_host_proofs`](#stamp_host_proofs) builds one for every request, which copies the
+whole catalog; a caller that stamps many requests against the same
+catalog (the host library schema, fixed for the life of the binary)
+builds it once and calls [`stamp_host_proofs_with`](#stamp_host_proofs_with) instead.
+
+#### StampCatalog::new
+
+```rust
+pub fn new(catalog: &SqlTypeEnv) -> Self
+```
+
+Merges `catalog` over the host bookkeeping tables.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Enums
 
@@ -1402,6 +1431,22 @@ call this.
 Returns `DbErr::Custom` when typecheck fails, proofs do not bind, or a
 TEXT SQL/bind contains U+0000.
 
+### stamp_adapter_execute_with
+
+```rust
+pub fn stamp_adapter_execute_with(
+    request: ExecuteRequest,
+    catalog: &StampCatalog,
+) -> Result<AdapterExecuteRequest, DbErr>
+```
+
+[`stamp_adapter_execute`](#stamp_adapter_execute) against an already prepared [`StampCatalog`](#stampcatalog).
+
+#### Errors
+
+Returns `DbErr::Custom` when typecheck fails, proofs do not bind, or a
+TEXT SQL/bind contains U+0000.
+
 ### stamp_host_proofs
 
 ```rust
@@ -1416,6 +1461,21 @@ Stamps 1:1 proofs for host-authored canonical SQL (planner / SeaORM).
 Host companion SQL (`PRAGMA`, identity functions, DDL) gets a hash-bound
 empty proof. Canonical DML is typed against bookkeeping + catalog tables
 plus `catalog`.
+
+#### Errors
+
+Returns `DbErr::Custom` when typecheck fails.
+
+### stamp_host_proofs_with
+
+```rust
+pub fn stamp_host_proofs_with(
+    req: &ExecuteRequest,
+    catalog: &StampCatalog,
+) -> Result<Vec<ResolvedStatement>, DbErr>
+```
+
+[`stamp_host_proofs`](#stamp_host_proofs) against an already prepared [`StampCatalog`](#stampcatalog).
 
 #### Errors
 
