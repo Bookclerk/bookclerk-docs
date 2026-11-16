@@ -5559,6 +5559,40 @@ when absent or too old.
 
 Returns the database error.
 
+#### LibraryStore::get_discover_store_calls
+
+```rust
+pub async fn get_discover_store_calls(
+    &self,
+    call_keys: &[String],
+    max_age: Duration,
+) -> Result<HashMap<String, Vec<StoreCallHit>>>
+```
+
+[`Self::get_discover_store_call`](#librarystoreget_discover_store_call) for many calls at once, in a few
+chunked reads instead of two per call.
+
+A discover fetch asks one store dozens of calls (deals, each seed,
+each starter genre); reading their cached answers up front saves two
+database round trips per call. Like the single read, a call row is
+read first and its hits after, so an answer being rewritten reads as
+expired, never as part of its hits.
+
+##### Arguments
+
+* `call_keys` - Keys the caller derived; duplicates are read once.
+* `max_age` - Oldest answer still worth reusing.
+
+##### Returns
+
+Each key with a fresh answer, mapped to its listings in the store's
+order (at most 500 per key). Absent or expired keys are
+left out.
+
+##### Errors
+
+Returns the database error.
+
 #### LibraryStore::put_discover_store_call
 
 ```rust
