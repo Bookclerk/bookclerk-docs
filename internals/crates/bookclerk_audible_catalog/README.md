@@ -389,6 +389,12 @@ pub fn public_http_client() -> Result<Client>
 
 Shared HTTP client for public metadata calls.
 
+Built once per process and cloned, so every public lookup reuses one
+connection pool (and its TLS connections) instead of handshaking per
+call. The client holds no cookies and only a fixed `User-Agent`, so
+sharing it carries nothing between calls; in a plugin guest it lives in
+that guest's own process.
+
 #### Returns
 
 On success, the inner `Client` value.

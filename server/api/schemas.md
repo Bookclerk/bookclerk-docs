@@ -563,6 +563,26 @@ One allowed value for a storefront config option.
 - `id` *string*, **required** — Stored option value (for example `m4b`).
 - `label` *string*, **required** — Operator-facing value label.
 
+## ConflictJson
+
+One conflict the resolver could not decide.
+
+- `listing_id` *string*, **required** — The listing whose resolution conflicted.
+- `kind` *string*, **required** — What conflicted: `strong_identifiers` (two editions share the listing's strong identifiers), `work_identifiers` (its work identifiers name two works), `ambiguous_work` (two works match its title and authors) or `work_kind_mismatch` (its work identifier names a work of another kind).
+- `subject_ids` *array of string*, **required** — The editions (`strong_identifiers`) or works (the other kinds) involved.
+- `plugin_key` *string*, **required** — The listing's storefront PluginKey.
+- `product_id` *string*, **required** — The store's product id.
+- `title` *string*, **required** — The listing's title as the store reported it.
+- `edition_id` *string*, **required** — The edition the listing sells now.
+- `updated_at` *string*, **required** — When the conflict was last seen (RFC 3339).
+
+## ConflictPage
+
+One page of conflicts.
+
+- `conflicts` *array of [`ConflictJson`](#conflictjson)*, **required** — The conflicts, by listing.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
+
 ## ConnectionChoice
 
 What the consent page may offer: branch only, or a choice between branch and shared_branch for an Owner.
@@ -1944,6 +1964,20 @@ How to sanitize storage path segments when [`crate::OutputConfig::replacement_ch
 is empty (explicit rules always win).
 
 Type: one of `auto`, `windows`, `posix`, `s3`, `none`
+
+## PinBody
+
+Body of `PUT /api/library/listings/{id}/pin`.
+
+- `edition_id` *string*, **required** — The edition the listing sells.
+
+## PinJson
+
+A listing's pin.
+
+- `listing_id` *string*, **required** — The listing.
+- `edition_id` *string*, **required** — The edition it is pinned to, and now sells.
+- `moved_from` *string or null* — The edition it sold before, when the pin moved it; absent when it already sold the pinned edition.
 
 ## PinnedSchemaSummary
 

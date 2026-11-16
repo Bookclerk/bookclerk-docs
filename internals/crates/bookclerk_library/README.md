@@ -114,6 +114,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListeningIdentifiers`](#listeningidentifiers) | struct | The identifiers a listening item names its book by, as the provider reported them (any case and punctuation; normalised here). |
 | [`ListeningMatch`](#listeningmatch) | struct | What one listening item resolved to in the library. |
 | [`ListeningProgressWrite`](#listeningprogresswrite) | struct | One stored listening row a batched write produced. |
+| [`ConflictCursor`](#conflictcursor) | struct | Where a conflicts page stopped: the last row's key, in key order. |
+| [`ResolutionConflict`](#resolutionconflict) | struct | One conflict the resolver recorded for an Administrator. |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
@@ -172,6 +174,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
+| [`PinOutcome`](#pinoutcome) | enum | What `LibraryStore::pin_listing` did. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
@@ -312,6 +315,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EVENT_STREAM_SETTLE_SECS`](#event_stream_settle_secs) | constant | Seconds an outbox row must age before `LibraryStore::read_event_stream` returns it. `created_at` is stamped before the insert commits, so a publication can commit after a newer one; a read that stops short of the last few seconds never moves its cursor past a row that has yet to appear. Newer events still reach subscribers through delivery. |
 | [`LIBRARY_INDEX_LAYOUT`](#library_index_layout) | constant | Layout of `library_work_rows` this binary writes. A library with no finished build of this layout is rebuilt; bump it when a change to how rows are derived needs every row rewritten. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
+| [`MAX_CONFLICT_PAGE`](#max_conflict_page) | constant | Largest conflicts page `LibraryStore::list_resolution_conflicts` reads. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
 | [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days) | constant | Days `configuration_changes` notices are kept. They only signal that a document changed; the document and its audit row hold the content. |
@@ -4674,6 +4678,78 @@ One stored listening row a batched write produced.
 
 Implements: `Clone`, `Debug`
 
+### ConflictCursor
+
+```rust
+pub struct ConflictCursor {
+    pub listing_id: String,
+    pub kind: String,
+    pub subject_ids: String,
+}
+```
+
+Where a conflicts page stopped: the last row's key, in key order.
+
+**Fields**
+
+- `listing_id`: The last row's listing id.
+- `kind`: The last row's kind.
+- `subject_ids`: The last row's stored subject ids (a JSON array).
+
+#### ConflictCursor::encode
+
+```rust
+pub fn encode(&self) -> String
+```
+
+The cursor as an opaque URL-safe token.
+
+#### ConflictCursor::decode
+
+```rust
+pub fn decode(token: &str) -> Result<Self>
+```
+
+Reads a token made by [`Self::encode`](#conflictcursorencode).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) when the token is not one.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ResolutionConflict
+
+```rust
+pub struct ResolutionConflict {
+    pub listing_id: String,
+    pub kind: String,
+    pub subject_ids: Vec<String>,
+    pub plugin_key: String,
+    pub product_id: String,
+    pub title: String,
+    pub edition_id: String,
+    pub updated_at: String,
+}
+```
+
+One conflict the resolver recorded for an Administrator.
+
+**Fields**
+
+- `listing_id`: The listing whose resolution conflicted.
+- `kind`: `strong_identifiers`, `work_identifiers`, `ambiguous_work` or
+  `work_kind_mismatch`.
+- `subject_ids`: The edition ids (`strong_identifiers`) or work ids (the other kinds)
+  involved, sorted.
+- `plugin_key`: The listing's storefront PluginKey.
+- `product_id`: The store's product id.
+- `title`: The listing's title as the store reported it.
+- `edition_id`: The edition the listing sells now.
+- `updated_at`: RFC 3339 time the conflict was last seen.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### PluginDatabaseRecord
 
 ```rust
@@ -7272,6 +7348,121 @@ One write per distinct row key, in the order the keys first appear.
 
 Returns the database error. Batches sent before a failing one stay
 written.
+
+#### LibraryStore::pin_listing
+
+```rust
+pub async fn pin_listing(
+    &self,
+    listing_id: &str,
+    edition_id: &str,
+    user_id: Option<i64>,
+) -> Result<PinOutcome>
+```
+
+Pins `listing_id` to `edition_id`: records the Administrator's
+decision and moves the listing there, as one atomic batch.
+
+Every statement requires both the listing and the edition to exist,
+so an unknown id writes nothing. The listing's recorded conflicts are
+dropped (the pin settles them). When the listing moves, the batch
+publishes `edition_linked` for `edition_id` and `edition_updated` for
+the edition it left; both are published only while this batch's pin
+is the stored one.
+
+##### Arguments
+
+* `listing_id` - The listing (`store_listings.id`).
+* `edition_id` - The edition it sells (`editions.id`).
+* `user_id` - The Administrator (`users.id`); `None` for the operator.
+
+##### Returns
+
+What the pin did.
+
+##### Errors
+
+Returns the database error of a failed read or write.
+
+#### LibraryStore::unpin_listing
+
+```rust
+pub async fn unpin_listing(&self, listing_id: &str) -> Result<bool>
+```
+
+Removes the pin on `listing_id`, if any.
+
+The listing keeps selling the edition it was pinned to: the resolver
+keeps a stored listing's edition, so a pin only ever moves a listing
+when it is made.
+
+##### Returns
+
+Whether a pin was removed.
+
+##### Errors
+
+Returns the database error of a failed read or write.
+
+#### LibraryStore::listing_pin
+
+```rust
+pub async fn listing_pin(&self, listing_id: &str) -> Result<Option<String>>
+```
+
+The edition `listing_id` is pinned to, or `None` when it has no pin.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
+
+#### LibraryStore::list_resolution_conflicts
+
+```rust
+pub async fn list_resolution_conflicts(
+    &self,
+    after: Option<&ConflictCursor>,
+    limit: u64,
+) -> Result<(Vec<ResolutionConflict>, Option<ConflictCursor>)>
+```
+
+One page of the conflicts the resolver recorded, in key order
+(listing, kind, subjects), with each listing's store and title.
+
+##### Arguments
+
+* `after` - Where the previous page stopped; `None` starts at the
+  first conflict.
+* `limit` - Page size, clamped to 1..=[`MAX_CONFLICT_PAGE`](#max_conflict_page) and to
+  the database plugin's result-row cap.
+
+##### Returns
+
+The page, and the cursor of the next page when this one is full.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails, or
+[`LibraryError::Invalid`](#libraryerror) when a stored subject list is not a JSON
+array of strings.
+
+#### LibraryStore::record_resolution_conflict_for_test
+
+```rust
+pub async fn record_resolution_conflict_for_test(
+    &self,
+    listing_id: &str,
+    kind: &str,
+    subject_ids: &[&str],
+)
+```
+
+Records a resolver conflict for `listing_id`, as a scan that could
+not decide would. Test support only.
+
+##### Panics
+
+When the write fails.
 
 #### LibraryStore::record_plugin_database
 
@@ -12763,6 +12954,7 @@ pub enum EntityKind {
     Book,
     Work,
     Edition,
+    Listing,
     TitleRequest,
     User,
     PortalIdentity,
@@ -12804,6 +12996,7 @@ such as `enrollment link`.
 - `Book`: A library title (`books` row).
 - `Work`: A work of the library data model.
 - `Edition`: An edition of the library data model.
+- `Listing`: A store listing of the library data model (`store_listings`).
 - `TitleRequest`: A title request (wishlist entry).
 - `User`: A user.
 - `PortalIdentity`: A portal identity linked to a user.
@@ -12835,7 +13028,7 @@ such as `enrollment link`.
 #### EntityKind::ALL
 
 ```rust
-pub const ALL: [Self; 31] = _
+pub const ALL: [Self; 32] = _
 ```
 
 Every kind, in declaration order.
@@ -13769,6 +13962,30 @@ Every step, in the order the deletes must run (deliveries before the
 events they belong to).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### PinOutcome
+
+```rust
+pub enum PinOutcome {
+    Moved { from: String },
+    Unchanged,
+    UnknownListing,
+    UnknownEdition,
+}
+```
+
+What [`LibraryStore::pin_listing`](#librarystorepin_listing) did.
+
+**Variants**
+
+- `Moved`: The listing now sells the pinned edition; it sold `from` before.
+  - `from`: The edition the listing left.
+- `Unchanged`: The listing already sold the pinned edition; the pin is recorded
+  (or renewed) and nothing moved.
+- `UnknownListing`: No listing has this id.
+- `UnknownEdition`: No edition has this id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### KvPutOutcome
 
@@ -15898,6 +16115,14 @@ pub const CATALOG_LISTING_REFRESH: Duration = _;
 How long a catalog listing counts as current: a store answer for a
 listing seen more recently than this refreshes only its prices, not
 its resolution or text, so overlapping tastes cost one resolve a day.
+
+### MAX_CONFLICT_PAGE
+
+```rust
+pub const MAX_CONFLICT_PAGE: u64 = 200;
+```
+
+Largest conflicts page [`LibraryStore::list_resolution_conflicts`](#librarystorelist_resolution_conflicts) reads.
 
 ### KV_LIST_DEFAULT_LIMIT
 

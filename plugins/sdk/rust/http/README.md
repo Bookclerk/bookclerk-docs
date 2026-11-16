@@ -277,6 +277,15 @@ the proxied client cannot be built. Does not fall back to ambient TCP.
 Ambient reqwest construction failure without those env vars also panics
 only if the last-resort `reqwest::Client::new` cannot be created.
 
+Every call in one plugin process hands out a clone of the same
+client, so its requests share one connection pool and reuse TLS
+connections instead of handshaking per call. That client holds no
+cookie jar and no default headers, so sharing it carries nothing
+from one request (or account) to the next; a client that needs
+cookies or its own headers is built with [`Client::builder`](#clientbuilder-1) and
+keeps its own pool. The sharing never crosses processes, so it never
+crosses a plugin's sandbox.
+
 #### Client::builder
 
 ```rust

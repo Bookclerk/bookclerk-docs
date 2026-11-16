@@ -126,6 +126,9 @@ Books in the library, scans and acquires.
 | --- | --- |
 | [`POST /api/library/scan`](library.md#post-apilibraryscan) | Plans and enqueues a library scan; returns the accepted job ids. |
 | [`POST /api/library/acquire`](library.md#post-apilibraryacquire) | Plans and enqueues acquire jobs; returns the accepted job ids. |
+| [`PUT /api/library/listings/{id}/pin`](library.md#put-apilibrarylistingsidpin) | Pins a store listing to the edition it sells. |
+| [`DELETE /api/library/listings/{id}/pin`](library.md#delete-apilibrarylistingsidpin) | Removes a listing's pin. |
+| [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
 | [`PUT /api/library/works/{id}/state`](library.md#put-apilibraryworksidstate) | Changes the caller's own state for a work: finished, ratings and tags. |
