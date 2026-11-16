@@ -124,6 +124,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
 | [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
 | [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
+| [`WorkSplitBody`](#worksplitbody) | struct | `POST /api/library/works/{id}/split` body: the expressions to move. |
+| [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
@@ -178,6 +180,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
+| [`SplitOutcome`](#splitoutcome) | enum | What `LibraryStore::split_work` did. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
@@ -275,6 +278,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`plan_pass`](#plan_pass) | function | Decides how the next pass of an account starts. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
+| [`parse_work_split_request`](#parse_work_split_request) | function | Parses and validates a `POST /api/library/works/{id}/split` body from its raw bytes, sans IO, the way the route reads it: JSON into `WorkSplitBody`, then `WorkSplitBody::validate`. |
 | [`derive_claim_password_fingerprint`](#derive_claim_password_fingerprint) | function | Stable, non-secret fingerprint of an invite/reset password for idempotency. |
 | [`derive_claim_session_token`](#derive_claim_session_token) | function | Derive the portal session token for a claim ticket plus browser nonce. |
 | [`hash_token`](#hash_token) | function | SHA-256 hex digest of a raw ticket/session token for durable storage. |
@@ -324,6 +328,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UPLOAD_HISTORY_DAYS`](#upload_history_days) | constant | Days a committed or aborted host upload is kept past its token's expiry. |
 | [`FULL_PASS_INTERVAL`](#full_pass_interval) | constant | Longest time since the last complete pass before the host asks for a full pass again, so a store whose deltas miss edits or removals is corrected. |
 | [`RESUME_CURSOR_TTL`](#resume_cursor_ttl) | constant | Longest time a stopped pass's cursor is resumed; an older one restarts the pass (store cursors expire). |
+| [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions) | constant | Most expressions one split moves: the batch's widest statement binds each id twice, and the minimum database profile allows 32 binds. |
+| [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes) | constant | Longest expression id a split body may name, in bytes; ids are UUIDs. |
 | [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for one `LibraryStore::acquired_book_keys_page` read. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
@@ -4970,6 +4976,55 @@ A change to one user's state for one work, applied by
 
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
+### WorkSplitBody
+
+```rust
+pub struct WorkSplitBody {
+    /* private fields */
+}
+```
+
+`POST /api/library/works/{id}/split` body: the expressions to move.
+
+#### WorkSplitBody::validate
+
+```rust
+pub fn validate(self) -> Result<WorkSplitRequest>
+```
+
+Checks the body: every id 1 to [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes)
+bytes, and 1 to [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions) distinct ids (a repeated
+id counts once).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for an empty or overlong id, or a
+count outside the bounds.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### WorkSplitRequest
+
+```rust
+pub struct WorkSplitRequest {
+    /* private fields */
+}
+```
+
+A validated [`WorkSplitBody`]: 1 to [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions) distinct
+expression ids, each 1 to [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes) bytes,
+sorted.
+
+#### WorkSplitRequest::expression_ids
+
+```rust
+pub fn expression_ids(&self) -> &[String]
+```
+
+The expressions to move, sorted and distinct.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### AcquiredBookKey
 
 ```rust
@@ -8455,6 +8510,43 @@ longer held (its document is then removed from the index).
 ##### Errors
 
 Returns [`crate::LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::split_work
+
+```rust
+pub async fn split_work(
+    &self,
+    work_id: &str,
+    expression_ids: &[String],
+    user_id: Option<i64>,
+) -> Result<SplitOutcome>
+```
+
+Moves `expression_ids` out of `work_id` into a new work, as one
+atomic batch.
+
+Every write requires the new work, and the new work is inserted only
+while every named expression still belongs to `work_id` and another
+stays behind, so a concurrent change writes nothing rather than half
+a split.
+
+##### Arguments
+
+* `work_id` - The work to split (`works.id`).
+* `expression_ids` - The expressions to move, 1 to
+  [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions); duplicates count once.
+* `user_id` - The Administrator (`users.id`); `None` for the operator.
+
+##### Returns
+
+What the split did. [`SplitOutcome::Split`](#splitoutcome) is returned only when
+the expressions were moved.
+
+##### Errors
+
+Returns the database error of a failed read or write, or
+[`LibraryError::Conflict`](#libraryerror) when the work changed between the read
+and the write.
 
 #### LibraryStore::enqueue_job
 
@@ -14080,6 +14172,31 @@ One field of a [`UserStateEdit`](#userstateedit).
 
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
+### SplitOutcome
+
+```rust
+pub enum SplitOutcome {
+    Split { work_id: String },
+    UnknownWork,
+    BadCount,
+    NotOfWork(Vec<String>),
+    WouldEmpty,
+}
+```
+
+What [`LibraryStore::split_work`](#librarystoresplit_work) did.
+
+**Variants**
+
+- `Split`: The expressions now belong to `work_id`, a new work.
+  - `work_id`: The new work.
+- `UnknownWork`: No work has this id.
+- `BadCount`: No expression was named, or more than [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions).
+- `NotOfWork`: These named expressions are not the work's.
+- `WouldEmpty`: The split would leave the work with no expression.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### DiscoverSubject
 
 ```rust
@@ -15694,6 +15811,22 @@ pub fn set_dispatch_chunk_for_test(chunk: Option<usize>)
 
 Override subscribers-per-plan for dispatch paging tests.
 
+### parse_work_split_request
+
+```rust
+pub fn parse_work_split_request(body: &[u8]) -> Result<WorkSplitRequest>
+```
+
+Parses and validates a `POST /api/library/works/{id}/split` body from
+its raw bytes, sans IO, the way the route reads it: JSON into
+[`WorkSplitBody`](#worksplitbody), then [`WorkSplitBody::validate`](#worksplitbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing field, an
+array instead of an object) or ids outside the bounds.
+
 ### derive_claim_password_fingerprint
 
 ```rust
@@ -16197,6 +16330,23 @@ pub const RESUME_CURSOR_TTL: Duration = _;
 
 Longest time a stopped pass's cursor is resumed; an older one restarts
 the pass (store cursors expire).
+
+### MAX_SPLIT_EXPRESSIONS
+
+```rust
+pub const MAX_SPLIT_EXPRESSIONS: usize = 12;
+```
+
+Most expressions one split moves: the batch's widest statement binds
+each id twice, and the minimum database profile allows 32 binds.
+
+### MAX_SPLIT_EXPRESSION_ID_BYTES
+
+```rust
+pub const MAX_SPLIT_EXPRESSION_ID_BYTES: usize = 64;
+```
+
+Longest expression id a split body may name, in bytes; ids are UUIDs.
 
 ### ACQUIRED_KEYS_MAX_PAGE
 

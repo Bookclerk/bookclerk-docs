@@ -2927,6 +2927,13 @@ JSON body for `GET /sources`.
 
 - `sources` *array of [`SourceInfo`](#sourceinfo)*, **required** — Enabled storefronts the SPA may offer for connect / login.
 
+## SplitJson
+
+The result of a split.
+
+- `work_id` *string*, **required** — The new work the expressions moved to.
+- `split_from` *string*, **required** — The work that was split.
+
 ## StartBody
 
 `POST /api/config/join/start` body.
@@ -3445,6 +3452,12 @@ A page of `GET /api/library/works`.
 
 - `works` *array of [`WorkSummaryJson`](#worksummaryjson)*, **required** — The works, in the requested order.
 - `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
+
+## WorkSplitBody
+
+`POST /api/library/works/{id}/split` body: the expressions to move.
+
+- `expression_ids` *array of string*, **required** — The expressions to move to the new work (1 to 12 distinct ids, each at most 64 bytes), from the work detail's editions (`expression_id`).
 
 ## WorkStateEdit
 
