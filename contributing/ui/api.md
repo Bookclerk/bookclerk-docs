@@ -5731,6 +5731,14 @@ authors: string[];
 
 Authors (or hosts).
 
+##### can\_edit\_state?
+
+```ts
+can_edit_state?: boolean;
+```
+
+Whether the caller can keep their own state (false for the operator token).
+
 ##### description
 
 ```ts
@@ -5954,6 +5962,55 @@ tags: string | null;
 ```
 
 Space-separated tags.
+
+***
+
+### WorkStateEdit
+
+A change to the caller's own state for a work. A field left out keeps
+its value; `null` clears a rating or the tags.
+
+#### Properties
+
+##### is\_finished?
+
+```ts
+is_finished?: boolean;
+```
+
+Whether they finished it.
+
+##### rating\_overall?
+
+```ts
+rating_overall?: number | null;
+```
+
+Overall rating (0–5).
+
+##### rating\_performance?
+
+```ts
+rating_performance?: number | null;
+```
+
+Performance rating (0–5).
+
+##### rating\_story?
+
+```ts
+rating_story?: number | null;
+```
+
+Story rating (0–5).
+
+##### tags?
+
+```ts
+tags?: string | null;
+```
+
+Whitespace-separated tags (at most 32, each at most 64 bytes).
 
 ***
 
@@ -8557,6 +8614,29 @@ placement (compare-and-swap on `expected_revision`; 0 creates).
 \}\>
 
 The stored placement.
+
+***
+
+### putWorkState()
+
+```ts
+function putWorkState(id, edit): Promise<WorkState>;
+```
+
+Changes the caller's own finished flag, ratings or tags for a work.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `string` | The work. |
+| `edit` | [`WorkStateEdit`](#workstateedit) | The fields to change. |
+
+#### Returns
+
+`Promise`\<[`WorkState`](#workstate)\>
+
+The caller's state after the change.
 
 ***
 

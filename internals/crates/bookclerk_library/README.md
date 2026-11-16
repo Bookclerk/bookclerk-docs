@@ -121,6 +121,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`PassStart`](#passstart) | struct | How the next pass of one account starts. |
 | [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
 | [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
+| [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
@@ -173,6 +174,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
+| [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
@@ -4866,6 +4868,32 @@ joined by the ASCII unit separator, which none of them contains.
 
 Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
+### UserStateEdit
+
+```rust
+pub struct UserStateEdit {
+    pub is_finished: Option<bool>,
+    pub rating_overall: FieldEdit<f64>,
+    pub rating_performance: FieldEdit<f64>,
+    pub rating_story: FieldEdit<f64>,
+    pub tags: FieldEdit<String>,
+}
+```
+
+A change to one user's state for one work, applied by
+[`LibraryStore::edit_user_title_state`](#librarystoreedit_user_title_state).
+
+**Fields**
+
+- `is_finished`: The finished flag to store; `None` keeps it (a new row starts
+  unfinished).
+- `rating_overall`: Overall rating, 0 to 5.
+- `rating_performance`: Narration rating, 0 to 5.
+- `rating_story`: Story rating, 0 to 5.
+- `tags`: Tags, whitespace-separated.
+
+Implements: `Clone`, `Debug`, `Default`, `PartialEq`
+
 ### AcquiredBookKey
 
 ```rust
@@ -8038,6 +8066,40 @@ is one atomic batch.
 
 Returns the database error, for example when the user or the work
 does not exist on an engine that checks foreign keys.
+
+#### LibraryStore::edit_user_title_state
+
+```rust
+pub async fn edit_user_title_state(
+    &self,
+    user_id: i64,
+    work_id: &str,
+    edit: &UserStateEdit,
+) -> Result<Option<UserTitleState>>
+```
+
+Applies `edit` to `user_id`'s state for `work_id` and returns the
+state as stored afterwards.
+
+Unlike [`LibraryStore::set_user_title_state`](#librarystoreset_user_title_state), a field can be
+cleared as well as kept or set. New tags also replace the work's
+`user_work_tags` rows. The write is one atomic batch, and every
+statement in it requires the work to exist, so an unknown work
+writes nothing.
+
+##### Arguments
+
+* `user_id` - The user (`users.id`).
+* `work_id` - The work (`works.id`).
+* `edit` - What to change.
+
+##### Returns
+
+The stored state, or `None` when no such work exists.
+
+##### Errors
+
+Returns the database error.
 
 #### LibraryStore::user_title_states
 
@@ -13754,6 +13816,26 @@ pub const ALL: [Self; 11] = _
 Every step, in the order a maintenance pass runs them.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### FieldEdit
+
+```rust
+pub enum FieldEdit<T> {
+    Keep,
+    Clear,
+    Set(T),
+}
+```
+
+One field of a [`UserStateEdit`](#userstateedit).
+
+**Variants**
+
+- `Keep`: Leave the stored value as it is.
+- `Clear`: Remove the stored value.
+- `Set`: Store this value.
+
+Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
 ### DiscoverSubject
 

@@ -3397,6 +3397,7 @@ Storefront edition key for wishlist / queue payloads.
 - `series_position` *string or null* — Position in `series`.
 - `editions` *array of [`EditionJson`](#editionjson)*, **required** — Editions; a show's episodes' editions included.
 - `state` *[`WorkStateJson`](#workstatejson) or null* — The caller's own state; absent for the operator or when the caller recorded nothing.
+- `can_edit_state` *boolean*, **required** — Whether the caller can keep their own state for the work (`PUT /api/library/works/{id}/state`): false when the session has no library user, such as the operator token.
 
 ## WorkKindJson
 
@@ -3410,6 +3411,18 @@ A page of `GET /api/library/works`.
 
 - `works` *array of [`WorkSummaryJson`](#worksummaryjson)*, **required** — The works, in the requested order.
 - `next_cursor` *string or null* — Pass as `cursor` for the next page; absent on the last page.
+
+## WorkStateEdit
+
+`PUT /api/library/works/{id}/state` body: the fields of the caller's
+own state to change. A field left out keeps its stored value; `null`
+clears a rating or the tags.
+
+- `is_finished` *boolean or null* — Whether the caller finished the work.
+- `rating_overall` *number (double) or null* — Overall rating, 0 to 5; `null` clears it.
+- `rating_performance` *number (double) or null* — Narration rating, 0 to 5; `null` clears it.
+- `rating_story` *number (double) or null* — Story rating, 0 to 5; `null` clears it.
+- `tags` *string or null* — Tags separated by whitespace (at most 32, each at most 64 bytes, 1024 bytes in all); `null` or an empty string clears them.
 
 ## WorkStateJson
 
