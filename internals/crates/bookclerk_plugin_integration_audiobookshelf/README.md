@@ -35,6 +35,7 @@ into `bookclerk` / `bookclerkd` for in-process execution.
 ## Modules
 
 - [`guest`](guest.md): Guest-process helpers for the external Audiobookshelf integration plugin.
+- [`watch`](watch.md): Which Audiobookshelf users the host has already been told about.
 
 ## Structs
 
@@ -493,8 +494,8 @@ The `database_migrations` answer for `binding`.
 
 #### Returns
 
-[`migrations`](#listening_migrations) for [`LISTENING_STATE_BINDING`](#listening_state_binding), nothing for any other
-binding.
+[`migrations`](#listening_migrations) plus the user-watch table ([`crate::watch::migration`](watch.md#migration))
+for [`LISTENING_STATE_BINDING`](#listening_state_binding), nothing for any other binding.
 
 ### sync_listening_progress
 

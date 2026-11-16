@@ -297,6 +297,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`TEST_CHANNEL_TAG_FILE`](#test_channel_tag_file) | constant | Session-directory file holding the tag when `TEST_CHANNEL_IDENT_ENV` is set. |
 | [`TEST_INJECT_EXTRA_ENDPOINT_ENV`](#test_inject_extra_endpoint_env) | constant | Host-process description of one extra endpoint to add to the guest handoff. |
 | [`TEST_OBSERVE_EXTRA_ENDPOINT_ENV`](#test_observe_extra_endpoint_env) | constant | Host-process request to publish candidate-endpoint observation metadata. |
+| [`ON_DEMAND_USER_POLL_INTERVAL`](#on_demand_user_poll_interval) | constant | How often the host polls a sleeping remote library for new users. |
+| [`RESIDENT_USER_POLL_INTERVAL`](#resident_user_poll_interval) | constant | How often the host polls a resident remote library for new users. |
 
 ## Re-exports
 
@@ -6655,11 +6657,13 @@ pub fn activates_on_demand(manifest: &PluginManifest) -> bool
 True when a deployment of `manifest` may sleep while idle and start on
 the next call.
 
-The plugin must belong only to the integration family and export no
-entrypoint that keeps session state or answers sign-in
-(`remoteLibrary`, `oidc`). A `cli` entrypoint is fine: the CLI starts its
-own session for each command. Its runtime must not be Python, whose
-guests take seconds to start (15 s and more on a quarter CPU).
+The plugin must belong only to the integration family, and its runtime
+must not be Python, whose guests take seconds to start (15 s and more on
+a quarter CPU). Every integration entrypoint works through a wake: a
+`remoteLibrary` guest keeps what must outlive a sleep in its plugin
+database, and its new-user poll is scheduled by the host; a sign-in
+(`oidc`) call starts the guest the way a lookup does. A `cli`
+entrypoint is fine: the CLI starts its own session for each command.
 
 #### Arguments
 
@@ -7413,3 +7417,25 @@ Host-process request to publish candidate-endpoint observation metadata.
 value names that candidate without transferring it. The variable is not
 copied into the guest. Unset means the guest reports `not-run`, which is
 not proof the endpoint is absent.
+
+### ON_DEMAND_USER_POLL_INTERVAL
+
+```rust
+pub const ON_DEMAND_USER_POLL_INTERVAL: Duration = _;
+```
+
+How often the host polls a sleeping remote library for new users.
+
+Each poll wakes the guest, which then stays up for the idle timeout, so
+the interval is several idle timeouts long: the guest sleeps most of the
+time, and a new user waits at most this long for a claim ticket.
+
+### RESIDENT_USER_POLL_INTERVAL
+
+```rust
+pub const RESIDENT_USER_POLL_INTERVAL: Duration = _;
+```
+
+How often the host polls a resident remote library for new users.
+
+A resident guest is running anyway, so a short interval costs one RPC.

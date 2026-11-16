@@ -773,6 +773,7 @@
     "internals/crates/bookclerk_plugin_host/README",
     "internals/crates/bookclerk_plugin_integration_audiobookshelf/README",
     "internals/crates/bookclerk_plugin_integration_audiobookshelf/guest",
+    "internals/crates/bookclerk_plugin_integration_audiobookshelf/watch",
     "internals/crates/bookclerk_plugin_manifest/README",
     "internals/crates/bookclerk_plugin_manifest/address",
     "internals/crates/bookclerk_plugin_manifest/cron",

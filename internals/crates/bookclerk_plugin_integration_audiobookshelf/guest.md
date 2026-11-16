@@ -3,14 +3,15 @@
 Guest-process helpers for the external Audiobookshelf integration plugin.
 
 Opaque config JSON (from `[integrations.audiobookshelf]` / spawn config) drives
-the HTTP client. User-watch queues newly observed users for
-[`guest_event_poll`](#guest_event_poll) — the host owns claim-ticket / portal workflows.
+the HTTP client. The user watch reports users created on the server from
+[`guest_event_poll`](#guest_event_poll), which the host calls on its own schedule; the host
+owns claim-ticket and portal workflows.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`AbsGuestState`](#absgueststate) | struct | Shared guest state for the ABS external plugin process. |
-| [`guest_start`](#guest_start) | function | Start ABS guest background work (user watch → queue for `guest_event_poll`). |
-| [`guest_event_poll`](#guest_event_poll) | function | Drains newly observed ABS users queued by the background watch loop. |
+| [`guest_start`](#guest_start) | function | Seeds the user watch with the users the server already has. |
+| [`guest_event_poll`](#guest_event_poll) | function | Reports the ABS users created since the last poll. |
 | [`guest_health`](#guest_health) | function | Probes ABS connectivity and returns the typed health reply for the host status strip. |
 | [`guest_diagnose`](#guest_diagnose) | function | Runs connectivity checks and returns human-readable diagnose lines (libraries listed). |
 | [`guest_scan_library`](#guest_scan_library) | function | Asks Audiobookshelf to rescan the configured library (post-acquire hook). |
@@ -68,25 +69,53 @@ Build guest state from a typed ABS config.
 ### guest_start
 
 ```rust
-pub async fn guest_start(state: Arc<Mutex<AbsGuestState>>) -> Result<()>
+pub async fn guest_start(
+    state: Arc<Mutex<AbsGuestState>>,
+    memory: Option<&DatabaseBinding>,
+) -> Result<()>
 ```
 
-Start ABS guest background work (user watch → queue for [`guest_event_poll`](#guest_event_poll)).
+Seeds the user watch with the users the server already has.
+
+Runs each time the guest starts. With the plugin database, only the
+first start ever records users, and the users a server has then are
+never reported; without it, every start seeds its in-memory set again.
+A failed seed is logged; the next [`guest_event_poll`](#guest_event_poll) then seeds the
+empty set instead and reports nobody.
+
+#### Arguments
+
+* `state` - Shared guest state with the ABS client and config.
+* `memory` - The plugin's `LISTENING_STATE` database, when granted.
 
 #### Errors
 
-Returns an error when the operation fails.
+Returns an error when the integration has no usable client.
 
 ### guest_event_poll
 
 ```rust
-pub async fn guest_event_poll(state: &Mutex<AbsGuestState>) -> EventPollResult
+pub async fn guest_event_poll(
+    state: &Mutex<AbsGuestState>,
+    memory: Option<&DatabaseBinding>,
+) -> Result<EventPollResult>
 ```
 
-Drains newly observed ABS users queued by the background watch loop.
+Reports the ABS users created since the last poll.
 
-Call from the host's event-poll RPC so user create/update notifications can
-be applied without blocking the watch task.
+Lists the server's users and returns those the watch has not reported
+(see [`crate::watch`](watch.md)). When the watch was never seeded (the seed at
+start failed), this poll seeds it and reports nobody.
+
+#### Arguments
+
+* `state` - Shared guest state with the ABS client and config.
+* `memory` - The plugin's `LISTENING_STATE` database, when granted.
+
+#### Errors
+
+Returns an error when the client is missing, ABS cannot list its users,
+or the watch database fails.
 
 ### guest_health
 
