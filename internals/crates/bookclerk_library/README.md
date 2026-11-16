@@ -4471,6 +4471,7 @@ pub struct ListingDetail {
     pub narrators: Option<String>,
     pub series: Option<String>,
     pub series_index: Option<String>,
+    pub series_product_id: Option<String>,
     pub description: Option<String>,
     pub publisher: Option<String>,
     pub published_at: Option<String>,
@@ -4496,6 +4497,8 @@ nothing matches on them.
 - `narrators`: Narrators, comma-separated.
 - `series`: Series name.
 - `series_index`: Position in the series (`1`, `2.5`).
+- `series_product_id`: The store's own product id for the series or podcast show (an
+  Audible series ASIN); store-specific, so it lives on the listing.
 - `description`: Synopsis, kept whole.
 - `publisher`: Publisher or imprint.
 - `published_at`: Publication date as the store reports it.
@@ -4506,6 +4509,20 @@ nothing matches on them.
 - `rating_overall`: Community rating (0 to 5).
 - `rating_count`: How many ratings back the rating.
 - `is_abridged`: Abridged (`true`), unabridged (`false`) or unknown.
+
+#### ListingDetail::of_book
+
+```rust
+pub fn of_book(book: &BookRecord) -> Self
+```
+
+The store text a scanned library title carries, for its listing.
+
+Only the fields a scan reports are taken: the flat row's synopsis,
+language, cover and rating can come from metadata enrichment rather
+than the store, so they are left out. A title the store marks
+unabridged is left unknown, since the flat row cannot tell
+unabridged from unreported.
 
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
@@ -5144,6 +5161,9 @@ pub struct EditionAcquisition {
     pub error_message: Option<String>,
     pub title_uuid: String,
     pub updated_at: String,
+    pub pdf_status: AcquireStatus,
+    pub pdf_storage_key: Option<String>,
+    pub pdf_title_uuid: Option<String>,
 }
 ```
 
@@ -5158,6 +5178,11 @@ An edition's acquire state (`edition_acquisitions`).
 - `error_message`: Last acquire failure message.
 - `title_uuid`: The library title (`books.uuid`) whose write set the state.
 - `updated_at`: RFC 3339 time of that write.
+- `pdf_status`: Where the edition's companion PDF acquire stands; a status this
+  build does not know reads as [`AcquireStatus::NotAcquired`](#acquirestatus).
+- `pdf_storage_key`: Destination key of the companion PDF once acquired.
+- `pdf_title_uuid`: The library title (`books.uuid`) whose write set the PDF state;
+  `None` until a PDF write happens.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 
@@ -11606,6 +11631,11 @@ pub async fn set_pdf_status(
 ```
 
 Updates companion PDF acquire status and optional storage key.
+
+The status is recorded on the title row and, when the title is linked
+to an edition, on that edition's `edition_acquisitions` row too. An
+edition whose PDF another existing title already acquired keeps that
+title's PDF state.
 
 ##### Arguments
 
