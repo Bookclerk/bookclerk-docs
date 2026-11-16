@@ -4526,6 +4526,20 @@ than the store, so they are left out. A title the store marks
 unabridged is left unknown, since the flat row cannot tell
 unabridged from unreported.
 
+#### ListingDetail::of_catalog_hit
+
+```rust
+pub fn of_catalog_hit(hit: &CatalogHit) -> Self
+```
+
+The store text of a storefront catalog record, as the store
+reported it.
+
+Everything the record carries is taken, including cover, synopsis,
+product page and rating; a podcast episode's show product becomes
+[`Self::series_product_id`](#listingdetail). HTML entities are left as the record
+has them.
+
 Implements: `Clone`, `Debug`, `Default`, `PartialEq`
 
 ### ListingOffer
@@ -5488,6 +5502,40 @@ Stores prices a store quoted for listings already in the pool.
 
 Returns the first batch's database error, after every batch was
 tried.
+
+#### LibraryStore::record_store_text
+
+```rust
+pub async fn record_store_text(
+    &self,
+    texts: &[(ListingKey, ListingDetail)],
+) -> Result<usize>
+```
+
+Fills the store text of stored listings named by their store key, as
+a store's answer for titles the library already lists would.
+
+Each listing keeps a stored value its text leaves out, and a cover
+in the text also becomes the cover of the edition the listing sells
+when that edition has none.
+
+##### Arguments
+
+* `texts` - `(store key, store text)` pairs; a key with no stored
+  listing is skipped.
+
+A held work whose edition gained a cover has its page index row
+refreshed, so the row can name that edition as its cover edition.
+
+##### Returns
+
+How many of `texts` named a stored listing.
+
+##### Errors
+
+Returns the database error of the listing read, of the first write
+batch that failed (after every batch was tried), or of the row
+refresh.
 
 #### LibraryStore::catalog_listings
 
@@ -8656,8 +8704,9 @@ pub async fn edition_cover_urls(
 ) -> Result<HashMap<String, String>>
 ```
 
-The store cover URLs of `edition_ids`, for a page of index rows
-(each names its cover edition).
+The cover URLs of `edition_ids`, for a page of index rows (each
+names its cover edition), chosen as `edition_cover` says: the
+edition's own, else a listing's, else its work's (or show's).
 
 ##### Returns
 
@@ -16469,12 +16518,16 @@ appear. Newer events still reach subscribers through delivery.
 ### LIBRARY_INDEX_LAYOUT
 
 ```rust
-pub const LIBRARY_INDEX_LAYOUT: i64 = 1;
+pub const LIBRARY_INDEX_LAYOUT: i64 = 2;
 ```
 
 Layout of `library_work_rows` this binary writes. A library with no
 finished build of this layout is rebuilt; bump it when a change to how
 rows are derived needs every row rewritten.
+
+- 2: every work with an edition names a cover edition, whose cover may
+  come from a store listing or the work, so libraries indexed under 1
+  (no cover edition unless the edition row had a cover) are rebuilt.
 
 ### CATALOG_LISTING_REFRESH
 

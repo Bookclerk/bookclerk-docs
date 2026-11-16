@@ -117,6 +117,7 @@
     "internals/crates/bookclerk_db_testkit/binding",
     "internals/crates/bookclerk_db_testkit/fixtures",
     "internals/crates/bookclerk_demo_seed/README",
+    "internals/crates/bookclerk_demo_seed/covers",
     "internals/crates/bookclerk_dev/README",
     "internals/crates/bookclerk_dev/package",
     "internals/crates/bookclerk_dev/plugins",

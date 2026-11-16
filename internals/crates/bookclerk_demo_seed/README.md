@@ -56,6 +56,10 @@ credential keys are placeholders that never verify a signature.
 | [`EXTRA_PLUGINS`](#extra_plugins) | constant | Plugins the demo runs besides the storefronts, by manifest id: what the demo Worker enables as optional (`OPTIONAL_PLUGINS` in `tools/demo/src/lifecycle.ts`). The seed enables them too, so a baked image already has them, and one missing from the image is skipped. |
 | [`SAMPLE_BRANCH`](#sample_branch) | constant | Node id of Sam's offline branch. |
 
+## Modules
+
+- [`covers`](covers.md): Baking the covers a new demo session shows into the image's cover cache.
+
 ## Structs
 
 ### Storefront
@@ -147,6 +151,8 @@ pub enum Mode {
     Seed,
     WriteRecords(PathBuf),
     BakeFinish,
+    ListCovers(PathBuf),
+    BakeCovers { list: PathBuf, base: String },
 }
 ```
 
@@ -160,6 +166,14 @@ What one run of the seed binary does, from its command line.
 - `BakeFinish`: `--bake-finish`: turn the seeded files dir into the template a demo
   image ships (`packaging/demo/bake-seed.sh`), removing every secret
   and runtime file a container must make for itself.
+- `ListCovers`: `--list-covers <path>`: write the cover URLs a new session's first
+  pages can show to the path, one per line ([`covers::cover_urls`](covers.md#cover_urls)).
+  Run with bookclerkd stopped.
+- `BakeCovers`: `--bake-covers <path> <base-url>`: request each cover listed in the
+  path from the bookclerkd at the base URL, so the bake's cover cache
+  holds them ([`covers::warm`](covers.md#warm)).
+  - `list`: The list `--list-covers` wrote.
+  - `base`: bookclerkd's address, such as `http://127.0.0.1:8787`.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
