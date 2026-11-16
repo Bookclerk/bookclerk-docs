@@ -38,6 +38,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`OnDemandStatus`](#ondemandstatus) | trait | What the deployment reconciler reads from, and does to, any on-demand proxy. |
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
 | [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an owner cluster handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
+| [`SocketSink`](#socketsink) | trait | Where a plugin instance's socket events go: its guest's `socketHandler`. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
 | [`PendingStructural`](#pendingstructural) | struct | Newly requested capabilities awaiting operator consent: structural ones, and network destinations wider than the stored grant. |
@@ -85,6 +86,8 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`PluginStorage`](#pluginstorage) | struct | `StorageBackend` over a plugin destination capability (streams, fail-closed scalars). |
 | [`RpcBackupOps`](#rpcbackupops) | struct | Send-safe backup primitives over a vat-held adapter session (or its open txn). |
 | [`SessionServices`](#sessionservices) | struct | Host services a session hands its guest as `Bindings` on every `PluginWorker.open`. |
+| [`BrokerSockets`](#brokersockets) | struct | The `SOCKETS` binding a guest session hands out: the instance's broker. |
+| [`SocketBroker`](#socketbroker) | struct | The host's handle on one plugin instance's socket broker. |
 | [`SpawnPlan`](#spawnplan) | struct | Everything the spawn path needs to start one guest. |
 | [`WorkerdFrontDoor`](#workerdfrontdoor) | struct | Resolved `bookclerk-workerd` launcher and the pinned `workerd` beside it. |
 | [`SpawnHealth`](#spawnhealth) | enum | Result of spawn plus the health RPC. |
@@ -94,6 +97,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`Activate`](#activate) | enum | When installing moves the active pointer. |
 | [`RemoteApprovalError`](#remoteapprovalerror) | enum | Why `approve_remote_request` refused, by cause, so a caller (the operator API) can tell "review again" from "fix the input" from "retry later". |
 | [`RemoteConsentState`](#remoteconsentstate) | enum | How this host stands on one owner plugin's request. |
+| [`SocketEvent`](#socketevent) | enum | What a socket delivered: a message, or its close. |
 | [`GuestRuntimeKind`](#guestruntimekind) | enum | Process tree the jail will contain, as reported in `crate::ExecutorIdentity`. |
 | [`SpawnTransport`](#spawntransport) | enum | Which transport a spawn uses to reach the guest. |
 | [`apply_grant_store`](#apply_grant_store) | function | Reconcile every live session against a loaded **persisted** grant store. |
@@ -629,6 +633,43 @@ fn latest(&self, account_id: &str) -> Option<Vec<u8>>
 
 The newest credentials handed to [`Self::refreshed`](#refreshedcredentialsinkrefreshed) for
 `account_id` during this job, if any; they replace the handed ones.
+
+### SocketSink
+
+```rust
+pub trait SocketSink: Send + Sync {
+    fn deliver_socket_event<'life0, 'async_trait>(
+        &'life0 self,
+        event: SocketEvent,
+    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+Where a plugin instance's socket events go: its guest's `socketHandler`.
+
+#### SocketSink::deliver_socket_event
+
+```rust
+fn deliver_socket_event<'life0, 'async_trait>(
+    &'life0 self,
+    event: SocketEvent,
+) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Hands one event to the guest, starting it if it sleeps.
+
+##### Errors
+
+Returns the wake or delivery failure as text. The broker logs it and
+carries on: a socket is not closed because one delivery failed.
+
+Implemented by: `ExternalIntegration`, `OnDemandIntegration`
 
 ## Structs
 
@@ -2003,7 +2044,7 @@ use that describe/open check.
 
 Returns an error when an entrypoint's health reports not ok.
 
-Implements: `Integration`
+Implements: `Integration`, `SocketSink`
 
 ### ExternalSource
 
@@ -2498,7 +2539,7 @@ Stops the guest now if it has been idle for the timeout.
 
 True when a running guest was stopped.
 
-Implements: `Integration`, `OnDemandStatus`
+Implements: `Integration`, `OnDemandStatus`, `SocketSink`
 
 ### OnDemandSource
 
@@ -3365,6 +3406,19 @@ runtime.
 Returns a plugin error when the guest did not export `covers` or the
 method fails.
 
+#### PluginSession::deliver_socket_event
+
+```rust
+pub async fn deliver_socket_event(&self, event: SocketEvent) -> Result<()>
+```
+
+Hands one socket event to the guest's `socketHandler` entrypoint.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `socketHandler`
+or its handler failed.
+
 #### PluginSession::remote_library
 
 ```rust
@@ -3977,6 +4031,7 @@ pub struct SessionServices {
     pub selected_instance_id: Option<String>,
     pub local_output_root: Option<PathBuf>,
     pub deployed_endpoint: Option<Option<String>>,
+    pub sockets: Option<SocketBroker>,
 }
 ```
 
@@ -4008,6 +4063,12 @@ binding on the manifest declaration plus the covering consent grant.
   `Some(Some(url))` grants that host in addition to the manifest's fixed
   TCP list; `Some(None)` records that the document names none; `None`
   means this spawn is not a deployed instance of such a plugin.
+- `sockets`: The instance's socket broker, behind the `SOCKETS` binding.
+  
+  Owned by the deployment so sockets outlive the guest process. The
+  session hands it out only when the manifest declares `[sockets]` and
+  the covering grant has the `sockets` token; `None` never exposes
+  `SOCKETS`.
 
 #### SessionServices::with_event_outbox
 
@@ -4037,6 +4098,141 @@ For shell-probe jail tests and transport benchmarks: the host speaks
 Cap'n Proto to the native guest's stdio with no `bookclerk-workerd`.
 
 Implements: `Clone`, `Default`
+
+### BrokerSockets
+
+```rust
+pub struct BrokerSockets {
+    /* private fields */
+}
+```
+
+The `SOCKETS` binding a guest session hands out: the instance's broker.
+
+#### BrokerSockets::new
+
+```rust
+pub fn new(broker: SocketBroker) -> Self
+```
+
+The binding for `broker`.
+
+Implements: `Sockets`
+
+### SocketBroker
+
+```rust
+pub struct SocketBroker {
+    /* private fields */
+}
+```
+
+The host's handle on one plugin instance's socket broker.
+
+Cheap to clone; every clone shares the broker. Dropping the last clone
+stops the broker process and its sockets.
+
+#### SocketBroker::new
+
+```rust
+pub fn new(
+    plugin: DiscoveredPlugin,
+    config: Config,
+    deployed_endpoint: Option<Option<String>>,
+) -> Self
+```
+
+A broker handle for `plugin`; nothing starts until the first
+`connect`.
+
+##### Arguments
+
+* `plugin` - The deployed plugin; it must declare `[sockets]`.
+* `config` - Host config for the broker's spawn.
+* `deployed_endpoint` - The instance document's network authority,
+  as the guest's own spawn receives it.
+
+#### SocketBroker::set_sink
+
+```rust
+pub fn set_sink(&self, sink: Weak<dyn SocketSink>)
+```
+
+Sets where socket events go. Only the first call takes effect.
+
+The broker keeps a weak reference, so it never keeps a retired
+instance's proxy alive.
+
+#### SocketBroker::open_sockets
+
+```rust
+pub fn open_sockets(&self) -> Vec<String>
+```
+
+Ids of the sockets the host believes open, oldest id first.
+
+#### SocketBroker::connect
+
+```rust
+pub async fn connect(&self, request: SocketConnectRequest) -> AbiResult<SocketInfo>
+```
+
+Opens a socket, starting the broker when none runs.
+
+##### Errors
+
+The broker's refusal or dial failure, or `unavailable` when the
+broker cannot be started.
+
+#### SocketBroker::send
+
+```rust
+pub async fn send(&self, socket: String, frame: SocketFrame) -> AbiResult<()>
+```
+
+Sends one message on an open socket.
+
+##### Errors
+
+`not_found` when the socket is not open; the broker's refusal.
+
+#### SocketBroker::close
+
+```rust
+pub async fn close(&self, socket: String, code: u16, reason: String) -> AbiResult<()>
+```
+
+Closes a socket; closing an unknown or closed socket is not an error.
+
+##### Errors
+
+The broker's refusal of the code or reason.
+
+#### SocketBroker::set_attachment
+
+```rust
+pub async fn set_attachment(&self, socket: String, attachment: Vec<u8>) -> AbiResult<()>
+```
+
+Replaces a socket's attachment.
+
+##### Errors
+
+`not_found` when the socket is not open; the broker's refusal.
+
+#### SocketBroker::list
+
+```rust
+pub async fn list(&self) -> AbiResult<Vec<SocketInfo>>
+```
+
+The instance's open sockets, oldest first.
+
+##### Errors
+
+The broker's failure to answer.
+
+Implements: `Clone`
 
 ### SpawnPlan
 
@@ -4465,6 +4661,24 @@ pub fn as_str(&self) -> &'static str
 ```
 
 Stable text for observations and listings.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### SocketEvent
+
+```rust
+pub enum SocketEvent {
+    Message(SocketMessage),
+    Closed(SocketClosed),
+}
+```
+
+What a socket delivered: a message, or its close.
+
+**Variants**
+
+- `Message`: One message on an open socket.
+- `Closed`: The socket ended; nothing more arrives on it.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
