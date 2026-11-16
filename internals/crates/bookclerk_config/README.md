@@ -1276,7 +1276,7 @@ Resolved filesystem locations for Bookclerk data.
 - `cache_dir`: Temporary download / decrypt scratch space.
 - `log_dir`: Reserved path (legacy). Logging goes to stderr + journald; Bookclerk does
   not write or rotate files here.
-- `search_index_dir`: Tantivy full-text search index (classic Lucene `SearchEngine`).
+- `search_index_dir`: The node's Tantivy works search index (`search_index_works/`).
 - `models_dir`: Downloaded ONNX embedding models (`discovery.embeddings_enabled`).
 
 #### Paths::from_files_dir

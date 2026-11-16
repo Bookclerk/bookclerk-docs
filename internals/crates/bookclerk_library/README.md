@@ -122,7 +122,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
 | [`PassStart`](#passstart) | struct | How the next pass of one account starts. |
 | [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
-| [`ListingRef`](#listingref) | struct | The identity of a store listing as the search index stores it: plugin key, stored marketplace and stored product id. |
+| [`ListingRef`](#listingref) | struct | The identity of a store listing: plugin key, stored marketplace and stored product id. |
 | [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
 | [`WorkSplitBody`](#worksplitbody) | struct | `POST /api/library/works/{id}/split` body: the expressions to move. |
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
@@ -4906,12 +4906,12 @@ pub struct ListingRef {
 }
 ```
 
-The identity of a store listing as the search index stores it: plugin
-key, stored marketplace and stored product id.
+The identity of a store listing: plugin key, stored marketplace and
+stored product id.
 
 Built either from a `store_listings` row or from a library title, and
-both spell it the same way, so a title's document and its listing's
-refresh meet on one [`Self::term`](#listingrefterm).
+both spell it the same way, so a title and its listing meet on one
+[`Self::term`](#listingrefterm).
 
 #### ListingRef::of_book
 
