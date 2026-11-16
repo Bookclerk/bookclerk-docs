@@ -127,6 +127,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkSplitBody`](#worksplitbody) | struct | `POST /api/library/works/{id}/split` body: the expressions to move. |
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
 | [`AcquireTitle`](#acquiretitle) | struct | One title an account holds, as acquire reads it from the library model. |
+| [`AcquireTitlePage`](#acquiretitlepage) | struct | One page of `LibraryStore::acquire_titles_page`. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
@@ -5047,9 +5048,11 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct AcquireTitle {
+    pub holding_id: String,
     pub edition_id: String,
     pub listing_id: String,
     pub plugin_key: String,
+    pub source: String,
     pub account_id: String,
     pub marketplace: String,
     pub product_id: String,
@@ -5083,10 +5086,13 @@ One title an account holds, as acquire reads it from the library model.
 
 **Fields**
 
+- `holding_id`: `holdings.id` of the account's holding.
 - `edition_id`: The edition the listing sells: the key the title's files and acquire
   state belong to.
 - `listing_id`: `store_listings.id`.
 - `plugin_key`: Provenance-qualified PluginKey of the store.
+- `source`: Display alias of the store's plugin (`audible`, `libro`, …), as the
+  account records it.
 - `account_id`: The holding account's id at that store.
 - `marketplace`: Lower-cased marketplace (empty for a store with one).
 - `product_id`: The store's own product id: what its download and fetch APIs take.
@@ -5126,6 +5132,24 @@ pub fn asin_or_isbn(&self) -> &str
 
 Naming and display fallback: ASIN, else ISBN, else the store's
 product id (the same order as the flat row's).
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
+### AcquireTitlePage
+
+```rust
+pub struct AcquireTitlePage {
+    pub titles: Vec<AcquireTitle>,
+    pub next: Option<String>,
+}
+```
+
+One page of [`LibraryStore::acquire_titles_page`](#librarystoreacquire_titles_page).
+
+**Fields**
+
+- `titles`: The page's titles, in holding order.
+- `next`: The cursor of the next page; `None` once the walk is done.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
@@ -5368,6 +5392,38 @@ The title `account_id` holds at a store, as acquire reads it.
 
 `None` when the store's listing is not resolved yet or the account
 does not hold it.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::acquire_titles_page
+
+```rust
+pub async fn acquire_titles_page(
+    &self,
+    account_id: Option<&str>,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<AcquireTitlePage>
+```
+
+One page of the titles accounts hold, as acquire reads them, in
+holding order: what reconcile and storage matching walk.
+
+##### Arguments
+
+* `account_id` - Only this account's titles, when set.
+* `after` - The previous page's [`AcquireTitlePage::next`](#acquiretitlepage); `None`
+  for the first page.
+* `limit` - Most holdings the page reads (1 to 64, and at most the
+  database's `maxResultRows`).
+
+##### Returns
+
+The page's titles and the cursor of the next page. A holding whose
+listing is gone has no title, so a page can be short or empty while
+more follow: walk until `next` is `None`.
 
 ##### Errors
 

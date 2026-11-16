@@ -51,8 +51,8 @@ content-source plugins; this crate never sees license keys. See
 | [`planned_title_names`](#planned_title_names) | function | The title's planned names on the destination `req.options` describe: `PlannedTitleNames`. |
 | [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of its edition, when another book of the edition acquired it (`edition_acquisitions`) and every destination holds the copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
 | [`extract_asins_from_key`](#extract_asins_from_key) | function | Extract Audible-like ASINs and ISBN-13 tokens from a storage key / file path. |
-| [`find_existing_for_book`](#find_existing_for_book) | function | Find an existing acquired file for a book (planned path or ASIN-in-path). |
-| [`find_existing_for_request`](#find_existing_for_request) | function | Same as `find_existing_for_book` but for a acquire request before DB status is Acquired. |
+| [`find_existing_for_request`](#find_existing_for_request) | function | Same as `find_existing_for_title` but for a acquire request before DB status is Acquired. |
+| [`find_existing_for_title`](#find_existing_for_title) | function | Find an existing acquired file for a title (planned path or ASIN-in-path). |
 | [`reconcile_library`](#reconcile_library) | function | Scan storage and update library acquire status / storage_key for matches. |
 | [`scan_storage`](#scan_storage) | function | Builds or resumes a durable identity/object index. |
 | [`Result`](#result) | type alias | Result alias for `AcquireError`. |
@@ -726,7 +726,7 @@ Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibraryError>`, `F
 pub async fn convert_book(
     library: &LibraryStore,
     storage: &dyn StorageBackend,
-    book: &BookRecord,
+    title: &AcquireTitle,
     req: &ConvertRequest,
 ) -> Result<String>
 ```
@@ -737,7 +737,9 @@ Convert one acquired m4b/m4a to mp3 and update the library storage key.
 
 * `library` - Library store used to update acquire status / storage key.
 * `storage` - Object storage backend holding the source and destination objects.
-* `book` - Acquired book row whose `storage_key` points at m4b/m4a.
+* `title` - The held title whose edition's audio (its `storage_key`) is
+  an m4b/m4a. It must be the title that acquired the edition, since only
+  that title's writes change an acquired edition's key.
 * `req` - Cache directory, force flag, and LAME settings.
 
 #### Returns
@@ -746,8 +748,8 @@ Object-storage key of the written MP3.
 
 #### Errors
 
-Returns [`AcquireError`](#acquireerror) when the source is missing/ineligible, encode fails,
-or library/storage updates fail.
+Returns [`AcquireError`](#acquireerror) when the source is missing/ineligible, another
+title acquired the edition, encode fails, or library/storage updates fail.
 
 ### destination_id
 
@@ -1148,28 +1150,6 @@ Matches:
 - path segment containing a standalone ASIN token
 - ISBN-13 shaped tokens (13 digits, optional hyphens)
 
-### find_existing_for_book
-
-```rust
-pub async fn find_existing_for_book(
-    index: &StorageIndex,
-    storage: &dyn StorageBackend,
-    library: &LibraryStore,
-    book: &BookRecord,
-    download: &DownloadOptions,
-) -> Result<Option<String>>
-```
-
-Find an existing acquired file for a book (planned path or ASIN-in-path).
-
-Honors configured folder/file templates and `save_podcasts_to_parent_folder`
-via the same path planner as acquire.
-
-#### Errors
-
-Returns a storage or database error from the lookup. A completed miss is
-`Ok(None)` and is not an error.
-
 ### find_existing_for_request
 
 ```rust
@@ -1181,7 +1161,7 @@ pub async fn find_existing_for_request(
 ) -> Result<Option<String>>
 ```
 
-Same as [`find_existing_for_book`](#find_existing_for_book) but for a acquire request before DB status is Acquired.
+Same as [`find_existing_for_title`](#find_existing_for_title) but for a acquire request before DB status is Acquired.
 
 Matching strategy:
 1. Exact planned path under the *creation* replacement rules
@@ -1193,6 +1173,28 @@ Matching strategy:
 
 Returns a storage or database error from the lookup. A completed miss is
 `Ok(None)`.
+
+### find_existing_for_title
+
+```rust
+pub async fn find_existing_for_title(
+    index: &StorageIndex,
+    storage: &dyn StorageBackend,
+    library: &LibraryStore,
+    title: &AcquireTitle,
+    download: &DownloadOptions,
+) -> Result<Option<String>>
+```
+
+Find an existing acquired file for a title (planned path or ASIN-in-path).
+
+Honors configured folder/file templates and `save_podcasts_to_parent_folder`
+via the same path planner as acquire.
+
+#### Errors
+
+Returns a storage or database error from the lookup. A completed miss is
+`Ok(None)` and is not an error.
 
 ### reconcile_library
 
