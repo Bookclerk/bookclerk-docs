@@ -79,7 +79,7 @@
   "internals/crates/bookclerk_discover/README": "2026-11-13T18:34:02Z",
   "internals/crates/bookclerk_enrich/README": "2026-11-08T20:28:56Z",
   "internals/crates/bookclerk_integrations/README": "2026-11-11T19:33:36Z",
-  "internals/crates/bookclerk_library/README": "2026-11-16T09:06:35Z",
+  "internals/crates/bookclerk_library/README": "2026-11-16T11:11:48Z",
   "internals/crates/bookclerk_library/atomic_status": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_library/column_read": "2026-11-11T11:12:39Z",
   "internals/crates/bookclerk_library/control_plane": "2026-11-15T13:20:23Z",

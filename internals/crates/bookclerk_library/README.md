@@ -126,6 +126,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
 | [`WorkSplitBody`](#worksplitbody) | struct | `POST /api/library/works/{id}/split` body: the expressions to move. |
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
+| [`AcquireTitle`](#acquiretitle) | struct | One title an account holds, as acquire reads it from the library model. |
 | [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
@@ -5042,6 +5043,87 @@ The expressions to move, sorted and distinct.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AcquireTitle
+
+```rust
+pub struct AcquireTitle {
+    pub edition_id: String,
+    pub listing_id: String,
+    pub plugin_key: String,
+    pub account_id: String,
+    pub marketplace: String,
+    pub product_id: String,
+    pub asin: Option<String>,
+    pub isbn: Option<String>,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub authors: Option<String>,
+    pub narrators: Option<String>,
+    pub series: Option<String>,
+    pub series_index: Option<String>,
+    pub series_product_id: Option<String>,
+    pub publisher: Option<String>,
+    pub categories: Option<String>,
+    pub length_minutes: Option<i64>,
+    pub is_abridged: bool,
+    pub content_kind: &'static str,
+    pub purchased_at: Option<DateTime<Utc>>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub status: AcquireStatus,
+    pub storage_key: Option<String>,
+    pub pdf_status: AcquireStatus,
+    pub pdf_storage_key: Option<String>,
+    pub book_uuid: Option<String>,
+}
+```
+
+One title an account holds, as acquire reads it from the library model.
+
+**Fields**
+
+- `edition_id`: The edition the listing sells: the key the title's files and acquire
+  state belong to.
+- `listing_id`: `store_listings.id`.
+- `plugin_key`: Provenance-qualified PluginKey of the store.
+- `account_id`: The holding account's id at that store.
+- `marketplace`: Lower-cased marketplace (empty for a store with one).
+- `product_id`: The store's own product id: what its download and fetch APIs take.
+- `asin`: The edition's ASIN, preferring one scoped to the marketplace.
+- `isbn`: The edition's lowest ISBN, when it has one.
+- `title`: Title as the store lists it.
+- `subtitle`: Subtitle as the store lists it, else the edition's.
+- `authors`: Authors as the store prints them, comma-separated.
+- `narrators`: Narrators as the store prints them, comma-separated.
+- `series`: Series name as the store lists it.
+- `series_index`: Position in that series as the store writes it.
+- `series_product_id`: The store's product id for the series or podcast show.
+- `publisher`: Publisher as the store lists it.
+- `categories`: Store category labels (serialized as the scan stored them).
+- `length_minutes`: Running time in whole minutes, from the store or the edition.
+- `is_abridged`: True when the store or the expression marks it abridged.
+- `content_kind`: What the title is, in the flat row's labels: `episode` for a
+  podcast episode, `podcast` for a show, `book` otherwise.
+- `purchased_at`: When the account bought the title, when the store reported it.
+- `published_at`: Publication time as the store reported it, else the edition's.
+- `status`: The edition's acquire state; not acquired when no title of it was
+  ever queued.
+- `storage_key`: Primary destination key of the edition's audio once acquired.
+- `pdf_status`: The edition's companion PDF state.
+- `pdf_storage_key`: Destination key of the companion PDF once acquired.
+- `book_uuid`: The flat `books` row of this account's title, while that table
+  exists: the status writes are still keyed by it.
+
+#### AcquireTitle::asin_or_isbn
+
+```rust
+pub fn asin_or_isbn(&self) -> &str
+```
+
+Naming and display fallback: ASIN, else ISBN, else the store's
+product id (the same order as the flat row's).
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
 ### AcquiredBookKey
 
 ```rust
@@ -5255,6 +5337,36 @@ Plugin-scoped view — first-party and third-party sources use this.
 
 `plugin_key` isolates rows; `source_id` is the display alias written
 to the `source` column.
+
+#### LibraryStore::acquire_title
+
+```rust
+pub async fn acquire_title(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    marketplace: &str,
+    product_id: &str,
+) -> Result<Option<AcquireTitle>>
+```
+
+The title `account_id` holds at a store, as acquire reads it.
+
+##### Arguments
+
+* `plugin_key` - The store's PluginKey.
+* `account_id` - The account at that store.
+* `marketplace` - The store's marketplace (any case; blank for one).
+* `product_id` - The store's product id.
+
+##### Returns
+
+`None` when the store's listing is not resolved yet or the account
+does not hold it.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::record_catalog_listings
 
