@@ -5434,6 +5434,36 @@ does not hold it.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::acquire_titles_named
+
+```rust
+pub async fn acquire_titles_named(
+    &self,
+    account_id: Option<&str>,
+    id: &str,
+) -> Result<Vec<AcquireTitle>>
+```
+
+The titles accounts hold that `id` names, as acquire reads them, in
+holding order: what an acquire job given one title visits.
+
+`id` matches, ignoring ASCII case, a listing's store product id, an
+ASIN or ISBN of the listing's edition (every listing of that
+edition), a holding id, or, while `books` exists, a flat row's UUID.
+
+##### Arguments
+
+* `account_id` - Only this account's titles, when set.
+* `id` - The product id, ASIN, ISBN, holding id or library UUID.
+
+##### Returns
+
+Every matching account holding's title; empty when nothing matches.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::acquire_titles_page
 
 ```rust
