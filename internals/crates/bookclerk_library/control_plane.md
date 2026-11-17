@@ -439,7 +439,6 @@ See `docs/adr/control-plane.md`.
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
-| [`book_matches_title`](#book_matches_title) | function | True when `id` names `book` (uuid, product id, ISBN or ASIN, any case), as an acquire's title filter matches. |
 | [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced or PDF-only acquire runs only on a node that holds the library database, since the host acquire path does neither. An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
 | [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
@@ -10680,15 +10679,6 @@ One title uuid per edition, in the order the editions were given.
   accounts the requester may not acquire for.
 - [`LibraryError::Orm`](README.md#libraryerror) when a read fails.
 
-### book_matches_title
-
-```rust
-pub fn book_matches_title(book: &BookRecord, id: &str) -> bool
-```
-
-True when `id` names `book` (uuid, product id, ISBN or ASIN, any case),
-as an acquire's title filter matches.
-
 ### claimant_may_run
 
 ```rust
@@ -10771,11 +10761,12 @@ The store accounts a scan or acquire touches: its items.
 - A scan that names an account touches every `accounts` row with that
   id (within the pinned instance's plugin). A scan of every account is
   `None`: what it touches is not known until it runs.
-- An acquire touches the named account's rows, plus the account of every
-  library row its filters match (title id, account, pinned plugin),
-  whatever the row's acquire status. That is a superset of the titles it
-  will fetch, so a node must be trusted with at least everything it
-  fetches.
+- An acquire touches the named account's rows, plus every account
+  holding a title its filters match (the title id as
+  [`LibraryStore::acquire_titles_named`](README.md#librarystoreacquire_titles_named) matches it, the account and the
+  pinned plugin), whatever the edition's acquire status. That is a
+  superset of the titles it will fetch, so a node must be trusted with
+  at least everything it fetches.
 - Anything else, and a job pinned to an unknown instance, is `None`.
 
 #### Errors

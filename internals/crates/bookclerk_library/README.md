@@ -5573,12 +5573,36 @@ edition), a holding id, or, while `books` exists, a flat row's UUID.
 
 ##### Arguments
 
-* `account_id` - Only this account's titles, when set.
+* `account_id` - Only the titles of the accounts this id or label
+  names (ignoring ASCII case), when set.
 * `id` - The product id, ASIN, ISBN, holding id or library UUID.
 
 ##### Returns
 
 Every matching account holding's title; empty when nothing matches.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::accounts_holding_titles
+
+```rust
+pub async fn accounts_holding_titles(
+    &self,
+    account_id: Option<&str>,
+    plugin_key: Option<&str>,
+) -> Result<BTreeSet<(String, String)>>
+```
+
+The accounts that hold at least one title, as `(plugin_key,
+account_id)`: what an acquire of every title in its scope touches.
+
+##### Arguments
+
+* `account_id` - Only the accounts this id or label names (ignoring
+  ASCII case), when set.
+* `plugin_key` - Only accounts on this plugin, when set.
 
 ##### Errors
 
@@ -5600,7 +5624,8 @@ holding order: what reconcile and storage matching walk.
 
 ##### Arguments
 
-* `account_id` - Only this account's titles, when set.
+* `account_id` - Only the titles of the accounts this id or label
+  names (ignoring ASCII case), when set.
 * `after` - The previous page's [`AcquireTitlePage::next`](#acquiretitlepage); `None`
   for the first page.
 * `limit` - Most holdings the page reads (1 to 64, and at most the
