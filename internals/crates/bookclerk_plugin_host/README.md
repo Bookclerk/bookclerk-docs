@@ -6698,9 +6698,9 @@ pub fn activates_on_demand(manifest: &PluginManifest) -> bool
 True when a deployment of `manifest` may sleep while idle and start on
 the next call.
 
-The plugin must belong only to the integration family, and its runtime
-must not be Python, whose guests take seconds to start (15 s and more on
-a quarter CPU). Every integration entrypoint works through a wake: a
+The plugin must belong only to the integration family. A Python guest
+sleeps too: it starts from its stored start-up snapshot in about a
+second. Every integration entrypoint works through a wake: a
 `remoteLibrary` guest keeps what must outlive a sleep in its plugin
 database, and its new-user poll is scheduled by the host; a sign-in
 (`oidc`) call starts the guest the way a lookup does. A `cli`
@@ -6718,8 +6718,8 @@ pub fn storefront_activates_on_demand(manifest: &PluginManifest) -> bool
 
 True when a storefront deployment of `manifest` may sleep while idle.
 
-The plugin must belong only to the source family and must not be
-Python, whose guests take seconds to start.
+The plugin must belong only to the source family. Python storefronts
+sleep too, since they start from a stored snapshot.
 
 #### Arguments
 
@@ -6733,10 +6733,9 @@ pub fn storage_activates_on_demand(manifest: &PluginManifest) -> bool
 
 True when a storage deployment of `manifest` may sleep while idle.
 
-The plugin must belong only to the storage family and must not be
-Python, whose guests take seconds to start. The deployment also requires
-a host-side backend (the first-party `s3` or `local` package); other
-storage guests stay running.
+The plugin must belong only to the storage family. The deployment also
+requires a host-side backend (the first-party `s3` or `local` package);
+other storage guests stay running.
 
 #### Arguments
 
