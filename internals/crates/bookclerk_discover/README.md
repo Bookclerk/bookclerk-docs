@@ -2038,8 +2038,8 @@ pub async fn enrich_books_from_metadata(
 Fills missing description, subjects, cover and language from the
 deployed metadata providers.
 
-Skips titles a provider already filled. With no provider deployed, every
-answer is empty and nothing changes.
+Walks the held editions and skips those a provider already filled. With
+no provider deployed, every answer is empty and nothing changes.
 
 #### Arguments
 
@@ -2049,7 +2049,7 @@ answer is empty and nothing changes.
 
 #### Returns
 
-The number of titles filled.
+The number of editions filled.
 
 #### Errors
 

@@ -133,7 +133,10 @@ the external guest RPC. This crate owns the greenfield schema
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
+| [`EditionEnrichment`](#editionenrichment) | struct | What an enricher fills on one edition; `None` fields are left alone. |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
+| [`EnrichCandidate`](#enrichcandidate) | struct | One held edition, with what an enricher needs to look it up and the fields it may fill. |
+| [`EnrichCandidatePage`](#enrichcandidatepage) | struct | One page of `LibraryStore::enrich_candidates_page`. |
 | [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
 | [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
@@ -5334,6 +5337,32 @@ An edition's acquire state (`edition_acquisitions`).
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 
+### EditionEnrichment
+
+```rust
+pub struct EditionEnrichment {
+    pub description: Option<String>,
+    pub subjects: Option<String>,
+    pub cover_url: Option<String>,
+    pub language: Option<String>,
+    pub source: String,
+    pub confidence: f64,
+}
+```
+
+What an enricher fills on one edition; `None` fields are left alone.
+
+**Fields**
+
+- `description`: Description for the work, when it has none.
+- `subjects`: Subjects for the work, when it has none.
+- `cover_url`: Cover for the edition (and the work), when it has none.
+- `language`: Language for the expression, when it has none.
+- `source`: Who filled it, recorded as `editions.enrich_source`.
+- `confidence`: How sure the enricher was, from 0.0 to 1.0.
+
+Implements: `Clone`, `Debug`, `Default`, `PartialEq`
+
 ### EditionFile
 
 ```rust
@@ -5355,6 +5384,60 @@ Who holds a recorded file key, and what the file is.
 - `sha256`: Lowercase hex SHA-256 of the content, when known (host uploads).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### EnrichCandidate
+
+```rust
+pub struct EnrichCandidate {
+    pub edition_id: String,
+    pub work_id: Option<String>,
+    pub title: String,
+    pub authors: Option<String>,
+    pub isbn: Option<String>,
+    pub description: Option<String>,
+    pub subjects: Option<String>,
+    pub cover_url: Option<String>,
+    pub language: Option<String>,
+    pub enrich_source: Option<String>,
+}
+```
+
+One held edition, with what an enricher needs to look it up and the
+fields it may fill.
+
+**Fields**
+
+- `edition_id`: `editions.id`.
+- `work_id`: The edition's work (`works.id`), when its expression still names one.
+- `title`: The edition's display title.
+- `authors`: The credited authors as the first listing of the edition prints
+  them, when it does.
+- `isbn`: The edition's ISBN (the smallest when it has several).
+- `description`: The work's description, else a listing's.
+- `subjects`: The work's subjects.
+- `cover_url`: The edition's cover, else a listing's.
+- `language`: The expression's language, else a listing's.
+- `enrich_source`: Who already filled the edition (`editions.enrich_source`).
+
+Implements: `Clone`, `Debug`, `PartialEq`
+
+### EnrichCandidatePage
+
+```rust
+pub struct EnrichCandidatePage {
+    pub candidates: Vec<EnrichCandidate>,
+    pub next: Option<String>,
+}
+```
+
+One page of [`LibraryStore::enrich_candidates_page`](#librarystoreenrich_candidates_page).
+
+**Fields**
+
+- `candidates`: The page's held editions, in edition id order.
+- `next`: The cursor of the next page; `None` once the walk is done.
+
+Implements: `Clone`, `Debug`, `PartialEq`
 
 ### HeldIdentifiers
 
@@ -5975,6 +6058,66 @@ Keys that do not parse as a [`DiscoverSubject`](#discoversubject) are skipped.
 ##### Errors
 
 Returns the database error.
+
+#### LibraryStore::enrich_candidates_page
+
+```rust
+pub async fn enrich_candidates_page(
+    &self,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<EnrichCandidatePage>
+```
+
+One page of the held editions an enricher walks, in edition id order.
+
+##### Arguments
+
+* `after` - The previous page's [`EnrichCandidatePage::next`](#enrichcandidatepage); `None`
+  for the first page.
+* `limit` - Most editions the page reads (1 to 200, and at most the
+  database's `maxResultRows`).
+
+##### Returns
+
+The page's editions that a holding still holds, and the cursor of
+the next page. An edition nobody holds is left out, so a page can be
+short or empty while more follow: walk until `next` is `None`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::enrich_edition
+
+```rust
+pub async fn enrich_edition(
+    &self,
+    edition_id: &str,
+    fill: &EditionEnrichment,
+) -> Result<()>
+```
+
+Fills what edition `edition_id` lacks from `fill` and records who
+filled it.
+
+The work takes the description, subjects and cover it lacks (a work
+another edition already described keeps its own values), the
+expression the language it lacks, and the edition the cover it
+lacks. The edition's `books` rows take the same fields while that
+table exists. The edition's provenance is written last, so a write
+that fails before it leaves the edition unmarked and the next run
+tries again.
+
+##### Arguments
+
+* `edition_id` - The edition filled.
+* `fill` - The values offered and who offers them.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) when the edition is gone, or
+[`LibraryError::Orm`](#libraryerror) when a read or write fails.
 
 #### LibraryStore::edition_of_book
 
