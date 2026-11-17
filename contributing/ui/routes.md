@@ -151,12 +151,13 @@ sources?: string[];
 ### JoinPage
 
 ```ts
-type JoinPage = "approve" | "clerk-approve" | "callback";
+type JoinPage = "approve" | "clerk-approve" | "callback" | "clerk-callback";
 ```
 
 A page that sign-in flows from other installs own: a branch's consent
-(`approve`), a clerk's consent (`clerk-approve`), or the joining
-install's callback (`callback`).
+(`approve`), a clerk's consent (`clerk-approve`), the joining install's
+callback (`callback`), or this install's library card callback
+(`clerk-callback`).
 
 ## Variables
 
@@ -167,6 +168,16 @@ const CLERK_APPROVE_PATH: "/clerk/approve" = "/clerk/approve";
 ```
 
 The library's consent page for a clerk's sign-in (a library card).
+
+***
+
+### CLERK\_CALLBACK\_PATH
+
+```ts
+const CLERK_CALLBACK_PATH: "/clerk/callback" = "/clerk/callback";
+```
+
+Where a library sends the browser back after a library card sign-in.
 
 ***
 
@@ -289,7 +300,7 @@ Which Join a library page this document is, if any.
 
 [`JoinPage`](#joinpage) \| `null`
 
-`approve`, `clerk-approve`, `callback`, or `null`.
+`approve`, `clerk-approve`, `callback`, `clerk-callback`, or `null`.
 
 ***
 
