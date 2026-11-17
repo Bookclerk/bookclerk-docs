@@ -1233,6 +1233,36 @@ Re-exports [MetadataEntrypoint](plugin.md#metadataentrypoint)
 
 ***
 
+### MetadataField
+
+Re-exports [MetadataField](abi.md#metadatafield)
+
+***
+
+### MetadataFileParseParams
+
+Re-exports [MetadataFileParseParams](generated.md#metadatafileparseparams)
+
+***
+
+### MetadataFileRecord
+
+Re-exports [MetadataFileRecord](generated.md#metadatafilerecord)
+
+***
+
+### MetadataFileRenderParams
+
+Re-exports [MetadataFileRenderParams](generated.md#metadatafilerenderparams)
+
+***
+
+### MetadataFilesEntrypoint
+
+Re-exports [MetadataFilesEntrypoint](plugin.md#metadatafilesentrypoint)
+
+***
+
 ### MetadataLookupParams
 
 Re-exports [MetadataLookupParams](generated.md#metadatalookupparams)

@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -33,6 +33,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`JobController`](#jobcontroller) | class | Everything one job invocation may touch. |
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
 | [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
+| [`MetadataFilesEntrypoint`](#metadatafilesentrypoint) | class | `metadataFiles` entrypoint: reads and writes metadata files for the host. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
 | [`OidcEntrypoint`](#oidcentrypoint) | class | `oidc` entrypoint: relying-party client templates and credential verification. |
@@ -947,6 +948,49 @@ async def fetchCovers(
 ```
 
 Fetch each URL into `_sink` under its index (list of `CoverImage`).
+
+### MetadataFilesEntrypoint
+
+```python
+class MetadataFilesEntrypoint(NamedEntrypoint)
+```
+
+`metadataFiles` entrypoint: reads and writes metadata files for the host.
+
+The host reads every file, chooses every path and writes every result, so
+the entrypoint only converts bytes. Each dialect is a
+`[[metadata_files.dialects]]` row in `plugin.toml`; `params["dialect"]`
+names the row.
+
+#### MetadataFilesEntrypoint.health
+
+```python
+async def health(self) -> abi.HealthOk
+```
+
+Liveness / readiness probe (`HealthOk`).
+
+#### MetadataFilesEntrypoint.parse
+
+```python
+async def parse(self, _params: abi.MetadataFileParseParams) -> abi.MetadataFileRecord
+```
+
+What one file says (`MetadataFileRecord`).
+
+List every field the file states in `present`, including ones it
+states as empty. Raise `invalid_params` for a file the dialect cannot
+read.
+
+#### MetadataFilesEntrypoint.render
+
+```python
+async def render(self, _params: abi.MetadataFileRenderParams) -> bytes | str
+```
+
+The new file: `existing` with `fields` set from `record`.
+
+Everything else in the file is kept; a `str` is written as UTF-8.
 
 ### MetadataEntrypoint
 
@@ -1888,7 +1932,7 @@ def py(value: Any) -> Any
 Convert a JS value delivered over Workers RPC into plain Python.
 
 `JsProxy` objects are converted with `to_py()` (`Uint8Array` →
-`bytes`); Python values pass through unchanged.
+`bytes` at any depth); Python values pass through unchanged.
 
 **Args**
 

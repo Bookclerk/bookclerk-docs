@@ -2840,6 +2840,15 @@ metadata?: MetadataProvider | null;
 `metadata` entrypoint.
 Null when the guest does not export this capability.
 
+##### metadataFiles?
+
+```ts
+metadataFiles?: MetadataFiles | null;
+```
+
+`metadataFiles` entrypoint.
+Null when the guest does not export this capability.
+
 ##### oidc?
 
 ```ts
@@ -5205,6 +5214,389 @@ Omitted when absent (wire zero value).
 
 ***
 
+### MetadataFileParsed
+
+Success payload of `MetadataFiles.parse`.
+
+#### Properties
+
+##### record
+
+```ts
+record: MetadataFileRecord;
+```
+
+What the file says.
+
+***
+
+### MetadataFileParseParams
+
+Params of `MetadataFiles.parse`.
+
+#### Properties
+
+##### bytes
+
+```ts
+bytes: Uint8Array;
+```
+
+The whole file; at most `maxMetadataFileBytes`.
+
+##### dialect
+
+```ts
+dialect: string;
+```
+
+Dialect id from the manifest's `[[metadata_files.dialects]]` that the
+host routed the file to.
+
+##### fileName
+
+```ts
+fileName: string;
+```
+
+The file's name without any folder (`metadata.json`, `Book.opf`).
+
+***
+
+### MetadataFileRecord
+
+What one metadata file says about the edition it sits beside. A field the
+file does not state is left out of `present` and means "unknown", never
+"cleared"; a field in `present` with an empty value means the file states
+that it is empty. The host checks every value against the `maxMetadataFile*`
+caps and refuses a record that states a field its dialect does not carry.
+
+#### Properties
+
+##### abridgement
+
+```ts
+abridgement: "unknown" | "unabridged" | "abridged";
+```
+
+Whether the edition is abridged; `unknown` when the file does not say.
+
+##### chapters
+
+```ts
+chapters: MetadataChapter[];
+```
+
+Chapter layout in pre-order (see `MetadataChapter`); at most
+`maxMetadataFileChapters`, starts never decreasing.
+
+##### creditRoles
+
+```ts
+creditRoles: (
+  | "author"
+  | "narrator"
+  | "translator"
+  | "editor"
+  | "illustrator"
+  | "publisher"
+  | "host"
+  | "cast"
+  | "adaptor")[];
+```
+
+Credit roles the file states, each at most once. A role listed here
+with no credit means the file states nobody in that role; a role left
+out is unknown. Empty unless `present` holds `credits`.
+
+##### credits
+
+```ts
+credits: Credit[];
+```
+
+Credited contributors in billing order, only in the roles `creditRoles`
+names.
+
+##### description?
+
+```ts
+description?: string;
+```
+
+Long description / blurb; at most `maxMetadataFileDescriptionBytes`.
+Omitted when absent (wire zero value).
+
+##### durationMs?
+
+```ts
+durationMs?: number;
+```
+
+Running time in milliseconds.
+Omitted when absent (wire zero value).
+
+##### expressionKind
+
+```ts
+expressionKind: 
+  | "unspecified"
+  | "text"
+  | "narration"
+  | "dramatisation"
+  | "graphic"
+  | "originalAudio";
+```
+
+How the work is realised; `unspecified` when the file does not say.
+
+##### genres
+
+```ts
+genres: string[];
+```
+
+Genre labels in file order.
+
+##### identifiers
+
+```ts
+identifiers: Identifier[];
+```
+
+External identifiers the file carries.
+
+##### language?
+
+```ts
+language?: string;
+```
+
+Content language as the file prints it (a code or a name).
+Omitted when absent (wire zero value).
+
+##### present
+
+```ts
+present: (
+  | "publisher"
+  | "title"
+  | "series"
+  | "subtitle"
+  | "description"
+  | "publishedAt"
+  | "language"
+  | "genres"
+  | "tags"
+  | "abridgement"
+  | "expressionKind"
+  | "identifiers"
+  | "credits"
+  | "chapters"
+  | "duration")[];
+```
+
+Fields the file states, each at most once; at most the fields the
+dialect declares.
+
+##### publishedAt?
+
+```ts
+publishedAt?: string;
+```
+
+Publication date as `YYYY`, `YYYY-MM` or `YYYY-MM-DD`.
+Omitted when absent (wire zero value).
+
+##### publisher?
+
+```ts
+publisher?: string;
+```
+
+Publisher name.
+Omitted when absent (wire zero value).
+
+##### seriesEntries
+
+```ts
+seriesEntries: SeriesEntry[];
+```
+
+Series the work belongs to.
+
+##### subtitle?
+
+```ts
+subtitle?: string;
+```
+
+Subtitle when distinct from `title`.
+Omitted when absent (wire zero value).
+
+##### tags
+
+```ts
+tags: string[];
+```
+
+Free tags in file order.
+
+##### title?
+
+```ts
+title?: string;
+```
+
+Primary title.
+Omitted when absent (wire zero value).
+
+***
+
+### MetadataFileRendered
+
+Success payload of `MetadataFiles.render`.
+
+#### Properties
+
+##### bytes
+
+```ts
+bytes: Uint8Array;
+```
+
+The new file; at most `maxMetadataFileBytes`. Empty when the dialect has
+nothing left to write; the host decides whether to remove the file.
+
+***
+
+### MetadataFileRenderParams
+
+Params of `MetadataFiles.render`.
+
+#### Properties
+
+##### dialect
+
+```ts
+dialect: string;
+```
+
+Dialect id from the manifest; one that declares `writes = true`.
+
+##### existing
+
+```ts
+existing: Uint8Array;
+```
+
+The file as it is now; empty when the host is creating it. Everything
+the dialect does not change (unknown keys, comments, other fields) is
+kept. At most `maxMetadataFileBytes`.
+
+##### fields
+
+```ts
+fields: (
+  | "publisher"
+  | "title"
+  | "series"
+  | "subtitle"
+  | "description"
+  | "publishedAt"
+  | "language"
+  | "genres"
+  | "tags"
+  | "abridgement"
+  | "expressionKind"
+  | "identifiers"
+  | "credits"
+  | "chapters"
+  | "duration")[];
+```
+
+Fields to set, each at most once and all declared by the dialect. A
+listed field with an empty value removes it from the file.
+
+##### record
+
+```ts
+record: MetadataFileRecord;
+```
+
+Values to write. Only the fields in `fields` are read from it.
+
+***
+
+### MetadataFiles
+
+`metadataFiles` entrypoint: reads and writes metadata files that sit next
+to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE),
+one dialect per format. The plugin only converts bytes: the host reads the
+file, chooses every path and writes the result, so a dialect plugin needs
+no network or file grants. The manifest's `[metadata_files]` table names
+each dialect, the file names it reads and the fields it carries, so the
+host routes a file to a sleeping plugin without starting it.
+
+#### Methods
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+##### parse()
+
+```ts
+parse(params): Promise<MetadataFileParseReply>;
+```
+
+What one metadata file says about its edition.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MetadataFileParseParams`](#metadatafileparseparams) | Dialect, file name and bytes. |
+
+###### Returns
+
+`Promise`\<[`MetadataFileParseReply`](#metadatafileparsereply)\>
+
+[MetadataFileParseReply](#metadatafileparsereply)
+
+##### render()
+
+```ts
+render(params): Promise<MetadataFileRenderReply>;
+```
+
+The bytes of a metadata file with the given fields set to the record's
+values and everything else kept from the existing file.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`MetadataFileRenderParams`](#metadatafilerenderparams) | Dialect, record, fields and existing bytes. |
+
+###### Returns
+
+`Promise`\<[`MetadataFileRenderReply`](#metadatafilerenderreply)\>
+
+[MetadataFileRenderReply](#metadatafilerenderreply)
+
+***
+
 ### MetadataLookupParams
 
 Params of `MetadataProvider.lookup`.
@@ -6043,7 +6435,8 @@ entrypoints: (
   | "cli"
   | "oidc"
   | "metadata"
-  | "covers")[];
+  | "covers"
+  | "metadataFiles")[];
 ```
 
 Named entrypoints the guest exports.
@@ -9429,6 +9822,43 @@ Result union of `MetadataProvider.chapters`.
 
 ***
 
+### MetadataFileParseReply
+
+```ts
+type MetadataFileParseReply = 
+  | {
+  kind: "ok";
+  value: MetadataFileParsed;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `MetadataFiles.parse`. A file the dialect cannot read is
+`invalid_params`, so the host records it as unreadable and moves on.
+
+***
+
+### MetadataFileRenderReply
+
+```ts
+type MetadataFileRenderReply = 
+  | {
+  kind: "ok";
+  value: MetadataFileRendered;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `MetadataFiles.render`.
+
+***
+
 ### MetadataRecordsReply
 
 ```ts
@@ -9966,6 +10396,12 @@ Re-exports [IsolationReq](abi.md#isolationreq)
 ### MediaKind
 
 Re-exports [MediaKind](abi.md#mediakind)
+
+***
+
+### MetadataField
+
+Re-exports [MetadataField](abi.md#metadatafield)
 
 ***
 

@@ -116,6 +116,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`Oidc`](#oidc) | class | `oidc` entrypoint: relying-party client templates and credential verification on behalf of the host authorization server. |
 | [`MetadataProvider`](#metadataprovider) | class | `metadata` entrypoint: bibliographic lookups against a public catalog (OpenLibrary, Audnexus, ...). A provider describes what it finds as edition records; the host decides identity and never trusts a record to name an existing library row. Network access is limited to the domains the manifest's `[capabilities.network]` declares. |
 | [`CoverFetcher`](#coverfetcher) | class | `covers` entrypoint: downloads cover images on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The fetcher only transports bytes: the host sniffs, decodes and re-encodes every image in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
+| [`MetadataFiles`](#metadatafiles) | class | `metadataFiles` entrypoint: reads and writes metadata files that sit next to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE), one dialect per format. The plugin only converts bytes: the host reads the file, chooses every path and writes the result, so a dialect plugin needs no network or file grants. The manifest's `[metadata_files]` table names each dialect, the file names it reads and the fields it carries, so the host routes a file to a sleeping plugin without starting it. |
 | [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
 | [`CatalogCapabilities`](#catalogcapabilities) | class | Catalog behaviours a storefront declares in `describe()`. Catalog search reads them instead of special-casing plugin ids; every flag defaults to false, so a guest that says nothing keeps the plain behaviour. |
@@ -248,6 +249,15 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CoverImages`](#coverimages) | class | Success payload of `CoverFetcher.fetchCovers`. |
 | [`CoverImagesReplyOk`](#coverimagesreplyok) | class | `CoverImagesReply` member `ok`. |
 | [`CoverImagesReplyErr`](#coverimagesreplyerr) | class | `CoverImagesReply` member `err`. |
+| [`MetadataFileRecord`](#metadatafilerecord) | class | What one metadata file says about the edition it sits beside. A field the file does not state is left out of `present` and means "unknown", never "cleared"; a field in `present` with an empty value means the file states that it is empty. The host checks every value against the `maxMetadataFile*` caps and refuses a record that states a field its dialect does not carry. |
+| [`MetadataFileParseParams`](#metadatafileparseparams) | class | Params of `MetadataFiles.parse`. |
+| [`MetadataFileParsed`](#metadatafileparsed) | class | Success payload of `MetadataFiles.parse`. |
+| [`MetadataFileParseReplyOk`](#metadatafileparsereplyok) | class | `MetadataFileParseReply` member `ok`. |
+| [`MetadataFileParseReplyErr`](#metadatafileparsereplyerr) | class | `MetadataFileParseReply` member `err`. |
+| [`MetadataFileRenderParams`](#metadatafilerenderparams) | class | Params of `MetadataFiles.render`. |
+| [`MetadataFileRendered`](#metadatafilerendered) | class | Success payload of `MetadataFiles.render`. |
+| [`MetadataFileRenderReplyOk`](#metadatafilerenderreplyok) | class | `MetadataFileRenderReply` member `ok`. |
+| [`MetadataFileRenderReplyErr`](#metadatafilerenderreplyerr) | class | `MetadataFileRenderReply` member `err`. |
 | [`SocketFrameText`](#socketframetext) | class | `SocketFrame` member `text`. |
 | [`SocketFrameBinary`](#socketframebinary) | class | `SocketFrame` member `binary`. |
 | [`SocketHeader`](#socketheader) | class | One request header on `Sockets.connect`. |
@@ -347,6 +357,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CatalogSort`](#catalogsort) | constant | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
+| [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
 | [`DbStatementKind`](#dbstatementkind) | constant | How the host classifies a statement for result handling. |
 | [`DbResultSelection`](#dbresultselection) | constant | Which part of a statement's outcome the caller wants back. |
@@ -398,6 +409,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataRecordsReply`](#metadatarecordsreply) | constant | Result union of `MetadataProvider.lookup` / `search`. |
 | [`MetadataChaptersReply`](#metadatachaptersreply) | constant | Result union of `MetadataProvider.chapters`. |
 | [`CoverImagesReply`](#coverimagesreply) | constant | Result union of `CoverFetcher.fetchCovers`. |
+| [`MetadataFileParseReply`](#metadatafileparsereply) | constant | Result union of `MetadataFiles.parse`. A file the dialect cannot read is `invalid_params`, so the host records it as unreadable and moves on. |
+| [`MetadataFileRenderReply`](#metadatafilerenderreply) | constant | Result union of `MetadataFiles.render`. |
 | [`SocketFrame`](#socketframe) | constant | One WebSocket message. |
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
@@ -723,6 +736,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `metadata`: `metadata` entrypoint. Null when the guest does not export this capability.
 - `covers`: `covers` entrypoint. Null when the guest does not export this capability.
 - `socketHandler`: `[sockets]` handler: messages and closes on host-brokered sockets. Null when the guest does not export this capability.
+- `metadataFiles`: `metadataFiles` entrypoint. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -2885,6 +2899,65 @@ whether its body was stored.
 
 `CoverImagesReply`
 
+### MetadataFiles
+
+```python
+class MetadataFiles(Protocol)
+```
+
+`metadataFiles` entrypoint: reads and writes metadata files that sit next
+to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE),
+one dialect per format. The plugin only converts bytes: the host reads the
+file, chooses every path and writes the result, so a dialect plugin needs
+no network or file grants. The manifest's `[metadata_files]` table names
+each dialect, the file names it reads and the fields it carries, so the
+host routes a file to a sleeping plugin without starting it.
+
+#### MetadataFiles.health
+
+```python
+async def health(self) -> HealthReply
+```
+
+Liveness / readiness probe.
+
+**Returns**
+
+`HealthReply`
+
+#### MetadataFiles.parse
+
+```python
+async def parse(self, params: MetadataFileParseParams) -> MetadataFileParseReply
+```
+
+What one metadata file says about its edition.
+
+**Args**
+
+- `params`: Dialect, file name and bytes.
+
+**Returns**
+
+`MetadataFileParseReply`
+
+#### MetadataFiles.render
+
+```python
+async def render(self, params: MetadataFileRenderParams) -> MetadataFileRenderReply
+```
+
+The bytes of a metadata file with the given fields set to the record's
+values and everything else kept from the existing file.
+
+**Args**
+
+- `params`: Dialect, record, fields and existing bytes.
+
+**Returns**
+
+`MetadataFileRenderReply`
+
 ### EventConsumerSpec
 
 ```python
@@ -4952,6 +5025,151 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### MetadataFileRecord
+
+```python
+class MetadataFileRecord(TypedDict)
+```
+
+What one metadata file says about the edition it sits beside. A field the
+file does not state is left out of `present` and means "unknown", never
+"cleared"; a field in `present` with an empty value means the file states
+that it is empty. The host checks every value against the `maxMetadataFile*`
+caps and refuses a record that states a field its dialect does not carry.
+
+**Attributes**
+
+- `present`: Fields the file states, each at most once; at most the fields the dialect declares.
+- `title`: Primary title. Omitted when absent (wire zero value).
+- `subtitle`: Subtitle when distinct from `title`. Omitted when absent (wire zero value).
+- `description`: Long description / blurb; at most `maxMetadataFileDescriptionBytes`. Omitted when absent (wire zero value).
+- `publisher`: Publisher name. Omitted when absent (wire zero value).
+- `publishedAt`: Publication date as `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. Omitted when absent (wire zero value).
+- `language`: Content language as the file prints it (a code or a name). Omitted when absent (wire zero value).
+- `genres`: Genre labels in file order.
+- `tags`: Free tags in file order.
+- `abridgement`: Whether the edition is abridged; `unknown` when the file does not say.
+- `expressionKind`: How the work is realised; `unspecified` when the file does not say.
+- `identifiers`: External identifiers the file carries.
+- `credits`: Credited contributors in billing order, only in the roles `creditRoles` names.
+- `creditRoles`: Credit roles the file states, each at most once. A role listed here with no credit means the file states nobody in that role; a role left out is unknown. Empty unless `present` holds `credits`.
+- `seriesEntries`: Series the work belongs to.
+- `chapters`: Chapter layout in pre-order (see `MetadataChapter`); at most `maxMetadataFileChapters`, starts never decreasing.
+- `durationMs`: Running time in milliseconds. Omitted when absent (wire zero value).
+
+### MetadataFileParseParams
+
+```python
+class MetadataFileParseParams(TypedDict)
+```
+
+Params of `MetadataFiles.parse`.
+
+**Attributes**
+
+- `dialect`: Dialect id from the manifest's `[[metadata_files.dialects]]` that the host routed the file to.
+- `fileName`: The file's name without any folder (`metadata.json`, `Book.opf`).
+- `bytes`: The whole file; at most `maxMetadataFileBytes`.
+
+### MetadataFileParsed
+
+```python
+class MetadataFileParsed(TypedDict)
+```
+
+Success payload of `MetadataFiles.parse`.
+
+**Attributes**
+
+- `record`: What the file says.
+
+### MetadataFileParseReplyOk
+
+```python
+class MetadataFileParseReplyOk(TypedDict)
+```
+
+`MetadataFileParseReply` member `ok`.
+
+Success: the parsed record.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the parsed record.
+
+### MetadataFileParseReplyErr
+
+```python
+class MetadataFileParseReplyErr(TypedDict)
+```
+
+`MetadataFileParseReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### MetadataFileRenderParams
+
+```python
+class MetadataFileRenderParams(TypedDict)
+```
+
+Params of `MetadataFiles.render`.
+
+**Attributes**
+
+- `dialect`: Dialect id from the manifest; one that declares `writes = true`.
+- `record`: Values to write. Only the fields in `fields` are read from it.
+- `fields`: Fields to set, each at most once and all declared by the dialect. A listed field with an empty value removes it from the file.
+- `existing`: The file as it is now; empty when the host is creating it. Everything the dialect does not change (unknown keys, comments, other fields) is kept. At most `maxMetadataFileBytes`.
+
+### MetadataFileRendered
+
+```python
+class MetadataFileRendered(TypedDict)
+```
+
+Success payload of `MetadataFiles.render`.
+
+**Attributes**
+
+- `bytes`: The new file; at most `maxMetadataFileBytes`. Empty when the dialect has nothing left to write; the host decides whether to remove the file.
+
+### MetadataFileRenderReplyOk
+
+```python
+class MetadataFileRenderReplyOk(TypedDict)
+```
+
+`MetadataFileRenderReply` member `ok`.
+
+Success: the new file.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the new file.
+
+### MetadataFileRenderReplyErr
+
+```python
+class MetadataFileRenderReplyErr(TypedDict)
+```
+
+`MetadataFileRenderReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### SocketFrameText
 
 ```python
@@ -6630,6 +6848,16 @@ Abridgement = Literal['unknown', 'unabridged', 'abridged']
 
 Whether an edition is abridged.
 
+### MetadataField
+
+```python
+MetadataField = Literal['title', 'subtitle', 'description', 'publisher', 'publishedAt', 'lang...
+```
+
+A field of a `MetadataFileRecord`. Dialects declare in the manifest which
+fields their format carries; a parsed record lists the ones its file
+states, and a render request lists the ones to write.
+
 ### DbType
 
 ```python
@@ -7041,6 +7269,23 @@ CoverImagesReply = Union[CoverImagesReplyOk, CoverImagesReplyErr]
 ```
 
 Result union of `CoverFetcher.fetchCovers`.
+
+### MetadataFileParseReply
+
+```python
+MetadataFileParseReply = Union[MetadataFileParseReplyOk, MetadataFileParseReplyErr]
+```
+
+Result union of `MetadataFiles.parse`. A file the dialect cannot read is
+`invalid_params`, so the host records it as unreadable and moves on.
+
+### MetadataFileRenderReply
+
+```python
+MetadataFileRenderReply = Union[MetadataFileRenderReplyOk, MetadataFileRenderReplyErr]
+```
+
+Result union of `MetadataFiles.render`.
 
 ### SocketFrame
 

@@ -4,7 +4,7 @@ Role capability method names (camelCase on the wire).
 
 Each submodule exposes a single [`NAME`](health.md#name) constant equal to
 the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` /
-`MetadataProvider` / `CoverFetcher` / `Cli` /
+`MetadataProvider` / `CoverFetcher` / `MetadataFiles` / `Cli` /
 `EventConsumer` / `EventPublisher` / `QueueConsumer` / `QueueProducer` /
 `PluginWorker` method in
 `schema/plugin.capnp`. Prefer these constants over string literals when
@@ -35,6 +35,8 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`search`](search.md): Edition records matching a title and author (Cap'n Proto `MetadataProvider.search`).
 - [`chapters`](chapters.md): Chapter layout of one edition (Cap'n Proto `MetadataProvider.chapters`).
 - [`fetch_covers`](fetch_covers.md): Cover image bodies streamed into a host sink (Cap'n Proto `CoverFetcher.fetchCovers`).
+- [`parse`](parse.md): What one metadata file says (Cap'n Proto `MetadataFiles.parse`).
+- [`render`](render.md): A metadata file's bytes with chosen fields rewritten (Cap'n Proto `MetadataFiles.render`).
 - [`clients`](clients.md): Plugin-provided OIDC client templates (Cap'n Proto `Oidc.clients`).
 - [`describe`](describe.md): Return the guest's declared CLI schema (`crate::CliSchema`; Cap'n Proto `PluginCli.describe`). Also the root `PluginWorker.describe` identity call.
 - [`invoke`](invoke.md): Invoke a declared plugin CLI command (Cap'n Proto `PluginCli.invoke`).

@@ -28,8 +28,8 @@ A native guest implements `PluginWorker` (`describe`, and
 `open(invocation, bindings) -> Entrypoints`) and calls `serve`, the
 stdin and stdout Cap'n Proto runner. The entrypoints it returns are the
 same named entrypoints the other SDKs export as classes: storefront,
-storage, remote library, database adapter, CLI, OIDC, metadata and
-covers. The
+storage, remote library, database adapter, CLI, OIDC, metadata, covers
+and metadata files. The
 crate root re-exports the DTOs and helpers a guest needs; prefer
 `use bookclerk_plugin_sdk::…` over reaching into submodules.
 
@@ -382,6 +382,14 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MetadataChapter`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatachapter)
 - [`bookclerk_plugin_abi::MetadataChapters`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatachapters)
 - [`bookclerk_plugin_abi::MetadataChaptersParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatachaptersparams)
+- [`bookclerk_plugin_abi::MetadataField`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafield)
+- [`bookclerk_plugin_abi::MetadataFileParseParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafileparseparams)
+- [`bookclerk_plugin_abi::MetadataFileParsed`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafileparsed)
+- [`bookclerk_plugin_abi::MetadataFileRecord`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafilerecord)
+- [`bookclerk_plugin_abi::MetadataFileRenderParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafilerenderparams)
+- [`bookclerk_plugin_abi::MetadataFileRendered`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatafilerendered)
+- [`bookclerk_plugin_abi::MetadataFiles`](../../../internals/crates/bookclerk_plugin_abi/README.md#metadatafiles)
+- [`bookclerk_plugin_abi::MetadataFilesClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#metadatafilesclient)
 - [`bookclerk_plugin_abi::MetadataLookupParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#metadatalookupparams)
 - [`bookclerk_plugin_abi::MetadataProvider`](../../../internals/crates/bookclerk_plugin_abi/README.md#metadataprovider)
 - [`bookclerk_plugin_abi::MetadataProviderClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#metadataproviderclient)
@@ -440,6 +448,11 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_KV_METADATA_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_kv_metadata_bytes)
 - [`bookclerk_plugin_abi::MAX_KV_VALUE_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_kv_value_bytes)
 - [`bookclerk_plugin_abi::MAX_LIST_PAGE`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_list_page)
+- [`bookclerk_plugin_abi::MAX_METADATA_FILE_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_bytes)
+- [`bookclerk_plugin_abi::MAX_METADATA_FILE_CHAPTERS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_chapters)
+- [`bookclerk_plugin_abi::MAX_METADATA_FILE_DESCRIPTION_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_description_bytes)
+- [`bookclerk_plugin_abi::MAX_METADATA_FILE_LIST_ENTRIES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_list_entries)
+- [`bookclerk_plugin_abi::MAX_METADATA_FILE_TEXT_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_text_bytes)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_ops)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_registration_bytes)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_TOTAL_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_total_ops)

@@ -10,6 +10,8 @@ Semantic rules that cannot be expressed in serde alone live in
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`MediaManifest`](#mediamanifest) | struct | `[media]`: the work kinds and edition carriers a storefront or metadata provider reports, and the carriers a storefront can download. |
+| [`MetadataFilesManifest`](#metadatafilesmanifest) | struct | `[metadata_files]`: the metadata file dialects a `metadataFiles` plugin implements. Required for that entrypoint and forbidden without it. |
+| [`MetadataFileDialectManifest`](#metadatafiledialectmanifest) | struct | One `[[metadata_files.dialects]]` row: a file format the plugin reads, and writes when `writes` is true. |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
 | [`NetworkCapabilities`](#networkcapabilities) | struct | `[capabilities.network]` — mode plus optional workerd host allowlist. |
 | [`OwnUserAgent`](#ownuseragent) | struct | `[capabilities.network.own_user_agent]`: where a plugin keeps its own `User-Agent`. |
@@ -113,6 +115,74 @@ pub fn to_wire(&self) -> MediaSupport
 ```
 
 The declaration in its wire shape, as `describe()` returns it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFilesManifest
+
+```rust
+pub struct MetadataFilesManifest {
+    pub dialects: Vec<MetadataFileDialectManifest>,
+}
+```
+
+`[metadata_files]`: the metadata file dialects a `metadataFiles` plugin
+implements. Required for that entrypoint and forbidden without it.
+
+The host routes a file to a dialect from this table alone, so a
+sleeping plugin is started only when a file it reads turns up.
+
+**Fields**
+
+- `dialects`: One row per dialect (`[[metadata_files.dialects]]`); never empty.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFileDialectManifest
+
+```rust
+pub struct MetadataFileDialectManifest {
+    pub id: String,
+    pub name: String,
+    pub file_names: Vec<String>,
+    pub suffixes: Vec<String>,
+    pub fields: Vec<MetadataField>,
+    pub credit_roles: Vec<CreditRole>,
+    pub writes: bool,
+}
+```
+
+One `[[metadata_files.dialects]]` row: a file format the plugin reads,
+and writes when `writes` is true.
+
+**Fields**
+
+- `id`: Dialect id (`[a-z][a-z0-9_]{0,63}`), unique within the plugin; the
+  host passes it back in `parse` and `render`.
+- `name`: Name shown in settings and on a book's files list.
+- `file_names`: Exact file names the dialect reads (`metadata.json`), compared
+  without ASCII case. An exact name wins over a suffix.
+- `suffixes`: File name endings the dialect reads (`.opf`, `.metadata.json`),
+  compared without ASCII case. Each starts with `.`; the longest match
+  wins.
+- `fields`: Fields the format carries (wire names such as `title`,
+  `publishedAt`); never empty.
+- `credit_roles`: Credit roles the format carries; required exactly when `fields`
+  names `credits`.
+- `writes`: Whether the dialect also writes files (`render`). Read-only formats,
+  such as a store's catalog JSON, leave it false.
+
+#### MetadataFileDialectManifest::to_dialect
+
+```rust
+pub fn to_dialect(&self) -> MetadataFileDialect
+```
+
+The row as the host's record checks take it.
+
+##### Returns
+
+The dialect's id, fields, credit roles and write flag.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -733,6 +803,7 @@ pub struct PluginManifest {
     pub sockets: Option<NamedBinding>,
     pub credentials: Option<CredentialSharing>,
     pub media: Option<MediaManifest>,
+    pub metadata_files: Option<MetadataFilesManifest>,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -813,6 +884,9 @@ rejected.
   export the `storefront` or `metadata` entrypoint and forbidden for
   every other plugin. `describe()` must return the same lists; see
   [`MediaManifest`](#mediamanifest).
+- `metadata_files`: Metadata file dialects (`[metadata_files]`): required for plugins
+  that export the `metadataFiles` entrypoint and forbidden for every
+  other plugin; see [`MetadataFilesManifest`](#metadatafilesmanifest).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
@@ -1006,7 +1080,7 @@ Handler families this plugin belongs to, in
 A plugin joins the `Source` / `Output` / `Database` families through
 the matching named entrypoint and the `Integration` family through
 event consumers, queue consumers, crons, `RemoteLibrary`, `Cli`,
-`Oidc`, `Metadata`, or `Covers`.
+`Oidc`, `Metadata`, `Covers`, or `MetadataFiles`.
 
 Job triggers make a plugin an integration only when it has no
 `storefront`, `storage` or `databaseAdapter` entrypoint. Beside one of
@@ -1298,7 +1372,7 @@ are lowercase (`source`, `integration`, `output`, `database`).
 
 - `Source`: Storefront / library source (`Storefront` entrypoint).
 - `Integration`: Event consumer, job runner, remote library, CLI, OIDC bridge,
-  metadata provider, or cover fetcher.
+  metadata provider, cover fetcher, or metadata file dialects.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).
 
@@ -1509,7 +1583,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 8] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 9] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).

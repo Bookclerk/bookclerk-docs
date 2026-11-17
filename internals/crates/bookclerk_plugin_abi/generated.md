@@ -90,6 +90,11 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CoverCondition`](#covercondition) | struct | Validators the host already holds for one URL, sent as conditional request headers so an unchanged image costs a `304` instead of its body. |
 | [`CoverImage`](#coverimage) | struct | What happened to one requested URL. |
 | [`CoverImages`](#coverimages) | struct | Success payload of `CoverFetcher.fetchCovers`. |
+| [`MetadataFileRecord`](#metadatafilerecord) | struct | What one metadata file says about the edition it sits beside. A field the file does not state is left out of `present` and means "unknown", never "cleared"; a field in `present` with an empty value means the file states that it is empty. The host checks every value against the `maxMetadataFile*` caps and refuses a record that states a field its dialect does not carry. |
+| [`MetadataFileParseParams`](#metadatafileparseparams) | struct | Params of `MetadataFiles.parse`. |
+| [`MetadataFileParsed`](#metadatafileparsed) | struct | Success payload of `MetadataFiles.parse`. |
+| [`MetadataFileRenderParams`](#metadatafilerenderparams) | struct | Params of `MetadataFiles.render`. |
+| [`MetadataFileRendered`](#metadatafilerendered) | struct | Success payload of `MetadataFiles.render`. |
 | [`SocketHeader`](#socketheader) | struct | One request header on `Sockets.connect`. |
 | [`SocketAutoResponse`](#socketautoresponse) | struct | A heartbeat the broker answers itself: when `request` arrives byte for byte, it sends `response` and does not wake the guest. |
 | [`SocketConnectRequest`](#socketconnectrequest) | struct | Arguments of `Sockets.connect`. |
@@ -111,6 +116,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CatalogSort`](#catalogsort) | enum | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
+| [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
 | [`SocketFrame`](#socketframe) | enum | One WebSocket message. |
 | [`RoundTripFailure`](#roundtripfailure) | enum | Why `roundtrip_any_message` could not show `read(write(v)) == v`. |
@@ -326,6 +332,20 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_cover_images`](#read_cover_images) | function | Decode a `CoverImages` from a Cap'n Proto reader. |
 | [`write_cover_images_reply`](#write_cover_images_reply) | function | Encode a `CoverImagesReply` union from a typed result. |
 | [`read_cover_images_reply`](#read_cover_images_reply) | function | Decode a `CoverImagesReply` union into a typed result. |
+| [`write_metadata_file_record`](#write_metadata_file_record) | function | Encode a `MetadataFileRecord` onto a Cap'n Proto builder. |
+| [`read_metadata_file_record`](#read_metadata_file_record) | function | Decode a `MetadataFileRecord` from a Cap'n Proto reader. |
+| [`write_metadata_file_parse_params`](#write_metadata_file_parse_params) | function | Encode a `MetadataFileParseParams` onto a Cap'n Proto builder. |
+| [`read_metadata_file_parse_params`](#read_metadata_file_parse_params) | function | Decode a `MetadataFileParseParams` from a Cap'n Proto reader. |
+| [`write_metadata_file_parsed`](#write_metadata_file_parsed) | function | Encode a `MetadataFileParsed` onto a Cap'n Proto builder. |
+| [`read_metadata_file_parsed`](#read_metadata_file_parsed) | function | Decode a `MetadataFileParsed` from a Cap'n Proto reader. |
+| [`write_metadata_file_parse_reply`](#write_metadata_file_parse_reply) | function | Encode a `MetadataFileParseReply` union from a typed result. |
+| [`read_metadata_file_parse_reply`](#read_metadata_file_parse_reply) | function | Decode a `MetadataFileParseReply` union into a typed result. |
+| [`write_metadata_file_render_params`](#write_metadata_file_render_params) | function | Encode a `MetadataFileRenderParams` onto a Cap'n Proto builder. |
+| [`read_metadata_file_render_params`](#read_metadata_file_render_params) | function | Decode a `MetadataFileRenderParams` from a Cap'n Proto reader. |
+| [`write_metadata_file_rendered`](#write_metadata_file_rendered) | function | Encode a `MetadataFileRendered` onto a Cap'n Proto builder. |
+| [`read_metadata_file_rendered`](#read_metadata_file_rendered) | function | Decode a `MetadataFileRendered` from a Cap'n Proto reader. |
+| [`write_metadata_file_render_reply`](#write_metadata_file_render_reply) | function | Encode a `MetadataFileRenderReply` union from a typed result. |
+| [`read_metadata_file_render_reply`](#read_metadata_file_render_reply) | function | Decode a `MetadataFileRenderReply` union into a typed result. |
 | [`write_socket_frame`](#write_socket_frame) | function | Encode a `SocketFrame` union. |
 | [`read_socket_frame`](#read_socket_frame) | function | Decode a `SocketFrame` union. |
 | [`write_socket_header`](#write_socket_header) | function | Encode a `SocketHeader` onto a Cap'n Proto builder. |
@@ -2432,6 +2452,149 @@ Success payload of `CoverFetcher.fetchCovers`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### MetadataFileRecord
+
+```rust
+pub struct MetadataFileRecord {
+    pub present: Vec<MetadataField>,
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub description: Option<String>,
+    pub publisher: Option<String>,
+    pub published_at: Option<String>,
+    pub language: Option<String>,
+    pub genres: Vec<String>,
+    pub tags: Vec<String>,
+    pub abridgement: Abridgement,
+    pub expression_kind: ExpressionKind,
+    pub identifiers: Vec<Identifier>,
+    pub credits: Vec<Credit>,
+    pub credit_roles: Vec<CreditRole>,
+    pub series_entries: Vec<SeriesEntry>,
+    pub chapters: Vec<MetadataChapter>,
+    pub duration_ms: Option<u64>,
+}
+```
+
+What one metadata file says about the edition it sits beside. A field the
+file does not state is left out of `present` and means "unknown", never
+"cleared"; a field in `present` with an empty value means the file states
+that it is empty. The host checks every value against the `maxMetadataFile*`
+caps and refuses a record that states a field its dialect does not carry.
+
+**Fields**
+
+- `present`: Fields the file states, each at most once; at most the fields the
+  dialect declares.
+- `title`: Primary title.
+  `None` when absent (wire zero value).
+- `subtitle`: Subtitle when distinct from `title`.
+  `None` when absent (wire zero value).
+- `description`: Long description / blurb; at most `maxMetadataFileDescriptionBytes`.
+  `None` when absent (wire zero value).
+- `publisher`: Publisher name.
+  `None` when absent (wire zero value).
+- `published_at`: Publication date as `YYYY`, `YYYY-MM` or `YYYY-MM-DD`.
+  `None` when absent (wire zero value).
+- `language`: Content language as the file prints it (a code or a name).
+  `None` when absent (wire zero value).
+- `genres`: Genre labels in file order.
+- `tags`: Free tags in file order.
+- `abridgement`: Whether the edition is abridged; `unknown` when the file does not say.
+- `expression_kind`: How the work is realised; `unspecified` when the file does not say.
+- `identifiers`: External identifiers the file carries.
+- `credits`: Credited contributors in billing order, only in the roles `creditRoles`
+  names.
+- `credit_roles`: Credit roles the file states, each at most once. A role listed here
+  with no credit means the file states nobody in that role; a role left
+  out is unknown. Empty unless `present` holds `credits`.
+- `series_entries`: Series the work belongs to.
+- `chapters`: Chapter layout in pre-order (see `MetadataChapter`); at most
+  `maxMetadataFileChapters`, starts never decreasing.
+- `duration_ms`: Running time in milliseconds.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFileParseParams
+
+```rust
+pub struct MetadataFileParseParams {
+    pub dialect: String,
+    pub file_name: String,
+    pub bytes: Vec<u8>,
+}
+```
+
+Params of `MetadataFiles.parse`.
+
+**Fields**
+
+- `dialect`: Dialect id from the manifest's `\[\[metadata_files.dialects\]\]` that the
+  host routed the file to.
+- `file_name`: The file's name without any folder (`metadata.json`, `Book.opf`).
+- `bytes`: The whole file; at most `maxMetadataFileBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFileParsed
+
+```rust
+pub struct MetadataFileParsed {
+    pub record: MetadataFileRecord,
+}
+```
+
+Success payload of `MetadataFiles.parse`.
+
+**Fields**
+
+- `record`: What the file says.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFileRenderParams
+
+```rust
+pub struct MetadataFileRenderParams {
+    pub dialect: String,
+    pub record: MetadataFileRecord,
+    pub fields: Vec<MetadataField>,
+    pub existing: Vec<u8>,
+}
+```
+
+Params of `MetadataFiles.render`.
+
+**Fields**
+
+- `dialect`: Dialect id from the manifest; one that declares `writes = true`.
+- `record`: Values to write. Only the fields in `fields` are read from it.
+- `fields`: Fields to set, each at most once and all declared by the dialect. A
+  listed field with an empty value removes it from the file.
+- `existing`: The file as it is now; empty when the host is creating it. Everything
+  the dialect does not change (unknown keys, comments, other fields) is
+  kept. At most `maxMetadataFileBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MetadataFileRendered
+
+```rust
+pub struct MetadataFileRendered {
+    pub bytes: Vec<u8>,
+}
+```
+
+Success payload of `MetadataFiles.render`.
+
+**Fields**
+
+- `bytes`: The new file; at most `maxMetadataFileBytes`. Empty when the dialect has
+  nothing left to write; the host decides whether to remove the file.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### SocketHeader
 
 ```rust
@@ -2611,6 +2774,7 @@ pub enum Entrypoint {
     Oidc,
     Metadata,
     Covers,
+    MetadataFiles,
 }
 ```
 
@@ -2630,6 +2794,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `Metadata`: Metadata provider: `lookup`, `search` and `chapters`
   (`MetadataProvider`).
 - `Covers`: Cover fetcher: `fetchCovers` (`CoverFetcher`).
+- `MetadataFiles`: Metadata file dialects: `parse` and `render` (`MetadataFiles`).
 
 #### Entrypoint::wire_name
 
@@ -3134,6 +3299,68 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<Abridgement>`, `Hash`, `PartialEq`, `Serialize`
+
+### MetadataField
+
+```rust
+pub enum MetadataField {
+    Title,
+    Subtitle,
+    Description,
+    Publisher,
+    PublishedAt,
+    Language,
+    Genres,
+    Tags,
+    Abridgement,
+    ExpressionKind,
+    Identifiers,
+    Credits,
+    Series,
+    Chapters,
+    Duration,
+}
+```
+
+A field of a `MetadataFileRecord`. Dialects declare in the manifest which
+fields their format carries; a parsed record lists the ones its file
+states, and a render request lists the ones to write.
+
+**Variants**
+
+- `Title`: `MetadataFileRecord.title`.
+- `Subtitle`: `MetadataFileRecord.subtitle`.
+- `Description`: `MetadataFileRecord.description`.
+- `Publisher`: `MetadataFileRecord.publisher`.
+- `PublishedAt`: `MetadataFileRecord.publishedAt`.
+- `Language`: `MetadataFileRecord.language`.
+- `Genres`: `MetadataFileRecord.genres`.
+- `Tags`: `MetadataFileRecord.tags`.
+- `Abridgement`: `MetadataFileRecord.abridgement`.
+- `ExpressionKind`: `MetadataFileRecord.expressionKind`.
+- `Identifiers`: `MetadataFileRecord.identifiers`.
+- `Credits`: `MetadataFileRecord.credits` in the roles `creditRoles` names.
+- `Series`: `MetadataFileRecord.seriesEntries`.
+- `Chapters`: `MetadataFileRecord.chapters`.
+- `Duration`: `MetadataFileRecord.durationMs`.
+
+#### MetadataField::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### MetadataField::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<MetadataField>`, `Hash`, `PartialEq`, `Serialize`
 
 ### QueueResult
 
@@ -5843,6 +6070,193 @@ Decode a `CoverImagesReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_metadata_file_record
+
+```rust
+pub fn write_metadata_file_record(b: Builder<'_>, v: &MetadataFileRecord) -> Result<()>
+```
+
+Encode a [`MetadataFileRecord`](#metadatafilerecord) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_file_record
+
+```rust
+pub fn read_metadata_file_record(r: Reader<'_>) -> Result<MetadataFileRecord>
+```
+
+Decode a [`MetadataFileRecord`](#metadatafilerecord) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_file_parse_params
+
+```rust
+pub fn write_metadata_file_parse_params(
+    b: Builder<'_>,
+    v: &MetadataFileParseParams,
+) -> Result<()>
+```
+
+Encode a [`MetadataFileParseParams`](#metadatafileparseparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_file_parse_params
+
+```rust
+pub fn read_metadata_file_parse_params(r: Reader<'_>) -> Result<MetadataFileParseParams>
+```
+
+Decode a [`MetadataFileParseParams`](#metadatafileparseparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_file_parsed
+
+```rust
+pub fn write_metadata_file_parsed(b: Builder<'_>, v: &MetadataFileParsed) -> Result<()>
+```
+
+Encode a [`MetadataFileParsed`](#metadatafileparsed) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_file_parsed
+
+```rust
+pub fn read_metadata_file_parsed(r: Reader<'_>) -> Result<MetadataFileParsed>
+```
+
+Decode a [`MetadataFileParsed`](#metadatafileparsed) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_file_parse_reply
+
+```rust
+pub fn write_metadata_file_parse_reply(
+    b: Builder<'_>,
+    v: &Result<MetadataFileParsed, PluginError>,
+) -> Result<()>
+```
+
+Encode a `MetadataFileParseReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_metadata_file_parse_reply
+
+```rust
+pub fn read_metadata_file_parse_reply(
+    r: Reader<'_>,
+) -> Result<Result<MetadataFileParsed, PluginError>>
+```
+
+Decode a `MetadataFileParseReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_metadata_file_render_params
+
+```rust
+pub fn write_metadata_file_render_params(
+    b: Builder<'_>,
+    v: &MetadataFileRenderParams,
+) -> Result<()>
+```
+
+Encode a [`MetadataFileRenderParams`](#metadatafilerenderparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_file_render_params
+
+```rust
+pub fn read_metadata_file_render_params(r: Reader<'_>) -> Result<MetadataFileRenderParams>
+```
+
+Decode a [`MetadataFileRenderParams`](#metadatafilerenderparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_file_rendered
+
+```rust
+pub fn write_metadata_file_rendered(
+    b: Builder<'_>,
+    v: &MetadataFileRendered,
+) -> Result<()>
+```
+
+Encode a [`MetadataFileRendered`](#metadatafilerendered) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_file_rendered
+
+```rust
+pub fn read_metadata_file_rendered(r: Reader<'_>) -> Result<MetadataFileRendered>
+```
+
+Decode a [`MetadataFileRendered`](#metadatafilerendered) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_metadata_file_render_reply
+
+```rust
+pub fn write_metadata_file_render_reply(
+    b: Builder<'_>,
+    v: &Result<MetadataFileRendered, PluginError>,
+) -> Result<()>
+```
+
+Encode a `MetadataFileRenderReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_metadata_file_render_reply
+
+```rust
+pub fn read_metadata_file_render_reply(
+    r: Reader<'_>,
+) -> Result<Result<MetadataFileRendered, PluginError>>
+```
+
+Decode a `MetadataFileRenderReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_socket_frame
 
 ```rust
@@ -6197,7 +6611,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 118;
+pub const READ_ANY_COUNT: u8 = 125;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

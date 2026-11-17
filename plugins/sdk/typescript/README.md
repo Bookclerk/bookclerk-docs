@@ -47,6 +47,7 @@ extending its base:
 | `entrypoints = ["oidc"]` | `Oidc` | `OidcEntrypoint` |
 | `entrypoints = ["metadata"]` | `Metadata` | `MetadataEntrypoint` |
 | `entrypoints = ["covers"]` | `Covers` | `CoverEntrypoint` |
+| `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
 
 ```ts
 import {
@@ -2831,6 +2832,66 @@ Re-exports [MetadataChaptersReply](generated.md#metadatachaptersreply)
 ### MetadataEntrypoint
 
 Re-exports [MetadataEntrypoint](plugin.md#metadataentrypoint)
+
+***
+
+### MetadataField
+
+Re-exports [MetadataField](abi.md#metadatafield)
+
+***
+
+### MetadataFileParsed
+
+Re-exports [MetadataFileParsed](generated.md#metadatafileparsed)
+
+***
+
+### MetadataFileParseParams
+
+Re-exports [MetadataFileParseParams](generated.md#metadatafileparseparams)
+
+***
+
+### MetadataFileParseReply
+
+Re-exports [MetadataFileParseReply](generated.md#metadatafileparsereply)
+
+***
+
+### MetadataFileRecord
+
+Re-exports [MetadataFileRecord](generated.md#metadatafilerecord)
+
+***
+
+### MetadataFileRendered
+
+Re-exports [MetadataFileRendered](generated.md#metadatafilerendered)
+
+***
+
+### MetadataFileRenderParams
+
+Re-exports [MetadataFileRenderParams](generated.md#metadatafilerenderparams)
+
+***
+
+### MetadataFileRenderReply
+
+Re-exports [MetadataFileRenderReply](generated.md#metadatafilerenderreply)
+
+***
+
+### MetadataFiles
+
+Re-exports [MetadataFiles](generated.md#metadatafiles-1)
+
+***
+
+### MetadataFilesEntrypoint
+
+Re-exports [MetadataFilesEntrypoint](plugin.md#metadatafilesentrypoint)
 
 ***
 

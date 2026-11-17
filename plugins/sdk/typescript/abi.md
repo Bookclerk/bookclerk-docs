@@ -162,6 +162,16 @@ Union of `MEDIA_KINDS` wire names.
 
 ***
 
+### MetadataField
+
+```ts
+type MetadataField = typeof METADATA_FIELDS[number];
+```
+
+Union of `METADATA_FIELDS` wire names.
+
+***
+
 ### PluginErrorCode
 
 ```ts
@@ -315,7 +325,7 @@ Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -552,6 +562,59 @@ Maximum objects in one `Destination.list` page.
 
 ***
 
+### MAX\_METADATA\_FILE\_BYTES
+
+```ts
+const MAX_METADATA_FILE_BYTES: 262144;
+```
+
+Largest metadata file `MetadataFiles.parse` reads and `MetadataFiles.render`
+returns. The host skips a larger sidecar before any plugin sees it.
+
+***
+
+### MAX\_METADATA\_FILE\_CHAPTERS
+
+```ts
+const MAX_METADATA_FILE_CHAPTERS: 2000;
+```
+
+Most chapters in a `MetadataFileRecord`.
+
+***
+
+### MAX\_METADATA\_FILE\_DESCRIPTION\_BYTES
+
+```ts
+const MAX_METADATA_FILE_DESCRIPTION_BYTES: 65536;
+```
+
+Longest description a `MetadataFileRecord` carries, in UTF-8 bytes.
+
+***
+
+### MAX\_METADATA\_FILE\_LIST\_ENTRIES
+
+```ts
+const MAX_METADATA_FILE_LIST_ENTRIES: 256;
+```
+
+Most entries in each list of a `MetadataFileRecord` other than chapters
+(credits, genres, tags, identifiers, series).
+
+***
+
+### MAX\_METADATA\_FILE\_TEXT\_BYTES
+
+```ts
+const MAX_METADATA_FILE_TEXT_BYTES: 1024;
+```
+
+Longest other text value in a `MetadataFileRecord` (a title, a name, a
+genre, a chapter title), in UTF-8 bytes.
+
+***
+
 ### MAX\_PLUGIN\_MIGRATION\_OPS
 
 ```ts
@@ -716,6 +779,20 @@ Whether the host acquires an edition depends on the storefront's
 alone. `unspecified` is refused.
 
 Ordinal-ordered `MediaKind` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### METADATA\_FIELDS
+
+```ts
+const METADATA_FIELDS: readonly ["title", "subtitle", "description", "publisher", "publishedAt", "language", "genres", "tags", "abridgement", "expressionKind", "identifiers", "credits", "series", "chapters", "duration"];
+```
+
+A field of a `MetadataFileRecord`. Dialects declare in the manifest which
+fields their format carries; a parsed record lists the ones its file
+states, and a render request lists the ones to write.
+
+Ordinal-ordered `MetadataField` wire names (index = Cap'n Proto ordinal).
 
 ***
 

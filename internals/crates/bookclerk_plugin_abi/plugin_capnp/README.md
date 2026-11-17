@@ -20,6 +20,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`CatalogSort`](#catalogsort) | enum |  |
 | [`CatalogField`](#catalogfield) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
+| [`MetadataField`](#metadatafield) | enum |  |
 | [`DbType`](#dbtype) | enum |  |
 | [`DbStatementKind`](#dbstatementkind) | enum |  |
 | [`DbResultSelection`](#dbresultselection) | enum |  |
@@ -43,6 +44,11 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant |  |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant |  |
 | [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant |  |
+| [`MAX_METADATA_FILE_BYTES`](#max_metadata_file_bytes) | constant |  |
+| [`MAX_METADATA_FILE_DESCRIPTION_BYTES`](#max_metadata_file_description_bytes) | constant |  |
+| [`MAX_METADATA_FILE_TEXT_BYTES`](#max_metadata_file_text_bytes) | constant |  |
+| [`MAX_METADATA_FILE_LIST_ENTRIES`](#max_metadata_file_list_entries) | constant |  |
+| [`MAX_METADATA_FILE_CHAPTERS`](#max_metadata_file_chapters) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
 | [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant |  |
@@ -142,6 +148,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`oidc`](oidc/README.md)
 - [`metadata_provider`](metadata_provider/README.md)
 - [`cover_fetcher`](cover_fetcher/README.md)
+- [`metadata_files`](metadata_files/README.md)
 - [`json_enum`](json_enum.md)
 - [`event_consumer_spec`](event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capabilities.md)
@@ -249,6 +256,13 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`cover_image`](cover_image.md)
 - [`cover_images`](cover_images.md)
 - [`cover_images_reply`](cover_images_reply.md)
+- [`metadata_file_record`](metadata_file_record.md)
+- [`metadata_file_parse_params`](metadata_file_parse_params.md)
+- [`metadata_file_parsed`](metadata_file_parsed.md)
+- [`metadata_file_parse_reply`](metadata_file_parse_reply.md)
+- [`metadata_file_render_params`](metadata_file_render_params.md)
+- [`metadata_file_rendered`](metadata_file_rendered.md)
+- [`metadata_file_render_reply`](metadata_file_render_reply.md)
 - [`socket_frame`](socket_frame.md)
 - [`socket_header`](socket_header.md)
 - [`socket_auto_response`](socket_auto_response.md)
@@ -344,6 +358,7 @@ pub enum Entrypoint {
     Oidc = 5,
     Metadata = 6,
     Covers = 7,
+    MetadataFiles = 8,
 }
 ```
 
@@ -510,6 +525,30 @@ pub enum Abridgement {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<Abridgement>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### MetadataField
+
+```rust
+pub enum MetadataField {
+    Title = 0,
+    Subtitle = 1,
+    Description = 2,
+    Publisher = 3,
+    PublishedAt = 4,
+    Language = 5,
+    Genres = 6,
+    Tags = 7,
+    Abridgement = 8,
+    ExpressionKind = 9,
+    Identifiers = 10,
+    Credits = 11,
+    Series = 12,
+    Chapters = 13,
+    Duration = 14,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<MetadataField>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### DbType
 
@@ -692,6 +731,36 @@ pub const MAX_COVER_BYTES: u32 = 10485760;
 
 ```rust
 pub const MAX_COVER_HEADER_BYTES: u32 = 1024;
+```
+
+### MAX_METADATA_FILE_BYTES
+
+```rust
+pub const MAX_METADATA_FILE_BYTES: u32 = 262144;
+```
+
+### MAX_METADATA_FILE_DESCRIPTION_BYTES
+
+```rust
+pub const MAX_METADATA_FILE_DESCRIPTION_BYTES: u32 = 65536;
+```
+
+### MAX_METADATA_FILE_TEXT_BYTES
+
+```rust
+pub const MAX_METADATA_FILE_TEXT_BYTES: u32 = 1024;
+```
+
+### MAX_METADATA_FILE_LIST_ENTRIES
+
+```rust
+pub const MAX_METADATA_FILE_LIST_ENTRIES: u32 = 256;
+```
+
+### MAX_METADATA_FILE_CHAPTERS
+
+```rust
+pub const MAX_METADATA_FILE_CHAPTERS: u32 = 2000;
 ```
 
 ### MAX_KV_KEY_BYTES

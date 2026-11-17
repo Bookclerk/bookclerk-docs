@@ -891,7 +891,8 @@ One approved grant snapshot for a provenance-qualified plugin.
 - `plugin_key`: Canonical [`bookclerk_plugin_catalog::PluginKey`](../bookclerk_plugin_catalog/README.md#pluginkey).
 - `plugin_id`: Display / CLI alias from `plugin.toml` (not security authoritative).
 - `entrypoints`: Approved named entrypoints (wire names: `storefront`, `storage`,
-  `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`, `metadata`, `covers`).
+  `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`, `metadata`, `covers`,
+  `metadataFiles`).
 - `producers`: Approved event types the plugin may publish through its events binding.
 - `consumers`: Approved event-consumer subscriptions (type + schema + suspend + filter).
 - `jobs`: Approved `[triggers].jobs` types the plugin may handle.
@@ -3414,6 +3415,26 @@ runtime.
 
 Returns a plugin error when the guest did not export `covers` or the
 method fails.
+
+#### PluginSession::metadata_files
+
+```rust
+pub async fn metadata_files<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn MetadataFiles>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `metadataFiles` method on the opened primary entrypoints.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `metadataFiles`
+or the method fails.
 
 #### PluginSession::deliver_socket_event
 
