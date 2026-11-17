@@ -259,6 +259,9 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketList`](#socketlist) | class | Success payload of `Sockets.list`. |
 | [`SocketListReplyOk`](#socketlistreplyok) | class | `SocketListReply` member `ok`. |
 | [`SocketListReplyErr`](#socketlistreplyerr) | class | `SocketListReply` member `err`. |
+| [`SocketMessageReplyOk`](#socketmessagereplyok) | class | `SocketMessageReply` member `ok`. |
+| [`SocketMessageReplyErr`](#socketmessagereplyerr) | class | `SocketMessageReply` member `err`. |
+| [`SocketMessageOk`](#socketmessageok) | class | What a guest asks of the host after handling one pushed message. |
 | [`SocketMessage`](#socketmessage) | class | Argument of `SocketHandler.message`. |
 | [`SocketClosed`](#socketclosed) | class | Argument of `SocketHandler.closed`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
@@ -398,6 +401,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketFrame`](#socketframe) | constant | One WebSocket message. |
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
+| [`SocketMessageReply`](#socketmessagereply) | constant | Reply of `SocketHandler.message`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
@@ -2319,7 +2323,7 @@ Guest handler for host-brokered sockets (`Entrypoints.socketHandler`).
 #### SocketHandler.message
 
 ```python
-async def message(self, event: SocketMessage) -> EmptyReply
+async def message(self, event: SocketMessage) -> SocketMessageReply
 ```
 
 One message arrived on an open socket.
@@ -2330,7 +2334,7 @@ One message arrived on an open socket.
 
 **Returns**
 
-`EmptyReply`
+`SocketMessageReply`
 
 #### SocketHandler.closed
 
@@ -5108,6 +5112,48 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### SocketMessageReplyOk
+
+```python
+class SocketMessageReplyOk(TypedDict)
+```
+
+`SocketMessageReply` member `ok`.
+
+Success: what the guest asks of the host after the message.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: what the guest asks of the host after the message.
+
+### SocketMessageReplyErr
+
+```python
+class SocketMessageReplyErr(TypedDict)
+```
+
+`SocketMessageReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### SocketMessageOk
+
+```python
+class SocketMessageOk(TypedDict)
+```
+
+What a guest asks of the host after handling one pushed message.
+
+**Attributes**
+
+- `pollEvents`: True asks the host to call `Integration.pollEvents` now, while the guest is awake, instead of at the next scheduled poll: the message announced something the poll hands over (a new user). The host ignores it for a plugin whose host schedules no poll.
+
 ### SocketMessage
 
 ```python
@@ -7019,6 +7065,14 @@ SocketListReply = Union[SocketListReplyOk, SocketListReplyErr]
 ```
 
 Result union of `Sockets.list`.
+
+### SocketMessageReply
+
+```python
+SocketMessageReply = Union[SocketMessageReplyOk, SocketMessageReplyErr]
+```
+
+Reply of `SocketHandler.message`.
 
 ### DbValue
 

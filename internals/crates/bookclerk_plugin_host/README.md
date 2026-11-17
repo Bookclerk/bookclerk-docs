@@ -643,7 +643,7 @@ pub trait SocketSink: Send + Sync {
     fn deliver_socket_event<'life0, 'async_trait>(
         &'life0 self,
         event: SocketEvent,
-    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+    ) -> Pin<Box<dyn Future<Output = Result<SocketMessageOk, String>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -658,13 +658,20 @@ Where a plugin instance's socket events go: its guest's `socketHandler`.
 fn deliver_socket_event<'life0, 'async_trait>(
     &'life0 self,
     event: SocketEvent,
-) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+) -> Pin<Box<dyn Future<Output = Result<SocketMessageOk, String>> + Send + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
 Hands one event to the guest, starting it if it sleeps.
+
+A sink that schedules the guest's event poll acts on the guest's
+`SocketMessageOk::poll_events` itself, polling at once.
+
+##### Returns
+
+The guest's reply to a message; the default for a close.
 
 ##### Errors
 
@@ -3411,10 +3418,15 @@ method fails.
 #### PluginSession::deliver_socket_event
 
 ```rust
-pub async fn deliver_socket_event(&self, event: SocketEvent) -> Result<()>
+pub async fn deliver_socket_event(&self, event: SocketEvent) -> Result<SocketMessageOk>
 ```
 
 Hands one socket event to the guest's `socketHandler` entrypoint.
+
+##### Returns
+
+The guest's reply to a message (whether it asks for an events poll
+now); the default for a close.
 
 ##### Errors
 

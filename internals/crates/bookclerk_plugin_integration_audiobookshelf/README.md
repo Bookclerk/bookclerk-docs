@@ -35,6 +35,7 @@ into `bookclerk` / `bookclerkd` for in-process execution.
 ## Modules
 
 - [`guest`](guest.md): Guest-process helpers for the external Audiobookshelf integration plugin.
+- [`push`](push.md): Audiobookshelf's pushed events, read from its Socket.io channel.
 - [`watch`](watch.md): Which Audiobookshelf users the host has already been told about.
 
 ## Structs

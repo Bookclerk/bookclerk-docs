@@ -32,6 +32,7 @@ as UTF-8 JSON so a socket opened by one SDK reads the same in another.
 - [`bookclerk_plugin_abi::SocketHeader`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketheader)
 - [`bookclerk_plugin_abi::SocketInfo`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketinfo)
 - [`bookclerk_plugin_abi::SocketMessage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketmessage)
+- [`bookclerk_plugin_abi::SocketMessageOk`](../../../internals/crates/bookclerk_plugin_abi/generated.md#socketmessageok)
 - [`bookclerk_plugin_abi::Sockets`](../../../internals/crates/bookclerk_plugin_abi/README.md#sockets)
 - [`bookclerk_plugin_abi::MAX_SOCKETS_PER_INSTANCE`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_sockets_per_instance)
 - [`bookclerk_plugin_abi::MAX_SOCKET_ATTACHMENT_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_socket_attachment_bytes)

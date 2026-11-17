@@ -257,6 +257,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`socket_connect_reply`](socket_connect_reply.md)
 - [`socket_list`](socket_list.md)
 - [`socket_list_reply`](socket_list_reply.md)
+- [`socket_message_reply`](socket_message_reply.md)
+- [`socket_message_ok`](socket_message_ok.md)
 - [`socket_message`](socket_message.md)
 - [`socket_closed`](socket_closed.md)
 - [`db_value`](db_value.md)

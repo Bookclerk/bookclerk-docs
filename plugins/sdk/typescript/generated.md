@@ -8150,7 +8150,7 @@ A socket closed, by the remote side, the network, or the host.
 ##### message()
 
 ```ts
-message(event): Promise<EmptyReply>;
+message(event): Promise<SocketMessageReply>;
 ```
 
 One message arrived on an open socket.
@@ -8163,9 +8163,9 @@ One message arrived on an open socket.
 
 ###### Returns
 
-`Promise`\<[`EmptyReply`](#emptyreply)\>
+`Promise`\<[`SocketMessageReply`](#socketmessagereply)\>
 
-[EmptyReply](#emptyreply)
+[SocketMessageReply](#socketmessagereply)
 
 ***
 
@@ -8279,6 +8279,25 @@ socket: string;
 ```
 
 Socket the message arrived on.
+
+***
+
+### SocketMessageOk
+
+What a guest asks of the host after handling one pushed message.
+
+#### Properties
+
+##### pollEvents
+
+```ts
+pollEvents: boolean;
+```
+
+True asks the host to call `Integration.pollEvents` now, while the
+guest is awake, instead of at the next scheduled poll: the message
+announced something the poll hands over (a new user). The host ignores
+it for a plugin whose host schedules no poll.
 
 ***
 
@@ -9753,6 +9772,24 @@ type SocketListReply =
 ```
 
 Result union of `Sockets.list`.
+
+***
+
+### SocketMessageReply
+
+```ts
+type SocketMessageReply = 
+  | {
+  kind: "ok";
+  value: SocketMessageOk;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Reply of `SocketHandler.message`.
 
 ***
 

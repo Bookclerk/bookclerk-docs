@@ -274,12 +274,19 @@ completes the fire; raising has the host retry the same fire.
 #### BookclerkEntrypoint.bookclerkSocketMessage
 
 ```python
-async def bookclerkSocketMessage(self, context: Any=None, wire: Any=None) -> None
+async def bookclerkSocketMessage(self, context: Any=None, wire: Any=None) -> Any
 ```
 
 Adapter dispatch: one host-held socket message to `web_socket_message(ws, message)`.
 
-Text arrives as `str`, binary as `bytes`.
+Text arrives as `str`, binary as `bytes`. The handler may return
+`{"poll_events": True}` (or `pollEvents`) when the message announced
+something `poll_events` hands over, such as a new user; the host then
+polls now instead of at its next scheduled poll.
+
+**Returns**
+
+The wire `SocketMessageOk`: `{"pollEvents": bool}`.
 
 **Raises**
 

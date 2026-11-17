@@ -477,7 +477,7 @@ Resolves when the author's handler completes.
 ##### bookclerkSocketMessage()
 
 ```ts
-bookclerkSocketMessage(context, wire): Promise<void>;
+bookclerkSocketMessage(context, wire): Promise<SocketMessageOk>;
 ```
 
 **`Internal`**
@@ -493,9 +493,9 @@ Adapter dispatch for `SocketHandler.message`.
 
 ###### Returns
 
-`Promise`\<`void`\>
+`Promise`\<[`SocketMessageOk`](generated.md#socketmessageok)\>
 
-Resolves when the author's handler completes.
+What the handler asks of the host (`pollEvents`).
 
 ##### databaseMigrations()?
 
@@ -682,14 +682,19 @@ socket's broker). The socket's id is never reused.
 ##### webSocketMessage()?
 
 ```ts
-webSocketMessage?(ws, message): void | Promise<void>;
+webSocketMessage?(ws, message): 
+  | void
+  | Partial<SocketMessageOk>
+| Promise<void | Partial<SocketMessageOk>>;
 ```
 
 `[sockets]` handler, the Workers `webSocketMessage(ws, message)`: one
 message arrived on a host-brokered socket while the plugin may have been
 asleep. `ws` carries the socket's id and its attachment as it was when
 the message arrived. Throwing reports the failure to the host; the
-socket stays open.
+socket stays open. Return `{ pollEvents: true }` when the message
+announced something `pollEvents` hands over (a new user), and the host
+polls now instead of at its next scheduled poll.
 
 ###### Parameters
 
@@ -700,7 +705,9 @@ socket stays open.
 
 ###### Returns
 
-`void` \| `Promise`\<`void`\>
+  \| `void`
+  \| `Partial`\<[`SocketMessageOk`](generated.md#socketmessageok)\>
+  \| `Promise`\<`void` \| `Partial`\<[`SocketMessageOk`](generated.md#socketmessageok)\>\>
 
 ***
 

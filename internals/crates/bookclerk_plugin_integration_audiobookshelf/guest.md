@@ -18,6 +18,8 @@ owns claim-ticket and portal workflows.
 | [`guest_sync_listening`](#guest_sync_listening) | function | Collect listening progress as typed ABI rows (host upserts). |
 | [`guest_authenticate_user`](#guest_authenticate_user) | function | Username/password login against ABS (when allowed). |
 | [`guest_on_event`](#guest_on_event) | function | Handle host-forwarded integration events (e.g. book_acquired → scan). |
+| [`guest_ensure_push`](#guest_ensure_push) | function | Opens the pushed-event socket when none is open, so the host learns of a new ABS user as soon as the server announces it. |
+| [`guest_push_frame`](#guest_push_frame) | function | Answers one frame pushed on the ABS socket. |
 
 ## Structs
 
@@ -207,3 +209,65 @@ Handle host-forwarded integration events (e.g. book_acquired → scan).
 #### Errors
 
 Returns an error when the operation fails.
+
+### guest_ensure_push
+
+```rust
+pub async fn guest_ensure_push(
+    state: &Mutex<AbsGuestState>,
+    sockets: Option<&dyn Sockets>,
+) -> Result<bool>
+```
+
+Opens the pushed-event socket when none is open, so the host learns of a
+new ABS user as soon as the server announces it.
+
+Does nothing without the `SOCKETS` binding, with the user watch off, or
+without an API key. A socket that closes is not reopened at once: the
+next start or poll opens it again, so a server that keeps refusing the
+key is retried at the poll's pace rather than in a loop. The host answers
+the server's Engine.IO ping itself, so an open socket costs no wakes.
+
+#### Arguments
+
+* `state` - Shared guest state with the ABS config.
+* `sockets` - The plugin's `SOCKETS` binding, when granted.
+
+#### Returns
+
+`true` when a socket was opened by this call.
+
+#### Errors
+
+Returns the host's error when the open sockets cannot be listed or the
+socket cannot be opened.
+
+### guest_push_frame
+
+```rust
+pub async fn guest_push_frame(
+    state: &Mutex<AbsGuestState>,
+    sockets: &dyn Sockets,
+    event: &SocketMessage,
+) -> Result<bool>
+```
+
+Answers one frame pushed on the ABS socket.
+
+Sends the handshake replies (joining the namespace, then authenticating
+with the API key), closes the socket when the server rejects the key,
+and reports whether the frame announced a new user.
+
+#### Arguments
+
+* `state` - Shared guest state with the API key.
+* `sockets` - The plugin's `SOCKETS` binding.
+* `event` - The pushed frame.
+
+#### Returns
+
+`true` when the server announced a user created on it.
+
+#### Errors
+
+Returns the host's error when a reply cannot be sent.

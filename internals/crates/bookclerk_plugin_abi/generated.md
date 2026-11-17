@@ -95,6 +95,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`SocketConnectRequest`](#socketconnectrequest) | struct | Arguments of `Sockets.connect`. |
 | [`SocketInfo`](#socketinfo) | struct | One open host-brokered socket. |
 | [`SocketList`](#socketlist) | struct | Success payload of `Sockets.list`. |
+| [`SocketMessageOk`](#socketmessageok) | struct | What a guest asks of the host after handling one pushed message. |
 | [`SocketMessage`](#socketmessage) | struct | Argument of `SocketHandler.message`. |
 | [`SocketClosed`](#socketclosed) | struct | Argument of `SocketHandler.closed`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
@@ -341,6 +342,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_socket_list`](#read_socket_list) | function | Decode a `SocketList` from a Cap'n Proto reader. |
 | [`write_socket_list_reply`](#write_socket_list_reply) | function | Encode a `SocketListReply` union from a typed result. |
 | [`read_socket_list_reply`](#read_socket_list_reply) | function | Decode a `SocketListReply` union into a typed result. |
+| [`write_socket_message_reply`](#write_socket_message_reply) | function | Encode a `SocketMessageReply` union from a typed result. |
+| [`read_socket_message_reply`](#read_socket_message_reply) | function | Decode a `SocketMessageReply` union into a typed result. |
+| [`write_socket_message_ok`](#write_socket_message_ok) | function | Encode a `SocketMessageOk` onto a Cap'n Proto builder. |
+| [`read_socket_message_ok`](#read_socket_message_ok) | function | Decode a `SocketMessageOk` from a Cap'n Proto reader. |
 | [`write_socket_message`](#write_socket_message) | function | Encode a `SocketMessage` onto a Cap'n Proto builder. |
 | [`read_socket_message`](#read_socket_message) | function | Decode a `SocketMessage` from a Cap'n Proto reader. |
 | [`write_socket_closed`](#write_socket_closed) | function | Encode a `SocketClosed` onto a Cap'n Proto builder. |
@@ -2525,6 +2530,25 @@ Success payload of `Sockets.list`.
 **Fields**
 
 - `sockets`: Open sockets, oldest first.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SocketMessageOk
+
+```rust
+pub struct SocketMessageOk {
+    pub poll_events: bool,
+}
+```
+
+What a guest asks of the host after handling one pushed message.
+
+**Fields**
+
+- `poll_events`: True asks the host to call `Integration.pollEvents` now, while the
+  guest is awake, instead of at the next scheduled poll: the message
+  announced something the poll hands over (a new user). The host ignores
+  it for a plugin whose host schedules no poll.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -6020,6 +6044,59 @@ Decode a `SocketListReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_socket_message_reply
+
+```rust
+pub fn write_socket_message_reply(
+    b: Builder<'_>,
+    v: &Result<SocketMessageOk, PluginError>,
+) -> Result<()>
+```
+
+Encode a `SocketMessageReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_socket_message_reply
+
+```rust
+pub fn read_socket_message_reply(
+    r: Reader<'_>,
+) -> Result<Result<SocketMessageOk, PluginError>>
+```
+
+Decode a `SocketMessageReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_socket_message_ok
+
+```rust
+pub fn write_socket_message_ok(b: Builder<'_>, v: &SocketMessageOk) -> Result<()>
+```
+
+Encode a [`SocketMessageOk`](#socketmessageok) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_socket_message_ok
+
+```rust
+pub fn read_socket_message_ok(r: Reader<'_>) -> Result<SocketMessageOk>
+```
+
+Decode a [`SocketMessageOk`](#socketmessageok) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### write_socket_message
 
 ```rust
@@ -6120,7 +6197,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 116;
+pub const READ_ANY_COUNT: u8 = 118;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

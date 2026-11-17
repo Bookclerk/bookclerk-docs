@@ -524,6 +524,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::SocketConnectRequest`](generated.md#socketconnectrequest)
 - [`generated::SocketInfo`](generated.md#socketinfo)
 - [`generated::SocketList`](generated.md#socketlist)
+- [`generated::SocketMessageOk`](generated.md#socketmessageok)
 - [`generated::SocketMessage`](generated.md#socketmessage)
 - [`generated::SocketClosed`](generated.md#socketclosed)
 - [`generated::write_event_consumer_spec`](generated.md#write_event_consumer_spec)
@@ -754,6 +755,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_socket_list`](generated.md#read_socket_list)
 - [`generated::write_socket_list_reply`](generated.md#write_socket_list_reply)
 - [`generated::read_socket_list_reply`](generated.md#read_socket_list_reply)
+- [`generated::write_socket_message_reply`](generated.md#write_socket_message_reply)
+- [`generated::read_socket_message_reply`](generated.md#read_socket_message_reply)
+- [`generated::write_socket_message_ok`](generated.md#write_socket_message_ok)
+- [`generated::read_socket_message_ok`](generated.md#read_socket_message_ok)
 - [`generated::write_socket_message`](generated.md#write_socket_message)
 - [`generated::read_socket_message`](generated.md#read_socket_message)
 - [`generated::write_socket_closed`](generated.md#write_socket_closed)
@@ -2968,7 +2973,7 @@ pub trait SocketHandler {
     fn message<'life0, 'async_trait>(
         &'life0 self,
         _event: SocketMessage,
-    ) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+    ) -> Pin<Box<dyn Future<Output = Result<SocketMessageOk>> + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
@@ -2990,13 +2995,17 @@ pub trait SocketHandler {
 fn message<'life0, 'async_trait>(
     &'life0 self,
     _event: SocketMessage,
-) -> Pin<Box<dyn Future<Output = Result<()>> + 'async_trait>>
+) -> Pin<Box<dyn Future<Output = Result<SocketMessageOk>> + 'async_trait>>
 where
     Self: 'async_trait,
     'life0: 'async_trait,
 ```
 
 One message arrived on an open socket.
+
+The reply may ask the host to poll the plugin's events now
+([`SocketMessageOk::poll_events`](generated.md#socketmessageok)), when the message announced
+something the poll hands over.
 
 #### SocketHandler::closed
 
