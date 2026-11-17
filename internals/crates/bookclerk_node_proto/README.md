@@ -133,6 +133,7 @@ bytes.
 | [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = owner`). `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
+| [`WindowCursor`](#windowcursor) | struct | Where a page of the person's books starts: an opaque key the library handed out as the previous page's `next`, or empty for the first page. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
 | [`ClerkFrame`](#clerkframe) | enum | A frame from a clerk to a library. |
 | [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` frame. |
@@ -173,7 +174,7 @@ bytes.
 | [`parse_clerk_query`](#parse_clerk_query) | function | Parses an authorize query string (the raw query `/oidc/authorize` received), sans-IO so the fuzz target drives the same code. |
 | [`parse_clerk_token_request`](#parse_clerk_token_request) | function | Reads a `POST /api/clerk/v1/token` body. |
 | [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
-| [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (an integer, not negative), each once. |
+| [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (a string `WindowCursor`), each once. |
 | [`parse_library_frame`](#parse_library_frame) | function | Reads a frame a library sent: at most `crate::MAX_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
@@ -250,7 +251,7 @@ bytes.
 | [`CLERK_CONNECT_PATH`](#clerk_connect_path) | constant | Path of the clerk socket. |
 | [`CLERK_SOCKET_VERSION`](#clerk_socket_version) | constant | The `v` every frame carries. |
 | [`CLERK_SUBPROTOCOL`](#clerk_subprotocol) | constant | The WebSocket subprotocol a clerk must offer. |
-| [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes) | constant | Largest frame a library accepts from a clerk, in bytes; a `books` frame is under 50. |
+| [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes) | constant | Largest frame a library accepts from a clerk, in bytes; a `books` frame is under 120. |
 | [`MAX_CLERK_TOPICS`](#max_clerk_topics) | constant | Most topic names one `hello` or `changed` frame may carry, known or not. |
 | [`MAX_CLERK_TOPIC_BYTES`](#max_clerk_topic_bytes) | constant | Longest topic name, in bytes. |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
@@ -1524,6 +1525,55 @@ What a handshake signature covers.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### WindowCursor
+
+```rust
+pub struct WindowCursor(/* private */);
+```
+
+Where a page of the person's books starts: an opaque key the library
+handed out as the previous page's `next`, or empty for the first page.
+
+A cursor is empty or, like a grouping key ([`is_work_ref`](#is_work_ref)), at most
+[`crate::lookup::MAX_WORK_REF_BYTES`](#max_work_ref_bytes) bytes of ASCII letters, digits and `-`. Cursors
+order as strings, and each page's `next` sorts after the cursor it
+answers, so paging always moves forward. On the wire it is a JSON
+string; anything else is refused.
+
+#### WindowCursor::start
+
+```rust
+pub fn start() -> Self
+```
+
+The cursor of the first page.
+
+#### WindowCursor::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Reads a cursor: `None` unless `text` is empty or a well-formed key.
+
+#### WindowCursor::is_start
+
+```rust
+pub fn is_start(&self) -> bool
+```
+
+True for the first page's cursor.
+
+#### WindowCursor::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The cursor's text.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Display`, `Eq`, `From<WindowCursor>`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `TryFrom<String>`
+
 ### WindowWork
 
 ```rust
@@ -1565,7 +1615,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ```rust
 pub enum ClerkFrame {
-    Books { after: i64 },
+    Books { after: WindowCursor },
 }
 ```
 
@@ -1573,8 +1623,8 @@ A frame from a clerk to a library.
 
 **Variants**
 
-- `Books`: `books`: the page of the person's books after `after` (0 for the
-  first page; never negative).
+- `Books`: `books`: the page of the person's books after `after` (empty for
+  the first page).
   - `after`: The cursor of the previous page.
 
 #### ClerkFrame::encode
@@ -1585,7 +1635,7 @@ pub fn encode(&self) -> String
 
 The frame's JSON text, as a clerk sends it.
 
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### ClerkSocketError
 
@@ -1655,7 +1705,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `
 pub enum LibraryFrame {
     Hello { topics: BTreeSet<ClerkTopic> },
     Changed { topics: BTreeSet<ClerkTopic> },
-    BooksPage { after: i64, works: Vec<WindowWork>, next: Option<i64> },
+    BooksPage { after: WindowCursor, works: Vec<WindowWork>, next: Option<WindowCursor> },
     Error { code: ClerkSocketError },
 }
 ```
@@ -1742,8 +1792,8 @@ pub enum Body {
     RequestsClaim {  },
     RequestsClaimed { requests: Vec<BranchRequest> },
     RequestFinish { job: String, generation: i64, outcome: RequestOutcome },
-    WindowBooks { after: i64 },
-    WindowPage { works: Vec<WindowWork>, next: Option<i64> },
+    WindowBooks { after: WindowCursor },
+    WindowPage { works: Vec<WindowWork>, next: Option<WindowCursor> },
     Accepted {  },
     Unknown,
 }
@@ -2103,7 +2153,8 @@ What a frame says, tagged by `type`.
   holds for the window's person (the node's owner). Answered with
   [`Body::WindowPage`](#body), or `error {code: "refused"}` when the node is
   not a branch this library trusts.
-  - `after`: The `next` cursor of the previous page; 0 for the first page.
+  - `after`: The `next` cursor of the previous page; empty (or absent) for
+    the first page.
 - `WindowPage`: Library → window: one page of the person's books.
   - `works`: The works, at most [`crate::MAX_WINDOW_WORKS`](#max_window_works).
   - `next`: The cursor to ask with for the next page; absent on the last.
@@ -2769,8 +2820,8 @@ pub fn parse_clerk_frame(text: &[u8]) -> Option<ClerkFrame>
 ```
 
 Reads a frame a clerk sent: at most [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes), one JSON
-object with exactly `v` (1), `type` (`books`) and `after` (an integer,
-not negative), each once.
+object with exactly `v` (1), `type` (`books`) and `after` (a string
+[`WindowCursor`](#windowcursor)), each once.
 
 #### Arguments
 
@@ -2792,7 +2843,7 @@ each once.
 
 - `hello` and `changed`: `topics`, at most [`MAX_CLERK_TOPICS`](#max_clerk_topics) names,
   each [`is_topic_name`](#is_topic_name); names this version does not know are dropped.
-- `books.page`: `after` (not negative), `works`, and `next` unless it is
+- `books.page`: `after` (a [`WindowCursor`](#windowcursor)), `works`, and `next` unless it is
   the last page, passing [`crate::window_page_problem`](#window_page_problem).
 - `error`: a [`ClerkSocketError`](#clerksocketerror) `code`.
 
@@ -3392,9 +3443,9 @@ malformed, or it does not verify.
 
 ```rust
 pub fn window_page_problem(
-    after: i64,
+    after: &WindowCursor,
     works: &[WindowWork],
-    next: Option<i64>,
+    next: Option<&WindowCursor>,
 ) -> Option<&'static str>
 ```
 
@@ -3652,7 +3703,7 @@ pub const MAX_CLERK_FRAME_BYTES: usize = _;
 ```
 
 Largest frame a library accepts from a clerk, in bytes; a `books` frame
-is under 50.
+is under 120.
 
 ### MAX_CLERK_TOPICS
 

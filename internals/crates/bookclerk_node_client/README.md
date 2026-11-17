@@ -761,12 +761,12 @@ branch's.
 ```rust
 pub async fn window_books(
     &self,
-    after: i64,
-) -> Result<(Vec<WindowWork>, Option<i64>), OwnerCallError>
+    after: &WindowCursor,
+) -> Result<(Vec<WindowWork>, Option<WindowCursor>), OwnerCallError>
 ```
 
 `window.books`: one page of the books the library holds for this
-window's person, from cursor `after` (0 for the first page).
+window's person, from cursor `after` (empty for the first page).
 
 ##### Returns
 

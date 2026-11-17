@@ -587,7 +587,7 @@ See `docs/adr/control-plane.md`.
 | [`UPLOAD_NUMBER_WILDCARD`](#upload_number_wildcard) | constant | In a `TitleNames::part_patterns` pattern: one or more ASCII digits, where a part or chapter number goes. |
 | [`UPLOAD_TOKEN_TTL_SECS`](#upload_token_ttl_secs) | constant | How long a granted upload's token is accepted past its latest extension (the grant, an accepted file, or a renewal of the job's lease). |
 | [`ARTIFACT_BLOB_SCHEME`](#artifact_blob_scheme) | constant | Artifact URL scheme of an archive stored in the library (`super::artifacts::put_artifact_blob`). |
-| [`WINDOW_BOOKS_READ`](#window_books_read) | constant | Most book rows one `window_books_page` reads. |
+| [`WINDOW_BOOKS_READ`](#window_books_read) | constant | Most holdings one `window_books_page` reads. |
 | [`EVENTS_NAMESPACE`](#events_namespace) | constant | Namespace for the migrated `[events]` domain. |
 | [`NODE_RUNTIME_NAMESPACE`](#node_runtime_namespace) | constant | Namespace for node-scoped runtime settings. |
 | [`EVENTS_SCHEMA_VERSION`](#events_schema_version) | constant | Schema version of `EventsSettingsV1`. |
@@ -11459,8 +11459,8 @@ Returns the write error.
 pub async fn person_books_page(
     store: &LibraryStore,
     user_id: i64,
-    after: i64,
-) -> Result<(Vec<WindowWork>, Option<i64>)>
+    after: &WindowCursor,
+) -> Result<(Vec<WindowWork>, Option<WindowCursor>)>
 ```
 
 One page of the books this library holds for a person, as a clerk
@@ -11472,7 +11472,7 @@ rather than a branch node's owner.
 #### Arguments
 
 * `user_id` - The person: the card's user on this library.
-* `after` - The cursor of the previous page (0 for the first).
+* `after` - The cursor of the previous page (empty for the first).
 
 #### Returns
 
@@ -11520,17 +11520,19 @@ Returns a read or write error.
 pub async fn window_books_page(
     store: &LibraryStore,
     node_id: &str,
-    after: i64,
-) -> Result<Option<(Vec<WindowWork>, Option<i64>)>>
+    after: &WindowCursor,
+) -> Result<Option<(Vec<WindowWork>, Option<WindowCursor>)>>
 ```
 
 One page of the books this library holds for branch `node_id`'s owner,
 for the `window.books` frame.
 
-Books are read in id order from cursor `after` (at most
-[`WINDOW_BOOKS_READ`](#window_books_read) rows, and no more than one database result page).
-Each is grouped under its work here (its key is the work id, or
-`book-<id>` when it has no work), with the work's identifiers; a work
+The person's titles (their accounts' holdings) are read in holding id
+order from cursor `after` (at most [`WINDOW_BOOKS_READ`](#window_books_read) holdings, and
+no more than one database result page); the next cursor is the last
+holding id the page covered. Each title is grouped under its work here
+(its key is the work id, or `edition-<edition id>` when the edition has
+no work), with the work's identifiers; a work
 lists at most [`MAX_LOOKUP_EDITIONS`](../bookclerk_node_proto/README.md#max_lookup_editions) editions (where two of the
 person's accounts hold the same edition, one entry with every format
 either copy has).
@@ -11540,7 +11542,7 @@ The page stops early once it would pass the frame budget or
 #### Arguments
 
 * `node_id` - The asking node; its owner is the person.
-* `after` - The cursor of the previous page (0 for the first).
+* `after` - The cursor of the previous page (empty for the first).
 
 #### Returns
 
@@ -12575,7 +12577,7 @@ Artifact URL scheme of an archive stored in the library
 pub const WINDOW_BOOKS_READ: u64 = 200;
 ```
 
-Most book rows one [`window_books_page`](#window_books_page) reads.
+Most holdings one [`window_books_page`](#window_books_page) reads.
 
 ### EVENTS_NAMESPACE
 
