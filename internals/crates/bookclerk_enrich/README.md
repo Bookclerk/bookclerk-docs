@@ -25,9 +25,9 @@ plain audio that lacks Audible brand intro/outro.
 | [`ProvidedRecord`](#providedrecord) | struct | One record and the provider plugin that returned it. |
 | [`ProviderFailure`](#providerfailure) | struct | A provider call that failed, so its records are missing from the answer. |
 | [`EnrichError`](#enricherror) | enum | Errors from public-catalog enrichment and match scoring. |
-| [`apply_enrichment_to_book`](#apply_enrichment_to_book) | function | Apply a confident Audible catalog match onto a non-Audible ownership row. |
+| [`apply_enrichment_to_edition`](#apply_enrichment_to_edition) | function | Apply a confident Audible catalog match to a held edition. |
 | [`confidence_percent_to_fraction`](#confidence_percent_to_fraction) | function | Convert a 0–100 percent threshold to a 0.0–1.0 fraction. |
-| [`enrich_books_from_audible`](#enrich_books_from_audible) | function | Enrich library rows that lack an ASIN via the public Audible catalog and the deployed metadata providers. |
+| [`enrich_editions_from_audible`](#enrich_editions_from_audible) | function | Match held editions that have no ASIN to the Audible catalog through the deployed metadata providers, and record each confident match. |
 | [`enrichment_for_asin`](#enrichment_for_asin) | function | Provider metadata for a known ASIN (no confidence scoring). |
 | [`enrichment_from_record`](#enrichment_from_record) | function | Maps a provider record into enrichment fields. |
 | [`lookup_by_metadata`](#lookup_by_metadata) | function | Look up the best Audible match for the given query metadata. |
@@ -447,37 +447,43 @@ Implements: `Debug`, `Display`, `Error`, `From<CatalogError>`, `From<Error>`, `F
 
 ## Functions
 
-### apply_enrichment_to_book
+### apply_enrichment_to_edition
 
 ```rust
-pub async fn apply_enrichment_to_book(
+pub async fn apply_enrichment_to_edition(
     library: &LibraryStore,
-    book_uuid: &str,
-    enrichment: &Enrichment,
-) -> Result<BookRecord>
+    edition_id: &str,
+    marketplace: &str,
+    matched: &ScoredMatch,
+) -> Result<()>
 ```
 
-Apply a confident Audible catalog match onto a non-Audible ownership row.
+Apply a confident Audible catalog match to a held edition.
 
-Preserves `source`, `product_id`, `uuid`, `account_id`, and an existing
-`asin` (sets ASIN only when the row does not already have one). Catalog
-fields win for display metadata (title, contributors, series, ISBN, genres,
-publish date). Store-native `length_minutes` is kept when present — Audible
-runtimes include brand intro/outro that plain Acquire files omit.
+The edition records the matched ASIN as its identifier (in the
+edition's marketplace; an ASIN another edition already holds stays
+there), its work takes the description, genres and cover it lacks, its
+expression the language it lacks, and its own cover when it has none.
+The edition then records `audible` as its enrichment source.
+
+While the flat `books` table exists, each of the edition's rows also
+takes the match as before: catalog fields win for display metadata
+(title, contributors, series, ISBN, genres, publish date), an existing
+`asin` is kept, and a store-native `length_minutes` is kept because
+Audible runtimes include brand intro/outro that plain Acquire files
+omit.
 
 #### Arguments
 
 * `library` - Open library store used for reads/writes.
-* `book_uuid` - String `book_uuid` for this call.
-* `enrichment` - Catalog fields to merge onto the book row.
-
-#### Returns
-
-On success, the inner `bookclerk_library::BookRecord` value.
+* `edition_id` - The held edition matched (`editions.id`).
+* `marketplace` - The marketplace the ASIN was matched in (such as `us`).
+* `matched` - The catalog match and its confidence.
 
 #### Errors
 
-Returns an error when the underlying I/O, parse, network, or store operation fails.
+Returns an error when the edition is gone or a store read or write
+fails.
 
 ### confidence_percent_to_fraction
 
@@ -495,23 +501,26 @@ Convert a 0–100 percent threshold to a 0.0–1.0 fraction.
 
 `f64` result.
 
-### enrich_books_from_audible
+### enrich_editions_from_audible
 
 ```rust
-pub async fn enrich_books_from_audible(
+pub async fn enrich_editions_from_audible(
     library: &LibraryStore,
     providers: &dyn MetadataProviders,
     min_confidence_percent: u8,
 ) -> Result<usize>
 ```
 
-Enrich library rows that lack an ASIN via the public Audible catalog and
-the deployed metadata providers.
+Match held editions that have no ASIN to the Audible catalog through the
+deployed metadata providers, and record each confident match.
 
-Source-agnostic: any non-`audible` row with title and/or ISBN is considered.
-Uses title, author, narrator, subtitle, ISBN, and duration when present.
-`min_confidence_percent` is 0–100 (default [`DEFAULT_ENRICH_MIN_CONFIDENCE`](#default_enrich_min_confidence)).
-With no provider that answers ASIN lookups, nothing matches.
+Source-agnostic: any held edition with a title and/or an ISBN and no
+ASIN is considered, which leaves out every edition an Audible listing
+sells (its scan records the ASIN). Uses title, subtitle, author,
+narrator, ISBN, and running time when present, and searches the
+marketplace of the edition's first listing. `min_confidence_percent` is
+0–100 (default [`DEFAULT_ENRICH_MIN_CONFIDENCE`](#default_enrich_min_confidence)). With no provider that
+answers ASIN lookups, nothing matches.
 
 #### Arguments
 
@@ -521,7 +530,7 @@ With no provider that answers ASIN lookups, nothing matches.
 
 #### Returns
 
-On success, the inner `usize` value.
+How many editions were matched.
 
 #### Errors
 

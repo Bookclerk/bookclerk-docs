@@ -133,6 +133,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
+| [`EditionAsin`](#editionasin) | struct | An ASIN a catalog match found for an edition. |
 | [`EditionEnrichment`](#editionenrichment) | struct | What an enricher fills on one edition; `None` fields are left alone. |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`EnrichCandidate`](#enrichcandidate) | struct | One held edition, with what an enricher needs to look it up and the fields it may fill. |
@@ -5337,12 +5338,32 @@ An edition's acquire state (`edition_acquisitions`).
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 
+### EditionAsin
+
+```rust
+pub struct EditionAsin {
+    pub value: String,
+    pub marketplace: String,
+}
+```
+
+An ASIN a catalog match found for an edition.
+
+**Fields**
+
+- `value`: The ASIN as the catalog printed it (normalised when stored).
+- `marketplace`: The marketplace the ASIN is sold in (such as `us`).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EditionEnrichment
 
 ```rust
 pub struct EditionEnrichment {
+    pub asin: Option<EditionAsin>,
     pub description: Option<String>,
     pub subjects: Option<String>,
+    pub categories: Option<String>,
     pub cover_url: Option<String>,
     pub language: Option<String>,
     pub source: String,
@@ -5354,8 +5375,11 @@ What an enricher fills on one edition; `None` fields are left alone.
 
 **Fields**
 
+- `asin`: An ASIN to record as the edition's identifier. An ASIN another
+  edition already holds stays there.
 - `description`: Description for the work, when it has none.
 - `subjects`: Subjects for the work, when it has none.
+- `categories`: Category labels for the work, when it has none.
 - `cover_url`: Cover for the edition (and the work), when it has none.
 - `language`: Language for the expression, when it has none.
 - `source`: Who filled it, recorded as `editions.enrich_source`.
@@ -5392,8 +5416,13 @@ pub struct EnrichCandidate {
     pub edition_id: String,
     pub work_id: Option<String>,
     pub title: String,
+    pub subtitle: Option<String>,
     pub authors: Option<String>,
+    pub narrators: Option<String>,
+    pub duration_minutes: Option<i64>,
+    pub marketplace: String,
     pub isbn: Option<String>,
+    pub asin: Option<String>,
     pub description: Option<String>,
     pub subjects: Option<String>,
     pub cover_url: Option<String>,
@@ -5410,9 +5439,17 @@ fields it may fill.
 - `edition_id`: `editions.id`.
 - `work_id`: The edition's work (`works.id`), when its expression still names one.
 - `title`: The edition's display title.
+- `subtitle`: The edition's subtitle, else a listing's.
 - `authors`: The credited authors as the first listing of the edition prints
   them, when it does.
+- `narrators`: The credited narrators as the first listing of the edition prints
+  them, when it does.
+- `duration_minutes`: The edition's running time in whole minutes, else a listing's.
+- `marketplace`: The marketplace of the edition's first listing (lower case, such as
+  `us`), which scopes an ASIN found for it.
 - `isbn`: The edition's ISBN (the smallest when it has several).
+- `asin`: The edition's ASIN (the smallest when it has several), which a
+  store listing or an earlier catalog match recorded.
 - `description`: The work's description, else a listing's.
 - `subjects`: The work's subjects.
 - `cover_url`: The edition's cover, else a listing's.
@@ -6118,6 +6155,20 @@ tries again.
 
 Returns [`LibraryError::NotFound`](#libraryerror) when the edition is gone, or
 [`LibraryError::Orm`](#libraryerror) when a read or write fails.
+
+#### LibraryStore::edition_book_uuids
+
+```rust
+pub async fn edition_book_uuids(&self, edition_id: &str) -> Result<Vec<String>>
+```
+
+The UUIDs of the flat `books` rows whose listing sells edition
+`edition_id`, in order, for writers that still keep those rows
+current until the table is retired.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::edition_of_book
 
@@ -9678,38 +9729,6 @@ The matching books ordered by title; empty when none match.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::find_book_by_store_id_or_key
-
-```rust
-pub async fn find_book_by_store_id_or_key(
-    &self,
-    id: &str,
-    storage_key: &str,
-) -> Result<Option<BookRecord>>
-```
-
-The first book, in title order, whose product id or ASIN is exactly
-`id`, or else whose primary storage key is exactly `storage_key`.
-
-The id comparison uses the `product_id` and `asin` indexes. The
-storage-key fallback returns at most one row, but `storage_key` has
-no index, so the database may scan the table to find it; it runs
-only when no id matched.
-
-##### Arguments
-
-* `id` - A store product id or ASIN.
-* `storage_key` - The primary file's storage key, matched only when
-  no id matches; an empty key matches nothing.
-
-##### Returns
-
-The book, or `None` when neither matches.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
 #### LibraryStore::acquired_book_keys_page
 

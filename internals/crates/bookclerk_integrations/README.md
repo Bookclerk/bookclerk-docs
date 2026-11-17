@@ -28,7 +28,6 @@ First-party adapters (e.g. Audiobookshelf) live in
 | [`IntegrationError`](#integrationerror) | enum | Errors from outbound integrations and the connect portal. |
 | [`from_config`](#from_config) | function | Construct an empty registry (no in-process adapters). |
 | [`register_builtins`](#register_builtins) | function | Register first-party integrations into an existing registry. |
-| [`emit_book_acquired`](#emit_book_acquired) | function | Look up the acquired book and publish `book_acquired` to the durable outbox. |
 | [`upsert_listening_snapshots`](#upsert_listening_snapshots) | function | Upsert provider-agnostic listening snapshots into `listening_progress`. |
 | [`mint_for_external_user`](#mint_for_external_user) | function | Mint a claim ticket for an external user (daemon watcher / CLI). |
 | [`portal_identity_from_headers`](#portal_identity_from_headers) | function | Resolve a portal identity from the request cookie, if present and valid. |
@@ -1330,30 +1329,6 @@ The successful result value for this operation.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
-
-### emit_book_acquired
-
-```rust
-pub async fn emit_book_acquired(
-    library: &LibraryStore,
-    product_or_uuid: &str,
-    storage_key: &str,
-) -> Result<PublishDomainEventOutcome>
-```
-
-Look up the acquired book and publish `book_acquired` to the durable outbox.
-
-The book is found by uuid, then by store product id or ASIN, then by its
-primary storage key, each with an indexed or single-row read.
-
-Prefer `bookclerk_library::LibraryStore::set_acquire_status`, which publishes
-in the same transaction as the acquire state change. This helper is a
-fail-closed catch-up for callers that already committed the book row.
-
-#### Errors
-
-Returns when the library lookup or outbox insert fails, including a missing
-book row (so the caller cannot report success without an outbox record).
 
 ### upsert_listening_snapshots
 
