@@ -4050,7 +4050,8 @@ What library data an install holds of its own.
 
 - `users`: Users of any role.
 - `accounts`: Store accounts.
-- `books`: Books.
+- `books`: Books: editions in the library model, held or not, so any book
+  data the install holds counts.
 - `libraries_joined`: Libraries this install is a branch of (not left).
 
 #### LibraryContents::is_empty
