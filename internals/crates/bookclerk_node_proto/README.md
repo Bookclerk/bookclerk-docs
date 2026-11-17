@@ -658,7 +658,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct AcquireTarget {
-    pub book_uuid: String,
+    pub holding_id: String,
     pub plugin_key: String,
     pub account_id: String,
     pub book: Value,
@@ -673,7 +673,8 @@ One title an acquire job should fetch on a host
 
 **Fields**
 
-- `book_uuid`: Library id of the title.
+- `holding_id`: The owner's account holding of the title (`holdings.id`): the id the
+  host's upload of it names.
 - `plugin_key`: Plugin key of the store that sells it.
 - `account_id`: Store account that owns it.
 - `book`: The owner's library row (JSON), for naming and metadata.
@@ -1771,7 +1772,7 @@ pub enum Body {
     ScanPassEnd { job_id: String, fence: i64, plugin_key: String, account_id: String, sync_token: String, complete: bool, full: bool },
     AcquirePlan { job_id: String, fence: i64 },
     AcquireTargets { targets: Vec<AcquireTarget>, destinations: Vec<PlanDestination> },
-    UploadGrant { job_id: String, fence: i64, book_uuid: String, primary_key: String, pdf_key: Option<String>, files: Vec<UploadFile> },
+    UploadGrant { job_id: String, fence: i64, holding_id: String, primary_key: String, pdf_key: Option<String>, files: Vec<UploadFile> },
     UploadGranted { upload_id: String, sealed_token: String, expires_in_secs: u64 },
     ScanRequest { account: Option<String>, plugin_instance_id: Option<String> },
     ScanPlanned { created: Vec<String>, duplicates: Vec<String>, queue_full: u64 },
@@ -1999,14 +2000,14 @@ What a frame says, tagged by `type`.
   [`Body::UploadGranted`](#body), [`Body::Lost`](#body), or `error`.
   - `job_id`: The acquire job.
   - `fence`: Lease generation the host holds.
-  - `book_uuid`: Library id of the title the files are for (one of the job's
-    targets).
+  - `holding_id`: The account holding of the title the files are for
+    (`holdings.id` on the owner; one of the job's targets).
   - `primary_key`: Storage key of the title's primary audio file on the primary
     destination (one of `files`' copies there).
   - `pdf_key`: Storage key of the title's companion PDF on the primary
     destination (one of `files`' copies there), when one is
     uploaded.
-  - `files`: Every file, in upload order. Empty, with an empty `book_uuid`,
+  - `files`: Every file, in upload order. Empty, with an empty `holding_id`,
     for the job's closing upload, whose commit only completes the
     job.
 - `UploadGranted`: Owner → host: the upload is open.

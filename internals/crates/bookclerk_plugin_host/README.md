@@ -172,7 +172,6 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`discover_plugins`](#discover_plugins) | function | Discover plugins under the configured search directories. |
 | [`first_party_database_kind`](#first_party_database_kind) | function | First-party database adapter kind when provenance + PluginKey match. |
 | [`identity_matches_occupancy`](#identity_matches_occupancy) | function | True when `plugin_key` / `alias` is the occupant named by `spec`. |
-| [`is_first_party_audiobookshelf`](#is_first_party_audiobookshelf) | function | True when this install is the verified Bookclerk Audiobookshelf integration. |
 | [`is_first_party_local_output`](#is_first_party_local_output) | function | True when this install is the verified Bookclerk local-filesystem destination. |
 | [`is_first_party_local_output_key`](#is_first_party_local_output_key) | function | True when `key` names the Bookclerk local-filesystem destination. |
 | [`is_first_party_s3_output`](#is_first_party_s3_output) | function | True when this install is the verified Bookclerk S3 destination. |
@@ -2954,8 +2953,8 @@ pub fn with_overlay_config(self, config: &Config) -> Self
 
 Folds overlay-relevant host config into [`Self::configuration_revision`](#executoridentity).
 
-Changing a Postgres URL / D1 API origin / S3 endpoint / Audiobookshelf
-URL must not reuse a session that was spawned under the old overlay.
+Changing a Postgres URL / D1 API origin / S3 endpoint must not reuse a
+session that was spawned under the old overlay.
 
 #### ExecutorIdentity::with_grant_revision
 
@@ -4101,7 +4100,7 @@ binding on the manifest declaration plus the covering consent grant.
   Set from the deployed local destination's instance document; it is the
   jail write grant. `None` grants no output directory.
 - `deployed_endpoint`: Network authority from the deployed instance document: the S3
-  `endpoint` or the Audiobookshelf `base_url`.
+  `endpoint`.
   
   `Some(Some(url))` grants that host in addition to the manifest's fixed
   TCP list; `Some(None)` records that the document names none; `None`
@@ -4178,11 +4177,7 @@ stops the broker process and its sockets.
 #### SocketBroker::new
 
 ```rust
-pub fn new(
-    plugin: DiscoveredPlugin,
-    config: Config,
-    deployed_endpoint: Option<Option<String>>,
-) -> Self
+pub fn new(plugin: DiscoveredPlugin, config: Config) -> Self
 ```
 
 A broker handle for `plugin`; nothing starts until the first
@@ -4192,8 +4187,6 @@ A broker handle for `plugin`; nothing starts until the first
 
 * `plugin` - The deployed plugin; it must declare `[sockets]`.
 * `config` - Host config for the broker's spawn.
-* `deployed_endpoint` - The instance document's network authority,
-  as the guest's own spawn receives it.
 
 #### SocketBroker::set_sink
 
@@ -5245,8 +5238,8 @@ pub fn host_overlay_config_digest(config: &Config) -> String
 SHA-256 of host config that participates in implied network overlays.
 
 Changing a Postgres URL or D1 API origin must mint a new executor
-`configuration_revision` and fence live sessions. Plugin endpoints (S3,
-Audiobookshelf) come from instance documents, not `config.toml`.
+`configuration_revision` and fence live sessions. Plugin endpoints (the
+S3 `endpoint`) come from instance documents, not `config.toml`.
 
 ### inject_workerd_grant_env
 
@@ -5334,7 +5327,6 @@ native guest can `connect()` it. Covers:
 
 - active Postgres `[database.postgres].url`
 - active D1 `[database.d1].api_base`
-- Audiobookshelf `[integrations.audiobookshelf].base_url`
 - S3 `[output.s3].endpoint` (custom/MinIO)
 
 Occupancy is uniquified with [`crate::resolve_plugin_slot`]: a bare alias
@@ -5726,18 +5718,6 @@ must require a unique match ([`resolve_plugin_slot`](#resolve_plugin_slot)).
 * `plugin_key` - Canonical [`PluginKey`](../bookclerk_plugin_catalog/README.md#pluginkey) text.
 * `alias` - Manifest display id.
 * `spec` - Occupancy selector from [`occupancy_spec`](#occupancy_spec) or a job/CLI id.
-
-### is_first_party_audiobookshelf
-
-```rust
-pub fn is_first_party_audiobookshelf(plugin: &DiscoveredPlugin) -> bool
-```
-
-True when this install is the verified Bookclerk Audiobookshelf integration.
-
-Only this plugin receives the host-implied network grant for the server
-its instance document names (`base_url`). The live manifest alias is not
-consulted: an alias twin is a different PluginKey with its own consent.
 
 ### is_first_party_local_output
 

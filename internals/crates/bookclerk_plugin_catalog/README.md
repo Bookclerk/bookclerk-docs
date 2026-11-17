@@ -57,7 +57,6 @@ See `docs/plugins/registry.md`.
 | [`sha256_file`](#sha256_file) | function | SHA-256 hex digest of a file. |
 | [`is_first_party_database_adapter`](#is_first_party_database_adapter) | function | True when `key` names a host-controlled first-party database adapter. |
 | [`is_first_party_destination`](#is_first_party_destination) | function | True when `key` names a host-controlled first-party destination (`local` / `s3`). |
-| [`is_first_party_integration`](#is_first_party_integration) | function | True when `key` names a host-controlled first-party integration. |
 | [`is_platform_plugin_key`](#is_platform_plugin_key) | function | True when `key` is a known Bookclerk platform `PluginKey`. |
 | [`platform_artifact`](#platform_artifact) | function | Looks up a known platform artifact by package name + manifest id. |
 | [`fetch_artifact`](#fetch_artifact) | function | Fetches an artifact URL (`file://` or local path, or HTTPS/localhost HTTP bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT`) into `dest`, refusing oversized bodies. |
@@ -2054,18 +2053,6 @@ pub fn is_first_party_destination(key: &PluginKey) -> bool
 ```
 
 True when `key` names a host-controlled first-party destination (`local` / `s3`).
-
-### is_first_party_integration
-
-```rust
-pub fn is_first_party_integration(key: &PluginKey) -> bool
-```
-
-True when `key` names a host-controlled first-party integration.
-
-Matches exact package name on `platform:` or the canonical crates.io
-`cargo:` index. Callers that grant host-implied network access must also
-require verified provenance on the discovered plugin.
 
 ### is_platform_plugin_key
 

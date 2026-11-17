@@ -1910,7 +1910,7 @@ Schema:
   - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
   - `reason` *string or null* — Why, for `refused`.
   - `job_completed` *boolean* — For `committed`: the job is finished.
-- `422` — The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title or book is gone (`key_taken`, `unknown_title`, `unknown_book`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+- `422` — The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
   - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
   - `reason` *string or null* — Why, for `refused`.
   - `job_completed` *boolean* — For `committed`: the job is finished.
@@ -2196,7 +2196,7 @@ Schema:
 }
 ```
 
-Status `422`: The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title or book is gone (`key_taken`, `unknown_title`, `unknown_book`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`).
+Status `422`: The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`).
 
 ```json
 {

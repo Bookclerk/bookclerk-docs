@@ -1408,14 +1408,14 @@ Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
 ```rust
 pub async fn grant_upload(
     &self,
-    book_uuid: &str,
+    holding_id: &str,
     primary_key: &str,
     pdf_key: Option<&str>,
     files: Vec<UploadFile>,
 ) -> Result<HostUpload, OwnerCallError>
 ```
 
-Opens an upload of one title's `files` (an empty `book_uuid` and no
+Opens an upload of one title's `files` (an empty `holding_id` and no
 files for the job's closing upload).
 
 ##### Errors

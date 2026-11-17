@@ -5610,6 +5610,28 @@ One title per account holding of a listing; empty when none is held.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::acquire_title_of_holding
+
+```rust
+pub async fn acquire_title_of_holding(
+    &self,
+    holding_id: &str,
+) -> Result<Option<AcquireTitle>>
+```
+
+The title of one account holding (`holdings.id`), as acquire reads
+it.
+
+##### Returns
+
+`None` when no account holding has that id (a node holding, a
+holding withdrawn, or an id this library never had) or its listing
+is gone.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::accounts_holding_titles
 
 ```rust
@@ -6377,8 +6399,8 @@ did not replace.
 * `writer` - The host upload id.
 * `role`, `sha256` - What the file is and its declared digest.
 * `expected` - The record read before the claim.
-* `title` - What the upload writes for: the library title
-  (`books.uuid`) of a job upload, or the node holding
+* `title` - What the upload writes for: the
+  account holding (`holdings.id`) of a job upload, or the node holding
   (`holdings.id`) of a catalog upload. A key its edition already
   holds is taken over only when this upload or an earlier upload for
   the same title (or, for a catalog upload, an earlier catalog upload

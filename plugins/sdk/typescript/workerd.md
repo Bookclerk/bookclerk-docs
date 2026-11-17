@@ -495,6 +495,12 @@ Re-exports [AtomicTransport](db-execute.md#atomictransport)
 
 ***
 
+### AuthenticateUserParams
+
+Re-exports [AuthenticateUserParams](generated.md#authenticateuserparams)
+
+***
+
 ### BookclerkEntrypoint
 
 Re-exports [BookclerkEntrypoint](plugin.md#bookclerkentrypoint)
@@ -903,6 +909,12 @@ Re-exports [ExtensibleConfig](generated.md#extensibleconfig)
 
 ***
 
+### ExternalUser
+
+Re-exports [ExternalUser](generated.md#externaluser)
+
+***
+
 ### FEATURE\_SCALAR\_LIMITS
 
 Re-exports [FEATURE_SCALAR_LIMITS](abi.md#feature_scalar_limits)
@@ -1188,6 +1200,12 @@ Re-exports [KvValueType](env.md#kvvaluetype)
 ### KvValueWithMetadata
 
 Re-exports [KvValueWithMetadata](env.md#kvvaluewithmetadata)
+
+***
+
+### ListeningProgress
+
+Re-exports [ListeningProgress](generated.md#listeningprogress)
 
 ***
 
@@ -1599,6 +1617,12 @@ Re-exports [runAdapterBatch](README.md#runadapterbatch)
 
 ***
 
+### ScanLibraryParams
+
+Re-exports [ScanLibraryParams](generated.md#scanlibraryparams)
+
+***
+
 ### scanPage
 
 Re-exports [scanPage](README.md#scanpage)
@@ -1638,6 +1662,12 @@ Re-exports [SocketConnectOptions](env.md#socketconnectoptions)
 ### SocketMessageData
 
 Re-exports [SocketMessageData](env.md#socketmessagedata)
+
+***
+
+### SocketMessageOk
+
+Re-exports [SocketMessageOk](generated.md#socketmessageok)
 
 ***
 

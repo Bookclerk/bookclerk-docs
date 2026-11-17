@@ -640,7 +640,7 @@ One title a branch shares, as the owner's Settings → Branches lists it.
 
 **Fields**
 
-- `uuid`: The node holding's id (a catalog upload's `book_uuid`).
+- `uuid`: The node holding's id (a catalog upload's `holding_id`).
 - `provenance`: `node:<node_id>`.
 - `node_id`: The branch's node id.
 - `owner_user_id`: The user it belongs to here (the branch's owner).
@@ -4210,7 +4210,7 @@ Implements: `Clone`, `Copy`, `Debug`
 
 ```rust
 pub struct UploadGrantRequest<'a> {
-    pub book_uuid: &'a str,
+    pub holding_id: &'a str,
     pub primary_key: &'a str,
     pub pdf_key: Option<&'a str>,
     pub files: &'a [UploadFile],
@@ -4222,8 +4222,10 @@ What a Host asks to upload for one title.
 
 **Fields**
 
-- `book_uuid`: Library id of the title. Empty for the job's closing upload, which
-  carries no files and only completes the job.
+- `holding_id`: The title's holding (`holdings.id`): an account holding for a job
+  upload, the node holding for a branch's catalog upload. Empty for the
+  job's closing upload, which carries no files and only completes the
+  job.
 - `primary_key`: Storage key of the title's primary audio file on the primary
   destination (one of `files`' copies there).
 - `pdf_key`: Storage key of the companion PDF on the primary destination (one of
@@ -4246,7 +4248,7 @@ pub struct UploadSession {
     pub job_id: String,
     pub generation: i64,
     pub receiving_node_id: String,
-    pub book_uuid: String,
+    pub holding_id: String,
     pub primary_key: String,
     pub pdf_key: Option<String>,
     pub destinations: Vec<String>,
@@ -4267,7 +4269,8 @@ One open upload, as the upload endpoint sees it.
 - `job_id`: Acquire job.
 - `generation`: Lease generation it is bound to.
 - `receiving_node_id`: Owner node that receives the files.
-- `book_uuid`: Library id of the title (empty for the job's closing upload).
+- `holding_id`: The title's holding (`holdings.id`; empty for the job's closing
+  upload).
 - `primary_key`: Storage key of the primary audio file.
 - `pdf_key`: Storage key of the companion PDF, when uploaded.
 - `destinations`: The receiving node's destination ids at grant, the primary first;
@@ -5940,7 +5943,7 @@ the primary first) under its manifest key, the files are exactly the
 shared manifest, the title's edition has no audio here from another
 writer (`edition_has_files`), no key is one another title here already
 uses (`key_in_use`: another edition's file, or a file beside one of its
-audio files with the same stem; `key_of_another_book`: any of a
+audio files with the same stem; `key_of_another_title`: any of a
 library book's keys or their sidecars), and no key lies in or below a
 folder holding another title's audio (`folder_of_another_book`). The
 keys are then claimed for this upload as the edition's in
@@ -11372,7 +11375,7 @@ the job's title, when it names one), and for a Host trusted only with
 its owner's accounts is one of that user's; and the manifest is well
 formed, every key inside the title's own scope on its destination
 ([`UploadDestination`](#uploaddestination)) and none another title's: neither another
-title's recorded audio, PDF or audio sidecar (`claims_another_books_key`)
+title's recorded audio, PDF or audio sidecar (`claims_another_titles_key`)
 nor any key recorded for another title on that destination
 (`claim_upload_keys`, which then claims every key for this upload). An
 earlier open upload of the same title by the same job is aborted: the
