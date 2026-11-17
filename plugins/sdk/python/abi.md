@@ -22,6 +22,18 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`WriteOptions`](#writeoptions) | class | Options for `Destination.put`. |
 | [`PutResult`](#putresult) | class | Summary of a stored (or committed) object. |
 | [`CopyResult`](#copyresult) | class | Summary of a server-side copy. |
+| [`MoveOptions`](#moveoptions) | class | Options for `Destination.move` and `Destination.moveMany`. Fields are only ever appended. |
+| [`MoveResult`](#moveresult) | class | Summary of `Destination.move`. |
+| [`MoveManyTargetPairs`](#movemanytargetpairs) | class | `MoveManyTarget` member `pairs`. |
+| [`MoveManyTargetPrefix`](#movemanytargetprefix) | class | `MoveManyTarget` member `prefix`. |
+| [`MoveManyRequest`](#movemanyrequest) | class | Argument of `Destination.moveMany`. Fields are only ever appended. |
+| [`KeyOutcome`](#keyoutcome) | class | Outcome for one key of a batch call. |
+| [`MoveManyPage`](#movemanypage) | class | One page of `Destination.moveMany` progress. |
+| [`DeleteManyResult`](#deletemanyresult) | class | Result of `Destination.deleteMany`. |
+| [`HeadManyResult`](#headmanyresult) | class | Result of `Destination.headMany`. |
+| [`ChangesRequest`](#changesrequest) | class | Argument of `Destination.changes`. Fields are only ever appended. |
+| [`ObjectChange`](#objectchange) | class | One entry of a change feed. |
+| [`ChangesPage`](#changespage) | class | One page of `Destination.changes`. |
 | [`PluginDescribe`](#plugindescribe) | class | Guest identity and negotiation surface returned by `describe()`. |
 | [`OidcClientTemplate`](#oidcclienttemplate) | class | Bookclerk-as-IdP relying-party template. Plugins declare callback path and client id; the host materializes `oidc_clients` rows and remains the AS. `originConfigKey` is a dotted config path (e.g. integrations.audiobookshelf.base_url). |
 | [`OidcClientsOk`](#oidcclientsok) | class | Success payload of `Oidc.clients`. |
@@ -74,6 +86,16 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PutReplyErr`](#putreplyerr) | class | `PutReply` member `err`. |
 | [`CopyReplyOk`](#copyreplyok) | class | `CopyReply` member `ok`. |
 | [`CopyReplyErr`](#copyreplyerr) | class | `CopyReply` member `err`. |
+| [`MoveReplyOk`](#movereplyok) | class | `MoveReply` member `ok`. |
+| [`MoveReplyErr`](#movereplyerr) | class | `MoveReply` member `err`. |
+| [`MoveManyReplyOk`](#movemanyreplyok) | class | `MoveManyReply` member `ok`. |
+| [`MoveManyReplyErr`](#movemanyreplyerr) | class | `MoveManyReply` member `err`. |
+| [`DeleteManyReplyOk`](#deletemanyreplyok) | class | `DeleteManyReply` member `ok`. |
+| [`DeleteManyReplyErr`](#deletemanyreplyerr) | class | `DeleteManyReply` member `err`. |
+| [`HeadManyReplyOk`](#headmanyreplyok) | class | `HeadManyReply` member `ok`. |
+| [`HeadManyReplyErr`](#headmanyreplyerr) | class | `HeadManyReply` member `err`. |
+| [`ChangesReplyOk`](#changesreplyok) | class | `ChangesReply` member `ok`. |
+| [`ChangesReplyErr`](#changesreplyerr) | class | `ChangesReply` member `err`. |
 | [`EmptyReplyOk`](#emptyreplyok) | class | `EmptyReply` member `ok`. |
 | [`EmptyReplyErr`](#emptyreplyerr) | class | `EmptyReply` member `err`. |
 | [`PullOk`](#pullok) | class | Success payload of `ByteSource.pull`. |
@@ -343,6 +365,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PluginMigrationsReplyOk`](#pluginmigrationsreplyok) | class | `PluginMigrationsReply` member `ok`. |
 | [`PluginMigrationsReplyErr`](#pluginmigrationsreplyerr) | class | `PluginMigrationsReply` member `err`. |
 | [`PluginWorker`](#pluginworker) | class | Plugin bootstrap capability: the guest's root object (Workers `default` export analogue). `describe()` first; `open()` once per invocation. |
+| [`ObjectChangeKind`](#objectchangekind) | constant | What happened to an object in a change feed. Unknown codes are kept and treated as `changed`. |
 | [`PluginErrorCode`](#pluginerrorcode) | constant | Stable `PluginError.code` strings. Unknown future codes are forwarded as-is; SDKs surface them as a local `unknown` while keeping the raw wire code. |
 | [`Entrypoint`](#entrypoint) | constant | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | constant | Portal Accounts connect mode for storefronts. |
@@ -364,6 +387,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`IsolationReq`](#isolationreq) | constant | Host → adapter execute. GuestDatabase stays ExecuteRequest-only. |
 | [`ResolvedSqlType`](#resolvedsqltype) | constant | Resolved BookclerkSQL column type after type checking. |
 | [`IntegerArithKind`](#integerarithkind) | constant | INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL. |
+| [`KeyPair`](#keypair) | constant | One source and target key. |
+| [`MoveManyTarget`](#movemanytarget) | constant | What `Destination.moveMany` moves. |
 | [`OidcClientsReply`](#oidcclientsreply) | constant | Result union of `Oidc.clients`. |
 | [`EntrypointsReply`](#entrypointsreply) | constant | Result union of `PluginWorker.open`. |
 | [`JobOutcome`](#joboutcome) | constant | Terminal or suspended result of `JobRunner.job`. |
@@ -375,6 +400,11 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`GetReply`](#getreply) | constant | Result union of `Destination.get`. |
 | [`PutReply`](#putreply) | constant | Result union of `Destination.put` / `Destination.commit`. |
 | [`CopyReply`](#copyreply) | constant | Result union of `Destination.copy`. |
+| [`MoveReply`](#movereply) | constant | Result union of `Destination.move`. |
+| [`MoveManyReply`](#movemanyreply) | constant | Result union of `Destination.moveMany`. |
+| [`DeleteManyReply`](#deletemanyreply) | constant | Result union of `Destination.deleteMany`. |
+| [`HeadManyReply`](#headmanyreply) | constant | Result union of `Destination.headMany`. |
+| [`ChangesReply`](#changesreply) | constant | Result union of `Destination.changes`. |
 | [`EmptyReply`](#emptyreply) | constant | Result union of `methods without a success payload`. |
 | [`PullReply`](#pullreply) | constant | Result union of `ByteSource.pull`. |
 | [`OpenReply`](#openreply) | constant | Result union of `Source.open`. |
@@ -476,6 +506,9 @@ Full metadata of one stored object.
 - `contentType`: MIME type; empty when unknown.
 - `etag`: Backend entity tag; empty when unsupported.
 - `sha256`: Raw SHA-256 digest (32 bytes) or empty when unknown.
+- `modifiedAtMs`: Last modification time, UTC unix milliseconds; zero when unknown.
+- `versionId`: Backend object version id (versioned buckets); empty when none.
+- `signature`: Opaque change signature: an unchanged value means the object has not changed. Backend-defined (a local file's inode, size, mtime and ctime; an S3 ETag and version id). Empty when the backend has none.
 
 ### ObjectInfo
 
@@ -489,6 +522,10 @@ Compact object entry in a list page.
 
 - `key`: Object key.
 - `size`: Object size in bytes.
+- `etag`: Backend entity tag; empty when unsupported or not requested (`ListOptions.withSignatures`).
+- `modifiedAtMs`: Last modification time, UTC unix milliseconds; zero when unknown or not requested.
+- `versionId`: Backend object version id; empty when none or not requested.
+- `signature`: Opaque change signature, as `ObjectMetadata.signature`; empty when unsupported or not requested.
 
 ### ListOptions
 
@@ -503,6 +540,8 @@ Paging options for `Destination.list`.
 - `prefix`: Only keys starting with this prefix; empty lists everything.
 - `cursor`: Opaque cursor from a previous `ListPage.nextCursor`; empty starts over.
 - `limit`: Requested page size; clamped to `maxListPage`. `0` means guest default.
+- `withSignatures`: Hint: fill `etag`, `modifiedAtMs`, `versionId` and `signature` on each entry. `ListPage.signaturesIncluded` says whether the guest did.
+- `modifiedSinceMs`: Hint: only objects modified at or after this time (UTC unix milliseconds); zero lists everything. `ListPage.modifiedSinceApplied` says whether the guest filtered; when it did not, the page is unfiltered.
 
 ### ListPage
 
@@ -516,6 +555,8 @@ One page of `Destination.list` results.
 
 - `objects`: Objects in this page, in backend order.
 - `nextCursor`: Cursor for the next page; empty when exhausted.
+- `signaturesIncluded`: True when every entry carries the signature fields the backend has (`ListOptions.withSignatures` honoured).
+- `modifiedSinceApplied`: True when the guest left out objects modified before `ListOptions.modifiedSinceMs`. False means the page is unfiltered.
 
 ### ByteRange
 
@@ -557,6 +598,8 @@ Options for `Destination.put`.
 - `sha256`: Expected raw SHA-256 digest; empty skips verification.
 - `commitToken`: Destination-side stage-and-publish. Empty means a one-shot put.
 - `stageOnly`: When true, `put` stages remotely and does not publish until `commit`.
+- `ifMatch`: Conditional write (`storage.conditionalWrite`): publish only while the stored object's `etag` equals this value, else fail with `conflict`. Empty means unconditional. A staged put checks it at `commit`.
+- `ifNoneMatch`: Conditional write (`storage.conditionalWrite`): publish only when no object exists at the key, else fail with `conflict`.
 
 ### PutResult
 
@@ -572,6 +615,9 @@ Summary of a stored (or committed) object.
 - `bytesWritten`: Bytes persisted.
 - `etag`: Backend entity tag; empty when unsupported.
 - `sha256`: Raw SHA-256 digest of the stored bytes; empty when not computed.
+- `modifiedAtMs`: Modification time of the stored object, UTC unix milliseconds; zero when unknown.
+- `versionId`: Version id of the stored object; empty when none.
+- `signature`: Change signature of the stored object (`ObjectMetadata.signature`), so the host can recognise its own write in a later listing; empty when none.
 
 ### CopyResult
 
@@ -584,6 +630,173 @@ Summary of a server-side copy.
 **Attributes**
 
 - `bytesCopied`: Bytes copied.
+
+### MoveOptions
+
+```python
+class MoveOptions(TypedDict)
+```
+
+Options for `Destination.move` and `Destination.moveMany`. Fields are only
+ever appended.
+
+**Attributes**
+
+- `noOverwrite`: Fail with `conflict` instead of replacing an object at the target key.
+- `ifSourceMatch`: `move` only: move only while the source's `etag` equals this value, else fail with `conflict`. Empty skips the check.
+
+### MoveResult
+
+```python
+class MoveResult(TypedDict)
+```
+
+Summary of `Destination.move`.
+
+**Attributes**
+
+- `atomic`: True when the backend moved atomically (a rename): no reader saw the object at both keys or at neither.
+- `alreadyMoved`: True when the source was already gone and the target present, as when a move is repeated after a restart. The move counts as done.
+
+### MoveManyTargetPairs
+
+```python
+class MoveManyTargetPairs(TypedDict)
+```
+
+`MoveManyTarget` member `pairs`.
+
+Explicit moves, at most `maxBatchKeys`. Each is independent.
+
+**Attributes**
+
+- `kind`: Always `"pairs"`.
+- `value`: Explicit moves, at most `maxBatchKeys`. Each is independent.
+
+### MoveManyTargetPrefix
+
+```python
+class MoveManyTargetPrefix(TypedDict)
+```
+
+`MoveManyTarget` member `prefix`.
+
+Every object under `prefix.from` moves under `prefix.to`, keeping the
+rest of its key. Paged through `MoveManyRequest.cursor`.
+
+**Attributes**
+
+- `kind`: Always `"prefix"`.
+- `value`: Every object under `prefix.from` moves under `prefix.to`, keeping the rest of its key. Paged through `MoveManyRequest.cursor`.
+
+### MoveManyRequest
+
+```python
+class MoveManyRequest(TypedDict)
+```
+
+Argument of `Destination.moveMany`. Fields are only ever appended.
+
+**Attributes**
+
+- `target`: Explicit pairs or a prefix.
+- `cursor`: Prefix form: `MoveManyPage.nextCursor` from the previous call; empty starts. Ignored for `pairs`.
+- `limit`: Prefix form: objects to move in this call, clamped to `maxBatchKeys`; zero means guest default.
+- `options`: Overwrite rule applied to every move (`ifSourceMatch` is ignored).
+
+### KeyOutcome
+
+```python
+class KeyOutcome(TypedDict)
+```
+
+Outcome for one key of a batch call.
+
+**Attributes**
+
+- `key`: The key this outcome is for (the source key for moves).
+- `error`: Failure for this key; an empty `code` means it succeeded.
+
+### MoveManyPage
+
+```python
+class MoveManyPage(TypedDict)
+```
+
+One page of `Destination.moveMany` progress.
+
+**Attributes**
+
+- `results`: Outcomes in request order. A prefix move done in one step (a folder rename) may report a single outcome keyed by the source prefix.
+- `nextCursor`: Prefix form: cursor for the next call; empty when every object moved.
+- `atomic`: True when every move in this page was atomic.
+- `objectsMoved`: Objects moved in this page (a folder rename counts what it carried when known, else the outcomes).
+
+### DeleteManyResult
+
+```python
+class DeleteManyResult(TypedDict)
+```
+
+Result of `Destination.deleteMany`.
+
+**Attributes**
+
+- `results`: One outcome per requested key, in request order. A missing key succeeds.
+
+### HeadManyResult
+
+```python
+class HeadManyResult(TypedDict)
+```
+
+Result of `Destination.headMany`.
+
+**Attributes**
+
+- `objects`: One probe per requested key, in request order.
+
+### ChangesRequest
+
+```python
+class ChangesRequest(TypedDict)
+```
+
+Argument of `Destination.changes`. Fields are only ever appended.
+
+**Attributes**
+
+- `cursor`: `ChangesPage.cursor` from the previous call. Empty asks for the current position: the page carries a cursor and no changes.
+- `limit`: Requested changes per page, clamped to `maxChangesPage`; zero means guest default.
+
+### ObjectChange
+
+```python
+class ObjectChange(TypedDict)
+```
+
+One entry of a change feed.
+
+**Attributes**
+
+- `key`: Object key, relative to the destination root.
+- `kind`: What happened to it.
+- `info`: Listing fields after the change when the feed carries them (signature fields may be empty); empty for `removed`.
+
+### ChangesPage
+
+```python
+class ChangesPage(TypedDict)
+```
+
+One page of `Destination.changes`.
+
+**Attributes**
+
+- `changes`: Changes since the request's cursor, oldest first. A key may repeat.
+- `cursor`: Cursor for the next call; never empty.
+- `more`: True when more changes are ready now; call again with `cursor`.
+- `complete`: False when the feed may have missed changes since the request's cursor (an overflowed watcher, expired queue retention, a restart): the host backs it with a full listing. True means these are all the changes.
 
 ### PluginDescribe
 
@@ -1403,6 +1616,157 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### MoveReplyOk
+
+```python
+class MoveReplyOk(TypedDict)
+```
+
+`MoveReply` member `ok`.
+
+Success: how the move was done.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: how the move was done.
+
+### MoveReplyErr
+
+```python
+class MoveReplyErr(TypedDict)
+```
+
+`MoveReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### MoveManyReplyOk
+
+```python
+class MoveManyReplyOk(TypedDict)
+```
+
+`MoveManyReply` member `ok`.
+
+Success: per-key outcomes and the continuation.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: per-key outcomes and the continuation.
+
+### MoveManyReplyErr
+
+```python
+class MoveManyReplyErr(TypedDict)
+```
+
+`MoveManyReply` member `err`.
+
+Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+### DeleteManyReplyOk
+
+```python
+class DeleteManyReplyOk(TypedDict)
+```
+
+`DeleteManyReply` member `ok`.
+
+Success: per-key outcomes.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: per-key outcomes.
+
+### DeleteManyReplyErr
+
+```python
+class DeleteManyReplyErr(TypedDict)
+```
+
+`DeleteManyReply` member `err`.
+
+Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+### HeadManyReplyOk
+
+```python
+class HeadManyReplyOk(TypedDict)
+```
+
+`HeadManyReply` member `ok`.
+
+Success: one probe per key.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: one probe per key.
+
+### HeadManyReplyErr
+
+```python
+class HeadManyReplyErr(TypedDict)
+```
+
+`HeadManyReply` member `err`.
+
+Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+### ChangesReplyOk
+
+```python
+class ChangesReplyOk(TypedDict)
+```
+
+`ChangesReply` member `ok`.
+
+Success: one page of changes.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: one page of changes.
+
+### ChangesReplyErr
+
+```python
+class ChangesReplyErr(TypedDict)
+```
+
+`ChangesReply` member `err`.
+
+Typed failure; `invalid_cursor` means the cursor expired and the host
+starts over with a full listing.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `invalid_cursor` means the cursor expired and the host starts over with a full listing.
+
 ### EmptyReplyOk
 
 ```python
@@ -1851,6 +2215,91 @@ Discard a staged object without publishing it.
 **Returns**
 
 `EmptyReply`
+
+#### Destination.move
+
+```python
+async def move(self, from_: str, to: str, options: MoveOptions) -> MoveReply
+```
+
+Move one object (requires `storage.move`). Repeating a finished move
+succeeds with `alreadyMoved`.
+
+**Args**
+
+- `from_`: Source object key.
+- `to`: Target object key.
+- `options`: Overwrite and source preconditions.
+
+**Returns**
+
+`MoveReply`
+
+#### Destination.move_many
+
+```python
+async def move_many(self, request: MoveManyRequest) -> MoveManyReply
+```
+
+Move a set of objects or a whole prefix (requires `storage.moveMany`).
+Paged and safe to repeat.
+
+**Args**
+
+- `request`: Pairs or prefix, cursor, and options.
+
+**Returns**
+
+`MoveManyReply`
+
+#### Destination.delete_many
+
+```python
+async def delete_many(self, keys: list[str]) -> DeleteManyReply
+```
+
+Remove up to `maxBatchKeys` objects (requires `storage.deleteMany`).
+
+**Args**
+
+- `keys`: Object keys to remove.
+
+**Returns**
+
+`DeleteManyReply`
+
+#### Destination.head_many
+
+```python
+async def head_many(self, keys: list[str]) -> HeadManyReply
+```
+
+Probe up to `maxBatchKeys` objects (requires `storage.headMany`).
+
+**Args**
+
+- `keys`: Object keys to probe.
+
+**Returns**
+
+`HeadManyReply`
+
+#### Destination.changes
+
+```python
+async def changes(self, request: ChangesRequest) -> ChangesReply
+```
+
+Keys changed since a cursor (requires `storage.changes`). A hint for
+what to read; a scheduled listing stays the backstop.
+
+**Args**
+
+- `request`: Cursor and page size.
+
+**Returns**
+
+`ChangesReply`
 
 ### Source
 
@@ -6721,6 +7170,15 @@ Bounded by `maxListPage` / `maxPluginMigrationOps` /
 
 ## Constants
 
+### ObjectChangeKind
+
+```python
+ObjectChangeKind = Literal['changed', 'upserted', 'removed']
+```
+
+What happened to an object in a change feed. Unknown codes are kept and
+treated as `changed`.
+
 ### PluginErrorCode
 
 ```python
@@ -6907,6 +7365,27 @@ IntegerArithKind = Literal['add', 'sub', 'mul', 'abs']
 
 INTEGER `+` `-` `*` `abs` site lowered to overflow -> NULL.
 
+### KeyPair
+
+```python
+KeyPair = TypedDict('KeyPair', {'from': str, 'to': str})
+```
+
+One source and target key.
+
+**Attributes**
+
+- `from`: Source object key (or source prefix).
+- `to`: Target object key (or target prefix).
+
+### MoveManyTarget
+
+```python
+MoveManyTarget = Union[MoveManyTargetPairs, MoveManyTargetPrefix]
+```
+
+What `Destination.moveMany` moves.
+
 ### OidcClientsReply
 
 ```python
@@ -6996,6 +7475,46 @@ CopyReply = Union[CopyReplyOk, CopyReplyErr]
 ```
 
 Result union of `Destination.copy`.
+
+### MoveReply
+
+```python
+MoveReply = Union[MoveReplyOk, MoveReplyErr]
+```
+
+Result union of `Destination.move`.
+
+### MoveManyReply
+
+```python
+MoveManyReply = Union[MoveManyReplyOk, MoveManyReplyErr]
+```
+
+Result union of `Destination.moveMany`.
+
+### DeleteManyReply
+
+```python
+DeleteManyReply = Union[DeleteManyReplyOk, DeleteManyReplyErr]
+```
+
+Result union of `Destination.deleteMany`.
+
+### HeadManyReply
+
+```python
+HeadManyReply = Union[HeadManyReplyOk, HeadManyReplyErr]
+```
+
+Result union of `Destination.headMany`.
+
+### ChangesReply
+
+```python
+ChangesReply = Union[ChangesReplyOk, ChangesReplyErr]
+```
+
+Result union of `Destination.changes`.
 
 ### EmptyReply
 

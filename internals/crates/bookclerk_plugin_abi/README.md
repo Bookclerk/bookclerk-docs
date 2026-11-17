@@ -157,6 +157,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`QueryPage`](#querypage) | struct | Bounded query page for host-internal SeaORM session helpers (not Cap'n ABI). |
 | [`ScalarLimitsDto`](#scalarlimitsdto) | struct | Wire form of `ScalarLimits`. |
 | [`WriteOptions`](#writeoptions) | struct | Write options for `Destination.put`. |
+| [`ChangesPage`](#changespage) | struct | One page of `crate::Destination::changes`. |
+| [`ChangesRequest`](#changesrequest) | struct | Argument of `crate::Destination::changes`. |
+| [`KeyOutcome`](#keyoutcome) | struct | Outcome for one key of a batch call. |
+| [`KeyPair`](#keypair) | struct | One source and target key (or prefix). |
+| [`MoveManyPage`](#movemanypage) | struct | One page of `crate::Destination::move_many` progress. |
+| [`MoveManyRequest`](#movemanyrequest) | struct | Argument of `crate::Destination::move_many`. |
+| [`MoveOptions`](#moveoptions) | struct | Options for `crate::Destination::move_object` and `crate::Destination::move_many`. Fields are only ever appended. |
+| [`MoveResult`](#moveresult) | struct | How a single move was done. |
+| [`ObjectChange`](#objectchange) | struct | One entry of a change feed. |
 | [`PluginMigrationOp`](#pluginmigrationop) | enum | One already-separated BookclerkSQL operation in a registered migration. |
 | [`OverflowDialect`](#overflowdialect) | enum | Engine family for overflow derived-table syntax and i64::MIN CAST. |
 | [`IntegerArithKind`](#integerarithkind) | enum | INTEGER `+` `-` `*` `abs` site lowered to overflow → NULL. |
@@ -168,6 +177,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`SocketWireMessage`](#socketwiremessage) | enum | A value `roundtrip_socket_message` decoded. |
 | [`EventResult`](#eventresult) | enum | Per-event result of `crate::EventConsumer::event`. |
 | [`JobOutcome`](#joboutcome) | enum | Outcome of `crate::JobRunner::job`. |
+| [`MoveManyTarget`](#movemanytarget) | enum | What a `MoveManyRequest` moves. |
+| [`ObjectChangeKind`](#objectchangekind) | enum | What happened to an object in a change feed. |
+| [`StorageReply`](#storagereply) | enum | A guest reply the `storage_reply` fuzz target decodes. |
+| [`StorageReplyKind`](#storagereplykind) | enum | Which reply `decode_storage_reply_bytes` reads. |
 | [`capnp_u32_len`](#capnp_u32_len) | function | Converts a Rust list length into a Cap'n Proto `UInt32` list size. |
 | [`plugin_migration_registration_bytes`](#plugin_migration_registration_bytes) | function | Aggregate UTF-8 bytes of ids plus SQL across a complete registration. |
 | [`require_plugin_migration_json_lists`](#require_plugin_migration_json_lists) | function | Rejects JSON `databaseMigrations` list sizes before deserializing operations. |
@@ -215,6 +228,13 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`serve_plugin`](#serve_plugin) | function | Serves `plugin` as the bootstrap object on a two-party vat over `reader`/`writer`. |
 | [`serve_plugin_stdio`](#serve_plugin_stdio) | function | Serves `plugin` on stdin/stdout. Must run on a current-thread runtime + `LocalSet`. |
 | [`serve_socket_broker`](#serve_socket_broker) | function | Serves the socket broker's side of the host-to-broker link. |
+| [`decode_storage_reply_bytes`](#decode_storage_reply_bytes) | function | Decodes one guest storage reply from an unpacked Cap'n Proto message, under the same caps the host applies to a live reply. |
+| [`encode_storage_reply_bytes`](#encode_storage_reply_bytes) | function | Encodes one storage reply as an unpacked single-segment message, the inverse of `decode_storage_reply_bytes`. |
+| [`require_batch_len`](#require_batch_len) | function | Rejects a batch request the guest is not obliged to serve. |
+| [`validate_changes_page`](#validate_changes_page) | function | Checks a guest's change feed page against the cursor the host sent. |
+| [`validate_head_many`](#validate_head_many) | function | Checks a guest's `headMany` probes against the keys the host sent. |
+| [`validate_key_outcomes`](#validate_key_outcomes) | function | Checks a guest's per-key outcomes against the keys the host sent. |
+| [`validate_move_many_page`](#validate_move_many_page) | function | Checks a guest's `moveMany` page against the request it answers. |
 | [`MAX_PLUGIN_MIGRATION_ID_BYTES`](#max_plugin_migration_id_bytes) | constant | Maximum UTF-8 bytes of one plugin-chosen migration id. |
 | [`PLUGIN_MIGRATIONS_TABLE`](#plugin_migrations_table) | constant | Host-private plugin-binding migration journal (not a plugin-owned table). |
 | [`PHYSICAL_STAR_COLUMN`](#physical_star_column) | constant | Column name recorded for `SELECT *` / `alias.*` / `RETURNING *` on a physical table. |
@@ -228,8 +248,15 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`SQLITE_FAMILY_DIV_MOD_NULLIF_EXTRA`](#sqlite_family_div_mod_nullif_extra) | constant | Extra bytes for one `/` or `%` rewritten to `NULLIF(operand, 0)`. |
 | [`SQLITE_FAMILY_INSERT_OR_IGNORE_MAX_EXTRA`](#sqlite_family_insert_or_ignore_max_extra) | constant | Conservative extra bytes for one `INSERT OR IGNORE` unique-conflict rewrite (conflict clause plus optional `SELECT` source wrap). |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps. |
+| [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `super::Destination::changes`. |
+| [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant | Guest enforces `super::WriteOptions::if_match` and `super::WriteOptions::if_none_match`. |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `super::Destination::copy`. |
+| [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant | Guest implements `super::Destination::delete_many`. |
+| [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant | Guest implements `super::Destination::head_many`. |
+| [`FEATURE_STORAGE_MOVE`](#feature_storage_move) | constant | Guest implements `super::Destination::move_object`. |
+| [`FEATURE_STORAGE_MOVE_MANY`](#feature_storage_move_many) | constant | Guest implements `super::Destination::move_many`. |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `crate::roles::ByteRange` / `ByteSource` streams. |
+| [`STORAGE_OPERATION_FEATURES`](#storage_operation_features) | constant | Every optional storage operation a host offers a storage guest, beside `FEATURE_STORAGE_COPY`. Each one the guest accepts replaces the host's fallback for that operation. |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant | Largest image body one `CoverFetcher.fetchCovers` URL may return. |
 | [`MAX_COVER_HEADER_BYTES`](#max_cover_header_bytes) | constant | Longest cache header value one `CoverFetcher.fetchCovers` call carries in either direction, in bytes. |
 | [`MAX_COVER_URLS`](#max_cover_urls) | constant | Most URLs in one `CoverFetcher.fetchCovers` call. |
@@ -264,6 +291,9 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
 | [`JSON_MEDIA_TYPE`](#json_media_type) | constant | Media type of a JSON `ExtensibleConfig` payload. |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant | Maximum checkpoint payload size (bytes). |
+| [`MAX_BATCH_KEYS`](#max_batch_keys) | constant | Maximum keys or key pairs in one `moveMany`, `deleteMany` or `headMany` call, and maximum outcomes in one reply. |
+| [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) | constant | Maximum bytes of a `Destination.changes` cursor. |
+| [`MAX_CHANGES_PAGE`](#max_changes_page) | constant | Maximum changes in one `Destination.changes` page. |
 | [`PLUGIN_TOML_SCHEMA_JSON`](#plugin_toml_schema_json) | constant | Embedded JSON Schema for install `plugin.toml` files (shared with language SDK author tools and `bookclerk plugins` validation). |
 
 ## Re-exports
@@ -1906,6 +1936,45 @@ pub trait Destination {
         'life0: 'async_trait,
         'life1: 'async_trait,
         'life2: 'async_trait,;
+    fn move_object<'life0, 'life1, 'life2, 'async_trait>(
+        &'life0 self,
+        _from: &'life1 str,
+        _to: &'life2 str,
+        _options: MoveOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<MoveResult>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        'life2: 'async_trait,;
+    fn move_many<'life0, 'async_trait>(
+        &'life0 self,
+        _request: MoveManyRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<MoveManyPage>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn delete_many<'life0, 'async_trait>(
+        &'life0 self,
+        _keys: Vec<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<KeyOutcome>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn head_many<'life0, 'async_trait>(
+        &'life0 self,
+        _keys: Vec<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Option<ObjectMetadata>>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn changes<'life0, 'async_trait>(
+        &'life0 self,
+        _request: ChangesRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<ChangesPage>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -2045,6 +2114,84 @@ where
 ```
 
 Abort a destination-side staged object.
+
+#### Destination::move_object
+
+```rust
+fn move_object<'life0, 'life1, 'life2, 'async_trait>(
+    &'life0 self,
+    _from: &'life1 str,
+    _to: &'life2 str,
+    _options: MoveOptions,
+) -> Pin<Box<dyn Future<Output = Result<MoveResult>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+    'life2: 'async_trait,
+```
+
+Move one object (`storage.move`). Repeating a finished move succeeds
+with [`crate::MoveResult::already_moved`](#moveresult).
+
+#### Destination::move_many
+
+```rust
+fn move_many<'life0, 'async_trait>(
+    &'life0 self,
+    _request: MoveManyRequest,
+) -> Pin<Box<dyn Future<Output = Result<MoveManyPage>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Move a set of objects or a whole prefix (`storage.moveMany`), one
+page per call. Safe to repeat.
+
+#### Destination::delete_many
+
+```rust
+fn delete_many<'life0, 'async_trait>(
+    &'life0 self,
+    _keys: Vec<String>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<KeyOutcome>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Remove up to [`crate::MAX_BATCH_KEYS`](#max_batch_keys) objects (`storage.deleteMany`),
+one outcome per key in order. A missing key succeeds.
+
+#### Destination::head_many
+
+```rust
+fn head_many<'life0, 'async_trait>(
+    &'life0 self,
+    _keys: Vec<String>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<Option<ObjectMetadata>>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Probe up to [`crate::MAX_BATCH_KEYS`](#max_batch_keys) objects (`storage.headMany`),
+one entry per key in order; `None` when the key is missing.
+
+#### Destination::changes
+
+```rust
+fn changes<'life0, 'async_trait>(
+    &'life0 self,
+    _request: ChangesRequest,
+) -> Pin<Box<dyn Future<Output = Result<ChangesPage>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Keys changed since a cursor (`storage.changes`).
 
 Implemented by: `DestinationClient`
 
@@ -5119,6 +5266,8 @@ pub struct ListOptions {
     pub prefix: String,
     pub cursor: Option<String>,
     pub limit: u32,
+    pub with_signatures: bool,
+    pub modified_since_ms: Option<u64>,
 }
 ```
 
@@ -5129,6 +5278,11 @@ Paginated list request.
 - `prefix`: Key prefix filter.
 - `cursor`: Opaque continuation token.
 - `limit`: Requested page size (0 = default).
+- `with_signatures`: Hint: fill the signature fields of each [`ObjectInfo`](#objectinfo). The reply's
+  [`ListPage::signatures_included`](#listpage) says whether the guest did.
+- `modified_since_ms`: Hint: only objects modified at or after this UTC unix millisecond.
+  The reply's [`ListPage::modified_since_applied`](#listpage) says whether the
+  guest filtered; when it did not, the page is unfiltered.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5138,6 +5292,8 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct ListPage {
     pub objects: Vec<ObjectInfo>,
     pub next_cursor: Option<String>,
+    pub signatures_included: bool,
+    pub modified_since_applied: bool,
 }
 ```
 
@@ -5151,6 +5307,10 @@ consistent unless a backend snapshot is documented.
 
 - `objects`: Objects in this page.
 - `next_cursor`: Continuation token; `None` when this is the last page.
+- `signatures_included`: True when every entry carries the signature fields the backend has
+  ([`ListOptions::with_signatures`](#listoptions) honoured).
+- `modified_since_applied`: True when the guest left out objects modified before
+  [`ListOptions::modified_since_ms`](#listoptions); false means the page is unfiltered.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5160,17 +5320,30 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct ObjectInfo {
     pub key: String,
     pub size: u64,
+    pub etag: Option<String>,
+    pub modified_at_ms: Option<u64>,
+    pub version_id: Option<String>,
+    pub signature: Option<String>,
 }
 ```
 
 Object listing entry.
 
+The signature fields are filled only when the listing was asked for them
+([`ListOptions::with_signatures`](#listoptions)) and the backend has them
+([`ListPage::signatures_included`](#listpage)).
+
 **Fields**
 
 - `key`: Object key.
 - `size`: Size in bytes.
+- `etag`: Opaque backend entity tag, when the backend has one.
+- `modified_at_ms`: Last modification time in UTC unix milliseconds, when known.
+- `version_id`: Backend object version id (versioned buckets), when there is one.
+- `signature`: Opaque change signature: an unchanged value means the object did not
+  change. Backend-defined; compare only values from the same backend.
 
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### ObjectMetadata
 
@@ -5181,6 +5354,9 @@ pub struct ObjectMetadata {
     pub content_type: Option<String>,
     pub etag: Option<String>,
     pub sha256: Option<Vec<u8>>,
+    pub modified_at_ms: Option<u64>,
+    pub version_id: Option<String>,
+    pub signature: Option<String>,
 }
 ```
 
@@ -5193,6 +5369,9 @@ Metadata without a body.
 - `content_type`: MIME type when known.
 - `etag`: Opaque etag when the backend provides one.
 - `sha256`: SHA-256 digest when computed.
+- `modified_at_ms`: Last modification time in UTC unix milliseconds, when known.
+- `version_id`: Backend object version id (versioned buckets), when there is one.
+- `signature`: Opaque change signature, as [`ObjectInfo::signature`](#objectinfo).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5331,6 +5510,9 @@ pub struct PutResult {
     pub bytes_written: u64,
     pub etag: Option<String>,
     pub sha256: Option<Vec<u8>>,
+    pub modified_at_ms: Option<u64>,
+    pub version_id: Option<String>,
+    pub signature: Option<String>,
 }
 ```
 
@@ -5342,6 +5524,11 @@ Result of a streamed put.
 - `bytes_written`: Bytes accepted.
 - `etag`: Backend etag when available.
 - `sha256`: Digest of the written body when computed.
+- `modified_at_ms`: Modification time of the stored object in UTC unix milliseconds,
+  when known.
+- `version_id`: Version id of the stored object, when there is one.
+- `signature`: Change signature of the stored object, so the host can recognise its
+  own write in a later listing.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5392,6 +5579,8 @@ pub struct WriteOptions {
     pub sha256: Option<Vec<u8>>,
     pub commit_token: Option<String>,
     pub stage_only: bool,
+    pub if_match: Option<String>,
+    pub if_none_match: bool,
 }
 ```
 
@@ -5404,6 +5593,214 @@ Write options for `Destination.put`.
 - `sha256`: Expected SHA-256 of the body.
 - `commit_token`: Destination-side stage-and-publish token. Empty means a one-shot put.
 - `stage_only`: When true, `put` stages remotely and does not publish until `commit`.
+- `if_match`: Conditional write: publish only while the stored object's etag equals
+  this value, else fail with `conflict`. Sent only to a guest that
+  declares `storage.conditionalWrite`.
+- `if_none_match`: Conditional write: publish only when no object exists at the key,
+  else fail with `conflict`. Sent only to a guest that declares
+  `storage.conditionalWrite`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ChangesPage
+
+```rust
+pub struct ChangesPage {
+    pub changes: Vec<ObjectChange>,
+    pub cursor: String,
+    pub more: bool,
+    pub complete: bool,
+}
+```
+
+One page of [`crate::Destination::changes`](#destinationchanges).
+
+**Fields**
+
+- `changes`: Changes since the request's cursor, oldest first. A key may repeat.
+- `cursor`: Cursor for the next call; never empty.
+- `more`: True when more changes are ready now.
+- `complete`: False when the feed may have missed changes since the request's
+  cursor; the host then backs it with a full listing.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ChangesRequest
+
+```rust
+pub struct ChangesRequest {
+    pub cursor: Option<String>,
+    pub limit: u32,
+}
+```
+
+Argument of [`crate::Destination::changes`](#destinationchanges).
+
+**Fields**
+
+- `cursor`: [`ChangesPage::cursor`](#changespage) from the previous call; `None` asks for the
+  current position (a page with a cursor and no changes).
+- `limit`: Requested changes per page, clamped to [`MAX_CHANGES_PAGE`](#max_changes_page); zero
+  means guest default.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### KeyOutcome
+
+```rust
+pub struct KeyOutcome {
+    pub key: String,
+    pub error: Option<PluginError>,
+}
+```
+
+Outcome for one key of a batch call.
+
+**Fields**
+
+- `key`: The key this outcome is for (the source key for moves).
+- `error`: The failure for this key; `None` when it succeeded.
+
+#### KeyOutcome::ok
+
+```rust
+pub fn ok(key: impl Into<String>) -> Self
+```
+
+A successful outcome for `key`.
+
+#### KeyOutcome::failed
+
+```rust
+pub fn failed(key: impl Into<String>, error: PluginError) -> Self
+```
+
+A failed outcome for `key`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### KeyPair
+
+```rust
+pub struct KeyPair {
+    pub from: String,
+    pub to: String,
+}
+```
+
+One source and target key (or prefix).
+
+**Fields**
+
+- `from`: Source key or prefix.
+- `to`: Target key or prefix.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MoveManyPage
+
+```rust
+pub struct MoveManyPage {
+    pub results: Vec<KeyOutcome>,
+    pub next_cursor: Option<String>,
+    pub atomic: bool,
+    pub objects_moved: u64,
+}
+```
+
+One page of [`crate::Destination::move_many`](#destinationmove_many) progress.
+
+**Fields**
+
+- `results`: Outcomes in request order. A prefix move done in one step may report
+  a single outcome keyed by the source prefix.
+- `next_cursor`: Prefix form: cursor for the next call; `None` when every object moved.
+- `atomic`: True when every move in this page was atomic.
+- `objects_moved`: Objects moved in this page.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### MoveManyRequest
+
+```rust
+pub struct MoveManyRequest {
+    pub target: MoveManyTarget,
+    pub cursor: Option<String>,
+    pub limit: u32,
+    pub options: MoveOptions,
+}
+```
+
+Argument of [`crate::Destination::move_many`](#destinationmove_many).
+
+**Fields**
+
+- `target`: Explicit pairs or a prefix.
+- `cursor`: Prefix form: [`MoveManyPage::next_cursor`](#movemanypage) from the previous call;
+  `None` starts. Ignored for pairs.
+- `limit`: Prefix form: objects to move in this call, clamped to
+  [`MAX_BATCH_KEYS`](#max_batch_keys); zero means guest default.
+- `options`: Overwrite rule applied to every move (`if_source_match` is ignored).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MoveOptions
+
+```rust
+pub struct MoveOptions {
+    pub no_overwrite: bool,
+    pub if_source_match: Option<String>,
+}
+```
+
+Options for [`crate::Destination::move_object`](#destinationmove_object) and
+[`crate::Destination::move_many`](#destinationmove_many). Fields are only ever appended.
+
+**Fields**
+
+- `no_overwrite`: Fail with `conflict` instead of replacing an object at the target.
+- `if_source_match`: Single moves only: move only while the source's etag equals this
+  value, else fail with `conflict`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MoveResult
+
+```rust
+pub struct MoveResult {
+    pub atomic: bool,
+    pub already_moved: bool,
+}
+```
+
+How a single move was done.
+
+**Fields**
+
+- `atomic`: True when the backend moved atomically (a rename): no reader saw the
+  object at both keys or at neither.
+- `already_moved`: True when the source was already gone and the target present, as
+  when a move is repeated after a restart. The move counts as done.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ObjectChange
+
+```rust
+pub struct ObjectChange {
+    pub key: String,
+    pub kind: ObjectChangeKind,
+    pub info: Option<ObjectInfo>,
+}
+```
+
+One entry of a change feed.
+
+**Fields**
+
+- `key`: Object key, relative to the destination root.
+- `kind`: What happened to it.
+- `info`: Listing fields after the change when the feed carries them.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5704,6 +6101,94 @@ pub fn is_terminal(&self) -> bool
 True when the host should treat the invocation as finished.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### MoveManyTarget
+
+```rust
+pub enum MoveManyTarget {
+    Pairs(Vec<KeyPair>),
+    Prefix(KeyPair),
+}
+```
+
+What a [`MoveManyRequest`](#movemanyrequest) moves.
+
+**Variants**
+
+- `Pairs`: Explicit, independent moves; at most [`MAX_BATCH_KEYS`](#max_batch_keys).
+- `Prefix`: Every object under `from` moves under `to`, keeping the rest of its
+  key. Paged through [`MoveManyRequest::cursor`](#movemanyrequest).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ObjectChangeKind
+
+```rust
+pub enum ObjectChangeKind {
+    Changed,
+    Upserted,
+    Removed,
+}
+```
+
+What happened to an object in a change feed.
+
+**Variants**
+
+- `Changed`: Something changed; probe the key to learn what. Unknown wire codes
+  read as this.
+- `Upserted`: The object was created or rewritten.
+- `Removed`: The object was removed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### StorageReply
+
+```rust
+pub enum StorageReply {
+    MoveMany(MoveManyPage),
+    DeleteMany(Vec<KeyOutcome>),
+    HeadMany(Vec<Option<ObjectMetadata>>),
+    Changes(ChangesPage),
+    List(ListPage),
+}
+```
+
+A guest reply the `storage_reply` fuzz target decodes.
+
+**Variants**
+
+- `MoveMany`: A `moveMany` page.
+- `DeleteMany`: `deleteMany` outcomes.
+- `HeadMany`: `headMany` probes.
+- `Changes`: A `changes` page.
+- `List`: A `list` page.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### StorageReplyKind
+
+```rust
+pub enum StorageReplyKind {
+    MoveMany,
+    DeleteMany,
+    HeadMany,
+    Changes,
+    List,
+}
+```
+
+Which reply [`decode_storage_reply_bytes`](#decode_storage_reply_bytes) reads.
+
+**Variants**
+
+- `MoveMany`: `MoveManyPage`.
+- `DeleteMany`: `DeleteManyResult`.
+- `HeadMany`: `HeadManyResult`.
+- `Changes`: `ChangesPage`.
+- `List`: `ListPage`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
@@ -6492,6 +6977,136 @@ up.
 
 Returns an internal error when the link fails.
 
+### decode_storage_reply_bytes
+
+```rust
+pub fn decode_storage_reply_bytes(
+    kind: StorageReplyKind,
+    bytes: &[u8],
+) -> Result<StorageReply>
+```
+
+Decodes one guest storage reply from an unpacked Cap'n Proto message,
+under the same caps the host applies to a live reply.
+
+#### Arguments
+
+* `kind` - Which reply struct the message holds.
+* `bytes` - The message.
+
+#### Returns
+
+The decoded reply.
+
+#### Errors
+
+Returns [`PluginError`](error.md#pluginerror) when the framing, the codec or a cap rejects it.
+
+### encode_storage_reply_bytes
+
+```rust
+pub fn encode_storage_reply_bytes(reply: &StorageReply) -> Result<Vec<u8>>
+```
+
+Encodes one storage reply as an unpacked single-segment message, the
+inverse of [`decode_storage_reply_bytes`](#decode_storage_reply_bytes).
+
+#### Errors
+
+Returns [`PluginError`](error.md#pluginerror) when a list cannot be encoded.
+
+### require_batch_len
+
+```rust
+pub fn require_batch_len(what: &str, len: usize) -> Result<()>
+```
+
+Rejects a batch request the guest is not obliged to serve.
+
+#### Arguments
+
+* `what` - The operation name, for the error.
+* `len` - Keys or pairs in the request.
+
+#### Errors
+
+Returns `invalid_params` for an empty batch and `payload_too_large` for
+one above [`MAX_BATCH_KEYS`](#max_batch_keys).
+
+### validate_changes_page
+
+```rust
+pub fn validate_changes_page(sent: Option<&str>, page: &ChangesPage) -> Result<()>
+```
+
+Checks a guest's change feed page against the cursor the host sent.
+
+#### Errors
+
+Returns `internal` when the page holds more than [`MAX_CHANGES_PAGE`](#max_changes_page)
+changes, a change names an implausible key, the cursor is empty or longer
+than [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes), or the page says more changes are
+ready without advancing the cursor.
+
+### validate_head_many
+
+```rust
+pub fn validate_head_many(
+    sent: &[String],
+    objects: &[Option<ObjectMetadata>],
+) -> Result<()>
+```
+
+Checks a guest's `headMany` probes against the keys the host sent.
+
+#### Errors
+
+Returns `internal` unless there is one probe per key, in order, and every
+found object names the key it was asked for.
+
+### validate_key_outcomes
+
+```rust
+pub fn validate_key_outcomes(
+    what: &str,
+    sent: &[String],
+    results: &[KeyOutcome],
+) -> Result<()>
+```
+
+Checks a guest's per-key outcomes against the keys the host sent.
+
+#### Arguments
+
+* `what` - The operation name, for the error.
+* `sent` - Keys the host sent, in order.
+* `results` - Outcomes the guest returned.
+
+#### Errors
+
+Returns `internal` unless there is exactly one outcome per key, in the
+same order and naming the same key.
+
+### validate_move_many_page
+
+```rust
+pub fn validate_move_many_page(
+    request: &MoveManyRequest,
+    page: &MoveManyPage,
+) -> Result<()>
+```
+
+Checks a guest's `moveMany` page against the request it answers.
+
+Pairs get one outcome per pair, keyed by its source, and no cursor. A
+prefix page carries at most [`MAX_BATCH_KEYS`](#max_batch_keys) outcomes, each keyed by a
+source under the prefix (or the prefix itself), and a cursor that is at
+most [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) and not the one the host sent.
+
+#### Errors
+
+Returns `internal` describing the first broken rule.
+
 ## Constants
 
 ### MAX_PLUGIN_MIGRATION_ID_BYTES
@@ -6606,6 +7221,23 @@ pub const FEATURE_SCALAR_LIMITS: &str = crate::plugin_capnp::FEATURE_SCALAR_LIMI
 
 Guest honors scalar / stream-window / list-page caps.
 
+### FEATURE_STORAGE_CHANGES
+
+```rust
+pub const FEATURE_STORAGE_CHANGES: &str = crate::plugin_capnp::FEATURE_STORAGE_CHANGES;
+```
+
+Guest implements [`super::Destination::changes`](#destinationchanges).
+
+### FEATURE_STORAGE_CONDITIONAL_WRITE
+
+```rust
+pub const FEATURE_STORAGE_CONDITIONAL_WRITE: &str = crate::plugin_capnp::FEATURE_STORAGE_CONDITIONAL_WRITE;
+```
+
+Guest enforces [`super::WriteOptions::if_match`](#writeoptions) and
+[`super::WriteOptions::if_none_match`](#writeoptions).
+
 ### FEATURE_STORAGE_COPY
 
 ```rust
@@ -6614,6 +7246,38 @@ pub const FEATURE_STORAGE_COPY: &str = crate::plugin_capnp::FEATURE_STORAGE_COPY
 
 Guest implements server-side [`super::Destination::copy`](#destinationcopy).
 
+### FEATURE_STORAGE_DELETE_MANY
+
+```rust
+pub const FEATURE_STORAGE_DELETE_MANY: &str = crate::plugin_capnp::FEATURE_STORAGE_DELETE_MANY;
+```
+
+Guest implements [`super::Destination::delete_many`](#destinationdelete_many).
+
+### FEATURE_STORAGE_HEAD_MANY
+
+```rust
+pub const FEATURE_STORAGE_HEAD_MANY: &str = crate::plugin_capnp::FEATURE_STORAGE_HEAD_MANY;
+```
+
+Guest implements [`super::Destination::head_many`](#destinationhead_many).
+
+### FEATURE_STORAGE_MOVE
+
+```rust
+pub const FEATURE_STORAGE_MOVE: &str = crate::plugin_capnp::FEATURE_STORAGE_MOVE;
+```
+
+Guest implements [`super::Destination::move_object`](#destinationmove_object).
+
+### FEATURE_STORAGE_MOVE_MANY
+
+```rust
+pub const FEATURE_STORAGE_MOVE_MANY: &str = crate::plugin_capnp::FEATURE_STORAGE_MOVE_MANY;
+```
+
+Guest implements [`super::Destination::move_many`](#destinationmove_many).
+
 ### FEATURE_STREAMS
 
 ```rust
@@ -6621,6 +7285,16 @@ pub const FEATURE_STREAMS: &str = crate::plugin_capnp::FEATURE_STREAMS;
 ```
 
 Media moves through transferred [`crate::roles::ByteRange`](#byterange) / `ByteSource` streams.
+
+### STORAGE_OPERATION_FEATURES
+
+```rust
+pub const STORAGE_OPERATION_FEATURES: &[&str] = _;
+```
+
+Every optional storage operation a host offers a storage guest, beside
+[`FEATURE_STORAGE_COPY`](#feature_storage_copy). Each one the guest accepts replaces the host's
+fallback for that operation.
 
 ### MAX_COVER_BYTES
 
@@ -6905,6 +7579,31 @@ pub const MAX_CHECKPOINT_BYTES: u32 = crate::plugin_capnp::MAX_CHECKPOINT_BYTES;
 ```
 
 Maximum checkpoint payload size (bytes).
+
+### MAX_BATCH_KEYS
+
+```rust
+pub const MAX_BATCH_KEYS: u32 = crate::plugin_capnp::MAX_BATCH_KEYS;
+```
+
+Maximum keys or key pairs in one `moveMany`, `deleteMany` or `headMany`
+call, and maximum outcomes in one reply.
+
+### MAX_CHANGES_CURSOR_BYTES
+
+```rust
+pub const MAX_CHANGES_CURSOR_BYTES: u32 = crate::plugin_capnp::MAX_CHANGES_CURSOR_BYTES;
+```
+
+Maximum bytes of a `Destination.changes` cursor.
+
+### MAX_CHANGES_PAGE
+
+```rust
+pub const MAX_CHANGES_PAGE: u32 = crate::plugin_capnp::MAX_CHANGES_PAGE;
+```
+
+Maximum changes in one `Destination.changes` page.
 
 ### PLUGIN_TOML_SCHEMA_JSON
 

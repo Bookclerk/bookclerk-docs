@@ -61,6 +61,18 @@ pub fn get_next_cursor(self) -> Result<Reader<'a>>
 pub fn has_next_cursor(&self) -> bool
 ```
 
+#### Reader::get_signatures_included
+
+```rust
+pub fn get_signatures_included(self) -> bool
+```
+
+#### Reader::get_modified_since_applied
+
+```rust
+pub fn get_modified_since_applied(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -141,6 +153,30 @@ pub fn init_next_cursor(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_next_cursor(&self) -> bool
+```
+
+#### Builder::get_signatures_included
+
+```rust
+pub fn get_signatures_included(self) -> bool
+```
+
+#### Builder::set_signatures_included
+
+```rust
+pub fn set_signatures_included(&mut self, value: bool)
+```
+
+#### Builder::get_modified_since_applied
+
+```rust
+pub fn get_modified_since_applied(self) -> bool
+```
+
+#### Builder::set_modified_since_applied
+
+```rust
+pub fn set_modified_since_applied(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

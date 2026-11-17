@@ -974,6 +974,74 @@ Hits in storefront order.
 
 ***
 
+### ChangesPage
+
+One page of `Destination.changes`.
+
+#### Properties
+
+##### changes
+
+```ts
+changes: ObjectChange[];
+```
+
+Changes since the request's cursor, oldest first. A key may repeat.
+
+##### complete
+
+```ts
+complete: boolean;
+```
+
+False when the feed may have missed changes since the request's cursor
+(an overflowed watcher, expired queue retention, a restart): the host
+backs it with a full listing. True means these are all the changes.
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+Cursor for the next call; never empty.
+
+##### more
+
+```ts
+more: boolean;
+```
+
+True when more changes are ready now; call again with `cursor`.
+
+***
+
+### ChangesRequest
+
+Argument of `Destination.changes`. Fields are only ever appended.
+
+#### Properties
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+`ChangesPage.cursor` from the previous call. Empty asks for the current
+position: the page carries a cursor and no changes.
+
+##### limit
+
+```ts
+limit: number;
+```
+
+Requested changes per page, clamped to `maxChangesPage`; zero means
+guest default.
+
+***
+
 ### ChapterMarker
 
 One chapter marker of a fetched title.
@@ -2453,6 +2521,22 @@ How `dbExecutionUs` was measured.
 
 ***
 
+### DeleteManyResult
+
+Result of `Destination.deleteMany`.
+
+#### Properties
+
+##### results
+
+```ts
+results: KeyOutcome[];
+```
+
+One outcome per requested key, in request order. A missing key succeeds.
+
+***
+
 ### Destination
 
 Object store the host writes acquired media into (`output.*` plugins).
@@ -2480,6 +2564,27 @@ Discard a staged object without publishing it.
 `Promise`\<[`EmptyReply`](#emptyreply)\>
 
 [EmptyReply](#emptyreply)
+
+##### changes()
+
+```ts
+changes(request): Promise<ChangesReply>;
+```
+
+Keys changed since a cursor (requires `storage.changes`). A hint for
+what to read; a scheduled listing stays the backstop.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`ChangesRequest`](#changesrequest) | Cursor and page size. |
+
+###### Returns
+
+`Promise`\<[`ChangesReply`](#changesreply)\>
+
+[ChangesReply](#changesreply)
 
 ##### commit()
 
@@ -2545,6 +2650,26 @@ Remove an object; deleting a missing key is a success.
 
 [EmptyReply](#emptyreply)
 
+##### deleteMany()
+
+```ts
+deleteMany(keys): Promise<DeleteManyReply>;
+```
+
+Remove up to `maxBatchKeys` objects (requires `storage.deleteMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Object keys to remove. |
+
+###### Returns
+
+`Promise`\<[`DeleteManyReply`](#deletemanyreply)\>
+
+[DeleteManyReply](#deletemanyreply)
+
 ##### get()
 
 ```ts
@@ -2586,6 +2711,26 @@ Metadata probe. `found = false` is a success, not `not_found`.
 
 [HeadReply](#headreply)
 
+##### headMany()
+
+```ts
+headMany(keys): Promise<HeadManyReply>;
+```
+
+Probe up to `maxBatchKeys` objects (requires `storage.headMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Object keys to probe. |
+
+###### Returns
+
+`Promise`\<[`HeadManyReply`](#headmanyreply)\>
+
+[HeadManyReply](#headmanyreply)
+
 ##### list()
 
 ```ts
@@ -2605,6 +2750,54 @@ Page through objects under a prefix; at most `maxListPage` per page.
 `Promise`\<[`ListReply`](#listreply)\>
 
 [ListReply](#listreply)
+
+##### move()
+
+```ts
+move(
+   from, 
+   to, 
+   options
+): Promise<MoveReply>;
+```
+
+Move one object (requires `storage.move`). Repeating a finished move
+succeeds with `alreadyMoved`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `from` | `string` | Source object key. |
+| `to` | `string` | Target object key. |
+| `options` | [`MoveOptions`](#moveoptions) | Overwrite and source preconditions. |
+
+###### Returns
+
+`Promise`\<[`MoveReply`](#movereply)\>
+
+[MoveReply](#movereply)
+
+##### moveMany()
+
+```ts
+moveMany(request): Promise<MoveManyReply>;
+```
+
+Move a set of objects or a whole prefix (requires `storage.moveMany`).
+Paged and safe to repeat.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`MoveManyRequest`](#movemanyrequest) | Pairs or prefix, cursor, and options. |
+
+###### Returns
+
+`Promise`\<[`MoveManyReply`](#movemanyreply)\>
+
+[MoveManyReply](#movemanyreply)
 
 ##### put()
 
@@ -3967,6 +4160,22 @@ before sending instead of discovering caps from errors.
 
 ***
 
+### HeadManyResult
+
+Result of `Destination.headMany`.
+
+#### Properties
+
+##### objects
+
+```ts
+objects: HeadOk[];
+```
+
+One probe per requested key, in request order.
+
+***
+
 ### HeadOk
 
 Success payload of `Destination.head`.
@@ -4359,6 +4568,54 @@ database bindings come from `Bindings.databases` at `open`, not per job.
 `Promise`\<[`HandleReply`](#handlereply)\>
 
 [HandleReply](#handlereply)
+
+***
+
+### KeyOutcome
+
+Outcome for one key of a batch call.
+
+#### Properties
+
+##### error
+
+```ts
+error: PluginError;
+```
+
+Failure for this key; an empty `code` means it succeeded.
+
+##### key
+
+```ts
+key: string;
+```
+
+The key this outcome is for (the source key for moves).
+
+***
+
+### KeyPair
+
+One source and target key.
+
+#### Properties
+
+##### from
+
+```ts
+from: string;
+```
+
+Source object key (or source prefix).
+
+##### to
+
+```ts
+to: string;
+```
+
+Target object key (or target prefix).
 
 ***
 
@@ -4813,6 +5070,16 @@ limit: number;
 
 Requested page size; clamped to `maxListPage`. `0` means guest default.
 
+##### modifiedSinceMs
+
+```ts
+modifiedSinceMs: number;
+```
+
+Hint: only objects modified at or after this time (UTC unix
+milliseconds); zero lists everything. `ListPage.modifiedSinceApplied`
+says whether the guest filtered; when it did not, the page is unfiltered.
+
 ##### prefix
 
 ```ts
@@ -4821,6 +5088,15 @@ prefix: string;
 
 Only keys starting with this prefix; empty lists everything.
 
+##### withSignatures
+
+```ts
+withSignatures: boolean;
+```
+
+Hint: fill `etag`, `modifiedAtMs`, `versionId` and `signature` on each
+entry. `ListPage.signaturesIncluded` says whether the guest did.
+
 ***
 
 ### ListPage
@@ -4828,6 +5104,15 @@ Only keys starting with this prefix; empty lists everything.
 One page of `Destination.list` results.
 
 #### Properties
+
+##### modifiedSinceApplied
+
+```ts
+modifiedSinceApplied: boolean;
+```
+
+True when the guest left out objects modified before
+`ListOptions.modifiedSinceMs`. False means the page is unfiltered.
 
 ##### nextCursor
 
@@ -4844,6 +5129,15 @@ objects: ObjectInfo[];
 ```
 
 Objects in this page, in backend order.
+
+##### signaturesIncluded
+
+```ts
+signaturesIncluded: boolean;
+```
+
+True when every entry carries the signature fields the backend has
+(`ListOptions.withSignatures` honoured).
 
 ***
 
@@ -5965,6 +6259,142 @@ Title to match; never empty.
 
 ***
 
+### MoveManyPage
+
+One page of `Destination.moveMany` progress.
+
+#### Properties
+
+##### atomic
+
+```ts
+atomic: boolean;
+```
+
+True when every move in this page was atomic.
+
+##### nextCursor
+
+```ts
+nextCursor: string;
+```
+
+Prefix form: cursor for the next call; empty when every object moved.
+
+##### objectsMoved
+
+```ts
+objectsMoved: number;
+```
+
+Objects moved in this page (a folder rename counts what it carried
+when known, else the outcomes).
+
+##### results
+
+```ts
+results: KeyOutcome[];
+```
+
+Outcomes in request order. A prefix move done in one step (a folder
+rename) may report a single outcome keyed by the source prefix.
+
+***
+
+### MoveManyRequest
+
+Argument of `Destination.moveMany`. Fields are only ever appended.
+
+#### Properties
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+Prefix form: `MoveManyPage.nextCursor` from the previous call; empty
+starts. Ignored for `pairs`.
+
+##### limit
+
+```ts
+limit: number;
+```
+
+Prefix form: objects to move in this call, clamped to `maxBatchKeys`;
+zero means guest default.
+
+##### options
+
+```ts
+options: MoveOptions;
+```
+
+Overwrite rule applied to every move (`ifSourceMatch` is ignored).
+
+##### target
+
+```ts
+target: MoveManyTarget;
+```
+
+Explicit pairs or a prefix.
+
+***
+
+### MoveOptions
+
+Options for `Destination.move` and `Destination.moveMany`. Fields are only
+ever appended.
+
+#### Properties
+
+##### ifSourceMatch
+
+```ts
+ifSourceMatch: string;
+```
+
+`move` only: move only while the source's `etag` equals this value,
+else fail with `conflict`. Empty skips the check.
+
+##### noOverwrite
+
+```ts
+noOverwrite: boolean;
+```
+
+Fail with `conflict` instead of replacing an object at the target key.
+
+***
+
+### MoveResult
+
+Summary of `Destination.move`.
+
+#### Properties
+
+##### alreadyMoved
+
+```ts
+alreadyMoved: boolean;
+```
+
+True when the source was already gone and the target present, as when
+a move is repeated after a restart. The move counts as done.
+
+##### atomic
+
+```ts
+atomic: boolean;
+```
+
+True when the backend moved atomically (a rename): no reader saw the
+object at both keys or at neither.
+
+***
+
 ### NamedDatabase
 
 One named plugin-owned database binding delivered on `Bindings.databases`.
@@ -6080,11 +6510,53 @@ Resolved type.
 
 ***
 
+### ObjectChange
+
+One entry of a change feed.
+
+#### Properties
+
+##### info
+
+```ts
+info: ObjectInfo;
+```
+
+Listing fields after the change when the feed carries them (signature
+fields may be empty); empty for `removed`.
+
+##### key
+
+```ts
+key: string;
+```
+
+Object key, relative to the destination root.
+
+##### kind
+
+```ts
+kind: "changed" | "upserted" | "removed";
+```
+
+What happened to it.
+
+***
+
 ### ObjectInfo
 
 Compact object entry in a list page.
 
 #### Properties
+
+##### etag
+
+```ts
+etag: string;
+```
+
+Backend entity tag; empty when unsupported or not requested
+(`ListOptions.withSignatures`).
 
 ##### key
 
@@ -6094,6 +6566,24 @@ key: string;
 
 Object key.
 
+##### modifiedAtMs
+
+```ts
+modifiedAtMs: number;
+```
+
+Last modification time, UTC unix milliseconds; zero when unknown or not
+requested.
+
+##### signature
+
+```ts
+signature: string;
+```
+
+Opaque change signature, as `ObjectMetadata.signature`; empty when
+unsupported or not requested.
+
 ##### size
 
 ```ts
@@ -6101,6 +6591,14 @@ size: number;
 ```
 
 Object size in bytes.
+
+##### versionId
+
+```ts
+versionId: string;
+```
+
+Backend object version id; empty when none or not requested.
 
 ***
 
@@ -6134,6 +6632,14 @@ key: string;
 
 Object key.
 
+##### modifiedAtMs
+
+```ts
+modifiedAtMs: number;
+```
+
+Last modification time, UTC unix milliseconds; zero when unknown.
+
 ##### sha256
 
 ```ts
@@ -6142,6 +6648,16 @@ sha256: Uint8Array;
 
 Raw SHA-256 digest (32 bytes) or empty when unknown.
 
+##### signature
+
+```ts
+signature: string;
+```
+
+Opaque change signature: an unchanged value means the object has not
+changed. Backend-defined (a local file's inode, size, mtime and ctime;
+an S3 ETag and version id). Empty when the backend has none.
+
 ##### size
 
 ```ts
@@ -6149,6 +6665,14 @@ size: number;
 ```
 
 Object size in bytes.
+
+##### versionId
+
+```ts
+versionId: string;
+```
+
+Backend object version id (versioned buckets); empty when none.
 
 ***
 
@@ -7226,6 +7750,15 @@ key: string;
 
 Object key written.
 
+##### modifiedAtMs
+
+```ts
+modifiedAtMs: number;
+```
+
+Modification time of the stored object, UTC unix milliseconds; zero when
+unknown.
+
 ##### sha256
 
 ```ts
@@ -7233,6 +7766,23 @@ sha256: Uint8Array;
 ```
 
 Raw SHA-256 digest of the stored bytes; empty when not computed.
+
+##### signature
+
+```ts
+signature: string;
+```
+
+Change signature of the stored object (`ObjectMetadata.signature`), so
+the host can recognise its own write in a later listing; empty when none.
+
+##### versionId
+
+```ts
+versionId: string;
+```
+
+Version id of the stored object; empty when none.
 
 ***
 
@@ -9055,6 +9605,25 @@ contentType: string;
 
 MIME type to record; empty when unknown.
 
+##### ifMatch
+
+```ts
+ifMatch: string;
+```
+
+Conditional write (`storage.conditionalWrite`): publish only while the
+stored object's `etag` equals this value, else fail with `conflict`.
+Empty means unconditional. A staged put checks it at `commit`.
+
+##### ifNoneMatch
+
+```ts
+ifNoneMatch: boolean;
+```
+
+Conditional write (`storage.conditionalWrite`): publish only when no
+object exists at the key, else fail with `conflict`.
+
 ##### sha256
 
 ```ts
@@ -9124,6 +9693,24 @@ type CatalogHitsReply =
 ```
 
 Result union of `searchCatalog` / `expandCandidates` / `listDeals`.
+
+***
+
+### ChangesReply
+
+```ts
+type ChangesReply = 
+  | {
+  kind: "ok";
+  value: ChangesPage;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.changes`.
 
 ***
 
@@ -9266,6 +9853,24 @@ type DbValue =
 ```
 
 One typed SQL cell or bind parameter.
+
+***
+
+### DeleteManyReply
+
+```ts
+type DeleteManyReply = 
+  | {
+  kind: "ok";
+  value: DeleteManyResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.deleteMany`.
 
 ***
 
@@ -9594,6 +10199,24 @@ Result union of `JobRunner.job`.
 
 ***
 
+### HeadManyReply
+
+```ts
+type HeadManyReply = 
+  | {
+  kind: "ok";
+  value: HeadManyResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.headMany`.
+
+***
+
 ### HeadReply
 
 ```ts
@@ -9874,6 +10497,60 @@ type MetadataRecordsReply =
 ```
 
 Result union of `MetadataProvider.lookup` / `search`.
+
+***
+
+### MoveManyReply
+
+```ts
+type MoveManyReply = 
+  | {
+  kind: "ok";
+  value: MoveManyPage;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.moveMany`.
+
+***
+
+### MoveManyTarget
+
+```ts
+type MoveManyTarget = 
+  | {
+  kind: "pairs";
+  value: KeyPair[];
+}
+  | {
+  kind: "prefix";
+  value: KeyPair;
+};
+```
+
+What `Destination.moveMany` moves.
+
+***
+
+### MoveReply
+
+```ts
+type MoveReply = 
+  | {
+  kind: "ok";
+  value: MoveResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.move`.
 
 ***
 
@@ -10402,6 +11079,12 @@ Re-exports [MediaKind](abi.md#mediakind)
 ### MetadataField
 
 Re-exports [MetadataField](abi.md#metadatafield)
+
+***
+
+### ObjectChangeKind
+
+Re-exports [ObjectChangeKind](abi.md#objectchangekind)
 
 ***
 

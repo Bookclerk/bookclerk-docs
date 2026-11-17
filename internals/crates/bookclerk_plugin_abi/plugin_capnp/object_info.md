@@ -55,6 +55,48 @@ pub fn has_key(&self) -> bool
 pub fn get_size(self) -> u64
 ```
 
+#### Reader::get_etag
+
+```rust
+pub fn get_etag(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_etag
+
+```rust
+pub fn has_etag(&self) -> bool
+```
+
+#### Reader::get_modified_at_ms
+
+```rust
+pub fn get_modified_at_ms(self) -> u64
+```
+
+#### Reader::get_version_id
+
+```rust
+pub fn get_version_id(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_version_id
+
+```rust
+pub fn has_version_id(&self) -> bool
+```
+
+#### Reader::get_signature
+
+```rust
+pub fn get_signature(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_signature
+
+```rust
+pub fn has_signature(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -123,6 +165,90 @@ pub fn get_size(self) -> u64
 
 ```rust
 pub fn set_size(&mut self, value: u64)
+```
+
+#### Builder::get_etag
+
+```rust
+pub fn get_etag(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_etag
+
+```rust
+pub fn set_etag(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_etag
+
+```rust
+pub fn init_etag(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_etag
+
+```rust
+pub fn has_etag(&self) -> bool
+```
+
+#### Builder::get_modified_at_ms
+
+```rust
+pub fn get_modified_at_ms(self) -> u64
+```
+
+#### Builder::set_modified_at_ms
+
+```rust
+pub fn set_modified_at_ms(&mut self, value: u64)
+```
+
+#### Builder::get_version_id
+
+```rust
+pub fn get_version_id(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_version_id
+
+```rust
+pub fn set_version_id(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_version_id
+
+```rust
+pub fn init_version_id(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_version_id
+
+```rust
+pub fn has_version_id(&self) -> bool
+```
+
+#### Builder::get_signature
+
+```rust
+pub fn get_signature(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_signature
+
+```rust
+pub fn set_signature(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_signature
+
+```rust
+pub fn init_signature(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_signature
+
+```rust
+pub fn has_signature(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

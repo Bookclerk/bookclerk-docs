@@ -67,6 +67,18 @@ pub fn has_cursor(&self) -> bool
 pub fn get_limit(self) -> u32
 ```
 
+#### Reader::get_with_signatures
+
+```rust
+pub fn get_with_signatures(self) -> bool
+```
+
+#### Reader::get_modified_since_ms
+
+```rust
+pub fn get_modified_since_ms(self) -> u64
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -159,6 +171,30 @@ pub fn get_limit(self) -> u32
 
 ```rust
 pub fn set_limit(&mut self, value: u32)
+```
+
+#### Builder::get_with_signatures
+
+```rust
+pub fn get_with_signatures(self) -> bool
+```
+
+#### Builder::set_with_signatures
+
+```rust
+pub fn set_with_signatures(&mut self, value: bool)
+```
+
+#### Builder::get_modified_since_ms
+
+```rust
+pub fn get_modified_since_ms(self) -> u64
+```
+
+#### Builder::set_modified_since_ms
+
+```rust
+pub fn set_modified_since_ms(&mut self, value: u64)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

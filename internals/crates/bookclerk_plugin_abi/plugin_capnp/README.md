@@ -6,6 +6,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`ObjectChangeKind`](#objectchangekind) | enum |  |
 | [`PluginErrorCode`](#pluginerrorcode) | enum |  |
 | [`Entrypoint`](#entrypoint) | enum |  |
 | [`PortalAuthMode`](#portalauthmode) | enum |  |
@@ -31,6 +32,9 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_SCALAR_BYTES`](#max_scalar_bytes) | constant |  |
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant |  |
 | [`MAX_LIST_PAGE`](#max_list_page) | constant |  |
+| [`MAX_BATCH_KEYS`](#max_batch_keys) | constant |  |
+| [`MAX_CHANGES_PAGE`](#max_changes_page) | constant |  |
+| [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) | constant |  |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant |  |
 | [`MAX_SCAN_PAGE_BOOKS`](#max_scan_page_books) | constant |  |
 | [`MAX_SCAN_CURSOR_BYTES`](#max_scan_cursor_bytes) | constant |  |
@@ -64,6 +68,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant |  |
 | [`FEATURE_STREAMS`](#feature_streams) | constant |  |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant |  |
+| [`FEATURE_STORAGE_MOVE`](#feature_storage_move) | constant |  |
+| [`FEATURE_STORAGE_MOVE_MANY`](#feature_storage_move_many) | constant |  |
+| [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant |  |
+| [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant |  |
+| [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant |  |
+| [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant |  |
 
 ## Modules
 
@@ -78,6 +88,18 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`write_options`](write_options.md)
 - [`put_result`](put_result.md)
 - [`copy_result`](copy_result.md)
+- [`move_options`](move_options.md)
+- [`move_result`](move_result.md)
+- [`key_pair`](key_pair.md)
+- [`move_many_target`](move_many_target.md)
+- [`move_many_request`](move_many_request.md)
+- [`key_outcome`](key_outcome.md)
+- [`move_many_page`](move_many_page.md)
+- [`delete_many_result`](delete_many_result.md)
+- [`head_many_result`](head_many_result.md)
+- [`changes_request`](changes_request.md)
+- [`object_change`](object_change.md)
+- [`changes_page`](changes_page.md)
 - [`plugin_describe`](plugin_describe.md)
 - [`optional`](optional.md)
 - [`oidc_client_template`](oidc_client_template.md)
@@ -114,6 +136,11 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`get_reply`](get_reply.md)
 - [`put_reply`](put_reply.md)
 - [`copy_reply`](copy_reply.md)
+- [`move_reply`](move_reply.md)
+- [`move_many_reply`](move_many_reply.md)
+- [`delete_many_reply`](delete_many_reply.md)
+- [`head_many_reply`](head_many_reply.md)
+- [`changes_reply`](changes_reply.md)
 - [`empty_reply`](empty_reply.md)
 - [`pull_ok`](pull_ok.md)
 - [`pull_reply`](pull_reply.md)
@@ -322,6 +349,18 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`plugin_worker`](plugin_worker/README.md)
 
 ## Enums
+
+### ObjectChangeKind
+
+```rust
+pub enum ObjectChangeKind {
+    Changed = 0,
+    Upserted = 1,
+    Removed = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ObjectChangeKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### PluginErrorCode
 
@@ -655,6 +694,24 @@ pub const MAX_STREAM_WINDOW_BYTES: u32 = 1048576;
 pub const MAX_LIST_PAGE: u32 = 256;
 ```
 
+### MAX_BATCH_KEYS
+
+```rust
+pub const MAX_BATCH_KEYS: u32 = 256;
+```
+
+### MAX_CHANGES_PAGE
+
+```rust
+pub const MAX_CHANGES_PAGE: u32 = 256;
+```
+
+### MAX_CHANGES_CURSOR_BYTES
+
+```rust
+pub const MAX_CHANGES_CURSOR_BYTES: u32 = 4096;
+```
+
 ### MAX_CHECKPOINT_BYTES
 
 ```rust
@@ -851,4 +908,40 @@ pub const FEATURE_STREAMS: &str = "rpc.streams";
 
 ```rust
 pub const FEATURE_STORAGE_COPY: &str = "storage.copy";
+```
+
+### FEATURE_STORAGE_MOVE
+
+```rust
+pub const FEATURE_STORAGE_MOVE: &str = "storage.move";
+```
+
+### FEATURE_STORAGE_MOVE_MANY
+
+```rust
+pub const FEATURE_STORAGE_MOVE_MANY: &str = "storage.moveMany";
+```
+
+### FEATURE_STORAGE_DELETE_MANY
+
+```rust
+pub const FEATURE_STORAGE_DELETE_MANY: &str = "storage.deleteMany";
+```
+
+### FEATURE_STORAGE_HEAD_MANY
+
+```rust
+pub const FEATURE_STORAGE_HEAD_MANY: &str = "storage.headMany";
+```
+
+### FEATURE_STORAGE_CONDITIONAL_WRITE
+
+```rust
+pub const FEATURE_STORAGE_CONDITIONAL_WRITE: &str = "storage.conditionalWrite";
+```
+
+### FEATURE_STORAGE_CHANGES
+
+```rust
+pub const FEATURE_STORAGE_CHANGES: &str = "storage.changes";
 ```

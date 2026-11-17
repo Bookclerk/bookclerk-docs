@@ -1623,6 +1623,24 @@ Re-exports [CatalogSort](abi.md#catalogsort)
 
 ***
 
+### ChangesPage
+
+Re-exports [ChangesPage](plugin.md#changespage)
+
+***
+
+### ChangesReply
+
+Re-exports [ChangesReply](generated.md#changesreply)
+
+***
+
+### ChangesRequest
+
+Re-exports [ChangesRequest](plugin.md#changesrequest)
+
+***
+
 ### ChapterMarker
 
 Re-exports [ChapterMarker](generated.md#chaptermarker)
@@ -1977,6 +1995,18 @@ Re-exports [decodeExtensibleConfig](plugin.md#decodeextensibleconfig)
 
 ***
 
+### DeleteManyReply
+
+Re-exports [DeleteManyReply](generated.md#deletemanyreply)
+
+***
+
+### DeleteManyResult
+
+Re-exports [DeleteManyResult](generated.md#deletemanyresult)
+
+***
+
 ### DeliveredCheckpoint
 
 Re-exports [DeliveredCheckpoint](plugin.md#deliveredcheckpoint)
@@ -2295,9 +2325,45 @@ Re-exports [FEATURE_SCALAR_LIMITS](abi.md#feature_scalar_limits)
 
 ***
 
+### FEATURE\_STORAGE\_CHANGES
+
+Re-exports [FEATURE_STORAGE_CHANGES](abi.md#feature_storage_changes)
+
+***
+
+### FEATURE\_STORAGE\_CONDITIONAL\_WRITE
+
+Re-exports [FEATURE_STORAGE_CONDITIONAL_WRITE](abi.md#feature_storage_conditional_write)
+
+***
+
 ### FEATURE\_STORAGE\_COPY
 
 Re-exports [FEATURE_STORAGE_COPY](abi.md#feature_storage_copy)
+
+***
+
+### FEATURE\_STORAGE\_DELETE\_MANY
+
+Re-exports [FEATURE_STORAGE_DELETE_MANY](abi.md#feature_storage_delete_many)
+
+***
+
+### FEATURE\_STORAGE\_HEAD\_MANY
+
+Re-exports [FEATURE_STORAGE_HEAD_MANY](abi.md#feature_storage_head_many)
+
+***
+
+### FEATURE\_STORAGE\_MOVE
+
+Re-exports [FEATURE_STORAGE_MOVE](abi.md#feature_storage_move)
+
+***
+
+### FEATURE\_STORAGE\_MOVE\_MANY
+
+Re-exports [FEATURE_STORAGE_MOVE_MANY](abi.md#feature_storage_move_many)
 
 ***
 
@@ -2394,6 +2460,18 @@ Re-exports [GuestDatabaseReply](generated.md#guestdatabasereply)
 ### HandleReply
 
 Re-exports [HandleReply](generated.md#handlereply)
+
+***
+
+### HeadManyReply
+
+Re-exports [HeadManyReply](generated.md#headmanyreply)
+
+***
+
+### HeadManyResult
+
+Re-exports [HeadManyResult](generated.md#headmanyresult)
 
 ***
 
@@ -2562,6 +2640,18 @@ Re-exports [JsonObject](env.md#jsonobject)
 ### jsonPayload
 
 Re-exports [jsonPayload](plugin.md#jsonpayload)
+
+***
+
+### KeyOutcome
+
+Re-exports [KeyOutcome](plugin.md#keyoutcome)
+
+***
+
+### KeyPair
+
+Re-exports [KeyPair](generated.md#keypair)
 
 ***
 
@@ -2742,6 +2832,24 @@ Re-exports [LoginStartReply](generated.md#loginstartreply)
 ### LoginStartResult
 
 Re-exports [LoginStartResult](generated.md#loginstartresult)
+
+***
+
+### MAX\_BATCH\_KEYS
+
+Re-exports [MAX_BATCH_KEYS](abi.md#max_batch_keys)
+
+***
+
+### MAX\_CHANGES\_CURSOR\_BYTES
+
+Re-exports [MAX_CHANGES_CURSOR_BYTES](abi.md#max_changes_cursor_bytes)
+
+***
+
+### MAX\_CHANGES\_PAGE
+
+Re-exports [MAX_CHANGES_PAGE](abi.md#max_changes_page)
 
 ***
 
@@ -2931,6 +3039,48 @@ Re-exports [MetadataSearchParams](generated.md#metadatasearchparams)
 
 ***
 
+### MoveManyPage
+
+Re-exports [MoveManyPage](plugin.md#movemanypage)
+
+***
+
+### MoveManyReply
+
+Re-exports [MoveManyReply](generated.md#movemanyreply)
+
+***
+
+### MoveManyRequest
+
+Re-exports [MoveManyRequest](plugin.md#movemanyrequest)
+
+***
+
+### MoveManyTarget
+
+Re-exports [MoveManyTarget](generated.md#movemanytarget)
+
+***
+
+### MoveOptions
+
+Re-exports [MoveOptions](plugin.md#moveoptions)
+
+***
+
+### MoveReply
+
+Re-exports [MoveReply](generated.md#movereply)
+
+***
+
+### MoveResult
+
+Re-exports [MoveResult](plugin.md#moveresult)
+
+***
+
 ### NamedDatabase
 
 Re-exports [NamedDatabase](plugin.md#nameddatabase)
@@ -2964,6 +3114,18 @@ Re-exports [NamedSqlType](generated.md#namedsqltype)
 ### NamedStub
 
 Re-exports [NamedStub](plugin.md#namedstub)
+
+***
+
+### ObjectChange
+
+Re-exports [ObjectChange](plugin.md#objectchange)
+
+***
+
+### ObjectChangeKind
+
+Re-exports [ObjectChangeKind](abi.md#objectchangekind)
 
 ***
 

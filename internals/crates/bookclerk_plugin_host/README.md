@@ -3154,6 +3154,14 @@ pub fn supports_server_copy(&self) -> bool
 
 True when the guest accepted `storage.copy`.
 
+#### PluginSession::storage_capabilities
+
+```rust
+pub fn storage_capabilities(&self) -> StorageCapabilities
+```
+
+The optional storage operations the guest accepted (`storage.*`).
+
 #### PluginSession::id
 
 ```rust

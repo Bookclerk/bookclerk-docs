@@ -63,8 +63,17 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`transport_queue`](#transport_queue) | function | Wrap the adapter's granted queue stub as a `QueueBinding`. |
 | [`transport_sockets`](#transport_sockets) | function | Wrap the adapter's granted sockets stub as a `SocketsBinding`. |
 | [`FEATURE_SCALAR_LIMITS`](#feature_scalar_limits) | constant | Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`). |
+| [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant | Guest implements `Destination.changes` (`storage.changes`). |
+| [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant | Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` (`storage.conditionalWrite`). |
 | [`FEATURE_STORAGE_COPY`](#feature_storage_copy) | constant | Guest implements server-side `Destination.copy` (`storage.copy`). |
+| [`FEATURE_STORAGE_DELETE_MANY`](#feature_storage_delete_many) | constant | Guest implements `Destination.deleteMany` (`storage.deleteMany`). |
+| [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant | Guest implements `Destination.headMany` (`storage.headMany`). |
+| [`FEATURE_STORAGE_MOVE`](#feature_storage_move) | constant | Guest implements `Destination.move` (`storage.move`). |
+| [`FEATURE_STORAGE_MOVE_MANY`](#feature_storage_move_many) | constant | Guest implements `Destination.moveMany` (`storage.moveMany`). |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `ByteRange` / `ByteSource` streams (`rpc.streams`). |
+| [`MAX_BATCH_KEYS`](#max_batch_keys) | constant | Maximum keys or key pairs in one `Destination.moveMany`, `deleteMany` or `headMany` call, and maximum outcomes in one reply. |
+| [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) | constant | Maximum bytes of a `Destination.changes` cursor. |
+| [`MAX_CHANGES_PAGE`](#max_changes_page) | constant | Maximum changes in one `Destination.changes` page. |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant | Maximum job / event checkpoint payload size (bytes). |
 | [`MAX_LIST_PAGE`](#max_list_page) | constant | Maximum objects in one `Destination.list` page. |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant | Maximum already-separated operations in one plugin-owned migration. |
@@ -1588,6 +1597,63 @@ async def abortStage(self, _key: str, _commit_token: str)
 
 Discard a staged object.
 
+#### StorageEntrypoint.move
+
+```python
+async def move(self, _from_key: str, _to_key: str, _options: Any=None)
+```
+
+Move one object (declare `storage.move`).
+
+`options` may carry `noOverwrite` and `ifSourceMatch`. Returns
+`{"atomic": bool, "alreadyMoved": bool}`; `alreadyMoved` reports a
+retried move whose source is gone and whose target exists.
+
+#### StorageEntrypoint.moveMany
+
+```python
+async def moveMany(self, _request: Any)
+```
+
+Move explicit pairs or one page of a prefix (declare `storage.moveMany`).
+
+`request["target"]` is `{"kind": "pairs", "value": [...]}` (at
+most `MAX_BATCH_KEYS`) or `{"kind": "prefix", "value": {...}}`,
+paged through `cursor`. Returns ``{"results", "nextCursor",
+"atomic", "objectsMoved"}``, one result per pair in order.
+
+#### StorageEntrypoint.deleteMany
+
+```python
+async def deleteMany(self, _keys: list[str])
+```
+
+Delete up to `MAX_BATCH_KEYS` objects (declare `storage.deleteMany`).
+
+Returns one `{"key", "error"?}` outcome per key, in order; a
+missing object counts as deleted.
+
+#### StorageEntrypoint.headMany
+
+```python
+async def headMany(self, _keys: list[str])
+```
+
+Metadata for up to `MAX_BATCH_KEYS` objects (declare `storage.headMany`).
+
+Returns one entry per key, in order: object metadata or `None`.
+
+#### StorageEntrypoint.changes
+
+```python
+async def changes(self, _request: Any)
+```
+
+One page of the change feed after a cursor (declare `storage.changes`).
+
+Returns `{"changes", "cursor", "more", "complete"}`; `complete`
+is false when changes may have been missed and the host must relist.
+
 ### StorefrontEntrypoint
 
 ```python
@@ -2052,6 +2118,22 @@ FEATURE_SCALAR_LIMITS: str = 'rpc.scalarLimits'
 
 Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`).
 
+### FEATURE_STORAGE_CHANGES
+
+```python
+FEATURE_STORAGE_CHANGES: str = 'storage.changes'
+```
+
+Guest implements `Destination.changes` (`storage.changes`).
+
+### FEATURE_STORAGE_CONDITIONAL_WRITE
+
+```python
+FEATURE_STORAGE_CONDITIONAL_WRITE: str = 'storage.conditionalWrite'
+```
+
+Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` (`storage.conditionalWrite`).
+
 ### FEATURE_STORAGE_COPY
 
 ```python
@@ -2060,6 +2142,38 @@ FEATURE_STORAGE_COPY: str = 'storage.copy'
 
 Guest implements server-side `Destination.copy` (`storage.copy`).
 
+### FEATURE_STORAGE_DELETE_MANY
+
+```python
+FEATURE_STORAGE_DELETE_MANY: str = 'storage.deleteMany'
+```
+
+Guest implements `Destination.deleteMany` (`storage.deleteMany`).
+
+### FEATURE_STORAGE_HEAD_MANY
+
+```python
+FEATURE_STORAGE_HEAD_MANY: str = 'storage.headMany'
+```
+
+Guest implements `Destination.headMany` (`storage.headMany`).
+
+### FEATURE_STORAGE_MOVE
+
+```python
+FEATURE_STORAGE_MOVE: str = 'storage.move'
+```
+
+Guest implements `Destination.move` (`storage.move`).
+
+### FEATURE_STORAGE_MOVE_MANY
+
+```python
+FEATURE_STORAGE_MOVE_MANY: str = 'storage.moveMany'
+```
+
+Guest implements `Destination.moveMany` (`storage.moveMany`).
+
 ### FEATURE_STREAMS
 
 ```python
@@ -2067,6 +2181,31 @@ FEATURE_STREAMS: str = 'rpc.streams'
 ```
 
 Media moves through transferred `ByteRange` / `ByteSource` streams (`rpc.streams`).
+
+### MAX_BATCH_KEYS
+
+```python
+MAX_BATCH_KEYS: int = 256
+```
+
+Maximum keys or key pairs in one `Destination.moveMany`, `deleteMany` or
+`headMany` call, and maximum outcomes in one reply.
+
+### MAX_CHANGES_CURSOR_BYTES
+
+```python
+MAX_CHANGES_CURSOR_BYTES: int = 4096
+```
+
+Maximum bytes of a `Destination.changes` cursor.
+
+### MAX_CHANGES_PAGE
+
+```python
+MAX_CHANGES_PAGE: int = 256
+```
+
+Maximum changes in one `Destination.changes` page.
 
 ### MAX_CHECKPOINT_BYTES
 

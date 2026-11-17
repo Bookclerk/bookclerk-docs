@@ -85,6 +85,24 @@ pub fn has_commit_token(&self) -> bool
 pub fn get_stage_only(self) -> bool
 ```
 
+#### Reader::get_if_match
+
+```rust
+pub fn get_if_match(self) -> Result<Reader<'a>>
+```
+
+#### Reader::has_if_match
+
+```rust
+pub fn has_if_match(&self) -> bool
+```
+
+#### Reader::get_if_none_match
+
+```rust
+pub fn get_if_none_match(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -213,6 +231,42 @@ pub fn get_stage_only(self) -> bool
 
 ```rust
 pub fn set_stage_only(&mut self, value: bool)
+```
+
+#### Builder::get_if_match
+
+```rust
+pub fn get_if_match(self) -> Result<Builder<'a>>
+```
+
+#### Builder::set_if_match
+
+```rust
+pub fn set_if_match(&mut self, value: impl SetterInput<Owned>)
+```
+
+#### Builder::init_if_match
+
+```rust
+pub fn init_if_match(self, size: u32) -> Builder<'a>
+```
+
+#### Builder::has_if_match
+
+```rust
+pub fn has_if_match(&self) -> bool
+```
+
+#### Builder::get_if_none_match
+
+```rust
+pub fn get_if_none_match(self) -> bool
+```
+
+#### Builder::set_if_none_match
+
+```rust
+pub fn set_if_none_match(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

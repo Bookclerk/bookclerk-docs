@@ -172,6 +172,16 @@ Union of `METADATA_FIELDS` wire names.
 
 ***
 
+### ObjectChangeKind
+
+```ts
+type ObjectChangeKind = typeof OBJECT_CHANGE_KINDS[number];
+```
+
+Union of `OBJECT_CHANGE_KINDS` wire names.
+
+***
+
 ### PluginErrorCode
 
 ```ts
@@ -360,6 +370,26 @@ Guest honors scalar / stream-window / list-page caps (`rpc.scalarLimits`).
 
 ***
 
+### FEATURE\_STORAGE\_CHANGES
+
+```ts
+const FEATURE_STORAGE_CHANGES: "storage.changes";
+```
+
+Guest implements `Destination.changes` (`storage.changes`).
+
+***
+
+### FEATURE\_STORAGE\_CONDITIONAL\_WRITE
+
+```ts
+const FEATURE_STORAGE_CONDITIONAL_WRITE: "storage.conditionalWrite";
+```
+
+Guest enforces `WriteOptions.ifMatch` / `ifNoneMatch` (`storage.conditionalWrite`).
+
+***
+
 ### FEATURE\_STORAGE\_COPY
 
 ```ts
@@ -367,6 +397,46 @@ const FEATURE_STORAGE_COPY: "storage.copy";
 ```
 
 Guest implements server-side `Destination.copy` (`storage.copy`).
+
+***
+
+### FEATURE\_STORAGE\_DELETE\_MANY
+
+```ts
+const FEATURE_STORAGE_DELETE_MANY: "storage.deleteMany";
+```
+
+Guest implements `Destination.deleteMany` (`storage.deleteMany`).
+
+***
+
+### FEATURE\_STORAGE\_HEAD\_MANY
+
+```ts
+const FEATURE_STORAGE_HEAD_MANY: "storage.headMany";
+```
+
+Guest implements `Destination.headMany` (`storage.headMany`).
+
+***
+
+### FEATURE\_STORAGE\_MOVE
+
+```ts
+const FEATURE_STORAGE_MOVE: "storage.move";
+```
+
+Guest implements `Destination.move` (`storage.move`).
+
+***
+
+### FEATURE\_STORAGE\_MOVE\_MANY
+
+```ts
+const FEATURE_STORAGE_MOVE_MANY: "storage.moveMany";
+```
+
+Guest implements `Destination.moveMany` (`storage.moveMany`).
 
 ***
 
@@ -426,6 +496,37 @@ const ISOLATION_REQS: readonly ["atomicBatch", "nestedSavepoint", "consistentSna
 Host → adapter execute. GuestDatabase stays ExecuteRequest-only.
 
 Ordinal-ordered `IsolationReq` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### MAX\_BATCH\_KEYS
+
+```ts
+const MAX_BATCH_KEYS: 256;
+```
+
+Maximum keys or key pairs in one `Destination.moveMany`, `deleteMany` or
+`headMany` call, and maximum outcomes in one reply.
+
+***
+
+### MAX\_CHANGES\_CURSOR\_BYTES
+
+```ts
+const MAX_CHANGES_CURSOR_BYTES: 4096;
+```
+
+Maximum bytes of a `Destination.changes` cursor.
+
+***
+
+### MAX\_CHANGES\_PAGE
+
+```ts
+const MAX_CHANGES_PAGE: 256;
+```
+
+Maximum changes in one `Destination.changes` page.
 
 ***
 
@@ -793,6 +894,19 @@ fields their format carries; a parsed record lists the ones its file
 states, and a render request lists the ones to write.
 
 Ordinal-ordered `MetadataField` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### OBJECT\_CHANGE\_KINDS
+
+```ts
+const OBJECT_CHANGE_KINDS: readonly ["changed", "upserted", "removed"];
+```
+
+What happened to an object in a change feed. Unknown codes are kept and
+treated as `changed`.
+
+Ordinal-ordered `ObjectChangeKind` wire names (index = Cap'n Proto ordinal).
 
 ***
 

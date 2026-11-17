@@ -22,6 +22,16 @@
 | [`CommitResults`](#commitresults) | type alias |  |
 | [`AbortStageParams`](#abortstageparams) | type alias |  |
 | [`AbortStageResults`](#abortstageresults) | type alias |  |
+| [`MoveParams`](#moveparams) | type alias |  |
+| [`MoveResults`](#moveresults) | type alias |  |
+| [`MoveManyParams`](#movemanyparams) | type alias |  |
+| [`MoveManyResults`](#movemanyresults) | type alias |  |
+| [`DeleteManyParams`](#deletemanyparams) | type alias |  |
+| [`DeleteManyResults`](#deletemanyresults) | type alias |  |
+| [`HeadManyParams`](#headmanyparams) | type alias |  |
+| [`HeadManyResults`](#headmanyresults) | type alias |  |
+| [`ChangesParams`](#changesparams) | type alias |  |
+| [`ChangesResults`](#changesresults) | type alias |  |
 
 ## Modules
 
@@ -41,6 +51,16 @@
 - [`commit_results`](commit_results.md)
 - [`abort_stage_params`](abort_stage_params.md)
 - [`abort_stage_results`](abort_stage_results.md)
+- [`move_params`](move_params.md)
+- [`move_results`](move_results.md)
+- [`move_many_params`](move_many_params.md)
+- [`move_many_results`](move_many_results.md)
+- [`delete_many_params`](delete_many_params.md)
+- [`delete_many_results`](delete_many_results.md)
+- [`head_many_params`](head_many_params.md)
+- [`head_many_results`](head_many_results.md)
+- [`changes_params`](changes_params.md)
+- [`changes_results`](changes_results.md)
 
 ## Traits
 
@@ -87,6 +107,31 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: AbortStageParams,
         _: AbortStageResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn move_(
+        self: Rc<Self>,
+        _: MoveParams,
+        _: MoveResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn move_many(
+        self: Rc<Self>,
+        _: MoveManyParams,
+        _: MoveManyResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn delete_many(
+        self: Rc<Self>,
+        _: DeleteManyParams,
+        _: DeleteManyResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn head_many(
+        self: Rc<Self>,
+        _: HeadManyParams,
+        _: HeadManyResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn changes(
+        self: Rc<Self>,
+        _: ChangesParams,
+        _: ChangesResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -171,6 +216,56 @@ fn abort_stage(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::move_
+
+```rust
+fn move_(
+    self: Rc<Self>,
+    _: MoveParams,
+    _: MoveResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::move_many
+
+```rust
+fn move_many(
+    self: Rc<Self>,
+    _: MoveManyParams,
+    _: MoveManyResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::delete_many
+
+```rust
+fn delete_many(
+    self: Rc<Self>,
+    _: DeleteManyParams,
+    _: DeleteManyResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::head_many
+
+```rust
+fn head_many(
+    self: Rc<Self>,
+    _: HeadManyParams,
+    _: HeadManyResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
+#### Server::changes
+
+```rust
+fn changes(
+    self: Rc<Self>,
+    _: ChangesParams,
+    _: ChangesResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 Implemented by: `DestinationServer`
 
 ## Structs
@@ -229,6 +324,36 @@ pub fn commit_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn abort_stage_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::move_request
+
+```rust
+pub fn move_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::move_many_request
+
+```rust
+pub fn move_many_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::delete_many_request
+
+```rust
+pub fn delete_many_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::head_many_request
+
+```rust
+pub fn head_many_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::changes_request
+
+```rust
+pub fn changes_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -358,4 +483,64 @@ pub type AbortStageParams = Params<Owned>;
 
 ```rust
 pub type AbortStageResults = Results<Owned>;
+```
+
+### MoveParams
+
+```rust
+pub type MoveParams = Params<Owned>;
+```
+
+### MoveResults
+
+```rust
+pub type MoveResults = Results<Owned>;
+```
+
+### MoveManyParams
+
+```rust
+pub type MoveManyParams = Params<Owned>;
+```
+
+### MoveManyResults
+
+```rust
+pub type MoveManyResults = Results<Owned>;
+```
+
+### DeleteManyParams
+
+```rust
+pub type DeleteManyParams = Params<Owned>;
+```
+
+### DeleteManyResults
+
+```rust
+pub type DeleteManyResults = Results<Owned>;
+```
+
+### HeadManyParams
+
+```rust
+pub type HeadManyParams = Params<Owned>;
+```
+
+### HeadManyResults
+
+```rust
+pub type HeadManyResults = Results<Owned>;
+```
+
+### ChangesParams
+
+```rust
+pub type ChangesParams = Params<Owned>;
+```
+
+### ChangesResults
+
+```rust
+pub type ChangesResults = Results<Owned>;
 ```

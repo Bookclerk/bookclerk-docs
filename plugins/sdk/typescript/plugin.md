@@ -1304,6 +1304,26 @@ Abort a destination-side staged object.
 
 Rejects with typed `unsupported` unless overridden.
 
+##### changes()
+
+```ts
+changes(_request): Promise<ChangesPage>;
+```
+
+Keys changed since a cursor (declare `storage.changes`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request` | [`ChangesRequest`](#changesrequest) | Cursor and page size. |
+
+###### Returns
+
+`Promise`\<[`ChangesPage`](#changespage)\>
+
+One page of changes.
+
 ##### commit()
 
 ```ts
@@ -1366,6 +1386,26 @@ Delete a key (no-op if missing).
 
 Resolves when the delete is complete.
 
+##### deleteMany()
+
+```ts
+deleteMany(_keys): Promise<KeyOutcome[]>;
+```
+
+Remove up to `MAX_BATCH_KEYS` objects (declare `storage.deleteMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<[`KeyOutcome`](#keyoutcome)[]\>
+
+One outcome per key, in order; a missing key succeeds.
+
 ##### get()
 
 ```ts
@@ -1407,6 +1447,26 @@ Metadata without a body; `null` when the key is missing.
 
 Metadata or `null` when the key is missing.
 
+##### headMany()
+
+```ts
+headMany(_keys): Promise<(ObjectMetadata | null)[]>;
+```
+
+Probe up to `MAX_BATCH_KEYS` objects (declare `storage.headMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<([`ObjectMetadata`](#objectmetadata) \| `null`)[]\>
+
+One entry per key, in order; `null` when missing.
+
 ##### list()
 
 ```ts
@@ -1426,6 +1486,54 @@ One page of keys under `options.prefix`.
 `Promise`\<[`ListPage`](#listpage)\>
 
 One page of object keys.
+
+##### move()
+
+```ts
+move(
+   _from, 
+   _to, 
+   _options
+): Promise<MoveResult>;
+```
+
+Move one object (declare `storage.move`). Repeating a finished move
+resolves with `alreadyMoved`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_from` | `string` | Source key. |
+| `_to` | `string` | Target key. |
+| `_options` | [`MoveOptions`](#moveoptions) | Overwrite and source preconditions. |
+
+###### Returns
+
+`Promise`\<[`MoveResult`](#moveresult)\>
+
+How the move was done.
+
+##### moveMany()
+
+```ts
+moveMany(_request): Promise<MoveManyPage>;
+```
+
+Move a set of objects or a whole prefix, one page per call (declare
+`storage.moveMany`). Safe to repeat.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request` | [`MoveManyRequest`](#movemanyrequest) | Pairs or prefix, cursor, and options. |
+
+###### Returns
+
+`Promise`\<[`MoveManyPage`](#movemanypage)\>
+
+Per-key outcomes and the continuation.
 
 ##### put()
 
@@ -3582,6 +3690,26 @@ Method result.
 
 [`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-5)
 
+##### changes()
+
+```ts
+changes(_request): Promise<ChangesPage>;
+```
+
+Keys changed since a cursor (declare `storage.changes`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request` | [`ChangesRequest`](#changesrequest) | Cursor and page size. |
+
+###### Returns
+
+`Promise`\<[`ChangesPage`](#changespage)\>
+
+One page of changes.
+
 ##### commit()
 
 ```ts
@@ -3643,6 +3771,26 @@ Delete a key (no-op if missing).
 `Promise`\<`void`\>
 
 Resolves when the delete is complete.
+
+##### deleteMany()
+
+```ts
+deleteMany(_keys): Promise<KeyOutcome[]>;
+```
+
+Remove up to `MAX_BATCH_KEYS` objects (declare `storage.deleteMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<[`KeyOutcome`](#keyoutcome)[]\>
+
+One outcome per key, in order; a missing key succeeds.
 
 ##### fetch()
 
@@ -3709,6 +3857,26 @@ Metadata without a body; `null` when the key is missing.
 
 Metadata or `null` when the key is missing.
 
+##### headMany()
+
+```ts
+headMany(_keys): Promise<(ObjectMetadata | null)[]>;
+```
+
+Probe up to `MAX_BATCH_KEYS` objects (declare `storage.headMany`).
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Object keys. |
+
+###### Returns
+
+`Promise`\<([`ObjectMetadata`](#objectmetadata) \| `null`)[]\>
+
+One entry per key, in order; `null` when missing.
+
 ##### list()
 
 ```ts
@@ -3728,6 +3896,54 @@ One page of keys under `options.prefix`.
 `Promise`\<[`ListPage`](#listpage)\>
 
 One page of object keys.
+
+##### move()
+
+```ts
+move(
+   _from, 
+   _to, 
+   _options
+): Promise<MoveResult>;
+```
+
+Move one object (declare `storage.move`). Repeating a finished move
+resolves with `alreadyMoved`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_from` | `string` | Source key. |
+| `_to` | `string` | Target key. |
+| `_options` | [`MoveOptions`](#moveoptions) | Overwrite and source preconditions. |
+
+###### Returns
+
+`Promise`\<[`MoveResult`](#moveresult)\>
+
+How the move was done.
+
+##### moveMany()
+
+```ts
+moveMany(_request): Promise<MoveManyPage>;
+```
+
+Move a set of objects or a whole prefix, one page per call (declare
+`storage.moveMany`). Safe to repeat.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request` | [`MoveManyRequest`](#movemanyrequest) | Pairs or prefix, cursor, and options. |
+
+###### Returns
+
+`Promise`\<[`MoveManyPage`](#movemanypage)\>
+
+Per-key outcomes and the continuation.
 
 ##### put()
 
@@ -4434,6 +4650,69 @@ Resolves once the host cancels the invocation.
 
 ***
 
+### ChangesPage
+
+One page of [StorageEntrypoint.changes](#changes-1).
+
+#### Properties
+
+##### changes
+
+```ts
+changes: ObjectChange[];
+```
+
+##### complete
+
+```ts
+complete: boolean;
+```
+
+False when the feed may have missed changes (overflow, expired
+retention); the host then backs it with a full listing.
+
+##### cursor
+
+```ts
+cursor: string;
+```
+
+Cursor for the next call; never empty.
+
+##### more?
+
+```ts
+more?: boolean;
+```
+
+True when more changes are ready now.
+
+***
+
+### ChangesRequest
+
+Argument of [StorageEntrypoint.changes](#changes-1).
+
+#### Properties
+
+##### cursor?
+
+```ts
+cursor?: string;
+```
+
+The previous page's `cursor`; absent asks for the current position.
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Requested changes per page (at most `MAX_CHANGES_PAGE`).
+
+***
+
 ### CopyResult
 
 Result of a server-side copy.
@@ -5076,6 +5355,38 @@ Earliest resume instant.
 
 ***
 
+### KeyOutcome
+
+Outcome for one key of a batch call; `error` is absent on success.
+
+#### Properties
+
+##### error?
+
+```ts
+error?: object;
+```
+
+###### code
+
+```ts
+code: string;
+```
+
+###### message
+
+```ts
+message: string;
+```
+
+##### key
+
+```ts
+key: string;
+```
+
+***
+
 ### ListOptions
 
 Paginated list request.
@@ -5094,11 +5405,29 @@ cursor?: string;
 limit?: number;
 ```
 
+##### modifiedSinceMs?
+
+```ts
+modifiedSinceMs?: number;
+```
+
+Hint: only objects modified at or after this UTC unix millisecond. Say
+whether you filtered in [ListPage.modifiedSinceApplied](#modifiedsinceapplied).
+
 ##### prefix?
 
 ```ts
 prefix?: string;
 ```
+
+##### withSignatures?
+
+```ts
+withSignatures?: boolean;
+```
+
+Hint: fill the signature fields of each entry. Say whether you did in
+[ListPage.signaturesIncluded](#signaturesincluded).
 
 ***
 
@@ -5107,6 +5436,14 @@ prefix?: string;
 One page of keys.
 
 #### Properties
+
+##### modifiedSinceApplied?
+
+```ts
+modifiedSinceApplied?: boolean;
+```
+
+True when objects modified before `modifiedSinceMs` were left out.
 
 ##### nextCursor?
 
@@ -5119,6 +5456,142 @@ nextCursor?: string;
 ```ts
 objects: ObjectInfo[];
 ```
+
+##### signaturesIncluded?
+
+```ts
+signaturesIncluded?: boolean;
+```
+
+True when every entry carries the signature fields the backend has.
+
+***
+
+### MoveManyPage
+
+One page of [StorageEntrypoint.moveMany](#movemany-1) progress.
+
+#### Properties
+
+##### atomic?
+
+```ts
+atomic?: boolean;
+```
+
+True when every move in this page was atomic.
+
+##### nextCursor?
+
+```ts
+nextCursor?: string;
+```
+
+Prefix form: cursor for the next call; absent when done.
+
+##### objectsMoved?
+
+```ts
+objectsMoved?: number;
+```
+
+Objects moved in this page.
+
+##### results
+
+```ts
+results: KeyOutcome[];
+```
+
+Outcomes in request order (one per pair for the pairs form).
+
+***
+
+### MoveManyRequest
+
+Argument of [StorageEntrypoint.moveMany](#movemany-1).
+
+#### Properties
+
+##### cursor?
+
+```ts
+cursor?: string;
+```
+
+Prefix form: the previous page's `nextCursor`; absent starts.
+
+##### limit?
+
+```ts
+limit?: number;
+```
+
+Prefix form: objects to move in this call (at most `MAX_BATCH_KEYS`).
+
+##### options?
+
+```ts
+options?: MoveOptions;
+```
+
+Overwrite rule applied to every move.
+
+##### target
+
+```ts
+target: MoveManyTarget;
+```
+
+Explicit pairs, or every object under a prefix.
+
+***
+
+### MoveOptions
+
+Options for [StorageEntrypoint.move](#move-1) and [StorageEntrypoint.moveMany](#movemany-1).
+
+#### Properties
+
+##### ifSourceMatch?
+
+```ts
+ifSourceMatch?: string;
+```
+
+`move` only: move only while the source's etag equals this value.
+
+##### noOverwrite?
+
+```ts
+noOverwrite?: boolean;
+```
+
+Reject with `conflict` instead of replacing an object at the target.
+
+***
+
+### MoveResult
+
+How a single move was done.
+
+#### Properties
+
+##### alreadyMoved?
+
+```ts
+alreadyMoved?: boolean;
+```
+
+True when the source was already gone and the target present.
+
+##### atomic
+
+```ts
+atomic: boolean;
+```
+
+True when the move was atomic (a rename).
 
 ***
 
@@ -5228,11 +5701,19 @@ The adapter's grant (crosses the adapter → author RPC boundary).
 
 ***
 
-### ObjectInfo
+### ObjectChange
 
-Object listing entry.
+One entry of a change feed.
 
 #### Properties
+
+##### info?
+
+```ts
+info?: ObjectInfo;
+```
+
+Listing fields after the change, when the feed carries them.
 
 ##### key
 
@@ -5240,11 +5721,64 @@ Object listing entry.
 key: string;
 ```
 
+##### kind
+
+```ts
+kind: "changed" | "upserted" | "removed";
+```
+
+***
+
+### ObjectInfo
+
+Object listing entry. The signature fields are set only when the listing
+was asked for them ([ListOptions.withSignatures](#withsignatures)).
+
+#### Properties
+
+##### etag?
+
+```ts
+etag?: string;
+```
+
+Opaque backend entity tag.
+
+##### key
+
+```ts
+key: string;
+```
+
+##### modifiedAtMs?
+
+```ts
+modifiedAtMs?: number;
+```
+
+Last modification time, UTC unix milliseconds.
+
+##### signature?
+
+```ts
+signature?: string;
+```
+
+Opaque change signature: unchanged means the object did not change.
+
 ##### size
 
 ```ts
 size: number;
 ```
+
+##### versionId?
+
+```ts
+versionId?: string;
+```
+
+Backend object version id (versioned buckets).
 
 ***
 
@@ -5272,17 +5806,41 @@ etag?: string;
 key: string;
 ```
 
+##### modifiedAtMs?
+
+```ts
+modifiedAtMs?: number;
+```
+
+Last modification time, UTC unix milliseconds.
+
 ##### sha256?
 
 ```ts
 sha256?: Uint8Array<ArrayBufferLike>;
 ```
 
+##### signature?
+
+```ts
+signature?: string;
+```
+
+Opaque change signature, as [ObjectInfo.signature](#signature).
+
 ##### size
 
 ```ts
 size: number;
 ```
+
+##### versionId?
+
+```ts
+versionId?: string;
+```
+
+Backend object version id (versioned buckets).
 
 ***
 
@@ -5310,11 +5868,35 @@ etag?: string;
 key: string;
 ```
 
+##### modifiedAtMs?
+
+```ts
+modifiedAtMs?: number;
+```
+
+Modification time of the stored object, UTC unix milliseconds.
+
 ##### sha256?
 
 ```ts
 sha256?: Uint8Array<ArrayBufferLike>;
 ```
+
+##### signature?
+
+```ts
+signature?: string;
+```
+
+Change signature of the stored object.
+
+##### versionId?
+
+```ts
+versionId?: string;
+```
+
+Version id of the stored object.
 
 ***
 
@@ -5465,6 +6047,24 @@ contentLength?: number;
 ```ts
 contentType?: string;
 ```
+
+##### ifMatch?
+
+```ts
+ifMatch?: string;
+```
+
+Conditional write (`storage.conditionalWrite`): publish only while the
+stored object's etag equals this value, else reject with `conflict`.
+
+##### ifNoneMatch?
+
+```ts
+ifNoneMatch?: boolean;
+```
+
+Conditional write (`storage.conditionalWrite`): publish only when no
+object exists at the key, else reject with `conflict`.
 
 ##### sha256?
 
@@ -6122,9 +6722,45 @@ Re-exports [FEATURE_SCALAR_LIMITS](abi.md#feature_scalar_limits)
 
 ***
 
+### FEATURE\_STORAGE\_CHANGES
+
+Re-exports [FEATURE_STORAGE_CHANGES](abi.md#feature_storage_changes)
+
+***
+
+### FEATURE\_STORAGE\_CONDITIONAL\_WRITE
+
+Re-exports [FEATURE_STORAGE_CONDITIONAL_WRITE](abi.md#feature_storage_conditional_write)
+
+***
+
 ### FEATURE\_STORAGE\_COPY
 
 Re-exports [FEATURE_STORAGE_COPY](abi.md#feature_storage_copy)
+
+***
+
+### FEATURE\_STORAGE\_DELETE\_MANY
+
+Re-exports [FEATURE_STORAGE_DELETE_MANY](abi.md#feature_storage_delete_many)
+
+***
+
+### FEATURE\_STORAGE\_HEAD\_MANY
+
+Re-exports [FEATURE_STORAGE_HEAD_MANY](abi.md#feature_storage_head_many)
+
+***
+
+### FEATURE\_STORAGE\_MOVE
+
+Re-exports [FEATURE_STORAGE_MOVE](abi.md#feature_storage_move)
+
+***
+
+### FEATURE\_STORAGE\_MOVE\_MANY
+
+Re-exports [FEATURE_STORAGE_MOVE_MANY](abi.md#feature_storage_move_many)
 
 ***
 
@@ -6149,6 +6785,24 @@ Re-exports [Invocation](generated.md#invocation)
 ### JobInvocation
 
 Re-exports [JobInvocation](generated.md#jobinvocation)
+
+***
+
+### MAX\_BATCH\_KEYS
+
+Re-exports [MAX_BATCH_KEYS](abi.md#max_batch_keys)
+
+***
+
+### MAX\_CHANGES\_CURSOR\_BYTES
+
+Re-exports [MAX_CHANGES_CURSOR_BYTES](abi.md#max_changes_cursor_bytes)
+
+***
+
+### MAX\_CHANGES\_PAGE
+
+Re-exports [MAX_CHANGES_PAGE](abi.md#max_changes_page)
 
 ***
 
