@@ -63,6 +63,7 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_source`](bookclerk_source/README.md) | Host-side ContentSource trait and source registry; re-exports the storefront types guests share |
 | [`bookclerk_storage`](bookclerk_storage/README.md) | Pluggable local and S3 (feature `s3`) storage backends for acquired audiobooks |
 | [`bookclerk_storefront`](bookclerk_storefront/README.md) | Types storefront guests share with the host: DTOs, ABI conversions and listing helpers, with no database, ORM or OpenAPI dependencies |
+| [`bookclerk_tags`](bookclerk_tags/README.md) | Sans-IO readers for metadata embedded in audiobook files (MP4, ID3, FLAC) and the tag worker's frames |
 | [`bookclerk_tls`](bookclerk_tls/README.md) | The one rustls crypto provider and HTTP client TLS settings for the Bookclerk hosts |
 | [`bookclerk_tray`](bookclerk_tray/README.md) | In-process system tray for bookclerkd (opens the web UI in a browser) |
 | [`bookclerk_window_policy`](bookclerk_window_policy/README.md) | What the desktop window's custom scheme lets a page reach: origin and path refusals, header rewrite, navigation |

@@ -27,6 +27,7 @@ the worker itself calls.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`RangeSource`](#rangesource) | trait | Where a file's bytes come from: a local file, a storage plugin's ranged read, or a buffer in tests. |
 | [`ChapterAlignOptions`](#chapteralignoptions) | struct | Tunables for silence / speech-onset chapter snapping. |
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
@@ -62,6 +63,7 @@ the worker itself calls.
 | [`WORKER_BIN_ENV`](#worker_bin_env) | constant | Environment variable naming the worker binary explicitly. |
 | [`WORKER_BIN_NAME`](#worker_bin_name) | constant | File name of the worker binary when it sits beside the host executable. |
 | [`WORKER_ENFORCEMENT_ENV`](#worker_enforcement_env) | constant | Environment variable the pool sets on each worker to select its failure mode. |
+| [`TAG_WORKER_ARG`](#tag_worker_arg) | constant | First worker argument that selects the tag reader. |
 
 ## Re-exports
 
@@ -78,6 +80,37 @@ the worker itself calls.
 - [`bookclerk_mp4::Mp4aConfig`](../bookclerk_mp4/README.md#mp4aconfig)
 - [`bookclerk_mp4::SampleEntryKind`](../bookclerk_mp4/README.md#sampleentrykind)
 - [`bookclerk_mp4::TrimRange`](../bookclerk_mp4/README.md#trimrange)
+- [`bookclerk_tags::ByteSpan`](../bookclerk_tags/README.md#bytespan)
+- [`bookclerk_tags::TagRecord`](../bookclerk_tags/README.md#tagrecord)
+
+## Traits
+
+### RangeSource
+
+```rust
+pub trait RangeSource: Send + Sync {
+    fn read_range(&self, span: ByteSpan) -> impl Future<Output = Result<Vec<u8>>> + Send;
+}
+```
+
+Where a file's bytes come from: a local file, a storage plugin's ranged
+read, or a buffer in tests.
+
+#### RangeSource::read_range
+
+```rust
+fn read_range(&self, span: ByteSpan) -> impl Future<Output = Result<Vec<u8>>> + Send
+```
+
+Reads exactly `span` from the file.
+
+##### Arguments
+
+* `span` - Lies inside the file; the host checked it.
+
+##### Errors
+
+Any I/O failure; the read of that file then fails.
 
 ## Structs
 
@@ -283,6 +316,37 @@ acquire.
 worker was found, and [`MediaError::Worker`](#mediaerror) when the worker cannot be
 started or dies.
 
+#### MediaPool::read_tags
+
+```rust
+pub async fn read_tags<S: RangeSource>(&self, size: u64, source: &S) -> Result<TagRecord>
+```
+
+Reads the metadata embedded in one untrusted media file (`tags.read`):
+text tags, chapters, running time, where the cover lies, and a digest
+of the metadata region.
+
+Tag reads do not take a job slot: they run on one long-lived worker,
+jailed to no path and no network, that asks for the byte ranges it
+needs, which this call fetches from `source`. Only the metadata region
+and a few headers are fetched, never the audio. Read a page of files
+by awaiting several calls at once; up to 16 files are read at a time.
+
+##### Arguments
+
+* `size` - The file's size in bytes.
+* `source` - Where its bytes come from (a local file, a storage
+  plugin's ranged read).
+
+##### Errors
+
+[`MediaError::Tags`](#mediaerror) when the file is not an MP4, MP3 or FLAC file or
+is malformed, [`MediaError::Io`](#mediaerror) when `source` fails,
+[`MediaError::NotIsolated`](#mediaerror) when isolation is required but no worker
+was found, and [`MediaError::Worker`](#mediaerror) when the worker cannot be
+started, dies, stalls for 30 s, or answers outside the reader's
+limits (the worker is then restarted).
+
 #### MediaPool::run
 
 ```rust
@@ -351,6 +415,7 @@ pub enum MediaError {
     Worker { job: &'static str, detail: String },
     NotIsolated { job: &'static str, detail: String },
     Cover(String),
+    Tags(String),
     Io(Error),
     Other(Error),
 }
@@ -376,6 +441,8 @@ Errors from in-process codecs, MP4 plumbing, and confined media workers.
   - `detail`: Why isolation is unavailable.
 - `Cover`: A cover image was refused: not a supported image, too large, or
   undecodable. The message comes from the cover pipeline.
+- `Tags`: A file's embedded tags could not be read: not an MP4, MP3 or FLAC
+  file, or a malformed one. The message comes from the tag reader.
 - `Io`: Local filesystem I/O failure.
 - `Other`: Catch-all for wrapped media failures.
 
@@ -916,3 +983,11 @@ pub const WORKER_ENFORCEMENT_ENV: &str = "BOOKCLERK_MEDIA_WORKER_ENFORCEMENT";
 ```
 
 Environment variable the pool sets on each worker to select its failure mode.
+
+### TAG_WORKER_ARG
+
+```rust
+pub const TAG_WORKER_ARG: &str = "tags";
+```
+
+First worker argument that selects the tag reader.
