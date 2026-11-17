@@ -256,6 +256,11 @@ Live configuration domains and reloads.
 | [`PUT /api/config/domains/core.events`](configuration.md#put-apiconfigdomainscoreevents) | `PUT /api/config/domains/core.events`. |
 | [`GET /api/config/domains/core.output`](configuration.md#get-apiconfigdomainscoreoutput) | `GET /api/config/domains/core.output`. |
 | [`PUT /api/config/domains/core.output`](configuration.md#put-apiconfigdomainscoreoutput) | `PUT /api/config/domains/core.output`. |
+| [`GET /api/config/clerk`](configuration.md#get-apiconfigclerk) | `GET /api/config/clerk`. |
+| [`POST /api/config/clerk/inspect`](configuration.md#post-apiconfigclerkinspect) | `POST /api/config/clerk/inspect`. |
+| [`POST /api/config/clerk/start`](configuration.md#post-apiconfigclerkstart) | `POST /api/config/clerk/start`. |
+| [`POST /api/config/clerk/callback`](configuration.md#post-apiconfigclerkcallback) | `POST /api/config/clerk/callback`: redeems the library's code with the sign-in's verifier, seals the card and starts reading the person's books. The pending sign-in is ended whatever the outcome; a failed one is started again. |
+| [`POST /api/config/clerk/sign-out`](configuration.md#post-apiconfigclerksign-out) | `POST /api/config/clerk/sign-out`: ends a library card at the library when it can be reached, then drops the card, the books read with it, and the library from the list here whatever the library answered. |
 
 ### [Cluster](cluster.md)
 

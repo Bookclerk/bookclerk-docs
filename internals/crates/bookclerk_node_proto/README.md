@@ -172,6 +172,7 @@ bytes.
 | [`is_s256_challenge`](#is_s256_challenge) | function | True for an S256 code challenge: exactly 43 base64url characters. |
 | [`parse_clerk_authorization`](#parse_clerk_authorization) | function | The session token in an `Authorization` header value, when the value is exactly `Bookclerk-Clerk <token>`. |
 | [`parse_clerk_query`](#parse_clerk_query) | function | Parses an authorize query string (the raw query `/oidc/authorize` received), sans-IO so the fuzz target drives the same code. |
+| [`parse_clerk_token_answer`](#parse_clerk_token_answer) | function | Reads the library's `POST /api/clerk/v1/token` answer on the clerk. |
 | [`parse_clerk_token_request`](#parse_clerk_token_request) | function | Reads a `POST /api/clerk/v1/token` body. |
 | [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
 | [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (a string `WindowCursor`), each once. |
@@ -240,12 +241,15 @@ bytes.
 | [`MAX_CATALOG_WANTED`](#max_catalog_wanted) | constant | Most titles one answer may say are wanted. |
 | [`MAX_MARKETPLACE_BYTES`](#max_marketplace_bytes) | constant | Longest marketplace. |
 | [`CLERK_AUTH_SCHEME`](#clerk_auth_scheme) | constant | The `Authorization` scheme a clerk sends its session token under. |
+| [`CLERK_CALLBACK_PATH`](#clerk_callback_path) | constant | The clerk's own web app page a clerk sign-in's redirect comes back to (`<clerk origin>/clerk/callback?code=…&state=…`). |
 | [`CLERK_CLIENT_ID`](#clerk_client_id) | constant | The built-in public OAuth client a clerk signs in through. It is never stored in the library's clients table. |
 | [`CLERK_CODE_TTL_SECS`](#clerk_code_ttl_secs) | constant | Seconds an authorization code for `CLERK_CLIENT_ID` lives. |
 | [`CLERK_IDLE_DAYS`](#clerk_idle_days) | constant | Days a clerk session stays signed in without being used. Each use moves the expiry forward again. |
 | [`CLERK_SCOPE`](#clerk_scope) | constant | The only scope `CLERK_CLIENT_ID` may ask for. |
 | [`CLERK_TOKEN_LEN`](#clerk_token_len) | constant | Length of a session token: base64url (no padding) of 32 random bytes. |
 | [`CLERK_TOKEN_PATH`](#clerk_token_path) | constant | `POST`: redeem an approved clerk sign-in for a session token. |
+| [`MAX_CLERK_ANSWER_BYTES`](#max_clerk_answer_bytes) | constant | Largest `POST /api/clerk/v1/token` answer a clerk reads. |
+| [`MAX_CLERK_DISPLAY_NAME_BYTES`](#max_clerk_display_name_bytes) | constant | Longest display name a clerk keeps from a token answer. |
 | [`MAX_CLERK_NAME_BYTES`](#max_clerk_name_bytes) | constant | Longest clerk name sent. |
 | [`MAX_CLERK_STATE_BYTES`](#max_clerk_state_bytes) | constant | Longest `state` an authorize request may carry. |
 | [`CLERK_CONNECT_PATH`](#clerk_connect_path) | constant | Path of the clerk socket. |
@@ -2786,6 +2790,31 @@ received), sans-IO so the fuzz target drives the same code.
 The parameters, or `None` when a parameter repeats, a required one is
 missing, or the shape is wrong. Unknown parameters are ignored.
 
+### parse_clerk_token_answer
+
+```rust
+pub fn parse_clerk_token_answer(body: &[u8]) -> Option<ClerkTokenAnswer>
+```
+
+Reads the library's `POST /api/clerk/v1/token` answer on the clerk.
+
+The answer comes from another machine, so it is checked before any of
+it is kept: at most [`MAX_CLERK_ANSWER_BYTES`](#max_clerk_answer_bytes) of UTF-8 (all of it,
+unknown keys included), one JSON object with no known key written twice, `token` a session token ([`is_clerk_token`](#is_clerk_token)),
+`cluster_id` a cluster id ([`crate::is_cluster_id`](#is_cluster_id)), `user.id` a
+positive integer, `user.display_name` (optional) at most
+[`MAX_CLERK_DISPLAY_NAME_BYTES`](#max_clerk_display_name_bytes) bytes with no control characters, and
+`idle_secs` from 1 second to a year. Keys it does not know are ignored,
+so a newer library can add to the answer.
+
+#### Arguments
+
+* `body` - The answer body bytes.
+
+#### Returns
+
+The answer, or `None` when it breaks any rule.
+
 ### parse_clerk_token_request
 
 ```rust
@@ -3606,6 +3635,15 @@ pub const CLERK_AUTH_SCHEME: &str = "Bookclerk-Clerk";
 
 The `Authorization` scheme a clerk sends its session token under.
 
+### CLERK_CALLBACK_PATH
+
+```rust
+pub const CLERK_CALLBACK_PATH: &str = "/clerk/callback";
+```
+
+The clerk's own web app page a clerk sign-in's redirect comes back to
+(`<clerk origin>/clerk/callback?code=…&state=…`).
+
 ### CLERK_CLIENT_ID
 
 ```rust
@@ -3655,6 +3693,22 @@ pub const CLERK_TOKEN_PATH: &str = "/api/clerk/v1/token";
 ```
 
 `POST`: redeem an approved clerk sign-in for a session token.
+
+### MAX_CLERK_ANSWER_BYTES
+
+```rust
+pub const MAX_CLERK_ANSWER_BYTES: usize = _;
+```
+
+Largest `POST /api/clerk/v1/token` answer a clerk reads.
+
+### MAX_CLERK_DISPLAY_NAME_BYTES
+
+```rust
+pub const MAX_CLERK_DISPLAY_NAME_BYTES: usize = 128;
+```
+
+Longest display name a clerk keeps from a token answer.
 
 ### MAX_CLERK_NAME_BYTES
 

@@ -19,6 +19,7 @@ table. `BOOKCLERK_OPERATOR_TOKEN` may override the durable
 | [`PLUGIN_INSTANCE`](#plugin_instance) | constant | Plugin-instance secret referenced by a `plugin_instance` config document. |
 | [`CLUSTER_LINK`](#cluster_link) | constant | On a host node: the private node keys of one owner-cluster link (`provider` = owner cluster id, `account_id` = this node's id there). |
 | [`CLUSTER_JOIN`](#cluster_join) | constant | On a host joining a library: the PKCE verifier and node keys of one sign-in in progress (`provider` = owner cluster id, `account_id` = the pending join's state hash). Deleted when the join completes or expires. |
+| [`CLERK_CARD`](#clerk_card) | constant | On a clerk: the library card of one library (`provider` = the library's cluster id, `account_id` = the same). Deleted when the card is signed out. |
 
 ## Constants
 
@@ -100,3 +101,13 @@ On a host joining a library: the PKCE verifier and node keys of one
 sign-in in progress (`provider` = owner cluster id, `account_id` =
 the pending join's state hash). Deleted when the join completes or
 expires.
+
+### CLERK_CARD
+
+```rust
+pub const CLERK_CARD: &str = "clerk_card";
+```
+
+On a clerk: the library card of one library (`provider` = the
+library's cluster id, `account_id` = the same). Deleted when the card
+is signed out.

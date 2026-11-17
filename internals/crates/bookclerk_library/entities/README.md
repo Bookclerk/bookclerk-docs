@@ -22,6 +22,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`catalog_listing_optouts`](catalog_listing_optouts.md): SeaORM entity for `catalog_listing_optouts`: on a branch, the members whose books it does not list to the libraries it joined.
 - [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
 - [`claim_tickets`](claim_tickets.md): SeaORM entity for the `claim_tickets` table.
+- [`clerk_links`](clerk_links.md): SeaORM entity for `clerk_links`: on a clerk, the libraries this install holds a library card for (written by `control_plane::record_clerk_link`).
 - [`cluster_identity`](cluster_identity.md): SeaORM entity for the singleton cluster identity and secret-root fingerprint.
 - [`cluster_leases`](cluster_leases.md): SeaORM entity for `cluster_leases`: singleton maintenance leases.
 - [`cluster_links`](cluster_links.md): SeaORM entity for `cluster_links`: on a host node, the owner clusters it enrolled into (written by `control_plane::record_cluster_link`).

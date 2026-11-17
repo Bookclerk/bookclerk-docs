@@ -432,6 +432,21 @@ The authorization request a clerk consent is for (the query
 - `code_challenge_method` *string or null* — Must be `S256`.
 - `clerk_name` *string or null* — The name the clerk gives itself, shown on the consent page and in the user's session list.
 
+## ClerkCallbackBody
+
+`POST /api/config/clerk/callback` body.
+
+- `code` *string* — The code from the library.
+- `state` *string* — The `state` it came back with.
+- `error` *string or null* — The library's `error` (`access_denied`), when it sent one.
+
+## ClerkCards
+
+JSON body for `GET /api/config/clerk`.
+
+- `cards` *array of [`ClerkLinkView`](#clerklinkview)*, **required** — The libraries this install holds (or held) a card for, oldest sign-in first.
+- `default_clerk_name` *string*, **required** — The name this install signs in as unless another is given.
+
 ## ClerkConsentBody
 
 `POST /api/auth/clerk-consent` body.
@@ -448,6 +463,62 @@ JSON body for `GET /api/auth/clerk-consent`: what the consent page shows.
 - `clerk_name` *string*, **required** — The name the clerk gives itself.
 - `redirect_origin` *string*, **required** — Origin of the clerk's redirect URI, for the page to name.
 - `user` *[`ConsentingUser`](#consentinguser)*, **required** — The signed-in user the clerk would sign in as.
+
+## ClerkInspectBody
+
+`POST /api/config/clerk/inspect` body.
+
+- `address` *string*, **required** — The library's address (`https://books.example.com`, `books.lan:8443`).
+
+## ClerkLinkView
+
+A library this install holds (or held) a library card for, without the
+card.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `origin` *string*, **required** — The library's canonical origin.
+- `library_name` *string*, **required** — The library's name at sign-in.
+- `pinned` *boolean*, **required** — Whether the card's connection pins the library's self-signed certificate.
+- `display_name` *string or null* — The person's display name on the library, when it has one.
+- `clerk_name` *string*, **required** — The name this install signed in as.
+- `state` *string*, **required** — `active`, or `signed_out` once the library ended the card.
+- `signed_in_at` *string*, **required** — RFC 3339 sign-in time.
+
+## ClerkSignedIn
+
+JSON body for `POST /api/config/clerk/callback`.
+
+- `card` *[`ClerkLinkView`](#clerklinkview)*, **required** — The library this install now holds a card for.
+
+## ClerkSignedOut
+
+JSON body for `POST /api/config/clerk/sign-out`.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_signed_out` *boolean*, **required** — Whether the library ended the card's session too. False when it could not be reached (or the card had already ended): the session then stays in the person's session list there until it idles out or they revoke it.
+
+## ClerkSignOutBody
+
+`POST /api/config/clerk/sign-out` body.
+
+- `cluster_id` *string*, **required** — The library's cluster id.
+
+## ClerkStartBody
+
+`POST /api/config/clerk/start` body.
+
+- `address` *string*, **required** — The library's address.
+- `fingerprint` *string or null* — The fingerprint the person confirmed (self-signed libraries).
+- `clerk_name` *string or null* — The name to sign in as (default: this machine's name).
+
+## ClerkStarted
+
+JSON body for `POST /api/config/clerk/start`.
+
+- `authorize_url` *string*, **required** — The library's sign-in URL to open in the browser.
+- `library` *[`InspectedLibraryView`](#inspectedlibraryview)*, **required** — What the library said about itself.
+- `clerk_name` *string*, **required** — The name this install signs in as.
+- `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
 
 ## ClerkTokenAnswer
 
@@ -3374,6 +3445,7 @@ status, never the password hash.
 JSON body for `GET /api/config/join/window`.
 
 - `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+- `cards` *array of [`ClerkLinkView`](#clerklinkview)*, **required** — The libraries this install holds an active library card for.
 - `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
 
 ## WindowEditionView

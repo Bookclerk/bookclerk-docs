@@ -13528,6 +13528,7 @@ this install's person, merged by work (`{clusters, books}`).
 
 - `200` — The libraries this install is a window of, and their books for its person. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
   - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+  - `cards` *array of [`ClerkLinkView`](schemas.md#clerklinkview)*, **required** — The libraries this install holds an active library card for.
   - `books` *array of [`WindowEntryView`](schemas.md#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -13606,6 +13607,18 @@ Status `200`: The libraries this install is a window of, and their books for its
       "running": true
     }
   ],
+  "cards": [
+    {
+      "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "origin": "https://books.example.com",
+      "library_name": "books.example.com",
+      "pinned": false,
+      "display_name": "Riley",
+      "clerk_name": "Riley's laptop",
+      "state": "active",
+      "signed_in_at": "2026-11-17T09:02:41Z"
+    }
+  ],
   "books": [
     {
       "key": "work:0b8f2c1e-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
@@ -13636,6 +13649,7 @@ Schema:
   "description": "JSON body for `GET /api/config/join/window`.",
   "required": [
     "clusters",
+    "cards",
     "books"
   ],
   "properties": {
@@ -13749,6 +13763,68 @@ Schema:
         }
       },
       "description": "The libraries this install is a window of (active links with \"Use\nthis computer to download\" off)."
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A library this install holds (or held) a library card for, without the\ncard.",
+        "required": [
+          "cluster_id",
+          "origin",
+          "library_name",
+          "pinned",
+          "clerk_name",
+          "state",
+          "signed_in_at"
+        ],
+        "properties": {
+          "cluster_id": {
+            "type": "string",
+            "description": "The library's cluster id.",
+            "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
+          },
+          "origin": {
+            "type": "string",
+            "description": "The library's canonical origin.",
+            "example": "https://books.example.com"
+          },
+          "library_name": {
+            "type": "string",
+            "description": "The library's name at sign-in.",
+            "example": "books.example.com"
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Whether the card's connection pins the library's self-signed\ncertificate.",
+            "example": false
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The person's display name on the library, when it has one.",
+            "example": "Riley"
+          },
+          "clerk_name": {
+            "type": "string",
+            "description": "The name this install signed in as.",
+            "example": "Riley's laptop"
+          },
+          "state": {
+            "type": "string",
+            "description": "`active`, or `signed_out` once the library ended the card.",
+            "example": "active"
+          },
+          "signed_in_at": {
+            "type": "string",
+            "description": "RFC 3339 sign-in time.",
+            "example": "2026-11-17T09:02:41Z"
+          }
+        }
+      },
+      "description": "The libraries this install holds an active library card for."
     },
     "books": {
       "type": "array",

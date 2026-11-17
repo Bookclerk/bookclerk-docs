@@ -41,6 +41,11 @@ active link, [`HostClient`](#hostclient) keeps one socket to the owner's
   [`HostJobCtx::upload_file`](#hostjobctxupload_file), [`HostJobCtx::commit_upload`](#hostjobctxcommit_upload)); the job
   completes with its closing upload's commit.
 
+An install may instead sign in to a library as a clerk, holding a
+library card for its person rather than node keys ([`authorize_clerk`](#authorize_clerk),
+[`redeem_clerk_code`](#redeem_clerk_code)); the daemon reads the person's books over the
+library's clerk socket ([`OwnerEndpoint::connect_clerk_socket`](#ownerendpointconnect_clerk_socket)).
+
 The consent decisions themselves (which plugins, which grant) and how a
 job runs its guest are the daemon's.
 
@@ -53,6 +58,8 @@ job runs its guest are the daemon's.
 | [`BranchRedeem`](#branchredeem) | struct | What `redeem_branch_code` needs besides the keys. |
 | [`InspectedLibrary`](#inspectedlibrary) | struct | A library as `inspect_library` found it. |
 | [`RedeemedBranch`](#redeemedbranch) | struct | A branch sign-in the library redeemed and this install recorded. |
+| [`ClerkAuthorization`](#clerkauthorization) | struct | One clerk sign-in about to start. `Debug` prints no secret. |
+| [`ClerkRedeem`](#clerkredeem) | struct | What `redeem_clerk_code` needs: the inspected library and the pending sign-in. |
 | [`CatalogBatchAccepted`](#catalogbatchaccepted) | struct | A recorded catalog batch (`HostClientHandle::catalog_sync`). |
 | [`CatalogSession`](#catalogsession) | struct | An opened catalog session (`HostClientHandle::catalog_begin`). |
 | [`ClientTiming`](#clienttiming) | struct | Timers of the client. The defaults follow the protocol constants. |
@@ -85,6 +92,8 @@ job runs its guest are the daemon's.
 | [`keep_brought_connections`](#keep_brought_connections) | function | Keeps the store connections a library sent with its person (`RedeemedBranch::accounts`) for the person on this install (`branch_person`), recording that they came from the library. |
 | [`library_origin`](#library_origin) | function | Normalizes what an operator typed (`owner.example:8443`, `https://owner.example/`) to a canonical origin. A bare `host[:port]` means `https`. |
 | [`redeem_branch_code`](#redeem_branch_code) | function | Redeems an approved sign-in: the library runs the same redeem as for a link (one node, a receipt, idempotent retries), then this install seals `keys` and records the link. The code and verifier go once in the request body and are never logged. |
+| [`authorize_clerk`](#authorize_clerk) | function | Starts a clerk sign-in at `library` for this install as `clerk_name`, coming back to `redirect_uri` (a loopback or https URL). |
+| [`redeem_clerk_code`](#redeem_clerk_code) | function | Redeems a clerk sign-in's code for a library card and records it. |
 | [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own cluster id (A ← B ← A). Answers its ancestry, to record on the link. |
 | [`join_cluster`](#join_cluster) | function | Enrolls this install into the owner cluster named by `link`. |
 | [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own cluster id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
@@ -109,6 +118,7 @@ job runs its guest are the daemon's.
 
 ## Re-exports
 
+- [`endpoint::SocketMessage`](https://docs.rs/tungstenite/latest/tungstenite/protocol/message/enum.Message.html)
 - [`endpoint::ENROLL_OAUTH_PATH`](../bookclerk_node_proto/README.md#enroll_oauth_path)
 - [`endpoint::INFO_PATH`](../bookclerk_node_proto/README.md#info_path)
 
@@ -278,6 +288,59 @@ A branch sign-in the library redeemed and this install recorded.
   choose it, had none to bring, or the box did not open (logged).
 
 Implements: `Debug`
+
+### ClerkAuthorization
+
+```rust
+pub struct ClerkAuthorization {
+    pub authorize_url: String,
+    pub state: Zeroizing<String>,
+    pub verifier: Zeroizing<String>,
+    pub redirect_uri: String,
+    pub clerk_name: String,
+}
+```
+
+One clerk sign-in about to start. `Debug` prints no secret.
+
+**Fields**
+
+- `authorize_url`: Where to send the browser.
+- `state`: The OAuth `state` (also in the URL).
+- `verifier`: The PKCE verifier; never leaves this install.
+- `redirect_uri`: The redirect URI in the URL.
+- `clerk_name`: The name this install signs in as, trimmed.
+
+Implements: `Debug`
+
+### ClerkRedeem
+
+```rust
+pub struct ClerkRedeem<'a> {
+    pub origin: &'a str,
+    pub spki_pin: Option<&'a str>,
+    pub cluster_id: &'a str,
+    pub library_name: &'a str,
+    pub code: &'a str,
+    pub verifier: &'a str,
+    pub redirect_uri: &'a str,
+    pub clerk_name: &'a str,
+}
+```
+
+What [`redeem_clerk_code`](#redeem_clerk_code) needs: the inspected library and the pending
+sign-in.
+
+**Fields**
+
+- `origin`: The library's canonical origin.
+- `spki_pin`: The pin confirmed for a self-signed library.
+- `cluster_id`: The cluster id the library's info reported; the answer must match.
+- `library_name`: The library's name from its info.
+- `code`: The code from the redirect.
+- `verifier`: The sign-in's PKCE verifier.
+- `redirect_uri`: The redirect URI the authorize request named.
+- `clerk_name`: The name this install signed in as.
 
 ### CatalogBatchAccepted
 
@@ -923,6 +986,27 @@ owner to select it.
 ##### Errors
 
 Returns [`DialError`](#dialerror) when the connection or the upgrade fails.
+
+#### OwnerEndpoint::connect_clerk_socket
+
+```rust
+pub async fn connect_clerk_socket(&self, card: &str) -> Result<OwnerSocket, DialError>
+```
+
+Dials a library's clerk socket ([`CLERK_CONNECT_PATH`](../bookclerk_node_proto/README.md#clerk_connect_path)) with a
+library card, offering [`CLERK_SUBPROTOCOL`](../bookclerk_node_proto/README.md#clerk_subprotocol) and requiring the
+library to select it. The card is written straight to the stream and
+never logged.
+
+##### Arguments
+
+* `card` - The library card (the token alone, without the scheme).
+
+##### Errors
+
+Returns [`DialError`](#dialerror) when the connection or the upgrade fails;
+[`DialError::Refused`](#dialerror) carries the library's status (401 when the
+card was ended).
 
 #### OwnerEndpoint::post_json
 
@@ -1913,6 +1997,48 @@ database or disk write gives [`JoinError::SaveFailed`](#joinerror) (redeeming th
 same code again with the same verifier and keys gets the same node, so
 that one can be retried, naming that node in
 [`BranchRedeem::enrolled_node_id`](#branchredeem)).
+
+### authorize_clerk
+
+```rust
+pub fn authorize_clerk(
+    library: &InspectedLibrary,
+    redirect_uri: &str,
+    clerk_name: &str,
+) -> Result<ClerkAuthorization, JoinError>
+```
+
+Starts a clerk sign-in at `library` for this install as `clerk_name`,
+coming back to `redirect_uri` (a loopback or https URL).
+
+#### Errors
+
+Returns [`JoinError::Link`](#joinerror) for a redirect URI the library would refuse
+or a malformed clerk name.
+
+### redeem_clerk_code
+
+```rust
+pub async fn redeem_clerk_code(
+    store: &LibraryStore,
+    redeem: &ClerkRedeem<'_>,
+) -> Result<ClerkLink, JoinError>
+```
+
+Redeems a clerk sign-in's code for a library card and records it.
+
+The code, the verifier and the card are registered for redaction before
+they could reach a log; the code and verifier go once in the request
+body.
+
+#### Errors
+
+Returns [`JoinError::Refused`](#joinerror) when the library refuses the code (spent,
+expired, or not this sign-in's), [`JoinError`](#joinerror) when it is unreachable
+or answers another status, [`JoinError::Record`](#joinerror) when its answer is
+malformed or names another library, and [`JoinError::Unsaved`](#joinerror) when the
+card could not be recorded here (the library then holds a session this
+install cannot use; the person ends it from the library's session list).
 
 ### check_join_ancestry
 

@@ -13647,6 +13647,8 @@ pub enum EntityKind {
     ClusterIdentity,
     ClusterLink,
     ClusterNodeKeys,
+    ClerkLink,
+    ClerkCard,
     Configuration,
     PluginInstance,
     PluginDeployment,
@@ -13689,6 +13691,8 @@ such as `enrollment link`.
 - `ClusterIdentity`: This cluster's identity.
 - `ClusterLink`: A link to another library.
 - `ClusterNodeKeys`: The node keys a linked library published.
+- `ClerkLink`: A library this install holds a library card for, as a clerk.
+- `ClerkCard`: The sealed library card of a clerk link.
 - `Configuration`: A configuration document, by namespace.
 - `PluginInstance`: A plugin instance.
 - `PluginDeployment`: A plugin deployment.
@@ -13707,7 +13711,7 @@ such as `enrollment link`.
 #### EntityKind::ALL
 
 ```rust
-pub const ALL: [Self; 32] = _
+pub const ALL: [Self; 34] = _
 ```
 
 Every kind, in declaration order.

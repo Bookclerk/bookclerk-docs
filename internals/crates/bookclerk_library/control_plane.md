@@ -28,6 +28,9 @@ See `docs/adr/control-plane.md`.
 | [`AskReport`](#askreport) | struct | What `ask_branches` did. |
 | [`BranchListing`](#branchlisting) | struct | A `branch:<node>` listing and the work its edition belongs to. |
 | [`BranchOffer`](#branchoffer) | struct | One branch a work is available through, as Discover and search show it. |
+| [`ClerkLink`](#clerklink) | struct | One library this install holds (or held) a library card for. |
+| [`LibraryCard`](#librarycard) | struct | A library card in plain form: zeroized on drop, redacted in `Debug`. |
+| [`NewClerkLink`](#newclerklink) | struct | What a sign-in returned, to record with `record_clerk_link`. |
 | [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
 | [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
 | [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
@@ -135,6 +138,7 @@ See `docs/adr/control-plane.md`.
 | [`RequestFinished`](#requestfinished) | enum | What `finish_branch_request` did. |
 | [`Withdrawn`](#withdrawn) | enum | What `withdraw_person_account` did. |
 | [`AnswersRecorded`](#answersrecorded) | enum | Outcome of `record_answers`. |
+| [`ClerkLinkState`](#clerklinkstate) | enum | Whether this install still holds the card of a clerk link. |
 | [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
 | [`DeploymentReplace`](#deploymentreplace) | enum | Outcome of `replace_plugin_deployment`. |
 | [`DeploymentStatus`](#deploymentstatus) | enum | Observed deployment status. |
@@ -226,6 +230,12 @@ See `docs/adr/control-plane.md`.
 | [`trusted_branches`](#trusted_branches) | function | The branches this library trusts, by node id. |
 | [`works_of_interest`](#works_of_interest) | function | The works this library wants its branches asked about: those of open wishes (most recently changed first), then those of Discover candidates (most recently fetched first), at most `limit`. |
 | [`works_of_listings`](#works_of_listings) | function | The work of each store listing in `listings`, by `(plugin key, product id)`, for listings the shared pool already holds. |
+| [`forget_clerk_link`](#forget_clerk_link) | function | Deletes a signed-out link's row, so it leaves the list. Answers false when there was no such link. |
+| [`list_clerk_links`](#list_clerk_links) | function | Every clerk link, oldest sign-in first. |
+| [`load_clerk_card`](#load_clerk_card) | function | Unseals the card of an active `link`. |
+| [`load_clerk_link`](#load_clerk_link) | function | One clerk link. |
+| [`record_clerk_link`](#record_clerk_link) | function | Seals `card` and records the link as active, replacing an earlier sign-in to the same library. |
+| [`sign_out_clerk_link`](#sign_out_clerk_link) | function | Marks a link signed out, deletes its card and drops the books read through it. Answers the link as it now stands, or `None` when there is no such link. |
 | [`decode_spki_pin`](#decode_spki_pin) | function | Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest. |
 | [`join_cycle`](#join_cycle) | function | This library's own cluster id when `parent_ancestry` names it: joining that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when it does not, or this install has no cluster identity yet. |
 | [`join_overflows_ancestry`](#join_overflows_ancestry) | function | True when joining a library that reports `parent_ancestry` would give this library more ancestors (itself and every library above it) than `bookclerk_node_proto::MAX_ANCESTRY`: `library_ancestry` would then leave the farthest out, and a library joining this one later could no longer be checked for a loop through them. An ancestry cut at that limit by the library itself always holds exactly the limit, so this refuses it too. Such a join is refused rather than cut short. |
@@ -514,6 +524,7 @@ See `docs/adr/control-plane.md`.
 | [`BRANCH_LISTING_TTL`](#branch_listing_ttl) | constant | How long a `branch:<node>` listing counts as current after the branch last named it: a day of answer life plus a day for the next question to be asked and answered. |
 | [`LOOKUP_ANSWER_TTL`](#lookup_answer_ttl) | constant | How long a branch's answer stands: a question answered longer ago is asked again the next time `ask_branches` names its work. |
 | [`LOOKUP_RESEND`](#lookup_resend) | constant | How long a sent question waits for its answer before it is sent again. |
+| [`CLERK_CARD_NAME`](#clerk_card_name) | constant | `encrypted_secrets.name` of a clerk link's library card. |
 | [`CLUSTER_LINK_ACTIVE`](#cluster_link_active) | constant | `cluster_links.state` of a link the host client connects. |
 | [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
@@ -1072,6 +1083,110 @@ One branch a work is available through, as Discover and search show it.
   through Riley's branch"; `None` when the owner has neither.
 - `store`: The store the branch has the book from (`audible`).
 - `product_id`: The store's product id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ClerkLink
+
+```rust
+pub struct ClerkLink {
+    pub library_cluster_id: String,
+    pub origin: String,
+    pub spki_pin: Option<String>,
+    pub library_name: String,
+    pub remote_user_id: i64,
+    pub display_name: Option<String>,
+    pub clerk_name: String,
+    pub state: ClerkLinkState,
+    pub created_at: String,
+    pub updated_at: String,
+}
+```
+
+One library this install holds (or held) a library card for.
+
+**Fields**
+
+- `library_cluster_id`: The library's cluster id.
+- `origin`: The library's origin as [`bookclerk_node_proto::canonical_origin`](../bookclerk_node_proto/README.md#canonical_origin)
+  spells it.
+- `spki_pin`: SPKI pin of the library's self-signed certificate, when the person
+  confirmed one.
+- `library_name`: The library's name at sign-in.
+- `remote_user_id`: The person's user id on the library.
+- `display_name`: The person's display name on the library, when it has one.
+- `clerk_name`: The name this install signed in as.
+- `state`: Whether the card is still held.
+- `created_at`: RFC 3339 sign-in time.
+- `updated_at`: RFC 3339 time of the last change.
+
+#### ClerkLink::is_active
+
+```rust
+pub fn is_active(&self) -> bool
+```
+
+True while the clerk reader should dial this library.
+
+Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
+
+### LibraryCard
+
+```rust
+pub struct LibraryCard(/* private */);
+```
+
+A library card in plain form: zeroized on drop, redacted in `Debug`.
+
+#### LibraryCard::new
+
+```rust
+pub fn new(token: String) -> Result<Self>
+```
+
+Wraps a card a library issued.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when `token` is not a card
+([`bookclerk_node_proto::is_clerk_token`](../bookclerk_node_proto/README.md#is_clerk_token)).
+
+#### LibraryCard::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The card, for the `Authorization: Bookclerk-Clerk` header.
+
+Implements: `Clone`, `Debug`
+
+### NewClerkLink
+
+```rust
+pub struct NewClerkLink {
+    pub library_cluster_id: String,
+    pub origin: String,
+    pub spki_pin: Option<String>,
+    pub library_name: String,
+    pub remote_user_id: i64,
+    pub display_name: Option<String>,
+    pub clerk_name: String,
+}
+```
+
+What a sign-in returned, to record with [`record_clerk_link`](#record_clerk_link).
+
+**Fields**
+
+- `library_cluster_id`: The library's cluster id, as both its info and its token answer
+  named it.
+- `origin`: The origin the sign-in went to.
+- `spki_pin`: SPKI pin the person confirmed, for a self-signed library.
+- `library_name`: The library's name from its info.
+- `remote_user_id`: The person's user id from the token answer.
+- `display_name`: The person's display name from the token answer.
+- `clerk_name`: The name this install signed in as.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4607,6 +4722,33 @@ Outcome of [`record_answers`](#record_answers).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### ClerkLinkState
+
+```rust
+pub enum ClerkLinkState {
+    Active,
+    SignedOut,
+}
+```
+
+Whether this install still holds the card of a clerk link.
+
+**Variants**
+
+- `Active`: The card is held; the clerk reader dials the library.
+- `SignedOut`: The library ended the card (or the person signed out here); the
+  card is deleted and nothing dials.
+
+#### ClerkLinkState::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The `clerk_links.state` spelling.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
 ### CronFireClaim
 
 ```rust
@@ -6735,6 +6877,114 @@ does not hold, or whose edition has no work, is left out.
 #### Errors
 
 Returns the read error.
+
+### forget_clerk_link
+
+```rust
+pub async fn forget_clerk_link(
+    store: &LibraryStore,
+    library_cluster_id: &str,
+) -> Result<bool>
+```
+
+Deletes a signed-out link's row, so it leaves the list. Answers false
+when there was no such link.
+
+#### Errors
+
+Returns [`LibraryError::Conflict`](README.md#libraryerror) while the link is active (sign out
+first), and the write error.
+
+### list_clerk_links
+
+```rust
+pub async fn list_clerk_links(store: &LibraryStore) -> Result<Vec<ClerkLink>>
+```
+
+Every clerk link, oldest sign-in first.
+
+#### Errors
+
+Returns the read error.
+
+### load_clerk_card
+
+```rust
+pub async fn load_clerk_card(
+    store: &LibraryStore,
+    link: &ClerkLink,
+) -> Result<LibraryCard>
+```
+
+Unseals the card of an active `link`.
+
+The caller registers the card with the log redactor before using it.
+
+#### Errors
+
+Returns [`LibraryError::Forbidden`](README.md#libraryerror) when the link is signed out,
+[`LibraryError::NotFound`](README.md#libraryerror) when the card row is missing, and
+[`LibraryError::Invalid`](README.md#libraryerror) when it does not hold a card.
+
+### load_clerk_link
+
+```rust
+pub async fn load_clerk_link(
+    store: &LibraryStore,
+    library_cluster_id: &str,
+) -> Result<Option<ClerkLink>>
+```
+
+One clerk link.
+
+#### Errors
+
+Returns the read error.
+
+### record_clerk_link
+
+```rust
+pub async fn record_clerk_link(
+    store: &LibraryStore,
+    link: &NewClerkLink,
+    card: &LibraryCard,
+) -> Result<ClerkLink>
+```
+
+Seals `card` and records the link as active, replacing an earlier
+sign-in to the same library.
+
+The card row is written first, so a link row never names a card that
+is not stored; a card row left by a failed write is replaced by the
+next sign-in.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed cluster id, origin,
+pin, name or user id, [`LibraryError::Conflict`](README.md#libraryerror) when this install is
+already an active branch or window of that library (it reads that
+library's books through the link instead), an error when no master key
+is configured, and the write error.
+
+### sign_out_clerk_link
+
+```rust
+pub async fn sign_out_clerk_link(
+    store: &LibraryStore,
+    library_cluster_id: &str,
+) -> Result<Option<ClerkLink>>
+```
+
+Marks a link signed out, deletes its card and drops the books read
+through it. Answers the link as it now stands, or `None` when there is
+no such link.
+
+Used when the library ends the card (close 4401 or a 401 answer) and
+when the person signs out here.
+
+#### Errors
+
+Returns the read or write error.
 
 ### decode_spki_pin
 
@@ -11572,7 +11822,8 @@ pub async fn window_view(store: &LibraryStore) -> Result<Vec<WindowEntry>>
 The merged view of every library this install is a window of: the books
 each holds for the person, one entry per work, sorted by title.
 
-Only active links with "Use this computer to download" off count. Rows
+Only active links with "Use this computer to download" off count, and
+every active library card ([`crate::control_plane::list_clerk_links`](#list_clerk_links)). Rows
 are the same work when they reach the same work of this library, share
 a strong identifier (not an ISBN), or carry the same grouping key from
 one library. A row whose stored edition is missing or no longer parses
@@ -11964,6 +12215,14 @@ pub const LOOKUP_RESEND: Duration = _;
 ```
 
 How long a sent question waits for its answer before it is sent again.
+
+### CLERK_CARD_NAME
+
+```rust
+pub const CLERK_CARD_NAME: &str = "library_card";
+```
+
+`encrypted_secrets.name` of a clerk link's library card.
 
 ### CLUSTER_LINK_ACTIVE
 
