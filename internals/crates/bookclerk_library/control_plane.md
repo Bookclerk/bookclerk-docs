@@ -191,7 +191,7 @@ See `docs/adr/control-plane.md`.
 | [`notify_requests_queued`](#notify_requests_queued) | function | Wakes branch `node_id` after a request for it was admitted. Best effort: the branch also claims on every connection and on a timer. |
 | [`parse_branch_request`](#parse_branch_request) | function | Parses and validates a `POST /api/branch-requests` body from its raw bytes, sans IO, the way the route reads it: JSON into `BranchRequestBody`, then `BranchRequestBody::validate`. |
 | [`plan_branch_request`](#plan_branch_request) | function | Plans an interlibrary request for `work_id`. |
-| [`record_link_request`](#record_link_request) | function | On a branch: records that the library `cluster_id` asked for `book`, so the catalog sync sends it there. A book already recorded for that library is left as it is. |
+| [`record_link_request`](#record_link_request) | function | On a branch: records that the library `cluster_id` asked for `title` (by its holding account and store listing), so the catalog sync sends it there. Asking again moves the request to now. |
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
 | [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
 | [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
@@ -214,7 +214,6 @@ See `docs/adr/control-plane.md`.
 | [`withdraw_person_account`](#withdraw_person_account) | function | Disconnects a store account "everywhere" on this library for the person `user_id`: removes every link from their identities to the account and, in the same atomic batch, deletes its secrets and marks it `revoked` with scans off when no other link holds it. A revoked account then loses its holdings (each with a `holding_removed` event) and its scan checkpoints, as `LibraryStore::revoke_credentials` does. |
 | [`answer_questions`](#answer_questions) | function | Answers questions a library sent this branch from this branch's own library. |
 | [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
-| [`book_for_request`](#book_for_request) | function | The book of this library that fulfils an interlibrary request: a book this branch would list for the request's work (`answer_questions`'s rules: the owner's always, members' only with `list_members_books` on and when they did not opt out) whose store, marketplace and product id are the request's. A copy already acquired wins, then the first row. `None` when this branch no longer lists that edition to the library. |
 | [`branch_listing_key`](#branch_listing_key) | function | The plugin key of listings answered by branch `node_id`. |
 | [`branch_listings_for_works`](#branch_listings_for_works) | function | The current branch listings of `work_ids`: those a branch this library still trusts named within `BRANCH_LISTING_TTL`. |
 | [`branch_offers_for_works`](#branch_offers_for_works) | function | The branches each of `work_ids` is currently available through. |
@@ -223,6 +222,7 @@ See `docs/adr/control-plane.md`.
 | [`pending_questions`](#pending_questions) | function | The questions waiting for branch `node_id`, marked sent. |
 | [`record_answers`](#record_answers) | function | Records branch `node_id`'s answers to the questions it was sent. |
 | [`set_catalog_listing_opt_out`](#set_catalog_listing_opt_out) | function | Records whether member `user_id`'s books are kept out of what this branch lists to the libraries it joined. |
+| [`title_for_request`](#title_for_request) | function | The title of this library that fulfils an interlibrary request: a title this branch would list for the request's work (`answer_questions`'s rules: the owner's always, members' only with `list_members_books` on and when they did not opt out) whose store, marketplace and product id are the request's. The first such holding wins. `None` when this branch no longer lists that edition to the library. |
 | [`trusted_branches`](#trusted_branches) | function | The branches this library trusts, by node id. |
 | [`works_of_interest`](#works_of_interest) | function | The works this library wants its branches asked about: those of open wishes (most recently changed first), then those of Discover candidates (most recently fetched first), at most `limit`. |
 | [`works_of_listings`](#works_of_listings) | function | The work of each store listing in `listings`, by `(plugin key, product id)`, for listings the shared pool already holds. |
@@ -6052,13 +6052,13 @@ named one) currently lists the work, or the read error.
 pub async fn record_link_request(
     store: &LibraryStore,
     cluster_id: &str,
-    book: &BookRecord,
+    title: &AcquireTitle,
 ) -> Result<()>
 ```
 
-On a branch: records that the library `cluster_id` asked for `book`,
-so the catalog sync sends it there. A book already recorded for that
-library is left as it is.
+On a branch: records that the library `cluster_id` asked for `title`
+(by its holding account and store listing), so the catalog sync sends
+it there. Asking again moves the request to now.
 
 #### Errors
 
@@ -6512,33 +6512,6 @@ library does not have is skipped. Each branch with a new question gets a
 
 Returns a read or write error.
 
-### book_for_request
-
-```rust
-pub async fn book_for_request(
-    store: &LibraryStore,
-    request: &BranchRequest,
-    list_members_books: bool,
-) -> Result<Option<BookRecord>>
-```
-
-The book of this library that fulfils an interlibrary request: a book
-this branch would list for the request's work
-([`answer_questions`](#answer_questions)'s rules: the owner's always, members' only with
-`list_members_books` on and when they did not opt out) whose store,
-marketplace and product id are the request's. A copy already acquired
-wins, then the first row. `None` when this branch no longer lists that
-edition to the library.
-
-#### Arguments
-
-* `request` - The claimed request (already validated).
-* `list_members_books` - The link's "List my members' books" setting.
-
-#### Errors
-
-Returns the read error.
-
 ### branch_listing_key
 
 ```rust
@@ -6681,6 +6654,33 @@ branch lists to the libraries it joined.
 #### Errors
 
 Returns the write error.
+
+### title_for_request
+
+```rust
+pub async fn title_for_request(
+    store: &LibraryStore,
+    request: &BranchRequest,
+    list_members_books: bool,
+) -> Result<Option<AcquireTitle>>
+```
+
+The title of this library that fulfils an interlibrary request: a
+title this branch would list for the request's work
+([`answer_questions`](#answer_questions)'s rules: the owner's always, members' only with
+`list_members_books` on and when they did not opt out) whose store,
+marketplace and product id are the request's. The first such holding
+wins. `None` when this branch no longer lists that edition to the
+library.
+
+#### Arguments
+
+* `request` - The claimed request (already validated).
+* `list_members_books` - The link's "List my members' books" setting.
+
+#### Errors
+
+Returns the read error.
 
 ### trusted_branches
 

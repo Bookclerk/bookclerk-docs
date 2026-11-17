@@ -5585,6 +5585,31 @@ Every matching account holding's title; empty when nothing matches.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::acquire_titles_of_listings
+
+```rust
+pub async fn acquire_titles_of_listings(
+    &self,
+    listing_ids: &[String],
+) -> Result<Vec<AcquireTitle>>
+```
+
+The titles accounts hold of the store listings `listing_ids`, as
+acquire reads them, in holding order: every account's copy of those
+listings.
+
+##### Arguments
+
+* `listing_ids` - `store_listings.id` values.
+
+##### Returns
+
+One title per account holding of a listing; empty when none is held.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::accounts_holding_titles
 
 ```rust
