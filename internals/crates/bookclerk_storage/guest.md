@@ -21,6 +21,7 @@ natively (see `docs/plugins/abi.md#intent-operations`).
 | [`move_many`](#move_many) | function | Moves explicit pairs, or one page of a prefix. |
 | [`delete_many`](#delete_many) | function | Deletes up to `MAX_BATCH_KEYS` keys, one outcome per key in order. |
 | [`head_many`](#head_many) | function | Probes up to `MAX_BATCH_KEYS` keys, one entry per key in order. |
+| [`changes`](#changes) | function | Serves `changes` from the backend's change feed. |
 
 ## Functions
 
@@ -155,3 +156,23 @@ Probes up to [`MAX_BATCH_KEYS`](../bookclerk_plugin_abi/README.md#max_batch_keys
 
 Returns `PluginError::invalid_params` for too many keys, and the first
 probe failure other than absence.
+
+### changes
+
+```rust
+pub async fn changes<B: StorageBackend + ?Sized>(
+    backend: &B,
+    request: ChangesRequest,
+) -> Result<ChangesPage, PluginError>
+```
+
+Serves `changes` from the backend's change feed.
+
+A backend without a feed (for the `local` plugin, an instance with
+`watch` off) answers with an empty page that says changes may have been
+missed, so the host lists instead.
+
+#### Errors
+
+Returns `invalidCursor` for a cursor the feed does not accept, and the
+feed's other failures.

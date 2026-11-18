@@ -218,6 +218,7 @@ pub struct ChangeFeedPage {
     pub cursor: String,
     pub more: bool,
     pub complete: bool,
+    pub live_watch: bool,
 }
 ```
 
@@ -229,6 +230,9 @@ One page of a change feed.
 - `cursor`: Cursor for the next call.
 - `more`: True when more changes are ready now.
 - `complete`: False when the feed may have missed changes: back it with a listing.
+- `live_watch`: True when the backend's own running process produces the feed (a
+  file-system watcher), so stopping it loses changes; durable feeds
+  leave it false.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 

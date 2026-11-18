@@ -917,8 +917,9 @@ pub const CAPABILITIES: StorageCapabilities = _
 ```
 
 What every local backend does natively: moves are renames, batches
-run in one call, and conditional writes are checked here. There is no
-change feed yet.
+run in one call, and conditional writes are checked here. A backend
+built with [`Self::with_watch`](#localfsbackendwith_watch) (feature `watch`) also has a change
+feed.
 
 #### LocalFsBackend::new
 
@@ -944,6 +945,22 @@ Create a backend rooted at `root` with an optional key prefix
 ##### Errors
 
 Returns an error when the operation fails.
+
+#### LocalFsBackend::with_watch
+
+```rust
+pub fn with_watch(self) -> Self
+```
+
+Starts a change feed for this backend's root (below its prefix),
+served by [`StorageBackend::changes`](#storagebackendchanges) for as long as the backend or
+a clone of it lives.
+
+The watcher runs only on a local disk; on a network file system or a
+FUSE mount (see [`crate::fs_kind`](fs_kind.md)), or when the operating system
+refuses it, every page says the feed may have missed changes, so the
+caller lists instead. Call it after [`Self::with_fs_kind`](#localfsbackendwith_fs_kind) for the
+override to apply.
 
 #### LocalFsBackend::with_fs_kind
 

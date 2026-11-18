@@ -5614,6 +5614,7 @@ pub struct ChangesPage {
     pub cursor: String,
     pub more: bool,
     pub complete: bool,
+    pub live_watch: bool,
 }
 ```
 
@@ -5626,6 +5627,11 @@ One page of [`crate::Destination::changes`](#destinationchanges).
 - `more`: True when more changes are ready now.
 - `complete`: False when the feed may have missed changes since the request's
   cursor; the host then backs it with a full listing.
+- `live_watch`: True when the running guest produces the feed itself (a filesystem
+  watcher), so stopping it would lose changes. The host keeps such a
+  guest awake while `complete` stays true, and honours this only from
+  the first-party storage plugins it starts on demand. Durable feeds
+  leave it false.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

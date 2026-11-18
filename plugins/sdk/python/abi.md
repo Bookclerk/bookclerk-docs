@@ -798,6 +798,7 @@ One page of `Destination.changes`.
 - `cursor`: Cursor for the next call; never empty.
 - `more`: True when more changes are ready now; call again with `cursor`.
 - `complete`: False when the feed may have missed changes since the request's cursor (an overflowed watcher, expired queue retention, a restart): the host backs it with a full listing. True means these are all the changes.
+- `liveWatch`: True when this running guest produces the feed itself (a filesystem watcher) and stopping it would lose changes, so the host keeps it awake while `complete` stays true. Durable feeds (a notification queue) leave it false. The host honours it only from the first-party storage plugins it starts on demand.
 
 ### PluginDescribe
 

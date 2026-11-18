@@ -1006,6 +1006,18 @@ cursor: string;
 
 Cursor for the next call; never empty.
 
+##### liveWatch
+
+```ts
+liveWatch: boolean;
+```
+
+True when this running guest produces the feed itself (a filesystem
+watcher) and stopping it would lose changes, so the host keeps it awake
+while `complete` stays true. Durable feeds (a notification queue) leave
+it false. The host honours it only from the first-party storage plugins
+it starts on demand.
+
 ##### more
 
 ```ts
