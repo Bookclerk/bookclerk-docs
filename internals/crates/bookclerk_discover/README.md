@@ -1670,6 +1670,7 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 ```rust
 pub async fn catalog_search_page(
     registry: &SourceRegistry,
+    pool: Option<&LibraryStore>,
     opts: CatalogSearchPageOpts<'_>,
 ) -> Result<CatalogSearchPage, DiscoverError>
 ```
@@ -1679,6 +1680,9 @@ Paged multi-store catalog browse (filters + sort + cursor).
 #### Arguments
 
 * `registry` - Configured content-source or integration registry.
+* `pool` - The library whose shared listing pool names the recording
+  each hit is, so one recording sold by several stores is one row; `None`
+  merges hits only by shared ISBN, ASIN or store product.
 * `opts` - Options struct for this operation.
 
 #### Returns
