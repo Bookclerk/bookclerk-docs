@@ -9,11 +9,16 @@ content-source plugins; this crate never sees license keys. See
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`LibraryCopies`](#librarycopies) | trait | Where an acquire asks for the copy a library holds of a title. |
+| [`LibraryCopy`](#librarycopy) | trait | A copy of one edition a library offered this install. |
 | [`CoverImages`](#coverimages) | trait | Turns a cover URL a metadata provider named into an image the acquire can embed, without the acquire itself requesting the URL. |
 | [`ConvertRequest`](#convertrequest) | struct | Options for `convert_book`. |
 | [`ConvertSummary`](#convertsummary) | struct | Summary of a batch convert run. |
 | [`AcquireDestination`](#acquiredestination) | struct | One configured output destination for an acquire run. |
 | [`AcquireDestinations`](#acquiredestinations) | struct | Ordered set of acquire destinations built from the deployed destination plugins. |
+| [`LibraryCopyFile`](#librarycopyfile) | struct | One file of a library's copy, as the library listed it. |
+| [`LibraryCopyListing`](#librarycopylisting) | struct | The title an acquire wants, as its store lists it. |
+| [`LibraryCopySource`](#librarycopysource) | struct | The libraries an acquire asks for a copy before it fetches from the store. The default asks none, so every title comes from its store. |
 | [`MatchStorageOptions`](#matchstorageoptions) | struct | Options for `match_storage_to_library`. |
 | [`MatchStorageSummary`](#matchstoragesummary) | struct | Summary of a storage→library match run. |
 | [`NamingContext`](#namingcontext) | struct | Metadata available to naming templates. |
@@ -28,6 +33,7 @@ content-source plugins; this crate never sees license keys. See
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
 | [`destination_id`](#destination_id) | function | The id of the output destination of `kind`, as plans, upload manifests and `edition_files` name it: its lowercase kind name (a node deploys at most one destination per kind). |
+| [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know, or one from another store, is not taken: the install fetches its own. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
 | [`audio_basename`](#audio_basename) | function | Basename of the acquired audio file (for `.cue` `FILE` lines). |
@@ -56,10 +62,138 @@ content-source plugins; this crate never sees license keys. See
 | [`reconcile_library`](#reconcile_library) | function | Scan storage and update library acquire status / storage_key for matches. |
 | [`scan_storage`](#scan_storage) | function | Builds or resumes a durable identity/object index. |
 | [`Result`](#result) | type alias | Result alias for `AcquireError`. |
+| [`LibraryCopyError`](#librarycopyerror) | type alias | Why a library's copy could not be asked for, downloaded or used. The acquire logs it and fetches from the store instead. |
 | [`NAME_WILDCARD`](#name_wildcard) | constant | In a `PlannedTitleNames` pattern: one or more characters of a file name (no `/`), where the source's part or chapter title goes; the marker the owner's upload scope matches (`bookclerk_library::control_plane::TitleNames`). |
 | [`NUMBER_WILDCARD`](#number_wildcard) | constant | In a `PlannedTitleNames` pattern: one or more ASCII digits, where a part or chapter number goes (the owner's upload scope matches it too). |
 
 ## Traits
+
+### LibraryCopies
+
+```rust
+pub trait LibraryCopies: Send + Sync {
+    fn copy_of<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        listing: LibraryCopyListing<'life1>,
+    ) -> Pin<Box<dyn Future<Output = Option<Box<dyn LibraryCopy>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+}
+```
+
+Where an acquire asks for the copy a library holds of a title.
+
+#### LibraryCopies::copy_of
+
+```rust
+fn copy_of<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    listing: LibraryCopyListing<'life1>,
+) -> Pin<Box<dyn Future<Output = Option<Box<dyn LibraryCopy>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+The copy a library this install joined offers of `listing`; `None`
+when no library holds one this install's person may take, when
+this install does not keep copies, or when no library answers.
+
+The acquire takes only a copy from the listing's own store
+([`from_store`](#from_store)). An implementation that asks several libraries
+therefore keeps asking past a copy from another store, so that
+copy does not hide a later library's usable one.
+
+### LibraryCopy
+
+```rust
+pub trait LibraryCopy: Send + Sync {
+    fn source_store(&self) -> Option<&str>;
+    fn files(&self) -> &[LibraryCopyFile];
+    fn fetch_file<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        index: usize,
+        dest: &'life1 Path,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LibraryCopyError>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn taken<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LibraryCopyError>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+}
+```
+
+A copy of one edition a library offered this install.
+
+#### LibraryCopy::source_store
+
+```rust
+fn source_store(&self) -> Option<&str>
+```
+
+The store the library downloaded the copy from, when it knows.
+
+#### LibraryCopy::files
+
+```rust
+fn files(&self) -> &[LibraryCopyFile]
+```
+
+The copy's files, the primary audio first; a file's place is its
+download index.
+
+#### LibraryCopy::fetch_file
+
+```rust
+fn fetch_file<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    index: usize,
+    dest: &'life1 Path,
+) -> Pin<Box<dyn Future<Output = Result<(), LibraryCopyError>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Downloads file `index` to `dest`, which must end up holding exactly
+the file's listed size. `dest` is a path nothing else writes to, so
+an implementation may resume what it already holds.
+
+##### Errors
+
+Returns an error when the library refuses or the transfer fails.
+
+#### LibraryCopy::taken
+
+```rust
+fn taken<'life0, 'async_trait>(
+    &'life0 self,
+) -> Pin<Box<dyn Future<Output = Result<(), LibraryCopyError>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Called once the acquire holds the copy's files and before it stores
+any of them, so the implementation can record where the book comes
+from (a branch never shares a book back to the library it took it
+from). Recording first means audio a failed store step leaves on a
+destination is already known as the library's. It may run again for
+the same title, so it must be safe to repeat.
+
+##### Errors
+
+Returns an error when the record cannot be written; the acquire
+then does not use the copy.
 
 ### CoverImages
 
@@ -248,6 +382,83 @@ Consumes this set and returns a listing backend over the primary destination.
 
 Returns an error when the operation fails.
 
+### LibraryCopyFile
+
+```rust
+pub struct LibraryCopyFile {
+    pub name: String,
+    pub role: FileRole,
+    pub size: u64,
+}
+```
+
+One file of a library's copy, as the library listed it.
+
+**Fields**
+
+- `name`: The file's path below the title's folder on the library. Only its
+  extension is read, to tell what kind of file it is; nothing is ever
+  written to this path.
+- `role`: What the file is.
+- `size`: Exact size in bytes.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LibraryCopyListing
+
+```rust
+pub struct LibraryCopyListing<'a> {
+    pub store: &'a str,
+    pub plugin_key: &'a str,
+    pub account_id: &'a str,
+    pub marketplace: &'a str,
+    pub product_id: &'a str,
+}
+```
+
+The title an acquire wants, as its store lists it.
+
+**Fields**
+
+- `store`: Store id as this install's books name it (the store's alias, such
+  as `audible`).
+- `plugin_key`: Key of the plugin the title belongs to on this install.
+- `account_id`: Store account on this install that owns the title.
+- `marketplace`: Lowercase marketplace; empty for a store without marketplaces.
+- `product_id`: The store's product id.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### LibraryCopySource
+
+```rust
+pub struct LibraryCopySource {
+    /* private fields */
+}
+```
+
+The libraries an acquire asks for a copy before it fetches from the
+store. The default asks none, so every title comes from its store.
+
+#### LibraryCopySource::new
+
+```rust
+pub fn new(copies: Arc<dyn LibraryCopies>) -> Self
+```
+
+Asks `copies` for each title before its store.
+
+#### LibraryCopySource::read_by
+
+```rust
+pub fn read_by(self, media: Arc<MediaPool>) -> Self
+```
+
+The same source, reading downloaded files with `media` instead of
+the process pool.
+
+Implements: `Clone`, `Debug`, `Default`
+
 ### MatchStorageOptions
 
 ```rust
@@ -432,6 +643,7 @@ pub struct AcquireRequest {
     pub library_id: Option<String>,
     pub parent_library_id: Option<String>,
     pub metadata: AcquireMetadata,
+    pub library_copies: LibraryCopySource,
 }
 ```
 
@@ -463,6 +675,8 @@ Request to acquire a single title.
   may be saved in.
 - `metadata`: Metadata providers asked for the plain-audio catalog and chapter
   overlay. The default has none, so plain audio keeps its store tags.
+- `library_copies`: The libraries asked for the copy they already hold of the title
+  before it is fetched from its store. The default asks none.
 
 Implements: `Clone`, `Debug`
 
@@ -474,6 +688,7 @@ pub struct AcquireResult {
     pub storage_key: String,
     pub written_keys: Vec<String>,
     pub matched_existing: bool,
+    pub from_library: bool,
 }
 ```
 
@@ -485,6 +700,8 @@ Result after a successful acquire.
 - `storage_key`: Object-storage key written for the primary audio artifact.
 - `written_keys`: All object keys written during this acquire (audio + sidecars).
 - `matched_existing`: True when an existing file was matched and no download ran.
+- `from_library`: True when the audio was taken from the copy a library this install
+  joined already held, instead of fetched from the store.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -760,6 +977,20 @@ pub fn destination_id(kind: OutputBackendKind) -> &'static str
 The id of the output destination of `kind`, as plans, upload manifests
 and `edition_files` name it: its lowercase kind name (a node deploys at
 most one destination per kind).
+
+### from_store
+
+```rust
+pub fn from_store(copy_store: Option<&str>, store: &str) -> bool
+```
+
+True when the library downloaded its copy from `store`, the store this
+install's title belongs to. A copy whose store the library does not
+know, or one from another store, is not taken: the install fetches its
+own.
+
+An implementation of [`LibraryCopies`](#librarycopies) that asks several libraries uses
+this to pass over a copy from another store and ask the next library.
 
 ### match_storage_to_library
 
@@ -1240,6 +1471,15 @@ pub type Result<T> = Result<T, AcquireError>;
 ```
 
 Result alias for [`AcquireError`](#acquireerror).
+
+### LibraryCopyError
+
+```rust
+pub type LibraryCopyError = Box<dyn Error + Send + Sync>;
+```
+
+Why a library's copy could not be asked for, downloaded or used. The
+acquire logs it and fetches from the store instead.
 
 ## Constants
 

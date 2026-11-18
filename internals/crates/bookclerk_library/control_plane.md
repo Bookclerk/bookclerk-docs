@@ -87,6 +87,7 @@ See `docs/adr/control-plane.md`.
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
 | [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
 | [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
+| [`TakenCopy`](#takencopy) | struct | A book of this install whose files came from a library it joined, by its store identity here. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
@@ -364,6 +365,7 @@ See `docs/adr/control-plane.md`.
 | [`renew_lease_on`](#renew_lease_on) | function | `renew_lease` on a bare connection. |
 | [`books_imported_from_link`](#books_imported_from_link) | function | Every book imported from the library `cluster_id`, by store identity: the books the catalog sync must not send back to it. Read in keyset pages no larger than the database plugin's `maxResultRows`. |
 | [`import_link_title`](#import_link_title) | function | Imports a title the library committed into this install's own library (see the module docs). |
+| [`record_copy_taken_from_link`](#record_copy_taken_from_link) | function | Records that this install took its copy of `book` from the library `cluster_id`, so the catalog sync never sends that library a book it provided itself (`books_imported_from_link`). A book already recorded for that library is left as it is; one taken from several libraries is recorded once for each. |
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
 | [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
 | [`is_node_consumer_id`](#is_node_consumer_id) | function | True when a catalog / delivery `plugin_id` is a node consumer rather than a plugin. |
@@ -2892,6 +2894,30 @@ book no earlier than this, so a book already past the sync's cursor
 still goes up on the next pass.
 
 Implements: `Clone`, `Debug`, `Default`
+
+### TakenCopy
+
+```rust
+pub struct TakenCopy<'a> {
+    pub plugin_key: &'a str,
+    pub account_id: &'a str,
+    pub marketplace: &'a str,
+    pub product_id: &'a str,
+}
+```
+
+A book of this install whose files came from a library it joined, by
+its store identity here.
+
+**Fields**
+
+- `plugin_key`: Key of the plugin the book belongs to.
+- `account_id`: Store account that owns the book.
+- `marketplace`: The book's marketplace as its row states it; empty for a store
+  without marketplaces.
+- `product_id`: The store's product id.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### LiveRevision
 
@@ -9428,6 +9454,26 @@ is not marked acquired.
 #### Errors
 
 Returns an error when a read or write fails; the writes before it stay.
+
+### record_copy_taken_from_link
+
+```rust
+pub async fn record_copy_taken_from_link(
+    store: &LibraryStore,
+    cluster_id: &str,
+    book: TakenCopy<'_>,
+) -> Result<()>
+```
+
+Records that this install took its copy of `book` from the library
+`cluster_id`, so the catalog sync never sends that library a book it
+provided itself ([`books_imported_from_link`](#books_imported_from_link)). A book already
+recorded for that library is left as it is; one taken from several
+libraries is recorded once for each.
+
+#### Errors
+
+Returns an error when the write fails.
 
 ### changed_topics
 
