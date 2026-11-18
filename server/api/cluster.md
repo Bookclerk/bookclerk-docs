@@ -13517,9 +13517,9 @@ A `text/plain` body: a string.
 ## `GET /api/config/join/window`
 
 `GET /api/config/join/window`: the window view for the operator or an
-Owner: the books every library this install is a window of, or holds
-a library card for, holds for this install's person, merged by work
-(`{clusters, cards, books}`).
+Owner: every book of each library this install is a window of, or
+holds a library card for, merged by work, each edition marked when it
+is this install's person's (`{clusters, cards, books}`).
 
 **Access:** The operator, or any signed-in user.
 
@@ -13527,10 +13527,10 @@ a library card for, holds for this install's person, merged by work
 
 ### Responses
 
-- `200` — The libraries this install is a window of, and their books for its person. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
+- `200` — The libraries this install is a window of or holds a card for, and their books. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
   - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
   - `cards` *array of [`ClerkLinkView`](schemas.md#clerklinkview)*, **required** — The libraries this install holds an active library card for.
-  - `books` *array of [`WindowEntryView`](schemas.md#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
+  - `books` *array of [`WindowEntryView`](schemas.md#windowentryview)*, **required** — Their books, every one they list for a member, one entry per work, by title; each edition says whether it is this install's person's.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -13585,7 +13585,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The libraries this install is a window of, and their books for its person.
+Status `200`: The libraries this install is a window of or holds a card for, and their books.
 
 ```json
 {
@@ -13634,7 +13634,8 @@ Status `200`: The libraries this install is a window of, and their books for its
           "formats": [
             "audio"
           ],
-          "title": "A Title"
+          "title": "A Title",
+          "yours": true
         }
       ]
     }
@@ -13862,12 +13863,13 @@ Schema:
                 "marketplace",
                 "product_id",
                 "formats",
-                "title"
+                "title",
+                "yours"
               ],
               "properties": {
                 "cluster_id": {
                   "type": "string",
-                  "description": "The library (owner cluster id) that holds it for this install's person.",
+                  "description": "The library (owner cluster id) that holds it.",
                   "example": "6d1f2e3a-4b5c-4d6e-8f7a-9b0c1d2e3f4a"
                 },
                 "owner_origin": {
@@ -13953,6 +13955,11 @@ Schema:
                   "format": "int64",
                   "description": "Length in minutes, when known.",
                   "example": 600
+                },
+                "yours": {
+                  "type": "boolean",
+                  "description": "True when this install's person holds it there through a store\naccount of their own; false for a book only other people there\nhold.",
+                  "example": true
                 }
               }
             },
@@ -13960,7 +13967,7 @@ Schema:
           }
         }
       },
-      "description": "Their books for this install's person, one entry per work, by title."
+      "description": "Their books, every one they list for a member, one entry per work,\nby title; each edition says whether it is this install's person's."
     }
   }
 }

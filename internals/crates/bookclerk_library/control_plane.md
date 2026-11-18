@@ -485,7 +485,7 @@ See `docs/adr/control-plane.md`.
 | [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `owner_cluster_id` (its link downloads again, or was left). |
 | [`discard_window_read`](#discard_window_read) | function | Drops the rows a read cut short by a settings change wrote (stamped `seen_at`), so a read that began before downloading was turned on cannot put back the list the change cleared. |
 | [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `owner_cluster_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
-| [`person_books_page`](#person_books_page) | function | One page of the books this library holds for a person, as a clerk signed in with that person's library card reads them over the client socket (`GET /api/clerk/v1/connect`): the same works, grouping and limits as `window_books_page`, for the person the card belongs to rather than a branch node's owner. |
+| [`person_books_page`](#person_books_page) | function | One page of this library's books for a person, as a clerk signed in with that person's library card reads them over the client socket (`GET /api/clerk/v1/connect`): the same works, grouping and limits as `window_books_page`, for the person the card belongs to rather than a branch node's owner. |
 | [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `owner_cluster_id`, read under `seen_at` (`window_read_stamp`). |
 | [`window_books_page`](#window_books_page) | function | One page of the books this library holds for branch `node_id`'s owner, for the `window.books` frame. |
 | [`window_read_stamp`](#window_read_stamp) | function | A stamp for one complete read of a library's window books: pass it to every `record_window_page` of the read and then to `finish_window_read`. |
@@ -4448,6 +4448,7 @@ pub struct WindowEntryEdition {
     pub owner_cluster_id: String,
     pub owner_origin: String,
     pub edition: LookupEdition,
+    pub yours: bool,
 }
 ```
 
@@ -4458,6 +4459,8 @@ One edition of a [`WindowEntry`](#windowentry), and the library that holds it.
 - `owner_cluster_id`: The library (owner cluster id) that holds it for the person.
 - `owner_origin`: The library's origin, for display.
 - `edition`: The edition as that library sent it.
+- `yours`: Whether the person holds it there through a store account of their
+  own.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -11716,8 +11719,8 @@ pub async fn person_books_page(
 ) -> Result<(Vec<WindowWork>, Option<WindowCursor>)>
 ```
 
-One page of the books this library holds for a person, as a clerk
-signed in with that person's library card reads them over the client
+One page of this library's books for a person, as a clerk signed in
+with that person's library card reads them over the client
 socket (`GET /api/clerk/v1/connect`): the same works, grouping and
 limits as [`window_books_page`](#window_books_page), for the person the card belongs to
 rather than a branch node's owner.
@@ -11780,15 +11783,16 @@ pub async fn window_books_page(
 One page of the books this library holds for branch `node_id`'s owner,
 for the `window.books` frame.
 
-The person's titles (their accounts' holdings) are read in holding id
-order from cursor `after` (at most [`WINDOW_BOOKS_READ`](#window_books_read) holdings, and
+The library's titles (every account holding, each marked the person's
+when it is on one of their accounts) are read in holding id order from
+cursor `after` (at most [`WINDOW_BOOKS_READ`](#window_books_read) holdings, and
 no more than one database result page); the next cursor is the last
 holding id the page covered. Each title is grouped under its work here
 (its key is the work id, or `edition-<edition id>` when the edition has
 no work), with the work's identifiers; a work
-lists at most [`MAX_LOOKUP_EDITIONS`](../bookclerk_node_proto/README.md#max_lookup_editions) editions (where two of the
-person's accounts hold the same edition, one entry with every format
-either copy has).
+lists at most [`MAX_LOOKUP_EDITIONS`](../bookclerk_node_proto/README.md#max_lookup_editions) editions (where two accounts hold
+the same edition, one entry with every format either copy has, the
+person's when either account is).
 The page stops early once it would pass the frame budget or
 [`MAX_WINDOW_WORKS`](../bookclerk_node_proto/README.md#max_window_works) works; the books after that come on the next page.
 

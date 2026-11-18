@@ -62,10 +62,11 @@ pinned to that branch ([`BranchRequest`](#branchrequest)): the branch claims it 
 [`Body::RequestsClaim`](#body) and reports with [`Body::RequestFinish`](#body); the
 book itself travels up through the catalog sync.
 
-A window (a branch whose link takes no work) reads the books the
-library holds for its person with [`Body::WindowBooks`](#body), page by page
-([`Body::WindowPage`](#body), [`WindowWork`](#windowwork)), and merges them by identifier
-with the other libraries it joined.
+A window (a branch whose link takes no work) reads the library's books
+with [`Body::WindowBooks`](#body), page by page ([`Body::WindowPage`](#body),
+[`WindowWork`](#windowwork), each edition a [`WindowEdition`](#windowedition) marked when it is the
+branch owner's), and merges them by identifier with the other libraries
+it joined.
 
 A host that leaves sends [`Body::NodeLeaving`](#body); the owner revokes the
 node at once. Joining with a sign-in instead of a link is the OAuth
@@ -82,7 +83,7 @@ it as a node: a clerk ([`CLERK_CLIENT_ID`](#clerk_client_id), [`ClerkTokenAnswer
 whose session token travels as `Authorization: Bookclerk-Clerk`
 ([`parse_clerk_authorization`](#parse_clerk_authorization)). With it the clerk holds the clerk
 socket at [`CLERK_CONNECT_PATH`](#clerk_connect_path) ([`ClerkFrame`](#clerkframe), [`LibraryFrame`](#libraryframe)):
-changed topics and pages of the person's books, never work.
+changed topics and pages of the library's books, never work.
 
 This crate is pure: no I/O, no clock, no randomness. The daemon (owner)
 and the host client share it so both sides sign and check the same
@@ -134,6 +135,7 @@ bytes.
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
 | [`WindowCursor`](#windowcursor) | struct | Where a page of the person's books starts: an opaque key the library handed out as the previous page's `next`, or empty for the first page. |
+| [`WindowEdition`](#windowedition) | struct | One edition of a `WindowWork`: the edition as the library holds it, and whether it is the person's own. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
 | [`ClerkFrame`](#clerkframe) | enum | A frame from a clerk to a library. |
 | [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` frame. |
@@ -1579,13 +1581,35 @@ The cursor's text.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Display`, `Eq`, `From<WindowCursor>`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `TryFrom<String>`
 
+### WindowEdition
+
+```rust
+pub struct WindowEdition {
+    pub edition: LookupEdition,
+    pub yours: bool,
+}
+```
+
+One edition of a [`WindowWork`]: the edition as the library holds it,
+and whether it is the person's own.
+
+**Fields**
+
+- `edition`: The edition, with every format any of the library's copies has.
+- `yours`: True when the person holds it through a store account of their own
+  on the library; false for a book only other people there hold.
+  A hint for the reader: anything the library hands out on the
+  strength of it is checked again there.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### WindowWork
 
 ```rust
 pub struct WindowWork {
     pub work: String,
     pub identifiers: Vec<LookupIdentifier>,
-    pub editions: Vec<LookupEdition>,
+    pub editions: Vec<WindowEdition>,
 }
 ```
 
@@ -1598,7 +1622,7 @@ One work the library holds for the window's person.
   across libraries.
 - `identifiers`: The work's identifiers in the library, strong ones first; at most
   [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers), and empty when the library has none.
-- `editions`: The editions the person holds there; 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions),
+- `editions`: The library's editions of the work; 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions),
   each [`Availability::Owned`](#availability).
 
 #### WindowWork::problem
@@ -1610,7 +1634,8 @@ pub fn problem(&self) -> Option<&'static str>
 Why the work is malformed, or `None`: a grouping key
 ([`is_work_ref`](#is_work_ref)), at most [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) distinct
 well-formed identifiers, and 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) well-formed
-owned editions with distinct (store, marketplace, product id).
+editions the library holds, with distinct (store, marketplace,
+product id).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1628,7 +1653,7 @@ A frame from a clerk to a library.
 
 **Variants**
 
-- `Books`: `books`: the page of the person's books after `after` (empty for
+- `Books`: `books`: the page of the library's books after `after` (empty for
   the first page).
   - `after`: The cursor of the previous page.
 
@@ -1674,7 +1699,7 @@ read again; the socket itself carries no row data.
 
 **Variants**
 
-- `Library`: The library's books changed: read the person's books again.
+- `Library`: The library's books changed: read them again.
 - `Discover`: The person's stored Discover shelves may have changed.
 
 #### ClerkTopic::ALL
@@ -1723,7 +1748,8 @@ A frame from a library to a clerk.
   - `topics`: The topics, without names this version does not know.
 - `Changed`: `changed`: these topics changed.
   - `topics`: The topics, without names this version does not know.
-- `BooksPage`: `books.page`: one page of the person's books.
+- `BooksPage`: `books.page`: one page of the library's books, the card's person's
+  own marked ([`crate::WindowEdition::yours`](#windowedition)).
   - `after`: The cursor the clerk asked with.
   - `works`: At most [`crate::MAX_WINDOW_WORKS`](#max_window_works) works.
   - `next`: The cursor of the next page; `None` on the last page.

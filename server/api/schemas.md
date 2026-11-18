@@ -3446,13 +3446,13 @@ JSON body for `GET /api/config/join/window`.
 
 - `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
 - `cards` *array of [`ClerkLinkView`](#clerklinkview)*, **required** — The libraries this install holds an active library card for.
-- `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books for this install's person, one entry per work, by title.
+- `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books, every one they list for a member, one entry per work, by title; each edition says whether it is this install's person's.
 
 ## WindowEditionView
 
 One edition in [`WindowBooks`], and the library that holds it.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id) that holds it for this install's person.
+- `cluster_id` *string*, **required** — The library (owner cluster id) that holds it.
 - `owner_origin` *string*, **required** — The library's origin.
 - `store` *string*, **required** — The store's plain id.
 - `marketplace` *string*, **required** — Lower-cased store marketplace; empty when the store has none.
@@ -3465,6 +3465,7 @@ One edition in [`WindowBooks`], and the library that holds it.
 - `series` *string or null* — Series name, when known.
 - `series_index` *string or null* — Position in the series, when known.
 - `length_minutes` *integer (int64) or null* — Length in minutes, when known.
+- `yours` *boolean*, **required** — True when this install's person holds it there through a store account of their own; false for a book only other people there hold.
 
 ## WindowEntryView
 
