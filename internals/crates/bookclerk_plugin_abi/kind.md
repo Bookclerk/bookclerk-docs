@@ -49,6 +49,7 @@ pub struct OutputS3ContextDto {
     pub region: String,
     pub endpoint: Option<String>,
     pub force_path_style: bool,
+    pub notification_queue_url: Option<String>,
     pub credentials: Option<S3CredentialsDto>,
 }
 ```
@@ -66,6 +67,9 @@ S3 destination knobs the host grants through `Bindings.config`.
 - `endpoint`: Optional custom endpoint (MinIO / path-style hosts); host may prepend
   `https://` for bare hostnames.
 - `force_path_style`: When true, force path-style addressing (wire `forcePathStyle`).
+- `notification_queue_url`: Amazon SQS queue URL the bucket sends its object events to (wire
+  `notificationQueueUrl`); when set the guest serves `changes` from
+  it. Absent means no change feed.
 - `credentials`: When absent the guest may use the AWS SDK default provider chain
   (unconfined dev only).
 

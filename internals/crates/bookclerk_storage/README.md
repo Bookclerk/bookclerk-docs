@@ -18,6 +18,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | [`S3Backend`](#s3backend) | struct | S3-compatible object storage. |
 | [`S3Credentials`](#s3credentials) | struct | Static AWS-style credentials for the S3 destination. |
 | [`S3Settings`](#s3settings) | struct | Connection settings for one S3 / MinIO destination. |
+| [`QueueUrl`](#queueurl) | struct | An Amazon SQS queue URL, checked at the boundary. |
 | [`ByteRange`](#byterange) | struct | Inclusive byte range for a streamed read. |
 | [`ListPage`](#listpage) | struct | One page of `ObjectInfo` from `StorageBackend::list_page`. |
 | [`ObjectInfo`](#objectinfo) | struct | Listing entry returned by `StorageBackend::list`. |
@@ -63,6 +64,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 - [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
+- [`s3_events`](s3_events.md): Object-store event notifications, parsed into change-feed entries.
 
 ## Traits
 
@@ -1046,6 +1048,33 @@ recoverable after process death.
 
 Returns an error when the operation fails.
 
+#### S3Backend::with_notification_queue
+
+```rust
+pub fn with_notification_queue(self, queue: QueueUrl, state_dir: &Path) -> Result<Self>
+```
+
+Serves `changes` from the bucket's notification queue.
+
+The bucket must send its object-created and object-removed events to
+`queue` (directly, through SNS, or through an EventBridge rule), and
+nothing else may drain the queue. The feed keeps the receipts of the
+messages it has handed out in `state_dir` (the guest's `HOME`) until
+the host's next call says it has read them.
+
+##### Errors
+
+Returns an error when the queue client cannot be built or
+`state_dir` cannot be created.
+
+#### S3Backend::has_notification_queue
+
+```rust
+pub fn has_notification_queue(&self) -> bool
+```
+
+True when `changes` is served from a notification queue.
+
 #### S3Backend::CAPABILITIES
 
 ```rust
@@ -1145,6 +1174,52 @@ guest as its open context.
 - `force_path_style`: Force path-style addressing (typical for MinIO).
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### QueueUrl
+
+```rust
+pub struct QueueUrl {
+    /* private fields */
+}
+```
+
+An Amazon SQS queue URL, checked at the boundary.
+
+Accepted: `https://sqs.<region>.amazonaws.com/<account>/<name>` (also
+`.amazonaws.com.cn`) and the legacy
+`https://<region>.queue.amazonaws.com/<account>/<name>`, where the
+account is 12 digits and the name 1 to 80 letters, digits, `-` or `_`,
+counting an optional `.fifo` suffix.
+
+#### QueueUrl::parse
+
+```rust
+pub fn parse(url: &str) -> Result<Self>
+```
+
+Parses and checks a queue URL.
+
+##### Errors
+
+Returns [`StorageError::S3`](#storageerror) naming what is wrong with the URL.
+
+#### QueueUrl::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The URL as given.
+
+#### QueueUrl::region
+
+```rust
+pub fn region(&self) -> &str
+```
+
+The AWS region the queue lives in.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### ByteRange
 

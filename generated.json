@@ -859,6 +859,7 @@
     "internals/crates/bookclerk_storage/fs_kind",
     "internals/crates/bookclerk_storage/guest",
     "internals/crates/bookclerk_storage/intent",
+    "internals/crates/bookclerk_storage/s3_events",
     "internals/crates/bookclerk_storefront/README",
     "internals/crates/bookclerk_storefront/abi",
     "internals/crates/bookclerk_storefront/content_kind",
