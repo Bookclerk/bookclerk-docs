@@ -1,8 +1,8 @@
 {
  "version": 1,
  "pages": {
-  "README": "2026-11-17T11:39:41Z",
-  "adr/README": "2026-11-17T11:39:41Z",
+  "README": "2026-11-18T04:51:31Z",
+  "adr/README": "2026-11-18T04:51:31Z",
   "adr/control-plane": "2026-11-18T01:20:46Z",
   "adr/event-delivery-model": "2026-11-17T19:35:23Z",
   "adr/first-party-identity": "2026-11-06T00:46:07Z",
@@ -11,6 +11,7 @@
   "adr/licensing": "2026-10-27T20:09:48Z",
   "adr/metadata-claims-and-file-sync": "2026-11-17T11:39:41Z",
   "adr/observability": "2026-10-26T10:50:14Z",
+  "adr/patron-scopes": "2026-11-18T04:51:31Z",
   "adr/plugin-capabilities-v3": "2026-10-26T10:50:14Z",
   "adr/plugin-oidc-clients": "2026-10-28T02:43:54Z",
   "adr/plugin-workers-rpc-workerd": "2026-10-26T10:50:14Z",
@@ -935,7 +936,7 @@
   "server/cluster-hosts": "2026-11-18T03:52:00Z",
   "server/configuration": "2026-11-08T21:06:10Z",
   "server/database": "2026-11-17T20:41:16Z",
-  "server/diagnostics": "2026-11-17T19:14:59Z",
+  "server/diagnostics": "2026-11-18T05:16:45Z",
   "server/integrations": "2026-11-18T03:06:15Z",
   "server/media": "2026-11-17T13:32:12Z",
   "server/operations": "2026-11-16T05:23:19Z",
