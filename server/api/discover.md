@@ -2802,7 +2802,7 @@ Resolves storefront price/availability for one title, forcing server-side prefer
 - `200` — Prices and availability. Body: [`PurchaseHintsResponse`](schemas.md#purchasehintsresponse) (`application/json`)
   - `hints` *array of [`PurchaseHint`](schemas.md#purchasehint)*, **required** — Resolved purchase hints for this query.
   - `best` *[`PurchaseHint`](schemas.md#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
-  - `incomplete` *boolean* — True when the batch deadline cut this lookup short: the hints are the query's trusted seeds alone, so a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
+  - `incomplete` *boolean* — True when the batch deadline cut this lookup short (the hints are the query's trusted seeds alone), or when the hints could not be checked against the card's recording in time: a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
 - `400` — The query is malformed or too large. As `text/plain`, when the body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -3120,7 +3120,7 @@ Schema:
     },
     "incomplete": {
       "type": "boolean",
-      "description": "True when the batch deadline cut this lookup short: the hints are the\nquery's trusted seeds alone, so a client should not keep the answer\nand asks again later. Omitted (false) for a finished lookup.",
+      "description": "True when the batch deadline cut this lookup short (the hints are the\nquery's trusted seeds alone), or when the hints could not be checked\nagainst the card's recording in time: a client should not keep the\nanswer and asks again later. Omitted (false) for a finished lookup.",
       "example": false
     }
   }
@@ -3638,7 +3638,7 @@ Schema:
           },
           "incomplete": {
             "type": "boolean",
-            "description": "True when the batch deadline cut this lookup short: the hints are the\nquery's trusted seeds alone, so a client should not keep the answer\nand asks again later. Omitted (false) for a finished lookup.",
+            "description": "True when the batch deadline cut this lookup short (the hints are the\nquery's trusted seeds alone), or when the hints could not be checked\nagainst the card's recording in time: a client should not keep the\nanswer and asks again later. Omitted (false) for a finished lookup.",
             "example": false
           }
         }

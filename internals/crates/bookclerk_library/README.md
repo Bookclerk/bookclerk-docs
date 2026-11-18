@@ -5888,6 +5888,36 @@ longer stored are left out.
 
 Returns the database error.
 
+#### LibraryStore::listing_expressions
+
+```rust
+pub async fn listing_expressions(
+    &self,
+    products: &[(String, String)],
+) -> Result<HashMap<(String, String), BTreeSet<String>>>
+```
+
+The expressions (recordings) the shared listing pool placed each
+store product in, in any marketplace.
+
+A store's product id names one edition per marketplace, so a product
+usually has one expression; a product listed in two marketplaces
+under different editions has each of their expressions. A product
+the pool never listed is left out.
+
+##### Arguments
+
+* `products` - `(plugin_key, product_id)` pairs, as stores report
+  them (the product id is compared in its stored spelling).
+
+##### Returns
+
+Each pooled product's expression ids, keyed by the pair as given.
+
+##### Errors
+
+Returns the database error.
+
 #### LibraryStore::prune_catalog_listings
 
 ```rust

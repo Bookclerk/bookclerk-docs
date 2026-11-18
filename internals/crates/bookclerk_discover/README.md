@@ -88,6 +88,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`purchase_hints_for`](#purchase_hints_for) | function | Look up purchase links via registered `bookclerk_source::ContentSource::purchase_hint` (no prices). |
 | [`resolve_purchase_hints`](#resolve_purchase_hints) | function | Resolve every catalog match and attach live prices (view-time). |
 | [`resolve_purchase_hints_batch`](#resolve_purchase_hints_batch) | function | Resolve many purchase-hint queries at once (order preserved). |
+| [`retain_card_recording`](#retain_card_recording) | function | Drops live purchase hints that sell another recording than the card's. |
 | [`seed_purchase_hint`](#seed_purchase_hint) | function | Seed a deterministic storefront URL from a known candidate (no remote I/O). |
 | [`combine_wishlist_score`](#combine_wishlist_score) | function | Combine local recommend taste with a heavy multi-user wishlist boost. |
 | [`listening_engagement`](#listening_engagement) | function | Continuous engagement from a listening progress row (≈0.0–6.0). |
@@ -996,9 +997,10 @@ Priced catalog matches for one title, sorted best-first.
 
 - `hints`: Resolved purchase hints for this query.
 - `best`: Lowest-priced hint (or first catalog hit when no prices resolved).
-- `incomplete`: True when the batch deadline cut this lookup short: the hints are the
-  query's trusted seeds alone, so a client should not keep the answer
-  and asks again later. Omitted (false) for a finished lookup.
+- `incomplete`: True when the batch deadline cut this lookup short (the hints are the
+  query's trusted seeds alone), or when the hints could not be checked
+  against the card's recording in time: a client should not keep the
+  answer and asks again later. Omitted (false) for a finished lookup.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -2402,6 +2404,40 @@ time it said (see [`RATE_LIMIT_FIRST_PAUSE`](#rate_limit_first_pause)).
 #### Returns
 
 One result per query, in request order.
+
+### retain_card_recording
+
+```rust
+pub async fn retain_card_recording(
+    library: &LibraryStore,
+    registry: &SourceRegistry,
+    query: &PurchaseHintsQuery,
+    response: &mut PurchaseHintsResponse,
+) -> Result<(), DiscoverError>
+```
+
+Drops live purchase hints that sell another recording than the card's.
+
+A store answers a price lookup by searching its catalog, and the host can
+only check the answer's title, so a store whose first hit is another
+recording of the book (a full-cast dramatisation for a narration) would
+price the card with it. The shared listing pool knows which expression
+(recording) each listed product is: when it knows the card's own
+editions, a hint whose product the pool placed only in other expressions
+is dropped, and `best` is picked again. A hint for a product the pool
+never listed stays, as does every hint when the pool knows none of the
+card's editions.
+
+#### Arguments
+
+* `library` - The library whose listing pool is read.
+* `registry` - Storefronts, to name each hint's store by its PluginKey.
+* `query` - The card's lookup: its candidate edition and store editions.
+* `response` - The resolved hints, filtered in place.
+
+#### Errors
+
+Returns the library read error.
 
 ### seed_purchase_hint
 

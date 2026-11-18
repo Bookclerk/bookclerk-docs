@@ -17,6 +17,7 @@ library stack.
 | [`CatalogReview`](#catalogreview) | struct | One customer review from Audible's public catalog reviews endpoint. |
 | [`CatalogReviewsPage`](#catalogreviewspage) | struct | One page of helpful Audible customer reviews (public; no account). |
 | [`CatalogError`](#catalogerror) | enum | Failures talking to the public Audible catalog. |
+| [`CatalogList`](#cataloglist) | enum | Which product list of an Audible catalog answer to read. |
 | [`CatalogReviewsSort`](#catalogreviewssort) | enum | Audible catalog reviews sort (`MostHelpful` or `MostRecent`). |
 | [`fetch_audible_catalog_rating`](#fetch_audible_catalog_rating) | function | Fetch Audible community ratings for one ASIN (public catalog; no account). |
 | [`fetch_audible_catalog_reviews`](#fetch_audible_catalog_reviews) | function | Fetch a short list of helpful Audible customer reviews (public; no account). |
@@ -24,6 +25,7 @@ library stack.
 | [`is_audible_podcast_product`](#is_audible_podcast_product) | function | True for Audible podcast shows / episodes (`content_type` / delivery type). |
 | [`normalize_region`](#normalize_region) | function | Normalize a marketplace string to an Audible / Audnexus `region` value. |
 | [`normalize_review_body`](#normalize_review_body) | function | Normalize review text for clients: decode HTML entities and preserve Audible guided questionnaire JSON (`[{ type, question, id, answer }, …]`) so the UI can render Q&A sections. Unrelated JSON arrays are left unchanged. |
+| [`parse_catalog_products`](#parse_catalog_products) | function | Parses one Audible catalog answer into its titles, without any I/O. |
 | [`public_http_client`](#public_http_client) | function | Shared HTTP client for public metadata calls. |
 | [`region_tld`](#region_tld) | function | Map marketplace / region code to Audible API TLD (AudioBookshelf `regionMap`). |
 | [`resolve_genre_category_id`](#resolve_genre_category_id) | function | Map a genre display name to an Audible `category_id` under the Genres root. |
@@ -39,6 +41,8 @@ library stack.
 | [`search_catalog_products_paged`](#search_catalog_products_paged) | function | Paged public catalog search with explicit `products_sort_by` and optional rating. |
 | [`search_catalog_products_rich`](#search_catalog_products_rich) | function | Same as `search_catalog_products` but requests list price / category ladders. |
 | [`search_catalog_storefront`](#search_catalog_storefront) | function | Storefront catalog search (`GET /1.0/catalog/search`) — the same index the Storefront catalog search (`GET /1.0/catalog/search`) — the same index the Audible website uses. |
+| [`search_similar_products`](#search_similar_products) | function | Titles Audible lists as similar to one title (its "listeners also enjoyed" recommendations), from the public catalog. |
+| [`search_similar_products_at`](#search_similar_products_at) | function | `search_similar_products` against a given catalog origin, such as a test server. |
 | [`is_valid_asin`](#is_valid_asin) | function | True when `s` (trimmed) has the shape of an Audible ASIN: ten ASCII letters or digits. |
 | [`Result`](#result) | type alias | Result alias for catalog lookups. |
 
@@ -197,6 +201,34 @@ Failures talking to the public Audible catalog.
   response did not decode; the message says which.
 
 Implements: `Debug`, `Display`, `Error`
+
+### CatalogList
+
+```rust
+pub enum CatalogList {
+    Products,
+    SimilarProducts,
+}
+```
+
+Which product list of an Audible catalog answer to read.
+
+**Variants**
+
+- `Products`: `products`, the list a search (`/1.0/catalog/products`,
+  `/1.0/catalog/search`) answers with.
+- `SimilarProducts`: `similar_products`, the list `/1.0/catalog/products/{asin}/sims`
+  answers with.
+
+#### CatalogList::key
+
+```rust
+pub fn key(self) -> &'static str
+```
+
+The JSON key of this list in the answer's top-level object.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### CatalogReviewsSort
 
@@ -380,6 +412,35 @@ can render Q&A sections. Unrelated JSON arrays are left unchanged.
 #### Returns
 
 String result for this operation.
+
+### parse_catalog_products
+
+```rust
+pub fn parse_catalog_products(
+    body: &[u8],
+    list: CatalogList,
+) -> Result<Vec<CatalogProduct>>
+```
+
+Parses one Audible catalog answer into its titles, without any I/O.
+
+The bytes come from the store, so this is the boundary the
+`audible_catalog` fuzz target drives. Rows that are podcasts or carry no
+ASIN are dropped; an answer without the list (or whose list is not an
+array) has no titles.
+
+#### Arguments
+
+* `body` - The answer body as the store sent it.
+* `list` - Which product list to read.
+
+#### Returns
+
+The titles of the list, in the store's order.
+
+#### Errors
+
+Returns [`CatalogError::Http`](#catalogerror) when the body is not JSON.
 
 ### public_http_client
 
@@ -849,6 +910,71 @@ On success, the inner `Vec<CatalogProduct>` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### search_similar_products
+
+```rust
+pub async fn search_similar_products(
+    http: &Client,
+    region: &str,
+    asin: &str,
+    num_results: usize,
+) -> Result<Vec<CatalogProduct>>
+```
+
+Titles Audible lists as similar to one title (its "listeners also
+enjoyed" recommendations), from the public catalog.
+
+Unlike a keyword search on the title, these are chosen by what listeners
+of the title go on to listen to, so a title shares no words with them by
+chance (a search for *The Great Hunt* returns hunting guides).
+
+#### Arguments
+
+* `http` - Client from [`public_http_client`](#public_http_client).
+* `region` - Marketplace / region code (`us`, `uk`, …).
+* `asin` - ASIN of the title to find neighbours of.
+* `num_results` - Most titles to ask for (1 to 50).
+
+#### Returns
+
+The similar titles in Audible's order, without the title itself; none
+when `asin` is not an ASIN.
+
+#### Errors
+
+Returns an error when the request fails or the answer is not JSON.
+
+### search_similar_products_at
+
+```rust
+pub async fn search_similar_products_at(
+    http: &Client,
+    origin: &str,
+    asin: &str,
+    num_results: usize,
+) -> Result<Vec<CatalogProduct>>
+```
+
+[`search_similar_products`](#search_similar_products) against a given catalog origin, such as a
+test server.
+
+#### Arguments
+
+* `http` - Client from [`public_http_client`](#public_http_client).
+* `origin` - Catalog origin without a trailing slash
+  (`https://api.audible.com`).
+* `asin` - ASIN of the title to find neighbours of.
+* `num_results` - Most titles to ask for (1 to 50).
+
+#### Returns
+
+The similar titles in the store's order, without the title itself; none
+when `asin` is not an ASIN.
+
+#### Errors
+
+Returns an error when the request fails or the answer is not JSON.
 
 ### is_valid_asin
 

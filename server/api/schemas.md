@@ -2524,7 +2524,7 @@ Priced catalog matches for one title, sorted best-first.
 
 - `hints` *array of [`PurchaseHint`](#purchasehint)*, **required** — Resolved purchase hints for this query.
 - `best` *[`PurchaseHint`](#purchasehint) or null* — Lowest-priced hint (or first catalog hit when no prices resolved).
-- `incomplete` *boolean* — True when the batch deadline cut this lookup short: the hints are the query's trusted seeds alone, so a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
+- `incomplete` *boolean* — True when the batch deadline cut this lookup short (the hints are the query's trusted seeds alone), or when the hints could not be checked against the card's recording in time: a client should not keep the answer and asks again later. Omitted (false) for a finished lookup.
 
 ## PutActiveVersion
 
