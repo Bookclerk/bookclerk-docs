@@ -22,6 +22,7 @@ Each route lists the credentials it accepts and who may call it. The credentials
 | Name | Kind | Description |
 | --- | --- | --- |
 | `clerkToken` | header `Authorization` | A library card (`POST /api/clerk/v1/token`), as `Authorization: Bookclerk-Clerk <token>`. Accepted only on routes any library session may use, over TLS except on loopback. |
+| `copyToken` | header `Authorization` | The token of a copy grant, as `Authorization: Bookclerk-Copy <token>`. |
 | `nodeSignature` | header `Authorization` | A node's signed request, as `Authorization: Bookclerk-Node <node_id> <issued_at> <signature>` with the node's identity key. |
 | `oidcAccessToken` | HTTP bearer | An access token from this daemon's OIDC token endpoint (`POST /oidc/token`), as `Authorization: Bearer <token>`. |
 | `operatorSession` | cookie `bookclerk_operator_session` | The operator's browser session, set by `POST /api/auth/login`. |
@@ -342,6 +343,14 @@ Node-to-node enrollment, socket, artifacts and uploads; each route checks its ow
 | [`GET /api/node/v1/artifacts/{sha256}`](node-protocol.md#get-apinodev1artifactssha256) | `GET /api/node/v1/artifacts/{sha256}`. |
 | [`PUT /api/node/v1/uploads/{upload_id}/files/{index}`](node-protocol.md#put-apinodev1uploadsupload_idfilesindex) | `PUT /api/node/v1/uploads/{upload_id}/files/{index}`. |
 | [`POST /api/node/v1/uploads/{upload_id}/commit`](node-protocol.md#post-apinodev1uploadsupload_idcommit) | `POST /api/node/v1/uploads/{upload_id}/commit`. |
+
+### [Library copies](library-copies.md)
+
+Downloads of an edition's files the library already holds, by a branch or clerk it granted the copy to; the grant's token is the credential.
+
+| Route | Summary |
+| --- | --- |
+| [`GET /api/copies/v1/{copy_id}/files/{index}`](library-copies.md#get-apicopiesv1copy_idfilesindex) | Streams one file of a granted copy. |
 
 ### [OIDC provider](oidc-provider.md)
 

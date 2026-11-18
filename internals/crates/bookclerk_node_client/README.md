@@ -69,6 +69,7 @@ job runs its guest are the daemon's.
 | [`OfferedAccounts`](#offeredaccounts) | struct | What the library kept of an `HostClientHandle::offer_accounts`. |
 | [`OwnerEndpoint`](#ownerendpoint) | struct | Where and how to reach one owner. |
 | [`TlsProbe`](#tlsprobe) | struct | What a first TLS handshake showed of an owner's certificate, before any pin is known (`OwnerEndpoint::probe_json`). |
+| [`GrantedCopy`](#grantedcopy) | struct | A copy of an edition the library granted this node (`crate::HostClientHandle::copy_grant`): what it is, its files, and the bearer token of its downloads. The token is zeroized on drop and never shown by `Debug`. |
 | [`HandedSecrets`](#handedsecrets) | struct | The job's secrets, opened with this node's box key. Values are zeroized on drop and `Debug` shows only which rows they are. |
 | [`HostJob`](#hostjob) | struct | A job the owner handed this host, under its fence. |
 | [`HostJobCtx`](#hostjobctx) | struct | Everything a runner gets for one job. |
@@ -842,6 +843,32 @@ move past `after`, is refused as [`OwnerCallError::Unavailable`](#ownercallerror
 Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
 count this node as a branch.
 
+#### HostClientHandle::copy_grant
+
+```rust
+pub async fn copy_grant(
+    &self,
+    store: &str,
+    marketplace: &str,
+    product_id: &str,
+) -> Result<Option<GrantedCopy>, OwnerCallError>
+```
+
+`copy.grant`: asks the library for the copy it holds of the edition
+named by its store listing, for this node's owner, and opens the
+sealed token (bound to this node and the copy).
+
+##### Returns
+
+`None` when the library answers `not_found`: the person cannot take
+that edition, or the library holds no copy of it.
+
+##### Errors
+
+Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
+count this node as a branch, `Unavailable` for an answer that
+breaks the frame rules or a token that does not open.
+
 #### HostClientHandle::catalog_upload
 
 ```rust
@@ -1178,6 +1205,44 @@ pin is known ([`OwnerEndpoint::probe_json`](#ownerendpointprobe_json)).
   host (what an unpinned connection requires).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### GrantedCopy
+
+```rust
+pub struct GrantedCopy {
+    pub copy_id: String,
+    pub expires_in_secs: u64,
+    pub copy: WindowCopy,
+    pub files: Vec<CopyFile>,
+    /* private fields */
+}
+```
+
+A copy of an edition the library granted this node
+([`crate::HostClientHandle::copy_grant`](#hostclienthandlecopy_grant)): what it is, its files, and
+the bearer token of its downloads. The token is zeroized on drop and
+never shown by `Debug`.
+
+**Fields**
+
+- `copy_id`: Copy id; file `n` is at `COPIES_PATH<copy_id>/files/<n>`.
+- `expires_in_secs`: Seconds the token stays valid from the grant.
+- `copy`: What the copy is.
+- `files`: The copy's files, in download order.
+
+#### GrantedCopy::authorization
+
+```rust
+pub fn authorization(&self) -> Result<Zeroizing<String>, OwnerCallError>
+```
+
+The `Authorization` header value of this copy's downloads.
+
+##### Errors
+
+Returns [`OwnerCallError::Unavailable`](#ownercallerror) when the token is not text.
+
+Implements: `Debug`, `Drop`
 
 ### HandedSecrets
 

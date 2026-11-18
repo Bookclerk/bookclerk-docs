@@ -30,6 +30,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`configuration_changes`](configuration_changes.md): SeaORM entity for the configuration change notice written with each commit.
 - [`configuration_documents`](configuration_documents.md): SeaORM entity for one typed configuration document.
 - [`contributors`](contributors.md): SeaORM entity for the `contributors` table (text primary key).
+- [`copy_grants`](copy_grants.md): SeaORM entity for `copy_grants`: one reader's leave to download the copy this library holds of one edition. Written by `control_plane::copies`.
 - [`credits`](credits.md): SeaORM entity for the `credits` table (composite primary key).
 - [`discover_candidates`](discover_candidates.md): SeaORM entity for the `discover_candidates` table.
 - [`discover_feeds`](discover_feeds.md): SeaORM entity for the `discover_feeds` table.

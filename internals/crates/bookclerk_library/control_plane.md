@@ -45,6 +45,11 @@ See `docs/adr/control-plane.md`.
 | [`AddConnectionsRequest`](#addconnectionsrequest) | struct | An "Add my connections" request: the library it names (trimmed) and the accounts picked, between 1 and `MAX_ADD_CONNECTIONS` of them. |
 | [`DisconnectBody`](#disconnectbody) | struct | `POST /api/config/join/connections/disconnect` body. |
 | [`DisconnectRequest`](#disconnectrequest) | struct | A disconnect request: the account and whether to reach every linked library it was shared with. |
+| [`CopyDownload`](#copydownload) | struct | What a download request may read (`authorize_copy`). |
+| [`CopyListing`](#copylisting) | struct | The store listing a reader names an edition by. |
+| [`CopyPlan`](#copyplan) | struct | The copy of one edition a holder may take. |
+| [`CopyPlanFile`](#copyplanfile) | struct | One file of a planned copy, on one destination. |
+| [`OpenedCopy`](#openedcopy) | struct | A grant just opened by `open_copy`. |
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
@@ -139,6 +144,8 @@ See `docs/adr/control-plane.md`.
 | [`Withdrawn`](#withdrawn) | enum | What `withdraw_person_account` did. |
 | [`AnswersRecorded`](#answersrecorded) | enum | Outcome of `record_answers`. |
 | [`ClerkLinkState`](#clerklinkstate) | enum | Whether this install still holds the card of a clerk link. |
+| [`CopyHolder`](#copyholder) | enum | Who asks for a copy. |
+| [`CopyPlanned`](#copyplanned) | enum | The answer of `plan_copy`. |
 | [`CronFireClaim`](#cronfireclaim) | enum | What `claim_cron_fire` did. |
 | [`DeploymentReplace`](#deploymentreplace) | enum | Outcome of `replace_plugin_deployment`. |
 | [`DeploymentStatus`](#deploymentstatus) | enum | Observed deployment status. |
@@ -259,6 +266,9 @@ See `docs/adr/control-plane.md`.
 | [`set_cluster_link_work`](#set_cluster_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
 | [`parse_add_connections_request`](#parse_add_connections_request) | function | Parses and validates a `POST /api/config/join/connections` body from its raw bytes, sans IO, the way the route reads it: JSON into `AddConnectionsBody`, then `AddConnectionsBody::validate`. |
 | [`parse_disconnect_request`](#parse_disconnect_request) | function | Parses a `POST /api/config/join/connections/disconnect` body from its raw bytes, sans IO, the way the route reads it: JSON into `DisconnectBody`, then `DisconnectBody::into_request`. |
+| [`authorize_copy`](#authorize_copy) | function | The files `token` may download for copy `copy_id`, or `None`. |
+| [`open_copy`](#open_copy) | function | Records that `holder` may download `plan`'s files from `destination` on node `serving_node_id`, and mints the token. |
+| [`plan_copy`](#plan_copy) | function | Decides whether `holder` may take this library's copy of the edition `listing` names, and lists the copy's files. |
 | [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
 | [`ensure_cron_cursor`](#ensure_cron_cursor) | function | Creates the cursor at `initial_last_ms` unless one exists, and returns the stored cursor. |
 | [`load_cron_cursor`](#load_cron_cursor) | function | Reads one cursor. |
@@ -529,6 +539,7 @@ See `docs/adr/control-plane.md`.
 | [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
 | [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) | constant | `cluster_links.state` once the owner revoked this node (close 4403). |
 | [`MAX_ADD_CONNECTIONS`](#max_add_connections) | constant | Most accounts one "Add my connections" request names: as many as one sealed account bundle carries. |
+| [`COPY_TOKEN_TTL_SECS`](#copy_token_ttl_secs) | constant | Seconds a copy token is accepted after its grant. |
 | [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
 | [`MAX_OBSERVATION_DETAIL_BYTES`](#max_observation_detail_bytes) | constant | Maximum UTF-8 size of an observation detail string. |
 | [`CLUSTER_SCOPE_ID`](#cluster_scope_id) | constant | Cluster scope instance. There is one cluster document per namespace. |
@@ -1602,6 +1613,111 @@ library it was shared with.
 - `everywhere`: Also disconnect it in every linked library it was shared with.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CopyDownload
+
+```rust
+pub struct CopyDownload {
+    pub serving_node_id: String,
+    pub destination: String,
+    pub files: Vec<CopyPlanFile>,
+}
+```
+
+What a download request may read ([`authorize_copy`](#authorize_copy)).
+
+**Fields**
+
+- `serving_node_id`: The node that granted the copy and serves its files.
+- `destination`: The destination the files are read from.
+- `files`: The files, in download order.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CopyListing
+
+```rust
+pub struct CopyListing<'a> {
+    pub store: &'a str,
+    pub marketplace: &'a str,
+    pub product_id: &'a str,
+}
+```
+
+The store listing a reader names an edition by.
+
+**Fields**
+
+- `store`: Store id as the library's page states it (the store's alias).
+- `marketplace`: Lowercase marketplace; empty for a store without marketplaces.
+- `product_id`: The store's product id.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### CopyPlan
+
+```rust
+pub struct CopyPlan {
+    pub person: i64,
+    pub edition_id: String,
+    pub copy: WindowCopy,
+    pub destinations: BTreeMap<String, Vec<CopyPlanFile>>,
+    /* private fields */
+}
+```
+
+The copy of one edition a holder may take.
+
+**Fields**
+
+- `person`: The person the copy is for.
+- `edition_id`: The edition.
+- `copy`: What the copy is, as the library's page states it.
+- `destinations`: The edition's files on each destination that holds its primary
+  audio, by destination id; each list has the primary audio first,
+  then the rest in key order. A file's place in its list is its
+  download index.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CopyPlanFile
+
+```rust
+pub struct CopyPlanFile {
+    pub key: String,
+    pub file: CopyFile,
+}
+```
+
+One file of a planned copy, on one destination.
+
+**Fields**
+
+- `key`: Storage key on the destination.
+- `file`: The file as the answer frame lists it, its size not yet known
+  (zero): the daemon reads sizes from the destination.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### OpenedCopy
+
+```rust
+pub struct OpenedCopy {
+    pub copy_id: String,
+    pub token: Zeroizing<String>,
+    pub expires_in_secs: u64,
+}
+```
+
+A grant just opened by [`open_copy`](#open_copy).
+
+**Fields**
+
+- `copy_id`: The copy id.
+- `token`: The bearer token; shown to the holder once and never stored.
+- `expires_in_secs`: Seconds the token is accepted.
+
+Implements: `Debug`, `Drop`
 
 ### CronCursor
 
@@ -4757,6 +4873,44 @@ The `clerk_links.state` spelling.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
 
+### CopyHolder
+
+```rust
+pub enum CopyHolder<'a> {
+    Node(&'a str),
+}
+```
+
+Who asks for a copy.
+
+**Variants**
+
+- `Node`: A branch node, on its node socket; the person is its owner.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### CopyPlanned
+
+```rust
+pub enum CopyPlanned {
+    Refused,
+    NotFound,
+    Planned(CopyPlan),
+}
+```
+
+The answer of [`plan_copy`](#plan_copy).
+
+**Variants**
+
+- `Refused`: The asker is not one this library gives copies to (frame code
+  `refused`).
+- `NotFound`: The person cannot take that edition, or the library holds no copy
+  of it (frame code `not_found` for both).
+- `Planned`: The copy and its files.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### CronFireClaim
 
 ```rust
@@ -7495,6 +7649,74 @@ Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not
 shape: not an object, unknown or duplicate fields, a missing
 `plugin_key` or `account_id`, or a value of the wrong type (`everywhere`
 is a boolean when present; `null` is refused).
+
+### authorize_copy
+
+```rust
+pub async fn authorize_copy(
+    store: &LibraryStore,
+    copy_id: &str,
+    token: &str,
+) -> Result<Option<CopyDownload>>
+```
+
+The files `token` may download for copy `copy_id`, or `None`.
+
+The token's hash must match and it must not have expired; and, read
+afresh on every call, the holder must still be one this library gives
+copies to for the same person, the person must still be allowed the
+edition (`visible_to`), and the edition's files on the granted
+destination must be the ones the grant listed. Every refusal is the
+same `None`.
+
+#### Errors
+
+Returns the read error.
+
+### open_copy
+
+```rust
+pub async fn open_copy(
+    store: &LibraryStore,
+    holder: CopyHolder<'_>,
+    plan: &CopyPlan,
+    destination: &str,
+    serving_node_id: &str,
+) -> Result<Option<OpenedCopy>>
+```
+
+Records that `holder` may download `plan`'s files from `destination`
+on node `serving_node_id`, and mints the token.
+
+#### Returns
+
+`None` when `plan` has no files on `destination`.
+
+#### Errors
+
+Returns the write error.
+
+### plan_copy
+
+```rust
+pub async fn plan_copy(
+    store: &LibraryStore,
+    holder: CopyHolder<'_>,
+    listing: CopyListing<'_>,
+) -> Result<CopyPlanned>
+```
+
+Decides whether `holder` may take this library's copy of the edition
+`listing` names, and lists the copy's files.
+
+The holder must be one this library gives copies to ([`CopyHolder`](#copyholder));
+the edition must be one the person may take (`visible_to`) and one
+this library has acquired, with its primary audio recorded on at least
+one destination.
+
+#### Errors
+
+Returns the read error.
 
 ### claim_cron_fire
 
@@ -12273,6 +12495,14 @@ pub const MAX_ADD_CONNECTIONS: usize = bookclerk_node_proto::MAX_BUNDLE_ACCOUNTS
 
 Most accounts one "Add my connections" request names: as many as one
 sealed account bundle carries.
+
+### COPY_TOKEN_TTL_SECS
+
+```rust
+pub const COPY_TOKEN_TTL_SECS: i64 = _;
+```
+
+Seconds a copy token is accepted after its grant.
 
 ### CRON_FIRE_MAX_ATTEMPTS
 

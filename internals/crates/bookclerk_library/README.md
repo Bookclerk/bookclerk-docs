@@ -14880,6 +14880,7 @@ pub enum RecordPruneStep {
     UserInvites,
     EnrollmentLinks,
     UploadSessions,
+    CopyGrants,
     StorageScans,
     SecurityAudit,
     ConfigurationAudit,
@@ -14902,6 +14903,7 @@ One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step
 - `EnrollmentLinks`: Node enrollment links expired more than [`TOKEN_HISTORY_DAYS`](#token_history_days) ago.
 - `UploadSessions`: Committed or aborted uploads expired more than
   [`UPLOAD_HISTORY_DAYS`](#upload_history_days) ago.
+- `CopyGrants`: Copy grants past their expiry; no download accepts one after it.
 - `StorageScans`: Storage-scan generations whose job is terminal or gone, and jobless
   ones silent for [`STORAGE_SCAN_STALE_DAYS`](#storage_scan_stale_days), with their rows.
 - `SecurityAudit`: Security audit events older than [`AUDIT_RETENTION_DAYS`](#audit_retention_days).
@@ -14912,7 +14914,7 @@ One delete of [`LibraryStore::prune_record_step`](#librarystoreprune_record_step
 #### RecordPruneStep::ALL
 
 ```rust
-pub const ALL: [Self; 11] = _
+pub const ALL: [Self; 12] = _
 ```
 
 Every step, in the order a maintenance pass runs them.

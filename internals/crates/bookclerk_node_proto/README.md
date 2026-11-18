@@ -103,6 +103,8 @@ bytes.
 | [`ClerkTokenRequest`](#clerktokenrequest) | struct | `POST /api/clerk/v1/token` body: exactly these three strings, each once, and nothing else. |
 | [`ClerkUser`](#clerkuser) | struct | The person a clerk session signs in as. |
 | [`StoredClerkCode`](#storedclerkcode) | struct | What the library stored with an approved code, as the token exchange checks it. |
+| [`CopyFile`](#copyfile) | struct | One file of a copy (`crate::Body::CopyGranted`). |
+| [`CopyGrantedFrame`](#copygrantedframe) | struct | The fields of a `crate::Body::CopyGranted`, borrowed for `copy_granted_problem`. |
 | [`AcquireTarget`](#acquiretarget) | struct | One title an acquire job should fetch on a host (`Body::AcquireTargets`). |
 | [`ClaimFilter`](#claimfilter) | struct | What a host is willing to claim (`claim.filter`). |
 | [`FileCopy`](#filecopy) | struct | Where one uploaded file is written: a destination and its key there. |
@@ -143,6 +145,8 @@ bytes.
 | [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` frame. |
 | [`ClerkTopic`](#clerktopic) | enum | Something a clerk hears about on the socket. Each names the routes to read again; the socket itself carries no row data. |
 | [`LibraryFrame`](#libraryframe) | enum | A frame from a library to a clerk. |
+| [`CopyRange`](#copyrange) | enum | What a download's `Range` header asks for (`parse_copy_range`). |
+| [`CopyRole`](#copyrole) | enum | What a file of a copy is, as the library recorded it when it wrote the file. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
 | [`ClaimScope`](#claimscope) | enum | Whose work a host takes from a library (`claim.filter.scope`), as the branch operator set it for that link. |
 | [`FrameError`](#frameerror) | enum | Why a frame was not accepted. |
@@ -181,6 +185,10 @@ bytes.
 | [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
 | [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (a string `WindowCursor`), each once. |
 | [`parse_library_frame`](#parse_library_frame) | function | Reads a frame a library sent: at most `crate::MAX_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once. |
+| [`copy_grant_problem`](#copy_grant_problem) | function | Why a `crate::Body::CopyGrant` is malformed, or `None`: a store id, a marketplace (empty when the store has none) and a product id. |
+| [`copy_granted_problem`](#copy_granted_problem) | function | Why a `crate::Body::CopyGranted` is malformed, or `None`: a copy id (`is_copy_id`), a non-empty sealed token of base64url text, a life of 1 to `MAX_COPY_TOKEN_SECS` seconds, a well-formed copy, and 1 to `MAX_COPY_FILES` well-formed files with distinct names, exactly one of them the primary audio (`CopyRole::Audio`). |
+| [`is_copy_id`](#is_copy_id) | function | True for a copy id: a lowercase hyphenated UUID. |
+| [`parse_copy_range`](#parse_copy_range) | function | Reads the `Range` header of a download of a file of `size` bytes. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`scan_pass_end_problem`](#scan_pass_end_problem) | function | Why a `Body::ScanPassEnd` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id and a sync token of at most `MAX_SCAN_SYNC_TOKEN_BYTES` with no control characters. |
@@ -199,13 +207,16 @@ bytes.
 | [`claimed_problem`](#claimed_problem) | function | Why a list of claimed requests is malformed, or `None`: at most `MAX_CLAIMED_REQUESTS` well-formed requests, each for a different job. |
 | [`finish_problem`](#finish_problem) | function | The problem with a `requests.finish {job, generation}` a library received, or `None` when both are ones it could have handed out. |
 | [`is_request_job`](#is_request_job) | function | True for a request's job id: 1 to `MAX_REQUEST_JOB_BYTES` ASCII letters, digits, `-` and `_`. |
+| [`copy_token_aad`](#copy_token_aad) | function | Associated data of the token for copy `copy_id`, granted to `node_id`. |
 | [`instance_secrets_aad`](#instance_secrets_aad) | function | Associated data of `instance_id`'s `SECRETS` handed to `node_id` at document `revision`. |
 | [`open`](#open) | function | Opens a box sealed to the public key of `recipient_secret`. |
+| [`open_copy_token`](#open_copy_token) | function | Opens a token made by `seal_copy_token` with the node's box secret. |
 | [`open_instance_secrets`](#open_instance_secrets) | function | Opens a payload made by `seal_instance_secrets` with the node's box secret. |
 | [`open_secret_update`](#open_secret_update) | function | Opens a write-back made by `seal_secret_update` with the owner's per-connection box secret. |
 | [`open_secrets`](#open_secrets) | function | Opens a bundle made by `seal_secrets` with the node's box secret. |
 | [`open_upload_token`](#open_upload_token) | function | Opens a token made by `seal_upload_token` with the node's box secret. |
 | [`seal`](#seal) | function | Seals `plaintext` to `recipient` (an X25519 public key) with the ephemeral secret `ephemeral_secret`, binding `aad`. |
+| [`seal_copy_token`](#seal_copy_token) | function | Seals a copy token for `node_id`'s box key `recipient`, bound to the node and the copy, as base64url text for a `copy.granted` frame. The token is a bearer credential for the download endpoint, so it never travels as frame text. |
 | [`seal_instance_secrets`](#seal_instance_secrets) | function | Seals an instance's `SECRETS` payload (JSON bytes) for `node_id`'s box key `recipient`, bound to the instance and document revision, as base64url text for an `instance_config` frame. |
 | [`seal_secret_update`](#seal_secret_update) | function | Seals a refreshed token to the owner's per-connection box key `owner_box_key` (from `welcome`), bound to the node, job, fence and ref, as base64url text for a `secret.update` frame. |
 | [`seal_secrets`](#seal_secrets) | function | Seals `entries` for `node_id`'s box key `recipient`, bound to `job_id` and `fence`, as base64url text for a `work` frame. |
@@ -262,6 +273,12 @@ bytes.
 | [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes) | constant | Largest frame a library accepts from a clerk, in bytes; a `books` frame is under 120. |
 | [`MAX_CLERK_TOPICS`](#max_clerk_topics) | constant | Most topic names one `hello` or `changed` frame may carry, known or not. |
 | [`MAX_CLERK_TOPIC_BYTES`](#max_clerk_topic_bytes) | constant | Longest topic name, in bytes. |
+| [`COPIES_PATH`](#copies_path) | constant | Path prefix of the download endpoint: the files of copy `<copy_id>` are at `COPIES_PATH<copy_id>/files/<n>`. |
+| [`COPY_AUTH_SCHEME`](#copy_auth_scheme) | constant | `Authorization` scheme of the download endpoint. |
+| [`MAX_COPY_FILES`](#max_copy_files) | constant | Most files one `crate::Body::CopyGranted` may list. |
+| [`MAX_COPY_FILE_BYTES`](#max_copy_file_bytes) | constant | Largest `CopyFile::size` (1 TiB): above any audiobook file. |
+| [`MAX_COPY_NAME_BYTES`](#max_copy_name_bytes) | constant | Longest `CopyFile::name`, in bytes. |
+| [`MAX_COPY_TOKEN_SECS`](#max_copy_token_secs) | constant | Longest a copy token may be stated to live, in seconds (one day). |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
@@ -294,6 +311,7 @@ bytes.
 | [`ITEM_REQUEST`](#item_request) | constant | The work item name of a request in a `crate::Body::Lost` answer. |
 | [`MAX_CLAIMED_REQUESTS`](#max_claimed_requests) | constant | Most requests one `crate::Body::RequestsClaimed` may carry. |
 | [`MAX_REQUEST_JOB_BYTES`](#max_request_job_bytes) | constant | Longest job id a request may carry. |
+| [`COPY_TOKEN_AAD_DOMAIN`](#copy_token_aad_domain) | constant | Domain of the associated data of a sealed copy token. |
 | [`INSTANCE_SECRETS_AAD_DOMAIN`](#instance_secrets_aad_domain) | constant | Domain tag that starts the associated data of an instance's `SECRETS`. |
 | [`SEALED_BOX_INFO`](#sealed_box_info) | constant | HKDF info string of a sealed box. |
 | [`SEALED_BOX_OVERHEAD`](#sealed_box_overhead) | constant | Bytes a sealed box adds to its plaintext (ephemeral key and tag). |
@@ -660,6 +678,70 @@ checks it.
 - `challenge`: The PKCE challenge the authorize request sent.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### CopyFile
+
+```rust
+pub struct CopyFile {
+    pub name: String,
+    pub role: CopyRole,
+    pub size: u64,
+    pub content_type: Option<String>,
+    pub probe: Option<UploadProbe>,
+}
+```
+
+One file of a copy ([`crate::Body::CopyGranted`](#body)).
+
+**Fields**
+
+- `name`: The file's path below the title's folder on the library, `/`
+  separated ([`crate::is_storage_key`](#is_storage_key), at most
+  [`MAX_COPY_NAME_BYTES`](#max_copy_name_bytes)). The reader places it under its own
+  naming, so this is a hint to what the file is, never a path to
+  write to as given.
+- `role`: What the file is.
+- `size`: Exact size in bytes, at most [`MAX_COPY_FILE_BYTES`](#max_copy_file_bytes).
+- `content_type`: The media type the library's probe found, for a probed audio file.
+- `probe`: What the library's probe found in an audio file; absent for other
+  files and for audio it has not probed.
+
+#### CopyFile::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when the name is a relative path within its length limit, the
+size is within [`MAX_COPY_FILE_BYTES`](#max_copy_file_bytes), the media type (if stated)
+is a media type token and the probe (if stated) is well formed.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CopyGrantedFrame
+
+```rust
+pub struct CopyGrantedFrame<'a> {
+    pub copy_id: &'a str,
+    pub sealed_token: &'a str,
+    pub expires_in_secs: u64,
+    pub copy: &'a WindowCopy,
+    pub files: &'a [CopyFile],
+}
+```
+
+The fields of a [`crate::Body::CopyGranted`](#body), borrowed for
+[`copy_granted_problem`](#copy_granted_problem).
+
+**Fields**
+
+- `copy_id`: The copy id.
+- `sealed_token`: The sealed token text.
+- `expires_in_secs`: Seconds the token stays valid.
+- `copy`: What the copy is.
+- `files`: The copy's files.
+
+Implements: `Clone`, `Copy`, `Debug`
 
 ### AcquireTarget
 
@@ -1863,6 +1945,61 @@ The frame's JSON text, as a library sends it.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyRange
+
+```rust
+pub enum CopyRange {
+    Whole,
+    Part { offset: u64, length: u64 },
+    Unsatisfiable,
+}
+```
+
+What a download's `Range` header asks for ([`parse_copy_range`](#parse_copy_range)).
+
+**Variants**
+
+- `Whole`: The whole file (answer 200): no usable range was named.
+- `Part`: `length` bytes from `offset` (answer 206); `length` is at least 1
+  and the range lies within the file.
+  - `offset`: First byte.
+  - `length`: Number of bytes.
+- `Unsatisfiable`: A well-formed range that starts at or past the end of the file
+  (answer 416).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### CopyRole
+
+```rust
+pub enum CopyRole {
+    Audio,
+    Part,
+    Chapter,
+    Pdf,
+    Cover,
+    Sidecar,
+    Transcript,
+    Epub,
+}
+```
+
+What a file of a copy is, as the library recorded it when it wrote the
+file.
+
+**Variants**
+
+- `Audio`: The edition's primary audio file.
+- `Part`: One part of a multi-part audio edition.
+- `Chapter`: One chapter file.
+- `Pdf`: The companion PDF.
+- `Cover`: The cover image.
+- `Sidecar`: A metadata sidecar.
+- `Transcript`: A transcript.
+- `Epub`: The ebook.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
 ### Body
 
 ```rust
@@ -1922,6 +2059,8 @@ pub enum Body {
     RequestFinish { job: String, generation: i64, outcome: RequestOutcome },
     WindowBooks { after: WindowCursor },
     WindowPage { works: Vec<WindowWork>, next: Option<WindowCursor> },
+    CopyGrant { store: String, marketplace: String, product_id: String },
+    CopyGranted { copy_id: String, sealed_token: String, expires_in_secs: u64, copy: WindowCopy, files: Vec<CopyFile> },
     Accepted {  },
     Unknown,
 }
@@ -2286,6 +2425,25 @@ What a frame says, tagged by `type`.
 - `WindowPage`: Library → window: one page of the person's books.
   - `works`: The works, at most [`crate::MAX_WINDOW_WORKS`](#max_window_works).
   - `next`: The cursor to ask with for the next page; absent on the last.
+- `CopyGrant`: Reader → library: ask for the copy this library holds of one
+  edition, named by its store listing, for the node's owner
+  (`copy_grant_problem`). Answered with [`Body::CopyGranted`](#body), or `error`
+  with `refused` (not a branch this library trusts), `not_found` (the
+  person cannot take the edition, or the library holds no copy of it),
+  `invalid`, or `unavailable` (the library cannot read its storage
+  right now).
+  - `store`: Store id of the edition's listing.
+  - `marketplace`: The listing's marketplace; empty (or absent) for a store
+    without marketplaces.
+  - `product_id`: The listing's product id.
+- `CopyGranted`: Library → reader: the copy may be downloaded.
+  - `copy_id`: Copy id; the files are at `COPIES_PATH<copy_id>/files/<n>`.
+  - `sealed_token`: The bearer token for the download endpoint, sealed to the
+    node's box key and bound to the node and the copy
+    (`crate::seal_copy_token`).
+  - `expires_in_secs`: Seconds the token stays valid.
+  - `copy`: What the copy is, as the library's page states it.
+  - `files`: The copy's files; a file's index here is its `<n>`.
 - `Accepted`: Owner → host: the request with this frame id was applied.
 - `Unknown`: A frame type this side does not know.
 
@@ -3008,6 +3166,53 @@ each once.
 
 The frame, or `None` when it breaks any rule.
 
+### copy_grant_problem
+
+```rust
+pub fn copy_grant_problem(
+    store: &str,
+    marketplace: &str,
+    product_id: &str,
+) -> Option<&'static str>
+```
+
+Why a [`crate::Body::CopyGrant`](#body) is malformed, or `None`: a store id, a
+marketplace (empty when the store has none) and a product id.
+
+### copy_granted_problem
+
+```rust
+pub fn copy_granted_problem(frame: &CopyGrantedFrame<'_>) -> Option<&'static str>
+```
+
+Why a [`crate::Body::CopyGranted`](#body) is malformed, or `None`: a copy id
+([`is_copy_id`](#is_copy_id)), a non-empty sealed token of base64url text, a life of
+1 to [`MAX_COPY_TOKEN_SECS`](#max_copy_token_secs) seconds, a well-formed copy, and 1 to
+[`MAX_COPY_FILES`](#max_copy_files) well-formed files with distinct names, exactly one
+of them the primary audio ([`CopyRole::Audio`](#copyrole)).
+
+### is_copy_id
+
+```rust
+pub fn is_copy_id(id: &str) -> bool
+```
+
+True for a copy id: a lowercase hyphenated UUID.
+
+### parse_copy_range
+
+```rust
+pub fn parse_copy_range(header: &str, size: u64) -> CopyRange
+```
+
+Reads the `Range` header of a download of a file of `size` bytes.
+
+One byte range is honoured: `bytes=A-B` (clamped to the file's end),
+`bytes=A-` and the suffix form `bytes=-N` (the last `N` bytes). Each
+number is 1 to 19 decimal digits. Anything else (another unit, several
+ranges, spaces, signs, `A` past `B`) is ignored and reads the whole
+file, as HTTP allows a server to do.
+
 ### is_destination_id
 
 ```rust
@@ -3186,6 +3391,14 @@ pub fn is_request_job(job: &str) -> bool
 True for a request's job id: 1 to [`MAX_REQUEST_JOB_BYTES`](#max_request_job_bytes) ASCII
 letters, digits, `-` and `_`.
 
+### copy_token_aad
+
+```rust
+pub fn copy_token_aad(node_id: &str, copy_id: &str) -> Vec<u8>
+```
+
+Associated data of the token for copy `copy_id`, granted to `node_id`.
+
 ### instance_secrets_aad
 
 ```rust
@@ -3211,6 +3424,24 @@ Opens a box sealed to the public key of `recipient_secret`.
 
 Returns [`SealError::Open`](#sealerror) when the box is short, was sealed to another
 key or other associated data, or was altered.
+
+### open_copy_token
+
+```rust
+pub fn open_copy_token(
+    recipient_secret: &[u8; 32],
+    node_id: &str,
+    copy_id: &str,
+    sealed: &str,
+) -> Result<SecretValue, SealError>
+```
+
+Opens a token made by [`seal_copy_token`](#seal_copy_token) with the node's box secret.
+
+#### Errors
+
+Returns [`SealError::Open`](#sealerror) when it was not sealed to this node for
+this copy.
 
 ### open_instance_secrets
 
@@ -3313,6 +3544,27 @@ for two plaintexts to one recipient reuses the key and nonce.
 
 Returns [`SealError::Key`](#sealerror) for an invalid recipient key and
 [`SealError::Degenerate`](#sealerror) when key agreement fails.
+
+### seal_copy_token
+
+```rust
+pub fn seal_copy_token(
+    recipient: &[u8],
+    ephemeral_secret: &[u8; 32],
+    node_id: &str,
+    copy_id: &str,
+    token: &[u8],
+) -> Result<String, SealError>
+```
+
+Seals a copy token for `node_id`'s box key `recipient`, bound to the
+node and the copy, as base64url text for a `copy.granted` frame. The
+token is a bearer credential for the download endpoint, so it never
+travels as frame text.
+
+#### Errors
+
+Returns [`SealError`](#sealerror) when the recipient key is invalid.
 
 ### seal_instance_secrets
 
@@ -3899,6 +4151,55 @@ pub const MAX_CLERK_TOPIC_BYTES: usize = 32;
 
 Longest topic name, in bytes.
 
+### COPIES_PATH
+
+```rust
+pub const COPIES_PATH: &str = "/api/copies/v1/";
+```
+
+Path prefix of the download endpoint: the files of copy `<copy_id>`
+are at `COPIES_PATH<copy_id>/files/<n>`.
+
+### COPY_AUTH_SCHEME
+
+```rust
+pub const COPY_AUTH_SCHEME: &str = "Bookclerk-Copy";
+```
+
+`Authorization` scheme of the download endpoint.
+
+### MAX_COPY_FILES
+
+```rust
+pub const MAX_COPY_FILES: usize = 1000;
+```
+
+Most files one [`crate::Body::CopyGranted`](#body) may list.
+
+### MAX_COPY_FILE_BYTES
+
+```rust
+pub const MAX_COPY_FILE_BYTES: u64 = _;
+```
+
+Largest [`CopyFile::size`](#copyfile) (1 TiB): above any audiobook file.
+
+### MAX_COPY_NAME_BYTES
+
+```rust
+pub const MAX_COPY_NAME_BYTES: usize = 512;
+```
+
+Longest [`CopyFile::name`](#copyfile), in bytes.
+
+### MAX_COPY_TOKEN_SECS
+
+```rust
+pub const MAX_COPY_TOKEN_SECS: u64 = _;
+```
+
+Longest a copy token may be stated to live, in seconds (one day).
+
 ### ITEM_JOB
 
 ```rust
@@ -4161,6 +4462,14 @@ pub const MAX_REQUEST_JOB_BYTES: usize = 96;
 ```
 
 Longest job id a request may carry.
+
+### COPY_TOKEN_AAD_DOMAIN
+
+```rust
+pub const COPY_TOKEN_AAD_DOMAIN: &[u8] = b"bookclerk-node.v1 copy-token";
+```
+
+Domain of the associated data of a sealed copy token.
 
 ### INSTANCE_SECRETS_AAD_DOMAIN
 
