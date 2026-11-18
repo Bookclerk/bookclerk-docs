@@ -53,6 +53,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_METADATA_FILE_TEXT_BYTES`](#max_metadata_file_text_bytes) | constant |  |
 | [`MAX_METADATA_FILE_LIST_ENTRIES`](#max_metadata_file_list_entries) | constant |  |
 | [`MAX_METADATA_FILE_CHAPTERS`](#max_metadata_file_chapters) | constant |  |
+| [`MAX_METADATA_AUDIO_FILES`](#max_metadata_audio_files) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
 | [`MAX_SOCKET_ATTACHMENT_BYTES`](#max_socket_attachment_bytes) | constant |  |
@@ -287,6 +288,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_file_parse_params`](metadata_file_parse_params.md)
 - [`metadata_file_parsed`](metadata_file_parsed.md)
 - [`metadata_file_parse_reply`](metadata_file_parse_reply.md)
+- [`metadata_audio_file`](metadata_audio_file.md)
 - [`metadata_file_render_params`](metadata_file_render_params.md)
 - [`metadata_file_rendered`](metadata_file_rendered.md)
 - [`metadata_file_render_reply`](metadata_file_render_reply.md)
@@ -818,6 +820,12 @@ pub const MAX_METADATA_FILE_LIST_ENTRIES: u32 = 256;
 
 ```rust
 pub const MAX_METADATA_FILE_CHAPTERS: u32 = 2000;
+```
+
+### MAX_METADATA_AUDIO_FILES
+
+```rust
+pub const MAX_METADATA_AUDIO_FILES: u32 = 4096;
 ```
 
 ### MAX_KV_KEY_BYTES

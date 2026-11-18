@@ -93,6 +93,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`MetadataFileRecord`](#metadatafilerecord) | struct | What one metadata file says about the edition it sits beside. A field the file does not state is left out of `present` and means "unknown", never "cleared"; a field in `present` with an empty value means the file states that it is empty. The host checks every value against the `maxMetadataFile*` caps and refuses a record that states a field its dialect does not carry. |
 | [`MetadataFileParseParams`](#metadatafileparseparams) | struct | Params of `MetadataFiles.parse`. |
 | [`MetadataFileParsed`](#metadatafileparsed) | struct | Success payload of `MetadataFiles.parse`. |
+| [`MetadataAudioFile`](#metadataaudiofile) | struct | One audio file of the edition a sidecar describes, for formats that name their audio (a CUE sheet's `FILE` lines). |
 | [`MetadataFileRenderParams`](#metadatafilerenderparams) | struct | Params of `MetadataFiles.render`. |
 | [`MetadataFileRendered`](#metadatafilerendered) | struct | Success payload of `MetadataFiles.render`. |
 | [`SocketHeader`](#socketheader) | struct | One request header on `Sockets.connect`. |
@@ -340,6 +341,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_metadata_file_parsed`](#read_metadata_file_parsed) | function | Decode a `MetadataFileParsed` from a Cap'n Proto reader. |
 | [`write_metadata_file_parse_reply`](#write_metadata_file_parse_reply) | function | Encode a `MetadataFileParseReply` union from a typed result. |
 | [`read_metadata_file_parse_reply`](#read_metadata_file_parse_reply) | function | Decode a `MetadataFileParseReply` union into a typed result. |
+| [`write_metadata_audio_file`](#write_metadata_audio_file) | function | Encode a `MetadataAudioFile` onto a Cap'n Proto builder. |
+| [`read_metadata_audio_file`](#read_metadata_audio_file) | function | Decode a `MetadataAudioFile` from a Cap'n Proto reader. |
 | [`write_metadata_file_render_params`](#write_metadata_file_render_params) | function | Encode a `MetadataFileRenderParams` onto a Cap'n Proto builder. |
 | [`read_metadata_file_render_params`](#read_metadata_file_render_params) | function | Decode a `MetadataFileRenderParams` from a Cap'n Proto reader. |
 | [`write_metadata_file_rendered`](#write_metadata_file_rendered) | function | Encode a `MetadataFileRendered` onto a Cap'n Proto builder. |
@@ -2553,6 +2556,25 @@ Success payload of `MetadataFiles.parse`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### MetadataAudioFile
+
+```rust
+pub struct MetadataAudioFile {
+    pub name: String,
+    pub duration_ms: u64,
+}
+```
+
+One audio file of the edition a sidecar describes, for formats that name
+their audio (a CUE sheet's `FILE` lines).
+
+**Fields**
+
+- `name`: The file's name without any folder, as it sits next to the sidecar.
+- `duration_ms`: Running time in milliseconds; 0 when the host does not know it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### MetadataFileRenderParams
 
 ```rust
@@ -2561,6 +2583,7 @@ pub struct MetadataFileRenderParams {
     pub record: MetadataFileRecord,
     pub fields: Vec<MetadataField>,
     pub existing: Vec<u8>,
+    pub audio_files: Vec<MetadataAudioFile>,
 }
 ```
 
@@ -2575,6 +2598,9 @@ Params of `MetadataFiles.render`.
 - `existing`: The file as it is now; empty when the host is creating it. Everything
   the dialect does not change (unknown keys, comments, other fields) is
   kept. At most `maxMetadataFileBytes`.
+- `audio_files`: The edition's audio files in playback order, at most
+  `maxMetadataAudioFiles`; empty when the host has none or does not know
+  them. Chapter starts in `record` count from the start of the first file.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -6174,6 +6200,30 @@ Decode a `MetadataFileParseReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_metadata_audio_file
+
+```rust
+pub fn write_metadata_audio_file(b: Builder<'_>, v: &MetadataAudioFile) -> Result<()>
+```
+
+Encode a [`MetadataAudioFile`](#metadataaudiofile) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_metadata_audio_file
+
+```rust
+pub fn read_metadata_audio_file(r: Reader<'_>) -> Result<MetadataAudioFile>
+```
+
+Decode a [`MetadataAudioFile`](#metadataaudiofile) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
 ### write_metadata_file_render_params
 
 ```rust
@@ -6611,7 +6661,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 125;
+pub const READ_ANY_COUNT: u8 = 126;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

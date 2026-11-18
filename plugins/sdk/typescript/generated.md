@@ -5381,6 +5381,31 @@ Work kinds the plugin reports.
 
 ***
 
+### MetadataAudioFile
+
+One audio file of the edition a sidecar describes, for formats that name
+their audio (a CUE sheet's `FILE` lines).
+
+#### Properties
+
+##### durationMs
+
+```ts
+durationMs: number;
+```
+
+Running time in milliseconds; 0 when the host does not know it.
+
+##### name
+
+```ts
+name: string;
+```
+
+The file's name without any folder, as it sits next to the sidecar.
+
+***
+
 ### MetadataChapter
 
 One chapter in a provider's chapter layout. Chapters are listed in
@@ -5769,6 +5794,16 @@ nothing left to write; the host decides whether to remove the file.
 Params of `MetadataFiles.render`.
 
 #### Properties
+
+##### audioFiles
+
+```ts
+audioFiles: MetadataAudioFile[];
+```
+
+The edition's audio files in playback order, at most
+`maxMetadataAudioFiles`; empty when the host has none or does not know
+them. Chapter starts in `record` count from the start of the first file.
 
 ##### dialect
 

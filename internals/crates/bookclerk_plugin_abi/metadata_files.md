@@ -31,7 +31,7 @@ Two layers:
 | [`validate_metadata_file_record`](#validate_metadata_file_record) | function | Checks a record on its own, without its dialect. |
 | [`check_record_against_dialect`](#check_record_against_dialect) | function | Checks a record against the dialect that produced it: `present` names only fields the dialect carries and `creditRoles` only roles it carries. |
 | [`check_parse_params`](#check_parse_params) | function | Checks a `MetadataFiles.parse` request before it is sent: a dialect id, a plain file name, and bytes within `MAX_METADATA_FILE_BYTES`. |
-| [`check_render_params`](#check_render_params) | function | Checks a `MetadataFiles.render` request before it is sent: a dialect id, fields named once each, existing bytes within `MAX_METADATA_FILE_BYTES`, and a record that passes `validate_metadata_file_record`. |
+| [`check_render_params`](#check_render_params) | function | Checks a `MetadataFiles.render` request before it is sent: a dialect id, fields named once each, existing bytes within `MAX_METADATA_FILE_BYTES`, at most `MAX_METADATA_AUDIO_FILES` audio files with plain names and durations a JavaScript number holds exactly, and a record that passes `validate_metadata_file_record`. |
 | [`check_render_against_dialect`](#check_render_against_dialect) | function | Checks a render request against the dialect it names: the dialect writes, and every field to write is one it carries. |
 | [`check_rendered`](#check_rendered) | function | Checks a rendered file: within `MAX_METADATA_FILE_BYTES`. An empty file is allowed: it means the dialect has nothing left to write, and the host decides whether to keep the empty file or remove it. |
 | [`decode_metadata_file_record_bytes`](#decode_metadata_file_record_bytes) | function | Decodes one unpacked single-segment Cap'n Proto `MetadataFileRecord`, the form the fuzz target feeds. |
@@ -88,6 +88,7 @@ pub enum MetadataFileError {
     CreditRoleNotCarried(CreditRole),
     ReadOnlyDialect,
     WrongDialect,
+    BadAudioDuration,
 }
 ```
 
@@ -114,6 +115,8 @@ Why a metadata-file request or reply was refused.
 - `CreditRoleNotCarried`: The record names a credit role the dialect does not carry.
 - `ReadOnlyDialect`: A render request named a dialect that only reads.
 - `WrongDialect`: A request named a dialect other than the one being checked against.
+- `BadAudioDuration`: An audio file's duration is past what a JavaScript number holds
+  exactly (2^53 - 1 ms).
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
@@ -287,7 +290,9 @@ pub fn check_render_params(
 
 Checks a `MetadataFiles.render` request before it is sent: a dialect id,
 fields named once each, existing bytes within [`MAX_METADATA_FILE_BYTES`](README.md#max_metadata_file_bytes),
-and a record that passes [`validate_metadata_file_record`](#validate_metadata_file_record).
+at most [`MAX_METADATA_AUDIO_FILES`](README.md#max_metadata_audio_files) audio files with plain names and
+durations a JavaScript number holds exactly, and a record that passes
+[`validate_metadata_file_record`](#validate_metadata_file_record).
 
 #### Arguments
 

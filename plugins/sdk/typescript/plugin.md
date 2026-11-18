@@ -6854,6 +6854,12 @@ Re-exports [MAX_STREAM_WINDOW_BYTES](abi.md#max_stream_window_bytes)
 
 ***
 
+### MetadataAudioFile
+
+Re-exports [MetadataAudioFile](generated.md#metadataaudiofile)
+
+***
+
 ### MetadataChapter
 
 Re-exports [MetadataChapter](generated.md#metadatachapter)

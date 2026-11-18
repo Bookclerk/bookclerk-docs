@@ -529,6 +529,7 @@
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_parse_params",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_parsed",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_parse_reply",
+    "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_audio_file",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_render_params",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_rendered",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/metadata_file_render_reply",

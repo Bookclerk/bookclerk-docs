@@ -85,6 +85,18 @@ pub fn get_existing(self) -> Result<Reader<'a>>
 pub fn has_existing(&self) -> bool
 ```
 
+#### Reader::get_audio_files
+
+```rust
+pub fn get_audio_files(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_audio_files
+
+```rust
+pub fn has_audio_files(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -213,6 +225,30 @@ pub fn init_existing(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_existing(&self) -> bool
+```
+
+#### Builder::get_audio_files
+
+```rust
+pub fn get_audio_files(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_audio_files
+
+```rust
+pub fn set_audio_files(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_audio_files
+
+```rust
+pub fn init_audio_files(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_audio_files
+
+```rust
+pub fn has_audio_files(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

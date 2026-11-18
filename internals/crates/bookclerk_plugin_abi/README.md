@@ -267,6 +267,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant | Largest `KvNamespace` metadata JSON text in bytes. |
 | [`MAX_KV_VALUE_BYTES`](#max_kv_value_bytes) | constant | Largest `KvNamespace` value in bytes (a `[[kv_namespaces]]` row may lower its own cap but never raise it past this). |
 | [`MAX_LIST_PAGE`](#max_list_page) | constant | Maximum objects in one `Destination.list` page. |
+| [`MAX_METADATA_AUDIO_FILES`](#max_metadata_audio_files) | constant | Most audio files a `MetadataFiles.render` request names. |
 | [`MAX_METADATA_FILE_BYTES`](#max_metadata_file_bytes) | constant | Largest metadata file `MetadataFiles.parse` reads and `MetadataFiles.render` returns, in bytes. |
 | [`MAX_METADATA_FILE_CHAPTERS`](#max_metadata_file_chapters) | constant | Most chapters in a `MetadataFileRecord`. |
 | [`MAX_METADATA_FILE_DESCRIPTION_BYTES`](#max_metadata_file_description_bytes) | constant | Longest description a `MetadataFileRecord` carries, in UTF-8 bytes. |
@@ -570,6 +571,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::MetadataFileRecord`](generated.md#metadatafilerecord)
 - [`generated::MetadataFileParseParams`](generated.md#metadatafileparseparams)
 - [`generated::MetadataFileParsed`](generated.md#metadatafileparsed)
+- [`generated::MetadataAudioFile`](generated.md#metadataaudiofile)
 - [`generated::MetadataFileRenderParams`](generated.md#metadatafilerenderparams)
 - [`generated::MetadataFileRendered`](generated.md#metadatafilerendered)
 - [`generated::SocketFrame`](generated.md#socketframe)
@@ -801,6 +803,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_metadata_file_parsed`](generated.md#read_metadata_file_parsed)
 - [`generated::write_metadata_file_parse_reply`](generated.md#write_metadata_file_parse_reply)
 - [`generated::read_metadata_file_parse_reply`](generated.md#read_metadata_file_parse_reply)
+- [`generated::write_metadata_audio_file`](generated.md#write_metadata_audio_file)
+- [`generated::read_metadata_audio_file`](generated.md#read_metadata_audio_file)
 - [`generated::write_metadata_file_render_params`](generated.md#write_metadata_file_render_params)
 - [`generated::read_metadata_file_render_params`](generated.md#read_metadata_file_render_params)
 - [`generated::write_metadata_file_rendered`](generated.md#write_metadata_file_rendered)
@@ -7377,6 +7381,14 @@ pub const MAX_LIST_PAGE: u32 = crate::plugin_capnp::MAX_LIST_PAGE;
 ```
 
 Maximum objects in one `Destination.list` page.
+
+### MAX_METADATA_AUDIO_FILES
+
+```rust
+pub const MAX_METADATA_AUDIO_FILES: u32 = crate::plugin_capnp::MAX_METADATA_AUDIO_FILES;
+```
+
+Most audio files a `MetadataFiles.render` request names.
 
 ### MAX_METADATA_FILE_BYTES
 

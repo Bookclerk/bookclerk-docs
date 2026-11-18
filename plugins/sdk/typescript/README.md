@@ -2913,6 +2913,12 @@ Re-exports [MediaSupport](generated.md#mediasupport)
 
 ***
 
+### MetadataAudioFile
+
+Re-exports [MetadataAudioFile](generated.md#metadataaudiofile)
+
+***
+
 ### MetadataChapter
 
 Re-exports [MetadataChapter](generated.md#metadatachapter)

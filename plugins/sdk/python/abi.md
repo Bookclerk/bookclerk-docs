@@ -276,6 +276,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataFileParsed`](#metadatafileparsed) | class | Success payload of `MetadataFiles.parse`. |
 | [`MetadataFileParseReplyOk`](#metadatafileparsereplyok) | class | `MetadataFileParseReply` member `ok`. |
 | [`MetadataFileParseReplyErr`](#metadatafileparsereplyerr) | class | `MetadataFileParseReply` member `err`. |
+| [`MetadataAudioFile`](#metadataaudiofile) | class | One audio file of the edition a sidecar describes, for formats that name their audio (a CUE sheet's `FILE` lines). |
 | [`MetadataFileRenderParams`](#metadatafilerenderparams) | class | Params of `MetadataFiles.render`. |
 | [`MetadataFileRendered`](#metadatafilerendered) | class | Success payload of `MetadataFiles.render`. |
 | [`MetadataFileRenderReplyOk`](#metadatafilerenderreplyok) | class | `MetadataFileRenderReply` member `ok`. |
@@ -5562,6 +5563,20 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### MetadataAudioFile
+
+```python
+class MetadataAudioFile(TypedDict)
+```
+
+One audio file of the edition a sidecar describes, for formats that name
+their audio (a CUE sheet's `FILE` lines).
+
+**Attributes**
+
+- `name`: The file's name without any folder, as it sits next to the sidecar.
+- `durationMs`: Running time in milliseconds; 0 when the host does not know it.
+
 ### MetadataFileRenderParams
 
 ```python
@@ -5576,6 +5591,7 @@ Params of `MetadataFiles.render`.
 - `record`: Values to write. Only the fields in `fields` are read from it.
 - `fields`: Fields to set, each at most once and all declared by the dialect. A listed field with an empty value removes it from the file.
 - `existing`: The file as it is now; empty when the host is creating it. Everything the dialect does not change (unknown keys, comments, other fields) is kept. At most `maxMetadataFileBytes`.
+- `audioFiles`: The edition's audio files in playback order, at most `maxMetadataAudioFiles`; empty when the host has none or does not know them. Chapter starts in `record` count from the start of the first file.
 
 ### MetadataFileRendered
 

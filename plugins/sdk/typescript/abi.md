@@ -663,6 +663,16 @@ Maximum objects in one `Destination.list` page.
 
 ***
 
+### MAX\_METADATA\_AUDIO\_FILES
+
+```ts
+const MAX_METADATA_AUDIO_FILES: 4096;
+```
+
+Most entries in `MetadataFileRenderParams.audioFiles`.
+
+***
+
 ### MAX\_METADATA\_FILE\_BYTES
 
 ```ts

@@ -1299,6 +1299,12 @@ Re-exports [MediaKind](abi.md#mediakind)
 
 ***
 
+### MetadataAudioFile
+
+Re-exports [MetadataAudioFile](generated.md#metadataaudiofile)
+
+***
+
 ### MetadataChapter
 
 Re-exports [MetadataChapter](generated.md#metadatachapter)
