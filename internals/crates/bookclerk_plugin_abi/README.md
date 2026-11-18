@@ -290,6 +290,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_STREAM_WINDOW_BYTES`](#max_stream_window_bytes) | constant | Maximum bytes returned by one `ByteSource.pull` (flow-control window). |
 | [`PRODUCT_API_VERSION`](#product_api_version) | constant | Product ABI version (`apiVersion` / `plugin.toml` `api_version`). |
 | [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) | constant | How long the default `ContentSource::purchase_hints` keeps starting one-title lookups before answering with what it has. Well under the host's 10 s batch deadline, so even a slow last lookup lands before it and a store without a bulk endpoint still returns the titles it priced. |
+| [`PURCHASE_HINTS_CONCURRENCY`](#purchase_hints_concurrency) | constant | How many one-title lookups the default `ContentSource::purchase_hints` keeps in flight at once. A store without a bulk endpoint answers a page of cards in about a quarter of the time one lookup after another takes, while staying a polite handful of requests rather than a burst. |
 | [`JSON_MEDIA_TYPE`](#json_media_type) | constant | Media type of a JSON `ExtensibleConfig` payload. |
 | [`MAX_CHECKPOINT_BYTES`](#max_checkpoint_bytes) | constant | Maximum checkpoint payload size (bytes). |
 | [`MAX_BATCH_KEYS`](#max_batch_keys) | constant | Maximum keys or key pairs in one `moveMany`, `deleteMany` or `headMany` call, and maximum outcomes in one reply. |
@@ -1644,14 +1645,15 @@ where
 Purchase links / price hints for several titles in one call, one
 answer per query in order.
 
-The default asks [`Self::purchase_hint`](#contentsourcepurchase_hint) for each query in turn,
-queries that already name a product id first (one lookup each) and
-title searches after, and stops at the first error. It stops
-starting lookups once [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) has passed and
-answers `None` for the rest, so the host's batch gets what the store
-managed instead of nothing. A guest whose backend prices many
-products per request overrides this to make one request. A
-`rate_limited` error applies to the whole batch.
+The default asks [`Self::purchase_hint`](#contentsourcepurchase_hint) for each query,
+[`PURCHASE_HINTS_CONCURRENCY`](#purchase_hints_concurrency) at a time, queries that already name
+a product id first (one lookup each) and title searches after, and
+stops at the first error. It starts no lookup once
+[`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) has passed and answers `None` for the rest,
+so the host's batch gets what the store managed instead of nothing.
+A guest whose backend prices many products per request overrides
+this to make one request. A `rate_limited` error applies to the
+whole batch.
 
 #### ContentSource::list_deals
 
@@ -7581,6 +7583,17 @@ How long the default [`ContentSource::purchase_hints`](#contentsourcepurchase_hi
 one-title lookups before answering with what it has. Well under the
 host's 10 s batch deadline, so even a slow last lookup lands before it
 and a store without a bulk endpoint still returns the titles it priced.
+
+### PURCHASE_HINTS_CONCURRENCY
+
+```rust
+pub const PURCHASE_HINTS_CONCURRENCY: usize = 4;
+```
+
+How many one-title lookups the default [`ContentSource::purchase_hints`](#contentsourcepurchase_hints)
+keeps in flight at once. A store without a bulk endpoint answers a page
+of cards in about a quarter of the time one lookup after another takes,
+while staying a polite handful of requests rather than a burst.
 
 ### JSON_MEDIA_TYPE
 

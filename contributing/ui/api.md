@@ -7414,7 +7414,10 @@ Normalized [UserPreferences](#userpreferences).
 function fetchPurchaseHints(body): Promise<PurchaseHintsResponse>;
 ```
 
-Resolves purchase hints, coalescing viewport-gated cards into a short batch window.
+Resolves purchase hints through a batch shared with every other card.
+
+Lookups asked close together go out as one batch request, one batch at a
+time, after the covers on screen have loaded (see `lookupBatcher.ts`).
 
 #### Parameters
 
@@ -7546,7 +7549,8 @@ Status payload for the jobs strip / library header.
 function fetchTitleMeta(body): Promise<TitleMeta | null>;
 ```
 
-Fetches title metadata, coalescing viewport-gated cards into a short batch window.
+Fetches title metadata through a batch shared with every other card (see
+[fetchPurchaseHints](#fetchpurchasehints)).
 
 #### Parameters
 

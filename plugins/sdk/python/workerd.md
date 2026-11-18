@@ -1747,8 +1747,9 @@ async def purchaseHints(self, params: abi.PurchaseHintsParams)
 
 Purchase links / price hints for several titles at once.
 
-Asks [`purchaseHint`](#storefrontentrypointpurchasehint) for each query, those that already name a
-product id first (one lookup each) and title searches after, and
+Asks [`purchaseHint`](#storefrontentrypointpurchasehint) for each query,
+`PURCHASE_HINTS_CONCURRENCY` at a time, those that already name
+a product id first (one lookup each) and title searches after, and
 starts nothing once `PURCHASE_HINTS_BUDGET_SECONDS` has passed,
 so the host's batch gets what the store managed instead of nothing.
 A store whose catalog prices many products per request overrides

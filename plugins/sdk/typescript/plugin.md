@@ -4327,8 +4327,9 @@ purchaseHints(params): Promise<(PurchaseHint | null)[]>;
 
 Purchase links / price hints for several titles in one call, one
 answer per query in order. The default asks [purchaseHint](#purchasehint) for
-each query, those with a product id first, and stops starting lookups
-after [PURCHASE\_HINTS\_BUDGET\_MS](#purchase_hints_budget_ms); a store whose catalog prices
+each query, [PURCHASE\_HINTS\_CONCURRENCY](#purchase_hints_concurrency) at a time, those with a
+product id first, and stops starting lookups after
+[PURCHASE\_HINTS\_BUDGET\_MS](#purchase_hints_budget_ms); a store whose catalog prices
 many products per request overrides this to make one request. Reject with a
 `rate_limited` [PluginError](README.md#pluginerror) (its `details.retryAfterMs` says how
 long) when the store asks to slow down, so the host leaves it alone.
@@ -6287,6 +6288,19 @@ How long the default `purchaseHints` keeps starting one-title lookups
 before answering with what it has, in milliseconds. Well under the
 host's 10 s batch deadline, so even a slow last lookup lands before it
 and a store without a bulk endpoint still returns the titles it priced.
+
+***
+
+### PURCHASE\_HINTS\_CONCURRENCY
+
+```ts
+const PURCHASE_HINTS_CONCURRENCY: 4 = 4;
+```
+
+How many one-title lookups the default `purchaseHints` keeps in flight
+at once. A store without a bulk endpoint answers a page of cards in
+about a quarter of the time one lookup after another takes, while
+staying a polite handful of requests rather than a burst.
 
 ***
 
