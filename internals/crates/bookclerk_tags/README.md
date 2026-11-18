@@ -32,6 +32,7 @@ and FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`).
 | [`TagRecord`](#tagrecord) | struct | The metadata one file carries in its own container. |
 | [`ByteSpan`](#bytespan) | struct | A range of bytes in a file. |
 | [`Poll`](#poll) | enum | What `TagReader::poll` wants next. |
+| [`AudioCodec`](#audiocodec) | enum | The audio encodings the reader tells apart. |
 | [`ChapterSource`](#chaptersource) | enum | Which structure a file's chapters were read from. |
 | [`Container`](#container) | enum | The container formats the reader understands. |
 | [`DurationPrecision`](#durationprecision) | enum | How a `Duration` was found. |
@@ -253,6 +254,7 @@ pub struct TagRecord {
     pub chapters: Vec<Chapter>,
     pub chapter_source: Option<ChapterSource>,
     pub duration: Option<Duration>,
+    pub codec: Option<AudioCodec>,
     pub cover: Option<EmbeddedCover>,
     pub region: RegionDigest,
     pub truncated: bool,
@@ -272,6 +274,9 @@ field may appear more than once (several artists, several genres).
 - `chapters`: Chapters, by start time; at most [`MAX_CHAPTERS`](#max_chapters).
 - `chapter_source`: Where [`Self::chapters`](#tagrecord) came from; `None` exactly when there are none.
 - `duration`: The running time, when the container states or implies one.
+- `codec`: How the audio is encoded, when the container names an encoding the
+  reader knows; `None` for an MP4 file with no audio track or with one
+  in another encoding.
 - `cover`: The embedded cover picture, when there is one.
 - `region`: Digest of the bytes that hold the metadata.
 - `truncated`: True when entries, chapters or values were cut to fit the limits, so
@@ -345,6 +350,55 @@ What [`TagReader::poll`](#tagreaderpoll) wants next.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### AudioCodec
+
+```rust
+pub enum AudioCodec {
+    Aac,
+    Alac,
+    Flac,
+    Mp3,
+    Opus,
+    Eac3,
+    Ac4,
+}
+```
+
+The audio encodings the reader tells apart.
+
+The encoding decides whether a file is a lossless copy of its source,
+which is what lets a library keep the better of two copies of one
+edition (library data model ADR, section 3).
+
+**Variants**
+
+- `Aac`: MPEG-4 AAC (`mp4a` sample entry), lossy.
+- `Alac`: Apple Lossless (`alac` sample entry).
+- `Flac`: FLAC, in its own container or in MP4 (`fLaC` sample entry).
+- `Mp3`: MPEG audio layer I, II or III, lossy.
+- `Opus`: Opus in MP4 (`Opus` sample entry), lossy.
+- `Eac3`: Dolby Digital Plus (`ec-3` sample entry), lossy.
+- `Ac4`: Dolby AC-4 (`ac-4` sample entry), lossy.
+
+#### AudioCodec::is_lossless
+
+```rust
+pub fn is_lossless(self) -> bool
+```
+
+True when decoding gives back the source audio bit for bit.
+
+#### AudioCodec::from_sample_entry
+
+```rust
+pub fn from_sample_entry(format: [u8; 4]) -> Option<Self>
+```
+
+The codec an MP4 audio sample entry of type `format` holds, when the
+reader knows it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+
 ### ChapterSource
 
 ```rust
@@ -386,6 +440,14 @@ The container formats the reader understands.
 - `Mp3`: MPEG audio (`.mp3`): an ID3v2 tag at the start, or failing that an
   ID3v1 tag at the end.
 - `Flac`: FLAC: Vorbis comments, pictures and `STREAMINFO`.
+
+#### Container::content_type
+
+```rust
+pub fn content_type(self) -> &'static str
+```
+
+The media type files of this container are stored and served as.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
 
@@ -452,6 +514,7 @@ pub enum RecordError {
     ChapterOrder,
     ChapterSource,
     Duration,
+    Codec,
     CoverSpan,
     RegionLen,
     RegionVersion(u16),
@@ -468,6 +531,8 @@ Why a [`TagRecord`](#tagrecord) from the worker was refused.
 - `ChapterOrder`: Chapters are not in start order.
 - `ChapterSource`: `chapter_source` does not agree with whether there are chapters.
 - `Duration`: A duration over [`MAX_DURATION_MS`](#max_duration_ms).
+- `Codec`: A codec the container cannot hold (an MP3 or FLAC file always holds
+  its own).
 - `CoverSpan`: A cover span outside the file or of the wrong length.
 - `RegionLen`: A region digest that covers more bytes than the file has.
 - `RegionVersion`: A region digest of another version.

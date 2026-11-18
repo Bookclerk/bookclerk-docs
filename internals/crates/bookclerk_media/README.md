@@ -33,6 +33,8 @@ the worker itself calls.
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
 | [`MediaPool`](#mediapool) | struct | Bounded pool of confined media workers. |
 | [`MediaPoolConfig`](#mediapoolconfig) | struct | Pool sizing and isolation settings. |
+| [`AudioProbe`](#audioprobe) | struct | What a probe found in one audio file. |
+| [`FileRange`](#filerange) | struct | A file on this machine, read a range at a time. |
 | [`MediaOutcome`](#mediaoutcome) | struct | Outcome of a successful media operation. |
 | [`MediaError`](#mediaerror) | enum | Errors from in-process codecs, MP4 plumbing, and confined media workers. |
 | [`MediaJob`](#mediajob) | enum | A single codec operation. |
@@ -111,6 +113,8 @@ Reads exactly `span` from the file.
 ##### Errors
 
 Any I/O failure; the read of that file then fails.
+
+Implemented by: `FileRange`
 
 ## Structs
 
@@ -362,6 +366,20 @@ worker binary was found, [`MediaError::Worker`](#mediaerror) when the worker can
 be started, exits without a reply, or returns something unparseable,
 and propagates the job's own error otherwise.
 
+#### MediaPool::probe_file
+
+```rust
+pub async fn probe_file(&self, path: &Path) -> Result<AudioProbe>
+```
+
+Probes the audio file at `path` on this machine.
+
+##### Errors
+
+[`crate::MediaError::Io`](#mediaerror) when the file cannot be read, and every
+error of [`Self::read_tags`]: the file is not MP4, MP3 or FLAC, or
+isolation is required and no worker was found.
+
 Implements: `Debug`, `Default`, `Drop`
 
 ### MediaPoolConfig
@@ -385,6 +403,59 @@ Pool sizing and isolation settings.
   [`WORKER_BIN_ENV`](#worker_bin_env) and then beside the current executable.
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `From<&MediaConfig>`, `PartialEq`
+
+### AudioProbe
+
+```rust
+pub struct AudioProbe {
+    pub content_type: &'static str,
+    pub bitrate_kbps: Option<u32>,
+    pub lossless: bool,
+}
+```
+
+What a probe found in one audio file.
+
+**Fields**
+
+- `content_type`: Media type of the container (`audio/mp4`, `audio/mpeg`,
+  `audio/flac`).
+- `bitrate_kbps`: Average bitrate in kilobits per second: the file's size over its
+  running time, cover and tags included. `None` when the file states
+  no running time.
+- `lossless`: True when the audio encoding is lossless (FLAC, ALAC). An MP4 file
+  whose encoding the reader does not know counts as lossy.
+
+#### AudioProbe::from_record
+
+```rust
+pub fn from_record(size: u64, record: &TagRecord) -> Self
+```
+
+The probe of a file of `size` bytes whose tags read as `record`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### FileRange
+
+```rust
+pub struct FileRange {
+    /* private fields */
+}
+```
+
+A file on this machine, read a range at a time.
+
+#### FileRange::new
+
+```rust
+pub fn new(path: &Path) -> Self
+```
+
+A source over the file at `path`. Nothing is opened until a range is
+read.
+
+Implements: `Clone`, `Debug`, `RangeSource`
 
 ### MediaOutcome
 

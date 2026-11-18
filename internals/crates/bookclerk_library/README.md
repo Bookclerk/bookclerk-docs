@@ -138,6 +138,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`EnrichCandidate`](#enrichcandidate) | struct | One held edition, with what an enricher needs to look it up and the fields it may fill. |
 | [`EnrichCandidatePage`](#enrichcandidatepage) | struct | One page of `LibraryStore::enrich_candidates_page`. |
+| [`FileProbe`](#fileprobe) | struct | What a probe found in one stored audio file, and where the copy came from (`edition_files`). |
 | [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
 | [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
@@ -5476,6 +5477,74 @@ One page of [`LibraryStore::enrich_candidates_page`](#librarystoreenrich_candida
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### FileProbe
+
+```rust
+pub struct FileProbe {
+    pub content_type: String,
+    pub bitrate_kbps: Option<u32>,
+    pub lossless: bool,
+    pub source_store: Option<String>,
+}
+```
+
+What a probe found in one stored audio file, and where the copy came
+from (`edition_files`).
+
+The same values decide which of two copies of one edition is kept
+([`FileProbe::is_better_than`](#fileprobeis_better_than)), wherever the comparison runs.
+
+**Fields**
+
+- `content_type`: Media type of the file (`audio/mp4`, `audio/mpeg`, `audio/flac`).
+- `bitrate_kbps`: Average audio bitrate in kilobits per second; `None` when the file
+  states no running time to divide its size by.
+- `lossless`: True for a lossless encoding (FLAC, ALAC).
+- `source_store`: Plain id of the storefront the copy was downloaded from, when known.
+
+#### FileProbe::MAX_CONTENT_TYPE_BYTES
+
+```rust
+pub const MAX_CONTENT_TYPE_BYTES: usize = 64
+```
+
+Longest media type a probe may carry, in bytes.
+
+#### FileProbe::MAX_BITRATE_KBPS
+
+```rust
+pub const MAX_BITRATE_KBPS: u32 = 20_000
+```
+
+Highest bitrate a probe may carry, in kilobits per second: above any
+audiobook encoding, so a forged value cannot win by size alone.
+
+#### FileProbe::is_better_than
+
+```rust
+pub fn is_better_than(&self, other: &Self) -> bool
+```
+
+True when a copy with this probe should replace one with `other`
+(library data model ADR, section 3): a lossless copy beats a lossy
+one, and within the same kind the higher bitrate wins. A copy whose
+bitrate is unknown never replaces one whose bitrate is known, and
+equal copies do not replace each other.
+
+#### FileProbe::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when the values are ones an honest probe can produce: a short
+media type of visible ASCII, a bitrate within
+[`Self::MAX_BITRATE_KBPS`](#fileprobemax_bitrate_kbps), and a storefront that is a store's plain
+id (lowercase letters, digits, `_`, `-` and `.`, as node frames name
+stores).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### HeldIdentifiers
 
 ```rust
@@ -6467,6 +6536,79 @@ Who holds `key` on `destination`; `None` when it is unrecorded.
 
 A row naming an owner kind this build does not know reads as held
 by an edition no claim matches, so it is never taken over.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::set_edition_file_probe
+
+```rust
+pub async fn set_edition_file_probe(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    probe: &FileProbe,
+) -> Result<bool>
+```
+
+Stores what a probe found in `owner`'s file at `key` on
+`destination`, stamped with the time of the write.
+
+The row is changed only while `owner` still holds the key, so a
+probe that finishes after another edition took the key over
+describes nothing.
+
+##### Returns
+
+`true` when the row was `owner`'s and now carries `probe`.
+
+##### Errors
+
+Returns an error when `probe` is not well formed
+([`FileProbe::is_well_formed`](#fileprobeis_well_formed)) or the write fails.
+
+#### LibraryStore::set_uploaded_file_probe
+
+```rust
+pub async fn set_uploaded_file_probe(
+    &self,
+    destination: &str,
+    key: &str,
+    writer: &str,
+    probe: &FileProbe,
+) -> Result<bool>
+```
+
+Stores what a probe found in the file the upload `writer` wrote at
+`key` on `destination`, as [`Self::set_edition_file_probe`](#librarystoreset_edition_file_probe) does for
+an owner.
+
+The row is changed only while `writer` is still the upload that
+claimed the key last, so a committed upload never describes a file
+a later write replaced.
+
+##### Returns
+
+`true` when the row was `writer`'s and now carries `probe`.
+
+##### Errors
+
+Returns an error when `probe` is not well formed or the write fails.
+
+#### LibraryStore::edition_file_probe
+
+```rust
+pub async fn edition_file_probe(
+    &self,
+    destination: &str,
+    key: &str,
+) -> Result<Option<FileProbe>>
+```
+
+What the last probe found in the file at `key` on `destination`;
+`None` when the key is unrecorded or was never probed.
 
 ##### Errors
 

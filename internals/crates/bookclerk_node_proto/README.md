@@ -119,6 +119,7 @@ bytes.
 | [`UploadAnswer`](#uploadanswer) | struct | Answer of the upload endpoint (every status carries one). |
 | [`UploadCommitRequest`](#uploadcommitrequest) | struct | Body of `POST <UPLOADS_PATH><upload_id>/commit`. |
 | [`UploadFile`](#uploadfile) | struct | One file of an upload (`Body::UploadGrant`). Its content crosses the network once and is written to every copy, each destination under the key that destination's own naming options give it. |
+| [`UploadProbe`](#uploadprobe) | struct | What a node's probe found in an audio file it uploads (`UploadFile::probe`). The media type travels as `UploadFile::content_type`. |
 | [`WorkJob`](#workjob) | struct | A job handed to a host. |
 | [`OAuthEnrollAnswer`](#oauthenrollanswer) | struct | `POST /api/node/v1/enroll/oauth` answer. |
 | [`OAuthEnrollRequest`](#oauthenrollrequest) | struct | `POST /api/node/v1/enroll/oauth` body. Keys are base64url without padding. |
@@ -263,6 +264,7 @@ bytes.
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
 | [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
+| [`MAX_PROBE_BITRATE_KBPS`](#max_probe_bitrate_kbps) | constant | Highest bitrate an `UploadProbe` may state, in kilobits per second: above any audiobook encoding, so a forged value cannot win by size alone. |
 | [`MAX_SCAN_BATCH_ROWS`](#max_scan_batch_rows) | constant | Most rows one `Body::ScanResults` batch may carry. |
 | [`MAX_SCAN_PRODUCT_ID_BYTES`](#max_scan_product_id_bytes) | constant | Longest product id a `Body::ScanRemoved` batch may carry. |
 | [`MAX_SCAN_REMOVED_IDS`](#max_scan_removed_ids) | constant | Most product ids one `Body::ScanRemoved` batch may carry (a scan page's own cap). |
@@ -1037,6 +1039,7 @@ pub struct UploadFile {
     pub size: u64,
     pub sha256: String,
     pub content_type: Option<String>,
+    pub probe: Option<UploadProbe>,
 }
 ```
 
@@ -1050,6 +1053,9 @@ key that destination's own naming options give it.
 - `size`: Exact size in bytes.
 - `sha256`: Lowercase hex SHA-256 of the content.
 - `content_type`: MIME type to store with it.
+- `probe`: What the sender's probe found in an audio file, so the library
+  keeps it on the file's row without reading the file back; absent
+  for other files and for audio the sender could not probe.
 
 #### UploadFile::is_well_formed
 
@@ -1060,8 +1066,9 @@ pub fn is_well_formed(&self) -> bool
 True when the file has between one and [`MAX_UPLOAD_COPIES`](#max_upload_copies)
 copies, each naming a different destination id
 ([`is_destination_id`](#is_destination_id)) and a storage key ([`is_storage_key`](#is_storage_key)); the
-size is within [`MAX_UPLOAD_FILE_BYTES`](#max_upload_file_bytes); and the digest is
-lowercase hex SHA-256.
+size is within [`MAX_UPLOAD_FILE_BYTES`](#max_upload_file_bytes); the digest is lowercase
+hex SHA-256; and the probe, if there is one, is well formed
+([`UploadProbe::is_well_formed`](#uploadprobeis_well_formed)).
 
 #### UploadFile::key_on
 
@@ -1070,6 +1077,45 @@ pub fn key_on(&self, destination: &str) -> Option<&str>
 ```
 
 This file's key on `destination`, if it is written there.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### UploadProbe
+
+```rust
+pub struct UploadProbe {
+    pub bitrate_kbps: Option<u32>,
+    pub lossless: bool,
+    pub source_store: Option<String>,
+}
+```
+
+What a node's probe found in an audio file it uploads
+([`UploadFile::probe`](#uploadfile)). The media type travels as
+[`UploadFile::content_type`](#uploadfile).
+
+The library stores these values as the sender states them: the sender
+is a node it trusts with the title, and they decide only which of two
+copies of one edition is kept.
+
+**Fields**
+
+- `bitrate_kbps`: Average audio bitrate in kilobits per second, 1 to
+  [`MAX_PROBE_BITRATE_KBPS`](#max_probe_bitrate_kbps); absent when the file states no running
+  time.
+- `lossless`: True for a lossless encoding (FLAC, ALAC).
+- `source_store`: Plain id of the storefront the copy was downloaded from
+  ([`crate::is_store_id`](#is_store_id)), when the sender knows it.
+
+#### UploadProbe::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when the bitrate, if stated, is 1 to
+[`MAX_PROBE_BITRATE_KBPS`](#max_probe_bitrate_kbps) and the storefront, if named, is a store
+id ([`crate::is_store_id`](#is_store_id)).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3825,6 +3871,15 @@ pub const MAX_LIBRARY_ID_BYTES: usize = 16;
 ```
 
 Longest library id (see [`LibraryId`](#libraryid)).
+
+### MAX_PROBE_BITRATE_KBPS
+
+```rust
+pub const MAX_PROBE_BITRATE_KBPS: u32 = 20_000;
+```
+
+Highest bitrate an [`UploadProbe`](#uploadprobe) may state, in kilobits per second:
+above any audiobook encoding, so a forged value cannot win by size alone.
 
 ### MAX_SCAN_BATCH_ROWS
 
