@@ -581,7 +581,7 @@ A library this install is a branch of: ids, origin and state, never key material
 - `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
 - `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
 - `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
-- `download` *boolean*, **required** — "Use this computer to download": the link takes the library's jobs and runs its plugins here. Off makes this install a window of the library: no jobs, no plugins, and the books the library holds for this install's person are shown instead.
+- `keep_copies` *boolean*, **required** — "Keep copies on this computer": the branch takes the library's copies of its person's books into its own storage. The branch takes the library's work and shows its books whether or not this is on.
 - `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
 
 ## ClusterScanBody
@@ -1314,7 +1314,7 @@ JSON body for `POST /api/config/join/start`.
 
 JSON body for `GET /api/config/join`.
 
-- `fresh` *boolean*, **required** — Whether this install has no users and no libraries yet.
+- `fresh` *boolean*, **required** — Whether this install has no users, no libraries and no library cards yet.
 - `has_owner` *boolean*, **required** — Whether an Owner (or legacy administrator) exists here.
 - `shared_branch_eligible` *boolean*, **required** — Whether this install could still join a library as a shared branch.
 - `shared_branch_problem` *string or null* — Why it cannot join as a shared branch, when it cannot.
@@ -2920,7 +2920,7 @@ change for it.
 - `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
 - `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
 - `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
-- `download` *boolean or null* — "Use this computer to download": off makes this install a window of the library (it runs none of the library's work and shows the books the library holds for its person instead). Absent or `null` keeps the stored setting.
+- `keep_copies` *boolean or null* — "Keep copies on this computer": take the library's copies of this install's person's books into its own storage. Absent or `null` keeps the stored setting.
 
 ## SharingChanged
 
@@ -3444,7 +3444,7 @@ status, never the password hash.
 
 JSON body for `GET /api/config/join/window`.
 
-- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is an active branch of.
 - `cards` *array of [`ClerkLinkView`](#clerklinkview)*, **required** — The libraries this install holds an active library card for.
 - `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books, every one they list for a member, one entry per work, by title; each edition says whether it is this install's person's.
 

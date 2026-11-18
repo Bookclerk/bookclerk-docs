@@ -41,6 +41,12 @@ active link, [`HostClient`](#hostclient) keeps one socket to the owner's
   [`HostJobCtx::upload_file`](#hostjobctxupload_file), [`HostJobCtx::commit_upload`](#hostjobctxcommit_upload)); the job
   completes with its closing upload's commit.
 
+A branch may also take the copy the library already holds of an
+edition: [`HostClientHandle::copy_grant`](#hostclienthandlecopy_grant) asks for it and
+[`HostClientHandle::fetch_copy_file`](#hostclienthandlefetch_copy_file) downloads each file, resuming a
+download that was cut short ([`fetch_copy_file`](#fetch_copy_file) is the same download
+for a clerk, which holds a plain token).
+
 An install may instead sign in to a library as a clerk, holding a
 library card for its person rather than node keys ([`authorize_clerk`](#authorize_clerk),
 [`redeem_clerk_code`](#redeem_clerk_code)); the daemon reads the person's books over the
@@ -81,6 +87,8 @@ job runs its guest are the daemon's.
 | [`SharedBranchJoined`](#sharedbranchjoined) | struct | A redeemed shared branch sign-in. `Debug` prints no secret. |
 | [`BroughtConnections`](#broughtconnections) | enum | What became of the store connections a library sent with its person (`keep_brought_connections`). |
 | [`ClientExit`](#clientexit) | enum | Why `HostClient::run` returned. |
+| [`CopyFetchError`](#copyfetcherror) | enum | Why `fetch_copy_file` did not bring the file. |
+| [`CopyStreamError`](#copystreamerror) | enum | Why `OwnerEndpoint::get_copy_stream` did not bring the bytes. |
 | [`DialError`](#dialerror) | enum | Why the owner could not be reached. |
 | [`JoinError`](#joinerror) | enum | Why joining failed. |
 | [`OwnerCallError`](#ownercallerror) | enum | Why a call the job makes to the owner (results, plan, upload) failed. |
@@ -95,6 +103,7 @@ job runs its guest are the daemon's.
 | [`redeem_branch_code`](#redeem_branch_code) | function | Redeems an approved sign-in: the library runs the same redeem as for a link (one node, a receipt, idempotent retries), then this install seals `keys` and records the link. The code and verifier go once in the request body and are never logged. |
 | [`authorize_clerk`](#authorize_clerk) | function | Starts a clerk sign-in at `library` for this install as `clerk_name`, coming back to `redirect_uri` (a loopback or https URL). |
 | [`redeem_clerk_code`](#redeem_clerk_code) | function | Redeems a clerk sign-in's code for a library card and records it. |
+| [`fetch_copy_file`](#fetch_copy_file) | function | Downloads file `index` of the copy `copy_id` to `dest`. |
 | [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own cluster id (A ← B ← A). Answers its ancestry, to record on the link. |
 | [`join_cluster`](#join_cluster) | function | Enrolls this install into the owner cluster named by `link`. |
 | [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own cluster id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
@@ -869,6 +878,27 @@ Returns [`OwnerCallError`](#ownercallerror); `Refused` when the library does not
 count this node as a branch, `Unavailable` for an answer that
 breaks the frame rules or a token that does not open.
 
+#### HostClientHandle::fetch_copy_file
+
+```rust
+pub async fn fetch_copy_file(
+    &self,
+    copy: &GrantedCopy,
+    index: usize,
+    dest: &Path,
+) -> Result<(), CopyFetchError>
+```
+
+Downloads file `index` of `copy` to `dest` from the library that
+granted it, resuming what `dest` already holds
+([`crate::fetch_copy_file`](#fetch_copy_file)).
+
+##### Errors
+
+Returns [`crate::CopyFetchError`]: `OtherLibrary` when another
+library granted `copy` (its token is not sent), `NoSuchFile` when
+the grant lists no file at `index`.
+
 #### HostClientHandle::catalog_upload
 
 ```rust
@@ -1159,6 +1189,53 @@ the status and body. Neither is logged.
 
 Returns [`DialError`](#dialerror) when the request cannot be made or the answer
 is malformed.
+
+#### OwnerEndpoint::get_copy_stream
+
+```rust
+pub async fn get_copy_stream(
+    &self,
+    path: &str,
+    authorization: &str,
+    resume_from: u64,
+    size: u64,
+    file: &mut File,
+) -> Result<u16, CopyStreamError>
+```
+
+`GET path` of one file of a copy the library granted, streamed into
+`file`: the bytes from `resume_from` on when the library honours
+the range, else the whole file. Nothing is buffered beyond one copy
+chunk, and the header is written straight to the stream and never
+logged.
+
+The answer's head is read by
+[`bookclerk_node_proto::parse_copy_answer`](../bookclerk_node_proto/README.md#parse_copy_answer), so a body is taken
+only when it is exactly the bytes asked for: `file` is cut to
+empty before a whole file is written and is written from
+`resume_from` otherwise, and no more than the stated length is
+taken. Every read from the library must make progress within the
+idle timeout.
+
+##### Arguments
+
+* `resume_from` - Bytes of the file `file` already holds; 0 asks
+  for the whole file.
+* `size` - The file's exact size, as the grant stated it.
+
+##### Returns
+
+The status: `200` or `206` once `file` holds all `size` bytes, any
+other status when the library sent no file bytes (`file` is then
+untouched).
+
+##### Errors
+
+Returns [`CopyStreamError::Transfer`](#copystreamerror) when the request cannot be
+made, the answer does not state exactly the bytes asked for or ends
+early ([`DialError::Http`](#dialerror)), or a read stalls
+([`DialError::Timeout`](#dialerror)); [`CopyStreamError::Local`](#copystreamerror) when `file`
+cannot be written.
 
 #### OwnerEndpoint::probe_json
 
@@ -1741,6 +1818,57 @@ Why [`HostClient::run`](#hostclientrun) returned.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyFetchError
+
+```rust
+pub enum CopyFetchError {
+    InvalidCopy,
+    OtherLibrary,
+    NoSuchFile,
+    Status(u16),
+    Transfer(DialError),
+    Local(Error),
+}
+```
+
+Why [`fetch_copy_file`](#fetch_copy_file) did not bring the file.
+
+**Variants**
+
+- `InvalidCopy`: The copy id is not one a library gives out; nothing was asked.
+- `OtherLibrary`: Another library granted the copy than the one asked for its file;
+  nothing was asked, so the token was sent to no one.
+- `NoSuchFile`: The grant lists no file at that index; nothing was asked.
+- `Status`: The library answered with this status instead of the file: `401`
+  when the token ended, the branch is no longer trusted or the card
+  is signed out (ask for a new grant), `404` when the copy has no
+  such file.
+- `Transfer`: The request failed, stalled, or the answer was not the bytes asked
+  for. What arrived so far is kept, so the next call resumes.
+- `Local`: The local file could not be opened, read or written (a full disk,
+  say). Calling again does not help until that is fixed.
+
+Implements: `Debug`, `Display`, `Error`, `From<CopyStreamError>`, `From<DialError>`, `From<Error>`
+
+### CopyStreamError
+
+```rust
+pub enum CopyStreamError {
+    Transfer(DialError),
+    Local(Error),
+}
+```
+
+Why [`OwnerEndpoint::get_copy_stream`](#ownerendpointget_copy_stream) did not bring the bytes.
+
+**Variants**
+
+- `Transfer`: The request or the library's answer failed; asking again may work.
+- `Local`: The destination file could not be cut, positioned or written (a
+  full disk, say); asking again does not help until that is fixed.
+
+Implements: `Debug`, `Display`, `Error`, `From<CopyStreamError>`, `From<DialError>`
+
 ### DialError
 
 ```rust
@@ -2104,6 +2232,39 @@ or answers another status, [`JoinError::Record`](#joinerror) when its answer is
 malformed or names another library, and [`JoinError::Unsaved`](#joinerror) when the
 card could not be recorded here (the library then holds a session this
 install cannot use; the person ends it from the library's session list).
+
+### fetch_copy_file
+
+```rust
+pub async fn fetch_copy_file(
+    endpoint: &OwnerEndpoint,
+    authorization: &str,
+    copy_id: &str,
+    index: usize,
+    size: u64,
+    dest: &Path,
+) -> Result<(), CopyFetchError>
+```
+
+Downloads file `index` of the copy `copy_id` to `dest`.
+
+`dest` must be a path only this file of this copy is written to: what
+it already holds is taken as the start of the file. A file already
+`size` bytes long is complete and nothing is asked; a shorter one is
+resumed with a `Range` request; a longer one is replaced. A library
+that ignores the range sends the whole file, which replaces what was
+there.
+
+#### Arguments
+
+* `authorization` - The `Authorization` header value of the copy's
+  downloads ([`crate::GrantedCopy::authorization`](#grantedcopyauthorization) on a branch, the
+  copy scheme and the plain token on a clerk). Never logged.
+* `size` - The file's exact size, as the grant's file list states it.
+
+#### Errors
+
+Returns [`CopyFetchError`](#copyfetcherror); after `Transfer`, calling again resumes.
 
 ### check_join_ancestry
 

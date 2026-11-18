@@ -1206,7 +1206,7 @@ Status `200`: Pending and granted cluster consents.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
-      "download": true,
+      "keep_copies": true,
       "running": true
     }
   ],
@@ -1338,7 +1338,7 @@ Schema:
           "work_for_members",
           "keep_member_copies",
           "list_members_books",
-          "download"
+          "keep_copies"
         ],
         "properties": {
           "cluster_id": {
@@ -1415,9 +1415,9 @@ Schema:
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
-          "download": {
+          "keep_copies": {
             "type": "boolean",
-            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+            "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
             "example": true
           },
           "running": {
@@ -4165,7 +4165,7 @@ A `text/plain` body: a string.
 ### Responses
 
 - `200` — Whether this install has joined a library, and its state. Body: [`JoinStatus`](schemas.md#joinstatus) (`application/json`)
-  - `fresh` *boolean*, **required** — Whether this install has no users and no libraries yet.
+  - `fresh` *boolean*, **required** — Whether this install has no users, no libraries and no library cards yet.
   - `has_owner` *boolean*, **required** — Whether an Owner (or legacy administrator) exists here.
   - `shared_branch_eligible` *boolean*, **required** — Whether this install could still join a library as a shared branch.
   - `shared_branch_problem` *string or null* — Why it cannot join as a shared branch, when it cannot.
@@ -4251,7 +4251,7 @@ Status `200`: Whether this install has joined a library, and its state.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
-      "download": true,
+      "keep_copies": true,
       "running": true
     }
   ]
@@ -4274,7 +4274,7 @@ Schema:
   "properties": {
     "fresh": {
       "type": "boolean",
-      "description": "Whether this install has no users and no libraries yet.",
+      "description": "Whether this install has no users, no libraries and no library cards\nyet.",
       "example": false
     },
     "has_owner": {
@@ -4317,7 +4317,7 @@ Schema:
           "work_for_members",
           "keep_member_copies",
           "list_members_books",
-          "download"
+          "keep_copies"
         ],
         "properties": {
           "cluster_id": {
@@ -4394,9 +4394,9 @@ Schema:
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
-          "download": {
+          "keep_copies": {
             "type": "boolean",
-            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+            "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
             "example": true
           },
           "running": {
@@ -5666,7 +5666,7 @@ Status `200`: The join completed.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
-    "download": true,
+    "keep_copies": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -5710,7 +5710,7 @@ Schema:
             "work_for_members",
             "keep_member_copies",
             "list_members_books",
-            "download"
+            "keep_copies"
           ],
           "properties": {
             "cluster_id": {
@@ -5787,9 +5787,9 @@ Schema:
               "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
               "example": true
             },
-            "download": {
+            "keep_copies": {
               "type": "boolean",
-              "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+              "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
               "example": true
             },
             "running": {
@@ -6363,7 +6363,7 @@ Status `200`: The join completed.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
-    "download": true,
+    "keep_copies": true,
     "running": true
   },
   "library_name": "books.example.com",
@@ -6405,7 +6405,7 @@ Schema:
         "work_for_members",
         "keep_member_copies",
         "list_members_books",
-        "download"
+        "keep_copies"
       ],
       "properties": {
         "cluster_id": {
@@ -6482,9 +6482,9 @@ Schema:
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
-        "download": {
+        "keep_copies": {
           "type": "boolean",
-          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+          "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
           "example": true
         },
         "running": {
@@ -7027,7 +7027,7 @@ Status `200`: Leaving started.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
-    "download": true,
+    "keep_copies": true,
     "running": true
   },
   "owner_notified": true
@@ -7060,7 +7060,7 @@ Schema:
         "work_for_members",
         "keep_member_copies",
         "list_members_books",
-        "download"
+        "keep_copies"
       ],
       "properties": {
         "cluster_id": {
@@ -7137,9 +7137,9 @@ Schema:
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
-        "download": {
+        "keep_copies": {
           "type": "boolean",
-          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+          "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
           "example": true
         },
         "running": {
@@ -12665,7 +12665,7 @@ Status `200`: The branch's sharing settings.
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
-      "download": true,
+      "keep_copies": true,
       "running": true
     }
   ]
@@ -12699,7 +12699,7 @@ Schema:
           "work_for_members",
           "keep_member_copies",
           "list_members_books",
-          "download"
+          "keep_copies"
         ],
         "properties": {
           "cluster_id": {
@@ -12776,9 +12776,9 @@ Schema:
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
-          "download": {
+          "keep_copies": {
             "type": "boolean",
-            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+            "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
             "example": true
           },
           "running": {
@@ -13024,7 +13024,7 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
 - `work_for_members` *boolean or null* — "Download for other members of *library*": take the library's work for its other members too, not only this install owner's. Absent or `null` keeps the stored setting.
 - `keep_member_copies` *boolean or null* — "Keep copies of other members' books": also write a book acquired here for another member to this install's own destinations. Absent or `null` keeps the stored setting.
-- `download` *boolean or null* — "Use this computer to download": off makes this install a window of the library (it runs none of the library's work and shows the books the library holds for its person instead). Absent or `null` keeps the stored setting.
+- `keep_copies` *boolean or null* — "Keep copies on this computer": take the library's copies of this install's person's books into its own storage. Absent or `null` keeps the stored setting.
 
 ### Responses
 
@@ -13118,7 +13118,7 @@ Status `200`: The sharing settings after the change.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
-    "download": true,
+    "keep_copies": true,
     "running": true
   }
 }
@@ -13149,7 +13149,7 @@ Schema:
         "work_for_members",
         "keep_member_copies",
         "list_members_books",
-        "download"
+        "keep_copies"
       ],
       "properties": {
         "cluster_id": {
@@ -13226,9 +13226,9 @@ Schema:
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
-        "download": {
+        "keep_copies": {
           "type": "boolean",
-          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+          "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
           "example": true
         },
         "running": {
@@ -13516,9 +13516,9 @@ A `text/plain` body: a string.
 
 ## `GET /api/config/join/window`
 
-`GET /api/config/join/window`: the window view for the operator or an
-Owner: every book of each library this install is a window of, or
-holds a library card for, merged by work, each edition marked when it
+`GET /api/config/join/window`: "Books in other libraries" for the
+operator or an Owner: every book of each library this install is a
+branch of, or holds a library card for, merged by work, each edition marked when it
 is this install's person's (`{clusters, cards, books}`).
 
 **Access:** The operator, or any signed-in user.
@@ -13527,8 +13527,8 @@ is this install's person's (`{clusters, cards, books}`).
 
 ### Responses
 
-- `200` — The libraries this install is a window of or holds a card for, and their books. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
-  - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The libraries this install is a window of (active links with "Use this computer to download" off).
+- `200` — The libraries this install is a branch of or holds a card for, and their books. Body: [`WindowBooks`](schemas.md#windowbooks) (`application/json`)
+  - `clusters` *array of [`ClusterLinkView`](schemas.md#clusterlinkview)*, **required** — The libraries this install is an active branch of.
   - `cards` *array of [`ClerkLinkView`](schemas.md#clerklinkview)*, **required** — The libraries this install holds an active library card for.
   - `books` *array of [`WindowEntryView`](schemas.md#windowentryview)*, **required** — Their books, every one they list for a member, one entry per work, by title; each edition says whether it is this install's person's.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -13585,7 +13585,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The libraries this install is a window of or holds a card for, and their books.
+Status `200`: The libraries this install is a branch of or holds a card for, and their books.
 
 ```json
 {
@@ -13604,7 +13604,7 @@ Status `200`: The libraries this install is a window of or holds a card for, and
       "max_jobs": 2,
       "job_share": 2,
       "list_members_books": true,
-      "download": true,
+      "keep_copies": true,
       "running": true
     }
   ],
@@ -13672,7 +13672,7 @@ Schema:
           "work_for_members",
           "keep_member_copies",
           "list_members_books",
-          "download"
+          "keep_copies"
         ],
         "properties": {
           "cluster_id": {
@@ -13749,9 +13749,9 @@ Schema:
             "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
             "example": true
           },
-          "download": {
+          "keep_copies": {
             "type": "boolean",
-            "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+            "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
             "example": true
           },
           "running": {
@@ -13764,7 +13764,7 @@ Schema:
           }
         }
       },
-      "description": "The libraries this install is a window of (active links with \"Use\nthis computer to download\" off)."
+      "description": "The libraries this install is an active branch of."
     },
     "cards": {
       "type": "array",
@@ -15131,7 +15131,7 @@ Status `200`: The link after the change, with its share of the machine now.
     "max_jobs": 2,
     "job_share": 2,
     "list_members_books": true,
-    "download": true,
+    "keep_copies": true,
     "running": true
   }
 }
@@ -15162,7 +15162,7 @@ Schema:
         "work_for_members",
         "keep_member_copies",
         "list_members_books",
-        "download"
+        "keep_copies"
       ],
       "properties": {
         "cluster_id": {
@@ -15239,9 +15239,9 @@ Schema:
           "description": "\"List my members' books to the library\": the library's catalog\nlookups are answered with members' books (except those who opted\nout) as well as the owner's.",
           "example": true
         },
-        "download": {
+        "keep_copies": {
           "type": "boolean",
-          "description": "\"Use this computer to download\": the link takes the library's jobs\nand runs its plugins here. Off makes this install a window of the\nlibrary: no jobs, no plugins, and the books the library holds for\nthis install's person are shown instead.",
+          "description": "\"Keep copies on this computer\": the branch takes the library's\ncopies of its person's books into its own storage. The branch takes\nthe library's work and shows its books whether or not this is on.",
           "example": true
         },
         "running": {

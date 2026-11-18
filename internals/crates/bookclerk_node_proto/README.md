@@ -147,6 +147,7 @@ bytes.
 | [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` or `copy.grant` frame. |
 | [`ClerkTopic`](#clerktopic) | enum | Something a clerk hears about on the socket. Each names the routes to read again; the socket itself carries no row data. |
 | [`LibraryFrame`](#libraryframe) | enum | A frame from a library to a clerk. |
+| [`CopyAnswer`](#copyanswer) | enum | What the head of a download's answer says follows it (`parse_copy_answer`). |
 | [`CopyRange`](#copyrange) | enum | What a download's `Range` header asks for (`parse_copy_range`). |
 | [`CopyRole`](#copyrole) | enum | What a file of a copy is, as the library recorded it when it wrote the file. |
 | [`Body`](#body) | enum | What a frame says, tagged by `type`. |
@@ -187,9 +188,11 @@ bytes.
 | [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
 | [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once (a field written as `null` counts as absent). |
 | [`parse_library_frame`](#parse_library_frame) | function | Reads a frame a library sent: at most `crate::MAX_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once. |
+| [`copy_answer_head_end`](#copy_answer_head_end) | function | Finds where the head of a download's answer ends in the bytes received so far, however the library's writes were cut into reads. |
 | [`copy_grant_problem`](#copy_grant_problem) | function | Why a `crate::Body::CopyGrant` is malformed, or `None`: a store id, a marketplace (empty when the store has none) and a product id. |
 | [`copy_granted_problem`](#copy_granted_problem) | function | Why a `crate::Body::CopyGranted` is malformed, or `None`: a copy id (`is_copy_id`), a non-empty sealed token of base64url text, a life of 1 to `MAX_COPY_TOKEN_SECS` seconds, a well-formed copy, and 1 to `MAX_COPY_FILES` well-formed files with distinct names, exactly one of them the primary audio (`CopyRole::Audio`). |
 | [`is_copy_id`](#is_copy_id) | function | True for a copy id: a lowercase hyphenated UUID. |
+| [`parse_copy_answer`](#parse_copy_answer) | function | Reads the head of the answer to a download of a file of `size` bytes that asked for the bytes from `asked_from` on (0 for the whole file). |
 | [`parse_copy_range`](#parse_copy_range) | function | Reads the `Range` header of a download of a file of `size` bytes. |
 | [`is_destination_id`](#is_destination_id) | function | True when `id` is a destination id: a short lowercase token. |
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
@@ -277,6 +280,7 @@ bytes.
 | [`MAX_CLERK_TOPIC_BYTES`](#max_clerk_topic_bytes) | constant | Longest topic name, in bytes. |
 | [`COPIES_PATH`](#copies_path) | constant | Path prefix of the download endpoint: the files of copy `<copy_id>` are at `COPIES_PATH<copy_id>/files/<n>`. |
 | [`COPY_AUTH_SCHEME`](#copy_auth_scheme) | constant | `Authorization` scheme of the download endpoint. |
+| [`MAX_COPY_ANSWER_HEAD_BYTES`](#max_copy_answer_head_bytes) | constant | Longest head of a download's answer a reader takes, in bytes: the status line and headers, before the blank line. |
 | [`MAX_COPY_FILES`](#max_copy_files) | constant | Most files one `crate::Body::CopyGranted` may list. |
 | [`MAX_COPY_FILE_BYTES`](#max_copy_file_bytes) | constant | Largest `CopyFile::size` (1 TiB): above any audiobook file. |
 | [`MAX_COPY_NAME_BYTES`](#max_copy_name_bytes) | constant | Longest `CopyFile::name`, in bytes. |
@@ -2028,6 +2032,30 @@ The frame's JSON text, as a library sends it.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyAnswer
+
+```rust
+pub enum CopyAnswer {
+    Body { offset: u64, length: u64 },
+    Status(u16),
+}
+```
+
+What the head of a download's answer says follows it
+([`parse_copy_answer`](#parse_copy_answer)).
+
+**Variants**
+
+- `Body`: `length` bytes of the file follow, from byte `offset` to its end:
+  `offset + length` is the file's size, and `offset` is 0 or the
+  byte the reader asked to resume from.
+  - `offset`: First byte of the file the body holds.
+  - `length`: Number of bytes that follow.
+- `Status`: The library answered with this status and no file bytes: a refusal
+  (401, 404), an unsatisfiable range (416) or a fault.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### CopyRange
 
 ```rust
@@ -3256,6 +3284,32 @@ each once.
 
 The frame, or `None` when it breaks any rule.
 
+### copy_answer_head_end
+
+```rust
+pub fn copy_answer_head_end(received: &[u8]) -> Result<Option<usize>, &'static str>
+```
+
+Finds where the head of a download's answer ends in the bytes
+received so far, however the library's writes were cut into reads.
+
+The head ends before the first blank line (CRLF CRLF). A reader calls
+this on everything it has received after each read: the head is the
+first `n` bytes, [`parse_copy_answer`](#parse_copy_answer) reads it, and the body starts
+four bytes after it. The answer depends only on the bytes, never on
+where the reads fell: once it is `Some(n)` or an error it stays that
+for every longer run of the same bytes.
+
+#### Returns
+
+`Ok(Some(n))` when the head is the first `n` bytes, `Ok(None)` when
+the blank line has not arrived yet and still may.
+
+#### Errors
+
+Returns a short reason when the head would be longer than
+[`MAX_COPY_ANSWER_HEAD_BYTES`](#max_copy_answer_head_bytes).
+
 ### copy_grant_problem
 
 ```rust
@@ -3288,6 +3342,44 @@ pub fn is_copy_id(id: &str) -> bool
 ```
 
 True for a copy id: a lowercase hyphenated UUID.
+
+### parse_copy_answer
+
+```rust
+pub fn parse_copy_answer(
+    head: &[u8],
+    asked_from: u64,
+    size: u64,
+) -> Result<CopyAnswer, &'static str>
+```
+
+Reads the head of the answer to a download of a file of `size` bytes
+that asked for the bytes from `asked_from` on (0 for the whole file).
+
+`head` is the status line and the headers, each line ended by CRLF or
+the end of the head, without the blank line that ends it. A reader
+writes the body where this says, so the head must state exactly the
+bytes that were asked for:
+
+- `200` with `Content-Length` equal to `size`: the whole file, also
+  when a range was asked for (a server may ignore one);
+- `206` with `Content-Range: bytes <asked_from>-<size - 1>/<size>` and
+  the matching `Content-Length`, only when `asked_from` is above 0 and
+  inside the file;
+- any other status from 100 to 599: no file bytes. A `416` that
+  states a `Content-Range` must state the unsatisfied form,
+  `bytes */<size>`.
+
+A header's name is an HTTP token (letters, digits and
+``!#$%&'*+-.^_`|~``).
+
+#### Errors
+
+Returns a short reason when the head is longer than
+[`MAX_COPY_ANSWER_HEAD_BYTES`](#max_copy_answer_head_bytes), is not printable ASCII lines, has no
+`HTTP/1.x` status line, states a transfer encoding, repeats or
+misstates `Content-Length` or `Content-Range`, or answers `200` or
+`206` with other bytes than the ones asked for.
 
 ### parse_copy_range
 
@@ -4257,6 +4349,15 @@ pub const COPY_AUTH_SCHEME: &str = "Bookclerk-Copy";
 ```
 
 `Authorization` scheme of the download endpoint.
+
+### MAX_COPY_ANSWER_HEAD_BYTES
+
+```rust
+pub const MAX_COPY_ANSWER_HEAD_BYTES: usize = _;
+```
+
+Longest head of a download's answer a reader takes, in bytes: the
+status line and headers, before the blank line.
 
 ### MAX_COPY_FILES
 

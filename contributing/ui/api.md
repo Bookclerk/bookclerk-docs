@@ -764,14 +764,6 @@ cluster_id: string;
 
 Id of the owner cluster; one link per cluster.
 
-##### download?
-
-```ts
-download?: boolean;
-```
-
-"Use this computer to download" (on by default); off makes this server a window.
-
 ##### enrolled\_at
 
 ```ts
@@ -795,6 +787,14 @@ job_share?: number;
 ```
 
 Jobs the library may have running here now; absent while its link is not running.
+
+##### keep\_copies?
+
+```ts
+keep_copies?: boolean;
+```
+
+"Keep copies on this computer" (on by default): take the library's copies of this server's person's books.
 
 ##### keep\_member\_copies?
 

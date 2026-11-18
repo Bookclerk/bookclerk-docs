@@ -106,6 +106,6 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`webauthn_challenges`](webauthn_challenges.md): SeaORM entity for in-flight WebAuthn ceremonies.
 - [`webauthn_credentials`](webauthn_credentials.md): SeaORM entity for WebAuthn / passkey credentials.
 - [`window_book_parts`](window_book_parts.md): SeaORM entity for `window_book_parts`: one piece of a window book's stored edition and identifiers (`control_plane::window_books`).
-- [`window_books`](window_books.md): SeaORM entity for `window_books`: on a window (a link with "Use this computer to download" off), the books each library holds for this install's person (`control_plane::window_books`).
+- [`window_books`](window_books.md): SeaORM entity for `window_books`: on a branch or a clerk, the books of each library it reads, one row per edition (`control_plane::window_books`).
 - [`work_identifiers`](work_identifiers.md): SeaORM entity for the `work_identifiers` table (composite primary key).
 - [`works`](works.md): SeaORM entity for the `works` table (text primary key).

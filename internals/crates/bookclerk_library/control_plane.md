@@ -256,8 +256,8 @@ See `docs/adr/control-plane.md`.
 | [`parse_sharing_request`](#parse_sharing_request) | function | Parses a `POST /api/config/join/sharing` body from its raw bytes, sans IO, the way the route reads it: JSON into `SharingBody`, then `SharingBody::into_request`. |
 | [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
 | [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
-| [`set_cluster_link_download`](#set_cluster_link_download) | function | Sets the link's "Use this computer to download" setting. |
 | [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
+| [`set_cluster_link_keep_copies`](#set_cluster_link_keep_copies) | function | Sets the link's "Keep copies on this computer" setting. |
 | [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
 | [`set_cluster_link_person`](#set_cluster_link_person) | function | Binds the link to the local user who joined the library through it. |
 | [`set_cluster_link_settings`](#set_cluster_link_settings) | function | Sets a link's sharing, listing and work settings in one statement, so a failed write leaves every one of them as it was. |
@@ -499,7 +499,7 @@ See `docs/adr/control-plane.md`.
 | [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `owner_cluster_id`, read under `seen_at` (`window_read_stamp`). |
 | [`window_books_page`](#window_books_page) | function | One page of the books this library holds for branch `node_id`'s owner, for the `window.books` frame. |
 | [`window_read_stamp`](#window_read_stamp) | function | A stamp for one complete read of a library's window books: pass it to every `record_window_page` of the read and then to `finish_window_read`. |
-| [`window_view`](#window_view) | function | The merged view of every library this install is a window of: the books each holds for the person, one entry per work, sorted by title. |
+| [`window_view`](#window_view) | function | The merged view of every library this install is a branch of or holds a library card for: their books, one entry per work, sorted by title. |
 | [`bootstrap_control_plane`](#bootstrap_control_plane) | function | Enrolls this files directory and imports `[events]` and `[output]` when their documents are absent. |
 | [`overlay_core_documents`](#overlay_core_documents) | function | Copies every authoritative cluster document in `session` onto `config`. |
 | [`overlay_events`](#overlay_events) | function | Copies the authoritative events document onto `config` for `cluster_id`. |
@@ -1244,7 +1244,7 @@ pub struct ClusterLink {
     pub keep_member_copies: bool,
     pub max_jobs: Option<LinkJobCap>,
     pub list_members_books: bool,
-    pub download: bool,
+    pub keep_copies: bool,
     pub person_user_id: Option<i64>,
 }
 ```
@@ -1275,10 +1275,10 @@ One owner cluster this install enrolled into.
 - `list_members_books`: "List my members' books to *library*" (on by default): catalog
   lookups from that library are answered with the members' books
   (except those of members who opted out) as well as the owner's.
-- `download`: "Use this computer to download" (on by default). Off makes this
-  install a window of that library: the link claims no jobs, runs none
-  of its plugins, and reads the books the library holds for this
-  install's person instead (`control_plane::window_books`).
+- `keep_copies`: "Keep copies on this computer" (on by default): whether the branch
+  takes the library's copies of its person's books into its own
+  storage. The branch takes the library's work and reads its books
+  (`control_plane::window_books`) whether or not this is on.
 - `person_user_id`: The local user who joined the library through this link, when one
   could be named: the only person who may add store connections to
   that library, or withdraw them from it, through this link.
@@ -1371,7 +1371,7 @@ pub struct ClusterLinkSettings {
     pub list_members_books: Option<bool>,
     pub work_for_members: Option<bool>,
     pub keep_member_copies: Option<bool>,
-    pub download: Option<bool>,
+    pub keep_copies: Option<bool>,
 }
 ```
 
@@ -1386,9 +1386,7 @@ Every setting Settings → Library changes on one link at once; see
 - `work_for_members`: "Download for other members of *library*"; `None` keeps the stored
   value.
 - `keep_member_copies`: "Keep copies of other members' books"; `None` keeps the stored value.
-- `download`: "Use this computer to download"; `None` keeps the stored value.
-  Turning it on also clears the window's copy of the library's list
-  ([`set_cluster_link_download`](#set_cluster_link_download)).
+- `keep_copies`: "Keep copies on this computer"; `None` keeps the stored value.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -7128,7 +7126,7 @@ next sign-in.
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed cluster id, origin,
 pin, name or user id, [`LibraryError::Conflict`](README.md#libraryerror) when this install is
-already an active branch or window of that library (it reads that
+already an active branch of that library (it reads that
 library's books through the link instead), an error when no master key
 is configured, and the write error.
 
@@ -7417,38 +7415,6 @@ refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
 write error.
 
-### set_cluster_link_download
-
-```rust
-pub async fn set_cluster_link_download(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    download: bool,
-) -> Result<bool>
-```
-
-Sets the link's "Use this computer to download" setting.
-
-#### Arguments
-
-* `owner_cluster_id` - The library the link joined.
-* `download` - The new setting; `false` makes this install a window of
-  that library.
-
-#### Returns
-
-Whether the link exists (`false` when there is no such link); setting
-the value it already has still returns `true`.
-
-Turning downloading on also clears the window's copy of the library's
-list here, rather than leaving it to the window reader: the reader may
-not run before the setting is turned off again, and the old list would
-then show as the window's current one.
-
-#### Errors
-
-Returns the write error.
-
 ### set_cluster_link_job_cap
 
 ```rust
@@ -7463,6 +7429,33 @@ Sets the most jobs this install runs for one library at once; `None`
 clears the cap, leaving the link its equal share of the machine.
 Answers false when no such link exists. The running client picks the
 new cap up on the next share update.
+
+#### Errors
+
+Returns the write error.
+
+### set_cluster_link_keep_copies
+
+```rust
+pub async fn set_cluster_link_keep_copies(
+    store: &LibraryStore,
+    owner_cluster_id: &str,
+    keep_copies: bool,
+) -> Result<bool>
+```
+
+Sets the link's "Keep copies on this computer" setting.
+
+#### Arguments
+
+* `owner_cluster_id` - The library the link joined.
+* `keep_copies` - The new setting: whether the branch takes the
+  library's copies of its person's books.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the value it already has still returns `true`.
 
 #### Errors
 
@@ -12054,11 +12047,10 @@ every [`record_window_page`](#record_window_page) of the read and then to
 pub async fn window_view(store: &LibraryStore) -> Result<Vec<WindowEntry>>
 ```
 
-The merged view of every library this install is a window of: the books
-each holds for the person, one entry per work, sorted by title.
+The merged view of every library this install is a branch of or holds
+a library card for: their books, one entry per work, sorted by title.
 
-Only active links with "Use this computer to download" off count, and
-every active library card ([`crate::control_plane::list_clerk_links`](#list_clerk_links)). Rows
+Every active link counts, and every active library card ([`crate::control_plane::list_clerk_links`](#list_clerk_links)). Rows
 are the same work when they reach the same work of this library, share
 a strong identifier (not an ISBN), or carry the same grouping key from
 one library. A row whose stored edition is missing or no longer parses

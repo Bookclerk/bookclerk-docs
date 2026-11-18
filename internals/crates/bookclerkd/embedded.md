@@ -19,7 +19,7 @@ forwarding headers is dropped first, and `Set-Cookie` is dropped from
 every response, so the page holds no credential of its own. With
 `daemon.auth.enabled = false` no token is added. The router sees every
 request as coming from [`EMBEDDED_ORIGIN`](../bookclerk_window_policy/README.md#embedded_origin), a loopback origin, so a join
-asks the library to send the window back there.
+or a library card sign-in asks the library to send the window back there.
 
 **Other pages.** Because the token is added here, a page from anywhere
 else must not be able to reach the scheme: a request whose `Origin` is
@@ -27,11 +27,13 @@ not one of [`APP_ORIGINS`](../bookclerk_window_policy/README.md#app_origins) (or
 elsewhere) is refused with `403` before routing.
 
 **Leaving the app.** The window shows only app pages, with one exception:
-joining a library signs the person in on the library's own site. From a
-successful `POST /api/config/join/start` until the library sends the
-window back (or the sign-in expires), [`EmbeddedHost::navigation`](#embeddedhostnavigation) lets
-the window open `https` pages; the library's return to
-`http://localhost/join/callback` is handed back to the app scheme.
+joining a library, or signing in to one with a library card, signs the
+person in on the library's own site. From a successful
+`POST /api/config/join/start` or `POST /api/config/clerk/start` until the
+library sends the window back (or the sign-in expires),
+[`EmbeddedHost::navigation`](#embeddedhostnavigation) lets the window open `https` pages; the
+library's return to `http://localhost/join/callback` or
+`http://localhost/clerk/callback` is handed back to the app scheme.
 
 **What the window cannot reach.** The request carries no peer address,
 so routes that admit only a direct loopback connection (the tray
@@ -154,7 +156,7 @@ Decides whether the window may show `url`.
 ##### Returns
 
 What the window should do (see [`Navigation`](../bookclerk_window_policy/README.md#navigation)). A
-`Navigation::JoinReturn` also closes the join's sign-in window.
+`Navigation::SignInReturn` also closes the sign-in window.
 
 #### EmbeddedHost::live
 
