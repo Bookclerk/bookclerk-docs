@@ -155,7 +155,8 @@ See `docs/adr/control-plane.md`.
 | [`EnrollmentActor`](#enrollmentactor) | enum | Who is acting on enrollment links and node credentials. |
 | [`NodeKind`](#nodekind) | enum | How a node joined the cluster. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
-| [`SettingValue`](#settingvalue) | enum | One scalar setting. Nested objects and arrays are not representable. |
+| [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
+| [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
 | [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
@@ -319,7 +320,7 @@ See `docs/adr/control-plane.md`.
 | [`import_instance_config_if_absent`](#import_instance_config_if_absent) | function | Inserts the document when it is absent. |
 | [`load_instance_config`](#load_instance_config) | function | Loads and parses the instance config document. |
 | [`parse_setting_text`](#parse_setting_text) | function | Parses an operator-typed value for `key` according to the schema. |
-| [`reconcile_instance_configs_to_schema`](#reconcile_instance_configs_to_schema) | function | Rewrites every instance document of `plugin_key` to what `schema` still accepts: settings whose key is gone, became a secret, or whose value no longer fits (a type or enum change), and secret refs whose key is gone or became plain, are dropped. |
+| [`reconcile_instance_configs_to_schema`](#reconcile_instance_configs_to_schema) | function | Rewrites every instance document of `plugin_key` to what `schema` still accepts: settings whose key is gone, became a secret, or whose value no longer fits (a type or enum change), and secret refs whose key is gone or became plain, are dropped. Table rows are brought to the current columns with `bookclerk_plugin_abi::SettingSpec::normalize_value`: cells of removed columns are dropped and defaults of new columns written, which changes the document without removing a key. |
 | [`replace_instance_config`](#replace_instance_config) | function | Replaces the instance document when `expected_revision` is current. |
 | [`resolve_instance_bindings`](#resolve_instance_bindings) | function | Resolves `CONFIG` and `SECRETS` for `instance_id` against `schema`. |
 | [`seal_instance_secret`](#seal_instance_secret) | function | Seals one instance secret with the cluster DEK. |
@@ -2384,7 +2385,8 @@ One instance document rewritten to fit the pinned schema.
 - `instance_id`: Instance whose document changed.
 - `removed_keys`: Keys dropped from the document: settings the schema no longer
   declares, declares as secrets, or whose value no longer fits the
-  entry's kind; secret refs whose key is gone or now plain.
+  entry's kind; secret refs whose key is gone or now plain. Empty when
+  only table rows were brought to the current columns.
 - `revision`: Revision after the rewrite.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -2808,7 +2810,7 @@ Implements: `Clone`, `Debug`
 ```rust
 pub struct LinkImport<'a> {
     pub cluster_id: &'a str,
-    pub book: &'a BookRecord,
+    pub book: &'a NewBook,
     pub primary_key: &'a str,
     pub pdf_key: Option<&'a str>,
     pub files: &'a [(&'a str, &'a str)],
@@ -2820,8 +2822,8 @@ One title the library committed, as the branch kept it.
 **Fields**
 
 - `cluster_id`: The library this branch acquired the title for.
-- `book`: The library's row of the title (its uuid is the library's and is not
-  reused here).
+- `book`: The title as the library sent it (its `uuid`, when set, is the
+  library's and is not reused here).
 - `primary_key`: Storage key of the primary audio file, the same on every
   destination of the copy.
 - `pdf_key`: Storage key of the companion PDF, when one was acquired.
@@ -5246,6 +5248,34 @@ Outcome of [`replace_instance_config`](#replace_instance_config).
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
+### SettingCell
+
+```rust
+pub enum SettingCell {
+    Bool(bool),
+    Number(Number),
+    String(String),
+}
+```
+
+One cell of a table setting row: the scalar kinds only.
+
+**Variants**
+
+- `Bool`: JSON boolean.
+- `Number`: Finite JSON number; an integer for integer columns.
+- `String`: JSON string, at most 1024 bytes.
+
+#### SettingCell::to_json
+
+```rust
+pub fn to_json(&self) -> Value
+```
+
+The cell as JSON.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### SettingValue
 
 ```rust
@@ -5253,10 +5283,11 @@ pub enum SettingValue {
     Bool(bool),
     Number(Number),
     String(String),
+    Rows(Vec<BTreeMap<String, SettingCell>>),
 }
 ```
 
-One scalar setting. Nested objects and arrays are not representable.
+One setting value: a scalar, or the rows of a table setting.
 
 **Variants**
 
@@ -5264,6 +5295,17 @@ One scalar setting. Nested objects and arrays are not representable.
 - `Number`: Finite JSON number: an integer kind stores an `i64`, so the schema
   is an unformatted `number` rather than a `double`.
 - `String`: JSON string, at most 1024 bytes.
+- `Rows`: Rows of a table setting: each row maps a column key to a scalar cell.
+  Rows are records rather than positional lists, so a column added to
+  the declaration later keeps existing rows valid.
+
+#### SettingValue::to_json
+
+```rust
+pub fn to_json(&self) -> Value
+```
+
+The value as JSON, the form `CONFIG` and the API carry.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -8583,7 +8625,10 @@ pub async fn reconcile_instance_configs_to_schema(
 Rewrites every instance document of `plugin_key` to what `schema` still
 accepts: settings whose key is gone, became a secret, or whose value no
 longer fits (a type or enum change), and secret refs whose key is gone or
-became plain, are dropped.
+became plain, are dropped. Table rows are brought to the current columns
+with [`bookclerk_plugin_abi::SettingSpec::normalize_value`]: cells of
+removed columns are dropped and defaults of new columns written, which
+changes the document without removing a key.
 
 Enrollment runs this on every pass, so a document that lost a race or
 was written under an earlier schema is repaired on the next restart

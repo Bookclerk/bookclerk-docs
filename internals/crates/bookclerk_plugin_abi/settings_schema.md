@@ -20,6 +20,8 @@ pinned in the library database at enrollment.
 | [`MAX_SETTINGS`](#max_settings) | constant | Maximum `[[settings]]` entries one manifest may declare. |
 | [`MAX_SETTING_VALUES`](#max_setting_values) | constant | Maximum enum values one setting may declare. |
 | [`MAX_SETTING_STRING_BYTES`](#max_setting_string_bytes) | constant | Maximum UTF-8 size of one string setting value. |
+| [`MAX_TABLE_COLUMNS`](#max_table_columns) | constant | Maximum columns one `SettingKind::Table` setting may declare. |
+| [`MAX_TABLE_ROWS`](#max_table_rows) | constant | Maximum rows one `SettingKind::Table` value may hold. |
 
 ## Structs
 
@@ -52,6 +54,7 @@ pub struct SettingSpec {
     pub default: Option<Value>,
     pub required: bool,
     pub description: Option<String>,
+    pub columns: Vec<SettingSpec>,
 }
 ```
 
@@ -67,6 +70,10 @@ One `[[settings]]` entry.
   for secrets.
 - `required`: When true, a spawn without a value (document or default) fails.
 - `description`: Optional help text.
+- `columns`: Columns of a [`SettingKind::Table`](#settingkind) setting, in display order; empty
+  otherwise. Each column is a scalar entry: its `key` names the record
+  field, `required` means every row must have a value (from the row or
+  the column `default`), and it declares no columns of its own.
 
 #### SettingSpec::label_or_key
 
@@ -95,6 +102,24 @@ Checks `value` against this entry's kind.
 ##### Errors
 
 Returns a message naming the key when the value does not fit.
+
+#### SettingSpec::column
+
+```rust
+pub fn column(&self, key: &str) -> Option<&SettingSpec>
+```
+
+Column entry for `key` of a table setting.
+
+#### SettingSpec::normalize_value
+
+```rust
+pub fn normalize_value(&self, value: &Value) -> Value
+```
+
+A stored value brought to the current declaration: for a table, row
+fields of columns no longer declared are dropped and missing columns
+with a default are filled; other kinds come back unchanged.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -230,7 +255,10 @@ required keys.
 Keys the schema does not declare are dropped and returned in
 `dropped`; declared keys whose value no longer fits the entry's kind
 (a type or enum change after an upgrade) are left out of `config` and
-returned in `invalid`, so the default applies instead. A required key
+returned in `invalid`, so the default applies instead. Table rows are
+first brought to the current columns with
+[`SettingSpec::normalize_value`](#settingspecnormalize_value), so a removed column does not
+invalidate them. A required key
 with neither a usable value nor a default is `missing`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -268,6 +296,7 @@ pub enum SettingKind {
     Integer,
     Enum,
     Secret,
+    Table,
 }
 ```
 
@@ -280,6 +309,10 @@ Value type of one setting.
 - `Integer`: Signed 64-bit integer.
 - `Enum`: One of the declared [`SettingSpec::values`](#settingspec) ids.
 - `Secret`: Sealed secret: delivered in `SECRETS`, never stored in a document.
+- `Table`: Rows of records: a JSON array of objects whose keys are the declared
+  [`SettingSpec::columns`](#settingspec) (at most [`MAX_TABLE_ROWS`](#max_table_rows) rows). A row may
+  leave out a column that is not required, so adding a column keeps
+  existing rows valid.
 
 #### SettingKind::as_str
 
@@ -287,7 +320,17 @@ Value type of one setting.
 pub fn as_str(self) -> &'static str
 ```
 
-Wire / UI name (`string`, `bool`, `integer`, `enum`, `secret`).
+Wire / UI name (`string`, `bool`, `integer`, `enum`, `secret`,
+`table`).
+
+#### SettingKind::is_scalar
+
+```rust
+pub fn is_scalar(self) -> bool
+```
+
+True for the kinds a table column may have: string, bool, integer
+and enum.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
 
@@ -334,3 +377,19 @@ pub const MAX_SETTING_STRING_BYTES: usize = 1024;
 ```
 
 Maximum UTF-8 size of one string setting value.
+
+### MAX_TABLE_COLUMNS
+
+```rust
+pub const MAX_TABLE_COLUMNS: usize = 16;
+```
+
+Maximum columns one [`SettingKind::Table`](#settingkind) setting may declare.
+
+### MAX_TABLE_ROWS
+
+```rust
+pub const MAX_TABLE_ROWS: usize = 64;
+```
+
+Maximum rows one [`SettingKind::Table`](#settingkind) value may hold.

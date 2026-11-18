@@ -3708,7 +3708,7 @@ name: string;
 ##### settings
 
 ```ts
-settings: Record<string, string | number | boolean>;
+settings: Record<string, InstanceSettingValue>;
 ```
 
 Stored settings (operator writes only; defaults are not stored).
@@ -3756,7 +3756,7 @@ Secret values to seal; never echoed back.
 ##### settings
 
 ```ts
-settings: Record<string, string | number | boolean>;
+settings: Record<string, InstanceSettingValue>;
 ```
 
 ***
@@ -3843,6 +3843,60 @@ value: string;
 
 ***
 
+### PluginSettingColumn
+
+One column of a `table` setting: the record field each row fills.
+
+#### Properties
+
+##### choices?
+
+```ts
+choices?: PluginSettingChoice[];
+```
+
+Dropdown values of an `enum` column.
+
+##### default?
+
+```ts
+default?: string;
+```
+
+String form of the value a new row starts with.
+
+##### key
+
+```ts
+key: string;
+```
+
+Field name in each row object.
+
+##### label
+
+```ts
+label: string;
+```
+
+Column heading.
+
+##### required?
+
+```ts
+required?: boolean;
+```
+
+True when every row must have a value in this column.
+
+##### value\_type
+
+```ts
+value_type: "string" | "number" | "boolean";
+```
+
+***
+
 ### PluginSettingOption
 
 Editable plugin setting descriptor from the settings API.
@@ -3858,6 +3912,14 @@ default). A `secret` option never carries its value.
 ```ts
 choices?: PluginSettingChoice[];
 ```
+
+##### columns?
+
+```ts
+columns?: PluginSettingColumn[];
+```
+
+Columns of a `table` setting, in display order.
 
 ##### key
 
@@ -3893,10 +3955,12 @@ For a secret setting, whether a sealed value is stored for the instance.
 value: string;
 ```
 
+String form of the value; for a `table` setting, the rows as JSON text.
+
 ##### value\_type
 
 ```ts
-value_type: "string" | "number" | "boolean" | "secret";
+value_type: "string" | "number" | "boolean" | "table" | "secret";
 ```
 
 ***
@@ -6338,6 +6402,16 @@ Who holds a listing: a store account, or a branch library's node.
 
 ***
 
+### InstanceSettingValue
+
+```ts
+type InstanceSettingValue = SettingCellValue | SettingRow[];
+```
+
+One value in a plugin instance document.
+
+***
+
 ### MediaKind
 
 ```ts
@@ -6379,6 +6453,26 @@ type RemoteConsentState =
 ```
 
 Where an owner plugin's request to run here stands.
+
+***
+
+### SettingCellValue
+
+```ts
+type SettingCellValue = string | number | boolean;
+```
+
+One stored cell of a `table` setting row.
+
+***
+
+### SettingRow
+
+```ts
+type SettingRow = Record<string, SettingCellValue>;
+```
+
+One stored row of a `table` setting, keyed by column.
 
 ***
 

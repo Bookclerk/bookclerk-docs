@@ -2324,6 +2324,17 @@ One selectable value for a Settings dropdown.
 - `value` *string*, **required** — Stored config value; empty string means use the plugin default.
 - `label` *string*, **required** — Operator-facing choice caption.
 
+## PluginSettingColumn
+
+One column of a `table` setting in the Settings UI.
+
+- `key` *string*, **required** — Record field the column fills in each row.
+- `label` *string*, **required** — Column heading.
+- `value_type` *string*, **required** — UI widget hint (`boolean`, `string`, or `number`).
+- `choices` *array of [`PluginSettingChoice`](#pluginsettingchoice) or null* — Dropdown values of an `enum` column; omitted otherwise.
+- `default` *string or null* — String form of the value a new row starts with; omitted when there is no default.
+- `required` *boolean* — True when every row must have a value in this column.
+
 ## PluginSettingOption
 
 One editable setting shown in the Settings UI.
@@ -2331,10 +2342,11 @@ One editable setting shown in the Settings UI.
 - `key` *string*, **required** — Dotted `config.toml` key for this option.
 - `label` *string*, **required** — Operator-facing field caption.
 - `value` *string*, **required** — Current string form of the setting.
-- `value_type` *string*, **required** — UI widget hint (`boolean`, `string`, or `number`).
+- `value_type` *string*, **required** — UI widget hint (`boolean`, `string`, `number`, `secret`, or `table`).
 - `choices` *array of [`PluginSettingChoice`](#pluginsettingchoice) or null* — Optional dropdown values; omitted for free-form fields.
 - `secret` *boolean* — True for a `secret` setting: `value` is never the stored value.
 - `secret_set` *boolean or null* — For a secret setting, whether the instance document names a sealed value.
+- `columns` *array of [`PluginSettingColumn`](#pluginsettingcolumn) or null* — Columns of a `table` setting, in display order; omitted for other kinds. `value` is then the rows as JSON text.
 
 ## PluginSettingsGroup
 
@@ -2834,11 +2846,17 @@ JSON body for setting a password (self or provisioner target).
 - `current_password` *string or null* — Required when the caller already has a password (not first-time invite setup).
 - `user_id` *integer (int64) or null* — Target `users.id` when a provisioner sets another user's password.
 
+## SettingCell
+
+One cell of a table setting row: the scalar kinds only.
+
+Type: boolean or [`SettingNumber`](#settingnumber) or string
+
 ## SettingKind
 
 Value type of a declared plugin setting.
 
-Type: one of `string`, `bool`, `integer`, `enum`, `secret`
+Type: one of `string`, `bool`, `integer`, `enum`, `secret`, `table`
 
 ## SettingNumber
 
@@ -2853,11 +2871,12 @@ its key, value type, default and help text.
 
 - `key` *string*, **required** — Setting key (`[a-z][a-z0-9_]*`, at most 64 bytes).
 - `label` *string or null* — Operator-facing label; omitted when the key is shown.
-- `type` *[`SettingKind`](#settingkind)*, **required** — Value type: `string`, `bool`, `integer`, `enum` or `secret`.
+- `type` *[`SettingKind`](#settingkind)*, **required** — Value type: `string`, `bool`, `integer`, `enum`, `secret` or `table`.
 - `values` *array of [`SettingValueSpec`](#settingvaluespec) or null* — Allowed values of an `enum` setting; omitted for other kinds.
-- `default` *any JSON* — Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.
+- `default` *any JSON* — Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, or for a `table` an array of row objects, as the setting's `type` says.
 - `required` *boolean or null* — True when the instance cannot run without a value; omitted when false.
 - `description` *string or null* — Help text shown beside the setting; omitted when there is none.
+- `columns` *array of [`SettingSpec`](#settingspec) or null* — Columns of a `table` setting, in display order: each a scalar entry naming one field of every row. Omitted for other kinds.
 
 ## SettingsResponse
 
@@ -2879,9 +2898,9 @@ One `config.toml` key/value pair from a settings PATCH.
 
 ## SettingValue
 
-One scalar setting. Nested objects and arrays are not representable.
+One setting value: a scalar, or the rows of a table setting.
 
-Type: boolean or [`SettingNumber`](#settingnumber) or string
+Type: boolean or [`SettingNumber`](#settingnumber) or string or array of map of string to [`SettingCell`](#settingcell)
 
 ## SettingValueSpec
 

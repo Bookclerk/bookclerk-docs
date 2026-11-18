@@ -120,6 +120,7 @@ bytes.
 | [`RemoteVersion`](#remoteversion) | struct | The active version of a plugin a host is asked to run. |
 | [`ScanImport`](#scanimport) | struct | The owner's library import settings a host scan runs with. |
 | [`ScanToken`](#scantoken) | struct | The sync token an owner holds for one account a host scan covers. |
+| [`TargetTitle`](#targettitle) | struct | A title an `AcquireTarget` names, as the owner's library holds it: the store listing's identity and the metadata a host names the title's files from and seeds its scratch library with. The store and account are the target's own. |
 | [`UploadAnswer`](#uploadanswer) | struct | Answer of the upload endpoint (every status carries one). |
 | [`UploadCommitRequest`](#uploadcommitrequest) | struct | Body of `POST <UPLOADS_PATH><upload_id>/commit`. |
 | [`UploadFile`](#uploadfile) | struct | One file of an upload (`Body::UploadGrant`). Its content crosses the network once and is written to every copy, each destination under the key that destination's own naming options give it. |
@@ -825,8 +826,8 @@ pub struct AcquireTarget {
     pub holding_id: String,
     pub plugin_key: String,
     pub account_id: String,
-    pub book: Value,
-    pub parent: Option<Value>,
+    pub title: TargetTitle,
+    pub parent: Option<TargetTitle>,
     pub library_id: Option<LibraryId>,
     pub parent_library_id: Option<LibraryId>,
 }
@@ -841,11 +842,11 @@ One title an acquire job should fetch on a host
   host's upload of it names.
 - `plugin_key`: Plugin key of the store that sells it.
 - `account_id`: Store account that owns it.
-- `book`: The owner's library row (JSON), for naming and metadata.
-- `parent`: The owner's row for the title's podcast parent (JSON), when the
-  title is an episode whose parent is in the owner's library: a
-  destination that saves episodes to the parent's folder names them
-  from it, as an acquire on the owner would.
+- `title`: The title as the owner's library holds it, for naming and metadata.
+- `parent`: The title's podcast parent as the owner's library holds it, when
+  the title is an episode whose show an account of the same store
+  holds there: a destination that saves episodes to the parent's
+  folder names them from it, as an acquire on the owner would.
 - `library_id`: The title's library id on the owner (the short id of its edition
   there), which the `<library id>` naming tag writes. A host acquires
   into a scratch library whose edition ids differ, so it names with
@@ -1149,6 +1150,62 @@ The sync token an owner holds for one account a host scan covers.
 
 - `account_id`: The store account.
 - `sync_token`: The token, at most [`MAX_SCAN_SYNC_TOKEN_BYTES`](#max_scan_sync_token_bytes).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### TargetTitle
+
+```rust
+pub struct TargetTitle {
+    pub product_id: String,
+    pub source: String,
+    pub marketplace: String,
+    pub asin: Option<String>,
+    pub isbn: Option<String>,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub authors: Option<String>,
+    pub narrators: Option<String>,
+    pub series: Option<String>,
+    pub series_index: Option<String>,
+    pub series_product_id: Option<String>,
+    pub publisher: Option<String>,
+    pub categories: Option<String>,
+    pub length_minutes: Option<i64>,
+    pub is_abridged: bool,
+    pub content_kind: String,
+    pub purchased_at: Option<String>,
+    pub published_at: Option<String>,
+}
+```
+
+A title an [`AcquireTarget`](#acquiretarget) names, as the owner's library holds it:
+the store listing's identity and the metadata a host names the title's
+files from and seeds its scratch library with. The store and account
+are the target's own.
+
+**Fields**
+
+- `product_id`: The store's product id of the listing (what the store fetches).
+- `source`: The store's source name (`audible`, `librofm`, ...), as the
+  listing's plugin reports it.
+- `marketplace`: The store marketplace the listing is sold in (`us`, `uk`, ...).
+- `asin`: The edition's ASIN, when it has one.
+- `isbn`: The edition's ISBN, when it has one.
+- `title`: The listing's title.
+- `subtitle`: The listing's subtitle.
+- `authors`: Authors, comma-separated, as the listing gives them.
+- `narrators`: Narrators, comma-separated, as the listing gives them.
+- `series`: The series name, when the title is in one.
+- `series_index`: The title's position in its series, as text (`1`, `2.5`).
+- `series_product_id`: The store's product id of the series, or of an episode's show.
+- `publisher`: The publisher.
+- `categories`: Categories, comma-separated, as the listing gives them.
+- `length_minutes`: Running time in whole minutes.
+- `is_abridged`: Whether the listing is abridged.
+- `content_kind`: `book`, `podcast` or `episode`.
+- `purchased_at`: When the account bought it, RFC 3339.
+- `published_at`: When it was published, RFC 3339.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

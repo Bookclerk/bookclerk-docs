@@ -259,7 +259,7 @@ Schema:
                 },
                 "value_type": {
                   "type": "string",
-                  "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                  "description": "UI widget hint (`boolean`, `string`, `number`, `secret`, or\n`table`).",
                   "example": "string"
                 },
                 "choices": {
@@ -301,6 +301,79 @@ Schema:
                   ],
                   "description": "For a secret setting, whether the instance document names a sealed value.",
                   "example": true
+                },
+                "columns": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "description": "One column of a `table` setting in the Settings UI.",
+                    "required": [
+                      "key",
+                      "label",
+                      "value_type"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "description": "Record field the column fills in each row.",
+                        "example": "prefix"
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Column heading.",
+                        "example": "Storage key prefix"
+                      },
+                      "value_type": {
+                        "type": "string",
+                        "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                        "example": "string"
+                      },
+                      "choices": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "description": "One selectable value for a Settings dropdown.",
+                          "required": [
+                            "value",
+                            "label"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "description": "Stored config value; empty string means use the plugin default.",
+                              "example": "m4b"
+                            },
+                            "label": {
+                              "type": "string",
+                              "description": "Operator-facing choice caption.",
+                              "example": "M4B"
+                            }
+                          }
+                        },
+                        "description": "Dropdown values of an `enum` column; omitted otherwise."
+                      },
+                      "default": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "String form of the value a new row starts with; omitted when there\nis no default.",
+                        "example": ""
+                      },
+                      "required": {
+                        "type": "boolean",
+                        "description": "True when every row must have a value in this column.",
+                        "example": true
+                      }
+                    }
+                  },
+                  "description": "Columns of a `table` setting, in display order; omitted for other\nkinds. `value` is then the rows as JSON text."
                 }
               }
             },
@@ -957,7 +1030,7 @@ Schema:
                 },
                 "value_type": {
                   "type": "string",
-                  "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                  "description": "UI widget hint (`boolean`, `string`, `number`, `secret`, or\n`table`).",
                   "example": "string"
                 },
                 "choices": {
@@ -999,6 +1072,79 @@ Schema:
                   ],
                   "description": "For a secret setting, whether the instance document names a sealed value.",
                   "example": true
+                },
+                "columns": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "description": "One column of a `table` setting in the Settings UI.",
+                    "required": [
+                      "key",
+                      "label",
+                      "value_type"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "description": "Record field the column fills in each row.",
+                        "example": "prefix"
+                      },
+                      "label": {
+                        "type": "string",
+                        "description": "Column heading.",
+                        "example": "Storage key prefix"
+                      },
+                      "value_type": {
+                        "type": "string",
+                        "description": "UI widget hint (`boolean`, `string`, or `number`).",
+                        "example": "string"
+                      },
+                      "choices": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "description": "One selectable value for a Settings dropdown.",
+                          "required": [
+                            "value",
+                            "label"
+                          ],
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "description": "Stored config value; empty string means use the plugin default.",
+                              "example": "m4b"
+                            },
+                            "label": {
+                              "type": "string",
+                              "description": "Operator-facing choice caption.",
+                              "example": "M4B"
+                            }
+                          }
+                        },
+                        "description": "Dropdown values of an `enum` column; omitted otherwise."
+                      },
+                      "default": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "String form of the value a new row starts with; omitted when there\nis no default.",
+                        "example": ""
+                      },
+                      "required": {
+                        "type": "boolean",
+                        "description": "True when every row must have a value in this column.",
+                        "example": true
+                      }
+                    }
+                  },
+                  "description": "Columns of a `table` setting, in display order; omitted for other\nkinds. `value` is then the rows as JSON text."
                 }
               }
             },

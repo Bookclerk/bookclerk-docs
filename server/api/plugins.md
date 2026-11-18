@@ -209,13 +209,14 @@ Schema:
                 },
                 "type": {
                   "type": "string",
-                  "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+                  "description": "Value type: `string`, `bool`, `integer`, `enum`, `secret` or\n`table`.",
                   "enum": [
                     "string",
                     "bool",
                     "integer",
                     "enum",
-                    "secret"
+                    "secret",
+                    "table"
                   ],
                   "example": "string"
                 },
@@ -249,7 +250,7 @@ Schema:
                   "description": "Allowed values of an `enum` setting; omitted for other kinds."
                 },
                 "default": {
-                  "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+                  "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, or for a `table` an array of row objects, as the setting's `type` says.",
                   "examples": [
                     "/srv/audiobooks"
                   ]
@@ -269,6 +270,16 @@ Schema:
                   ],
                   "description": "Help text shown beside the setting; omitted when there is none.",
                   "example": "Directory the finished audiobooks are written to."
+                },
+                "columns": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$ref": "#/components/schemas/SettingSpec"
+                  },
+                  "description": "Columns of a `table` setting, in display order: each a scalar entry\nnaming one field of every row. Omitted for other kinds."
                 }
               }
             },
@@ -310,9 +321,39 @@ Schema:
                         {
                           "type": "string",
                           "description": "JSON string, at most 1024 bytes."
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "oneOf": [
+                                {
+                                  "type": "boolean",
+                                  "description": "JSON boolean."
+                                },
+                                {
+                                  "type": "number",
+                                  "description": "Finite JSON number; an integer for integer columns.",
+                                  "examples": [
+                                    8
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "JSON string, at most 1024 bytes."
+                                }
+                              ],
+                              "description": "One cell of a table setting row: the scalar kinds only."
+                            },
+                            "propertyNames": {
+                              "type": "string"
+                            }
+                          },
+                          "description": "Rows of a table setting: each row maps a column key to a scalar cell.\nRows are records rather than positional lists, so a column added to\nthe declaration later keeps existing rows valid."
                         }
                       ],
-                      "description": "One scalar setting. Nested objects and arrays are not representable.",
+                      "description": "One setting value: a scalar, or the rows of a table setting.",
                       "example": "/srv/audiobooks"
                     },
                     "propertyNames": {
@@ -1418,7 +1459,10 @@ Status `200`: The instance's settings document (secrets as names only).
       ],
       "default": "/srv/audiobooks",
       "required": true,
-      "description": "Directory the finished audiobooks are written to."
+      "description": "Directory the finished audiobooks are written to.",
+      "columns": [
+        {}
+      ]
     }
   ]
 }
@@ -1475,9 +1519,39 @@ Schema:
           {
             "type": "string",
             "description": "JSON string, at most 1024 bytes."
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "JSON boolean."
+                  },
+                  {
+                    "type": "number",
+                    "description": "Finite JSON number; an integer for integer columns.",
+                    "examples": [
+                      8
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "description": "JSON string, at most 1024 bytes."
+                  }
+                ],
+                "description": "One cell of a table setting row: the scalar kinds only."
+              },
+              "propertyNames": {
+                "type": "string"
+              }
+            },
+            "description": "Rows of a table setting: each row maps a column key to a scalar cell.\nRows are records rather than positional lists, so a column added to\nthe declaration later keeps existing rows valid."
           }
         ],
-        "description": "One scalar setting. Nested objects and arrays are not representable.",
+        "description": "One setting value: a scalar, or the rows of a table setting.",
         "example": "/srv/audiobooks"
       },
       "propertyNames": {
@@ -1548,13 +1622,14 @@ Schema:
           },
           "type": {
             "type": "string",
-            "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+            "description": "Value type: `string`, `bool`, `integer`, `enum`, `secret` or\n`table`.",
             "enum": [
               "string",
               "bool",
               "integer",
               "enum",
-              "secret"
+              "secret",
+              "table"
             ],
             "example": "string"
           },
@@ -1588,7 +1663,7 @@ Schema:
             "description": "Allowed values of an `enum` setting; omitted for other kinds."
           },
           "default": {
-            "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+            "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, or for a `table` an array of row objects, as the setting's `type` says.",
             "examples": [
               "/srv/audiobooks"
             ]
@@ -1608,6 +1683,16 @@ Schema:
             ],
             "description": "Help text shown beside the setting; omitted when there is none.",
             "example": "Directory the finished audiobooks are written to."
+          },
+          "columns": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SettingSpec"
+            },
+            "description": "Columns of a `table` setting, in display order: each a scalar entry\nnaming one field of every row. Omitted for other kinds."
           }
         }
       },
@@ -1963,9 +2048,39 @@ Schema:
           {
             "type": "string",
             "description": "JSON string, at most 1024 bytes."
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "boolean",
+                    "description": "JSON boolean."
+                  },
+                  {
+                    "type": "number",
+                    "description": "Finite JSON number; an integer for integer columns.",
+                    "examples": [
+                      8
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "description": "JSON string, at most 1024 bytes."
+                  }
+                ],
+                "description": "One cell of a table setting row: the scalar kinds only."
+              },
+              "propertyNames": {
+                "type": "string"
+              }
+            },
+            "description": "Rows of a table setting: each row maps a column key to a scalar cell.\nRows are records rather than positional lists, so a column added to\nthe declaration later keeps existing rows valid."
           }
         ],
-        "description": "One scalar setting. Nested objects and arrays are not representable.",
+        "description": "One setting value: a scalar, or the rows of a table setting.",
         "example": "/srv/audiobooks"
       },
       "propertyNames": {
@@ -4419,7 +4534,8 @@ Status `200`: The plugin with its installed versions and pinned schema.
         "values": [],
         "default": "/srv/audiobooks",
         "required": true,
-        "description": "Directory the finished audiobooks are written to."
+        "description": "Directory the finished audiobooks are written to.",
+        "columns": []
       }
     ]
   }
@@ -4649,13 +4765,14 @@ Schema:
                       },
                       "type": {
                         "type": "string",
-                        "description": "Value type: `string`, `bool`, `integer`, `enum` or `secret`.",
+                        "description": "Value type: `string`, `bool`, `integer`, `enum`, `secret` or\n`table`.",
                         "enum": [
                           "string",
                           "bool",
                           "integer",
                           "enum",
-                          "secret"
+                          "secret",
+                          "table"
                         ],
                         "example": "string"
                       },
@@ -4689,7 +4806,7 @@ Schema:
                         "description": "Allowed values of an `enum` setting; omitted for other kinds."
                       },
                       "default": {
-                        "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, as the setting's `type` says.",
+                        "description": "Default applied when the instance document has no value; omitted when there is none. A string, boolean or integer, or for a `table` an array of row objects, as the setting's `type` says.",
                         "examples": [
                           "/srv/audiobooks"
                         ]
@@ -4709,6 +4826,16 @@ Schema:
                         ],
                         "description": "Help text shown beside the setting; omitted when there is none.",
                         "example": "Directory the finished audiobooks are written to."
+                      },
+                      "columns": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "$ref": "#/components/schemas/SettingSpec"
+                        },
+                        "description": "Columns of a `table` setting, in display order: each a scalar entry\nnaming one field of every row. Omitted for other kinds."
                       }
                     }
                   },

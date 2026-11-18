@@ -473,6 +473,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`settings_schema::SettingsSchema`](settings_schema.md#settingsschema)
 - [`settings_schema::MAX_SETTINGS`](settings_schema.md#max_settings)
 - [`settings_schema::MAX_SETTING_STRING_BYTES`](settings_schema.md#max_setting_string_bytes)
+- [`settings_schema::MAX_TABLE_COLUMNS`](settings_schema.md#max_table_columns)
+- [`settings_schema::MAX_TABLE_ROWS`](settings_schema.md#max_table_rows)
 - [`settings_schema::SETTINGS_SCHEMA_VERSION`](settings_schema.md#settings_schema_version)
 - [`generated::Entrypoint`](generated.md#entrypoint)
 - [`generated::PortalAuthMode`](generated.md#portalauthmode)
