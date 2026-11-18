@@ -135,6 +135,7 @@ bytes.
 | [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = owner`). `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
+| [`WindowCopy`](#windowcopy) | struct | The copy of an edition's primary audio file a library holds, as its probe of the file found it: enough for a reader to decide whether to take the library's copy or fetch its own, without asking again. |
 | [`WindowCursor`](#windowcursor) | struct | Where a page of the person's books starts: an opaque key the library handed out as the previous page's `next`, or empty for the first page. |
 | [`WindowEdition`](#windowedition) | struct | One edition of a `WindowWork`: the edition as the library holds it, and whether it is the person's own. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
@@ -309,6 +310,8 @@ bytes.
 | [`ARTIFACT_REQUEST_MAX_SKEW_SECS`](#artifact_request_max_skew_secs) | constant | How far a signed artifact request's time may be from the owner's clock. |
 | [`AUTH_DOMAIN`](#auth_domain) | constant | Domain tag that starts every signed transcript. |
 | [`NONCE_LEN`](#nonce_len) | constant | Length of a challenge nonce. |
+| [`MAX_COPY_CONTENT_TYPE_BYTES`](#max_copy_content_type_bytes) | constant | Longest `WindowCopy::content_type`, in bytes. |
+| [`MAX_COPY_VERSION_BYTES`](#max_copy_version_bytes) | constant | Longest `WindowCopy::version`, in bytes. |
 | [`MAX_WINDOW_WORKS`](#max_window_works) | constant | Most works one `crate::Body::WindowPage` may carry. |
 | [`ARTIFACTS_PATH`](#artifacts_path) | constant | Path prefix of the owner's artifact endpoint: `GET /api/node/v1/artifacts/<archive_sha256>` with a signed `Authorization` (`sign_artifact_request`) streams one stored archive to a host that runs it. |
 | [`UPLOADS_PATH`](#uploads_path) | constant | Path prefix of the owner's upload endpoint (H-4 design, section 6): `PUT\|HEAD <prefix><upload_id>/files/<n>` streams one declared file and `POST <prefix><upload_id>/commit` commits the title, each with `Authorization: Bookclerk-Upload <token>` (`UPLOAD_AUTH_SCHEME`). |
@@ -1578,6 +1581,50 @@ What a handshake signature covers.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
+### WindowCopy
+
+```rust
+pub struct WindowCopy {
+    pub source_store: Option<String>,
+    pub content_type: String,
+    pub bitrate_kbps: Option<u32>,
+    pub lossless: bool,
+    pub version: String,
+}
+```
+
+The copy of an edition's primary audio file a library holds, as its
+probe of the file found it: enough for a reader to decide whether to
+take the library's copy or fetch its own, without asking again.
+
+A hint, like [`WindowEdition::yours`]: the library checks what it hands
+out when a copy is asked for.
+
+**Fields**
+
+- `source_store`: The storefront the library's copy was downloaded from (a store id);
+  absent when the library does not know. It can differ from the
+  edition's own store when the same edition is sold by several.
+- `content_type`: The file's media type, such as `audio/mp4`; 1 to
+  [`MAX_COPY_CONTENT_TYPE_BYTES`](#max_copy_content_type_bytes) bytes of a `type/subtype` token.
+- `bitrate_kbps`: Average bitrate in kbps, 1 to [`crate::MAX_PROBE_BITRATE_KBPS`](#max_probe_bitrate_kbps);
+  absent when the file was not probed or states no running time.
+- `lossless`: True when the audio encoding is lossless; false also for a file
+  that was not probed.
+- `version`: An opaque token that changes whenever the library's file is
+  replaced: 1 to [`MAX_COPY_VERSION_BYTES`](#max_copy_version_bytes) ASCII letters, digits and
+  `-`. A reader keeps it to notice a newer copy.
+
+#### WindowCopy::is_well_formed
+
+```rust
+pub fn is_well_formed(&self) -> bool
+```
+
+True when every field is within its documented shape.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### WindowCursor
 
 ```rust
@@ -1633,6 +1680,7 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Display`, `Eq`, `F
 pub struct WindowEdition {
     pub edition: LookupEdition,
     pub yours: bool,
+    pub copy: Option<WindowCopy>,
 }
 ```
 
@@ -1646,6 +1694,8 @@ and whether it is the person's own.
   on the library; false for a book only other people there hold.
   A hint for the reader: anything the library hands out on the
   strength of it is checked again there.
+- `copy`: The copy of the edition's audio the library holds, when it has
+  acquired one and knows its media type; absent otherwise.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1681,7 +1731,8 @@ Why the work is malformed, or `None`: a grouping key
 ([`is_work_ref`](#is_work_ref)), at most [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) distinct
 well-formed identifiers, and 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) well-formed
 editions the library holds, with distinct (store, marketplace,
-product id).
+product id) and, where one is stated, a well-formed copy
+([`WindowCopy::is_well_formed`](#windowcopyis_well_formed)).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4241,6 +4292,22 @@ pub const NONCE_LEN: usize = 32;
 ```
 
 Length of a challenge nonce.
+
+### MAX_COPY_CONTENT_TYPE_BYTES
+
+```rust
+pub const MAX_COPY_CONTENT_TYPE_BYTES: usize = 64;
+```
+
+Longest [`WindowCopy::content_type`](#windowcopy), in bytes.
+
+### MAX_COPY_VERSION_BYTES
+
+```rust
+pub const MAX_COPY_VERSION_BYTES: usize = 64;
+```
+
+Longest [`WindowCopy::version`](#windowcopy), in bytes.
 
 ### MAX_WINDOW_WORKS
 

@@ -4449,6 +4449,7 @@ pub struct WindowEntryEdition {
     pub owner_origin: String,
     pub edition: LookupEdition,
     pub yours: bool,
+    pub copy: Option<WindowCopy>,
 }
 ```
 
@@ -4461,6 +4462,7 @@ One edition of a [`WindowEntry`](#windowentry), and the library that holds it.
 - `edition`: The edition as that library sent it.
 - `yours`: Whether the person holds it there through a store account of their
   own.
+- `copy`: The copy of its audio that library holds, when it stated one.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
