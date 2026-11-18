@@ -468,9 +468,8 @@ See `docs/adr/control-plane.md`.
 | [`commit_upload`](#commit_upload) | function | Commits an upload whose every file was received. |
 | [`extend_job_uploads`](#extend_job_uploads) | function | Extends the token of every open upload `node_id` holds under the job's lease generation `generation`, after that lease was renewed; answers how many were extended. |
 | [`grant_upload`](#grant_upload) | function | Opens an upload of one title of the acquire job `node_id` holds at `generation`, to be received by `receiving_node_id`. |
-| [`job_titles`](#job_titles) | function | The owner's library rows the acquire `job` run by `node_id` covers: of the job's plugins (`job_plugin_keys`), of the accounts its account selector names (`job_accounts`, so a job naming its account by label or in another case covers that account's titles) and its title when it names them, and, for a Host trusted only with its owner's accounts, one of that user's. `None` when the node is trusted with nothing. |
+| [`job_titles`](#job_titles) | function | The titles the acquire `job` run by `node_id` covers, read from the account holdings as a local acquire reads them: of the job's plugins (`job_plugin_keys`), of the accounts its account selector names (`job_accounts`, so a job naming its account by label or in another case covers that account's titles) and its title when it names one (`LibraryStore::acquire_titles_named`, matched as the executor matches it), and, for a Host trusted only with its owner's accounts, one of that user's. Only titles with a flat `books` row count while `books` exists (book model step 6), as for a local acquire. `None` when the node is trusted with nothing. |
 | [`load_upload`](#load_upload) | function | Loads one upload by id. |
-| [`names_book`](#names_book) | function | True when `book` is one of the titles `title` names. |
 | [`record_upload_file`](#record_upload_file) | function | Records that file `index` reached every destination and extends the upload's token. Answers false when the upload is no longer open (it was aborted meanwhile: the caller deletes the copies it just wrote). |
 | [`upload_fence_live`](#upload_fence_live) | function | True while the upload's fence is the job's live lease for its node and the node is still trusted with the job. |
 | [`upload_owns_key`](#upload_owns_key) | function | True while `key` on `destination` is still `session`'s own: its recorded latest writer is this upload (an upload id is unique, and claims keys for its own title only). A later upload of the title, an acquire run on this node, or another title may have written the key since; the receiving node then leaves the file alone when it cleans up after `session`, so a stale abort never deletes a replacement's file. |
@@ -11396,15 +11395,23 @@ pub async fn job_titles(
     store: &LibraryStore,
     node_id: &str,
     job: &JobRecord,
-) -> Result<Option<Vec<BookRecord>>>
+) -> Result<Option<Vec<AcquireTitle>>>
 ```
 
-The owner's library rows the acquire `job` run by `node_id` covers: of
-the job's plugins ([`job_plugin_keys`](#job_plugin_keys)), of the accounts its account
-selector names (`job_accounts`, so a job naming its account by label
-or in another case covers that account's titles) and its title when it
-names them, and, for a Host trusted only with its owner's accounts, one
-of that user's. `None` when the node is trusted with nothing.
+The titles the acquire `job` run by `node_id` covers, read from the
+account holdings as a local acquire reads them: of the job's plugins
+([`job_plugin_keys`](#job_plugin_keys)), of the accounts its account selector names
+(`job_accounts`, so a job naming its account by label or in another
+case covers that account's titles) and its title when it names one
+([`LibraryStore::acquire_titles_named`](README.md#librarystoreacquire_titles_named), matched as the executor
+matches it), and, for a Host trusted only with its owner's accounts,
+one of that user's. Only titles with a flat `books` row count while
+`books` exists (book model step 6), as for a local acquire. `None` when
+the node is trusted with nothing.
+
+Without a title the holdings are read in keyset pages
+([`LibraryStore::acquire_titles_page`](README.md#librarystoreacquire_titles_page)), so no read loads the whole
+library at once.
 
 #### Errors
 
@@ -11424,14 +11431,6 @@ Loads one upload by id.
 #### Errors
 
 Returns an error when the read fails or the row is malformed.
-
-### names_book
-
-```rust
-pub fn names_book(title: &str, book: &BookRecord) -> bool
-```
-
-True when `book` is one of the titles `title` names.
 
 ### record_upload_file
 
