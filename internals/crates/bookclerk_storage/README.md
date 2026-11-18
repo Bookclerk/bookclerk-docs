@@ -60,6 +60,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 
 ## Modules
 
+- [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
 
 ## Traits
@@ -907,6 +908,16 @@ Stores objects under a root directory; keys map to relative paths.
 
 An optional key prefix is prepended to every key (same model as S3),
 so library `storage_key` values stay relative to the prefix.
+
+#### LocalFsBackend::CAPABILITIES
+
+```rust
+pub const CAPABILITIES: StorageCapabilities = _
+```
+
+What every local backend does natively: moves are renames, batches
+run in one call, and conditional writes are checked here. There is no
+change feed yet.
 
 #### LocalFsBackend::new
 
