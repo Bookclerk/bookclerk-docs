@@ -1029,6 +1029,39 @@ recoverable after process death.
 
 Returns an error when the operation fails.
 
+#### S3Backend::CAPABILITIES
+
+```rust
+pub const CAPABILITIES: StorageCapabilities = _
+```
+
+What every S3 backend can do natively once the store has shown it
+enforces conditions; each operation falls back to the host's
+algorithm on a store that does not (see [`Self::conditional_support`](#s3backendconditional_support)).
+
+#### S3Backend::conditional_support
+
+```rust
+pub async fn conditional_support(&self) -> ConditionalSupport
+```
+
+Which conditional requests this store enforces, probed on first use
+and remembered for the backend's lifetime.
+
+Each request kind is probed on its own, because a store can enforce a
+condition on one and ignore it on another. Under `.bookclerk-probe/`
+the probe writes a scratch object with `If-None-Match: *` twice
+(the second must be refused) and overwrites it with a wrong
+`If-Match` (refused); completes a one-part multipart upload onto it
+with each condition (both refused) and aborts the upload; copies it
+onto a second existing object with a wrong
+`x-amz-copy-source-if-match` (refused) and with `If-None-Match: *`
+(refused); copies it as an upload part with a wrong
+`x-amz-copy-source-if-match` (refused) and aborts that upload; and
+deletes it with a wrong `If-Match` (refused). It then removes both
+objects. Any other answer, including an error, counts as "not
+enforced", so a store is never trusted by default.
+
 #### S3Backend::retry_orphans
 
 ```rust
