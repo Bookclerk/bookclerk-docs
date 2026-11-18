@@ -414,7 +414,7 @@ transport check and the library card.
 
 ### Responses
 
-- `101` — Switching to the clerk socket: `hello` and `changed` frames name the topics that changed, and each `books` frame is answered with one page of the card's person's books (`books.page`). No body.
+- `101` — Switching to the clerk socket: `hello` and `changed` frames name the topics that changed, each `books` frame is answered with one page of the card's person's books (`books.page`), and each `copy.grant` frame with the library's copy of that edition and a one-hour token for `GET /api/copies/v1/{copy_id}/files/{index}` (`copy.granted`). An ask that is not answered gets an `error` frame instead: `invalid` for a frame the library cannot read, `unavailable` when it cannot answer just now, and for `copy.grant` `not_found` when the person may not take that edition or the library holds no copy of it. No body.
 - `400` — The request does not offer the `bookclerk-clerk.v1` subprotocol (`subprotocol_required`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -478,7 +478,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `101`: Switching to the clerk socket: `hello` and `changed` frames name the topics that changed, and each `books` frame is answered with one page of the card's person's books (`books.page`). No body.
+Status `101`: Switching to the clerk socket: `hello` and `changed` frames name the topics that changed, each `books` frame is answered with one page of the card's person's books (`books.page`), and each `copy.grant` frame with the library's copy of that edition and a one-hour token for `GET /api/copies/v1/{copy_id}/files/{index}` (`copy.granted`). An ask that is not answered gets an `error` frame instead: `invalid` for a frame the library cannot read, `unavailable` when it cannot answer just now, and for `copy.grant` `not_found` when the person may not take that edition or the library holds no copy of it. No body.
 
 Status `400`: The request does not offer the `bookclerk-clerk.v1` subprotocol (`subprotocol_required`).
 

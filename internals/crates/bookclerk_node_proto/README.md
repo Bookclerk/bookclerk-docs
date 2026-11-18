@@ -103,6 +103,8 @@ bytes.
 | [`ClerkTokenRequest`](#clerktokenrequest) | struct | `POST /api/clerk/v1/token` body: exactly these three strings, each once, and nothing else. |
 | [`ClerkUser`](#clerkuser) | struct | The person a clerk session signs in as. |
 | [`StoredClerkCode`](#storedclerkcode) | struct | What the library stored with an approved code, as the token exchange checks it. |
+| [`ClerkCopy`](#clerkcopy) | struct | What a `copy.granted` frame carries. |
+| [`CopyToken`](#copytoken) | struct | A copy token as a clerk socket frame carries it: the bearer of the download endpoint (`crate::COPY_AUTH_SCHEME`). Its `Debug` prints no token, and the text is zeroized when dropped. |
 | [`CopyFile`](#copyfile) | struct | One file of a copy (`crate::Body::CopyGranted`). |
 | [`CopyGrantedFrame`](#copygrantedframe) | struct | The fields of a `crate::Body::CopyGranted`, borrowed for `copy_granted_problem`. |
 | [`AcquireTarget`](#acquiretarget) | struct | One title an acquire job should fetch on a host (`Body::AcquireTargets`). |
@@ -142,7 +144,7 @@ bytes.
 | [`WindowEdition`](#windowedition) | struct | One edition of a `WindowWork`: the edition as the library holds it, and whether it is the person's own. |
 | [`WindowWork`](#windowwork) | struct | One work the library holds for the window's person. |
 | [`ClerkFrame`](#clerkframe) | enum | A frame from a clerk to a library. |
-| [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` frame. |
+| [`ClerkSocketError`](#clerksocketerror) | enum | Why the library did not answer a `books` or `copy.grant` frame. |
 | [`ClerkTopic`](#clerktopic) | enum | Something a clerk hears about on the socket. Each names the routes to read again; the socket itself carries no row data. |
 | [`LibraryFrame`](#libraryframe) | enum | A frame from a library to a clerk. |
 | [`CopyRange`](#copyrange) | enum | What a download's `Range` header asks for (`parse_copy_range`). |
@@ -183,7 +185,7 @@ bytes.
 | [`parse_clerk_token_answer`](#parse_clerk_token_answer) | function | Reads the library's `POST /api/clerk/v1/token` answer on the clerk. |
 | [`parse_clerk_token_request`](#parse_clerk_token_request) | function | Reads a `POST /api/clerk/v1/token` body. |
 | [`is_topic_name`](#is_topic_name) | function | True when `name` could be a topic name: 1 to `MAX_CLERK_TOPIC_BYTES` bytes of lowercase ASCII letters, digits, `_` and `.`. |
-| [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with exactly `v` (1), `type` (`books`) and `after` (a string `WindowCursor`), each once. |
+| [`parse_clerk_frame`](#parse_clerk_frame) | function | Reads a frame a clerk sent: at most `MAX_CLERK_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once (a field written as `null` counts as absent). |
 | [`parse_library_frame`](#parse_library_frame) | function | Reads a frame a library sent: at most `crate::MAX_FRAME_BYTES`, one JSON object with `v` (1), a known `type`, and exactly that type's fields, each once. |
 | [`copy_grant_problem`](#copy_grant_problem) | function | Why a `crate::Body::CopyGrant` is malformed, or `None`: a store id, a marketplace (empty when the store has none) and a product id. |
 | [`copy_granted_problem`](#copy_granted_problem) | function | Why a `crate::Body::CopyGranted` is malformed, or `None`: a copy id (`is_copy_id`), a non-empty sealed token of base64url text, a life of 1 to `MAX_COPY_TOKEN_SECS` seconds, a well-formed copy, and 1 to `MAX_COPY_FILES` well-formed files with distinct names, exactly one of them the primary audio (`CopyRole::Audio`). |
@@ -678,6 +680,75 @@ checks it.
 - `challenge`: The PKCE challenge the authorize request sent.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ClerkCopy
+
+```rust
+pub struct ClerkCopy {
+    pub store: String,
+    pub marketplace: String,
+    pub product_id: String,
+    pub copy_id: String,
+    pub token: CopyToken,
+    pub expires_in_secs: u64,
+    pub copy: WindowCopy,
+    pub files: Vec<CopyFile>,
+}
+```
+
+What a `copy.granted` frame carries.
+
+**Fields**
+
+- `store`: Store id of the listing the clerk asked with.
+- `marketplace`: That listing's marketplace; empty for a store without marketplaces.
+- `product_id`: That listing's product id.
+- `copy_id`: Copy id; the files are at `COPIES_PATH<copy_id>/files/<n>`.
+- `token`: The bearer token for the download endpoint.
+- `expires_in_secs`: Seconds the token stays valid.
+- `copy`: What the copy is, as the library's page states it.
+- `files`: The copy's files; a file's index here is its `<n>`.
+
+#### ClerkCopy::problem
+
+```rust
+pub fn problem(&self) -> Option<&'static str>
+```
+
+Why the grant is malformed, or `None`: a listing that passes
+[`copy_grant_problem`](#copy_grant_problem) and the rest passing
+[`copy_granted_problem`](#copy_granted_problem), the token held to the same rule as a
+node's sealed one (1 to 1024 base64url characters).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CopyToken
+
+```rust
+pub struct CopyToken(/* private */);
+```
+
+A copy token as a clerk socket frame carries it: the bearer of the
+download endpoint ([`crate::COPY_AUTH_SCHEME`](#copy_auth_scheme)). Its `Debug` prints no
+token, and the text is zeroized when dropped.
+
+#### CopyToken::new
+
+```rust
+pub fn new(token: &str) -> Self
+```
+
+Wraps `token`.
+
+#### CopyToken::expose
+
+```rust
+pub fn expose(&self) -> &str
+```
+
+The token text, for the `Authorization` header.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### CopyFile
 
@@ -1825,6 +1896,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 ```rust
 pub enum ClerkFrame {
     Books { after: WindowCursor },
+    CopyGrant { store: String, marketplace: String, product_id: String },
 }
 ```
 
@@ -1835,6 +1907,12 @@ A frame from a clerk to a library.
 - `Books`: `books`: the page of the library's books after `after` (empty for
   the first page).
   - `after`: The cursor of the previous page.
+- `CopyGrant`: `copy.grant`: ask for the library's copy of one edition, named by
+  its store listing; the person is the card's.
+  - `store`: Store id of the edition's listing.
+  - `marketplace`: The listing's marketplace; empty for a store without
+    marketplaces.
+  - `product_id`: The listing's product id.
 
 #### ClerkFrame::encode
 
@@ -1852,15 +1930,18 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 pub enum ClerkSocketError {
     Invalid,
     Unavailable,
+    NotFound,
 }
 ```
 
-Why the library did not answer a `books` frame.
+Why the library did not answer a `books` or `copy.grant` frame.
 
 **Variants**
 
 - `Invalid`: The clerk sent a frame the library could not read.
 - `Unavailable`: The library could not read the books just now; ask again later.
+- `NotFound`: `copy.grant` only: the person may not take that edition, or the
+  library holds no copy of it. One code for both.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1915,6 +1996,7 @@ pub enum LibraryFrame {
     Hello { topics: BTreeSet<ClerkTopic> },
     Changed { topics: BTreeSet<ClerkTopic> },
     BooksPage { after: WindowCursor, works: Vec<WindowWork>, next: Option<WindowCursor> },
+    CopyGranted(Box<ClerkCopy>),
     Error { code: ClerkSocketError },
 }
 ```
@@ -1932,7 +2014,8 @@ A frame from a library to a clerk.
   - `after`: The cursor the clerk asked with.
   - `works`: At most [`crate::MAX_WINDOW_WORKS`](#max_window_works) works.
   - `next`: The cursor of the next page; `None` on the last page.
-- `Error`: `error`: a `books` frame was not answered.
+- `CopyGranted`: `copy.granted`: the copy may be downloaded.
+- `Error`: `error`: a `books` or `copy.grant` frame was not answered.
   - `code`: Why.
 
 #### LibraryFrame::encode
@@ -3131,8 +3214,12 @@ pub fn parse_clerk_frame(text: &[u8]) -> Option<ClerkFrame>
 ```
 
 Reads a frame a clerk sent: at most [`MAX_CLERK_FRAME_BYTES`](#max_clerk_frame_bytes), one JSON
-object with exactly `v` (1), `type` (`books`) and `after` (a string
-[`WindowCursor`](#windowcursor)), each once.
+object with `v` (1), a known `type`, and exactly that type's fields,
+each once (a field written as `null` counts as absent).
+
+- `books`: `after`, a string [`WindowCursor`](#windowcursor).
+- `copy.grant`: `store`, `product_id` and, for a store with
+  marketplaces, `marketplace`, passing [`copy_grant_problem`](#copy_grant_problem).
 
 #### Arguments
 
@@ -3156,6 +3243,9 @@ each once.
   each [`is_topic_name`](#is_topic_name); names this version does not know are dropped.
 - `books.page`: `after` (a [`WindowCursor`](#windowcursor)), `works`, and `next` unless it is
   the last page, passing [`crate::window_page_problem`](#window_page_problem).
+- `copy.granted`: `store`, `product_id`, `copy_id`, `token`,
+  `expires_in_secs`, `copy`, `files` and, for a store with
+  marketplaces, `marketplace`, passing [`ClerkCopy::problem`](#clerkcopyproblem).
 - `error`: a [`ClerkSocketError`](#clerksocketerror) `code`.
 
 #### Arguments

@@ -4878,6 +4878,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
 ```rust
 pub enum CopyHolder<'a> {
     Node(&'a str),
+    Card(&'a str),
 }
 ```
 
@@ -4886,6 +4887,9 @@ Who asks for a copy.
 **Variants**
 
 - `Node`: A branch node, on its node socket; the person is its owner.
+- `Card`: A clerk, on its clerk socket, named by the SHA-256 hex of its
+  library card (`portal_sessions.token_hash`); the person is the
+  card's.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 

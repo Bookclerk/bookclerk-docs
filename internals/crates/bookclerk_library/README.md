@@ -11266,6 +11266,30 @@ unused for `idle` is signed out.
 
 Returns an error when the operation fails.
 
+#### LibraryStore::clerk_session_person
+
+```rust
+pub async fn clerk_session_person(&self, token_hash: &str) -> Result<Option<i64>>
+```
+
+The person a library card is signed in as right now, read without
+touching the session: a `clerk` session with that token hash that
+has not expired, whose identity names a user who exists and is not
+disabled.
+
+A copy download asks this on every request
+([`crate::control_plane::authorize_copy`](control_plane.md#authorize_copy)); it does not keep the
+card signed in, which only the card's own use does
+([`Self::get_clerk_session_identity`](#librarystoreget_clerk_session_identity)).
+
+##### Arguments
+
+* `token_hash` - SHA-256 hex of the card's token.
+
+##### Errors
+
+Returns an error when a read fails.
+
 #### LibraryStore::insert_operator_session
 
 ```rust

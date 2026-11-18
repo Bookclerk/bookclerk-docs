@@ -14,7 +14,7 @@ Streams one file of a granted copy.
 
 ### Parameters
 
-- `copy_id` (path) *string*, **required** — Copy id from `copy.granted`.
+- `copy_id` (path) *string*, **required** — Copy id from `copy.granted`, on the node socket or the clerk socket.
 - `index` (path) *integer (int32)*, **required** — The file's index in the grant's `files`.
 - `Range` (header) *string or null* — One byte range (`bytes=A-B`, `bytes=A-` or `bytes=-N`); anything else reads the whole file.
 
@@ -22,7 +22,7 @@ Streams one file of a granted copy.
 
 - `200` — The whole file. Body: [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`)
 - `206` — The requested byte range, with `Content-Range`. Body: [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`)
-- `401` — The copy token is missing, wrong or expired, or the grant no longer holds: the branch is no longer trusted, the person may no longer take the edition, or the library's files changed since the grant (`unauthorized`). Ask for a new grant. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `401` — The copy token is missing, wrong or expired, or the grant no longer holds: the branch is no longer trusted or the library card is signed out, the person may no longer take the edition, or the library's files changed since the grant (`unauthorized`). Ask for a new grant; a clerk whose library card is signed out signs in again first. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`). Body: [`TransportRefused`](schemas.md#transportrefused) (`application/json`)
   - `error` *string*, **required** — Always `transport_insecure`.
@@ -90,7 +90,7 @@ Schema:
 
 A `application/octet-stream` body: binary bytes.
 
-Status `401`: The copy token is missing, wrong or expired, or the grant no longer holds: the branch is no longer trusted, the person may no longer take the edition, or the library's files changed since the grant (`unauthorized`). Ask for a new grant.
+Status `401`: The copy token is missing, wrong or expired, or the grant no longer holds: the branch is no longer trusted or the library card is signed out, the person may no longer take the edition, or the library's files changed since the grant (`unauthorized`). Ask for a new grant; a clerk whose library card is signed out signs in again first.
 
 ```json
 {
