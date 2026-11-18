@@ -23,7 +23,7 @@ primitives (`head`, `list_page`, `copy`, `get_stream`, `put_stream`,
 | [`ObjectChange`](#objectchange) | struct | One change in a change feed. |
 | [`ChangeFeedPage`](#changefeedpage) | struct | One page of a change feed. |
 | [`WriteCondition`](#writecondition) | enum | A precondition on a write. |
-| [`fallback_move`](#fallback_move) | function | Moves one object with the required primitives: probe, copy (server-side when the backend supports it, else streamed), then delete the source. |
+| [`fallback_move`](#fallback_move) | function | Moves one object with the required primitives: probe, copy (server-side when the backend supports it, else streamed), check that the copy has the source's size, then delete the source. |
 | [`fallback_move_many`](#fallback_move_many) | function | Moves each pair in turn with `StorageBackend::move_object`. One pair's failure does not stop the others. |
 | [`require_disjoint_prefixes`](#require_disjoint_prefixes) | function | Rejects a prefix move whose namespaces overlap. |
 | [`fallback_move_prefix`](#fallback_move_prefix) | function | Moves one listing page under `from_prefix` to `to_prefix`. |
@@ -266,7 +266,8 @@ pub async fn fallback_move<B: StorageBackend + ?Sized>(
 ```
 
 Moves one object with the required primitives: probe, copy (server-side
-when the backend supports it, else streamed), then delete the source.
+when the backend supports it, else streamed), check that the copy has the
+source's size, then delete the source.
 
 A repeated move whose source is gone and whose target exists succeeds
 with `already_moved`.

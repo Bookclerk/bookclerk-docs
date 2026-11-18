@@ -60,6 +60,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 
 ## Modules
 
+- [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
 
@@ -943,6 +944,18 @@ Create a backend rooted at `root` with an optional key prefix
 ##### Errors
 
 Returns an error when the operation fails.
+
+#### LocalFsBackend::with_fs_kind
+
+```rust
+pub fn with_fs_kind(self, kind: FsKind) -> Self
+```
+
+Treats every path as living on a file system of `kind`, instead of
+classifying it.
+
+Tests use it to drive the network-mount paths on a local disk.
+Production backends leave it unset.
 
 #### LocalFsBackend::with_scan_placement
 
