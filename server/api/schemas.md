@@ -2669,7 +2669,7 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 
 One ranked recommendation (typically an unowned storefront title).
 
-- `work_id` *string or null* — Library `works.id` UUID when the recommendation is tied to an owned work.
+- `work_id` *string or null* — Library `works.id` of the work the card's edition belongs to, when the library's data model places it (a wish, or a store listing from the shared listing pool). Cards for one work are one card.
 - `title` *string*, **required** — Display title as shown on the storefront or library card.
 - `authors` *string or null* — Comma-separated author names when the storefront provides them.
 - `narrators` *string or null* — Comma-separated narrator names when known.

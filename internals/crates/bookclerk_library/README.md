@@ -2752,6 +2752,8 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 pub struct GlobalQueueEntry {
     pub work_key: String,
     pub work_id: String,
+    pub edition_id: Option<String>,
+    pub expression_id: Option<String>,
     pub title: String,
     pub authors: Option<String>,
     pub asin: Option<String>,
@@ -2784,6 +2786,11 @@ Aggregated global request-queue entry (one work, many wishers).
 - `work_key`: Bibliographic card key of the newest wish (see
   [`TitleRequestRecord::work_key`](#titlerequestrecord)); clients match cards on it.
 - `work_id`: The work every wish of this entry is for: the queue groups by it.
+- `edition_id`: The edition the newest wish naming one is for (`editions.id`); the
+  entry's title, identifiers and cover describe that edition.
+- `expression_id`: That edition's expression (`expressions.id`), when the library
+  places it: store listings of the same expression are the same
+  recording, so Discover prices the wish from them only.
 - `title`: Display title of the work or edition.
 - `authors`: Comma-separated or JSON author list from the storefront.
 - `asin`: Amazon ASIN when known; otherwise null.
@@ -4432,6 +4439,7 @@ pub struct CatalogListingRecord {
     pub product_id: String,
     pub edition_id: String,
     pub work_id: Option<String>,
+    pub expression_id: Option<String>,
     pub title: String,
     pub categories: Option<String>,
     pub detail: ListingDetail,
@@ -4452,6 +4460,10 @@ A stored catalog listing, as Discover and the wishlist read it.
 - `product_id`: The store's product id.
 - `edition_id`: The edition the listing sells.
 - `work_id`: That edition's work, when the rows are consistent.
+- `expression_id`: That edition's expression (`expressions.id`), when the rows are
+  consistent. Listings of one expression are the same recording or
+  text, so their prices compare; listings of one work in different
+  expressions (a narration and a full-cast dramatisation) do not.
 - `title`: Title as the store lists it.
 - `categories`: Store category labels.
 - `detail`: The store's own text.

@@ -314,6 +314,7 @@ pub struct StorefrontCandidate {
     pub is_abridged: Option<bool>,
     pub store_rank: Option<u32>,
     pub work_id: Option<String>,
+    pub expression_id: Option<String>,
 }
 ```
 
@@ -356,6 +357,9 @@ A purchase candidate discovered from a storefront catalog (not owned locally).
 - `work_id`: The work the pool resolved this listing into, when the candidate was
   read from the shared listing pool. Lets the ranking drop titles the
   library holds by work identity without resolving the title again.
+- `expression_id`: The expression (`expressions.id`) the pool resolved this listing
+  into: two candidates with the same expression are the same recording
+  sold by different stores, so one card carries both prices.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
@@ -1106,6 +1110,7 @@ Implements: `Clone`, `Debug`, `Default`
 ```rust
 pub struct Recommendation {
     pub work_id: Option<String>,
+    pub expression_id: Option<String>,
     pub title: String,
     pub authors: Option<String>,
     pub narrators: Option<String>,
@@ -1145,7 +1150,12 @@ One ranked recommendation (typically an unowned storefront title).
 
 **Fields**
 
-- `work_id`: Library `works.id` UUID when the recommendation is tied to an owned work.
+- `work_id`: Library `works.id` of the work the card's edition belongs to, when
+  the library's data model places it (a wish, or a store listing from
+  the shared listing pool). Cards for one work are one card.
+- `expression_id`: `expressions.id` of the card's edition, when known: the recording
+  (or text) it is. Only listings of this expression add prices to the
+  card. Used while ranking; never stored or sent.
 - `title`: Display title as shown on the storefront or library card.
 - `authors`: Comma-separated author names when the storefront provides them.
 - `narrators`: Comma-separated narrator names when known.
