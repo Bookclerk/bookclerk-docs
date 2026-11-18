@@ -32,7 +32,6 @@ content-source plugins; this crate never sees license keys. See
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
-| [`destination_id`](#destination_id) | function | The id of the output destination of `kind`, as plans, upload manifests and `edition_files` name it: its lowercase kind name (a node deploys at most one destination per kind). |
 | [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know, or one from another store, is not taken: the install fetches its own. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
@@ -291,7 +290,7 @@ Implements: `Clone`, `Debug`, `Default`
 
 ```rust
 pub struct AcquireDestination {
-    pub kind: OutputBackendKind,
+    pub id: DestinationId,
     pub backend: Box<dyn StorageBackend>,
     pub options: DownloadOptions,
 }
@@ -301,7 +300,7 @@ One configured output destination for an acquire run.
 
 **Fields**
 
-- `kind`: Destination backend kind (`local`, `s3`, …).
+- `id`: The destination's id: its storage plugin's alias (`local`, `s3`, …).
 - `backend`: Constructed storage backend for this destination.
 - `options`: Source download options (quality, chapter prefs, …).
 
@@ -310,7 +309,7 @@ One configured output destination for an acquire run.
 ```rust
 pub struct AcquireDestinations {
     pub items: Vec<AcquireDestination>,
-    pub primary: OutputBackendKind,
+    pub primary: DestinationId,
     pub multi_destination: MultiDestinationMode,
 }
 ```
@@ -320,7 +319,8 @@ Ordered set of acquire destinations built from the deployed destination plugins.
 **Fields**
 
 - `items`: Configured acquire destinations in evaluation order.
-- `primary`: Index of the primary destination used for library status keys.
+- `primary`: The primary destination, whose keys the library records as the
+  title's storage key.
 - `multi_destination`: Whether multiple destinations are enabled for this run.
 
 #### AcquireDestinations::len
@@ -350,10 +350,10 @@ Returns the primary destination used for library storage keys.
 #### AcquireDestinations::destination
 
 ```rust
-pub fn destination(&self, kind: OutputBackendKind) -> Option<&AcquireDestination>
+pub fn destination(&self, id: &DestinationId) -> Option<&AcquireDestination>
 ```
 
-Returns the destination whose kind equals `kind`, if configured.
+Returns the destination `id`, if configured.
 
 #### AcquireDestinations::listing_backend
 
@@ -637,7 +637,7 @@ pub struct AcquireRequest {
     pub files_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub force: bool,
-    pub write_destinations: Option<Vec<OutputBackendKind>>,
+    pub write_destinations: Option<Vec<DestinationId>>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
     pub library_id: Option<String>,
@@ -664,7 +664,7 @@ Request to acquire a single title.
 - `files_dir`: Bookclerk files directory root (`BOOKCLERK_FILES_DIR`).
 - `cache_dir`: Scratch directory for encrypted + decrypted temps.
 - `force`: When true, download even if matching media already exists in storage.
-- `write_destinations`: When set, only write prepared audio to these destination kinds
+- `write_destinations`: When set, only write prepared audio to these destinations
   (`output.multi_destination = refetch_missing`).
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
@@ -967,16 +967,6 @@ Object-storage key of the written MP3.
 
 Returns [`AcquireError`](#acquireerror) when the source is missing/ineligible, another
 title acquired the edition, encode fails, or library/storage updates fail.
-
-### destination_id
-
-```rust
-pub fn destination_id(kind: OutputBackendKind) -> &'static str
-```
-
-The id of the output destination of `kind`, as plans, upload manifests
-and `edition_files` name it: its lowercase kind name (a node deploys at
-most one destination per kind).
 
 ### from_store
 
@@ -1350,7 +1340,7 @@ recorded for the edition there (parts, chapters) is present.
 
 #### Arguments
 
-* `destinations` - Each destination's id ([`destination_id`](#destination_id)) and
+* `destinations` - Each destination's id and
   backend.
 * `book` - The book to mark acquired.
 

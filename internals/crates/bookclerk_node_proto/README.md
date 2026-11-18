@@ -1024,8 +1024,8 @@ One output destination of the owner node that answered an acquire plan
 
 **Fields**
 
-- `id`: Destination id on that owner node (its output kind, such as `local`
-  or `s3`; one destination per kind).
+- `id`: Destination id on that owner node: its storage plugin's id, such
+  as `local`, `s3` or `r2` (one destination per plugin).
 - `options`: That destination's `DownloadOptions` (JSON): its naming templates,
   replacement characters and path limits.
 

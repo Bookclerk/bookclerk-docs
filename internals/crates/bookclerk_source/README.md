@@ -779,7 +779,7 @@ Overlays wire fetch knobs onto these options (packaging knobs untouched).
 ```rust
 pub fn for_destination(
     cfg: &Config,
-    kind: OutputBackendKind,
+    key_style: DestinationKeyStyle,
     naming: &DestinationNaming,
     prefix: &str,
 ) -> Self
@@ -788,8 +788,8 @@ pub fn for_destination(
 Build acquire options stamped for one output destination.
 
 Packaging knobs come from global `[output]`; naming templates prefer
-the destination's own overrides, which the `local` / `s3` plugin
-declares as `[[settings]]` and the host reads from the deployed
+the destination's own overrides, which a storage plugin may
+declare as `[[settings]]` and the host reads from the deployed
 instance document. `prefix` is that document's key prefix.
 
 #### DownloadOptions::effective_output

@@ -55,7 +55,9 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`EventReaders`](#eventreaders) | struct | What an `EVENTS` binding may read back from the outbox. |
 | [`OutboxEventPublisher`](#outboxeventpublisher) | struct | `EventPublisher` server for one invocation: validates a guest `PluginEvent` and appends it to the library outbox. |
 | [`DatabaseRegistry`](#databaseregistry) | struct | Long-lived external database plugin for the active `[database].plugin`. |
+| [`DeployedDestination`](#deployeddestination) | struct | One deployed destination as acquire sees it. |
 | [`DestinationRegistry`](#destinationregistry) | struct | Long-lived external output plugins loaded at host startup. |
+| [`DestinationSettings`](#destinationsettings) | struct | Key layout settings the host reads from a deployed destination's instance document: a storage plugin declares `prefix` and the naming overrides as `[[settings]]`, and acquire needs them to plan storage keys. |
 | [`ExternalDatabase`](#externaldatabase) | struct | External database backend spawned for `[database].plugin`. |
 | [`ExternalIntegration`](#externalintegration) | struct | External integration backed by a discovered plugin binary. |
 | [`ExternalSource`](#externalsource) | struct | External content source backed by a discovered plugin binary. |
@@ -1682,6 +1684,28 @@ Currently active external database guest for `[database].plugin`.
 
 Implements: `Clone`, `Default`
 
+### DeployedDestination
+
+```rust
+pub struct DeployedDestination {
+    pub id: DestinationId,
+    pub key_style: DestinationKeyStyle,
+    pub backend: Arc<dyn StorageBackend>,
+    pub settings: DestinationSettings,
+}
+```
+
+One deployed destination as acquire sees it.
+
+**Fields**
+
+- `id`: The destination's id: its plugin instance id.
+- `key_style`: How the destination names keys.
+- `backend`: Storage backend over the destination's guest.
+- `settings`: Key layout from the instance document.
+
+Implements: `Clone`
+
 ### DestinationRegistry
 
 ```rust
@@ -1692,60 +1716,16 @@ pub struct DestinationRegistry {
 
 Long-lived external output plugins loaded at host startup.
 
-#### DestinationRegistry::s3
+#### DestinationRegistry::destinations
 
 ```rust
-pub fn s3(&self) -> Option<Arc<dyn StorageBackend>>
+pub fn destinations(&self) -> Vec<DeployedDestination>
 ```
 
-External S3 output backend, when exactly one is loaded.
+Every deployed destination, one per plugin instance: destinations
+that name files as paths first, then the rest, each group by id.
 
-Two deployed S3 instances return `None`. Acquire uses
-[`Self::require_s3`](#destinationregistryrequire_s3) so that case fails closed instead of falling
-through to `[output.s3]`.
-
-#### DestinationRegistry::require_s3
-
-```rust
-pub fn require_s3(&self) -> Result<Option<Arc<dyn StorageBackend>>, String>
-```
-
-The S3 backend, or an error when more than one deployed instance owns it.
-
-##### Errors
-
-Returns an error when two deployed S3 instances would otherwise overwrite
-one slot.
-
-#### DestinationRegistry::local
-
-```rust
-pub fn local(&self) -> Option<Arc<dyn StorageBackend>>
-```
-
-External local-filesystem output backend, when exactly one is loaded.
-
-#### DestinationRegistry::require_local
-
-```rust
-pub fn require_local(&self) -> Result<Option<Arc<dyn StorageBackend>>, String>
-```
-
-The local backend, or an error when more than one deployed instance owns it.
-
-##### Errors
-
-Returns an error when two deployed local instances would otherwise
-overwrite one slot.
-
-#### DestinationRegistry::settings_for
-
-```rust
-pub fn settings_for(&self, kind: OutputBackendKind) -> Option<DestinationSettings>
-```
-
-Key layout settings of the deployed destination of `kind`, when exactly
-one is deployed.
+Several instances of one plugin are separate destinations.
 
 #### DestinationRegistry::plugin_session
 
@@ -1790,11 +1770,39 @@ Copies deployed sessions from this registry onto `candidate`.
 
 `deployed_instances` is the set of present plugin instance ids. Reload
 builds `candidate` without those plugin keys. Only sessions the
-reconciler bound to one of those ids are copied, including the S3 or
-local backend they own. A transitional session for the same key is left
+reconciler bound to one of those ids are copied, including the
+backend they own. A transitional session for the same key is left
 behind.
 
 Implements: `Clone`, `Default`
+
+### DestinationSettings
+
+```rust
+pub struct DestinationSettings {
+    pub prefix: String,
+    pub naming: DestinationNaming,
+}
+```
+
+Key layout settings the host reads from a deployed destination's instance
+document: a storage plugin declares `prefix` and the naming overrides
+as `[[settings]]`, and acquire needs them to plan storage keys.
+
+**Fields**
+
+- `prefix`: Key prefix under the destination root or bucket.
+- `naming`: Naming overrides; unset values inherit global `[output]`.
+
+#### DestinationSettings::from_granted_config
+
+```rust
+pub fn from_granted_config(granted: &Value) -> Self
+```
+
+Reads the layout settings from a resolved `CONFIG` object.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### ExternalDatabase
 
@@ -5649,10 +5657,12 @@ pub fn build_acquire_destinations(
 
 Build destination backends for acquire from the deployed output plugins.
 
+Every deployed storage plugin instance is a destination; path
+destinations come first, and the first destination is the primary.
+
 #### Errors
 
-Returns an error when no destination is deployed on this host or two
-instances of one kind are deployed.
+Returns an error when no destination is deployed on this host.
 
 ### build_storage_backend
 
@@ -5666,8 +5676,7 @@ Build listing/storage backends from the deployed output plugins.
 
 #### Errors
 
-Returns an error when no destination is deployed or two instances of one
-kind are deployed.
+Returns an error when no destination is deployed.
 
 ### discover_plugins
 

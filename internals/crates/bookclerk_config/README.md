@@ -34,6 +34,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`ResolvedNamingTemplates`](#resolvednamingtemplates) | struct | Resolved folder / file / chapter-file templates after applying profile defaults and optional per-field overrides. |
 | [`OidcBrokerConfig`](#oidcbrokerconfig) | struct | `[auth.oidc]` — optional identity broker. |
 | [`OidcProviderConfig`](#oidcproviderconfig) | struct | One upstream OIDC or OAuth 2.0 provider. |
+| [`DestinationId`](#destinationid) | struct | Id of one output destination: the plugin instance id of the deployed storage plugin instance that serves it. |
 | [`DestinationNaming`](#destinationnaming) | struct | Optional naming overrides for one destination plugin. |
 | [`OutputConfig`](#outputconfig) | struct | Acquire packaging (`[output]`). |
 | [`PathLimits`](#pathlimits) | struct | Limits applied when hardening acquired storage keys. |
@@ -64,8 +65,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OidcProvisionMode`](#oidcprovisionmode) | enum | How an upstream provider decides who may become a first-party User. |
 | [`ResolveOperatorTokenEnv`](#resolveoperatortokenenv) | enum | How an operator token was resolved from env (config-layer only). |
 | [`BadBookAction`](#badbookaction) | enum | How to handle acquire failures (`BadBook` setting). |
+| [`DestinationKeyStyle`](#destinationkeystyle) | enum | How a destination names what it stores, which decides how acquire sanitizes and limits keys. |
 | [`MultiDestinationMode`](#multidestinationmode) | enum | Behavior when some output destinations already have a title and others do not. |
-| [`OutputBackendKind`](#outputbackendkind) | enum | Which output destination plugin is active. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
 | [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
@@ -1014,6 +1015,50 @@ pub fn effective_scopes(&self) -> Vec<String>
 Scopes sent at authorize, with social-preset defaults when unset.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### DestinationId
+
+```rust
+pub struct DestinationId(/* private */);
+```
+
+Id of one output destination: the plugin instance id of the deployed
+storage plugin instance that serves it.
+
+Plans, upload manifests and `edition_files` name destinations by it.
+Several instances of one storage plugin are separate destinations
+(`docs/adr/storage-destinations.md`).
+
+#### DestinationId::MAX_LEN
+
+```rust
+pub const MAX_LEN: usize = 64
+```
+
+Longest destination id in bytes; a hyphenated UUID is 36.
+
+#### DestinationId::new
+
+```rust
+pub fn new(id: impl Into<String>) -> Result<Self, String>
+```
+
+Checks `id`: 1 to [`Self::MAX_LEN`](#destinationidmax_len) lowercase ASCII letters, digits,
+`_` or `-`, the characters a plugin instance id uses.
+
+##### Errors
+
+Returns a message naming what is wrong with `id`.
+
+#### DestinationId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as text.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `From<DestinationId>`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `TryFrom<String>`
 
 ### DestinationNaming
 
@@ -2368,6 +2413,43 @@ How to handle acquire failures (`BadBook` setting).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### DestinationKeyStyle
+
+```rust
+pub enum DestinationKeyStyle {
+    Filesystem,
+    ObjectStore,
+}
+```
+
+How a destination names what it stores, which decides how acquire
+sanitizes and limits keys.
+
+**Variants**
+
+- `Filesystem`: Paths on a file system (the `local` plugin): per-component length
+  limits, and Windows-safe names on Windows hosts.
+- `ObjectStore`: Object-store keys (every other storage plugin): one key of at most
+  1024 bytes and the object-store character set.
+
+#### DestinationKeyStyle::is_object_store
+
+```rust
+pub fn is_object_store(self) -> bool
+```
+
+True for object-store keys.
+
+#### DestinationKeyStyle::is_filesystem
+
+```rust
+pub fn is_filesystem(self) -> bool
+```
+
+True for file-system paths.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### MultiDestinationMode
 
 ```rust
@@ -2389,24 +2471,6 @@ Behavior when some output destinations already have a title and others do not.
 - `RefetchAll`: Re-run acquire and write to every enabled destination.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
-
-### OutputBackendKind
-
-```rust
-pub enum OutputBackendKind {
-    Local,
-    S3,
-}
-```
-
-Which output destination plugin is active.
-
-**Variants**
-
-- `Local`: Filesystem destination (the `local` plugin; default primary).
-- `S3`: Object-store destination (the `s3` plugin).
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### PathLengthMeasure
 
