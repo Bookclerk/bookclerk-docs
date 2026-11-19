@@ -42,8 +42,8 @@ labels. The scheduler re-plans on the wakeup this publishes.
   - `this_node` *boolean*, **required** — True for the node that answered the request.
   - `kind` *[`NodeKind`](schemas.md#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
   - `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
-  - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
-  - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
+  - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an shared node.
+  - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for a shared node.
   - `owner` *[`NodeOwnerSummary`](schemas.md#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 - `400` — The body is invalid, or a label is malformed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -168,7 +168,7 @@ Status `200`: The node after the change.
     "cache_swept_ms": 1793212800000
   },
   "this_node": true,
-  "kind": "owner",
+  "kind": "shared",
   "owner_user_id": 7,
   "share_books": true,
   "include_branches": false,
@@ -513,10 +513,10 @@ Schema:
       "type": "string",
       "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
       "enum": [
-        "owner",
-        "host"
+        "shared",
+        "branch"
       ],
-      "example": "owner"
+      "example": "shared"
     },
     "owner_user_id": {
       "type": [
@@ -532,7 +532,7 @@ Schema:
         "boolean",
         "null"
       ],
-      "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+      "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
       "example": true
     },
     "include_branches": {
@@ -540,7 +540,7 @@ Schema:
         "boolean",
         "null"
       ],
-      "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+      "description": "A branch's include-branches setting, as it last reported it;\n`null` for a shared node.",
       "example": false
     },
     "owner": {
@@ -5043,7 +5043,7 @@ A `text/plain` body: a string.
 - `address` *string*, **required** — The library's address.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
-- `shared_branch` *boolean* — Offer to join as a shared branch (an owner node that shares the library's database): only an empty install may, and its data is replaced.
+- `shared_branch` *boolean* — Offer to join as a shared branch (a shared node that shares the library's database): only an empty install may, and its data is replaced.
 
 ### Responses
 
@@ -5877,7 +5877,7 @@ Schema:
     },
     {
       "type": "object",
-      "description": "Joined as a shared branch: this install restarts as an owner node of the library.",
+      "description": "Joined as a shared branch: this install restarts as a shared node of the library.",
       "required": [
         "connection",
         "cluster_id",
@@ -5920,7 +5920,7 @@ Schema:
         },
         "restarting": {
           "type": "boolean",
-          "description": "Always `true`: the daemon restarts as an owner node right after answering.",
+          "description": "Always `true`: the daemon restarts as a shared node right after answering.",
           "example": true
         }
       }
@@ -7534,7 +7534,7 @@ Status `200`: The nodes the caller administers.
         "cache_swept_ms": 1793212800000
       },
       "this_node": true,
-      "kind": "owner",
+      "kind": "shared",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -7903,10 +7903,10 @@ Schema:
             "type": "string",
             "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
             "enum": [
-              "owner",
-              "host"
+              "shared",
+              "branch"
             ],
-            "example": "owner"
+            "example": "shared"
           },
           "owner_user_id": {
             "type": [
@@ -7922,7 +7922,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
             "example": true
           },
           "include_branches": {
@@ -7930,7 +7930,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+            "description": "A branch's include-branches setting, as it last reported it;\n`null` for a shared node.",
             "example": false
           },
           "owner": {
@@ -8187,7 +8187,7 @@ A `text/plain` body: a string.
 
 ## `DELETE /api/config/nodes/{node_id}`
 
-`DELETE /api/config/nodes/{node_id}`: remove an owner node (a shared branch, or
+`DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or
 any node sharing this database) that is no longer running from the
 library's node list. The operator or an Owner may remove any; another
 user only one they own. A running node, this node, or a branch is
@@ -8203,7 +8203,7 @@ refused (a branch is revoked instead).
 
 ### Responses
 
-- `200` — The owner node was removed. Body: [`OwnerNodeRemoved`](schemas.md#ownernoderemoved) (`application/json`)
+- `200` — The shared node was removed. Body: [`SharedNodeRemoved`](schemas.md#sharednoderemoved) (`application/json`)
   - `node_id` *string*, **required** — Id of the node that was removed, trimmed.
   - `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
 - `400` — The node is this node, or a branch (revoke it instead). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -8272,7 +8272,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The owner node was removed.
+Status `200`: The shared node was removed.
 
 ```json
 {
@@ -8557,7 +8557,7 @@ A `text/plain` body: a string.
 
 ## `GET /api/config/shared-branches`
 
-`GET /api/config/shared-branches`: the owner nodes (this one and its shared branches) for
+`GET /api/config/shared-branches`: the shared nodes (this one and its shared branches) for
 Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or
 an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets
 them remove any; another user only the ones they own, which the nodes
@@ -8686,7 +8686,7 @@ Status `200`: This node and its shared branches.
         "cache_swept_ms": 1793212800000
       },
       "this_node": true,
-      "kind": "owner",
+      "kind": "shared",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -9048,10 +9048,10 @@ Schema:
             "type": "string",
             "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
             "enum": [
-              "owner",
-              "host"
+              "shared",
+              "branch"
             ],
-            "example": "owner"
+            "example": "shared"
           },
           "owner_user_id": {
             "type": [
@@ -9067,7 +9067,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
             "example": true
           },
           "include_branches": {
@@ -9075,7 +9075,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+            "description": "A branch's include-branches setting, as it last reported it;\n`null` for a shared node.",
             "example": false
           },
           "owner": {
@@ -11169,7 +11169,7 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "One branch (host node) of this library.",
+        "description": "One branch (branch node) of this library.",
         "required": [
           "node_id",
           "created_at",
@@ -15560,7 +15560,7 @@ host's credential so it can no longer connect.
 
 * `caller` - Who is asking; the operator or an Owner may revoke any host,
   any other active user only the hosts they own.
-* `node_id` - The host node to revoke.
+* `node_id` - The branch node to revoke.
 
 ### Returns
 
@@ -15684,7 +15684,7 @@ Schema:
       "properties": {
         "node_id": {
           "type": "string",
-          "description": "Host node.",
+          "description": "Branch node.",
           "example": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
         },
         "link_id": {
@@ -15943,7 +15943,7 @@ A `text/plain` body: a string.
 
 ## `GET /api/config/host-enrollment`
 
-`GET /api/config/host-enrollment`: whether host nodes may enroll.
+`GET /api/config/host-enrollment`: whether branch nodes may enroll.
 
 ### Returns
 
@@ -15960,8 +15960,8 @@ Returns an error response when the switch cannot be read.
 
 ### Responses
 
-- `200` — Whether host nodes may enroll. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
-  - `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+- `200` — Whether branch nodes may enroll. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
   - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -16020,7 +16020,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Whether host nodes may enroll.
+Status `200`: Whether branch nodes may enroll.
 
 ```json
 {
@@ -16041,7 +16041,7 @@ Schema:
   "properties": {
     "enabled": {
       "type": "boolean",
-      "description": "Whether host nodes may enroll into this cluster.",
+      "description": "Whether branch nodes may enroll into this cluster.",
       "example": true
     },
     "revision": {
@@ -16253,12 +16253,12 @@ and an error response when the switch cannot be written.
 
 `application/json`: [`PutHostEnrollment`](schemas.md#puthostenrollment)
 
-- `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
 
 ### Responses
 
 - `200` — The switch after the change. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
-  - `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
   - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -16350,7 +16350,7 @@ Schema:
   "properties": {
     "enabled": {
       "type": "boolean",
-      "description": "Whether host nodes may enroll into this cluster.",
+      "description": "Whether branch nodes may enroll into this cluster.",
       "example": true
     },
     "revision": {

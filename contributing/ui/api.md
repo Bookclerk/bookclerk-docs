@@ -930,6 +930,12 @@ Cluster-wide health from `GET /api/cluster/status`.
 active_jobs: number;
 ```
 
+##### branch\_nodes
+
+```ts
+branch_nodes: number;
+```
+
 ##### cpu\_budget\_millicores
 
 ```ts
@@ -976,12 +982,6 @@ running: number;
 
 ```ts
 drained: number;
-```
-
-##### host\_nodes
-
-```ts
-host_nodes: number;
 ```
 
 ##### live
@@ -1033,7 +1033,7 @@ Labels every node carries (`node=<id>`, `target=<target>`).
 ##### kind
 
 ```ts
-kind: "owner" | "host";
+kind: "shared" | "branch";
 ```
 
 `owner` (shares the database) or `host` (its own database, enrolled to contribute).

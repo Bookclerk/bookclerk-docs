@@ -50,7 +50,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`DiagnosticsConfig`](#diagnosticsconfig) | struct | Opt-in sharing of recent **redacted** logs on crash or error bursts. |
 | [`DiscoveryConfig`](#discoveryconfig) | struct | Discovery / recommendations / embeddings settings. |
 | [`LibraryConfig`](#libraryconfig) | struct | Library / scan related settings. |
-| [`NodeApiConfig`](#nodeapiconfig) | struct | `[daemon.node_api]`: transport policy for host nodes. |
+| [`NodeApiConfig`](#nodeapiconfig) | struct | `[daemon.node_api]`: transport policy for branch nodes. |
 | [`ProcessEnvGuard`](#processenvguard) | struct | Process-wide lock around `BOOKCLERK_*` environment reads and test writes. |
 | [`CacheSettingError`](#cachesettingerror) | enum | Why a `cache.*` value was refused. |
 | [`CacheSettingKey`](#cachesettingkey) | enum | A `cache.*` settings key. |
@@ -71,7 +71,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
 | [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
-| [`NodeApiMode`](#nodeapimode) | enum | How host nodes may reach the node API (`[daemon.node_api] mode`). |
+| [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
 | [`parse_cache_setting`](#parse_cache_setting) | function | Parses one `cache.*` setting. |
 | [`cookie_secure_suffix`](#cookie_secure_suffix) | function | Append `; Secure` when the configured public origin is HTTPS. |
@@ -1778,7 +1778,7 @@ Daemon / HTTP control plane settings.
   
   In `[daemon.node_api] mode = "proxy"`, a matching peer is also the only
   one whose `X-Forwarded-Proto` the node API believes.
-- `node_api`: Transport policy for the host-node API (`[daemon.node_api]`).
+- `node_api`: Transport policy for the branch-node API (`[daemon.node_api]`).
   Bootstrap configuration, like [`Self::listen`](#daemonconfig).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -1938,7 +1938,7 @@ pub struct NodeApiConfig {
 }
 ```
 
-`[daemon.node_api]`: transport policy for host nodes.
+`[daemon.node_api]`: transport policy for branch nodes.
 
 **Fields**
 
@@ -2667,7 +2667,7 @@ pub enum NodeApiMode {
 }
 ```
 
-How host nodes may reach the node API (`[daemon.node_api] mode`).
+How branch nodes may reach the node API (`[daemon.node_api] mode`).
 
 Plain HTTP is accepted only on loopback, in every mode.
 

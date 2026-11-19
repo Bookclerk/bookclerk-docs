@@ -51,8 +51,8 @@ The crates the hosts are built from. Not a stable API.
 | [`bookclerk_migrate`](bookclerk_migrate/README.md) | Import/export classic Libation Files and native Bookclerk backups |
 | [`bookclerk_mp4`](bookclerk_mp4/README.md) | ISO-BMFF container plumbing shared by media packaging and store plugins (no cryptography) |
 | [`bookclerk_naming`](bookclerk_naming/README.md) | Port of Libation's NamingTemplate tag-template engine (Chardonnay parity) |
-| [`bookclerk_node_client`](bookclerk_node_client/README.md) | Host-node client: enrollment, the pinned owner socket, heartbeats, claimed work, token write-back, wakes and resume |
-| [`bookclerk_node_proto`](bookclerk_node_proto/README.md) | Host-node protocol: node API frames, handshake signatures, key checks, and sealed boxes |
+| [`bookclerk_node_client`](bookclerk_node_client/README.md) | Branch-node client: enrollment, the pinned owner socket, heartbeats, claimed work, token write-back, wakes and resume |
+| [`bookclerk_node_proto`](bookclerk_node_proto/README.md) | Branch-node protocol: node API frames, handshake signatures, key checks, and sealed boxes |
 | [`bookclerk_plugin_catalog`](bookclerk_plugin_catalog/README.md) | Registry-neutral plugin discovery, manifests, and secure install |
 | [`bookclerk_plugin_host`](bookclerk_plugin_host/README.md) | External plugin host: discovery, spawn, consent, and workerd-fronted guests |
 | [`bookclerk_resolve`](bookclerk_resolve/README.md) | Sans-IO resolver that maps store listings to FRBR works, expressions and editions |

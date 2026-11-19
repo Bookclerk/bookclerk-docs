@@ -544,7 +544,7 @@ Status `200`: Cluster-wide node health.
     "nodes": 3,
     "live": 3,
     "drained": 0,
-    "host_nodes": 1,
+    "branch_nodes": 1,
     "cpu_budget_millicores": 19200,
     "cpu_reserved_millicores": 3200,
     "memory_budget_bytes": 37748736000,
@@ -624,7 +624,7 @@ Status `200`: Cluster-wide node health.
         "cache_swept_ms": 1793212800000
       },
       "this_node": true,
-      "kind": "owner",
+      "kind": "shared",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -664,7 +664,7 @@ Schema:
         "nodes",
         "live",
         "drained",
-        "host_nodes",
+        "branch_nodes",
         "cpu_budget_millicores",
         "cpu_reserved_millicores",
         "memory_budget_bytes",
@@ -694,7 +694,7 @@ Schema:
           "example": 0,
           "minimum": 0
         },
-        "host_nodes": {
+        "branch_nodes": {
           "type": "integer",
           "description": "Enrolled hosts (nodes with their own database).",
           "example": 1,
@@ -1191,10 +1191,10 @@ Schema:
             "type": "string",
             "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
             "enum": [
-              "owner",
-              "host"
+              "shared",
+              "branch"
             ],
-            "example": "owner"
+            "example": "shared"
           },
           "owner_user_id": {
             "type": [
@@ -1210,7 +1210,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nowner node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
             "example": true
           },
           "include_branches": {
@@ -1218,7 +1218,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's include-branches setting, as it last reported it;\n`null` for an owner node.",
+            "description": "A branch's include-branches setting, as it last reported it;\n`null` for a shared node.",
             "example": false
           },
           "owner": {

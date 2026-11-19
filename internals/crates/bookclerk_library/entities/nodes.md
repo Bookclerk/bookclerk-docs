@@ -76,7 +76,7 @@ Row shape for one Bookclerk node in the cluster.
 - `kind`: `owner` (shares the database and `master.key`) or `host` (its own
   database, enrolled to contribute).
 - `owner_user_id`: User who owns this node and may administer it, when one is assigned.
-- `share_books`: For a branch (host node): "Share this branch's books with *library*"
+- `share_books`: For a branch (branch node): "Share this branch's books with *library*"
   as the branch last reported it (`catalog.begin`); empty until then.
 - `include_branches`: For a branch: "Include books from my own branches", as reported.
 - `catalog_fence`: The branch's catalog fence; `catalog.*` frames under another are

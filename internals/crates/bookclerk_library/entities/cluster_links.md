@@ -1,6 +1,6 @@
 # bookclerk_library::entities::cluster_links
 
-SeaORM entity for `cluster_links`: on a host node, the owner clusters it
+SeaORM entity for `cluster_links`: on a branch node, the owner clusters it
 enrolled into (written by `control_plane::record_cluster_link`).
 
 | Item | Kind | Summary |

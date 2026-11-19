@@ -1035,7 +1035,7 @@ A `text/plain` body: a string.
 
 ## `GET /api/node/v1/connect`
 
-`GET /api/node/v1/connect`: upgrade to the host-node socket after the
+`GET /api/node/v1/connect`: upgrade to the branch-node socket after the
 transport check. 403 `transport_insecure` for a refused connection,
 400 `subprotocol_required` without [`SUBPROTOCOL`].
 
@@ -1045,7 +1045,7 @@ transport check. 403 `transport_insecure` for a refused connection,
 
 ### Responses
 
-- `101` — Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
+- `101` — Switching to the branch-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
 - `400` — The request does not offer the node subprotocol (`subprotocol_required`). Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -1093,7 +1093,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `101`: Switching to the host-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
+Status `101`: Switching to the branch-node WebSocket. The node's signature is checked in the first frames; a wrong one closes the socket. No body.
 
 Status `400`: The request does not offer the node subprotocol (`subprotocol_required`).
 

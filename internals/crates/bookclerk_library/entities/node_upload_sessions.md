@@ -1,7 +1,7 @@
 # bookclerk_library::entities::node_upload_sessions
 
 SeaORM entity for `node_upload_sessions`: one title's streamed upload
-from a host node to an owner node (H-4 design, section 6). Written by
+from a branch node to a shared node (H-4 design, section 6). Written by
 `control_plane::uploads`.
 
 | Item | Kind | Summary |
@@ -45,11 +45,11 @@ Row shape for one upload.
 
 - `upload_id`: Upload id (hyphenated UUID).
 - `token_hash`: `hash_token` of the bearer token; the token itself is never stored.
-- `node_id`: Host node the upload was granted to.
+- `node_id`: Branch node the upload was granted to.
 - `job_id`: Acquire job the upload belongs to.
 - `lease_generation`: Lease generation the grant was made under; the upload is accepted
   only while it is the job's live fence for this node.
-- `receiving_node_id`: Owner node that streams the files to its destinations.
+- `receiving_node_id`: Shared node that streams the files to its destinations.
 - `holding_id`: The title's holding (`holdings.id`): the account holding of a job
   upload, or the node holding of a branch's catalog upload; empty for
   a job's closing upload.

@@ -25,7 +25,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`clerk_links`](clerk_links.md): SeaORM entity for `clerk_links`: on a clerk, the libraries this install holds a library card for (written by `control_plane::record_clerk_link`).
 - [`cluster_identity`](cluster_identity.md): SeaORM entity for the singleton cluster identity and secret-root fingerprint.
 - [`cluster_leases`](cluster_leases.md): SeaORM entity for `cluster_leases`: singleton maintenance leases.
-- [`cluster_links`](cluster_links.md): SeaORM entity for `cluster_links`: on a host node, the owner clusters it enrolled into (written by `control_plane::record_cluster_link`).
+- [`cluster_links`](cluster_links.md): SeaORM entity for `cluster_links`: on a branch node, the owner clusters it enrolled into (written by `control_plane::record_cluster_link`).
 - [`configuration_audit`](configuration_audit.md): SeaORM entity for successful configuration commits.
 - [`configuration_changes`](configuration_changes.md): SeaORM entity for the configuration change notice written with each commit.
 - [`configuration_documents`](configuration_documents.md): SeaORM entity for one typed configuration document.
@@ -64,9 +64,9 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
 - [`member_account_rules`](member_account_rules.md): SeaORM entity for the `member_account_rules` table: the operator's per-member rule "may connect store accounts here".
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
-- [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a host node into this cluster. Only the hash of each link's secret is stored.
+- [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this cluster. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.
-- [`node_upload_sessions`](node_upload_sessions.md): SeaORM entity for `node_upload_sessions`: one title's streamed upload from a host node to an owner node (H-4 design, section 6). Written by `control_plane::uploads`.
+- [`node_upload_sessions`](node_upload_sessions.md): SeaORM entity for `node_upload_sessions`: one title's streamed upload from a branch node to a shared node (H-4 design, section 6). Written by `control_plane::uploads`.
 - [`nodes`](nodes.md): SeaORM entity for durable node identity and liveness observations.
 - [`oidc_auth_codes`](oidc_auth_codes.md): SeaORM entity for the `oidc_auth_codes` — short-lived authorization codes (PKCE).
 - [`oidc_clients`](oidc_clients.md): SeaORM entity for the `oidc_clients` — registered OAuth/OIDC clients.
@@ -86,7 +86,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`plugin_versions`](plugin_versions.md): SeaORM entity for `plugin_versions`: one installed version of a plugin.
 - [`portal_identities`](portal_identities.md): SeaORM entity for the `portal_identities` table.
 - [`portal_sessions`](portal_sessions.md): SeaORM entity for the `portal_sessions` table.
-- [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a host node, this install's operator consent for each owner plugin an owner cluster wants to run here (written by `control_plane::remote_consents`).
+- [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a branch node, this install's operator consent for each owner plugin an owner cluster wants to run here (written by `control_plane::remote_consents`).
 - [`resolution_conflicts`](resolution_conflicts.md): SeaORM entity for the `resolution_conflicts` table (composite primary key).
 - [`resolution_overrides`](resolution_overrides.md): SeaORM entity for the `resolution_overrides` table (composite primary key).
 - [`saved_filters`](saved_filters.md): SeaORM entity for the `saved_filters` table.

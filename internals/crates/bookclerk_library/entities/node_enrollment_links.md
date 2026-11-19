@@ -1,7 +1,7 @@
 # bookclerk_library::entities::node_enrollment_links
 
 SeaORM entity for `node_enrollment_links`: single-use links that enroll a
-host node into this cluster. Only the hash of each link's secret is stored.
+branch node into this cluster. Only the hash of each link's secret is stored.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

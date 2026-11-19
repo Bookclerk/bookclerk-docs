@@ -1,6 +1,6 @@
 # bookclerk_node_proto
 
-Wire protocol between a Bookclerk host node and its owner cluster.
+Wire protocol between a Bookclerk branch node and its owner cluster.
 
 A host connects to `GET /api/node/v1/connect` with the WebSocket
 subprotocol [`SUBPROTOCOL`](#subprotocol) and proves itself with the Ed25519 key it
@@ -72,7 +72,7 @@ A host that leaves sends [`Body::NodeLeaving`](#body); the owner revokes the
 node at once. Joining with a sign-in instead of a link is the OAuth
 code + PKCE flow of the built-in client [`BRANCH_CLIENT_ID`](#branch_client_id) ([`OwnerInfo`](#ownerinfo),
 [`OAuthEnrollRequest`](#oauthenrollrequest)). An Owner of the library may instead let the
-install join as a shared branch (an owner node, [`ConnectionType::SharedBranch`](#connectiontype)): its
+install join as a shared branch (a shared node, [`ConnectionType::SharedBranch`](#connectiontype)): its
 redeem answer carries a [`SharedBranchBootstrap`](#sharedbranchbootstrap) sealed to the node's box key.
 A branch's redeem answer may carry the signing-in user's own store
 accounts as an [`AccountBundle`](#accountbundle) sealed the same way, when the user
@@ -114,7 +114,7 @@ bytes.
 | [`HeldFence`](#heldfence) | struct | A lease the host still holds when it reconnects (`hello.resume`). |
 | [`JobStatusEntry`](#jobstatusentry) | struct | One job's state in `Body::JobStatuses`. |
 | [`LibraryId`](#libraryid) | struct | A title's short library id as the owner names it: 1 to `MAX_LIBRARY_ID_BYTES` ASCII letters and digits, so it is safe in any storage key segment. Deserializing anything else fails, which refuses the whole frame. |
-| [`PlanDestination`](#plandestination) | struct | One output destination of the owner node that answered an acquire plan (`Body::AcquireTargets`). |
+| [`PlanDestination`](#plandestination) | struct | One output destination of the shared node that answered an acquire plan (`Body::AcquireTargets`). |
 | [`RemoteArtifact`](#remoteartifact) | struct | One downloadable artifact of a `RemoteVersion`. |
 | [`RemoteDeployment`](#remotedeployment) | struct | One deployment that targets a host (`deployments.items`). |
 | [`RemoteVersion`](#remoteversion) | struct | The active version of a plugin a host is asked to run. |
@@ -137,7 +137,7 @@ bytes.
 | [`SecretEntry`](#secretentry) | struct | One secret in a bundle. |
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
 | [`SecretValue`](#secretvalue) | struct | Secret bytes: zeroized on drop, redacted in `Debug`, and base64url on the wire. |
-| [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = owner`). `Debug` prints no secret. |
+| [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = shared`). `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
 | [`WindowCopy`](#windowcopy) | struct | The copy of an edition's primary audio file a library holds, as its probe of the file found it: enough for a reader to decide whether to take the library's copy or fetch its own, without asking again. |
@@ -1019,12 +1019,12 @@ pub struct PlanDestination {
 }
 ```
 
-One output destination of the owner node that answered an acquire plan
+One output destination of the shared node that answered an acquire plan
 ([`Body::AcquireTargets`](#body)).
 
 **Fields**
 
-- `id`: Destination id on that owner node: its storage plugin's id, such
+- `id`: Destination id on that shared node: its storage plugin's id, such
   as `local`, `s3` or `r2` (one destination per plugin).
 - `options`: That destination's `DownloadOptions` (JSON): its naming templates,
   replacement characters and path limits.
@@ -1732,7 +1732,7 @@ pub struct SharedBranchBootstrap {
 ```
 
 What a shared branch receives at redeem: the `[database]` bootstrap and the DEK,
-for the node id the library recorded (`kind = owner`). `Debug` prints no
+for the node id the library recorded (`kind = shared`). `Debug` prints no
 secret.
 
 **Fields**
@@ -2422,7 +2422,7 @@ What a frame says, tagged by `type`.
   - `fence`: Lease generation the host holds.
 - `AcquireTargets`: Owner → host: the titles to acquire and how to package them.
   - `targets`: Titles still to acquire, each one of the job's accounts.
-  - `destinations`: Every output destination deployed on the answering owner node,
+  - `destinations`: Every output destination deployed on the answering shared node,
     the primary first, each with its own packaging and naming
     options, so the host names each destination's files as a local
     acquire would.
@@ -2864,8 +2864,8 @@ How a joining install connects to a library.
 
 **Variants**
 
-- `Branch`: A host node: its own database, work over the node socket (default).
-- `SharedBranch`: An owner node: shares the library's database and DEK.
+- `Branch`: A branch node: its own database, work over the node socket (default).
+- `SharedBranch`: A shared node: shares the library's database and DEK.
 
 #### ConnectionType::as_str
 

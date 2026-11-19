@@ -2,12 +2,12 @@
 
 The host side of the node API (H-4 design, sections 2 to 4; step 7).
 
-A host node is a separate Bookclerk install that enrolled into an owner
+A branch node is a separate Bookclerk install that enrolled into an owner
 cluster with a single-use link ([`join_cluster`](#join_cluster)) or a sign-in at the
 owner ([`inspect_library`](#inspect_library), [`authorize_branch`](#authorize_branch),
 [`redeem_branch_code`](#redeem_branch_code)); it tells the owner when it leaves
 ([`announce_leaving`](#announce_leaving)). An empty install may instead join as a shared branch, an
-owner node that shares the library's database and DEK
+shared node that shares the library's database and DEK
 ([`redeem_shared_branch_code`](#redeem_shared_branch_code), [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap)). Its node keys are
 sealed in its own database
 (`bookclerk_library::control_plane::record_cluster_link`). For every
@@ -1538,7 +1538,7 @@ pub async fn acquire_plan(
 ```
 
 Asks the owner which titles this acquire should fetch, and with
-which destinations (the owner node's, the primary first, each with
+which destinations (the shared node's, the primary first, each with
 its own `DownloadOptions`).
 
 ##### Errors
@@ -1772,7 +1772,7 @@ A redeemed shared branch sign-in. `Debug` prints no secret.
 **Fields**
 
 - `cluster_id`: The library's cluster id.
-- `node_id`: The node id the library recorded (`kind = owner`).
+- `node_id`: The node id the library recorded (`kind = shared`).
 - `bootstrap`: The opened bootstrap.
 
 Implements: `Debug`

@@ -64,7 +64,7 @@ See `docs/adr/control-plane.md`.
 | [`HostEnrollmentSettings`](#hostenrollmentsettings) | struct | The host-enrollment switch as stored, or its default when no document was ever written. |
 | [`HostEnrollmentSettingsV1`](#hostenrollmentsettingsv1) | struct | Typed `core.host_enrollment` document, schema version 1. |
 | [`MintedLink`](#mintedlink) | struct | A freshly minted link and its secret, which is returned only here. |
-| [`NodeCredential`](#nodecredential) | struct | A host node's stored credential. |
+| [`NodeCredential`](#nodecredential) | struct | A branch node's stored credential. |
 | [`RedeemRequest`](#redeemrequest) | struct | What a host submits to redeem a link. |
 | [`NodeIdentity`](#nodeidentity) | struct | Bootstrap identity loaded from `NODE_IDENTITY_FILE`. |
 | [`NodeRecord`](#noderecord) | struct | Durable node row plus the latest observation columns. |
@@ -113,7 +113,7 @@ See `docs/adr/control-plane.md`.
 | [`ScanSighting`](#scansighting) | struct | A product a Host's pass listed that has no library row to write (its record maps onto no flat row, an ebook for instance), so the owner only marks the account's holding of it seen by the pass. |
 | [`JobSecret`](#jobsecret) | struct | One unsealed secret handed with a job. The value is zeroized on drop and never shown by `Debug`. |
 | [`JobSecretRef`](#jobsecretref) | struct | Names one store-account secret a job is handed. Carries no secret material. |
-| [`RemoteClaimSettings`](#remoteclaimsettings) | struct | What a Host's claim settles on: the routing and lease settings of the owner node serving it. |
+| [`RemoteClaimSettings`](#remoteclaimsettings) | struct | What a Host's claim settles on: the routing and lease settings of the shared node serving it. |
 | [`RemoteJobClaim`](#remotejobclaim) | struct | A job claimed for a Host, with the secrets to seal for it. |
 | [`RequirementsSweepReport`](#requirementssweepreport) | struct | What one sweep did. |
 | [`RouteRank`](#routerank) | struct | This node's position among the live nodes running one instance. |
@@ -126,7 +126,7 @@ See `docs/adr/control-plane.md`.
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
 | [`TemplateStrip`](#templatestrip) | struct | What `strip_install_state` removed. |
 | [`TitleNames`](#titlenames) | struct | The names a title's acquire writes on one destination, as the owner plans them, all without their extension. |
-| [`UploadDestination`](#uploaddestination) | struct | One output destination of the receiving owner node an upload is granted for, with where the title may be written there. |
+| [`UploadDestination`](#uploaddestination) | struct | One output destination of the receiving shared node an upload is granted for, with where the title may be written there. |
 | [`UploadFinish`](#uploadfinish) | struct | How the job's closing upload completes it. |
 | [`UploadGrantRequest`](#uploadgrantrequest) | struct | What a Host asks to upload for one title. |
 | [`UploadSession`](#uploadsession) | struct | One open upload, as the upload endpoint sees it. |
@@ -297,16 +297,16 @@ See `docs/adr/control-plane.md`.
 | [`format_enrollment_token`](#format_enrollment_token) | function | Formats `bcn1.<link_id>.<secret>[.<spki_pin>]`. |
 | [`list_enrollment_links`](#list_enrollment_links) | function | Links `actor` may see, newest first: every link for the operator or an Owner, the caller's own links for anyone else. |
 | [`load_host_enrollment`](#load_host_enrollment) | function | Reads the cluster's host-enrollment switch. A missing document means the default: enabled. |
-| [`load_node_credential`](#load_node_credential) | function | Reads a host node's credential. |
-| [`mint_enrollment_link`](#mint_enrollment_link) | function | Mints a link that enrolls one host node for `for_user_id`. |
+| [`load_node_credential`](#load_node_credential) | function | Reads a branch node's credential. |
+| [`mint_enrollment_link`](#mint_enrollment_link) | function | Mints a link that enrolls one branch node for `for_user_id`. |
 | [`parse_enrollment_token`](#parse_enrollment_token) | function | Parses a token, or a whole link whose fragment is the token. |
 | [`record_authorized_enrollment_link`](#record_authorized_enrollment_link) | function | Records the link an approved branch sign-in redeems through (`authorized_enrollment_link`), for `for_user_id`, the user who signed in and consented. Called only after the authorization code's client, redirect and PKCE verifier were checked, before the code is consumed, so a failed write leaves the code usable; the redeem itself is `redeem_enrollment_link`, the same canonical batch a minted link takes. |
-| [`record_node_connected`](#record_node_connected) | function | Stamps `last_connected_at` after a host node authenticates. Returns false (and stamps nothing) when the credential is missing or revoked, so a revoke that lands mid-handshake still refuses the connection. |
+| [`record_node_connected`](#record_node_connected) | function | Stamps `last_connected_at` after a branch node authenticates. Returns false (and stamps nothing) when the credential is missing or revoked, so a revoke that lands mid-handshake still refuses the connection. |
 | [`record_node_left`](#record_node_left) | function | A host announced it is leaving (`node.leaving`): revokes its credential at once and drops its live status, so it stops counting as a node without waiting for missed heartbeats, and tells every node so the connection is closed wherever it is held. Answers false when the node has no unrevoked credential; for one already revoked, the cleanup is still finished, so a retried leave completes one that failed part way. |
 | [`redeem_enrollment_link`](#redeem_enrollment_link) | function | Redeems a link: one canonical batch marks it redeemed, inserts a host `nodes` row owned by the link's user, inserts its `node_credentials`, and records a receipt. |
 | [`redeem_enrollment_link_as`](#redeem_enrollment_link_as) | function | `redeem_enrollment_link` for a node of `kind`: the same canonical batch, recording `kind` on the `nodes` row. |
 | [`revoke_enrollment_link`](#revoke_enrollment_link) | function | Revokes an unredeemed link. Returns the link as stored afterwards. |
-| [`revoke_node_credential`](#revoke_node_credential) | function | Revokes a host node's credential and tells every node, so the node holding that host's connection can close it. |
+| [`revoke_node_credential`](#revoke_node_credential) | function | Revokes a branch node's credential and tells every node, so the node holding that host's connection can close it. |
 | [`set_host_enrollment_enabled`](#set_host_enrollment_enabled) | function | Turns host enrollment on or off for the cluster. |
 | [`verify_cluster_owner`](#verify_cluster_owner) | function | Returns a `ConfigActor::ClusterOwner` when `user_id` is an active Owner. |
 | [`current_process_incarnation`](#current_process_incarnation) | function | This process's incarnation. Stable until the process exits. |
@@ -457,8 +457,8 @@ See `docs/adr/control-plane.md`.
 | [`renew_permits`](#renew_permits) | function | Extends every permit in `permits` by `ttl` while its holder and token still own the slot. |
 | [`semaphore_slot_lease_name`](#semaphore_slot_lease_name) | function | Lease name of slot `slot` of semaphore `name`. |
 | [`library_contents`](#library_contents) | function | Counts the library data this install holds of its own. |
-| [`owner_nodes_visible_to`](#owner_nodes_visible_to) | function | The owner nodes (`kind = owner`: this one and its shared branches) `actor` may see, by the rule `remove_owner_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
-| [`remove_owner_node`](#remove_owner_node) | function | Removes owner node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
+| [`remove_shared_node`](#remove_shared_node) | function | Removes shared node `node_id` from the library's node list, in one transaction: its `nodes` row (and with it its labels and credentials), status, event-subscriber registrations, secret handoffs, and plugin deployments with their observations. Only a node that is not running may go, and never `this_node`. The liveness check and the removal are one step: the node's status row is deleted only if it still holds the stale heartbeat that was checked, so a heartbeat that lands in between refuses the removal. A node that was only cut off from the database for longer than its liveness window can still be removed while it runs; its next heartbeat writes a status row again, but not its node row. Removing a node does not take back the database credentials or DEK it held; rotate those when it is not trusted any more. |
+| [`shared_nodes_visible_to`](#shared_nodes_visible_to) | function | The shared nodes (`kind = shared`: this one and its shared branches) `actor` may see, by the rule `remove_shared_node` removes them: the operator or an active Owner sees every one; another active user only the ones they own; an unknown or disabled user none. |
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
@@ -2116,11 +2116,11 @@ pub struct NodeCredential {
 }
 ```
 
-A host node's stored credential.
+A branch node's stored credential.
 
 **Fields**
 
-- `node_id`: Host node.
+- `node_id`: Branch node.
 - `sign_public_key`: Ed25519 public signing key.
 - `box_public_key`: X25519 public box key.
 - `link_id`: Link that enrolled it.
@@ -3956,7 +3956,7 @@ pub struct RemoteClaimSettings {
 ```
 
 What a Host's claim settles on: the routing and lease settings of the
-owner node serving it.
+shared node serving it.
 
 **Fields**
 
@@ -4306,7 +4306,7 @@ pub struct UploadDestination {
 }
 ```
 
-One output destination of the receiving owner node an upload is
+One output destination of the receiving shared node an upload is
 granted for, with where the title may be written there.
 
 The owner computes the scope itself, from its own library row of the
@@ -4393,7 +4393,7 @@ What a Host asks to upload for one title.
 - `pdf_key`: Storage key of the companion PDF on the primary destination (one of
   `files`' copies there), when uploaded.
 - `files`: Every file, in upload order.
-- `destinations`: The receiving owner node's output destinations, the primary first,
+- `destinations`: The receiving shared node's output destinations, the primary first,
   each with the title's key scope there. Each must receive at least
   one file and every copy must name one of them and lie in its scope,
   so each destination is written only under the title's own keys (a
@@ -4427,10 +4427,10 @@ One open upload, as the upload endpoint sees it.
 **Fields**
 
 - `upload_id`: Upload id.
-- `node_id`: Host node it was granted to.
+- `node_id`: Branch node it was granted to.
 - `job_id`: Acquire job.
 - `generation`: Lease generation it is bound to.
-- `receiving_node_id`: Owner node that receives the files.
+- `receiving_node_id`: Shared node that receives the files.
 - `holding_id`: The title's holding (`holdings.id`; empty for the job's closing
   upload).
 - `primary_key`: Storage key of the primary audio file.
@@ -5243,8 +5243,8 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub enum NodeKind {
-    Owner,
-    Host,
+    Shared,
+    Branch,
 }
 ```
 
@@ -5252,8 +5252,8 @@ How a node joined the cluster.
 
 **Variants**
 
-- `Owner`: Shares the library database and `master.key`. Every node is one today.
-- `Host`: Keeps its own database and operator, and enrolled to contribute work.
+- `Shared`: Shares the library database and `master.key`. Every node is one today.
+- `Branch`: Keeps its own database and operator, and enrolled to contribute work.
 
 #### NodeKind::as_str
 
@@ -5269,7 +5269,7 @@ Stored text.
 pub fn parse(raw: &str) -> Self
 ```
 
-Parses stored text; anything unknown reads as [`Self::Owner`](#nodekind).
+Parses stored text; anything unknown reads as [`Self::Shared`](#nodekind).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -5512,11 +5512,11 @@ enum (`{"type": "deployment.changed", ...}`).
   - `scope_id`: Document scope id.
   - `namespace`: Document namespace.
   - `revision`: Revision after the write.
-- `NodeRevoked`: A host node's credential was revoked. The node holding that host's
+- `NodeRevoked`: A branch node's credential was revoked. The node holding that host's
   connection closes it; every claim, renew, and upload re-reads
   `node_credentials.revoked_at` as well, so a lost message does not
   keep the host connected to work.
-  - `node_id`: Revoked host node.
+  - `node_id`: Revoked branch node.
 - `CatalogAsked`: Catalog questions wait for this branch
   (`control_plane::catalog_lookup`). The branch pulls them with
   `catalog.questions`; the message itself carries none.
@@ -5783,7 +5783,7 @@ How the claiming node reaches the job queue.
 - `Local`: A worker in this process, which holds the library database itself.
   A node id without a `nodes` row is trusted as such a worker.
 - `Remote`: A node that authenticated over the node API. It must have a `nodes`
-  row and, unless it is an owner node, a live node credential.
+  row and, unless it is a shared node, a live node credential.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
@@ -5802,7 +5802,7 @@ What a node is trusted with, resolved from the database.
 
 **Variants**
 
-- `All`: Every job: an owner node, or a Host owned by an active Owner or
+- `All`: Every job: a shared node, or a Host owned by an active Owner or
   Administrator.
 - `OwnedBy`: Only jobs whose secrets all belong to this user.
 - `AllOfOwner`: Any job a node trusted with [`NodeTrust::All`](#nodetrust) may run, but only
@@ -8250,7 +8250,7 @@ pub async fn load_node_credential(
 ) -> Result<Option<NodeCredential>>
 ```
 
-Reads a host node's credential.
+Reads a branch node's credential.
 
 #### Errors
 
@@ -8268,7 +8268,7 @@ pub async fn mint_enrollment_link(
 ) -> Result<MintedLink>
 ```
 
-Mints a link that enrolls one host node for `for_user_id`.
+Mints a link that enrolls one branch node for `for_user_id`.
 
 `ttl` defaults to 24 hours and must be 5 minutes to 7 days. The insert
 is predicated on the enrollment switch revision read as enabled, so a
@@ -8337,7 +8337,7 @@ the write error.
 pub async fn record_node_connected(store: &LibraryStore, node_id: &str) -> Result<bool>
 ```
 
-Stamps `last_connected_at` after a host node authenticates. Returns
+Stamps `last_connected_at` after a branch node authenticates. Returns
 false (and stamps nothing) when the credential is missing or revoked,
 so a revoke that lands mid-handshake still refuses the connection.
 
@@ -8401,7 +8401,7 @@ pub async fn redeem_enrollment_link_as(
 [`redeem_enrollment_link`](#redeem_enrollment_link) for a node of `kind`: the same canonical
 batch, recording `kind` on the `nodes` row.
 
-A [`super::NodeKind::Owner`](#nodekind) node (a shared branch, which joined with a sign-in
+A [`super::NodeKind::Shared`](#nodekind) node (a shared branch, which joined with a sign-in
 an Owner approved as such) shares the library's database, so it gets no
 `node_credentials` row: it never dials the node socket. The kind is part
 of the request hash, so a retry of a branch redeem as a shared branch (or the
@@ -8439,17 +8439,17 @@ pub async fn revoke_node_credential(
 ) -> Result<NodeCredential>
 ```
 
-Revokes a host node's credential and tells every node, so the node
+Revokes a branch node's credential and tells every node, so the node
 holding that host's connection can close it.
 
-The operator and an Owner may revoke any host node; any other active
+The operator and an Owner may revoke any branch node; any other active
 user may revoke the nodes they own. Revoking twice keeps the first time.
 
 #### Errors
 
 Returns [`LibraryError::NotFound`](README.md#libraryerror) when the node is unknown or not the
 caller's (the two read the same), [`LibraryError::Invalid`](README.md#libraryerror) when the
-node has no host credential (an owner node), and the write error when
+node has no host credential (a shared node), and the write error when
 the update fails.
 
 ### set_host_enrollment_enabled
@@ -9028,7 +9028,7 @@ Every permit of that claim's holder starts with it (a random suffix
 follows), and the trailing `/` keeps one generation's prefix from
 matching another's (`g1/` is not a prefix of `g10/`). A worker that has
 to find the claim's permits again by name, such as a Host renewing
-through another owner node, matches on this prefix, so a still-live
+through another shared node, matches on this prefix, so a still-live
 permit left over from an earlier claim of the same job is never taken
 for the current one.
 
@@ -11040,7 +11040,7 @@ Permits of `name` among its first `max_slots` slots whose holder starts
 with `holder_prefix`, expired ones included.
 
 A worker that holds permits only by name (a host that reconnected to
-another owner node) finds them again with this. An expired slot nobody
+another shared node) finds them again with this. An expired slot nobody
 took over is still returned, since [`renew_fenced_lease`](#renew_fenced_lease) still renews
 it; a slot another holder took is not.
 
@@ -11131,28 +11131,10 @@ Counts the library data this install holds of its own.
 
 Returns the read error.
 
-### owner_nodes_visible_to
+### remove_shared_node
 
 ```rust
-pub async fn owner_nodes_visible_to(
-    store: &LibraryStore,
-    actor: &EnrollmentActor,
-) -> Result<Vec<NodeRecord>>
-```
-
-The owner nodes (`kind = owner`: this one and its shared branches) `actor` may
-see, by the rule [`remove_owner_node`](#remove_owner_node) removes them: the operator or an
-active Owner sees every one; another active user only the ones they own;
-an unknown or disabled user none.
-
-#### Errors
-
-Returns the read error.
-
-### remove_owner_node
-
-```rust
-pub async fn remove_owner_node(
+pub async fn remove_shared_node(
     store: &LibraryStore,
     actor: &EnrollmentActor,
     node_id: &str,
@@ -11160,7 +11142,7 @@ pub async fn remove_owner_node(
 ) -> Result<()>
 ```
 
-Removes owner node `node_id` from the library's node list, in one
+Removes shared node `node_id` from the library's node list, in one
 transaction: its `nodes` row (and with it its labels and credentials),
 status, event-subscriber registrations, secret handoffs, and plugin
 deployments with their observations. Only a node that is not
@@ -11174,15 +11156,33 @@ row. Removing a node does not take back the
 database credentials or DEK it held; rotate those when it is not
 trusted any more.
 
-The operator or an Owner may remove any owner node; another user only
+The operator or an Owner may remove any shared node; another user only
 one they own.
 
 #### Errors
 
 Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown node or one the
-caller may not see, [`LibraryError::Invalid`](README.md#libraryerror) for a host node (revoke
+caller may not see, [`LibraryError::Invalid`](README.md#libraryerror) for a branch node (revoke
 it instead) or this node, [`LibraryError::Conflict`](README.md#libraryerror) while it is live,
 and the write error.
+
+### shared_nodes_visible_to
+
+```rust
+pub async fn shared_nodes_visible_to(
+    store: &LibraryStore,
+    actor: &EnrollmentActor,
+) -> Result<Vec<NodeRecord>>
+```
+
+The shared nodes (`kind = shared`: this one and its shared branches) `actor` may
+see, by the rule [`remove_shared_node`](#remove_shared_node) removes them: the operator or an
+active Owner sees every one; another active user only the ones they own;
+an unknown or disabled user none.
+
+#### Errors
+
+Returns the read error.
 
 ### strip_install_state
 
@@ -11453,7 +11453,7 @@ user who owns it ([`NodeTrust::AllOfOwner`](#nodetrust), which still admits that
 user's pinned jobs and jobs with requirements), as a branch takes only
 its owner's work unless its
 operator turned on "Download for other members". A scope never widens
-trust, and an owner node, which shares the database, keeps every job.
+trust, and a shared node, which shares the database, keeps every job.
 
 #### Errors
 

@@ -285,7 +285,7 @@ JSON body after detached branch titles were removed.
 
 ## BranchView
 
-One branch (host node) of this library.
+One branch (branch node) of this library.
 
 - `node_id` *string*, **required** — The branch's node id.
 - `created_at` *string*, **required** — RFC 3339 time the node was created.
@@ -616,7 +616,7 @@ Cluster-wide counters every node administrator may see.
 - `nodes` *integer*, **required** — Nodes in the library's node list. At least 0.
 - `live` *integer*, **required** — Nodes whose last heartbeat is recent enough. At least 0.
 - `drained` *integer*, **required** — Live nodes an operator drained. At least 0.
-- `host_nodes` *integer*, **required** — Enrolled hosts (nodes with their own database). At least 0.
+- `branch_nodes` *integer*, **required** — Enrolled hosts (nodes with their own database). At least 0.
 - `cpu_budget_millicores` *integer (int64)*, **required** — CPU the scheduler may commit across live nodes, in millicores.
 - `cpu_reserved_millicores` *integer (int64)*, **required** — CPU the running guests' ceilings add up to, in millicores.
 - `memory_budget_bytes` *integer (int64)*, **required** — Memory the scheduler may commit across live nodes, in bytes.
@@ -1150,7 +1150,7 @@ One holding of a listing.
 
 The host-enrollment switch.
 
-- `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
 - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
 
 ## ImpersonateRequest
@@ -1486,7 +1486,7 @@ JSON body after a host's credential was revoked.
 
 A host's node credential as the credentials routes show it; never its keys.
 
-- `node_id` *string*, **required** — Host node.
+- `node_id` *string*, **required** — Branch node.
 - `link_id` *string*, **required** — Link that enrolled it.
 - `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
 - `revoked_at` *string or null* — RFC 3339 revoke time.
@@ -1515,7 +1515,7 @@ JSON body for `GET /api/config/node-invites`.
 
 How a node joined the cluster.
 
-Type: one of `owner`, `host`
+Type: one of `shared`, `branch`
 
 ## NodeOwnerChanged
 
@@ -1623,8 +1623,8 @@ One node with its latest heartbeat, budget and owner.
 - `this_node` *boolean*, **required** — True for the node that answered the request.
 - `kind` *[`NodeKind`](#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
 - `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
-- `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an owner node.
-- `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for an owner node.
+- `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an shared node.
+- `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for a shared node.
 - `owner` *[`NodeOwnerSummary`](#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 
 ## OAuthEnrollAnswer
@@ -1921,13 +1921,6 @@ The consent page's connection block for an Owner, who may pick shared branch.
 - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
 - `software_version` *string* — The library's Bookclerk version.
 - `ancestry` *array of string* — The library's ancestry: its own cluster id first, then the cluster id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own cluster id, so a tree of libraries never becomes a cycle.
-
-## OwnerNodeRemoved
-
-`DELETE /api/config/nodes/{node_id}` body.
-
-- `node_id` *string*, **required** — Id of the node that was removed, trimmed.
-- `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
 
 ## PasskeyCreationOptions
 
@@ -2563,7 +2556,7 @@ JSON body for `PUT /api/config/domains/core.events`.
 
 `PUT /api/config/host-enrollment` body.
 
-- `enabled` *boolean*, **required** — Whether host nodes may enroll into this cluster.
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
 
 ## PutNodeLabels
 
@@ -2926,7 +2919,14 @@ JSON body once this install joined a library as a shared branch.
 - `library_name` *string*, **required** — The library's name.
 - `database` *string*, **required** — The database plugin this install now runs (`postgres` or `d1`).
 - `master_key_wrapped` *boolean*, **required** — Whether the shared master key was wrapped with this install's password.
-- `restarting` *boolean*, **required** — Always `true`: the daemon restarts as an owner node right after answering.
+- `restarting` *boolean*, **required** — Always `true`: the daemon restarts as a shared node right after answering.
+
+## SharedNodeRemoved
+
+`DELETE /api/config/nodes/{node_id}` body.
+
+- `node_id` *string*, **required** — Id of the node that was removed, trimmed.
+- `removed` *boolean*, **required** — Always true: a refused removal is an error status instead.
 
 ## SharingBody
 
@@ -3031,7 +3031,7 @@ The result of a split.
 - `address` *string*, **required** — The library's address.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
-- `shared_branch` *boolean* — Offer to join as a shared branch (an owner node that shares the library's database): only an empty install may, and its data is replaced.
+- `shared_branch` *boolean* — Offer to join as a shared branch (a shared node that shares the library's database): only an empty install may, and its data is replaced.
 
 ## StatusResponse
 

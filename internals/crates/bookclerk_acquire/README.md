@@ -669,7 +669,7 @@ Request to acquire a single title.
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
 - `library_id`: The `<library id>` to name the title by instead of its edition in
-  `library`: a host acquiring for an owner node names the title as the
+  `library`: a host acquiring for a shared node names the title as the
   owner does, since its scratch library's edition ids are its own.
 - `parent_library_id`: Likewise for the title's podcast parent, whose folder an episode
   may be saved in.
