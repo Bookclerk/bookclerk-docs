@@ -185,8 +185,11 @@ Request to fix up audiobook metadata after decrypt / download.
 - `author`: Author / artist tag when known.
 - `narrator`: Narrator tag when known (ABS / iTunes freeform).
 - `cover`: Optional cover image path to embed (JPEG/PNG).
-- `chapters`: Chapter titles + start offsets in milliseconds (embedded for M4B).
-- `replace_chapters`: When true, replace any existing M4B chapter list/track with [`Self::chapters`](#fixuprequest)
+- `chapters`: Chapter titles + start offsets in milliseconds, embedded as a
+  QuickTime chapter track in an M4B and as ID3 `CHAP`/`CTOC` frames in
+  an MP3.
+- `replace_chapters`: When true, replace any chapters the file already has (an M4B chapter
+  list/track, or MP3 `CHAP`/`CTOC` frames) with [`Self::chapters`](#fixuprequest)
   (used when overlaying Audible chapter trees onto Libro packaged M4Bs).
   When false, preserve existing chapters if the file already has them.
 - `subtitle`: Subtitle / album subtitle when known.
