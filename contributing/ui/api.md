@@ -1110,6 +1110,46 @@ True for the node serving this request.
 
 ***
 
+### DiagnosticsReport
+
+One diagnostics report this install sent (`GET /api/diagnostics/reports`).
+
+#### Properties
+
+##### report\_id
+
+```ts
+report_id: string;
+```
+
+The collector's ID for the report; the GitHub issue filed for it mentions this ID.
+
+##### sent\_at\_unix\_ms
+
+```ts
+sent_at_unix_ms: number;
+```
+
+When the collector accepted it, Unix milliseconds.
+
+##### trigger
+
+```ts
+trigger: string;
+```
+
+Why it was sent: `crash`, `error_burst`, `slow_burst`, `job_failed`, `cli_error`, ….
+
+##### version
+
+```ts
+version: string;
+```
+
+The Bookclerk version that sent it.
+
+***
+
 ### DiscoverFeed
 
 Discover recommendations feed payload.
@@ -7433,6 +7473,22 @@ Cluster summary, visible nodes, and the caller's capabilities.
 
 ***
 
+### fetchDiagnosticsReports()
+
+```ts
+function fetchDiagnosticsReports(): Promise<DiagnosticsReport[]>;
+```
+
+Lists the diagnostics reports this install sent (operator only).
+
+#### Returns
+
+`Promise`\<[`DiagnosticsReport`](#diagnosticsreport)[]\>
+
+Reports, newest first (the install keeps the last 200).
+
+***
+
 ### fetchDiscoverFeed()
 
 ```ts
@@ -9151,6 +9207,30 @@ Rotates a confidential client's secret; plaintext is returned once.
 `Promise`\<[`OidcAsClient`](#oidcasclient)\>
 
 Client row including the new plaintext secret once.
+
+***
+
+### saveDiagnosticsSharing()
+
+```ts
+function saveDiagnosticsSharing(shareReports, shareUsage): Promise<SettingsResponse>;
+```
+
+Saves the install's diagnostics sharing choices (`diagnostics.share_reports`
+and `diagnostics.share_usage`). The daemon applies them without a restart.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `shareReports` | `boolean` | Upload redacted reports after crashes and error bursts. |
+| `shareUsage` | `boolean` | Send the weekly anonymous check-in and tag reports with the install ID. |
+
+#### Returns
+
+`Promise`\<[`SettingsResponse`](#settingsresponse)\>
+
+The settings view after the write.
 
 ***
 

@@ -839,6 +839,21 @@ books a storage destination takes.
 - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
 - `filter` *[`DestinationFilter`](#destinationfilter)*, **required** — The filter; no rules take every book.
 
+## DiagnosticsReportsResponse
+
+Body of `GET /api/diagnostics/reports`.
+
+- `reports` *array of [`DiagnosticsReportView`](#diagnosticsreportview)*, **required** — Sent reports, newest first (the last 200 are kept).
+
+## DiagnosticsReportView
+
+One diagnostics report this install sent.
+
+- `report_id` *string*, **required** — The collector's ID for the report (a UUID). The GitHub issue filed for it mentions this ID; search the issues for it or give it to a maintainer.
+- `trigger` *string*, **required** — Why it was sent: `crash`, `error_burst`, `slow_burst`, `job_failed`, `cli_error`, `cli_manual`, ….
+- `version` *string*, **required** — The Bookclerk version that sent it.
+- `sent_at_unix_ms` *integer (int64)*, **required** — When the collector accepted it, Unix milliseconds. At least 0.
+
 ## DisconnectBody
 
 `POST /api/config/join/connections/disconnect` body.

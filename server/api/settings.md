@@ -1627,6 +1627,237 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/diagnostics/reports`
+
+Lists the diagnostics reports this install sent, newest first, with
+the IDs the collector gave them.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Responses
+
+- `200` — The install's sent reports, newest first. Body: [`DiagnosticsReportsResponse`](schemas.md#diagnosticsreportsresponse) (`application/json`)
+  - `reports` *array of [`DiagnosticsReportView`](schemas.md#diagnosticsreportview)*, **required** — Sent reports, newest first (the last 200 are kept).
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/diagnostics/reports' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/diagnostics/reports' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/diagnostics/reports",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/diagnostics/reports", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/diagnostics/reports")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The install's sent reports, newest first.
+
+```json
+{
+  "reports": [
+    {
+      "report_id": "0e9ced79-df3c-4dae-872b-2e5772b06e69",
+      "trigger": "error_burst",
+      "version": "0.4.0",
+      "sent_at_unix_ms": 1763520000000
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Body of `GET /api/diagnostics/reports`.",
+  "required": [
+    "reports"
+  ],
+  "properties": {
+    "reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One diagnostics report this install sent.",
+        "required": [
+          "report_id",
+          "trigger",
+          "version",
+          "sent_at_unix_ms"
+        ],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "description": "The collector's ID for the report (a UUID). The GitHub issue filed\nfor it mentions this ID; search the issues for it or give it to a\nmaintainer.",
+            "example": "0e9ced79-df3c-4dae-872b-2e5772b06e69"
+          },
+          "trigger": {
+            "type": "string",
+            "description": "Why it was sent: `crash`, `error_burst`, `slow_burst`, `job_failed`,\n`cli_error`, `cli_manual`, ….",
+            "example": "error_burst"
+          },
+          "version": {
+            "type": "string",
+            "description": "The Bookclerk version that sent it.",
+            "example": "0.4.0"
+          },
+          "sent_at_unix_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "When the collector accepted it, Unix milliseconds.",
+            "example": 1763520000000,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "Sent reports, newest first (the last 200 are kept)."
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/database/migrate`
 
 Copies library rows between database plugins and optionally switches `[database].plugin`.

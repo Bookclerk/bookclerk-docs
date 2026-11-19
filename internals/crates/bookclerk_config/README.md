@@ -49,6 +49,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`PluginRegistryEntry`](#pluginregistryentry) | struct | One configured plugin registry source (`[[plugins.registries]]`). |
 | [`PluginsConfig`](#pluginsconfig) | struct | `[plugins]` — how external plugin guests are run. |
 | [`PluginsJailConfig`](#pluginsjailconfig) | struct | Optional global resource ceilings for plugin guest jails under `[plugins.jail]`. |
+| [`ReportId`](#reportid) | struct | A report ID the collector assigned: a version-4 UUID in lowercase hyphenated form. |
+| [`ReportRecord`](#reportrecord) | struct | One report this install sent. |
 | [`AuthConfig`](#authconfig) | struct | Auth encryption settings (`[auth]` section). |
 | [`Config`](#config) | struct | Top-level Bookclerk configuration. |
 | [`DaemonAuthConfig`](#daemonauthconfig) | struct | Operator token / session settings for the daemon HTTP API. |
@@ -80,6 +82,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`FilterEffect`](#filtereffect) | enum | Whether a `FilterRule` lets matching books in or keeps them out. |
 | [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
 | [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
+| [`SubmitReplyError`](#submitreplyerror) | enum | Why a collector reply was refused. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
@@ -145,6 +148,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`sanitize_for_remote_upload`](#sanitize_for_remote_upload) | function | Extra sanitization for payloads that leave the machine (collector / B2). |
 | [`truncate_upload_message`](#truncate_upload_message) | function | Cap message length used in remote diagnostics events. |
 | [`unregister_secret`](#unregister_secret) | function | Forget a secret `register_secret` registered, with its encoded forms, once nothing in the process holds it any more (a short-lived bearer token whose holder was dropped), so per-request credentials do not pile up in the registry every log line is checked against. Lines captured while it was registered were scrubbed then. Only for values unique to one holder: the registry keeps no count, so a value two holders share would stop being scrubbed for both. |
+| [`load_report_history`](#load_report_history) | function | Reads the report history, oldest first. |
+| [`parse_submit_reply`](#parse_submit_reply) | function | Reads the report ID from the collector's `POST /submit` reply. |
+| [`record_report`](#record_report) | function | Adds a report to the history, keeping the newest `MAX_REPORT_HISTORY`. |
 | [`read_node_api_spki_pin`](#read_node_api_spki_pin) | function | The SPKI pin of the daemon's self-signed node API certificate, once the daemon has generated it. Enrollment links carry it in `[daemon.node_api] mode = "self_signed"`. |
 | [`Result`](#result) | type alias | Result alias for configuration load and validation helpers in this crate. |
 | [`DEFAULT_CACHE_BUDGET_BYTES`](#default_cache_budget_bytes) | constant | Default disk budget for one node's image caches: 1 GiB. |
@@ -164,6 +170,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_FILTER_RULES`](#max_filter_rules) | constant | Most rules one destination filter may hold. |
 | [`MAX_FILTER_VALUE_BYTES`](#max_filter_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
 | [`REDACTED`](#redacted) | constant | Replacement token used wherever a secret or sensitive value is scrubbed. |
+| [`MAX_REPORT_HISTORY`](#max_report_history) | constant | How many reports the history keeps; older ones are dropped first. |
+| [`MAX_SUBMIT_REPLY_BYTES`](#max_submit_reply_bytes) | constant | Longest collector reply, in bytes, that `parse_submit_reply` reads. The real reply is about 200 bytes. |
+| [`REPORT_HISTORY_FILE`](#report_history_file) | constant | File, relative to the files directory, that holds the report history. |
 | [`LETS_ENCRYPT_DIRECTORY`](#lets_encrypt_directory) | constant | Let's Encrypt's production ACME directory. |
 | [`NODE_API_ACME_DIR`](#node_api_acme_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the ACME account and certificate cache (mode 0700 on Unix). |
 | [`NODE_API_SELF_SIGNED_DIR`](#node_api_self_signed_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the self-signed node API certificate, its key, and its SPKI pin (mode 0700 on Unix). |
@@ -349,6 +358,19 @@ pub struct DiagnosticsHandle {
 
 Process-global diagnostics handle installed by [`crate::logging::init_tracing_with`](#init_tracing_with).
 
+#### DiagnosticsHandle::new
+
+```rust
+pub fn new(
+    config: DiagnosticsConfig,
+    version: impl Into<String>,
+    role: ProcessRole,
+) -> Self
+```
+
+A new handle with ring capacity from config (at least 1). The
+process installs one with `install_global`; tests build their own.
+
 #### DiagnosticsHandle::upload_enabled
 
 ```rust
@@ -356,6 +378,43 @@ pub fn upload_enabled(&self) -> bool
 ```
 
 Whether automatic upload is configured and ready (token/url present).
+
+#### DiagnosticsHandle::share_usage
+
+```rust
+pub fn share_usage(&self) -> bool
+```
+
+Whether the weekly usage check-in and the install ID are on right now
+(`diagnostics.share_usage`, following Settings changes).
+
+#### DiagnosticsHandle::set_sharing
+
+```rust
+pub fn set_sharing(&self, share_reports: bool, share_usage: bool)
+```
+
+Applies new `diagnostics.share_reports` / `share_usage` values without
+a restart (the daemon calls it after a config reload).
+
+##### Arguments
+
+* `share_reports` - Whether reports are uploaded from now on.
+* `share_usage` - Whether uploads carry the install ID and the
+  check-in runs from now on.
+
+#### DiagnosticsHandle::set_files_dir
+
+```rust
+pub fn set_files_dir(&self, files_dir: &Path)
+```
+
+Tells the handle where the files directory is, so accepted reports
+are recorded in the install's report history. The first call wins.
+
+##### Arguments
+
+* `files_dir` - The Bookclerk files directory.
 
 #### DiagnosticsHandle::snapshot_events
 
@@ -1775,6 +1834,65 @@ Clamp CPU / extra-process ceilings into host-safe ranges when set.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### ReportId
+
+```rust
+pub struct ReportId(/* private */);
+```
+
+A report ID the collector assigned: a version-4 UUID in lowercase
+hyphenated form.
+
+#### ReportId::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses a report ID.
+
+##### Arguments
+
+* `text` - Candidate text. Unlike the install ID file, no
+  surrounding whitespace is allowed.
+
+##### Returns
+
+The ID, or `None` unless the text is a lowercase hyphenated
+version-4 UUID.
+
+#### ReportId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The ID as text.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ReportRecord
+
+```rust
+pub struct ReportRecord {
+    pub report_id: ReportId,
+    pub trigger: String,
+    pub version: String,
+    pub sent_at_unix_ms: u64,
+}
+```
+
+One report this install sent.
+
+**Fields**
+
+- `report_id`: The collector's ID for the report.
+- `trigger`: Why it was sent (`crash`, `error_burst`, `cli_error`, …).
+- `version`: The Bookclerk version that sent it.
+- `sent_at_unix_ms`: When the collector accepted it, Unix milliseconds.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### AuthConfig
 
 ```rust
@@ -3073,6 +3191,26 @@ else is a book.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### SubmitReplyError
+
+```rust
+pub enum SubmitReplyError {
+    TooLong,
+    NotJson,
+    BadReportId,
+}
+```
+
+Why a collector reply was refused.
+
+**Variants**
+
+- `TooLong`: The reply is longer than [`MAX_SUBMIT_REPLY_BYTES`](#max_submit_reply_bytes).
+- `NotJson`: The reply is not a JSON object with a string `report_id`.
+- `BadReportId`: `report_id` is present but not a version-4 UUID.
+
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
 ### AudioQuality
 
 ```rust
@@ -3881,6 +4019,69 @@ while it was registered were scrubbed then. Only for values unique to
 one holder: the registry keeps no count, so a value two holders share
 would stop being scrubbed for both.
 
+### load_report_history
+
+```rust
+pub fn load_report_history(files_dir: &Path) -> Vec<ReportRecord>
+```
+
+Reads the report history, oldest first.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+
+#### Returns
+
+The recorded reports. A missing file is an empty history; an unreadable
+or damaged one is too, because the history is a convenience and the
+next report rewrites it.
+
+### parse_submit_reply
+
+```rust
+pub fn parse_submit_reply(body: &[u8]) -> Result<ReportId, SubmitReplyError>
+```
+
+Reads the report ID from the collector's `POST /submit` reply.
+
+#### Arguments
+
+* `body` - The reply body as received.
+
+#### Returns
+
+The report ID.
+
+#### Errors
+
+Returns [`SubmitReplyError`](#submitreplyerror) when the body is too long, is not a JSON
+object with a string `report_id`, or that value is not a version-4 UUID.
+
+### record_report
+
+```rust
+pub fn record_report(files_dir: &Path, record: ReportRecord) -> Result<()>
+```
+
+Adds a report to the history, keeping the newest [`MAX_REPORT_HISTORY`](#max_report_history).
+
+The daemon and a CLI run can both upload from the same files directory,
+so the read, append and replace happen under an exclusive lock on
+`diagnostics/reports.json.lock`: a second writer waits for the first and
+then appends to what the first wrote, rather than both appending to the
+same old list and one replacement dropping the other's report.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+* `record` - The report the collector just accepted.
+
+#### Errors
+
+Returns an error when the lock cannot be taken or the history cannot be
+written.
+
 ### read_node_api_spki_pin
 
 ```rust
@@ -4047,6 +4248,31 @@ pub const REDACTED: &str = "[REDACTED]";
 ```
 
 Replacement token used wherever a secret or sensitive value is scrubbed.
+
+### MAX_REPORT_HISTORY
+
+```rust
+pub const MAX_REPORT_HISTORY: usize = 200;
+```
+
+How many reports the history keeps; older ones are dropped first.
+
+### MAX_SUBMIT_REPLY_BYTES
+
+```rust
+pub const MAX_SUBMIT_REPLY_BYTES: usize = 4096;
+```
+
+Longest collector reply, in bytes, that [`parse_submit_reply`](#parse_submit_reply) reads.
+The real reply is about 200 bytes.
+
+### REPORT_HISTORY_FILE
+
+```rust
+pub const REPORT_HISTORY_FILE: &str = "diagnostics/reports.json";
+```
+
+File, relative to the files directory, that holds the report history.
 
 ### LETS_ENCRYPT_DIRECTORY
 
