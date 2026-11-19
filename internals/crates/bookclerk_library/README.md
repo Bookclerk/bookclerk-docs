@@ -8173,6 +8173,27 @@ resolved are absent.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::works_of_editions
+
+```rust
+pub async fn works_of_editions(
+    &self,
+    edition_ids: BTreeSet<String>,
+) -> Result<BTreeMap<String, String>>
+```
+
+Each edition's work, through its expression, read in chunks that
+fit the database's limits.
+
+##### Returns
+
+Edition id to work id; an edition that no longer exists, or whose
+expression row is missing, is left out.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::book_uuids_for_work
 
 ```rust
@@ -9300,6 +9321,33 @@ Every work state of the given users, read in chunks.
 ##### Returns
 
 The stored rows, ordered by user then work.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::user_title_states_of_works
+
+```rust
+pub async fn user_title_states_of_works(
+    &self,
+    user_id: i64,
+    work_ids: &[String],
+) -> Result<Vec<UserTitleState>>
+```
+
+One user's stored state for each of `work_ids`, read in chunks
+that fit the database's limits.
+
+##### Arguments
+
+* `user_id` - The user (`users.id`).
+* `work_ids` - Works whose state to read; duplicates are read once.
+
+##### Returns
+
+The stored rows, one per work the user has state for, ordered by
+work.
 
 ##### Errors
 
