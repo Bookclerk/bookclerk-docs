@@ -128,7 +128,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
 | [`AcquireTitle`](#acquiretitle) | struct | One title an account holds, as acquire reads it from the library model. |
 | [`AcquireTitlePage`](#acquiretitlepage) | struct | One page of `LibraryStore::acquire_titles_page`. |
-| [`AcquiredBookKey`](#acquiredbookkey) | struct | The identity of one acquired book with a stored file, without its metadata. |
+| [`AcquiredTitleKey`](#acquiredtitlekey) | struct | One account's title of an edition acquired with a stored file, without its metadata. |
+| [`AcquiredTitleKeyPage`](#acquiredtitlekeypage) | struct | One page of `AcquiredTitleKey`s. |
 | [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
@@ -338,7 +339,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`RESUME_CURSOR_TTL`](#resume_cursor_ttl) | constant | Longest time a stopped pass's cursor is resumed; an older one restarts the pass (store cursors expire). |
 | [`MAX_SPLIT_EXPRESSIONS`](#max_split_expressions) | constant | Most expressions one split moves: the batch's widest statement binds each id twice, and the minimum database profile allows 32 binds. |
 | [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes) | constant | Longest expression id a split body may name, in bytes; ids are UUIDs. |
-| [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for one `LibraryStore::acquired_book_keys_page` read. |
+| [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for the editions one `LibraryStore::acquired_title_keys_page` read covers. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
@@ -5100,6 +5101,7 @@ pub struct AcquireTitle {
     pub publisher: Option<String>,
     pub categories: Option<String>,
     pub length_minutes: Option<i64>,
+    pub language: Option<String>,
     pub is_abridged: bool,
     pub content_kind: &'static str,
     pub purchased_at: Option<DateTime<Utc>>,
@@ -5140,6 +5142,7 @@ One title an account holds, as acquire reads it from the library model.
 - `publisher`: Publisher as the store lists it.
 - `categories`: Store category labels (serialized as the scan stored them).
 - `length_minutes`: Running time in whole minutes, from the store or the edition.
+- `language`: Language as the store lists it.
 - `is_abridged`: True when the store or the expression marks it abridged.
 - `content_kind`: What the title is, in the flat row's labels: `episode` for a
   podcast episode, `podcast` for a show, `book` otherwise.
@@ -5206,12 +5209,12 @@ One page of [`LibraryStore::acquire_titles_page`](#librarystoreacquire_titles_pa
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
-### AcquiredBookKey
+### AcquiredTitleKey
 
 ```rust
-pub struct AcquiredBookKey {
-    pub id: i64,
-    pub uuid: String,
+pub struct AcquiredTitleKey {
+    pub holding_id: String,
+    pub edition_id: String,
     pub source: String,
     pub plugin_key: String,
     pub account_id: String,
@@ -5221,26 +5224,45 @@ pub struct AcquiredBookKey {
 }
 ```
 
-The identity of one acquired book with a stored file, without its
-metadata.
-
-Read in keyset pages by [`LibraryStore::acquired_book_keys_page`](#librarystoreacquired_book_keys_page); the
-full row is loaded only when it is needed, by
-[`LibraryStore::get_book_by_uuid`](#librarystoreget_book_by_uuid).
+One account's title of an edition acquired with a stored file, without
+its metadata.
 
 **Fields**
 
-- `id`: Surrogate row id; the keyset cursor of the page reader.
-- `uuid`: Public book id.
-- `source`: Store alias the book came from (`audible`, `libro`, ...), as stored.
+- `holding_id`: The account holding (`holdings.id`): the id the full view is read
+  by.
+- `edition_id`: The acquired edition (`editions.id`).
+- `source`: Display alias of the store plugin (`audible`, `libro`, ...), from
+  the account; empty when the account row is gone.
 - `plugin_key`: Provenance-qualified plugin key of the store.
-- `account_id`: Store account that holds the book.
-- `marketplace`: Store marketplace, as stored on the flat row.
-- `product_id`: Store product id.
-- `updated_at`: Last change of the row. An unparsable stored value reads as the
-  time of the read, the same fallback [`BookRecord`](#bookrecord) uses.
+- `account_id`: Store account that holds the title.
+- `marketplace`: Store marketplace of the listing, as stored.
+- `product_id`: Store product id of the listing.
+- `updated_at`: Last change of the title: the latest of its holding, its listing and
+  its edition's acquire state. An unparsable stored value counts as
+  the time of the read.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### AcquiredTitleKeyPage
+
+```rust
+pub struct AcquiredTitleKeyPage {
+    pub keys: Vec<AcquiredTitleKey>,
+    pub next: Option<String>,
+}
+```
+
+One page of [`AcquiredTitleKey`](#acquiredtitlekey)s.
+
+**Fields**
+
+- `keys`: Every account title of the page's editions, by edition then holding
+  id.
+- `next`: The cursor of the next page (an edition id), or `None` after the
+  last.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### BookPage
 
@@ -5764,6 +5786,39 @@ holding order: what reconcile and storage matching walk.
 The page's titles and the cursor of the next page. A holding whose
 listing is gone has no title, so a page can be short or empty while
 more follow: walk until `next` is `None`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::acquired_title_keys_page
+
+```rust
+pub async fn acquired_title_keys_page(
+    &self,
+    after: Option<&str>,
+    limit: u64,
+) -> Result<AcquiredTitleKeyPage>
+```
+
+One keyset page of the account titles whose edition is acquired
+with a stored audio file, identity columns only.
+
+A page of editions whose result would exceed the database's result
+limits is halved and read again.
+
+##### Arguments
+
+* `after` - The previous page's [`AcquiredTitleKeyPage::next`](#acquiredtitlekeypage), or
+  `None` for the first page.
+* `limit` - Editions wanted, clamped to
+  1..=[`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) and to the database's row limit.
+
+##### Returns
+
+Every account holding of up to `limit` acquired editions, in edition
+then holding order. An acquired edition no account holds yields no
+key; walk until `next` is `None`.
 
 ##### Errors
 
@@ -9981,34 +10036,6 @@ whole library in memory.
 ##### Returns
 
 The matching books ordered by title; empty when none match.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::acquired_book_keys_page
-
-```rust
-pub async fn acquired_book_keys_page(
-    &self,
-    after_id: Option<i64>,
-    limit: u64,
-) -> Result<Vec<AcquiredBookKey>>
-```
-
-One keyset page of the acquired books that have a stored file,
-identity columns only, by surrogate id.
-
-##### Arguments
-
-* `after_id` - The last [`AcquiredBookKey::id`](#acquiredbookkey) of the previous page,
-  or `None` for the first page.
-* `limit` - Rows wanted, clamped to 1..=[`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page).
-
-##### Returns
-
-Up to `limit` keys in ascending id order; fewer than `limit` means
-the last page.
 
 ##### Errors
 
@@ -17181,11 +17208,12 @@ Longest expression id a split body may name, in bytes; ids are UUIDs.
 pub const ACQUIRED_KEYS_MAX_PAGE: u64 = 256;
 ```
 
-Upper clamp for one [`LibraryStore::acquired_book_keys_page`](#librarystoreacquired_book_keys_page) read.
+Upper clamp for the editions one [`LibraryStore::acquired_title_keys_page`](#librarystoreacquired_title_keys_page)
+read covers.
 
-A key row is eight short columns (well under 1 KiB on the wire), so this
-many stay far below the 256 KiB inline result cap of an adapter that
-does not stream.
+An acquisition row is a few short columns (well under 1 KiB on the wire),
+so this many stay far below the 256 KiB inline result cap of an adapter
+that does not stream.
 
 ### ACQUIRE_WRITER
 

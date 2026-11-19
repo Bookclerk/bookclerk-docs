@@ -2877,15 +2877,36 @@ Returns an error when a read fails.
 #### OwnerShareFilter::admits
 
 ```rust
-pub fn admits(&self, key: &AcquiredBookKey) -> bool
+pub fn admits(&self, key: &AcquiredTitleKey) -> bool
 ```
 
 True when the book `key` names is sent.
 
+#### OwnerShareFilter::admit_editions
+
+```rust
+pub fn admit_editions(&self, keys: Vec<AcquiredTitleKey>) -> Vec<AcquiredTitleKey>
+```
+
+The keys of `keys` that are sent, dropping every holding of an
+edition when any of its holdings was imported from the library: a
+copy imported for one account is the same file every other account
+holding that edition would send back.
+
+##### Arguments
+
+* `keys` - Whole editions' keys, every account holding of each
+  edition present, as one [`LibraryStore::acquired_title_keys_page`](README.md#librarystoreacquired_title_keys_page)
+  returns them.
+
+##### Returns
+
+The admitted keys, in their order.
+
 #### OwnerShareFilter::requested_at
 
 ```rust
-pub fn requested_at(&self, key: &AcquiredBookKey) -> Option<DateTime<Utc>>
+pub fn requested_at(&self, key: &AcquiredTitleKey) -> Option<DateTime<Utc>>
 ```
 
 When the library last asked for the book `key` names, if it asked
