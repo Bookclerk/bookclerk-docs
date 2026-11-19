@@ -2354,6 +2354,774 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/config/plugin-instances/{id}/filter`
+
+`GET /api/config/plugin-instances/{id}/filter`: which books the storage
+destination takes.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the destination.
+
+### Responses
+
+- `200` — The destination's filter. Body: [`DestinationFilterResponse`](schemas.md#destinationfilterresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — The destination's plugin instance id.
+  - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
+  - `filter` *[`DestinationFilter`](schemas.md#destinationfilter)*, **required** — The filter; no rules take every book.
+- `400` — The id is not a plugin instance id. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The filter could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The destination's filter.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 2,
+  "filter": {
+    "rules": [
+      {
+        "field": "patron",
+        "value": "audible",
+        "effect": "include"
+      }
+    ]
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET` and `PUT /api/config/plugin-instances/{id}/filter` body: which\nbooks a storage destination takes.",
+  "required": [
+    "plugin_instance_id",
+    "revision",
+    "filter"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "The destination's plugin instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision of the destination's `core.destination` document; `0` when\nnone was written, so the destination takes every book.",
+      "example": 2
+    },
+    "filter": {
+      "type": "object",
+      "description": "The filter; no rules take every book.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a destination filter: a field, one value of it, and its\neffect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "patron",
+                  "storefront",
+                  "account",
+                  "media_kind"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, otherwise 1 to 128 bytes of text.",
+                "example": "audible"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Filter rules, at most 64. Empty means the destination takes every\nbook.",
+          "maxItems": 64
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `400`: The id is not a plugin instance id.
+
+```json
+{
+  "error": "invalid plugin instance id: expected a UUID"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The filter could not be read.
+
+```json
+{
+  "error": "invalid core.destination: destination filter: unknown field `genre`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/config/plugin-instances/{id}/filter`
+
+`PUT /api/config/plugin-instances/{id}/filter`: replaces which books the
+storage destination takes. Acquires that start afterwards use it; files
+already stored stay where they are.
+
+Operator principal only. The route is mounted on the operator router.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Plugin instance id of the destination.
+
+### Request body
+
+`application/json`: [`DestinationFilter`](schemas.md#destinationfilter)
+
+- `rules` *array of [`FilterRule`](schemas.md#filterrule)* — Filter rules, at most 64. Empty means the destination takes every book. At most 64 items.
+
+### Responses
+
+- `200` — The filter after the change. Body: [`DestinationFilterResponse`](schemas.md#destinationfilterresponse) (`application/json`)
+  - `plugin_instance_id` *string*, **required** — The destination's plugin instance id.
+  - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
+  - `filter` *[`DestinationFilter`](schemas.md#destinationfilter)*, **required** — The filter; no rules take every book.
+- `400` — The filter is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — No such instance. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The filter kept changing underneath the write. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The filter could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/plugin-instances/<id>/filter")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The filter after the change.
+
+```json
+{
+  "plugin_instance_id": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "revision": 2,
+  "filter": {
+    "rules": [
+      {
+        "field": "patron",
+        "value": "audible",
+        "effect": "include"
+      }
+    ]
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET` and `PUT /api/config/plugin-instances/{id}/filter` body: which\nbooks a storage destination takes.",
+  "required": [
+    "plugin_instance_id",
+    "revision",
+    "filter"
+  ],
+  "properties": {
+    "plugin_instance_id": {
+      "type": "string",
+      "description": "The destination's plugin instance id.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Revision of the destination's `core.destination` document; `0` when\nnone was written, so the destination takes every book.",
+      "example": 2
+    },
+    "filter": {
+      "type": "object",
+      "description": "The filter; no rules take every book.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a destination filter: a field, one value of it, and its\neffect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "patron",
+                  "storefront",
+                  "account",
+                  "media_kind"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, otherwise 1 to 128 bytes of text.",
+                "example": "audible"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Filter rules, at most 64. Empty means the destination takes every\nbook.",
+          "maxItems": 64
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `400`: The filter is invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid: a patron rule takes a user id, not `me`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: No such instance.
+
+```json
+{
+  "error": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The filter kept changing underneath the write.
+
+```json
+{
+  "error": "the filter of destination 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: rules: invalid type: integer `1`, expected a sequence at line 1 column 10
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The filter could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`
 
 `PUT /api/config/plugin-instances/{id}/deployments/{node_id}`: the

@@ -309,6 +309,7 @@ pub struct AcquireDestination {
     pub id: DestinationId,
     pub backend: Box<dyn StorageBackend>,
     pub options: DownloadOptions,
+    pub filter: DestinationFilter,
 }
 ```
 
@@ -316,9 +317,10 @@ One configured output destination for an acquire run.
 
 **Fields**
 
-- `id`: The destination's id: its storage plugin's alias (`local`, `s3`, …).
+- `id`: The destination's id: its storage plugin instance id.
 - `backend`: Constructed storage backend for this destination.
 - `options`: Source download options (quality, chapter prefs, …).
+- `filter`: Which books the destination takes; no rules take every book.
 
 ### AcquireDestinations
 
@@ -370,6 +372,39 @@ pub fn destination(&self, id: &DestinationId) -> Option<&AcquireDestination>
 ```
 
 Returns the destination `id`, if configured.
+
+#### AcquireDestinations::set_filters
+
+```rust
+pub fn set_filters(&mut self, filters: &BTreeMap<String, DestinationFilter>)
+```
+
+Replaces every destination's filter with the one stored for it now.
+
+A long acquire run calls this before each book's target set is
+chosen, so a filter edited mid-run applies to the books that start
+afterwards. A destination absent from `filters` takes every book.
+
+##### Arguments
+
+* `filters` - Stored filters by plugin instance id.
+
+#### AcquireDestinations::for_book
+
+```rust
+pub fn for_book(&self, facts: &PlacementFacts) -> Result<AcquireDestinations>
+```
+
+The destinations that take the book `facts` describes: the target
+set an acquire of it writes to, fixed before the acquire starts.
+
+The primary stays the primary when it takes the book; otherwise the
+first destination that does becomes it.
+
+##### Errors
+
+Returns [`AcquireError::NoDestinationAccepts`](#acquireerror) when no destination's
+filter takes the book.
 
 #### AcquireDestinations::listing_backend
 
@@ -654,6 +689,7 @@ pub struct AcquireRequest {
     pub cache_dir: PathBuf,
     pub force: bool,
     pub write_destinations: Option<Vec<DestinationId>>,
+    pub placement: Option<PlacementFacts>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
     pub library_id: Option<String>,
@@ -682,6 +718,11 @@ Request to acquire a single title.
 - `force`: When true, download even if matching media already exists in storage.
 - `write_destinations`: When set, only write prepared audio to these destinations
   (`output.multi_destination = refetch_missing`).
+- `placement`: What the destination filters know about the book. When set, the
+  acquire writes only to the destinations whose filter takes it
+  ([`AcquireDestinations::for_book`](#acquiredestinationsfor_book)) and fails before fetching when
+  none does. `None` writes to every destination given: a host
+  acquiring for an owner gets destinations the owner already chose.
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
 - `library_id`: The `<library id>` to name the title by instead of its edition in
@@ -934,6 +975,7 @@ pub enum AcquireError {
     Media(MediaError),
     Library(LibraryError),
     Io(Error),
+    NoDestinationAccepts,
     Other(Error),
 }
 ```
@@ -947,6 +989,8 @@ Failures from the acquire / convert / reconcile pipeline.
 - `Media`: Failure originating in media encode/remux/fixup.
 - `Library`: Failure originating in the library database layer.
 - `Io`: Filesystem or other I/O failure.
+- `NoDestinationAccepts`: No deployed destination's filter takes the book, so the acquire
+  stops before it fetches anything.
 - `Other`: Catch-all for otherwise unclassified failures.
 
 Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibraryError>`, `From<MediaError>`, `From<SourceError>`, `From<StorageError>`

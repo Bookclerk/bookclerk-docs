@@ -5652,6 +5652,7 @@ stop the others.
 pub fn build_acquire_destinations(
     config: &Config,
     destinations: &DestinationRegistry,
+    filters: &BTreeMap<String, DestinationFilter>,
 ) -> Result<AcquireDestinations>
 ```
 
@@ -5659,6 +5660,15 @@ Build destination backends for acquire from the deployed output plugins.
 
 Every deployed storage plugin instance is a destination; path
 destinations come first, and the first destination is the primary.
+
+#### Arguments
+
+* `config` - The host's configuration, for download options.
+* `destinations` - The deployed destinations.
+* `filters` - Stored destination filters by plugin instance id
+  (`bookclerk_library::control_plane::destination_filters`), or an
+  empty map when the caller sets them later; a
+  destination without one takes every book.
 
 #### Errors
 

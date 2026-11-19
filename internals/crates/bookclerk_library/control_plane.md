@@ -53,6 +53,7 @@ See `docs/adr/control-plane.md`.
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
+| [`DestinationPlacementV1`](#destinationplacementv1) | struct | The body of a `core.destination` document. |
 | [`DocumentKey`](#documentkey) | struct | Address of one configuration document. |
 | [`StoredDocument`](#storeddocument) | struct | One stored document before domain parsing. |
 | [`VerifiedClusterOwner`](#verifiedclusterowner) | struct | Proof that a user was an active Owner when the write was authorized. |
@@ -296,6 +297,11 @@ See `docs/adr/control-plane.md`.
 | [`present_plugin_keys_for_node`](#present_plugin_keys_for_node) | function | Canonical plugin keys with a present deployment on `node_id`. |
 | [`replace_plugin_deployment`](#replace_plugin_deployment) | function | Replaces desired state when `expected_revision` is current. |
 | [`upsert_observation`](#upsert_observation) | function | Upserts one local observation. |
+| [`destination_filter`](#destination_filter) | function | One destination's filter: the stored one, or a filter that takes every book. |
+| [`destination_filters`](#destination_filters) | function | The stored filters of the given destinations, keyed by plugin instance id. |
+| [`destination_key`](#destination_key) | function | The `core.destination` address for one plugin instance. |
+| [`load_destination_placement`](#load_destination_placement) | function | Loads one destination's placement document. |
+| [`set_destination_filter`](#set_destination_filter) | function | Replaces one destination's filter under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`audit_count`](#audit_count) | function | Counts audit rows for one namespace. |
 | [`change_count`](#change_count) | function | Counts committed change notices for one namespace. |
 | [`authorized_enrollment_link`](#authorized_enrollment_link) | function | The link a branch or shared branch sign-in redeems through: its id and secret are derived from the authorization code and the PKCE verifier, so a retry of the same exchange (same code, verifier and keys) finds the same link and answers from its receipt, and a wrong verifier can never redeem it. |
@@ -564,6 +570,8 @@ See `docs/adr/control-plane.md`.
 | [`COPY_TOKEN_TTL_SECS`](#copy_token_ttl_secs) | constant | Seconds a copy token is accepted after its grant. |
 | [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
 | [`MAX_OBSERVATION_DETAIL_BYTES`](#max_observation_detail_bytes) | constant | Maximum UTF-8 size of an observation detail string. |
+| [`DESTINATION_NAMESPACE`](#destination_namespace) | constant | Namespace of a destination's host-owned placement document. |
+| [`DESTINATION_SCHEMA_VERSION`](#destination_schema_version) | constant | Schema version of `DestinationPlacementV1`. |
 | [`CLUSTER_SCOPE_ID`](#cluster_scope_id) | constant | Cluster scope instance. There is one cluster document per namespace. |
 | [`CLUSTER_SCOPE_TYPE`](#cluster_scope_type) | constant | Scope type stored for cluster documents. |
 | [`MAX_CONFIGURATION_DOCUMENT_BYTES`](#max_configuration_document_bytes) | constant | Maximum UTF-8 size of `document_json`. |
@@ -1819,6 +1827,22 @@ One desired deployment row.
 - `updated_by`: Audit identity of the last desired-state writer.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DestinationPlacementV1
+
+```rust
+pub struct DestinationPlacementV1 {
+    pub filter: DestinationFilter,
+}
+```
+
+The body of a `core.destination` document.
+
+**Fields**
+
+- `filter`: Which books the destination takes; no rules take every book.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`, `Serialize`
 
 ### DocumentKey
 
@@ -8341,6 +8365,107 @@ A failed upsert does not roll back an install. The caller retries on the next ti
 
 Returns an error when the write fails.
 
+### destination_filter
+
+```rust
+pub async fn destination_filter(
+    store: &LibraryStore,
+    instance_id: &str,
+) -> Result<DestinationFilter>
+```
+
+One destination's filter: the stored one, or a filter that takes every
+book.
+
+#### Errors
+
+Returns the read or parse error.
+
+### destination_filters
+
+```rust
+pub async fn destination_filters<'a>(
+    store: &LibraryStore,
+    instance_ids: impl IntoIterator<Item = &'a str>,
+) -> Result<BTreeMap<String, DestinationFilter>>
+```
+
+The stored filters of the given destinations, keyed by plugin instance id.
+
+Each document is read by its primary key, one row per read, so the
+lookup stays inside the smallest result limits an adapter may advertise
+however many destinations have stored a filter. Pass the destinations
+deployed on this host; ids without a document are absent from the map
+and take every book.
+
+#### Arguments
+
+* `store` - The library database.
+* `instance_ids` - The destinations to read, by plugin instance id.
+
+#### Errors
+
+Returns the read error, or a parse error for any stored document; an
+acquire fails closed on it rather than writing where a filter said not
+to.
+
+### destination_key
+
+```rust
+pub fn destination_key(instance_id: &str) -> DocumentKey
+```
+
+The `core.destination` address for one plugin instance.
+
+### load_destination_placement
+
+```rust
+pub async fn load_destination_placement(
+    store: &LibraryStore,
+    instance_id: &str,
+) -> Result<Option<ConfigurationDocument<DestinationPlacementV1>>>
+```
+
+Loads one destination's placement document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one: the
+destination then takes every book.
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### set_destination_filter
+
+```rust
+pub async fn set_destination_filter(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    instance_id: &str,
+    filter: DestinationFilter,
+) -> Result<ConfigurationDocument<DestinationPlacementV1>>
+```
+
+Replaces one destination's filter under compare-and-swap, creating the
+document when absent and retrying a few times on a concurrent edit.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `instance_id` - The destination's plugin instance id.
+* `filter` - The new filter; no rules take every book.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a filter that fails
+`DestinationFilter::validate`, an error when the actor may not write,
+or [`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing
+underneath.
+
 ### audit_count
 
 ```rust
@@ -13062,6 +13187,22 @@ pub const MAX_OBSERVATION_DETAIL_BYTES: usize = 512;
 ```
 
 Maximum UTF-8 size of an observation detail string.
+
+### DESTINATION_NAMESPACE
+
+```rust
+pub const DESTINATION_NAMESPACE: &str = "core.destination";
+```
+
+Namespace of a destination's host-owned placement document.
+
+### DESTINATION_SCHEMA_VERSION
+
+```rust
+pub const DESTINATION_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`DestinationPlacementV1`](#destinationplacementv1).
 
 ### CLUSTER_SCOPE_ID
 

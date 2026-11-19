@@ -41,6 +41,10 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OutputConfig`](#outputconfig) | struct | Acquire packaging (`[output]`). |
 | [`PathLimits`](#pathlimits) | struct | Limits applied when hardening acquired storage keys. |
 | [`Paths`](#paths) | struct | Resolved filesystem locations for Bookclerk data. |
+| [`DestinationFilter`](#destinationfilter) | struct | Which books one destination takes. |
+| [`FilterError`](#filtererror) | struct | Why a `DestinationFilter` was refused. |
+| [`FilterRule`](#filterrule) | struct | One rule of a destination filter: a field, one value of it, and its effect. |
+| [`PlacementFacts`](#placementfacts) | struct | What a destination filter knows about one book when an acquire starts. |
 | [`IntegrationsConfig`](#integrationsconfig) | struct | Connect-portal settings under `[integrations]`. |
 | [`PluginRegistryEntry`](#pluginregistryentry) | struct | One configured plugin registry source (`[[plugins.registries]]`). |
 | [`PluginsConfig`](#pluginsconfig) | struct | `[plugins]` — how external plugin guests are run. |
@@ -73,6 +77,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
 | [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
+| [`FilterEffect`](#filtereffect) | enum | Whether a `FilterRule` lets matching books in or keeps them out. |
+| [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
+| [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
@@ -122,6 +129,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`truncate_path_component`](#truncate_path_component) | function | Truncate `s` so its measured length is ≤ `limit`. Never splits a UTF-8 char. |
 | [`resolve_config_path`](#resolve_config_path) | function | Resolve config file path: `BOOKCLERK_CONFIG` → `{files_dir}/config.toml`. |
 | [`resolve_files_dir`](#resolve_files_dir) | function | Resolve the Bookclerk files directory. |
+| [`parse_destination_filter`](#parse_destination_filter) | function | Parses a destination filter from its raw JSON bytes, sans IO, the way the web API reads it: the strict JSON shape, then trimmed (`DestinationFilter::normalized`) and checked (`DestinationFilter::validate`). |
 | [`detect_distro`](#detect_distro) | function | Best-effort OS distribution string (e.g. `Ubuntu 24.04.1 LTS`). |
 | [`host_cpu_rate_max`](#host_cpu_rate_max) | function | Host CPU rate ceiling in one-core percent units (`logical_cpus × 100`). |
 | [`node_logical_cpus`](#node_logical_cpus) | function | Logical CPUs visible to this process (at least 1). |
@@ -153,6 +161,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) | constant | AWS S3 maximum object key length (UTF-8 bytes), including any prefix. |
 | [`BOOKCLERK_CONFIG_ENV`](#bookclerk_config_env) | constant | Override for the config file path (`BOOKCLERK_CONFIG`). |
 | [`BOOKCLERK_FILES_DIR_ENV`](#bookclerk_files_dir_env) | constant | Environment variable for the Bookclerk data directory. |
+| [`MAX_FILTER_RULES`](#max_filter_rules) | constant | Most rules one destination filter may hold. |
+| [`MAX_FILTER_VALUE_BYTES`](#max_filter_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
 | [`REDACTED`](#redacted) | constant | Replacement token used wherever a secret or sensitive value is scrubbed. |
 | [`LETS_ENCRYPT_DIRECTORY`](#lets_encrypt_directory) | constant | Let's Encrypt's production ACME directory. |
 | [`NODE_API_ACME_DIR`](#node_api_acme_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the ACME account and certificate cache (mode 0700 on Unix). |
@@ -1516,6 +1526,129 @@ Returns an error when the operation fails.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### DestinationFilter
+
+```rust
+pub struct DestinationFilter {
+    pub rules: Vec<FilterRule>,
+}
+```
+
+Which books one destination takes.
+
+**Fields**
+
+- `rules`: Filter rules, at most 64. Empty means the destination takes every
+  book.
+
+#### DestinationFilter::takes_everything
+
+```rust
+pub fn takes_everything(&self) -> bool
+```
+
+A filter that takes every book: no rules.
+
+#### DestinationFilter::accepts
+
+```rust
+pub fn accepts(&self, facts: &PlacementFacts) -> bool
+```
+
+True when the destination takes the book described by `facts`: no
+exclude rule matches, and either there is no include rule or one of
+them matches.
+
+#### DestinationFilter::validate
+
+```rust
+pub fn validate(&self) -> Result<(), FilterError>
+```
+
+Checks the filter's bounds.
+
+##### Errors
+
+Returns a [`FilterError`](#filtererror) for more than [`MAX_FILTER_RULES`](#max_filter_rules) rules,
+an empty or over-long value, a value with a NUL, a `patron` value
+that is not a positive user id, a `media_kind` value other than
+`book` or `podcast`, or a rule given twice (the same field, value and
+effect, compared without case).
+
+#### DestinationFilter::normalized
+
+```rust
+pub fn normalized(self) -> Self
+```
+
+The filter with each value trimmed, as it is stored.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### FilterError
+
+```rust
+pub struct FilterError(/* private */);
+```
+
+Why a [`DestinationFilter`](#destinationfilter) was refused.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### FilterRule
+
+```rust
+pub struct FilterRule {
+    pub field: FilterField,
+    pub value: String,
+    pub effect: FilterEffect,
+}
+```
+
+One rule of a destination filter: a field, one value of it, and its
+effect.
+
+**Fields**
+
+- `field`: The field the rule matches.
+- `value`: The value: a user id for `patron`, `book` or `podcast` for
+  `media_kind`, otherwise 1 to 128 bytes of text.
+- `effect`: Include or exclude.
+
+#### FilterRule::matches
+
+```rust
+pub fn matches(&self, facts: &PlacementFacts) -> bool
+```
+
+True when the book described by `facts` has this rule's value in
+the rule's field. The effect is not considered.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### PlacementFacts
+
+```rust
+pub struct PlacementFacts {
+    pub patrons: Vec<i64>,
+    pub storefront: String,
+    pub account: String,
+    pub media_kind: PlacementMediaKind,
+}
+```
+
+What a destination filter knows about one book when an acquire starts.
+
+**Fields**
+
+- `patrons`: Users linked to the store account that holds the book, ascending.
+  Empty when the account is linked to nobody.
+- `storefront`: The storefront plugin's alias (`audible`, `libro`, …).
+- `account`: The holding account's id at that store.
+- `media_kind`: What the book is.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### IntegrationsConfig
 
 ```rust
@@ -2845,6 +2978,101 @@ True when the pipeline prefers an M4B intermediate (enriched or chapter-split).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### FilterEffect
+
+```rust
+pub enum FilterEffect {
+    Include,
+    Exclude,
+}
+```
+
+Whether a [`FilterRule`](#filterrule) lets matching books in or keeps them out.
+
+**Variants**
+
+- `Include`: Matching books are taken (once any include rule exists, only books
+  that match one are).
+- `Exclude`: Matching books are refused, whatever the include rules say.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
+### FilterField
+
+```rust
+pub enum FilterField {
+    Patron,
+    Storefront,
+    Account,
+    MediaKind,
+}
+```
+
+The book field a [`FilterRule`](#filterrule) matches one value of.
+
+**Variants**
+
+- `Patron`: A patron whose store account holds the book, by user id (`3`).
+- `Storefront`: The storefront the book came from, by its plugin's alias
+  (`audible`, `libro`), compared without case.
+- `Account`: The store account that holds the book, by its id at the store.
+- `MediaKind`: What the book is: `book` or `podcast` (a podcast episode is a
+  podcast).
+
+#### FilterField::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The field's name on the wire.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
+### PlacementMediaKind
+
+```rust
+pub enum PlacementMediaKind {
+    Book,
+    Podcast,
+}
+```
+
+What a book is, as a destination filter sees it.
+
+**Variants**
+
+- `Book`: A book (any form: narration, dramatisation, ebook and so on).
+- `Podcast`: A podcast show or one of its episodes.
+
+#### PlacementMediaKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The kind's name on the wire and in rule values.
+
+#### PlacementMediaKind::parse
+
+```rust
+pub fn parse(value: &str) -> Option<Self>
+```
+
+Reads a rule value (`book` or `podcast`, without case).
+
+#### PlacementMediaKind::from_content_kind
+
+```rust
+pub fn from_content_kind(content_kind: &str) -> Self
+```
+
+The kind of a library title from its content kind label (`book`,
+`podcast` or `episode`): episodes and shows are podcasts, everything
+else is a book.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
 ### AudioQuality
 
 ```rust
@@ -3488,6 +3716,24 @@ Precedence:
 3. XDG data dir: `$XDG_DATA_HOME/bookclerk` (or platform equivalent)
 4. Fallback: `./BookclerkFiles` (cwd-relative, Docker-friendly)
 
+### parse_destination_filter
+
+```rust
+pub fn parse_destination_filter(body: &[u8]) -> Result<DestinationFilter, FilterError>
+```
+
+Parses a destination filter from its raw JSON bytes, sans IO, the way
+the web API reads it: the strict JSON shape, then trimmed
+([`DestinationFilter::normalized`](#destinationfilternormalized)) and checked
+([`DestinationFilter::validate`](#destinationfiltervalidate)).
+
+#### Errors
+
+Returns a [`FilterError`](#filtererror) for bytes that are not the filter's JSON shape
+(unknown or repeated keys, wrong types, a missing rule key, an unknown
+field or effect name) or a filter that fails
+[`DestinationFilter::validate`](#destinationfiltervalidate).
+
 ### detect_distro
 
 ```rust
@@ -3777,6 +4023,22 @@ pub const BOOKCLERK_FILES_DIR_ENV: &str = "BOOKCLERK_FILES_DIR";
 ```
 
 Environment variable for the Bookclerk data directory.
+
+### MAX_FILTER_RULES
+
+```rust
+pub const MAX_FILTER_RULES: usize = 64;
+```
+
+Most rules one destination filter may hold.
+
+### MAX_FILTER_VALUE_BYTES
+
+```rust
+pub const MAX_FILTER_VALUE_BYTES: usize = 128;
+```
+
+Longest rule value, in UTF-8 bytes.
 
 ### REDACTED
 

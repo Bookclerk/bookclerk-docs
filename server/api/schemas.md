@@ -824,6 +824,21 @@ like "the scheduler put the replica elsewhere".
 
 Type: one of `present`, `absent`, `placed`, `unplaced`
 
+## DestinationFilter
+
+Which books one destination takes.
+
+- `rules` *array of [`FilterRule`](#filterrule)* — Filter rules, at most 64. Empty means the destination takes every book. At most 64 items.
+
+## DestinationFilterResponse
+
+`GET` and `PUT /api/config/plugin-instances/{id}/filter` body: which
+books a storage destination takes.
+
+- `plugin_instance_id` *string*, **required** — The destination's plugin instance id.
+- `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
+- `filter` *[`DestinationFilter`](#destinationfilter)*, **required** — The filter; no rules take every book.
+
 ## DisconnectBody
 
 `POST /api/config/join/connections/disconnect` body.
@@ -1121,6 +1136,27 @@ Type: one of `ready`, `refreshing`, `preparing`
 Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`).
 
 Type: one of `now`, `purchased`, `published`
+
+## FilterEffect
+
+Whether a [`FilterRule`] lets matching books in or keeps them out.
+
+Type: one of `include`, `exclude`
+
+## FilterField
+
+The book field a [`FilterRule`] matches one value of.
+
+Type: one of `patron`, `storefront`, `account`, `media_kind`
+
+## FilterRule
+
+One rule of a destination filter: a field, one value of it, and its
+effect.
+
+- `field` *[`FilterField`](#filterfield)*, **required** — The field the rule matches.
+- `value` *string*, **required** — The value: a user id for `patron`, `book` or `podcast` for `media_kind`, otherwise 1 to 128 bytes of text.
+- `effect` *[`FilterEffect`](#filtereffect)*, **required** — Include or exclude.
 
 ## GuestReservation
 
