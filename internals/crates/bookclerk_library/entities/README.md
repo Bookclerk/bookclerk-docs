@@ -62,7 +62,6 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`link_requests`](link_requests.md): SeaORM entity for `link_requests`: on a branch, the books a library it joined asked for through an interlibrary request (written by `control_plane::branch_requests`). The catalog sync sends that library a book recorded here for it, although the book is a member's.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
-- [`member_account_rules`](member_account_rules.md): SeaORM entity for the `member_account_rules` table: the operator's per-member rule "may connect store accounts here".
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
 - [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this library. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.
@@ -73,6 +72,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`oidc_refresh_tokens`](oidc_refresh_tokens.md): SeaORM entity for the `oidc_refresh_tokens` — refresh tokens bound to a User.
 - [`oidc_rp_states`](oidc_rp_states.md): SeaORM entity for OIDC relying-party authorize state (PKCE + nonce).
 - [`operator_sessions`](operator_sessions.md): SeaORM entity for the `operator_sessions` table.
+- [`patron_controls`](patron_controls.md): SeaORM entity for the `patron_controls` table: one Member's overrides of the library's default member controls, set by an Administrator.
 - [`patron_scope_keys`](patron_scope_keys.md): SeaORM entity for the `patron_scope_keys` table: the include and exclude values of a patron scope as rows, so the Library filter joins them instead of binding one parameter per rule.
 - [`patron_scopes`](patron_scopes.md): SeaORM entity for the `patron_scopes` table: a Member's own patron scope, set by an Administrator.
 - [`pending_joins`](pending_joins.md): SeaORM entity for `pending_joins`: on a host joining a library, one sign-in in progress (written by `control_plane::create_pending_join`). The PKCE verifier and the node keys are sealed in `encrypted_secrets`, never stored here.

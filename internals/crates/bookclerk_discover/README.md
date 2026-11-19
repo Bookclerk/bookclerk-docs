@@ -476,6 +476,14 @@ One autocomplete / results-page hit (possibly spanning multiple storefronts).
   through a store listing the library already holds. Filled by the
   daemon after the search.
 
+#### CatalogSearchHit::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the hit's price and its store links and prices.
+
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### CatalogSearchPage
@@ -501,6 +509,14 @@ Paged catalog-search response.
 - `next_cursor`: Opaque cursor for the next page; omit or `None` when exhausted.
 - `sort`: Sort field applied to the merged result set.
 - `sort_dir`: Ascending or descending order for [`Self::sort`](#catalogsearchpage).
+
+#### CatalogSearchPage::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the prices and store links of every hit.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -921,6 +937,14 @@ A purchase / catalog availability hint (optionally priced at view time).
 - `member_price_cents`: Member / credit price in integer cents when known.
 - `member_price_label`: Human-readable member price from the storefront.
 
+#### PurchaseHint::hide_price_and_link
+
+```rust
+pub fn hide_price_and_link(&mut self)
+```
+
+Removes the hint's store link and every price it carries.
+
 #### PurchaseHint::link
 
 ```rust
@@ -1001,6 +1025,14 @@ Priced catalog matches for one title, sorted best-first.
   query's trusted seeds alone), or when the hints could not be checked
   against the card's recording in time: a client should not keep the
   answer and asks again later. Omitted (false) for a finished lookup.
+
+#### PurchaseHintsResponse::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the store links and prices of every hint, `best` included.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1198,6 +1230,14 @@ One ranked recommendation (typically an unowned storefront title).
   answered a catalog lookup for its work). Filled when the feed is
   read, never stored with it.
 
+#### Recommendation::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the card's store links and prices.
+
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### StoredRequestQueue
@@ -1239,6 +1279,14 @@ Full Discover page payload: ordered shelves of personalized candidates.
 - `state`: Whether these are the caller's current shelves, set by the daemon's
   read of the stored feed. Absent in a stored feed and from the CLI.
 - `computed_at`: RFC 3339 time the shelves were ranked; absent while `state` is `preparing`.
+
+#### DiscoverFeed::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the store links and prices of every card on every shelf.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 

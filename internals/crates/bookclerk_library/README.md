@@ -3597,6 +3597,15 @@ Personal wishlist row (also contributes to the shared global queue while open).
 - `created_at`: RFC 3339 timestamp when the row was inserted.
 - `updated_at`: RFC 3339 timestamp when the row was last modified.
 
+#### TitleRequestRecord::hide_prices_and_links
+
+```rust
+pub fn hide_prices_and_links(&mut self)
+```
+
+Removes the store links and prices of every purchase hint, for a
+patron whose "See prices and store links" member control is off.
+
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### TitleRequestSourceRecord
@@ -3936,6 +3945,16 @@ Snapshotted purchase link/price for a wishlist title.
 - `list_price_label`: Storefront-formatted list price for display.
 - `member_price_cents`: Member/subscriber price in minor units, when known.
 - `member_price_label`: Storefront-formatted member price for display.
+
+#### WishlistPurchaseHint::hide_price_and_link
+
+```rust
+pub fn hide_price_and_link(&mut self)
+```
+
+Removes the hint's store link and every price it carries, keeping
+the store and product id, for a patron whose "See prices and store
+links" member control is off.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 

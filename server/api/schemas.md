@@ -100,6 +100,7 @@ JSON body for `GET /api/auth/me`.
 - `portal` *[`PortalMeInfo`](#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
 - `user` *[`AuthMeUser`](#authmeuser) or null* — First-party user when the session is linked to a `users` row.
 - `second_factor` *[`AuthSecondFactor`](#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
+- `see_prices` *boolean*, **required** — Whether the caller's "See prices and store links" member control allows prices and store links. The library already drops them from its answers when it does not; the app uses this to show no store links of its own either. Always true for the operator.
 
 ## AuthMeUser
 
@@ -655,6 +656,19 @@ JSON body after a branch consent was answered.
 
 - `redirect` *string*, **required** — Where to send the browser: the branch's callback with a code, or with `error=access_denied`.
 
+## ControlOverrides
+
+One patron's overrides: a value for some controls; the rest (an absent
+or `null` field) follow the library's default for a Member and are
+allowed for an Administrator.
+
+- `link_accounts` *boolean or null* — Overrides [`MemberControls::link_accounts`].
+- `download` *boolean or null* — Overrides [`MemberControls::download`].
+- `edit_metadata` *boolean or null* — Overrides [`MemberControls::edit_metadata`].
+- `upload` *boolean or null* — Overrides [`MemberControls::upload`].
+- `request_books` *boolean or null* — Overrides [`MemberControls::request_books`].
+- `see_prices` *boolean or null* — Overrides [`MemberControls::see_prices`].
+
 ## CreatePluginInstance
 
 `POST /api/config/plugin-instances` body.
@@ -706,6 +720,13 @@ Body for copying library rows between database plugins.
 - `dry_run` *boolean* — When true, count rows without writing.
 - `force` *boolean* — When true, overwrite a destination that is not empty.
 - `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
+
+## DefaultControlsJson
+
+The library's default member controls as the control routes report
+them.
+
+- `controls` *[`MemberControls`](#membercontrols)*, **required** — The controls every Member follows unless set for them alone. Administrators do not follow it.
 
 ## DefaultScopeJson
 
@@ -1479,6 +1500,18 @@ Carrier of an edition (`editions.media_kind`).
 
 Type: one of `audio`, `ebook`, `print`
 
+## MemberControls
+
+A value for each control: the library's default, or what applies to
+one user.
+
+- `link_accounts` *boolean* — May connect store accounts ([`MemberControl::LinkAccounts`]).
+- `download` *boolean* — May take copies of the library's files ([`MemberControl::Download`]).
+- `edit_metadata` *boolean* — May change metadata ([`MemberControl::EditMetadata`]).
+- `upload` *boolean* — May upload books ([`MemberControl::Upload`]).
+- `request_books` *boolean* — May ask branches for books ([`MemberControl::RequestBooks`]).
+- `see_prices` *boolean* — May see prices and store links ([`MemberControl::SeePrices`]).
+
 ## MembersBooksBody
 
 `PUT /api/config/branches/members-books` body: a branch, and whether
@@ -2077,7 +2110,6 @@ Partial profile, role, or status patch for a first-party user.
 - `display_name` *string or null* — Replacement display name when present.
 - `login_name` *string or null* — Replacement local login name when present.
 - `email` *string or null* — Replacement email when present.
-- `may_connect_accounts` *boolean or null* — Whether the user may connect store accounts on this library, by hand or by bringing them from another library, when present.
 
 ## PathSanitizationMode
 
@@ -2674,6 +2706,12 @@ JSON body for `PUT /api/config/domains/core.output`.
 - `replicas` *integer or `all`*, **required** — A replica count (0 stops every replica) or `"all"`.
 - `constraints` *array of string* — Label constraints (`name`, `name=value`, `!name`).
 - `expected_revision` *integer (int64) or null* — Current revision to replace; omit (or 0) to create.
+
+## PutUserControls
+
+`PUT /api/users/{id}/controls` body.
+
+- `overrides` *[`ControlOverrides`](#controloverrides)*, **required** — The controls set for this patron alone; an absent or `null` control follows the library's default for a Member and is allowed for an Administrator, so `{}` clears every override.
 
 ## PutUserScope
 
@@ -3430,6 +3468,17 @@ Body of `POST /api/users/{id}/claim-ticket`.
 - `claim_ticket` *string*, **required** — Opaque single-use claim ticket for the user.
 - `invite_url` *string*, **required** — Invite link that redeems the claim ticket.
 
+## UserControlsJson
+
+A patron's member controls as the control routes report them.
+
+- `user_id` *integer (int64)*, **required** — The user (`users.id`).
+- `defaults` *[`MemberControls`](#membercontrols)*, **required** — The library's default, which Members follow.
+- `overrides` *[`ControlOverrides`](#controloverrides)*, **required** — The controls set for this patron alone; the others follow the default for a Member and are allowed for an Administrator.
+- `effective` *[`MemberControls`](#membercontrols)*, **required** — What applies to the user now: nothing for a disabled user, everything for an Owner, the overrides alone for an Administrator, and the default with the overrides applied for a Member.
+- `applies` *boolean*, **required** — Whether controls can limit the user's role: false for an Owner, who may always do everything.
+- `follows_default` *boolean*, **required** — Whether the user follows the library's default: true for a Member, false for an Administrator, whom only controls set for them alone limit (and only an Owner or the operator sets those).
+
 ## UserCreatedResponse
 
 Body of `POST /api/users`: the new user and, when one was asked for,
@@ -3496,7 +3545,7 @@ Includes every field of [`UserSummary`](#usersummary).
 - `sso_pictures` *array of [`UserSsoPictureSummary`](#userssopicturesummary)*, **required** — Pictures the user's identity providers supplied.
 - `listening` *[`UserListeningHint`](#userlisteninghint) or null* — The most recent unfinished listen within the last 30 minutes, if any.
 - `integrations` *array of [`UserIntegrationHint`](#userintegrationhint)*, **required** — Storefront and integration accounts linked to the user.
-- `may_connect_accounts` *boolean*, **required** — Whether the operator lets the user connect store accounts here, by hand or by bringing them from another library. True unless an administrator turned it off for this user.
+- `controls` *[`MemberControls`](#membercontrols)*, **required** — What the user may do here (the member controls that apply to them; see `GET /api/users/{id}/controls` for the default and overrides).
 - `identities` *array of [`UserIdentitySummary`](#useridentitysummary)*, **required** — External sign-in identities linked to the user.
 
 ## UserListResponse

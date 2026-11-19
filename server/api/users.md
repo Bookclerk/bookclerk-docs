@@ -108,7 +108,14 @@ Status `200`: The library's users.
           "account_id": "sam@example.com"
         }
       ],
-      "may_connect_accounts": true,
+      "controls": {
+        "link_accounts": false,
+        "download": true,
+        "edit_metadata": true,
+        "upload": true,
+        "request_books": true,
+        "see_prices": true
+      },
       "identities": [
         {
           "provider": "oidc:github",
@@ -207,7 +214,7 @@ Schema:
               "avatar_source",
               "sso_pictures",
               "integrations",
-              "may_connect_accounts",
+              "controls",
               "identities"
             ],
             "properties": {
@@ -365,10 +372,42 @@ Schema:
                 },
                 "description": "Storefront and integration accounts linked to the user."
               },
-              "may_connect_accounts": {
-                "type": "boolean",
-                "description": "Whether the operator lets the user connect store accounts here, by\nhand or by bringing them from another library. True unless an\nadministrator turned it off for this user.",
-                "example": true
+              "controls": {
+                "type": "object",
+                "description": "What the user may do here (the member controls that apply to them;\nsee `GET /api/users/{id}/controls` for the default and overrides).",
+                "properties": {
+                  "link_accounts": {
+                    "type": "boolean",
+                    "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+                    "example": false
+                  },
+                  "download": {
+                    "type": "boolean",
+                    "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+                    "example": true
+                  },
+                  "edit_metadata": {
+                    "type": "boolean",
+                    "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+                    "example": true
+                  },
+                  "upload": {
+                    "type": "boolean",
+                    "description": "May upload books ([`MemberControl::Upload`]).",
+                    "example": true
+                  },
+                  "request_books": {
+                    "type": "boolean",
+                    "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+                    "example": true
+                  },
+                  "see_prices": {
+                    "type": "boolean",
+                    "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+                    "example": true
+                  }
+                },
+                "additionalProperties": false
               },
               "identities": {
                 "type": "array",
@@ -1240,8 +1279,8 @@ A `text/plain` body: a string.
 
 ## `PATCH /api/users/{id}`
 
-Patch role/status/display/login, or the store-account rule, for a
-first-party user (provisioner).
+Patch role/status/display/login/email for a first-party user
+(provisioner).
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -1260,7 +1299,6 @@ first-party user (provisioner).
 - `display_name` *string or null* — Replacement display name when present.
 - `login_name` *string or null* — Replacement local login name when present.
 - `email` *string or null* — Replacement email when present.
-- `may_connect_accounts` *boolean or null* — Whether the user may connect store accounts on this library, by hand or by bringing them from another library, when present.
 
 ### Responses
 
@@ -1864,7 +1902,7 @@ Status `500`: The scope could not be read.
 
 ```json
 {
-  "error": "the patron scope could not be read or written"
+  "error": "the patron's scope or controls could not be read or written"
 }
 ```
 
@@ -2190,7 +2228,7 @@ Status `500`: The scope could not be written.
 
 ```json
 {
-  "error": "the patron scope could not be read or written"
+  "error": "the patron's scope or controls could not be read or written"
 }
 ```
 
@@ -2477,7 +2515,7 @@ Status `500`: The scope could not be read.
 
 ```json
 {
-  "error": "the patron scope could not be read or written"
+  "error": "the patron's scope or controls could not be read or written"
 }
 ```
 
@@ -2836,7 +2874,1427 @@ Status `500`: The scope could not be written.
 
 ```json
 {
-  "error": "the patron scope could not be read or written"
+  "error": "the patron's scope or controls could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/users/default-controls`
+
+Reads the library's default member controls, which every Member
+follows unless a control is set for them alone.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The default controls. Body: [`DefaultControlsJson`](schemas.md#defaultcontrolsjson) (`application/json`)
+  - `controls` *[`MemberControls`](schemas.md#membercontrols)*, **required** — The controls every Member follows unless set for them alone. Administrators do not follow it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or Administrator. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The controls could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-controls' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-controls' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/default-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-controls", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/default-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default controls.
+
+```json
+{
+  "controls": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default member controls as the control routes report\nthem.",
+  "required": [
+    "controls"
+  ],
+  "properties": {
+    "controls": {
+      "type": "object",
+      "description": "The controls every Member follows unless set for them alone.\nAdministrators do not follow it.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or Administrator.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The controls could not be read.
+
+```json
+{
+  "error": "the patron's scope or controls could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/users/default-controls`
+
+Replaces the library's default member controls. Every Member follows
+the change at once, except in the controls set for them alone;
+Administrators do not follow the default.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`MemberControls`](schemas.md#membercontrols)
+
+- `link_accounts` *boolean* — May connect store accounts ([`MemberControl::LinkAccounts`]).
+- `download` *boolean* — May take copies of the library's files ([`MemberControl::Download`]).
+- `edit_metadata` *boolean* — May change metadata ([`MemberControl::EditMetadata`]).
+- `upload` *boolean* — May upload books ([`MemberControl::Upload`]).
+- `request_books` *boolean* — May ask branches for books ([`MemberControl::RequestBooks`]).
+- `see_prices` *boolean* — May see prices and store links ([`MemberControl::SeePrices`]).
+
+### Responses
+
+- `200` — The default controls after the change. Body: [`DefaultControlsJson`](schemas.md#defaultcontrolsjson) (`application/json`)
+  - `controls` *[`MemberControls`](schemas.md#membercontrols)*, **required** — The controls every Member follows unless set for them alone. Administrators do not follow it.
+- `400` — The body names a control that does not exist. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or Administrator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The default kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The controls could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-controls' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-controls' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/users/default-controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-controls", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/users/default-controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default controls after the change.
+
+```json
+{
+  "controls": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default member controls as the control routes report\nthem.",
+  "required": [
+    "controls"
+  ],
+  "properties": {
+    "controls": {
+      "type": "object",
+      "description": "The controls every Member follows unless set for them alone.\nAdministrators do not follow it.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `400`: The body names a control that does not exist. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "unknown field `fly`, expected one of `link_accounts`, `download`, `edit_metadata`, `upload`, `request_books`, `see_prices`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or Administrator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The default kept changing underneath the write; retry.
+
+```json
+{
+  "error": "core.member_controls kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: link_accounts: invalid type: integer `1`, expected a boolean at line 1 column 18
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The controls could not be written.
+
+```json
+{
+  "error": "the patron's scope or controls could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/users/{id}/controls`
+
+Reads what a patron may do: the library's default, their own
+overrides, and what applies.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Responses
+
+- `200` — The patron's controls. Body: [`UserControlsJson`](schemas.md#usercontrolsjson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `defaults` *[`MemberControls`](schemas.md#membercontrols)*, **required** — The library's default, which Members follow.
+  - `overrides` *[`ControlOverrides`](schemas.md#controloverrides)*, **required** — The controls set for this patron alone; the others follow the default for a Member and are allowed for an Administrator.
+  - `effective` *[`MemberControls`](schemas.md#membercontrols)*, **required** — What applies to the user now: nothing for a disabled user, everything for an Owner, the overrides alone for an Administrator, and the default with the overrides applied for a Member.
+  - `applies` *boolean*, **required** — Whether controls can limit the user's role: false for an Owner, who may always do everything.
+  - `follows_default` *boolean*, **required** — Whether the user follows the library's default: true for a Member, false for an Administrator, whom only controls set for them alone limit (and only an Owner or the operator sets those).
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller may not manage this user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The controls could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/controls' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/controls' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/<id>/controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/controls", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/<id>/controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The patron's controls.
+
+```json
+{
+  "user_id": 7,
+  "defaults": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  },
+  "overrides": {
+    "link_accounts": false,
+    "download": null,
+    "edit_metadata": null,
+    "upload": null,
+    "request_books": null,
+    "see_prices": null
+  },
+  "effective": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  },
+  "applies": true,
+  "follows_default": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A patron's member controls as the control routes report them.",
+  "required": [
+    "user_id",
+    "defaults",
+    "overrides",
+    "effective",
+    "applies",
+    "follows_default"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 7
+    },
+    "defaults": {
+      "type": "object",
+      "description": "The library's default, which Members follow.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "The controls set for this patron alone; the others follow the\ndefault for a Member and are allowed for an Administrator.",
+      "properties": {
+        "link_accounts": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::link_accounts`].",
+          "example": false
+        },
+        "download": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::download`].",
+          "example": null
+        },
+        "edit_metadata": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::edit_metadata`].",
+          "example": null
+        },
+        "upload": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::upload`].",
+          "example": null
+        },
+        "request_books": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::request_books`].",
+          "example": null
+        },
+        "see_prices": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::see_prices`].",
+          "example": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "effective": {
+      "type": "object",
+      "description": "What applies to the user now: nothing for a disabled user,\neverything for an Owner, the overrides alone for an Administrator,\nand the default with the overrides applied for a Member.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether controls can limit the user's role: false for an Owner, who\nmay always do everything.",
+      "example": true
+    },
+    "follows_default": {
+      "type": "boolean",
+      "description": "Whether the user follows the library's default: true for a Member,\nfalse for an Administrator, whom only controls set for them alone\nlimit (and only an Owner or the operator sets those).",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller may not manage this user.
+
+```json
+{
+  "error": "you may not manage this user"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 7 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The controls could not be read.
+
+```json
+{
+  "error": "the patron's scope or controls could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/users/{id}/controls`
+
+Sets the controls that differ for one patron; every other control
+follows the library's default for a Member and is allowed for an
+Administrator.
+
+Nobody sets their own. An Owner may always do everything, so
+overrides stored for one only apply if their role changes. An
+Administrator's overrides limit them while they stay an Administrator;
+only an Owner or the operator sets those.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Request body
+
+`application/json`: [`PutUserControls`](schemas.md#putusercontrols)
+
+- `overrides` *[`ControlOverrides`](schemas.md#controloverrides)*, **required** — The controls set for this patron alone; an absent or `null` control follows the library's default for a Member and is allowed for an Administrator, so `{}` clears every override.
+
+### Responses
+
+- `200` — The patron's controls after the change. Body: [`UserControlsJson`](schemas.md#usercontrolsjson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `defaults` *[`MemberControls`](schemas.md#membercontrols)*, **required** — The library's default, which Members follow.
+  - `overrides` *[`ControlOverrides`](schemas.md#controloverrides)*, **required** — The controls set for this patron alone; the others follow the default for a Member and are allowed for an Administrator.
+  - `effective` *[`MemberControls`](schemas.md#membercontrols)*, **required** — What applies to the user now: nothing for a disabled user, everything for an Owner, the overrides alone for an Administrator, and the default with the overrides applied for a Member.
+  - `applies` *boolean*, **required** — Whether controls can limit the user's role: false for an Owner, who may always do everything.
+  - `follows_default` *boolean*, **required** — Whether the user follows the library's default: true for a Member, false for an Administrator, whom only controls set for them alone limit (and only an Owner or the operator sets those).
+- `400` — The body names a control that does not exist. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller may not manage this user, or tried to set their own controls. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The user's role changed since the caller was authorized for them; nothing was written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The controls could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/controls' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"overrides": {}}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/controls' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"overrides": {}}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/users/<id>/controls",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"overrides": {}},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/controls", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"overrides": {}}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/users/<id>/controls")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"overrides": {}}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The patron's controls after the change.
+
+```json
+{
+  "user_id": 7,
+  "defaults": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  },
+  "overrides": {
+    "link_accounts": false,
+    "download": null,
+    "edit_metadata": null,
+    "upload": null,
+    "request_books": null,
+    "see_prices": null
+  },
+  "effective": {
+    "link_accounts": false,
+    "download": true,
+    "edit_metadata": true,
+    "upload": true,
+    "request_books": true,
+    "see_prices": true
+  },
+  "applies": true,
+  "follows_default": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A patron's member controls as the control routes report them.",
+  "required": [
+    "user_id",
+    "defaults",
+    "overrides",
+    "effective",
+    "applies",
+    "follows_default"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 7
+    },
+    "defaults": {
+      "type": "object",
+      "description": "The library's default, which Members follow.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "The controls set for this patron alone; the others follow the\ndefault for a Member and are allowed for an Administrator.",
+      "properties": {
+        "link_accounts": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::link_accounts`].",
+          "example": false
+        },
+        "download": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::download`].",
+          "example": null
+        },
+        "edit_metadata": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::edit_metadata`].",
+          "example": null
+        },
+        "upload": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::upload`].",
+          "example": null
+        },
+        "request_books": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::request_books`].",
+          "example": null
+        },
+        "see_prices": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Overrides [`MemberControls::see_prices`].",
+          "example": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "effective": {
+      "type": "object",
+      "description": "What applies to the user now: nothing for a disabled user,\neverything for an Owner, the overrides alone for an Administrator,\nand the default with the overrides applied for a Member.",
+      "properties": {
+        "link_accounts": {
+          "type": "boolean",
+          "description": "May connect store accounts ([`MemberControl::LinkAccounts`]).",
+          "example": false
+        },
+        "download": {
+          "type": "boolean",
+          "description": "May take copies of the library's files ([`MemberControl::Download`]).",
+          "example": true
+        },
+        "edit_metadata": {
+          "type": "boolean",
+          "description": "May change metadata ([`MemberControl::EditMetadata`]).",
+          "example": true
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "May upload books ([`MemberControl::Upload`]).",
+          "example": true
+        },
+        "request_books": {
+          "type": "boolean",
+          "description": "May ask branches for books ([`MemberControl::RequestBooks`]).",
+          "example": true
+        },
+        "see_prices": {
+          "type": "boolean",
+          "description": "May see prices and store links ([`MemberControl::SeePrices`]).",
+          "example": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether controls can limit the user's role: false for an Owner, who\nmay always do everything.",
+      "example": true
+    },
+    "follows_default": {
+      "type": "boolean",
+      "description": "Whether the user follows the library's default: true for a Member,\nfalse for an Administrator, whom only controls set for them alone\nlimit (and only an Owner or the operator sets those).",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body names a control that does not exist. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "unknown field `fly`, expected one of `link_accounts`, `download`, `edit_metadata`, `upload`, `request_books`, `see_prices`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller may not manage this user, or tried to set their own controls. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "you may not set your own controls"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 7 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The user's role changed since the caller was authorized for them; nothing was written.
+
+```json
+{
+  "error": "user 7 became administrator while their controls were being set; read them again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `overrides` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The controls could not be written.
+
+```json
+{
+  "error": "the patron's scope or controls could not be read or written"
 }
 ```
 

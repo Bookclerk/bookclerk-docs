@@ -355,6 +355,16 @@ role?: AuthRole;
 second_factor?: AuthSecondFactor;
 ```
 
+##### see\_prices
+
+```ts
+see_prices: boolean;
+```
+
+Whether the caller may see prices and store links. When false the
+library already drops them from its answers, and the app shows no
+store links of its own either.
+
 ##### user?
 
 ```ts
@@ -2054,6 +2064,14 @@ avatar_source?: string | null;
 
 `auto`, `monogram`, `gravatar`, `upload`, or `sso:{id}`.
 
+##### controls?
+
+```ts
+controls?: MemberControls;
+```
+
+What the user may do here: the member controls that apply to them.
+
 ##### display\_name
 
 ```ts
@@ -2181,14 +2199,6 @@ Unfinished listen within ~30 minutes (waveform uses the last ~5 minutes).
 ```ts
 login_name: string | null;
 ```
-
-##### may\_connect\_accounts?
-
-```ts
-may_connect_accounts?: boolean;
-```
-
-Whether an administrator lets this user connect store accounts here (absent: allowed).
 
 ##### online?
 
@@ -5779,6 +5789,63 @@ title?: string | null;
 
 ***
 
+### UserControls
+
+A patron's member controls as `GET /api/users/{id}/controls` reports them.
+
+#### Properties
+
+##### applies
+
+```ts
+applies: boolean;
+```
+
+False for an Owner, who may always do everything.
+
+##### defaults
+
+```ts
+defaults: MemberControls;
+```
+
+The library's default for every patron.
+
+##### effective
+
+```ts
+effective: MemberControls;
+```
+
+What applies to the user now.
+
+##### follows\_default
+
+```ts
+follows_default: boolean;
+```
+
+True for a Member, who follows the library default; false for an
+Administrator, whom only controls set for them alone limit.
+
+##### overrides
+
+```ts
+overrides: ControlOverrides;
+```
+
+The controls set for this patron alone.
+
+##### user\_id
+
+```ts
+user_id: number;
+```
+
+The user.
+
+***
+
 ### UserMutationResponse
 
 Created / patched user response from RBAC provisioning APIs.
@@ -6480,6 +6547,16 @@ Ascending or descending catalog sort direction.
 
 ***
 
+### ControlOverrides
+
+```ts
+type ControlOverrides = Partial<Record<MemberControl, boolean>>;
+```
+
+One patron's overrides; a missing control follows the library's default.
+
+***
+
 ### CoverSize
 
 ```ts
@@ -6547,6 +6624,32 @@ type MediaKind = "audio" | "ebook" | "print";
 ```
 
 How an edition is consumed.
+
+***
+
+### MemberControl
+
+```ts
+type MemberControl = 
+  | "link_accounts"
+  | "download"
+  | "edit_metadata"
+  | "upload"
+  | "request_books"
+  | "see_prices";
+```
+
+One thing an administrator may allow or refuse a patron.
+
+***
+
+### MemberControls
+
+```ts
+type MemberControls = Record<MemberControl, boolean>;
+```
+
+A value for every member control (`true` = allowed).
 
 ***
 
@@ -7948,6 +8051,26 @@ The page and the next page's cursor.
 
 ***
 
+### getDefaultControls()
+
+```ts
+function getDefaultControls(): Promise<{
+  controls: MemberControls;
+}>;
+```
+
+Reads the library's default member controls.
+
+#### Returns
+
+`Promise`\<\{
+  `controls`: [`MemberControls`](#membercontrols);
+\}\>
+
+The default.
+
+***
+
 ### getDefaultScope()
 
 ```ts
@@ -7965,6 +8088,28 @@ Reads the library's default patron scope.
 \}\>
 
 The default.
+
+***
+
+### getUserControls()
+
+```ts
+function getUserControls(id): Promise<UserControls>;
+```
+
+Reads what a patron may do.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+
+#### Returns
+
+`Promise`\<[`UserControls`](#usercontrols)\>
+
+The default, the patron's overrides and what applies.
 
 ***
 
@@ -8487,11 +8632,10 @@ Updates a first-party user role, status, or profile fields.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `id` | `number` | User id to patch. |
-| `body` | \{ `display_name?`: `string`; `email?`: `string`; `login_name?`: `string`; `may_connect_accounts?`: `boolean`; `role?`: `string`; `status?`: `string`; \} | Partial user fields accepted by the daemon. |
+| `body` | \{ `display_name?`: `string`; `email?`: `string`; `login_name?`: `string`; `role?`: `string`; `status?`: `string`; \} | Partial user fields accepted by the daemon. |
 | `body.display_name?` | `string` | - |
 | `body.email?` | `string` | - |
 | `body.login_name?` | `string` | - |
-| `body.may_connect_accounts?` | `boolean` | Let the user connect store accounts here, or stop them. |
 | `body.role?` | `string` | - |
 | `body.status?` | `string` | - |
 
@@ -8690,6 +8834,32 @@ Lists connectable storefronts for Accounts.
 `Promise`\<[`PortalSource`](#portalsource)[]\>
 
 Source descriptors including brand metadata.
+
+***
+
+### putDefaultControls()
+
+```ts
+function putDefaultControls(controls): Promise<{
+  controls: MemberControls;
+}>;
+```
+
+Replaces the library's default member controls.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `controls` | [`MemberControls`](#membercontrols) | The new default. |
+
+#### Returns
+
+`Promise`\<\{
+  `controls`: [`MemberControls`](#membercontrols);
+\}\>
+
+The default after the change.
 
 ***
 
@@ -8944,6 +9114,30 @@ placement (compare-and-swap on `expected_revision`; 0 creates).
 \}\>
 
 The stored placement.
+
+***
+
+### putUserControls()
+
+```ts
+function putUserControls(id, overrides): Promise<UserControls>;
+```
+
+Sets the controls that differ for one patron; the rest follow the
+library's default.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+| `overrides` | [`ControlOverrides`](#controloverrides) | The controls set for them alone (`{}` for none). |
+
+#### Returns
+
+`Promise`\<[`UserControls`](#usercontrols)\>
+
+The controls after the change.
 
 ***
 

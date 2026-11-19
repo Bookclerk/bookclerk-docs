@@ -49,7 +49,7 @@ See `docs/adr/control-plane.md`.
 | [`StoredDocument`](#storeddocument) | struct | One stored document before domain parsing. |
 | [`VerifiedLibraryOwner`](#verifiedlibraryowner) | struct | Proof that a user was an active Owner when the write was authorized. |
 | [`VerifiedNodeOwner`](#verifiednodeowner) | struct | Proof that a user owned a node when the write was authorized. |
-| [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a patron scope write was authorized. |
+| [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a write of the library's patron defaults was authorized. |
 | [`EnrolledNode`](#enrollednode) | struct | Result of a successful redeem. |
 | [`EnrollmentLink`](#enrollmentlink) | struct | One link as listings show it. The secret and its hash are not included. |
 | [`EnrollmentSecret`](#enrollmentsecret) | struct | A link's plaintext secret. Shown once at mint and never stored; `Debug` does not print it. |
@@ -91,6 +91,10 @@ See `docs/adr/control-plane.md`.
 | [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `library_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
 | [`TakenCopy`](#takencopy) | struct | A book of this install whose files came from a library it joined, by its store identity here. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
+| [`AssignedControls`](#assignedcontrols) | struct | A user's controls: the library's default, their overrides, and what applies to them. |
+| [`ControlOverrides`](#controloverrides) | struct | One patron's overrides: a value for some controls; the rest (an absent or `null` field) follow the library's default for a Member and are allowed for an Administrator. |
+| [`MemberControls`](#membercontrols) | struct | A value for each control: the library's default, or what applies to one user. |
+| [`PutUserControls`](#putusercontrols) | struct | `PUT /api/users/{id}/controls` body. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
 | [`GuestReservation`](#guestreservation) | struct | CPU and memory one guest may use at most: its grant's ceilings after the node's `[plugins.jail]` limits. |
 | [`NodeHeartbeat`](#nodeheartbeat) | struct | One heartbeat's measurements, before budget and accounting are applied. |
@@ -167,6 +171,7 @@ See `docs/adr/control-plane.md`.
 | [`KeeperUpdate`](#keeperupdate) | enum | What `apply_keeper_update` did. |
 | [`LinkImportOutcome`](#linkimportoutcome) | enum | What `import_link_title` did. |
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
+| [`MemberControl`](#membercontrol) | enum | One thing a patron may be allowed or refused. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
 | [`OutputReplace`](#outputreplace) | enum | Outcome of `replace_output`. |
 | [`RuleEffect`](#ruleeffect) | enum | Whether a `ScopeRule` lets matching books in or keeps them out. |
@@ -224,14 +229,12 @@ See `docs/adr/control-plane.md`.
 | [`import_carried_accounts`](#import_carried_accounts) | function | Imports the accounts a library sent with its person, for `user_id`, recording that they came from the library `library_id`. |
 | [`import_offered_accounts`](#import_offered_accounts) | function | Imports the accounts a branch offered up its link ("Add my connections to *library*") for `user_id`, the branch's owner, recording that they came from the node `node_id`. |
 | [`link_peer`](#link_peer) | function | The `account_shares.peer` of a library this install received accounts from. |
-| [`member_account_rules`](#member_account_rules) | function | Every stored rule, by user id (`true` = may connect). Users with no rule are left out; they may connect. |
 | [`member_accounts`](#member_accounts) | function | The store accounts `user_id` has connected here: linked to any of the user's portal identities and still connected (`connection_status` is `active`), sorted by plugin key and account id. |
-| [`member_may_connect_accounts`](#member_may_connect_accounts) | function | Whether `user_id` may connect store accounts on this instance: an active user with no rule, or whose rule allows it. |
+| [`member_may_connect_accounts`](#member_may_connect_accounts) | function | Whether `user_id` may connect store accounts on this instance: an active user whose member controls allow it (`super::MemberControl::LinkAccounts`). |
 | [`node_peer`](#node_peer) | function | The `account_shares.peer` of a branch node this library sent accounts to. |
 | [`record_accounts_sent`](#record_accounts_sent) | function | Records that `accounts` were sent to the branch `node_id` (`account_shares`, direction `SHARE_SENT`), in atomic batches of at most 13 accounts; a repeat refreshes the time. |
 | [`record_accounts_sent_to`](#record_accounts_sent_to) | function | Records that `accounts` were sent to `peer` (`node_peer` for a branch, `link_peer` for a library this install offered them to), as `record_accounts_sent` does. |
 | [`revoke_unlinked_account`](#revoke_unlinked_account) | function | Takes back a store account a refused login stored: deletes its secrets and marks it `revoked` with scans off, in one atomic batch whose every statement applies only while no link holds the account. |
-| [`set_member_may_connect_accounts`](#set_member_may_connect_accounts) | function | Sets whether `user_id` may connect store accounts on this instance. |
 | [`withdraw_person_account`](#withdraw_person_account) | function | Disconnects a store account "everywhere" on this library for the person `user_id`: removes every link from their identities to the account and, in the same atomic batch, deletes its secrets and marks it `revoked` with scans off when no other link holds it. A revoked account then loses its holdings (each with a `holding_removed` event) and its scan checkpoints, as `LibraryStore::revoke_credentials` does. |
 | [`answer_questions`](#answer_questions) | function | Answers questions a library sent this branch from this branch's own library. |
 | [`ask_branches`](#ask_branches) | function | Asks every trusted branch about `work_ids`. |
@@ -381,6 +384,19 @@ See `docs/adr/control-plane.md`.
 | [`record_copy_taken_from_link`](#record_copy_taken_from_link) | function | Records that this install took its copy of `book` from the library `library_id`, so the catalog sync never sends that library a book it provided itself (`books_imported_from_link`). A book already recorded for that library is left as it is; one taken from several libraries is recorded once for each. |
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
 | [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
+| [`assigned_member_controls`](#assigned_member_controls) | function | The controls of `user`: the library's default, their overrides, and what applies to them. |
+| [`default_member_controls`](#default_member_controls) | function | The library's default member controls: the stored document, or every control allowed. |
+| [`effective_controls`](#effective_controls) | function | What applies to `user` given the library's default and their overrides: nothing for a user who is not active, everything for an active Owner, the overrides over "everything allowed" for an active Administrator, and the overrides over the default for an active Member. |
+| [`load_default_member_controls`](#load_default_member_controls) | function | Loads the library's default member controls document. |
+| [`member_control_overrides`](#member_control_overrides) | function | The overrides stored for `user_id` (none when there is no row). |
+| [`parse_member_controls`](#parse_member_controls) | function | Parses the body of `PUT /api/users/default-controls` from its raw bytes, sans IO, the way the route reads it. |
+| [`parse_user_controls_request`](#parse_user_controls_request) | function | Parses the body of `PUT /api/users/{id}/controls` from its raw bytes, sans IO, the way the route reads it. |
+| [`role_follows_default_controls`](#role_follows_default_controls) | function | Whether a role follows the library's default controls: Members and Hosts do. An Administrator may do everything except the controls set for them alone, so a default meant for patrons never limits staff. |
+| [`role_has_controls`](#role_has_controls) | function | Whether member controls ever limit a role: Members, Hosts and Administrators can be limited; Owners never are. |
+| [`set_default_member_controls`](#set_default_member_controls) | function | Replaces the library's default member controls under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
+| [`set_member_control_overrides`](#set_member_control_overrides) | function | Replaces the overrides of `user_id`; with none, the user follows the library's default for every control again. |
+| [`set_member_control_overrides_for`](#set_member_control_overrides_for) | function | Replaces the overrides of `user`, as the caller read them when it checked that the actor may manage them; with none, the user follows the library's default for every control again. |
+| [`user_may`](#user_may) | function | Whether `user_id` may do `control` here. An unknown user may not. |
 | [`is_node_consumer_id`](#is_node_consumer_id) | function | True when a catalog / delivery `plugin_id` is a node consumer rather than a plugin. |
 | [`is_valid_node_id`](#is_valid_node_id) | function | True when `node_id` can name a node: `node.<node_id>` is a valid queue name. Minted ids are lowercase UUIDs, which always qualify. |
 | [`node_consumer_id`](#node_consumer_id) | function | Catalog id of a node's own consumer (`node:<node_id>`). |
@@ -600,6 +616,7 @@ See `docs/adr/control-plane.md`.
 | [`LIBRARY_LINK_KEYS_NAME`](#library_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
 | [`LIBRARY_LINK_LEFT`](#library_link_left) | constant | `library_links.state` after this install left the library. |
 | [`LIBRARY_LINK_REVOKED`](#library_link_revoked) | constant | `library_links.state` once the owner revoked this node (close 4403). |
+| [`MEMBER_CONTROLS_NAMESPACE`](#member_controls_namespace) | constant | Namespace of the library document that holds the library's default member controls. |
 | [`NODE_CONSUMER_PREFIX`](#node_consumer_prefix) | constant | Catalog `plugin_id` prefix of a node's own consumer (`node:<node_id>`). |
 | [`AVAILABILITY_FULL_PPM`](#availability_full_ppm) | constant | Full availability in parts per million. |
 | [`AVAILABILITY_TAU`](#availability_tau) | constant | Time constant of the availability average (about a day). |
@@ -1668,8 +1685,8 @@ pub struct VerifiedPatronAdministrator {
 }
 ```
 
-Proof that a user was an active Owner or Administrator when a patron
-scope write was authorized.
+Proof that a user was an active Owner or Administrator when a write of
+the library's patron defaults was authorized.
 
 Only [`super::verify_patron_administrator`](#verify_patron_administrator) constructs one.
 
@@ -3020,6 +3037,158 @@ One topic's revision: a counter that every write to the topic's table
 moves forward by at least one.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### AssignedControls
+
+```rust
+pub struct AssignedControls {
+    pub defaults: MemberControls,
+    pub overrides: ControlOverrides,
+    pub effective: MemberControls,
+}
+```
+
+A user's controls: the library's default, their overrides, and what
+applies to them.
+
+**Fields**
+
+- `defaults`: The library's default.
+- `overrides`: The user's own overrides.
+- `effective`: What applies to the user: everything for an active Owner or
+  Administrator, nothing for a user who is not active, and the
+  default with the overrides applied for an active Member.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ControlOverrides
+
+```rust
+pub struct ControlOverrides {
+    pub link_accounts: Option<bool>,
+    pub download: Option<bool>,
+    pub edit_metadata: Option<bool>,
+    pub upload: Option<bool>,
+    pub request_books: Option<bool>,
+    pub see_prices: Option<bool>,
+}
+```
+
+One patron's overrides: a value for some controls; the rest (an absent
+or `null` field) follow the library's default for a Member and are
+allowed for an Administrator.
+
+**Fields**
+
+- `link_accounts`: Overrides [`MemberControls::link_accounts`](#membercontrols).
+- `download`: Overrides [`MemberControls::download`](#membercontrols).
+- `edit_metadata`: Overrides [`MemberControls::edit_metadata`](#membercontrols).
+- `upload`: Overrides [`MemberControls::upload`](#membercontrols).
+- `request_books`: Overrides [`MemberControls::request_books`](#membercontrols).
+- `see_prices`: Overrides [`MemberControls::see_prices`](#membercontrols).
+
+#### ControlOverrides::get
+
+```rust
+pub fn get(&self, control: MemberControl) -> Option<bool>
+```
+
+The override of `control`, if any.
+
+#### ControlOverrides::set
+
+```rust
+pub fn set(&mut self, control: MemberControl, value: Option<bool>)
+```
+
+Sets or clears (`None`) the override of `control`.
+
+#### ControlOverrides::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when no control is overridden.
+
+#### ControlOverrides::apply
+
+```rust
+pub fn apply(&self, defaults: MemberControls) -> MemberControls
+```
+
+`defaults` with these overrides applied.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### MemberControls
+
+```rust
+pub struct MemberControls {
+    pub link_accounts: bool,
+    pub download: bool,
+    pub edit_metadata: bool,
+    pub upload: bool,
+    pub request_books: bool,
+    pub see_prices: bool,
+}
+```
+
+A value for each control: the library's default, or what applies to
+one user.
+
+**Fields**
+
+- `link_accounts`: May connect store accounts ([`MemberControl::LinkAccounts`](#membercontrol)).
+- `download`: May take copies of the library's files ([`MemberControl::Download`](#membercontrol)).
+- `edit_metadata`: May change metadata ([`MemberControl::EditMetadata`](#membercontrol)).
+- `upload`: May upload books ([`MemberControl::Upload`](#membercontrol)).
+- `request_books`: May ask branches for books ([`MemberControl::RequestBooks`](#membercontrol)).
+- `see_prices`: May see prices and store links ([`MemberControl::SeePrices`](#membercontrol)).
+
+#### MemberControls::all
+
+```rust
+pub fn all(value: bool) -> Self
+```
+
+Every control set to `value`.
+
+#### MemberControls::allows
+
+```rust
+pub fn allows(&self, control: MemberControl) -> bool
+```
+
+Whether `control` is allowed.
+
+#### MemberControls::set
+
+```rust
+pub fn set(&mut self, control: MemberControl, value: bool)
+```
+
+Sets `control` to `value`.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### PutUserControls
+
+```rust
+pub struct PutUserControls {
+    pub overrides: ControlOverrides,
+}
+```
+
+`PUT /api/users/{id}/controls` body.
+
+**Fields**
+
+- `overrides`: The controls set for this patron alone; an absent or `null`
+  control follows the library's default for a Member and is allowed
+  for an Administrator, so `{}` clears every override.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### CacheUsage
 
@@ -5384,7 +5553,8 @@ Who is allowed to write a configuration document.
   operator write. Built by [`super::verify_library_owner`](#verify_library_owner), which reads
   the user's stored role and status.
 - `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
-  default patron scope (`core.patron_scope`) only. Built by
+  patron defaults only: the default scope (`core.patron_scope`) and
+  the default member controls (`core.member_controls`). Built by
   [`super::verify_patron_administrator`](#verify_patron_administrator), which reads the user's
   stored role and status.
 
@@ -5668,6 +5838,59 @@ write to the table sets to the time of the write.
 indexed; their writes bump on a probe instead.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### MemberControl
+
+```rust
+pub enum MemberControl {
+    LinkAccounts,
+    Download,
+    EditMetadata,
+    Upload,
+    RequestBooks,
+    SeePrices,
+}
+```
+
+One thing a patron may be allowed or refused.
+
+**Variants**
+
+- `LinkAccounts`: Connect a store account, or sign in to one again, here or by
+  bringing it from another library. Accounts already connected keep
+  working, and an Administrator can still remove them.
+- `Download`: Take copies of the library's files: downloads to a branch or a
+  clerk, streaming and library-card sync.
+- `EditMetadata`: Change a book's metadata.
+- `Upload`: Add books to the library by uploading files.
+- `RequestBooks`: Ask a branch for a book it listed (interlibrary requests).
+- `SeePrices`: See prices and store links in Discover and the wishlist.
+
+#### MemberControl::ALL
+
+```rust
+pub const ALL: [Self; 6] = _
+```
+
+Every control, in the order the editors list them.
+
+#### MemberControl::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The control's wire name (`link_accounts`, `download`, ...).
+
+#### MemberControl::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses a wire name.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
 ### NodeMessage
 
@@ -6933,19 +7156,6 @@ pub fn link_peer(library_id: &str) -> String
 The `account_shares.peer` of a library this install received accounts
 from.
 
-### member_account_rules
-
-```rust
-pub async fn member_account_rules(store: &LibraryStore) -> Result<BTreeMap<i64, bool>>
-```
-
-Every stored rule, by user id (`true` = may connect). Users with no
-rule are left out; they may connect.
-
-#### Errors
-
-Returns the read error.
-
 ### member_accounts
 
 ```rust
@@ -6973,7 +7183,8 @@ pub async fn member_may_connect_accounts(
 ```
 
 Whether `user_id` may connect store accounts on this instance: an
-active user with no rule, or whose rule allows it.
+active user whose member controls allow it
+([`super::MemberControl::LinkAccounts`](#membercontrol)).
 
 #### Errors
 
@@ -7051,27 +7262,6 @@ secrets as they are.
 #### Errors
 
 Returns the write error.
-
-### set_member_may_connect_accounts
-
-```rust
-pub async fn set_member_may_connect_accounts(
-    store: &LibraryStore,
-    user_id: i64,
-    allowed: bool,
-) -> Result<()>
-```
-
-Sets whether `user_id` may connect store accounts on this instance.
-
-The caller has already checked that the actor may manage the user. One
-atomic batch: the stored rule is updated, or inserted when there is
-none. Accounts the member already connected stay connected.
-
-#### Errors
-
-Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user and the write
-error.
 
 ### withdraw_person_account
 
@@ -9864,6 +10054,241 @@ reads as revision 0.
 #### Errors
 
 Returns the read error.
+
+### assigned_member_controls
+
+```rust
+pub async fn assigned_member_controls(
+    store: &LibraryStore,
+    user: &UserRecord,
+) -> Result<AssignedControls>
+```
+
+The controls of `user`: the library's default, their overrides, and
+what applies to them.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
+### default_member_controls
+
+```rust
+pub async fn default_member_controls(store: &LibraryStore) -> Result<MemberControls>
+```
+
+The library's default member controls: the stored document, or every
+control allowed.
+
+#### Errors
+
+Returns the read or parse error.
+
+### effective_controls
+
+```rust
+pub fn effective_controls(
+    user: &UserRecord,
+    defaults: MemberControls,
+    overrides: ControlOverrides,
+) -> MemberControls
+```
+
+What applies to `user` given the library's default and their
+overrides: nothing for a user who is not active, everything for an
+active Owner, the overrides over "everything allowed" for an active
+Administrator, and the overrides over the default for an active Member.
+
+### load_default_member_controls
+
+```rust
+pub async fn load_default_member_controls(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<MemberControls>>>
+```
+
+Loads the library's default member controls document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one: every
+control is then allowed.
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### member_control_overrides
+
+```rust
+pub async fn member_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<ControlOverrides>
+```
+
+The overrides stored for `user_id` (none when there is no row).
+
+#### Errors
+
+Returns the read error, or an error when the stored row is invalid.
+
+### parse_member_controls
+
+```rust
+pub fn parse_member_controls(body: &[u8]) -> Result<MemberControls>
+```
+
+Parses the body of `PUT /api/users/default-controls` from its raw
+bytes, sans IO, the way the route reads it.
+
+#### Returns
+
+The new default, with an absent control allowed.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not one JSON
+object of known controls with boolean values and no repeated key.
+
+### parse_user_controls_request
+
+```rust
+pub fn parse_user_controls_request(body: &[u8]) -> Result<ControlOverrides>
+```
+
+Parses the body of `PUT /api/users/{id}/controls` from its raw bytes,
+sans IO, the way the route reads it.
+
+#### Returns
+
+The patron's overrides, with an absent or `null` control following
+the default.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not one JSON
+object with exactly the key `overrides`, itself an object of known
+controls with boolean or `null` values, with no repeated key.
+
+### role_follows_default_controls
+
+```rust
+pub fn role_follows_default_controls(role: UserRole) -> bool
+```
+
+Whether a role follows the library's default controls: Members and
+Hosts do. An Administrator may do everything except the controls set
+for them alone, so a default meant for patrons never limits staff.
+
+### role_has_controls
+
+```rust
+pub fn role_has_controls(role: UserRole) -> bool
+```
+
+Whether member controls ever limit a role: Members, Hosts and
+Administrators can be limited; Owners never are.
+
+An Administrator's controls are set only by an Owner or the operator,
+because an Administrator may manage Members alone.
+
+### set_default_member_controls
+
+```rust
+pub async fn set_default_member_controls(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    controls: MemberControls,
+) -> Result<ConfigurationDocument<MemberControls>>
+```
+
+Replaces the library's default member controls under compare-and-swap,
+creating the document when absent and retrying a few times on a
+concurrent edit.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `controls` - The new default.
+
+#### Errors
+
+Returns an error when the actor may not write, or
+[`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing underneath.
+
+### set_member_control_overrides
+
+```rust
+pub async fn set_member_control_overrides(
+    store: &LibraryStore,
+    user_id: i64,
+    overrides: ControlOverrides,
+) -> Result<AssignedControls>
+```
+
+Replaces the overrides of `user_id`; with none, the user follows the
+library's default for every control again.
+
+The caller has already checked that the actor may manage the user. The
+write is guarded on the role read here ([`set_member_control_overrides_for`](#set_member_control_overrides_for)).
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user, or the errors
+of [`set_member_control_overrides_for`](#set_member_control_overrides_for).
+
+### set_member_control_overrides_for
+
+```rust
+pub async fn set_member_control_overrides_for(
+    store: &LibraryStore,
+    user: &UserRecord,
+    overrides: ControlOverrides,
+) -> Result<(UserRecord, AssignedControls)>
+```
+
+Replaces the overrides of `user`, as the caller read them when it
+checked that the actor may manage them; with none, the user follows the
+library's default for every control again.
+
+One atomic batch updates the stored row, inserts it when there is none,
+or deletes it when no control is overridden. Every statement is guarded
+on the user still having the role in `user`, so a role change made after
+the caller authorized the write (an Owner promoting a Member to
+Administrator, say) stops it rather than letting it through under the
+old authorization.
+
+#### Returns
+
+The user as read after the write, with the controls that apply to them
+computed from that same record, so a caller describing both never mixes
+two roles.
+
+#### Errors
+
+Returns [`LibraryError::Conflict`](README.md#libraryerror) when the user did not have the role
+in `user` as the batch ran (nothing was written; whether the role
+changes again afterwards does not matter), [`LibraryError::NotFound`](README.md#libraryerror)
+when the user is gone, or the read or write error.
+
+### user_may
+
+```rust
+pub async fn user_may(
+    store: &LibraryStore,
+    user_id: i64,
+    control: MemberControl,
+) -> Result<bool>
+```
+
+Whether `user_id` may do `control` here. An unknown user may not.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
 
 ### is_node_consumer_id
 
@@ -13429,6 +13854,15 @@ pub const LIBRARY_LINK_REVOKED: &str = "revoked";
 ```
 
 `library_links.state` once the owner revoked this node (close 4403).
+
+### MEMBER_CONTROLS_NAMESPACE
+
+```rust
+pub const MEMBER_CONTROLS_NAMESPACE: &str = "core.member_controls";
+```
+
+Namespace of the library document that holds the library's default
+member controls.
 
 ### NODE_CONSUMER_PREFIX
 

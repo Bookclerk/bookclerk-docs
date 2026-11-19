@@ -981,6 +981,7 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
   - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
   - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
   - `second_factor` *[`AuthSecondFactor`](schemas.md#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
+  - `see_prices` *boolean*, **required** — Whether the caller's "See prices and store links" member control allows prices and store links. The library already drops them from its answers when it does not; the app uses this to show no store links of its own either. Always true for the operator.
 - `401` — Nobody is signed in: the same body with `authenticated` false, so the app can show the sign-in screen. Body: [`AuthMeResponse`](schemas.md#authmeresponse) (`application/json`)
   - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
   - `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
@@ -991,6 +992,7 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
   - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
   - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
   - `second_factor` *[`AuthSecondFactor`](schemas.md#authsecondfactor) or null* — Password-login second-factor policy and this user's enrollment.
+  - `see_prices` *boolean*, **required** — Whether the caller's "See prices and store links" member control allows prices and store links. The library already drops them from its answers when it does not; the app uses this to show no store links of its own either. Always true for the operator.
 - `503` — The portal session could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than showing the sign-in screen. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -1081,7 +1083,8 @@ Status `200`: Who the caller is (operator, portal user, or impersonation).
     "totp": true,
     "passkey_count": 1,
     "enrolled": true
-  }
+  },
+  "see_prices": true
 }
 ```
 
@@ -1095,7 +1098,8 @@ Schema:
     "authenticated",
     "default_view",
     "can_acquire",
-    "elevated"
+    "elevated",
+    "see_prices"
   ],
   "properties": {
     "authenticated": {
@@ -1355,6 +1359,11 @@ Schema:
           "type": "null"
         }
       ]
+    },
+    "see_prices": {
+      "type": "boolean",
+      "description": "Whether the caller's \"See prices and store links\" member control\nallows prices and store links. The library already drops them from\nits answers when it does not; the app uses this to show no store\nlinks of its own either. Always true for the operator.",
+      "example": true
     }
   }
 }
@@ -1367,7 +1376,8 @@ Status `401`: Nobody is signed in: the same body with `authenticated` false, so 
   "authenticated": false,
   "can_acquire": false,
   "default_view": "discover",
-  "elevated": false
+  "elevated": false,
+  "see_prices": false
 }
 ```
 
@@ -1381,7 +1391,8 @@ Schema:
     "authenticated",
     "default_view",
     "can_acquire",
-    "elevated"
+    "elevated",
+    "see_prices"
   ],
   "properties": {
     "authenticated": {
@@ -1641,6 +1652,11 @@ Schema:
           "type": "null"
         }
       ]
+    },
+    "see_prices": {
+      "type": "boolean",
+      "description": "Whether the caller's \"See prices and store links\" member control\nallows prices and store links. The library already drops them from\nits answers when it does not; the app uses this to show no store\nlinks of its own either. Always true for the operator.",
+      "example": true
     }
   }
 }

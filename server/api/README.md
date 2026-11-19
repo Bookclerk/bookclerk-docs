@@ -113,11 +113,15 @@ Library users and their claim tickets.
 | [`GET /api/users`](users.md#get-apiusers) | List first-party users (operator or administrator provisioner). |
 | [`POST /api/users`](users.md#post-apiusers) | Owner/admin or operator creates a user and optional invite magic link. |
 | [`DELETE /api/users/{id}`](users.md#delete-apiusersid) | Delete a user and their personal data (wishlist / links / sessions); keep acquired books. |
-| [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login, or the store-account rule, for a first-party user (provisioner). |
+| [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login/email for a first-party user (provisioner). |
 | [`GET /api/users/default-scope`](users.md#get-apiusersdefault-scope) | Reads the library's default scope, which patrons without their own follow. |
 | [`PUT /api/users/default-scope`](users.md#put-apiusersdefault-scope) | Replaces the library's default scope. Every patron without their own scope follows the change at once. |
 | [`GET /api/users/{id}/scope`](users.md#get-apiusersidscope) | Reads which part of the library a patron sees. |
 | [`PUT /api/users/{id}/scope`](users.md#put-apiusersidscope) | Gives a patron their own scope, or returns them to the library's default with `"scope": null`. |
+| [`GET /api/users/default-controls`](users.md#get-apiusersdefault-controls) | Reads the library's default member controls, which every Member follows unless a control is set for them alone. |
+| [`PUT /api/users/default-controls`](users.md#put-apiusersdefault-controls) | Replaces the library's default member controls. Every Member follows the change at once, except in the controls set for them alone; Administrators do not follow the default. |
+| [`GET /api/users/{id}/controls`](users.md#get-apiusersidcontrols) | Reads what a patron may do: the library's default, their own overrides, and what applies. |
+| [`PUT /api/users/{id}/controls`](users.md#put-apiusersidcontrols) | Sets the controls that differ for one patron; every other control follows the library's default for a Member and is allowed for an Administrator. |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
 | [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |
