@@ -37,7 +37,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | --- | --- | --- |
 | [`OnDemandStatus`](#ondemandstatus) | trait | What the deployment reconciler reads from, and does to, any on-demand proxy. |
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
-| [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an owner cluster handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
+| [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an library handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
 | [`SocketSink`](#socketsink) | trait | Where a plugin instance's socket events go: its guest's `socketHandler`. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
@@ -49,7 +49,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`LiveDeploymentRuntime`](#livedeploymentruntime) | struct | Production runtime: spawn through the existing host adapters and register the session on the live registry. |
 | [`LocalPackage`](#localpackage) | struct | Local archive the reconciler may install when the ledger has no row. |
 | [`DiscoveredPlugin`](#discoveredplugin) | struct | A discovered plugin ready to spawn. |
-| [`LinkStateDir`](#linkstatedir) | struct | The directory leaf that holds one joined library's plugin state: `link-` and 32 lowercase hex digits (128 bits of the SHA-256 of the library's cluster id, as `PluginKey::fs_id` keeps). An owner picks its own cluster id, so the digest must be long enough that no library can search for an id that lands in another library's directory. |
+| [`LinkStateDir`](#linkstatedir) | struct | The directory leaf that holds one joined library's plugin state: `link-` and 32 lowercase hex digits (128 bits of the SHA-256 of the library's id, as `PluginKey::fs_id` keeps). An owner picks its own library id, so the digest must be long enough that no library can search for an id that lands in another library's directory. |
 | [`EnrolledPlugin`](#enrolledplugin) | struct | One plugin after enrollment on this node. |
 | [`EventOutbox`](#eventoutbox) | struct | Host-owned facts a session needs before it can hand a guest an `EVENTS` binding: the outbox store, the producer allowlist and what it may read. |
 | [`EventReaders`](#eventreaders) | struct | What an `EVENTS` binding may read back from the outbox. |
@@ -215,7 +215,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`install_plugin_key`](#install_plugin_key) | function | The plugin key an install installs under. |
 | [`install_version`](#install_version) | function | Installs an operator's package as a version, carries an earlier approval forward when it still covers the new version (or approves when asked), and enrolls the plugin's default instance. |
 | [`is_sha256_hex`](#is_sha256_hex) | function | True for a canonical SHA-256 digest: exactly 64 lowercase hex digits. |
-| [`materialize_owner_version`](#materialize_owner_version) | function | `materialize_version` for a version an owner cluster deploys to this host: a `blob:` archive is read from the library as usual (the caller fetched it over the owner link and checked its digest), and any other URL is fetched only as an owner `https:` URL (`bookclerk_plugin_catalog::fetch_owner_artifact`: no `file:`, no local or private hosts, every redirect hop checked the same way). |
+| [`materialize_owner_version`](#materialize_owner_version) | function | `materialize_version` for a version a library deploys to this host: a `blob:` archive is read from the library as usual (the caller fetched it over the owner link and checked its digest), and any other URL is fetched only as an owner `https:` URL (`bookclerk_plugin_catalog::fetch_owner_artifact`: no `file:`, no local or private hosts, every redirect hop checked the same way). |
 | [`materialize_version`](#materialize_version) | function | Makes the active version's tree available under `plugins/.versions/<payload digest>` and returns that path. |
 | [`open_installed_plugin`](#open_installed_plugin) | function | Opens a materialized version tree as a spawnable plugin carrying the version's identity and consent grant. |
 | [`sweep_version_cache`](#sweep_version_cache) | function | Removes cached digests not in `keep` and older than `grace`, plus stale version staging directories. Returns how many entries were removed. |
@@ -230,7 +230,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`binding_grant_flags`](#binding_grant_flags) | function | `config` / `secrets` flags of the plugin's covering grant. |
 | [`prepare_open_for_instance`](#prepare_open_for_instance) | function | Resolves open bindings for `instance_id` of `plugin`. |
 | [`prepared_open_from_resolved`](#prepared_open_from_resolved) | function | Builds open bindings from a deployment's already resolved payloads. |
-| [`guest_reservation`](#guest_reservation) | function | CPU and memory one guest may use at most on this host: its grant's ceilings after `[plugins.jail]`, the numbers its jail enforces. The cluster scheduler accounts host budgets against these. |
+| [`guest_reservation`](#guest_reservation) | function | CPU and memory one guest may use at most on this host: its grant's ceilings after `[plugins.jail]`, the numbers its jail enforces. The library scheduler accounts host budgets against these. |
 | [`plugin_data_dir`](#plugin_data_dir) | function | The private directory a plugin keeps state in. |
 | [`activates_on_demand`](#activates_on_demand) | function | True when a deployment of `manifest` may sleep while idle and start on the next call. |
 | [`storefront_activates_on_demand`](#storefront_activates_on_demand) | function | True when a storefront deployment of `manifest` may sleep while idle. |
@@ -238,7 +238,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`family_keyword`](#family_keyword) | function | Family-specific crates.io keyword (`bookclerk-source`, …). |
 | [`host_target_triple`](#host_target_triple) | function | Host target triple used when selecting release assets. |
 | [`validate_plugin_id`](#validate_plugin_id) | function | Validate plugin id segment used in crate names and `plugin.toml`. |
-| [`approve_remote_request`](#approve_remote_request) | function | Approves the request recorded from `cluster_id` for `plugin_key`, exactly as it was reviewed: `reviewed_digest` must be the recorded request's digest (`bookclerk_library::control_plane::RemotePluginConsent::request_digest`, shown with the request), and the consent is that request minus `narrowing` (`remote_consent`). The write is a compare-and-swap on the recorded request, so a request that changed after it was read is refused rather than approved unseen. |
+| [`approve_remote_request`](#approve_remote_request) | function | Approves the request recorded from `library_id` for `plugin_key`, exactly as it was reviewed: `reviewed_digest` must be the recorded request's digest (`bookclerk_library::control_plane::RemotePluginConsent::request_digest`, shown with the request), and the consent is that request minus `narrowing` (`remote_consent`). The write is a compare-and-swap on the recorded request, so a request that changed after it was read is refused rather than approved unseen. |
 | [`narrow_remote_grant`](#narrow_remote_grant) | function | The grant a guest runs with: `requested ∩ consent`. |
 | [`remote_consent`](#remote_consent) | function | The consent an operator gives to `requested` with `narrowing` applied. |
 | [`remote_consent_state`](#remote_consent_state) | function | Evaluates a stored consent row's grants: the current request (`requested_json`), the request as reviewed and the consent (both `None` while unapproved). |
@@ -603,7 +603,7 @@ pub trait RefreshedCredentialSink: Send + Sync {
 ```
 
 Receives the credentials a guest refreshed while it used credentials an
-owner cluster handed with a job (`ScanPage.refreshedCredentials`,
+library handed with a job (`ScanPage.refreshedCredentials`,
 `PlainFetch.refreshedCredentials`), already checked against the ABI
 bounds. The daemon writes them back to the owner under the job's fence.
 
@@ -1421,7 +1421,7 @@ A discovered plugin ready to spawn.
 - `root`: Directory containing `plugin.toml` (cwd + relative `command` base).
 - `command`: Absolute path to the plugin executable.
 - `identity`: Host-evaluated provenance-qualified identity.
-- `version_grant`: Consent grant recorded on the cluster release this tree was
+- `version_grant`: Consent grant recorded on the library release this tree was
   materialized from; `None` for host-local trees, whose grant lives in
   `plugin-grants.json`.
 - `state_scope`: Whose library the guest works for, which decides where its
@@ -1484,7 +1484,7 @@ pub fn from_release(
 ) -> Result<Self>
 ```
 
-Builds a plugin from a tree materialized from a cluster release.
+Builds a plugin from a tree materialized from a library release.
 
 The caller has already verified the tree's payload-root digest
 against the release row; identity, version, and the consent grant
@@ -1521,20 +1521,20 @@ pub struct LinkStateDir(/* private */);
 
 The directory leaf that holds one joined library's plugin state:
 `link-` and 32 lowercase hex digits (128 bits of the SHA-256 of the
-library's cluster id, as `PluginKey::fs_id` keeps). An owner picks its
-own cluster id, so the digest must be long enough that no library can
+library's id, as `PluginKey::fs_id` keeps). An owner picks its
+own library id, so the digest must be long enough that no library can
 search for an id that lands in another library's directory.
 
-Derived from the cluster id rather than copying it, so the leaf is
+Derived from the library id rather than copying it, so the leaf is
 always filesystem-safe and fixed-length whatever the owner sent.
 
-#### LinkStateDir::for_cluster
+#### LinkStateDir::for_library
 
 ```rust
-pub fn for_cluster(cluster_id: &str) -> Self
+pub fn for_library(library_id: &str) -> Self
 ```
 
-The state directory leaf of the library with `cluster_id`.
+The state directory leaf of the library with `library_id`.
 
 #### LinkStateDir::as_str
 
@@ -2108,7 +2108,7 @@ to `sink` (see [`Self::with_handed_credentials`](#externalsourcewith_handed_cred
 pub fn with_handed_credentials(self, credentials: Vec<AccountCredential>) -> Self
 ```
 
-Uses only `credentials` (an owner cluster handed them with a job)
+Uses only `credentials` (a library handed them with a job)
 for every guest call: no library is read for credentials, and
 `ContentSource::scan` is refused in favour of
 [`Self::scan_handed`](#externalsourcescan_handed).
@@ -2235,7 +2235,7 @@ Open control plane for this process.
 - `config`: Bootstrap config with the database-backed domains overlaid.
 - `database_registry`: Database adapters discovered for bootstrap.
 - `store`: Open library.
-- `session`: Node identity, cluster id, and core documents.
+- `session`: Node identity, library id, and core documents.
 - `enrolled`: Plugins enrolled on this pass.
 - `present`: Deployments desired present on this node, in deployment-id order.
 - `default_instances`: Default instance id per plugin key, for routing a bare key.
@@ -2308,7 +2308,7 @@ Result of [`enroll_node`]: the bootstrap half of a host control plane.
 **Fields**
 
 - `config`: Bootstrap config with the database-backed domains overlaid.
-- `session`: Node identity, cluster id, and core documents.
+- `session`: Node identity, library id, and core documents.
 - `enrolled`: Plugins enrolled on this pass.
 
 ### PresentDeployment
@@ -4499,7 +4499,7 @@ Failures from discovery, RPC, consent, or plugin adapters.
 - `InstanceSelection`: Instance selection failed closed: missing, wrong plugin key, or ambiguous.
   
   Callers match this variant instead of the message text.
-- `Conflict`: The request conflicts with cluster state (an alias owned by another
+- `Conflict`: The request conflicts with library state (an alias owned by another
   plugin, a version installed with different content).
 - `NotFound`: A plugin, version, or row the request names does not exist.
 - `Unavailable`: Backend or plugin transport is temporarily unreachable; retry the same
@@ -4657,7 +4657,7 @@ later".
 
 **Variants**
 
-- `NotRequested`: No request is recorded for that cluster and plugin.
+- `NotRequested`: No request is recorded for that library and plugin.
 - `Conflict`: The recorded request is not the reviewed one (its digest differs),
   or it changed between the read and the write (the store's
   compare-and-swap), or an automatic approval met a revoke: review it
@@ -6402,7 +6402,7 @@ pub async fn materialize_owner_version(
 ) -> Result<PathBuf>
 ```
 
-[`materialize_version`](#materialize_version) for a version an owner cluster deploys to this
+[`materialize_version`](#materialize_version) for a version a library deploys to this
 host: a `blob:` archive is read from the library as usual (the caller
 fetched it over the owner link and checked its digest), and any other
 URL is fetched only as an owner `https:` URL
@@ -6671,7 +6671,7 @@ pub fn guest_reservation(
 
 CPU and memory one guest may use at most on this host: its grant's
 ceilings after `[plugins.jail]`, the numbers its jail enforces. The
-cluster scheduler accounts host budgets against these.
+library scheduler accounts host budgets against these.
 
 ### plugin_data_dir
 
@@ -6776,7 +6776,7 @@ Returns an error when the operation fails.
 ```rust
 pub async fn approve_remote_request(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     plugin_key: &str,
     reviewed_digest: &str,
     narrowing: &RemoteNarrowing,
@@ -6784,7 +6784,7 @@ pub async fn approve_remote_request(
 ) -> Result<RemotePluginConsent, RemoteApprovalError>
 ```
 
-Approves the request recorded from `cluster_id` for `plugin_key`,
+Approves the request recorded from `library_id` for `plugin_key`,
 exactly as it was reviewed: `reviewed_digest` must be the recorded
 request's digest
 (`bookclerk_library::control_plane::RemotePluginConsent::request_digest`,
@@ -6796,7 +6796,7 @@ refused rather than approved unseen.
 #### Arguments
 
 * `store` - This host's library.
-* `cluster_id` - Owner cluster id.
+* `library_id` - Library id.
 * `plugin_key` - Canonical plugin key.
 * `reviewed_digest` - Digest of the request as the approver reviewed it.
 * `narrowing` - What the approver takes out of the request.

@@ -462,9 +462,9 @@ Schema:
 
 A `text/plain` body: a string.
 
-## `GET /api/cluster/status`
+## `GET /api/library-status`
 
-`GET /api/cluster/status`: cluster-wide health every node administrator
+`GET /api/library-status`: library-wide health every node administrator
 may see (node counts, committed capacity, active jobs, delivery backlog),
 plus detail for the nodes the caller may see.
 
@@ -474,8 +474,8 @@ plus detail for the nodes the caller may see.
 
 ### Responses
 
-- `200` — Cluster-wide node health. Body: [`ClusterStatusResponse`](schemas.md#clusterstatusresponse) (`application/json`)
-  - `cluster` *[`ClusterSummary`](schemas.md#clustersummary)*, **required** — Cluster-wide counters.
+- `200` — Library-wide node health. Body: [`LibraryStatusResponse`](schemas.md#librarystatusresponse) (`application/json`)
+  - `library` *[`LibrarySummary`](schemas.md#librarysummary)*, **required** — Library-wide counters.
   - `node_id` *string*, **required** — Id of the node that answered.
   - `nodes` *array of [`NodeView`](schemas.md#nodeview)*, **required** — The nodes the caller administers.
   - `capabilities` *[`NodeCapabilities`](schemas.md#nodecapabilities)*, **required** — What the caller may do with them.
@@ -498,12 +498,12 @@ plus detail for the nodes the caller may see.
 ### Example request
 
 ```console
-$ curl 'http://127.0.0.1:8787/api/cluster/status' \
+$ curl 'http://127.0.0.1:8787/api/library-status' \
     -H 'Authorization: Bearer <operatorToken>'
 ```
 
 ```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/cluster/status' `
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library-status' `
     -Headers @{ Authorization = 'Bearer <operatorToken>' }
 ```
 
@@ -511,14 +511,14 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/cluster/status' `
 import requests
 
 response = requests.get(
-    "http://127.0.0.1:8787/api/cluster/status",
+    "http://127.0.0.1:8787/api/library-status",
     headers={"Authorization": "Bearer <operatorToken>"},
 )
 print(response.status_code, response.text)
 ```
 
 ```javascript
-const response = await fetch("http://127.0.0.1:8787/api/cluster/status", {
+const response = await fetch("http://127.0.0.1:8787/api/library-status", {
   headers: { Authorization: "Bearer <operatorToken>" },
 });
 console.log(response.status, await response.text());
@@ -527,7 +527,7 @@ console.log(response.status, await response.text());
 ```rust
 let client = reqwest::Client::new();
 let response = client
-    .get("http://127.0.0.1:8787/api/cluster/status")
+    .get("http://127.0.0.1:8787/api/library-status")
     .header("Authorization", "Bearer <operatorToken>")
     .send()
     .await?;
@@ -536,11 +536,11 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: Cluster-wide node health.
+Status `200`: Library-wide node health.
 
 ```json
 {
-  "cluster": {
+  "library": {
     "nodes": 3,
     "live": 3,
     "drained": 0,
@@ -575,7 +575,7 @@ Status `200`: Cluster-wide node health.
   "nodes": [
     {
       "node_id": "node-7f3a9c",
-      "cluster_id": "c0ffee12-3456-4789-8abc-def012345678",
+      "library_id": "c0ffee12-3456-4789-8abc-def012345678",
       "created_at": "2026-10-01T08:00:00Z",
       "heartbeat_at": "2026-10-28T19:07:00Z",
       "software_version": "0.3.1",
@@ -649,17 +649,17 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "`GET /api/cluster/status` body.",
+  "description": "`GET /api/library-status` body.",
   "required": [
-    "cluster",
+    "library",
     "node_id",
     "nodes",
     "capabilities"
   ],
   "properties": {
-    "cluster": {
+    "library": {
       "type": "object",
-      "description": "Cluster-wide counters.",
+      "description": "Library-wide counters.",
       "required": [
         "nodes",
         "live",
@@ -778,7 +778,7 @@ Schema:
           "type": "array",
           "items": {
             "type": "object",
-            "description": "A cluster lease as the status page shows it.",
+            "description": "A library lease as the status page shows it.",
             "required": [
               "name",
               "holder",
@@ -816,7 +816,7 @@ Schema:
               }
             }
           },
-          "description": "Every cluster lease, held or expired."
+          "description": "Every library lease, held or expired."
         },
         "schema": {
           "type": "object",
@@ -866,7 +866,7 @@ Schema:
         "description": "One node with its latest heartbeat, budget and owner.",
         "required": [
           "node_id",
-          "cluster_id",
+          "library_id",
           "created_at",
           "heartbeat_at",
           "software_version",
@@ -886,9 +886,9 @@ Schema:
             "description": "Node id.",
             "example": "node-7f3a9c"
           },
-          "cluster_id": {
+          "library_id": {
             "type": "string",
-            "description": "Cluster the node belongs to.",
+            "description": "Library the node belongs to.",
             "example": "c0ffee12-3456-4789-8abc-def012345678"
           },
           "created_at": {
@@ -986,7 +986,7 @@ Schema:
                   "null"
                 ],
                 "format": "int64",
-                "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the cluster's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the cluster budget applies.",
+                "description": "Disk space, in bytes, this node's image caches may use together,\noverriding the library's `core.cache` budget (16 MiB to 1 TiB).\nAbsent means the library budget applies.",
                 "example": 536870912,
                 "maximum": 1099511627776,
                 "minimum": 16777216

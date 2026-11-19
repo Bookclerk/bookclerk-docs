@@ -3,14 +3,14 @@
 The host side of the node API (H-4 design, sections 2 to 4; step 7).
 
 A branch node is a separate Bookclerk install that enrolled into an owner
-cluster with a single-use link ([`join_cluster`](#join_cluster)) or a sign-in at the
+library with a single-use link ([`join_library`](#join_library)) or a sign-in at the
 owner ([`inspect_library`](#inspect_library), [`authorize_branch`](#authorize_branch),
 [`redeem_branch_code`](#redeem_branch_code)); it tells the owner when it leaves
 ([`announce_leaving`](#announce_leaving)). An empty install may instead join as a shared branch, an
 shared node that shares the library's database and DEK
 ([`redeem_shared_branch_code`](#redeem_shared_branch_code), [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap)). Its node keys are
 sealed in its own database
-(`bookclerk_library::control_plane::record_cluster_link`). For every
+(`bookclerk_library::control_plane::record_library_link`). For every
 active link, [`HostClient`](#hostclient) keeps one socket to the owner's
 `/api/node/v1/connect`:
 
@@ -69,7 +69,7 @@ job runs its guest are the daemon's.
 | [`CatalogBatchAccepted`](#catalogbatchaccepted) | struct | A recorded catalog batch (`HostClientHandle::catalog_sync`). |
 | [`CatalogSession`](#catalogsession) | struct | An opened catalog session (`HostClientHandle::catalog_begin`). |
 | [`ClientTiming`](#clienttiming) | struct | Timers of the client. The defaults follow the protocol constants. |
-| [`HostClient`](#hostclient) | struct | The host side of the node API for one cluster link. |
+| [`HostClient`](#hostclient) | struct | The host side of the node API for one library link. |
 | [`HostClientConfig`](#hostclientconfig) | struct | What one client connects with. |
 | [`HostClientHandle`](#hostclienthandle) | struct | Watches a running client. |
 | [`OfferedAccounts`](#offeredaccounts) | struct | What the library kept of an `HostClientHandle::offer_accounts`. |
@@ -104,9 +104,9 @@ job runs its guest are the daemon's.
 | [`authorize_clerk`](#authorize_clerk) | function | Starts a clerk sign-in at `library` for this install as `clerk_name`, coming back to `redirect_uri` (a loopback or https URL). |
 | [`redeem_clerk_code`](#redeem_clerk_code) | function | Redeems a clerk sign-in's code for a library card and records it. |
 | [`fetch_copy_file`](#fetch_copy_file) | function | Downloads file `index` of the copy `copy_id` to `dest`. |
-| [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own cluster id (A ← B ← A). Answers its ancestry, to record on the link. |
-| [`join_cluster`](#join_cluster) | function | Enrolls this install into the owner cluster named by `link`. |
-| [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own cluster id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
+| [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own library id (A ← B ← A). Answers its ancestry, to record on the link. |
+| [`join_library`](#join_library) | function | Enrolls this install into the library named by `link`. |
+| [`refuse_cycle`](#refuse_cycle) | function | Refuses `ancestry` when it names this install's own library id, is malformed, or would take this library's ancestry past what one can name (`join_overflows_ancestry`). |
 | [`apply_shared_branch_bootstrap`](#apply_shared_branch_bootstrap) | function | Writes `bootstrap` as this install's own bootstrap under `files_dir`: |
 | [`bootstrap_database_kind`](#bootstrap_database_kind) | function | The `[database].plugin` a shared branch's bootstrap configures. |
 | [`checked_d1_api_base`](#checked_d1_api_base) | function | Checks the D1 API origin a library's bootstrap names, and returns it normalized. Every D1 query carries the joining server's own API token to that origin, so a shared branch may only be pointed at Cloudflare's API over HTTPS. The library checks its own origin the same way before it offers a shared branch join, so a library on another D1 endpoint cannot take shared branches. |
@@ -202,7 +202,7 @@ pub struct BranchAuthorization {
     pub authorize_url: String,
     pub state: Zeroizing<String>,
     pub verifier: Zeroizing<String>,
-    pub keys: ClusterLinkKeys,
+    pub keys: LibraryLinkKeys,
     pub redirect_uri: String,
 }
 ```
@@ -225,7 +225,7 @@ Implements: `Debug`
 pub struct BranchRedeem<'a> {
     pub origin: &'a str,
     pub spki_pin: Option<&'a str>,
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub code: &'a str,
     pub verifier: &'a str,
     pub redirect_uri: &'a str,
@@ -241,7 +241,7 @@ What [`redeem_branch_code`](#redeem_branch_code) needs besides the keys.
 
 - `origin`: The library's canonical origin.
 - `spki_pin`: The pin confirmed for a self-signed library.
-- `cluster_id`: The cluster id the library reported before sign-in.
+- `library_id`: The library id the library reported before sign-in.
 - `code`: The code from the callback.
 - `verifier`: The PKCE verifier.
 - `redirect_uri`: The redirect URI of the authorization.
@@ -279,7 +279,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct RedeemedBranch {
-    pub link: ClusterLink,
+    pub link: LibraryLink,
     pub node_id: String,
     pub accounts: Option<AccountBundle>,
 }
@@ -329,7 +329,7 @@ Implements: `Debug`
 pub struct ClerkRedeem<'a> {
     pub origin: &'a str,
     pub spki_pin: Option<&'a str>,
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub library_name: &'a str,
     pub code: &'a str,
     pub verifier: &'a str,
@@ -345,7 +345,7 @@ sign-in.
 
 - `origin`: The library's canonical origin.
 - `spki_pin`: The pin confirmed for a self-signed library.
-- `cluster_id`: The cluster id the library's info reported; the answer must match.
+- `library_id`: The library id the library's info reported; the answer must match.
 - `library_name`: The library's name from its info.
 - `code`: The code from the redirect.
 - `verifier`: The sign-in's PKCE verifier.
@@ -391,7 +391,7 @@ An opened catalog session ([`HostClientHandle::catalog_begin`](#hostclienthandle
 
 - `fence`: The catalog fence every later call names.
 - `cursor`: Resume after this cursor (empty: from the start).
-- `ancestry`: The library's ancestry, its own cluster id first.
+- `ancestry`: The library's ancestry, its own library id first.
 - `destinations`: The library node's destination ids, the primary first.
 - `wanted`: Titles whose files the library still wants.
 - `members_books`: The library's "Acquire all of this branch's members' books": send
@@ -434,7 +434,7 @@ pub struct HostClient<R: HostJobRunner> {
 }
 ```
 
-The host side of the node API for one cluster link.
+The host side of the node API for one library link.
 
 #### HostClient::new
 
@@ -470,8 +470,8 @@ first, so no job task keeps running for a client that is gone.
 
 ```rust
 pub struct HostClientConfig {
-    pub link: ClusterLink,
-    pub keys: ClusterLinkKeys,
+    pub link: LibraryLink,
+    pub keys: LibraryLinkKeys,
     pub software_version: String,
     pub incarnation: String,
     pub max_jobs: usize,
@@ -486,7 +486,7 @@ What one client connects with.
 
 **Fields**
 
-- `link`: The active cluster link.
+- `link`: The active library link.
 - `keys`: Its node keys.
 - `software_version`: This host's Bookclerk version.
 - `incarnation`: This process's incarnation (a plain id).
@@ -570,15 +570,15 @@ Fences this host holds and has not lost.
 pub fn node_id(&self) -> &str
 ```
 
-The node id this host has in the owner cluster.
+The node id this host has in the library.
 
-#### HostClientHandle::cluster_id
+#### HostClientHandle::library_id
 
 ```rust
-pub fn cluster_id(&self) -> &str
+pub fn library_id(&self) -> &str
 ```
 
-The owner cluster id.
+The parent library id.
 
 #### HostClientHandle::set_consented_plugins
 
@@ -643,7 +643,7 @@ pub async fn offer_accounts(
 
 Offers the branch person's store `accounts` to the library ("Add my
 connections to *library*"): seals them to the live connection's
-owner box key, bound to the cluster and this node, and answers the
+owner box key, bound to the library and this node, and answers the
 library's report.
 
 ##### Errors
@@ -1383,7 +1383,7 @@ A job the owner handed this host, under its fence.
 
 **Fields**
 
-- `node_id`: This host's node id in the owner cluster (the lease owner is
+- `node_id`: This host's node id in the library (the lease owner is
   `host:<node_id>`).
 - `job`: The job as the owner stores it.
 - `fence`: Lease generation; every frame for the job names it.
@@ -1761,7 +1761,7 @@ Implements: `Debug`, `Display`
 
 ```rust
 pub struct SharedBranchJoined {
-    pub cluster_id: String,
+    pub library_id: String,
     pub node_id: String,
     pub bootstrap: SharedBranchBootstrap,
 }
@@ -1771,7 +1771,7 @@ A redeemed shared branch sign-in. `Debug` prints no secret.
 
 **Fields**
 
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `node_id`: The node id the library recorded (`kind = shared`).
 - `bootstrap`: The opened bootstrap.
 
@@ -2016,8 +2016,8 @@ Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ```rust
 pub async fn announce_leaving(
-    link: ClusterLink,
-    keys: ClusterLinkKeys,
+    link: LibraryLink,
+    keys: LibraryLinkKeys,
     software_version: &str,
     sampler: Box<dyn HeartbeatSource>,
     timeout: Duration,
@@ -2089,7 +2089,7 @@ after [`redeem_branch_code`](#redeem_branch_code).
 The binding names the node this join's own enrollment minted
 ([`RedeemedBranch::node_id`](#redeemedbranch)), so a join another one replaced meanwhile
 binds nothing. A failure, or no person to name, leaves the link unbound
-(as [`record_cluster_link`](../bookclerk_library/control_plane.md#record_cluster_link) stored it): nobody can use it until the
+(as [`record_library_link`](../bookclerk_library/control_plane.md#record_library_link) stored it): nobody can use it until the
 branch joins again.
 
 #### Arguments
@@ -2171,7 +2171,7 @@ Returns [`JoinError::Link`](#joinerror) when it is not an http(s) origin.
 pub async fn redeem_branch_code(
     store: &LibraryStore,
     redeem: &BranchRedeem<'_>,
-    keys: &ClusterLinkKeys,
+    keys: &LibraryLinkKeys,
 ) -> Result<RedeemedBranch, JoinError>
 ```
 
@@ -2184,7 +2184,7 @@ request body and are never logged.
 
 Returns [`JoinError`](#joinerror) when the library is unreachable or refuses; once
 the library has enrolled a node, a malformed answer or one for another
-cluster gives [`JoinError::Unsaved`](#joinerror), which names that node so it can be
+library gives [`JoinError::Unsaved`](#joinerror), which names that node so it can be
 revoked there, as does a link this install refuses to record. A failed
 database or disk write gives [`JoinError::SaveFailed`](#joinerror) (redeeming the
 same code again with the same verifier and keys gets the same node, so
@@ -2276,7 +2276,7 @@ pub async fn check_join_ancestry(
 ```
 
 Reads the library's `info` over `endpoint` and refuses a library whose
-ancestry names this install's own cluster id (A ← B ← A). Answers its
+ancestry names this install's own library id (A ← B ← A). Answers its
 ancestry, to record on the link.
 
 #### Errors
@@ -2284,21 +2284,21 @@ ancestry, to record on the link.
 Returns [`JoinError::Cycle`](#joinerror) for a cycle, and [`JoinError`](#joinerror) when the
 library cannot be read (fail closed: no join without the check).
 
-### join_cluster
+### join_library
 
 ```rust
-pub async fn join_cluster(
+pub async fn join_library(
     store: &LibraryStore,
     link: &str,
     software_version: &str,
-) -> Result<ClusterLink, JoinError>
+) -> Result<LibraryLink, JoinError>
 ```
 
-Enrolls this install into the owner cluster named by `link`.
+Enrolls this install into the library named by `link`.
 
 Generates fresh node keys, redeems the link at the owner (under the
 transport policy and the link's SPKI pin), then seals the keys into this
-install's `encrypted_secrets` and records the `cluster_links` row. The
+install's `encrypted_secrets` and records the `library_links` row. The
 link secret is sent once in the request body and never logged.
 
 `link` is the whole link as minted (`https://owner/enroll#bcn1...`):
@@ -2318,7 +2318,7 @@ pub async fn refuse_cycle(
 ) -> Result<(), JoinError>
 ```
 
-Refuses `ancestry` when it names this install's own cluster id, is
+Refuses `ancestry` when it names this install's own library id, is
 malformed, or would take this library's ancestry past what one can name
 ([`join_overflows_ancestry`](../bookclerk_library/control_plane.md#join_overflows_ancestry)).
 
@@ -2342,7 +2342,7 @@ Writes `bootstrap` as this install's own bootstrap under `files_dir`:
 
 - `database-postgres.url` (Postgres only): the URL, mode `0600`;
 - `node-identity.json`: the node id the library recorded, bound to its
-  cluster;
+  library;
 - `master.key`: the library's DEK, wrapped with `password` (this
   install's `BOOKCLERK_AUTH_PASSWORD` or `[auth].password`) when set;
 - `[database]` in `config_file` (other settings kept): `postgres` with
@@ -2460,7 +2460,7 @@ not used: copies left beside those files then stop the start (see
 ```rust
 pub async fn redeem_shared_branch_code(
     redeem: &BranchRedeem<'_>,
-    keys: &ClusterLinkKeys,
+    keys: &LibraryLinkKeys,
 ) -> Result<SharedBranchJoined, JoinError>
 ```
 
@@ -2473,7 +2473,7 @@ and are registered for redaction (the caller unregisters them).
 Returns [`JoinError`](#joinerror) when the library is unreachable or refuses (the
 code was approved for a branch, the user is no longer an Owner, or its
 database cannot be shared). Once the library has enrolled the node, an
-answer for another cluster or type, without a bootstrap, or with one
+answer for another library or type, without a bootstrap, or with one
 that does not open for this node gives [`JoinError::Unsaved`](#joinerror) naming
 it. [`JoinError::is_retryable`](#joinerroris_retryable) tells which failures a repeat of the
 same exchange can fix (the library answers it with the same node and a

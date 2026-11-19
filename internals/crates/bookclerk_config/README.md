@@ -25,7 +25,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`ReplacementRule`](#replacementrule) | struct | Character replacement rule (`ReplacementCharacters` in classic Settings.json). |
 | [`CheckIn`](#checkin) | struct | Body of `POST /checkin`. |
 | [`InstallId`](#installid) | struct | A random install ID: a version-4 UUID in lowercase hyphenated form. |
-| [`JobsConcurrencyConfig`](#jobsconcurrencyconfig) | struct | Per-resource-class worker counts and cluster-wide job semaphores. |
+| [`JobsConcurrencyConfig`](#jobsconcurrencyconfig) | struct | Per-resource-class worker counts and library-wide job semaphores. |
 | [`JobsConfig`](#jobsconfig) | struct | `[jobs]` — durable queue admission, leases, and resource-class concurrency. |
 | [`OsLogLayer`](#osloglayer) | struct | Structured sink that writes **redacted** events to the platform log facility. |
 | [`ListenAddrs`](#listenaddrs) | struct | One or more bind addresses for the HTTP control plane. |
@@ -746,14 +746,14 @@ pub struct JobsConcurrencyConfig {
 }
 ```
 
-Per-resource-class worker counts and cluster-wide job semaphores.
+Per-resource-class worker counts and library-wide job semaphores.
 
 **Fields**
 
 - `network`: Scan / acquire / listening-sync workers on this node (default 1),
-  and the cluster-wide number of running network jobs (the
+  and the library-wide number of running network jobs (the
   `jobs:network` semaphore).
-- `plugin_instance`: Cluster-wide running jobs that require one plugin instance (the
+- `plugin_instance`: Library-wide running jobs that require one plugin instance (the
   `plugin-instance:<id>` semaphore; default 1).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -1966,14 +1966,14 @@ Top-level Bookclerk configuration.
   Absent until control-plane bootstrap or reconcile loads `core.events`.
   Not serialized to `config.toml`. Compared only with
   [`Self::events_authority`](#config).
-- `events_authority`: Cluster id that produced [`Self::events_revision`](#config).
+- `events_authority`: Library id that produced [`Self::events_revision`](#config).
   
-  A revision from another cluster is not newer or older; a database swap
+  A revision from another library is not newer or older; a database swap
   replaces this authority explicitly. Not serialized to `config.toml`.
 - `output_revision`: Revision of the DB-authoritative `[output]` document (`core.output`)
   after overlay. Absent until control-plane bootstrap or reconcile loads
   it; compared only with [`Self::output_authority`](#config). Not serialized.
-- `output_authority`: Cluster id that produced [`Self::output_revision`](#config). Not serialized.
+- `output_authority`: Library id that produced [`Self::output_revision`](#config). Not serialized.
 
 #### Config::load
 
@@ -2766,7 +2766,7 @@ set.
 
 - `Audiobookshelf`: [Audiobookshelf](https://audiobookshelf.org/docs/documentation/libraries/book-library/directory-structure/)
   layout: `{Author}/{Series}/{N} - {Book}` or `{Author}/{Book}`; the
-  file is the full title with the edition's library id.
+  file is the full title with the edition's call number.
 - `Classic`: Previous Libation desktop defaults (`Templates.*.DefaultTemplate`).
 
 #### NamingProfile::all

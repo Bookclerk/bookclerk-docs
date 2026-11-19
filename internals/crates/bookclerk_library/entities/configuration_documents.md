@@ -36,7 +36,7 @@ Row shape for a scoped configuration document.
 
 **Fields**
 
-- `scope_type`: Scope kind (`cluster` or `host`).
+- `scope_type`: Scope kind (`library` or `host`).
 - `scope_id`: Scope instance (`singleton` or a host id).
 - `namespace`: Typed domain name (`core.events`, `node.runtime`).
 - `schema_version`: Domain schema version understood by this binary.

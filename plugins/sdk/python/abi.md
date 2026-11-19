@@ -128,7 +128,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`QueueConsumer`](#queueconsumer) | class | `[[queues.consumers]]` handler (`Entrypoints.queueConsumer`). Delivery is at-least-once; consumers must be idempotent on `QueueMessage.id`. |
 | [`QueueProducer`](#queueproducer) | class | Queue producer binding: host-served send into the queue a `[[queues.producers]]` row names, granted through `Bindings.queues`. |
 | [`NamedQueue`](#namedqueue) | class | One named queue producer delivered on `Bindings.queues`. |
-| [`KvNamespace`](#kvnamespace) | class | Durable key/value namespace: a Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names, granted through `Bindings.kv`. Values live in the cluster, so an instance moved to another host reads its own keys. |
+| [`KvNamespace`](#kvnamespace) | class | Durable key/value namespace: a Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names, granted through `Bindings.kv`. Values live in the library, so an instance moved to another host reads its own keys. |
 | [`NamedKv`](#namedkv) | class | One named durable namespace delivered on `Bindings.kv`. |
 | [`Sockets`](#sockets) | class | Host-brokered outbound WebSockets, granted through `Bindings.sockets`. |
 | [`SocketHandler`](#sockethandler) | class | Guest handler for host-brokered sockets (`Entrypoints.socketHandler`). |
@@ -2602,7 +2602,7 @@ class KvNamespace(Protocol)
 Durable key/value namespace: a Workers `KVNamespace`-shaped binding the host
 serves from the library database, scoped to the plugin and the namespace a
 `[[kv_namespaces]]` row names, granted through `Bindings.kv`. Values live in
-the cluster, so an instance moved to another host reads its own keys.
+the library, so an instance moved to another host reads its own keys.
 
 #### KvNamespace.get
 

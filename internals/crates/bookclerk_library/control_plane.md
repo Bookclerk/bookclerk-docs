@@ -31,15 +31,6 @@ See `docs/adr/control-plane.md`.
 | [`ClerkLink`](#clerklink) | struct | One library this install holds (or held) a library card for. |
 | [`LibraryCard`](#librarycard) | struct | A library card in plain form: zeroized on drop, redacted in `Debug`. |
 | [`NewClerkLink`](#newclerklink) | struct | What a sign-in returned, to record with `record_clerk_link`. |
-| [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
-| [`ClusterLink`](#clusterlink) | struct | One owner cluster this install enrolled into. |
-| [`ClusterLinkKeys`](#clusterlinkkeys) | struct | The node keys of one cluster link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
-| [`ClusterLinkSettings`](#clusterlinksettings) | struct | Every setting Settings → Library changes on one link at once; see `set_cluster_link_settings`. |
-| [`JobCapRequest`](#jobcaprequest) | struct | A validated job cap change: the library it names (trimmed) and its new cap, `None` for an equal share. |
-| [`LinkJobCap`](#linkjobcap) | struct | The most jobs a branch runs for one library at once, as its operator set it: 0 (runs nothing for that library) to `LinkJobCap::MAX`. |
-| [`NewClusterLink`](#newclusterlink) | struct | What enrollment returned, to record with `record_cluster_link`. |
-| [`SharingBody`](#sharingbody) | struct | `POST /api/config/join/sharing` body: one library and the settings to change for it. |
-| [`SharingRequest`](#sharingrequest) | struct | A sharing settings change: the library it names (trimmed) and the settings to write, each `None` setting left as stored. |
 | [`AccountRef`](#accountref) | struct | One store account, by storefront plugin key and store account id. |
 | [`AddConnectionsBody`](#addconnectionsbody) | struct | `POST /api/config/join/connections` body. |
 | [`AddConnectionsRequest`](#addconnectionsrequest) | struct | An "Add my connections" request: the library it names (trimmed) and the accounts picked, between 1 and `MAX_ADD_CONNECTIONS` of them. |
@@ -56,7 +47,7 @@ See `docs/adr/control-plane.md`.
 | [`DestinationPlacementV1`](#destinationplacementv1) | struct | The body of a `core.destination` document. |
 | [`DocumentKey`](#documentkey) | struct | Address of one configuration document. |
 | [`StoredDocument`](#storeddocument) | struct | One stored document before domain parsing. |
-| [`VerifiedClusterOwner`](#verifiedclusterowner) | struct | Proof that a user was an active Owner when the write was authorized. |
+| [`VerifiedLibraryOwner`](#verifiedlibraryowner) | struct | Proof that a user was an active Owner when the write was authorized. |
 | [`VerifiedNodeOwner`](#verifiednodeowner) | struct | Proof that a user owned a node when the write was authorized. |
 | [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a patron scope write was authorized. |
 | [`EnrolledNode`](#enrollednode) | struct | Result of a successful redeem. |
@@ -79,16 +70,25 @@ See `docs/adr/control-plane.md`.
 | [`PluginInstance`](#plugininstance) | struct | One `plugin_instances` row. |
 | [`PluginInstanceId`](#plugininstanceid) | struct | Stable id of one plugin instance. |
 | [`JobClaimFilter`](#jobclaimfilter) | struct | What a Host is willing to claim: the job kinds it runs and the plugin keys its operator consented to. Both must admit a job. |
-| [`JobClaimLimits`](#jobclaimlimits) | struct | Cluster-wide permit counts a routed claim enforces. |
+| [`JobClaimLimits`](#jobclaimlimits) | struct | Library-wide permit counts a routed claim enforces. |
 | [`JobClaimRequest`](#jobclaimrequest) | struct | One routed claim attempt by one worker. |
 | [`RoutedJobClaim`](#routedjobclaim) | struct | A claimed job and the semaphore permits it holds. |
 | [`KeptShare`](#keptshare) | struct | One account this install shares with a library it joined, as the keeper sees it. |
 | [`SignIn`](#signin) | struct | An account's current sign-in on its keeper (`sign_in_revision`). |
-| [`ClusterLease`](#clusterlease) | struct | A held cluster lease. |
 | [`LeaseFence`](#leasefence) | struct | Proof, checked against the database, that this holder still holds a lease. Call `LeaseFence::check` before each destructive step. |
+| [`LibraryLease`](#librarylease) | struct | A held library lease. |
 | [`SingletonDuty`](#singletonduty) | struct | One periodic duty that exactly one live node runs per interval. |
+| [`CapacityBody`](#capacitybody) | struct | `POST /api/config/join/capacity` body: one library and the job cap to set for it. |
+| [`JobCapRequest`](#jobcaprequest) | struct | A validated job cap change: the library it names (trimmed) and its new cap, `None` for an equal share. |
+| [`LibraryLink`](#librarylink) | struct | One library this install enrolled into. |
+| [`LibraryLinkKeys`](#librarylinkkeys) | struct | The node keys of one library link: the Ed25519 signing seed and the X25519 box secret. Zeroized on drop; `Debug` shows only the public keys. |
+| [`LibraryLinkSettings`](#librarylinksettings) | struct | Every setting Settings → Library changes on one link at once; see `set_library_link_settings`. |
+| [`LinkJobCap`](#linkjobcap) | struct | The most jobs a branch runs for one library at once, as its operator set it: 0 (runs nothing for that library) to `LinkJobCap::MAX`. |
+| [`NewLibraryLink`](#newlibrarylink) | struct | What enrollment returned, to record with `record_library_link`. |
+| [`SharingBody`](#sharingbody) | struct | `POST /api/config/join/sharing` body: one library and the settings to change for it. |
+| [`SharingRequest`](#sharingrequest) | struct | A sharing settings change: the library it names (trimmed) and the settings to write, each `None` setting left as stored. |
 | [`LinkImport`](#linkimport) | struct | One title the library committed, as the branch kept it. |
-| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `cluster_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
+| [`OwnerShareFilter`](#ownersharefilter) | struct | Which of this install's acquired books the catalog sync sends the library `library_id`: the branch owner's own books, those held by a store account connected here to the branch's person (`super::branch_person`); the books that library asked for through an interlibrary request and this branch still lists to it (`still_listed_requests`); and, while that library acquires all of this branch's members' books, the books of every store account this branch lists to it (`listed_accounts`). Never one imported from that library (`books_imported_from_link`). With no single person, the owner's books are not among them. |
 | [`TakenCopy`](#takencopy) | struct | A book of this install whose files came from a library it joined, by its store identity here. |
 | [`LiveRevision`](#liverevision) | struct | One topic's revision: a counter that every write to the topic's table moves forward by at least one. |
 | [`CacheUsage`](#cacheusage) | struct | What a node's image caches hold, as its daemon reports them. |
@@ -114,7 +114,7 @@ See `docs/adr/control-plane.md`.
 | [`RemoteObservation`](#remoteobservation) | struct | One observation a Host reports. |
 | [`RemoteApproval`](#remoteapproval) | struct | What an operator approves. |
 | [`RemoteArtifactRef`](#remoteartifactref) | struct | The archive an owner asks this host to fetch: the version's artifact for this host's target. |
-| [`RemotePluginConsent`](#remotepluginconsent) | struct | One owner plugin of one owner cluster, as this install sees it. |
+| [`RemotePluginConsent`](#remotepluginconsent) | struct | One owner plugin of one library, as this install sees it. |
 | [`HandedPassEnd`](#handedpassend) | struct | How a Host's pass of one account ended. |
 | [`ScanSighting`](#scansighting) | struct | A product a Host's pass listed that has no library row to write (its record maps onto no flat row, an ebook for instance), so the owner only marks the account's holding of it seen by the pass. |
 | [`JobSecret`](#jobsecret) | struct | One unsealed secret handed with a job. The value is zeroized on drop and never shown by `Debug`. |
@@ -126,7 +126,7 @@ See `docs/adr/control-plane.md`.
 | [`PinnedPluginSchema`](#pinnedpluginschema) | struct | One `plugin_schemas` row. |
 | [`SchemaPin`](#schemapin) | struct | Inputs for `pin_plugin_schema`. |
 | [`SchemaPinOutcome`](#schemapinoutcome) | struct | Outcome of `pin_plugin_schema`: the row that is now pinned and how it relates to the local manifest. |
-| [`ClusterSecret`](#clustersecret) | struct | Cluster id and fingerprint of the secret root aligned for this process. |
+| [`LibrarySecret`](#librarysecret) | struct | Library id and fingerprint of the secret root aligned for this process. |
 | [`SemaphorePermit`](#semaphorepermit) | struct | One held permit: a slot lease of a semaphore. |
 | [`SemaphoreRequest`](#semaphorerequest) | struct | One semaphore a caller wants a permit of. |
 | [`LibraryContents`](#librarycontents) | struct | What library data an install holds of its own. |
@@ -160,7 +160,7 @@ See `docs/adr/control-plane.md`.
 | [`ConfigActor`](#configactor) | enum | Who is allowed to write a configuration document. |
 | [`ReplaceOutcome`](#replaceoutcome) | enum | Result of a compare-and-swap replacement. |
 | [`EnrollmentActor`](#enrollmentactor) | enum | Who is acting on enrollment links and node credentials. |
-| [`NodeKind`](#nodekind) | enum | How a node joined the cluster. |
+| [`NodeKind`](#nodekind) | enum | How a node joined the library. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
 | [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
@@ -206,22 +206,22 @@ See `docs/adr/control-plane.md`.
 | [`remove_detached_branch_titles`](#remove_detached_branch_titles) | function | Forgets the files branches left behind (entries "from a branch that left" and the like), of one branch or of every one: the `edition_files` records its catalog uploads wrote for editions nothing here holds any more. Answers how many editions' entries went. The files themselves stay in this library's outputs. |
 | [`parse_members_books_request`](#parse_members_books_request) | function | Parses and validates a `PUT /api/config/branches/members-books` body from its raw bytes, sans IO, the way the route reads it: JSON into `MembersBooksBody`, then `MembersBooksBody::validate`. |
 | [`set_branch_members_books`](#set_branch_members_books) | function | Turns "Acquire all of this branch's members' books" on or off for branch `node_id`. |
-| [`books_requested_by_link`](#books_requested_by_link) | function | On a branch: every book the library `cluster_id` asked for, by store identity, with when it last asked (an unreadable stamp reads as now, so the book is sent rather than skipped). Read in keyset pages no larger than the database plugin's `maxResultRows`. |
+| [`books_requested_by_link`](#books_requested_by_link) | function | On a branch: every book the library `library_id` asked for, by store identity, with when it last asked (an unreadable stamp reads as now, so the book is sent rather than skipped). Read in keyset pages no larger than the database plugin's `maxResultRows`. |
 | [`claim_branch_requests`](#claim_branch_requests) | function | Claims the requests waiting for branch `node_id`, oldest first. |
 | [`finish_branch_request`](#finish_branch_request) | function | Records what branch `node_id` did with the request `job_id` it claimed at lease `generation`. |
 | [`notify_requests_queued`](#notify_requests_queued) | function | Wakes branch `node_id` after a request for it was admitted. Best effort: the branch also claims on every connection and on a timer. |
 | [`parse_branch_request`](#parse_branch_request) | function | Parses and validates a `POST /api/branch-requests` body from its raw bytes, sans IO, the way the route reads it: JSON into `BranchRequestBody`, then `BranchRequestBody::validate`. |
 | [`plan_branch_request`](#plan_branch_request) | function | Plans an interlibrary request for `work_id`. |
-| [`record_link_request`](#record_link_request) | function | On a branch: records that the library `cluster_id` asked for `title` (by its holding account and store listing), so the catalog sync sends it there. Asking again moves the request to now. |
+| [`record_link_request`](#record_link_request) | function | On a branch: records that the library `library_id` asked for `title` (by its holding account and store listing), so the catalog sync sends it there. Asking again moves the request to now. |
 | [`is_cache_setting_key`](#is_cache_setting_key) | function | True when `key` is one of `CACHE_SETTING_KEYS`. |
-| [`load_cache_settings`](#load_cache_settings) | function | Loads the cluster cache document. |
-| [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the cluster cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
+| [`load_cache_settings`](#load_cache_settings) | function | Loads the library cache document. |
+| [`update_cache_settings`](#update_cache_settings) | function | Applies `edit` to the library cache document under compare-and-swap, creating it with the defaults when absent and retrying a few times on a concurrent edit. Nodes pick the change up at their next heartbeat. |
 | [`account_share_peers`](#account_share_peers) | function | Every peer this install shared the store account with, in either direction (`account_shares`): `node_peer` and `link_peer` values, each once, sorted. |
 | [`accounts_to_carry`](#accounts_to_carry) | function | The store accounts `user_id` connected here that may travel to a branch (`member_accounts` whose plugin `shareable` accepts), each with its secrets unsealed. At most `MAX_BUNDLE_ACCOUNTS`; an account without a secret is left out (there is nothing to sign in with). |
 | [`accounts_to_carry_where`](#accounts_to_carry_where) | function | `accounts_to_carry` limited to the accounts `keep` accepts, by `(plugin_key, account_id)`, applied before the bundle's count and size limits so a picked account is never crowded out by unpicked ones. |
 | [`branch_person`](#branch_person) | function | The person on this install that store accounts brought from a library belong to: `preferred` (the Owner who elevated into the operator session that ran the join) while that user is still an active Owner, otherwise the only active Owner. `None` when neither settles it, for example on a new install with no Owner yet; the accounts are then not kept. |
 | [`identity_may_connect_accounts`](#identity_may_connect_accounts) | function | Whether the portal identity `identity_id` may connect store accounts here: the rule of the user it belongs to (`member_may_connect_accounts`). An identity that belongs to no first-party user (an integration's external user) has no member rule and may connect, as before; an unknown identity may not. |
-| [`import_carried_accounts`](#import_carried_accounts) | function | Imports the accounts a library sent with its person, for `user_id`, recording that they came from the library `cluster_id`. |
+| [`import_carried_accounts`](#import_carried_accounts) | function | Imports the accounts a library sent with its person, for `user_id`, recording that they came from the library `library_id`. |
 | [`import_offered_accounts`](#import_offered_accounts) | function | Imports the accounts a branch offered up its link ("Add my connections to *library*") for `user_id`, the branch's owner, recording that they came from the node `node_id`. |
 | [`link_peer`](#link_peer) | function | The `account_shares.peer` of a library this install received accounts from. |
 | [`member_account_rules`](#member_account_rules) | function | Every stored rule, by user id (`true` = may connect). Users with no rule are left out; they may connect. |
@@ -253,27 +253,6 @@ See `docs/adr/control-plane.md`.
 | [`load_clerk_link`](#load_clerk_link) | function | One clerk link. |
 | [`record_clerk_link`](#record_clerk_link) | function | Seals `card` and records the link as active, replacing an earlier sign-in to the same library. |
 | [`sign_out_clerk_link`](#sign_out_clerk_link) | function | Marks a link signed out, deletes its card and drops the books read through it. Answers the link as it now stands, or `None` when there is no such link. |
-| [`decode_spki_pin`](#decode_spki_pin) | function | Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest. |
-| [`join_cycle`](#join_cycle) | function | This library's own cluster id when `parent_ancestry` names it: joining that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when it does not, or this install has no cluster identity yet. |
-| [`join_overflows_ancestry`](#join_overflows_ancestry) | function | True when joining a library that reports `parent_ancestry` would give this library more ancestors (itself and every library above it) than `bookclerk_node_proto::MAX_ANCESTRY`: `library_ancestry` would then leave the farthest out, and a library joining this one later could no longer be checked for a loop through them. An ancestry cut at that limit by the library itself always holds exactly the limit, so this refuses it too. Such a join is refused rather than cut short. |
-| [`leave_cluster_link`](#leave_cluster_link) | function | Leaves an owner cluster on this side: marks the link `CLUSTER_LINK_LEFT` and deletes its sealed node keys, so this install can never sign as that node again. Answers the link as it now stands, or `None` when there is no such link. |
-| [`library_ancestry`](#library_ancestry) | function | This library's ancestry (what `GET /api/node/v1/info` reports): its own cluster id, then for each active link the owner's cluster id and the ancestry that owner reported, without repeats, at most `bookclerk_node_proto::MAX_ANCESTRY` ids. Empty when this install has no cluster identity yet. A join that would take it past that limit is refused (`join_overflows_ancestry`); should a library above grow its ancestry later, the list is cut at exactly the limit, which in turn refuses every join under it. |
-| [`list_cluster_links`](#list_cluster_links) | function | Every cluster link, oldest enrollment first. |
-| [`load_cluster_link`](#load_cluster_link) | function | One cluster link. |
-| [`load_cluster_link_keys`](#load_cluster_link_keys) | function | Unseals the node keys of an active `link`. |
-| [`mark_cluster_link_revoked`](#mark_cluster_link_revoked) | function | Marks an **active** link still enrolled as `remote_node_id` `CLUSTER_LINK_REVOKED` (the owner closed with 4403 on that node's connection). A link this install already left stays `left`, and one a later join enrolled as another node keeps its new enrollment. |
-| [`parse_job_cap_request`](#parse_job_cap_request) | function | Parses and validates a `POST /api/config/join/capacity` body from its raw bytes, sans IO, the way the route reads it: JSON into `CapacityBody`, then `CapacityBody::validate`. |
-| [`parse_sharing_request`](#parse_sharing_request) | function | Parses a `POST /api/config/join/sharing` body from its raw bytes, sans IO, the way the route reads it: JSON into `SharingBody`, then `SharingBody::into_request`. |
-| [`record_cluster_link`](#record_cluster_link) | function | Seals `keys` and records the link, replacing an earlier link to the same cluster (a re-enrollment) as `active`. |
-| [`set_cluster_link_ancestry`](#set_cluster_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain cluster ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
-| [`set_cluster_link_job_cap`](#set_cluster_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
-| [`set_cluster_link_keep_copies`](#set_cluster_link_keep_copies) | function | Sets the link's "Keep copies on this computer" setting. |
-| [`set_cluster_link_listing`](#set_cluster_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
-| [`set_cluster_link_person`](#set_cluster_link_person) | function | Binds the link to the local user who joined the library through it. |
-| [`set_cluster_link_settings`](#set_cluster_link_settings) | function | Sets a link's sharing, listing and work settings in one statement, so a failed write leaves every one of them as it was. |
-| [`set_cluster_link_sharing`](#set_cluster_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
-| [`set_cluster_link_state`](#set_cluster_link_state) | function | Sets a link's state. Answers false when no such link exists. |
-| [`set_cluster_link_work`](#set_cluster_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
 | [`parse_add_connections_request`](#parse_add_connections_request) | function | Parses and validates a `POST /api/config/join/connections` body from its raw bytes, sans IO, the way the route reads it: JSON into `AddConnectionsBody`, then `AddConnectionsBody::validate`. |
 | [`parse_disconnect_request`](#parse_disconnect_request) | function | Parses a `POST /api/config/join/connections/disconnect` body from its raw bytes, sans IO, the way the route reads it: JSON into `DisconnectBody`, then `DisconnectBody::into_request`. |
 | [`authorize_copy`](#authorize_copy) | function | The files `token` may download for copy `copy_id`, or `None`. |
@@ -286,7 +265,7 @@ See `docs/adr/control-plane.md`.
 | [`delete_plugin_deployment`](#delete_plugin_deployment) | function | Deletes an absent deployment and its observations. |
 | [`ensure_plugin_deployment`](#ensure_plugin_deployment) | function | Inserts `(instance, node, desired)` when that pair has no row. |
 | [`instance_has_deployment`](#instance_has_deployment) | function | True when any deployment row names `instance_id`. |
-| [`list_all_deployments`](#list_all_deployments) | function | Every deployment row in the cluster. |
+| [`list_all_deployments`](#list_all_deployments) | function | Every deployment row in the library. |
 | [`list_deployments_for_instance`](#list_deployments_for_instance) | function | Every deployment row for `instance_id`, on any node. |
 | [`list_deployments_for_node`](#list_deployments_for_node) | function | Every deployment row targeting `node_id`, present or absent. |
 | [`list_observations_for_deployment`](#list_observations_for_deployment) | function | Every observation row for `deployment_id`, from any node. |
@@ -309,7 +288,7 @@ See `docs/adr/control-plane.md`.
 | [`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts) | function | Whether the user who approved the sign-in behind `link_id` chose to bring their store connections to the branch (`record_authorized_enrollment_link`). `false` for an unknown link and for every minted invite. |
 | [`format_enrollment_token`](#format_enrollment_token) | function | Formats `bcn1.<link_id>.<secret>[.<spki_pin>]`. |
 | [`list_enrollment_links`](#list_enrollment_links) | function | Links `actor` may see, newest first: every link for the operator or an Owner, the caller's own links for anyone else. |
-| [`load_host_enrollment`](#load_host_enrollment) | function | Reads the cluster's host-enrollment switch. A missing document means the default: enabled. |
+| [`load_host_enrollment`](#load_host_enrollment) | function | Reads the library's host-enrollment switch. A missing document means the default: enabled. |
 | [`load_node_credential`](#load_node_credential) | function | Reads a branch node's credential. |
 | [`mint_enrollment_link`](#mint_enrollment_link) | function | Mints a link that enrolls one branch node for `for_user_id`. |
 | [`parse_enrollment_token`](#parse_enrollment_token) | function | Parses a token, or a whole link whose fragment is the token. |
@@ -320,11 +299,11 @@ See `docs/adr/control-plane.md`.
 | [`redeem_enrollment_link_as`](#redeem_enrollment_link_as) | function | `redeem_enrollment_link` for a node of `kind`: the same canonical batch, recording `kind` on the `nodes` row. |
 | [`revoke_enrollment_link`](#revoke_enrollment_link) | function | Revokes an unredeemed link. Returns the link as stored afterwards. |
 | [`revoke_node_credential`](#revoke_node_credential) | function | Revokes a branch node's credential and tells every node, so the node holding that host's connection can close it. |
-| [`set_host_enrollment_enabled`](#set_host_enrollment_enabled) | function | Turns host enrollment on or off for the cluster. |
-| [`verify_cluster_owner`](#verify_cluster_owner) | function | Returns a `ConfigActor::ClusterOwner` when `user_id` is an active Owner. |
+| [`set_host_enrollment_enabled`](#set_host_enrollment_enabled) | function | Turns host enrollment on or off for the library. |
+| [`verify_library_owner`](#verify_library_owner) | function | Returns a `ConfigActor::LibraryOwner` when `user_id` is an active Owner. |
 | [`current_process_incarnation`](#current_process_incarnation) | function | This process's incarnation. Stable until the process exits. |
 | [`encode_node_identity_file`](#encode_node_identity_file) | function | The `NODE_IDENTITY_FILE` contents `install_node_identity` writes, for a caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) with mode `0600`. |
-| [`install_node_identity`](#install_node_identity) | function | Writes the identity file for a node id the cluster already recorded, bound to `cluster_id`, replacing any file there atomically. A shared branch joining a library takes the node id the library minted for it at redeem, so its first heartbeat lands on that `nodes` row. |
+| [`install_node_identity`](#install_node_identity) | function | Writes the identity file for a node id the library already recorded, bound to `library_id`, replacing any file there atomically. A shared branch joining a library takes the node id the library minted for it at redeem, so its first heartbeat lands on that `nodes` row. |
 | [`list_node_ids`](#list_node_ids) | function | Lists node ids, sorted. |
 | [`list_nodes`](#list_nodes) | function | Every node row, sorted by id. |
 | [`load_node`](#load_node) | function | Loads one node row. |
@@ -337,10 +316,10 @@ See `docs/adr/control-plane.md`.
 | [`reconcile_instance_configs_to_schema`](#reconcile_instance_configs_to_schema) | function | Rewrites every instance document of `plugin_key` to what `schema` still accepts: settings whose key is gone, became a secret, or whose value no longer fits (a type or enum change), and secret refs whose key is gone or became plain, are dropped. Table rows are brought to the current columns with `bookclerk_plugin_abi::SettingSpec::normalize_value`: cells of removed columns are dropped and defaults of new columns written, which changes the document without removing a key. |
 | [`replace_instance_config`](#replace_instance_config) | function | Replaces the instance document when `expected_revision` is current. |
 | [`resolve_instance_bindings`](#resolve_instance_bindings) | function | Resolves `CONFIG` and `SECRETS` for `instance_id` against `schema`. |
-| [`seal_instance_secret`](#seal_instance_secret) | function | Seals one instance secret with the cluster DEK. |
+| [`seal_instance_secret`](#seal_instance_secret) | function | Seals one instance secret with the library DEK. |
 | [`set_secret_ref`](#set_secret_ref) | function | Adds a secret ref for `key` whose sealed row is named `key`, replacing an existing ref for the same key. |
 | [`set_setting`](#set_setting) | function | Sets `key` to `value` in `settings`, or removes it when `value` is `None`. |
-| [`create_node_local_instance`](#create_node_local_instance) | function | Inserts a node-local instance of `plugin_key` owned by `node_id` (H-2): it adds to the cluster's outputs on that node only, and a deployment of it to any other node, or a placement, is refused. |
+| [`create_node_local_instance`](#create_node_local_instance) | function | Inserts a node-local instance of `plugin_key` owned by `node_id` (H-2): it adds to the library's outputs on that node only, and a deployment of it to any other node, or a placement, is refused. |
 | [`create_plugin_instance`](#create_plugin_instance) | function | Inserts a new instance for `plugin_key`. |
 | [`default_instance_for_key`](#default_instance_for_key) | function | The instance a host routes to when a job does not pin one: the `plugin_instance_defaults` claim for `plugin_key`, else the oldest row. |
 | [`delete_plugin_instance`](#delete_plugin_instance) | function | Deletes an instance that has no deployments. Its configuration document, audit rows, and sealed secrets are left for retention cleanup. |
@@ -349,23 +328,23 @@ See `docs/adr/control-plane.md`.
 | [`list_all_plugin_instances`](#list_all_plugin_instances) | function | Every instance row, ordered by plugin key then creation time. |
 | [`list_plugin_instances_for_key`](#list_plugin_instances_for_key) | function | Every instance row for `plugin_key`, oldest first. |
 | [`load_plugin_instance`](#load_plugin_instance) | function | Loads one instance by id. |
-| [`account_semaphore`](#account_semaphore) | function | Name of the cluster semaphore for one store account. |
-| [`claim_routed_job`](#claim_routed_job) | function | Claims the best ready job this node can run, under the cluster semaphores. |
-| [`class_semaphore`](#class_semaphore) | function | Name of the cluster semaphore for one resource class. |
+| [`account_semaphore`](#account_semaphore) | function | Name of the library semaphore for one store account. |
+| [`claim_routed_job`](#claim_routed_job) | function | Claims the best ready job this node can run, under the library semaphores. |
+| [`class_semaphore`](#class_semaphore) | function | Name of the library semaphore for one resource class. |
 | [`common_deployment_nodes`](#common_deployment_nodes) | function | Nodes where every instance in `requires` has a deployment that should run. |
-| [`instance_semaphore`](#instance_semaphore) | function | Name of the cluster semaphore for one plugin instance. |
+| [`instance_semaphore`](#instance_semaphore) | function | Name of the library semaphore for one plugin instance. |
 | [`job_permit_holder_prefix`](#job_permit_holder_prefix) | function | The holder prefix of the semaphore permits a routed claim of `job_id` by `owner` takes when the claim runs at lease `generation`: `<owner>/<job_id>/g<generation>/`. |
 | [`job_plugin_keys`](#job_plugin_keys) | function | The plugin keys `job` runs, or `None` when the job alone does not say. |
-| [`job_semaphores`](#job_semaphores) | function | The cluster semaphores `job` counts against under `limits`. |
+| [`job_semaphores`](#job_semaphores) | function | The library semaphores `job` counts against under `limits`. |
 | [`job_source_plugin_key`](#job_source_plugin_key) | function | The one plugin whose source guest runs `job`, or `None` when the job alone does not name exactly one. |
 | [`node_can_run_job`](#node_can_run_job) | function | True when `node_id` can run a job that requires `requires`. |
 | [`resolve_job_requirements`](#resolve_job_requirements) | function | The instances a new job must find on its claiming node. |
 | [`apply_keeper_update`](#apply_keeper_update) | function | Applies a keeper branch's push of one account's newest sign-in. |
 | [`confirmed_keeping_branch`](#confirmed_keeping_branch) | function | The branch that has taken over this account's sign-in for this library: its `keeping_branch`, once that branch has pushed a sign-in here (`accounts.update`). Until then the library still keeps the account itself (saves its own refreshes and takes write-backs), so a branch that was sent the account but could not keep it never leaves it unrefreshed. |
 | [`keeping_branch`](#keeping_branch) | function | The branch that keeps this account for this library: the node of its earliest-recorded share with a branch, or `None` when no branch holds it (this library keeps it). |
-| [`keeps_for_link`](#keeps_for_link) | function | True when this install keeps the account for the library it joined as `cluster_id` (it holds a share with that library). |
+| [`keeps_for_link`](#keeps_for_link) | function | True when this install keeps the account for the library it joined as `library_id` (it holds a share with that library). |
 | [`kept_shares`](#kept_shares) | function | Every account this install shares with a library it joined, each library once, with the revision last pushed there. |
-| [`record_pushed_revision`](#record_pushed_revision) | function | Records that the keeper sent `revision` of the account to the library `cluster_id` (whether it applied it or already had it), for the sign-in whose fingerprint is `observed` (`SignIn::fingerprint`). Never lowers the recorded revision. |
+| [`record_pushed_revision`](#record_pushed_revision) | function | Records that the keeper sent `revision` of the account to the library `library_id` (whether it applied it or already had it), for the sign-in whose fingerprint is `observed` (`SignIn::fingerprint`). Never lowers the recorded revision. |
 | [`sign_in_revision`](#sign_in_revision) | function | The keeper's view of an account's sign-in: when its newest secret was written here and a fingerprint of all of them, or `None` when it has no secret. |
 | [`acquire_lease`](#acquire_lease) | function | Acquires or renews `name` for `holder` for `ttl`. |
 | [`acquire_lease_on`](#acquire_lease_on) | function | `acquire_lease` on a bare connection (schema migration runs before a `LibraryStore` exists). |
@@ -376,9 +355,30 @@ See `docs/adr/control-plane.md`.
 | [`release_lease_on`](#release_lease_on) | function | `release_lease` on a bare connection. |
 | [`renew_lease`](#renew_lease) | function | Fencing check: extends a lease this holder still holds. |
 | [`renew_lease_on`](#renew_lease_on) | function | `renew_lease` on a bare connection. |
-| [`books_imported_from_link`](#books_imported_from_link) | function | Every book imported from the library `cluster_id`, by store identity: the books the catalog sync must not send back to it. Read in keyset pages no larger than the database plugin's `maxResultRows`. |
+| [`decode_spki_pin`](#decode_spki_pin) | function | Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest. |
+| [`join_cycle`](#join_cycle) | function | This library's own library id when `parent_ancestry` names it: joining that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when it does not, or this install has no library identity yet. |
+| [`join_overflows_ancestry`](#join_overflows_ancestry) | function | True when joining a library that reports `parent_ancestry` would give this library more ancestors (itself and every library above it) than `bookclerk_node_proto::MAX_ANCESTRY`: `library_ancestry` would then leave the farthest out, and a library joining this one later could no longer be checked for a loop through them. An ancestry cut at that limit by the library itself always holds exactly the limit, so this refuses it too. Such a join is refused rather than cut short. |
+| [`leave_library_link`](#leave_library_link) | function | Leaves a library on this side: marks the link `LIBRARY_LINK_LEFT` and deletes its sealed node keys, so this install can never sign as that node again. Answers the link as it now stands, or `None` when there is no such link. |
+| [`library_ancestry`](#library_ancestry) | function | This library's ancestry (what `GET /api/node/v1/info` reports): its own library id, then for each active link the owner's library id and the ancestry that owner reported, without repeats, at most `bookclerk_node_proto::MAX_ANCESTRY` ids. Empty when this install has no library identity yet. A join that would take it past that limit is refused (`join_overflows_ancestry`); should a library above grow its ancestry later, the list is cut at exactly the limit, which in turn refuses every join under it. |
+| [`list_library_links`](#list_library_links) | function | Every library link, oldest enrollment first. |
+| [`load_library_link`](#load_library_link) | function | One library link. |
+| [`load_library_link_keys`](#load_library_link_keys) | function | Unseals the node keys of an active `link`. |
+| [`mark_library_link_revoked`](#mark_library_link_revoked) | function | Marks an **active** link still enrolled as `remote_node_id` `LIBRARY_LINK_REVOKED` (the owner closed with 4403 on that node's connection). A link this install already left stays `left`, and one a later join enrolled as another node keeps its new enrollment. |
+| [`parse_job_cap_request`](#parse_job_cap_request) | function | Parses and validates a `POST /api/config/join/capacity` body from its raw bytes, sans IO, the way the route reads it: JSON into `CapacityBody`, then `CapacityBody::validate`. |
+| [`parse_sharing_request`](#parse_sharing_request) | function | Parses a `POST /api/config/join/sharing` body from its raw bytes, sans IO, the way the route reads it: JSON into `SharingBody`, then `SharingBody::into_request`. |
+| [`record_library_link`](#record_library_link) | function | Seals `keys` and records the link, replacing an earlier link to the same library (a re-enrollment) as `active`. |
+| [`set_library_link_ancestry`](#set_library_link_ancestry) | function | Records the owner library's ancestry as it reported it (`info` at join, `catalog.session` on every sync). Ids that are not plain library ids are refused; at most `bookclerk_node_proto::MAX_ANCESTRY` are kept. |
+| [`set_library_link_job_cap`](#set_library_link_job_cap) | function | Sets the most jobs this install runs for one library at once; `None` clears the cap, leaving the link its equal share of the machine. Answers false when no such link exists. The running client picks the new cap up on the next share update. |
+| [`set_library_link_keep_copies`](#set_library_link_keep_copies) | function | Sets the link's "Keep copies on this computer" setting. |
+| [`set_library_link_listing`](#set_library_link_listing) | function | Sets the link's "List my members' books to *library*" setting. |
+| [`set_library_link_person`](#set_library_link_person) | function | Binds the link to the local user who joined the library through it. |
+| [`set_library_link_settings`](#set_library_link_settings) | function | Sets a link's sharing, listing and work settings in one statement, so a failed write leaves every one of them as it was. |
+| [`set_library_link_sharing`](#set_library_link_sharing) | function | Sets a link's two sharing settings: "Share this branch's books with *library*" and "Include books from my own branches". Answers false when no such link exists. The running catalog sync reports them to the owner on its next pass. |
+| [`set_library_link_state`](#set_library_link_state) | function | Sets a link's state. Answers false when no such link exists. |
+| [`set_library_link_work`](#set_library_link_work) | function | Sets a link's two work settings: "Download for other members of *library*" and "Keep copies of other members' books". Answers false when no such link exists. The running client claims under the new scope from its next consent check. |
+| [`books_imported_from_link`](#books_imported_from_link) | function | Every book imported from the library `library_id`, by store identity: the books the catalog sync must not send back to it. Read in keyset pages no larger than the database plugin's `maxResultRows`. |
 | [`import_link_title`](#import_link_title) | function | Imports a title the library committed into this install's own library (see the module docs). |
-| [`record_copy_taken_from_link`](#record_copy_taken_from_link) | function | Records that this install took its copy of `book` from the library `cluster_id`, so the catalog sync never sends that library a book it provided itself (`books_imported_from_link`). A book already recorded for that library is left as it is; one taken from several libraries is recorded once for each. |
+| [`record_copy_taken_from_link`](#record_copy_taken_from_link) | function | Records that this install took its copy of `book` from the library `library_id`, so the catalog sync never sends that library a book it provided itself (`books_imported_from_link`). A book already recorded for that library is left as it is; one taken from several libraries is recorded once for each. |
 | [`changed_topics`](#changed_topics) | function | The topics whose revision differs between `before` and `after`. |
 | [`live_revisions`](#live_revisions) | function | Reads every topic's revision: one batch of one-row reads of `live_topic_revisions`, one per topic, so it fits an adapter that returns a single row per statement. |
 | [`is_node_consumer_id`](#is_node_consumer_id) | function | True when a catalog / delivery `plugin_id` is a node consumer rather than a plugin. |
@@ -394,12 +394,12 @@ See `docs/adr/control-plane.md`.
 | [`node_reservations`](#node_reservations) | function | Sum of the ceilings of the guests running on `node_id`, and how many run. A running guest with no recorded ceiling counts as the grant defaults. |
 | [`record_deployment_reservation`](#record_deployment_reservation) | function | Records the ceilings of the guest a node just started for a deployment. |
 | [`record_node_heartbeat`](#record_node_heartbeat) | function | Records this node's heartbeat: its measurements, its budget from `node.runtime`, the reservations of its running guests, and the updated availability. |
-| [`import_output_if_absent`](#import_output_if_absent) | function | Inserts `[output]` when the cluster document is absent. |
+| [`import_output_if_absent`](#import_output_if_absent) | function | Inserts `[output]` when the library document is absent. |
 | [`is_output_setting_key`](#is_output_setting_key) | function | True when `key` is a `core.output` setting or alias. |
-| [`load_output`](#load_output) | function | Loads the cluster output document. |
-| [`overlay_output`](#overlay_output) | function | Copies the authoritative output document onto `config` for `cluster_id`. |
+| [`load_output`](#load_output) | function | Loads the library output document. |
+| [`overlay_output`](#overlay_output) | function | Copies the authoritative output document onto `config` for `library_id`. |
 | [`portable_output_seed`](#portable_output_seed) | function | Copies `[output]` with a `widevine_cdm` under `files_dir` made relative again. |
-| [`replace_output`](#replace_output) | function | Replaces the cluster output document. |
+| [`replace_output`](#replace_output) | function | Replaces the library output document. |
 | [`nodes_owned_by`](#nodes_owned_by) | function | Nodes `user_id` owns, sorted by id. |
 | [`set_node_owner`](#set_node_owner) | function | Assigns `node_id` to `owner` (a user id), or clears its owner. |
 | [`verify_node_owner`](#verify_node_owner) | function | Returns a `ConfigActor::NodeOwner` for `user_id` on `node_id` when the node's stored owner is that user. |
@@ -441,11 +441,11 @@ See `docs/adr/control-plane.md`.
 | [`remote_instance_for_node`](#remote_instance_for_node) | function | `instance_id` when it has a deployment on `node_id` that should run and the node is trusted with something; `None` otherwise (an unknown instance and one deployed elsewhere read the same). |
 | [`approve_remote_plugin`](#approve_remote_plugin) | function | Stores an approval, but only when the recorded request is still the one the operator reviewed: a request that changed in between (a new version, a wider grant, another archive) answers `LibraryError::Conflict` and nothing is written. An automatic approval (`RemoteApprover::Platform`) is likewise refused while a revoke is recorded (an operator approval clears it) and over an operator's approval, which it would replace along with its narrowing. |
 | [`approved_remote_payload_digests`](#approved_remote_payload_digests) | function | Payload-root digests of every owner tree an operator approval still covers, which a sweep of the shared version cache must keep: owner versions have no local deployment row to reference them. |
-| [`list_remote_plugin_consents`](#list_remote_plugin_consents) | function | Every consent row, of one cluster when `cluster_id` is given, by cluster then plugin key. |
-| [`load_remote_plugin_consent`](#load_remote_plugin_consent) | function | The consent row for `plugin_key` of `cluster_id`. |
+| [`list_remote_plugin_consents`](#list_remote_plugin_consents) | function | Every consent row, of one library when `library_id` is given, by library then plugin key. |
+| [`load_remote_plugin_consent`](#load_remote_plugin_consent) | function | The consent row for `plugin_key` of `library_id`. |
 | [`record_remote_plugin_request`](#record_remote_plugin_request) | function | Records what the owner asks to run here: `version` of `plugin_key` with the owner's approved grant, fetched from `artifact`. A stored approval is kept; whether it still covers the new request is decided when the grant is evaluated (and an approval of another archive never does, `RemotePluginConsent::approved_artifact_matches`). Writes nothing when the request is unchanged. |
 | [`remote_request_digest`](#remote_request_digest) | function | The digest an operator approves a request by: SHA-256 (lowercase hex) over the requested version, the owner's grant exactly as recorded and the archive's URL, digest and payload-root digest, each length-prefixed, so any change to any of them gives another digest. |
-| [`revoke_remote_plugin`](#revoke_remote_plugin) | function | Clears the approval of `plugin_key` of `cluster_id`, keeping its request, and records the revoke so no automatic approval brings it back. Answers the row, or `None` when nothing is recorded. |
+| [`revoke_remote_plugin`](#revoke_remote_plugin) | function | Clears the approval of `plugin_key` of `library_id`, keeping its request, and records the revoke so no automatic approval brings it back. Answers the row, or `None` when nothing is recorded. |
 | [`accept_scan_pass_end`](#accept_scan_pass_end) | function | Records how a Host's pass of one account ended. |
 | [`accept_scan_removed`](#accept_scan_removed) | function | Removes the holdings a Host's delta pass reported gone from one account. |
 | [`accept_scan_results`](#accept_scan_results) | function | Validates one batch of a Host's scan rows and writes it to the library. |
@@ -471,8 +471,8 @@ See `docs/adr/control-plane.md`.
 | [`require_plugin_schema`](#require_plugin_schema) | function | Loads the pinned schema or fails closed with an operator-facing message. |
 | [`schema_fingerprint`](#schema_fingerprint) | function | Hex SHA-256 of the schema's canonical JSON. Two manifests that declare the same settings fingerprint the same, whatever their bytes. |
 | [`stale_against_pin`](#stale_against_pin) | function | Whether the pinned row for `plugin_key` is newer than `local_version`. |
-| [`align_cluster_root`](#align_cluster_root) | function | Ensures this process's DEK is the cluster secret root. |
-| [`load_cluster_row`](#load_cluster_row) | function | Reads the singleton cluster row when present. |
+| [`align_library_root`](#align_library_root) | function | Ensures this process's DEK is the library secret root. |
+| [`load_library_row`](#load_library_row) | function | Reads the singleton library row when present. |
 | [`acquire_permit`](#acquire_permit) | function | Takes one permit of `name` for `holder`, valid for `ttl`. |
 | [`acquire_permits`](#acquire_permits) | function | Takes one permit of every semaphore in `requests`, or none. |
 | [`live_permits`](#live_permits) | function | Live permits of `name` among its first `max_slots` slots (expired slots are not counted). |
@@ -520,20 +520,20 @@ See `docs/adr/control-plane.md`.
 | [`load_active_version`](#load_active_version) | function | The active version of `plugin_key`, when a pointer names one. |
 | [`load_install`](#load_install) | function | The active pointer of `plugin_key`. |
 | [`load_version`](#load_version) | function | One version row. |
-| [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `owner_cluster_id` (its link downloads again, or was left). |
+| [`clear_window_books`](#clear_window_books) | function | Drops every window book of library `parent_library_id` (its link downloads again, or was left). |
 | [`discard_window_read`](#discard_window_read) | function | Drops the rows a read cut short by a settings change wrote (stamped `seen_at`), so a read that began before downloading was turned on cannot put back the list the change cleared. |
-| [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `owner_cluster_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
+| [`finish_window_read`](#finish_window_read) | function | Ends a complete read of library `parent_library_id`'s window books: drops its rows that read (stamped `seen_at`) did not name. Rows are compared by stamp equality, not order, so a clock moved back between reads still drops what the new read left out. |
 | [`person_books_page`](#person_books_page) | function | One page of this library's books for a person, as a clerk signed in with that person's library card reads them over the client socket (`GET /api/clerk/v1/connect`): the same works, grouping and limits as `window_books_page`, for the person the card belongs to rather than a branch node's owner. |
-| [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `owner_cluster_id`, read under `seen_at` (`window_read_stamp`). |
+| [`record_window_page`](#record_window_page) | function | Stores one `window.page` from library `parent_library_id`, read under `seen_at` (`window_read_stamp`). |
 | [`window_books_page`](#window_books_page) | function | One page of the books this library holds for branch `node_id`'s owner, for the `window.books` frame. |
 | [`window_read_stamp`](#window_read_stamp) | function | A stamp for one complete read of a library's window books: pass it to every `record_window_page` of the read and then to `finish_window_read`. |
 | [`window_view`](#window_view) | function | The merged view of every library this install is a branch of or holds a library card for: their books, one entry per work, sorted by title. |
 | [`bootstrap_control_plane`](#bootstrap_control_plane) | function | Enrolls this files directory and imports `[events]` and `[output]` when their documents are absent. |
-| [`overlay_core_documents`](#overlay_core_documents) | function | Copies every authoritative cluster document in `session` onto `config`. |
-| [`overlay_events`](#overlay_events) | function | Copies the authoritative events document onto `config` for `cluster_id`. |
-| [`load_events`](#load_events) | function | Loads the cluster events document. |
-| [`import_events_if_absent`](#import_events_if_absent) | function | Inserts `[events]` when the cluster document is absent. |
-| [`replace_events`](#replace_events) | function | Replaces the cluster events document. |
+| [`overlay_core_documents`](#overlay_core_documents) | function | Copies every authoritative library document in `session` onto `config`. |
+| [`overlay_events`](#overlay_events) | function | Copies the authoritative events document onto `config` for `library_id`. |
+| [`load_events`](#load_events) | function | Loads the library events document. |
+| [`import_events_if_absent`](#import_events_if_absent) | function | Inserts `[events]` when the library document is absent. |
+| [`replace_events`](#replace_events) | function | Replaces the library events document. |
 | [`load_node_runtime`](#load_node_runtime) | function | Loads one node's runtime document. |
 | [`import_node_runtime_if_absent`](#import_node_runtime_if_absent) | function | Inserts a node runtime document when it is absent. |
 | [`replace_node_runtime`](#replace_node_runtime) | function | Replaces one node's runtime document. |
@@ -552,7 +552,7 @@ See `docs/adr/control-plane.md`.
 | [`REQUEST_LEASE_SECS`](#request_lease_secs) | constant | How long a branch holds a claimed request before it goes back to pending. Taking a request is a few local reads and writes on the branch, so this is generous. |
 | [`REQUEST_NOT_LISTED`](#request_not_listed) | constant | `error_kind` of a request its branch no longer lists. |
 | [`REQUEST_WORK_GONE`](#request_work_gone) | constant | `error_kind` of a request whose work has nothing left to ask by (it was merged away, or lost every identifier) when its branch came for it. |
-| [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the cluster cache document. |
+| [`CACHE_NAMESPACE`](#cache_namespace) | constant | Namespace of the library cache document. |
 | [`CACHE_SCHEMA_VERSION`](#cache_schema_version) | constant | Schema version of `CacheSettingsV1`. |
 | [`CACHE_SETTING_KEYS`](#cache_setting_keys) | constant | Settings keys the cache document owns, in display order. |
 | [`SHARE_RECEIVED`](#share_received) | constant | `account_shares.direction` of an account this install received from a library it joined. |
@@ -562,18 +562,14 @@ See `docs/adr/control-plane.md`.
 | [`LOOKUP_ANSWER_TTL`](#lookup_answer_ttl) | constant | How long a branch's answer stands: a question answered longer ago is asked again the next time `ask_branches` names its work. |
 | [`LOOKUP_RESEND`](#lookup_resend) | constant | How long a sent question waits for its answer before it is sent again. |
 | [`CLERK_CARD_NAME`](#clerk_card_name) | constant | `encrypted_secrets.name` of a clerk link's library card. |
-| [`CLUSTER_LINK_ACTIVE`](#cluster_link_active) | constant | `cluster_links.state` of a link the host client connects. |
-| [`CLUSTER_LINK_KEYS_NAME`](#cluster_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
-| [`CLUSTER_LINK_LEFT`](#cluster_link_left) | constant | `cluster_links.state` after this install left the cluster. |
-| [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) | constant | `cluster_links.state` once the owner revoked this node (close 4403). |
 | [`MAX_ADD_CONNECTIONS`](#max_add_connections) | constant | Most accounts one "Add my connections" request names: as many as one sealed account bundle carries. |
 | [`COPY_TOKEN_TTL_SECS`](#copy_token_ttl_secs) | constant | Seconds a copy token is accepted after its grant. |
 | [`CRON_FIRE_MAX_ATTEMPTS`](#cron_fire_max_attempts) | constant | Failure attempts a cron fire gets before it is terminal (the first run plus two retries with the queue's backoff). |
 | [`MAX_OBSERVATION_DETAIL_BYTES`](#max_observation_detail_bytes) | constant | Maximum UTF-8 size of an observation detail string. |
 | [`DESTINATION_NAMESPACE`](#destination_namespace) | constant | Namespace of a destination's host-owned placement document. |
 | [`DESTINATION_SCHEMA_VERSION`](#destination_schema_version) | constant | Schema version of `DestinationPlacementV1`. |
-| [`CLUSTER_SCOPE_ID`](#cluster_scope_id) | constant | Cluster scope instance. There is one cluster document per namespace. |
-| [`CLUSTER_SCOPE_TYPE`](#cluster_scope_type) | constant | Scope type stored for cluster documents. |
+| [`LIBRARY_SCOPE_ID`](#library_scope_id) | constant | Library scope instance. There is one library document per namespace. |
+| [`LIBRARY_SCOPE_TYPE`](#library_scope_type) | constant | Scope type stored for library documents. |
 | [`MAX_CONFIGURATION_DOCUMENT_BYTES`](#max_configuration_document_bytes) | constant | Maximum UTF-8 size of `document_json`. |
 | [`NODE_SCOPE_TYPE`](#node_scope_type) | constant | Scope type stored for node documents. |
 | [`PLUGIN_INSTANCE_CONFIG_NAMESPACE`](#plugin_instance_config_namespace) | constant | Namespace of a plugin instance's typed configuration document. |
@@ -581,7 +577,7 @@ See `docs/adr/control-plane.md`.
 | [`AUTHORIZED_LINK_CREATED_BY`](#authorized_link_created_by) | constant | Prefix of the `created_by` audit id of a link a sign-in created. |
 | [`DEFAULT_LINK_TTL`](#default_link_ttl) | constant | Default lifetime of a link. |
 | [`ENROLLMENT_TOKEN_PREFIX`](#enrollment_token_prefix) | constant | Version tag that starts every enrollment token. |
-| [`HOST_ENROLLMENT_NAMESPACE`](#host_enrollment_namespace) | constant | Namespace of the cluster's host-enrollment switch. |
+| [`HOST_ENROLLMENT_NAMESPACE`](#host_enrollment_namespace) | constant | Namespace of the library's host-enrollment switch. |
 | [`HOST_ENROLLMENT_SCHEMA_VERSION`](#host_enrollment_schema_version) | constant | Schema version of `HostEnrollmentSettingsV1`. |
 | [`MAX_LINK_LABEL_BYTES`](#max_link_label_bytes) | constant | Longest `label` stored on a link. |
 | [`MAX_LINK_TTL`](#max_link_ttl) | constant | Longest lifetime a link may be minted with. |
@@ -600,6 +596,10 @@ See `docs/adr/control-plane.md`.
 | [`MIGRATION_LEASE`](#migration_lease) | constant | Lease a schema migration runs under (see `crate::apply_host_schema_with_batch_opts`). |
 | [`RECORD_RETENTION_LEASE`](#record_retention_lease) | constant | Lease of the record retention duty (expired credentials and tokens, finished uploads, abandoned scan inventories, old audit rows). |
 | [`SESSION_EXPIRY_LEASE`](#session_expiry_lease) | constant | Lease of the session duty (expired operator sessions, OIDC RP states, WebAuthn challenges). |
+| [`LIBRARY_LINK_ACTIVE`](#library_link_active) | constant | `library_links.state` of a link the host client connects. |
+| [`LIBRARY_LINK_KEYS_NAME`](#library_link_keys_name) | constant | `encrypted_secrets.name` of a link's node keys. |
+| [`LIBRARY_LINK_LEFT`](#library_link_left) | constant | `library_links.state` after this install left the library. |
+| [`LIBRARY_LINK_REVOKED`](#library_link_revoked) | constant | `library_links.state` once the owner revoked this node (close 4403). |
 | [`NODE_CONSUMER_PREFIX`](#node_consumer_prefix) | constant | Catalog `plugin_id` prefix of a node's own consumer (`node:<node_id>`). |
 | [`AVAILABILITY_FULL_PPM`](#availability_full_ppm) | constant | Full availability in parts per million. |
 | [`AVAILABILITY_TAU`](#availability_tau) | constant | Time constant of the availability average (about a day). |
@@ -616,14 +616,14 @@ See `docs/adr/control-plane.md`.
 | [`MAX_SCOPE_JSON_BYTES`](#max_scope_json_bytes) | constant | Largest scope as compact JSON, in bytes: one cell of the smallest reply the host accepts from a database plugin (`HOST_MIN_CELL_BYTES`), so a stored scope can be read back on every supported database. Sixteen rules fit when their values are short. |
 | [`MAX_SCOPE_RULES`](#max_scope_rules) | constant | Most rules one scope may hold. |
 | [`MAX_SCOPE_VALUE_BYTES`](#max_scope_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
-| [`PATRON_SCOPE_NAMESPACE`](#patron_scope_namespace) | constant | Namespace of the cluster document that holds the library's default scope. |
+| [`PATRON_SCOPE_NAMESPACE`](#patron_scope_namespace) | constant | Namespace of the library document that holds the library's default scope. |
 | [`MAX_JOIN_NAME_BYTES`](#max_join_name_bytes) | constant | Longest branch or library name stored. |
 | [`PENDING_JOIN_TTL`](#pending_join_ttl) | constant | How long a sign-in may take before its pending row is refused. |
 | [`MAX_NODE_LABELS`](#max_node_labels) | constant | Most operator labels one node may carry. |
 | [`MAX_PLACEMENT_CONSTRAINTS`](#max_placement_constraints) | constant | Most constraints one placement may carry. |
 | [`MAX_REPLICAS`](#max_replicas) | constant | Largest replica count an operator may ask for. |
 | [`NODE_LABEL`](#node_label) | constant | Implicit label name every node carries with its own id. |
-| [`SCHEDULER_LEASE`](#scheduler_lease) | constant | Name of the cluster lease the scheduler runs under. |
+| [`SCHEDULER_LEASE`](#scheduler_lease) | constant | Name of the library lease the scheduler runs under. |
 | [`SCHEDULER_LEASE_TTL`](#scheduler_lease_ttl) | constant | How long a scheduler lease lasts without renewal. |
 | [`TARGET_LABEL`](#target_label) | constant | Implicit label name every node carries with its artifact target. |
 | [`REMOTE_CONSENT_PLATFORM`](#remote_consent_platform) | constant | `approved_by` of an automatic approval: a bundled platform plugin whose request stays inside the platform envelope. |
@@ -632,7 +632,7 @@ See `docs/adr/control-plane.md`.
 | [`REMOTE_LEASE_OWNER_PREFIX`](#remote_lease_owner_prefix) | constant | Prefix of the lease owner of a job a Host runs. |
 | [`SECRETS_UNAVAILABLE`](#secrets_unavailable) | constant | Error kind recorded when a job's secrets cannot be unsealed for a Host. |
 | [`REQUIREMENTS_GRACE`](#requirements_grace) | constant | How long a pending job's requirements may stay unsettled before the sweep acts on them. Several scheduler passes (20 s apart) and guest restarts fit inside it. |
-| [`REQUIREMENTS_SWEEP_LEASE`](#requirements_sweep_lease) | constant | Cluster lease the daemon holds while it sweeps. |
+| [`REQUIREMENTS_SWEEP_LEASE`](#requirements_sweep_lease) | constant | Library lease the daemon holds while it sweeps. |
 | [`REQUIREMENTS_SWEEP_LEASE_TTL`](#requirements_sweep_lease_ttl) | constant | Lease length; the holder renews it on every pass. |
 | [`UNROUTABLE_ERROR_KIND`](#unroutable_error_kind) | constant | `error_kind` of a job the sweep failed. |
 | [`ROUTE_DEFER_PER_RANK`](#route_defer_per_rank) | constant | How long each rank waits behind the one above it. |
@@ -970,7 +970,7 @@ pub fn budget_for(&self, node: &NodeRuntimeSettingsV1) -> u64
 ```
 
 The budget that applies on a node: its own override, else the
-cluster budget.
+library budget.
 
 ##### Arguments
 
@@ -1134,7 +1134,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct ClerkLink {
-    pub library_cluster_id: String,
+    pub library_id: String,
     pub origin: String,
     pub spki_pin: Option<String>,
     pub library_name: String,
@@ -1151,7 +1151,7 @@ One library this install holds (or held) a library card for.
 
 **Fields**
 
-- `library_cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `origin`: The library's origin as [`bookclerk_node_proto::canonical_origin`](../bookclerk_node_proto/README.md#canonical_origin)
   spells it.
 - `spki_pin`: SPKI pin of the library's self-signed certificate, when the person
@@ -1209,7 +1209,7 @@ Implements: `Clone`, `Debug`
 
 ```rust
 pub struct NewClerkLink {
-    pub library_cluster_id: String,
+    pub library_id: String,
     pub origin: String,
     pub spki_pin: Option<String>,
     pub library_name: String,
@@ -1223,7 +1223,7 @@ What a sign-in returned, to record with [`record_clerk_link`](#record_clerk_link
 
 **Fields**
 
-- `library_cluster_id`: The library's cluster id, as both its info and its token answer
+- `library_id`: The library id, as both its info and its token answer
   named it.
 - `origin`: The origin the sign-in went to.
 - `spki_pin`: SPKI pin the person confirmed, for a self-signed library.
@@ -1231,317 +1231,6 @@ What a sign-in returned, to record with [`record_clerk_link`](#record_clerk_link
 - `remote_user_id`: The person's user id from the token answer.
 - `display_name`: The person's display name from the token answer.
 - `clerk_name`: The name this install signed in as.
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### CapacityBody
-
-```rust
-pub struct CapacityBody {
-    /* private fields */
-}
-```
-
-`POST /api/config/join/capacity` body: one library and the job cap to
-set for it.
-
-#### CapacityBody::validate
-
-```rust
-pub fn validate(self) -> Result<JobCapRequest>
-```
-
-Checks the body: `max_jobs` must be present (`null` included) and at
-most [`LinkJobCap::MAX`](#linkjobcapmax).
-
-##### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) when `max_jobs` is missing or above
-the maximum.
-
-Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
-
-### ClusterLink
-
-```rust
-pub struct ClusterLink {
-    pub owner_cluster_id: String,
-    pub owner_origin: String,
-    pub remote_node_id: String,
-    pub spki_pin: Option<String>,
-    pub state: String,
-    pub enrolled_at: String,
-    pub share_books: bool,
-    pub include_branches: bool,
-    pub ancestry: Vec<String>,
-    pub work_for_members: bool,
-    pub keep_member_copies: bool,
-    pub max_jobs: Option<LinkJobCap>,
-    pub list_members_books: bool,
-    pub keep_copies: bool,
-    pub person_user_id: Option<i64>,
-}
-```
-
-One owner cluster this install enrolled into.
-
-**Fields**
-
-- `owner_cluster_id`: Owner cluster id.
-- `owner_origin`: Owner origin as [`bookclerk_node_proto::canonical_origin`](../bookclerk_node_proto/README.md#canonical_origin) spells it.
-- `remote_node_id`: Node id the owner minted for this install.
-- `spki_pin`: SPKI pin of the owner's self-signed certificate, when the link
-  carried one.
-- `state`: [`CLUSTER_LINK_ACTIVE`](#cluster_link_active), [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked), or
-  [`CLUSTER_LINK_LEFT`](#cluster_link_left).
-- `enrolled_at`: RFC 3339 enrollment time.
-- `share_books`: "Share this branch's books with *library*" (on by default).
-- `include_branches`: "Include books from my own branches" (on by default; off shares
-  only books acquired on this install itself).
-- `ancestry`: The owner library's ancestry as it last reported it: its own
-  cluster id first, then each library above it.
-- `work_for_members`: "Download for other members of *library*" (off by default): with it
-  off the branch takes only its owner's work from the library.
-- `keep_member_copies`: "Keep copies of other members' books" (off by default): with it off
-  a book acquired for another member goes only to the library.
-- `max_jobs`: The operator's cap on jobs run for this library at once; `None`
-  leaves the link its equal share of the machine.
-- `list_members_books`: "List my members' books to *library*" (on by default): catalog
-  lookups from that library are answered with the members' books
-  (except those of members who opted out) as well as the owner's.
-- `keep_copies`: "Keep copies on this computer" (on by default): whether the branch
-  takes the library's copies of its person's books into its own
-  storage. The branch takes the library's work and reads its books
-  (`control_plane::window_books`) whether or not this is on.
-- `person_user_id`: The local user who joined the library through this link, when one
-  could be named: the only person who may add store connections to
-  that library, or withdraw them from it, through this link.
-
-#### ClusterLink::is_active
-
-```rust
-pub fn is_active(&self) -> bool
-```
-
-True when the host client should connect this link.
-
-#### ClusterLink::claim_scope
-
-```rust
-pub fn claim_scope(&self) -> ClaimScope
-```
-
-Whose work the branch takes from this library.
-
-Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
-
-### ClusterLinkKeys
-
-```rust
-pub struct ClusterLinkKeys {
-    /* private fields */
-}
-```
-
-The node keys of one cluster link: the Ed25519 signing seed and the
-X25519 box secret. Zeroized on drop; `Debug` shows only the public keys.
-
-#### ClusterLinkKeys::generate
-
-```rust
-pub fn generate() -> Self
-```
-
-Fresh random keys from the OS RNG.
-
-#### ClusterLinkKeys::from_bytes
-
-```rust
-pub fn from_bytes(sign_seed: &[u8; 32], box_secret: &[u8; 32]) -> Self
-```
-
-Keys from known bytes (tests, and reading the sealed row back).
-
-#### ClusterLinkKeys::sign_seed
-
-```rust
-pub fn sign_seed(&self) -> &[u8; 32]
-```
-
-The Ed25519 signing seed.
-
-#### ClusterLinkKeys::box_secret
-
-```rust
-pub fn box_secret(&self) -> &[u8; 32]
-```
-
-The X25519 box secret.
-
-#### ClusterLinkKeys::sign_public_key
-
-```rust
-pub fn sign_public_key(&self) -> [u8; 32]
-```
-
-The Ed25519 public key the owner stores.
-
-#### ClusterLinkKeys::box_public_key
-
-```rust
-pub fn box_public_key(&self) -> [u8; 32]
-```
-
-The X25519 public key the owner seals job secrets to.
-
-Implements: `Clone`, `Debug`
-
-### ClusterLinkSettings
-
-```rust
-pub struct ClusterLinkSettings {
-    pub share_books: bool,
-    pub include_branches: bool,
-    pub list_members_books: Option<bool>,
-    pub work_for_members: Option<bool>,
-    pub keep_member_copies: Option<bool>,
-    pub keep_copies: Option<bool>,
-}
-```
-
-Every setting Settings → Library changes on one link at once; see
-[`set_cluster_link_settings`](#set_cluster_link_settings).
-
-**Fields**
-
-- `share_books`: "Share this branch's books with *library*".
-- `include_branches`: "Include books from my own branches".
-- `list_members_books`: "List my members' books to *library*"; `None` keeps the stored value.
-- `work_for_members`: "Download for other members of *library*"; `None` keeps the stored
-  value.
-- `keep_member_copies`: "Keep copies of other members' books"; `None` keeps the stored value.
-- `keep_copies`: "Keep copies on this computer"; `None` keeps the stored value.
-
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
-
-### JobCapRequest
-
-```rust
-pub struct JobCapRequest {
-    pub cluster_id: String,
-    pub max_jobs: Option<LinkJobCap>,
-}
-```
-
-A validated job cap change: the library it names (trimmed) and its new
-cap, `None` for an equal share.
-
-**Fields**
-
-- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
-- `max_jobs`: The cap to store; `None` clears it (an equal share).
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### LinkJobCap
-
-```rust
-pub struct LinkJobCap(/* private */);
-```
-
-The most jobs a branch runs for one library at once, as its operator
-set it: 0 (runs nothing for that library) to [`LinkJobCap::MAX`](#linkjobcapmax).
-
-#### LinkJobCap::MAX
-
-```rust
-pub const MAX: u8 = 16
-```
-
-The highest cap an operator may set: the most job slots a branch
-ever counts its machine as having.
-
-#### LinkJobCap::new
-
-```rust
-pub fn new(jobs: u32) -> Result<Self>
-```
-
-A cap of `jobs`.
-
-##### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) above [`Self::MAX`](#linkjobcapmax).
-
-#### LinkJobCap::jobs
-
-```rust
-pub fn jobs(self) -> usize
-```
-
-The cap in jobs.
-
-Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
-
-### NewClusterLink
-
-```rust
-pub struct NewClusterLink {
-    pub owner_cluster_id: String,
-    pub owner_origin: String,
-    pub remote_node_id: String,
-    pub spki_pin: Option<String>,
-}
-```
-
-What enrollment returned, to record with [`record_cluster_link`](#record_cluster_link).
-
-**Fields**
-
-- `owner_cluster_id`: Owner cluster id from the enroll answer.
-- `owner_origin`: Owner origin the host enrolled through.
-- `remote_node_id`: Node id from the enroll answer.
-- `spki_pin`: SPKI pin from the enrollment link.
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### SharingBody
-
-```rust
-pub struct SharingBody {
-    /* private fields */
-}
-```
-
-`POST /api/config/join/sharing` body: one library and the settings to
-change for it.
-
-#### SharingBody::into_request
-
-```rust
-pub fn into_request(self) -> SharingRequest
-```
-
-The change the body asks for.
-
-Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
-
-### SharingRequest
-
-```rust
-pub struct SharingRequest {
-    pub cluster_id: String,
-    pub settings: ClusterLinkSettings,
-}
-```
-
-A sharing settings change: the library it names (trimmed) and the
-settings to write, each `None` setting left as stored.
-
-**Fields**
-
-- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
-- `settings`: The settings to write ([`set_cluster_link_settings`](#set_cluster_link_settings)).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -1592,7 +1281,7 @@ Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
 
 ```rust
 pub struct AddConnectionsRequest {
-    pub cluster_id: String,
+    pub library_id: String,
     pub accounts: Vec<AccountRef>,
 }
 ```
@@ -1602,7 +1291,7 @@ accounts picked, between 1 and [`MAX_ADD_CONNECTIONS`](#max_add_connections) of 
 
 **Fields**
 
-- `cluster_id`: The library (owner cluster id), surrounding whitespace removed.
+- `library_id`: The library (parent library id), surrounding whitespace removed.
 - `accounts`: The accounts picked, in the order sent.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -1858,17 +1547,17 @@ Address of one configuration document.
 
 **Fields**
 
-- `scope_type`: `cluster`, `node`, or `plugin_instance`.
+- `scope_type`: `library`, `node`, or `plugin_instance`.
 - `scope_id`: `singleton`, a node id, or a plugin instance id.
 - `namespace`: Domain namespace.
 
-#### DocumentKey::cluster
+#### DocumentKey::library
 
 ```rust
-pub fn cluster(namespace: &str) -> Self
+pub fn library(namespace: &str) -> Self
 ```
 
-Cluster-scoped domain.
+Library-scoped domain.
 
 #### DocumentKey::node
 
@@ -1919,19 +1608,19 @@ One stored document before domain parsing.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-### VerifiedClusterOwner
+### VerifiedLibraryOwner
 
 ```rust
-pub struct VerifiedClusterOwner {
+pub struct VerifiedLibraryOwner {
     /* private fields */
 }
 ```
 
 Proof that a user was an active Owner when the write was authorized.
 
-Only [`super::verify_cluster_owner`](#verify_cluster_owner) constructs one.
+Only [`super::verify_library_owner`](#verify_library_owner) constructs one.
 
-#### VerifiedClusterOwner::user_id
+#### VerifiedLibraryOwner::user_id
 
 ```rust
 pub fn user_id(&self) -> i64
@@ -1998,7 +1687,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct EnrolledNode {
-    pub cluster_id: String,
+    pub library_id: String,
     pub node_id: String,
     pub owner_user_id: i64,
     pub replayed: bool,
@@ -2009,7 +1698,7 @@ Result of a successful redeem.
 
 **Fields**
 
-- `cluster_id`: Owner cluster id.
+- `library_id`: Library id.
 - `node_id`: Node id minted for the host.
 - `owner_user_id`: User who owns the node.
 - `replayed`: True when this answered a retry of an earlier successful redeem.
@@ -2229,7 +1918,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct NodeIdentity {
     pub node_id: String,
-    pub cluster_id: Option<String>,
+    pub library_id: Option<String>,
 }
 ```
 
@@ -2238,7 +1927,7 @@ Bootstrap identity loaded from [`NODE_IDENTITY_FILE`](#node_identity_file).
 **Fields**
 
 - `node_id`: Stable node id.
-- `cluster_id`: Cluster binding, once enrollment has succeeded.
+- `library_id`: Library binding, once enrollment has succeeded.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -2247,7 +1936,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct NodeRecord {
     pub node_id: String,
-    pub cluster_id: String,
+    pub library_id: String,
     pub created_at: String,
     pub incarnation: String,
     pub heartbeat_at: String,
@@ -2277,7 +1966,7 @@ Durable node row plus the latest observation columns.
 **Fields**
 
 - `node_id`: Stable node id.
-- `cluster_id`: Cluster id stored with the node.
+- `library_id`: Library id stored with the node.
 - `created_at`: RFC 3339 creation time. Heartbeats do not change it.
 - `incarnation`: Process incarnation from the latest heartbeat.
 - `heartbeat_at`: RFC 3339 heartbeat time.
@@ -2295,7 +1984,7 @@ Durable node row plus the latest observation columns.
 - `target`: Bookclerk artifact target of the reporting binary; empty on a row
   written before targets were recorded.
 - `labels`: Operator-assigned placement labels, sorted.
-- `kind`: How the node joined the cluster.
+- `kind`: How the node joined the library.
 - `owner_user_id`: User who owns this node and may administer it, when one is assigned.
 - `share_books`: For a branch: "Share this branch's books" as it last reported it;
   empty until it does.
@@ -2510,7 +2199,7 @@ One `plugin_instances` row.
 - `created_at`: RFC 3339 insert time.
 - `created_by`: Audit identity of the creator.
 - `owner_node_id`: The node that owns this instance (a node-local output, H-2); it may
-  be deployed only there. `None` for cluster instances.
+  be deployed only there. `None` for library instances.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -2610,12 +2299,12 @@ pub struct JobClaimLimits {
 }
 ```
 
-Cluster-wide permit counts a routed claim enforces.
+Library-wide permit counts a routed claim enforces.
 
 **Fields**
 
-- `class`: Running jobs of the claimed resource class, cluster-wide.
-- `plugin_instance`: Running jobs that require one plugin instance, cluster-wide.
+- `class`: Running jobs of the claimed resource class, library-wide.
+- `plugin_instance`: Running jobs that require one plugin instance, library-wide.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -2687,7 +2376,7 @@ Implements: `Clone`, `Debug`
 pub struct KeptShare {
     pub plugin_key: String,
     pub account_id: String,
-    pub cluster_id: String,
+    pub library_id: String,
     pub pushed: i64,
     pub observed: i64,
 }
@@ -2700,7 +2389,7 @@ sees it.
 
 - `plugin_key`: Provenance-qualified plugin key of the storefront.
 - `account_id`: Store account id.
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `pushed`: The revision last sent to that library; 0 before the first push.
 - `observed`: The [`SignIn::fingerprint`](#signin) of the sign-in last sent; 0 before the
   first push.
@@ -2742,36 +2431,6 @@ An account's current sign-in on its keeper ([`sign_in_revision`](#sign_in_revisi
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
-### ClusterLease
-
-```rust
-pub struct ClusterLease {
-    pub name: String,
-    pub holder: String,
-    pub token: i64,
-    pub expires_at_ms: i64,
-}
-```
-
-A held cluster lease.
-
-**Fields**
-
-- `name`: Lease name.
-- `holder`: Holder (a node id).
-- `token`: Fencing token; a new holder always gets a larger one.
-- `expires_at_ms`: Expiry in Unix milliseconds.
-
-#### ClusterLease::is_held_at
-
-```rust
-pub fn is_held_at(&self, now_ms: i64) -> bool
-```
-
-True when the lease has not expired at `now_ms`.
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
 ### LeaseFence
 
 ```rust
@@ -2786,7 +2445,7 @@ lease. Call [`LeaseFence::check`](#leasefencecheck) before each destructive step
 #### LeaseFence::new
 
 ```rust
-pub fn new(store: &'a LibraryStore, lease: ClusterLease, ttl: Duration) -> Self
+pub fn new(store: &'a LibraryStore, lease: LibraryLease, ttl: Duration) -> Self
 ```
 
 A fence for a lease acquired with `ttl`.
@@ -2794,7 +2453,7 @@ A fence for a lease acquired with `ttl`.
 #### LeaseFence::lease
 
 ```rust
-pub fn lease(&self) -> &ClusterLease
+pub fn lease(&self) -> &LibraryLease
 ```
 
 The lease as of the last successful check.
@@ -2813,6 +2472,36 @@ Returns [`LibraryError::Conflict`](README.md#libraryerror) when the lease expire
 holder took it, or the write error.
 
 Implements: `Debug`
+
+### LibraryLease
+
+```rust
+pub struct LibraryLease {
+    pub name: String,
+    pub holder: String,
+    pub token: i64,
+    pub expires_at_ms: i64,
+}
+```
+
+A held library lease.
+
+**Fields**
+
+- `name`: Lease name.
+- `holder`: Holder (a node id).
+- `token`: Fencing token; a new holder always gets a larger one.
+- `expires_at_ms`: Expiry in Unix milliseconds.
+
+#### LibraryLease::is_held_at
+
+```rust
+pub fn is_held_at(&self, now_ms: i64) -> bool
+```
+
+True when the lease has not expired at `now_ms`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### SingletonDuty
 
@@ -2877,11 +2566,322 @@ a full interval.
 
 Implements: `Clone`, `Debug`
 
+### CapacityBody
+
+```rust
+pub struct CapacityBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/capacity` body: one library and the job cap to
+set for it.
+
+#### CapacityBody::validate
+
+```rust
+pub fn validate(self) -> Result<JobCapRequest>
+```
+
+Checks the body: `max_jobs` must be present (`null` included) and at
+most [`LinkJobCap::MAX`](#linkjobcapmax).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when `max_jobs` is missing or above
+the maximum.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### JobCapRequest
+
+```rust
+pub struct JobCapRequest {
+    pub library_id: String,
+    pub max_jobs: Option<LinkJobCap>,
+}
+```
+
+A validated job cap change: the library it names (trimmed) and its new
+cap, `None` for an equal share.
+
+**Fields**
+
+- `library_id`: The library (parent library id), surrounding whitespace removed.
+- `max_jobs`: The cap to store; `None` clears it (an equal share).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LibraryLink
+
+```rust
+pub struct LibraryLink {
+    pub parent_library_id: String,
+    pub owner_origin: String,
+    pub remote_node_id: String,
+    pub spki_pin: Option<String>,
+    pub state: String,
+    pub enrolled_at: String,
+    pub share_books: bool,
+    pub include_branches: bool,
+    pub ancestry: Vec<String>,
+    pub work_for_members: bool,
+    pub keep_member_copies: bool,
+    pub max_jobs: Option<LinkJobCap>,
+    pub list_members_books: bool,
+    pub keep_copies: bool,
+    pub person_user_id: Option<i64>,
+}
+```
+
+One library this install enrolled into.
+
+**Fields**
+
+- `parent_library_id`: Library id.
+- `owner_origin`: Owner origin as [`bookclerk_node_proto::canonical_origin`](../bookclerk_node_proto/README.md#canonical_origin) spells it.
+- `remote_node_id`: Node id the owner minted for this install.
+- `spki_pin`: SPKI pin of the owner's self-signed certificate, when the link
+  carried one.
+- `state`: [`LIBRARY_LINK_ACTIVE`](#library_link_active), [`LIBRARY_LINK_REVOKED`](#library_link_revoked), or
+  [`LIBRARY_LINK_LEFT`](#library_link_left).
+- `enrolled_at`: RFC 3339 enrollment time.
+- `share_books`: "Share this branch's books with *library*" (on by default).
+- `include_branches`: "Include books from my own branches" (on by default; off shares
+  only books acquired on this install itself).
+- `ancestry`: The owner library's ancestry as it last reported it: its own
+  library id first, then each library above it.
+- `work_for_members`: "Download for other members of *library*" (off by default): with it
+  off the branch takes only its owner's work from the library.
+- `keep_member_copies`: "Keep copies of other members' books" (off by default): with it off
+  a book acquired for another member goes only to the library.
+- `max_jobs`: The operator's cap on jobs run for this library at once; `None`
+  leaves the link its equal share of the machine.
+- `list_members_books`: "List my members' books to *library*" (on by default): catalog
+  lookups from that library are answered with the members' books
+  (except those of members who opted out) as well as the owner's.
+- `keep_copies`: "Keep copies on this computer" (on by default): whether the branch
+  takes the library's copies of its person's books into its own
+  storage. The branch takes the library's work and reads its books
+  (`control_plane::window_books`) whether or not this is on.
+- `person_user_id`: The local user who joined the library through this link, when one
+  could be named: the only person who may add store connections to
+  that library, or withdraw them from it, through this link.
+
+#### LibraryLink::is_active
+
+```rust
+pub fn is_active(&self) -> bool
+```
+
+True when the host client should connect this link.
+
+#### LibraryLink::claim_scope
+
+```rust
+pub fn claim_scope(&self) -> ClaimScope
+```
+
+Whose work the branch takes from this library.
+
+Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`, `Serialize`
+
+### LibraryLinkKeys
+
+```rust
+pub struct LibraryLinkKeys {
+    /* private fields */
+}
+```
+
+The node keys of one library link: the Ed25519 signing seed and the
+X25519 box secret. Zeroized on drop; `Debug` shows only the public keys.
+
+#### LibraryLinkKeys::generate
+
+```rust
+pub fn generate() -> Self
+```
+
+Fresh random keys from the OS RNG.
+
+#### LibraryLinkKeys::from_bytes
+
+```rust
+pub fn from_bytes(sign_seed: &[u8; 32], box_secret: &[u8; 32]) -> Self
+```
+
+Keys from known bytes (tests, and reading the sealed row back).
+
+#### LibraryLinkKeys::sign_seed
+
+```rust
+pub fn sign_seed(&self) -> &[u8; 32]
+```
+
+The Ed25519 signing seed.
+
+#### LibraryLinkKeys::box_secret
+
+```rust
+pub fn box_secret(&self) -> &[u8; 32]
+```
+
+The X25519 box secret.
+
+#### LibraryLinkKeys::sign_public_key
+
+```rust
+pub fn sign_public_key(&self) -> [u8; 32]
+```
+
+The Ed25519 public key the owner stores.
+
+#### LibraryLinkKeys::box_public_key
+
+```rust
+pub fn box_public_key(&self) -> [u8; 32]
+```
+
+The X25519 public key the owner seals job secrets to.
+
+Implements: `Clone`, `Debug`
+
+### LibraryLinkSettings
+
+```rust
+pub struct LibraryLinkSettings {
+    pub share_books: bool,
+    pub include_branches: bool,
+    pub list_members_books: Option<bool>,
+    pub work_for_members: Option<bool>,
+    pub keep_member_copies: Option<bool>,
+    pub keep_copies: Option<bool>,
+}
+```
+
+Every setting Settings → Library changes on one link at once; see
+[`set_library_link_settings`](#set_library_link_settings).
+
+**Fields**
+
+- `share_books`: "Share this branch's books with *library*".
+- `include_branches`: "Include books from my own branches".
+- `list_members_books`: "List my members' books to *library*"; `None` keeps the stored value.
+- `work_for_members`: "Download for other members of *library*"; `None` keeps the stored
+  value.
+- `keep_member_copies`: "Keep copies of other members' books"; `None` keeps the stored value.
+- `keep_copies`: "Keep copies on this computer"; `None` keeps the stored value.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### LinkJobCap
+
+```rust
+pub struct LinkJobCap(/* private */);
+```
+
+The most jobs a branch runs for one library at once, as its operator
+set it: 0 (runs nothing for that library) to [`LinkJobCap::MAX`](#linkjobcapmax).
+
+#### LinkJobCap::MAX
+
+```rust
+pub const MAX: u8 = 16
+```
+
+The highest cap an operator may set: the most job slots a branch
+ever counts its machine as having.
+
+#### LinkJobCap::new
+
+```rust
+pub fn new(jobs: u32) -> Result<Self>
+```
+
+A cap of `jobs`.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) above [`Self::MAX`](#linkjobcapmax).
+
+#### LinkJobCap::jobs
+
+```rust
+pub fn jobs(self) -> usize
+```
+
+The cap in jobs.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### NewLibraryLink
+
+```rust
+pub struct NewLibraryLink {
+    pub parent_library_id: String,
+    pub owner_origin: String,
+    pub remote_node_id: String,
+    pub spki_pin: Option<String>,
+}
+```
+
+What enrollment returned, to record with [`record_library_link`](#record_library_link).
+
+**Fields**
+
+- `parent_library_id`: Library id from the enroll answer.
+- `owner_origin`: Owner origin the host enrolled through.
+- `remote_node_id`: Node id from the enroll answer.
+- `spki_pin`: SPKI pin from the enrollment link.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### SharingBody
+
+```rust
+pub struct SharingBody {
+    /* private fields */
+}
+```
+
+`POST /api/config/join/sharing` body: one library and the settings to
+change for it.
+
+#### SharingBody::into_request
+
+```rust
+pub fn into_request(self) -> SharingRequest
+```
+
+The change the body asks for.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### SharingRequest
+
+```rust
+pub struct SharingRequest {
+    pub library_id: String,
+    pub settings: LibraryLinkSettings,
+}
+```
+
+A sharing settings change: the library it names (trimmed) and the
+settings to write, each `None` setting left as stored.
+
+**Fields**
+
+- `library_id`: The library (parent library id), surrounding whitespace removed.
+- `settings`: The settings to write ([`set_library_link_settings`](#set_library_link_settings)).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### LinkImport
 
 ```rust
 pub struct LinkImport<'a> {
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub book: &'a NewBook,
     pub primary_key: &'a str,
     pub pdf_key: Option<&'a str>,
@@ -2893,7 +2893,7 @@ One title the library committed, as the branch kept it.
 
 **Fields**
 
-- `cluster_id`: The library this branch acquired the title for.
+- `library_id`: The library this branch acquired the title for.
 - `book`: The title as the library sent it (its `uuid`, when set, is the
   library's and is not reused here).
 - `primary_key`: Storage key of the primary audio file, the same on every
@@ -2913,7 +2913,7 @@ pub struct OwnerShareFilter {
 ```
 
 Which of this install's acquired books the catalog sync sends the
-library `cluster_id`: the branch owner's own books, those held by a
+library `library_id`: the branch owner's own books, those held by a
 store account connected here to the branch's person
 ([`super::branch_person`](#branch_person)); the books that library asked for through an
 interlibrary request and this branch still lists to it
@@ -2928,12 +2928,12 @@ books are not among them.
 ```rust
 pub async fn load(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     members_books: bool,
 ) -> Result<Self>
 ```
 
-Reads the filter for the library `cluster_id` now.
+Reads the filter for the library `library_id` now.
 
 ##### Arguments
 
@@ -3036,7 +3036,7 @@ What a node's image caches hold, as its daemon reports them.
 **Fields**
 
 - `bytes`: Bytes the caches hold now.
-- `budget_bytes`: Bytes they may hold: the cluster's `cache.budget_bytes` or the
+- `budget_bytes`: Bytes they may hold: the library's `cache.budget_bytes` or the
   node's override.
 - `swept_ms`: When the last eviction sweep finished, in Unix milliseconds; `None`
   before the first since the daemon started.
@@ -3559,7 +3559,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `Partia
 pub struct NewPendingJoin {
     pub owner_origin: String,
     pub spki_pin: Option<String>,
-    pub owner_cluster_id: String,
+    pub parent_library_id: String,
     pub library_name: String,
     pub branch_name: String,
     pub redirect_uri: String,
@@ -3573,7 +3573,7 @@ What a joining daemon records when it starts a sign-in.
 
 - `owner_origin`: Owner origin the sign-in goes to.
 - `spki_pin`: SPKI pin the operator confirmed for a self-signed owner.
-- `owner_cluster_id`: Owner cluster id `GET /api/node/v1/info` reported.
+- `parent_library_id`: Library id `GET /api/node/v1/info` reported.
 - `library_name`: Library name the owner reported.
 - `branch_name`: Name this install joins as.
 - `redirect_uri`: Redirect URI of the authorization request.
@@ -3588,7 +3588,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 pub struct PendingJoin {
     pub owner_origin: String,
     pub spki_pin: Option<String>,
-    pub owner_cluster_id: String,
+    pub parent_library_id: String,
     pub library_name: String,
     pub branch_name: String,
     pub redirect_uri: String,
@@ -3603,7 +3603,7 @@ A pending join as stored (no secrets).
 
 - `owner_origin`: Owner origin.
 - `spki_pin`: Confirmed SPKI pin.
-- `owner_cluster_id`: Owner cluster id.
+- `parent_library_id`: Library id.
 - `library_name`: Library name.
 - `branch_name`: Branch name.
 - `redirect_uri`: Redirect URI.
@@ -3618,7 +3618,7 @@ Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 pub struct TakenJoin {
     pub join: PendingJoin,
     pub verifier: Zeroizing<String>,
-    pub keys: ClusterLinkKeys,
+    pub keys: LibraryLinkKeys,
 }
 ```
 
@@ -3861,7 +3861,7 @@ A deployed instance a Host asks about, with the node's trust.
 - `plugin_key`: The instance's plugin key.
 - `version`: The plugin's active version.
 - `trust`: What the node is trusted with now. Instance secrets belong to the
-  cluster's operator (instances carry no owner yet), so only
+  library's operator (instances carry no owner yet), so only
   [`NodeTrust::All`](#nodetrust) receives them.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
@@ -3892,7 +3892,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct RemoteApproval<'a> {
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub plugin_key: &'a str,
     pub version: &'a str,
     pub reviewed_request_json: &'a str,
@@ -3906,7 +3906,7 @@ What an operator approves.
 
 **Fields**
 
-- `cluster_id`: Owner cluster id.
+- `library_id`: Library id.
 - `plugin_key`: Canonical plugin key.
 - `version`: The requested version the operator reviewed.
 - `reviewed_request_json`: The owner's grant the operator reviewed, exactly as recorded.
@@ -3957,7 +3957,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct RemotePluginConsent {
-    pub owner_cluster_id: String,
+    pub parent_library_id: String,
     pub plugin_key: String,
     pub requested_version: String,
     pub requested_grant_json: String,
@@ -3977,11 +3977,11 @@ pub struct RemotePluginConsent {
 }
 ```
 
-One owner plugin of one owner cluster, as this install sees it.
+One owner plugin of one library, as this install sees it.
 
 **Fields**
 
-- `owner_cluster_id`: Owner cluster id.
+- `parent_library_id`: Library id.
 - `plugin_key`: Canonical plugin key.
 - `requested_version`: Version the owner deploys here now.
 - `requested_grant_json`: The owner's approved grant for that version (JSON).
@@ -4153,7 +4153,7 @@ shared node serving it.
 **Fields**
 
 - `lease_secs`: Lease length; permits are taken for the same time.
-- `limits`: Cluster semaphore limits.
+- `limits`: Library semaphore limits.
 
 Implements: `Clone`, `Copy`, `Debug`
 
@@ -4320,23 +4320,23 @@ relates to the local manifest.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
-### ClusterSecret
+### LibrarySecret
 
 ```rust
-pub struct ClusterSecret {
-    pub cluster_id: String,
+pub struct LibrarySecret {
+    pub library_id: String,
     pub secret_fingerprint: String,
 }
 ```
 
-Cluster id and fingerprint of the secret root aligned for this process.
+Library id and fingerprint of the secret root aligned for this process.
 
 The unwrapped DEK stays in the process cache (`configure_master_key_with`).
 Callers that need the key use [`crate::require_master_key`](master_key.md#require_master_key).
 
 **Fields**
 
-- `cluster_id`: Cluster id stored beside the fingerprint.
+- `library_id`: Library id stored beside the fingerprint.
 - `secret_fingerprint`: SHA-256 hex of the DEK.
 
 Implements: `Clone`, `Debug`
@@ -4347,7 +4347,7 @@ Implements: `Clone`, `Debug`
 pub struct SemaphorePermit {
     pub semaphore: String,
     pub slot: u32,
-    pub lease: ClusterLease,
+    pub lease: LibraryLease,
 }
 ```
 
@@ -4375,7 +4375,7 @@ One semaphore a caller wants a permit of.
 **Fields**
 
 - `name`: Semaphore name (for example `jobs:network` or `account:<key>:<id>`).
-- `limit`: Permits the semaphore grants cluster-wide (at least 1).
+- `limit`: Permits the semaphore grants library-wide (at least 1).
 
 #### SemaphoreRequest::new
 
@@ -4440,9 +4440,9 @@ What [`strip_install_state`](#strip_install_state) removed.
 
 **Fields**
 
-- `identity_rows`: `cluster_identity` rows deleted (0 or 1); each holds the cluster id and
+- `identity_rows`: `library_identity` rows deleted (0 or 1); each holds the library id and
   the fingerprint of its key, never the key.
-- `leases`: Cluster lease rows deleted.
+- `leases`: Library lease rows deleted.
 - `node_status`: Node heartbeat rows deleted.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
@@ -4800,7 +4800,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct WindowEntryEdition {
-    pub owner_cluster_id: String,
+    pub parent_library_id: String,
     pub owner_origin: String,
     pub edition: LookupEdition,
     pub yours: bool,
@@ -4812,7 +4812,7 @@ One edition of a [`WindowEntry`](#windowentry), and the library that holds it.
 
 **Fields**
 
-- `owner_cluster_id`: The library (owner cluster id) that holds it for the person.
+- `parent_library_id`: The library (parent library id) that holds it for the person.
 - `owner_origin`: The library's origin, for display.
 - `edition`: The edition as that library sent it.
 - `yours`: Whether the person holds it there through a store account of their
@@ -4837,7 +4837,7 @@ Typed `[events]` document, schema version 1.
 
 - `retention_days`: Days to keep acked and rejected deliveries.
 - `dead_letter_retention_days`: Days to keep dead-lettered deliveries.
-- `concurrency`: Local delivery workers and the cluster in-flight cap.
+- `concurrency`: Local delivery workers and the library in-flight cap.
 
 #### EventsSettingsV1::validate
 
@@ -4887,7 +4887,7 @@ pub struct NodeRuntimeSettingsV1 {
 
 Typed node-scoped runtime document, schema version 1.
 
-Desired state for one node, editable from any node in the cluster: an
+Desired state for one node, editable from any node in the library: an
 operator label, and the budget the scheduler may commit on this node.
 Budgets are shares of the capacity the node detects at heartbeat
 (CPU cores and memory, the tighter of the machine and its cgroup).
@@ -4901,8 +4901,8 @@ Budgets are shares of the capacity the node detects at heartbeat
 - `schedulable`: False drains the node: the scheduler places nothing new here and
   moves its replicas elsewhere. Hand-managed deployments still run.
 - `cache_budget_bytes`: Disk space, in bytes, this node's image caches may use together,
-  overriding the cluster's `core.cache` budget (16 MiB to 1 TiB).
-  Absent means the cluster budget applies.
+  overriding the library's `core.cache` budget (16 MiB to 1 TiB).
+  Absent means the library budget applies.
 
 #### NodeRuntimeSettingsV1::new
 
@@ -4951,7 +4951,7 @@ A parsed domain document plus its revision metadata.
 - `schema_version`: Domain schema version.
 - `updated_at`: RFC 3339 commit time.
 - `updated_by`: Audit identity of the last writer.
-- `scope_type`: Scope type (`cluster` or `node`).
+- `scope_type`: Scope type (`library` or `node`).
 - `scope_id`: Scope id (`singleton` or a node id).
 - `namespace`: Domain namespace.
 
@@ -4962,7 +4962,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct ControlPlaneSession {
     pub node: NodeRecord,
-    pub cluster_id: String,
+    pub library_id: String,
     pub events: ConfigurationDocument<EventsSettingsV1>,
     pub output: ConfigurationDocument<OutputSettingsV1>,
     pub node_runtime: ConfigurationDocument<NodeRuntimeSettingsV1>,
@@ -4974,7 +4974,7 @@ Identity, secret root, and the authoritative events document for this process.
 **Fields**
 
 - `node`: Registered node.
-- `cluster_id`: Cluster id from the secret root.
+- `library_id`: Library id from the secret root.
 - `events`: Authoritative `[events]` document.
 - `output`: Authoritative shared `[output]` document.
 - `node_runtime`: This node's runtime document. Other nodes' documents are not included.
@@ -5355,7 +5355,7 @@ pub enum ConfigActor {
     Bootstrap,
     Scheduler,
     NodeOwner(VerifiedNodeOwner),
-    ClusterOwner(VerifiedClusterOwner),
+    LibraryOwner(VerifiedLibraryOwner),
     PatronAdministrator(VerifiedPatronAdministrator),
 }
 ```
@@ -5366,7 +5366,7 @@ Who is allowed to write a configuration document.
 
 - `Operator`: Control-plane operator (CLI or operator token).
   - `id`: Stable audit id (`cli`, `operator`, …).
-- `Administrator`: Portal administrator. Cannot write cluster or node configuration.
+- `Administrator`: Portal administrator. Cannot write library or node configuration.
   - `id`: User id recorded if a write is attempted.
 - `Member`: Portal member. Cannot write configuration.
   - `id`: User id recorded if a write is attempted.
@@ -5379,9 +5379,9 @@ Who is allowed to write a configuration document.
 - `NodeOwner`: The user who owns one node. Writes that node's `node.runtime`
   document only. Built by [`super::verify_node_owner`](#verify_node_owner), which checks
   `nodes.owner_user_id`, so a caller cannot claim a node it does not own.
-- `ClusterOwner`: An active portal Owner. Writes the cluster's host-enrollment switch
+- `LibraryOwner`: An active portal Owner. Writes the library's host-enrollment switch
   (`core.host_enrollment`) only; every other document stays an
-  operator write. Built by [`super::verify_cluster_owner`](#verify_cluster_owner), which reads
+  operator write. Built by [`super::verify_library_owner`](#verify_library_owner), which reads
   the user's stored role and status.
 - `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
   default patron scope (`core.patron_scope`) only. Built by
@@ -5445,7 +5445,7 @@ pub enum NodeKind {
 }
 ```
 
-How a node joined the cluster.
+How a node joined the library.
 
 **Variants**
 
@@ -5609,7 +5609,7 @@ pub enum LiveTopic {
     Nodes,
     Config,
     Consents,
-    Clusters,
+    Libraries,
     Users,
     Discover,
 }
@@ -5623,9 +5623,9 @@ A topic of the live socket.
 - `Jobs`: Jobs (`jobs`).
 - `Deliveries`: Event deliveries (`event_deliveries`).
 - `Nodes`: Node heartbeats (`node_status`).
-- `Config`: Cluster configuration documents (`configuration_changes`).
+- `Config`: Library configuration documents (`configuration_changes`).
 - `Consents`: Owner-plugin consent on this host (`remote_plugin_consents`).
-- `Clusters`: Owner clusters this host joined, and their state (`cluster_links`).
+- `Libraries`: Owner libraries this host joined, and their state (`library_links`).
 - `Users`: Users (`users`).
 - `Discover`: Stored Discover shelves (`discover_feeds`): a ranking job wrote or
   dropped someone's shelves.
@@ -5663,7 +5663,7 @@ pub fn stamp_column(self) -> Option<(&'static str, &'static str)>
 The table behind the topic and its change-stamp column, which every
 write to the table sets to the time of the write.
 
-`None` for `cluster_links`, which has no change stamp, and for
+`None` for `library_links`, which has no change stamp, and for
 `configuration_changes`, an append-only log whose stamp is not
 indexed; their writes bump on a probe instead.
 
@@ -5703,7 +5703,7 @@ enum (`{"type": "deployment.changed", ...}`).
   the scheduler lease acts on it; every other node ignores it.
   - `subject`: `instance:<id>` or `node:<id>`.
   - `revision`: Placement revision (0 for a node label change or a delete).
-- `ConfigurationChanged`: A configuration document changed (cluster settings or an instance
+- `ConfigurationChanged`: A configuration document changed (library settings or an instance
   document).
   - `scope_type`: Document scope type.
   - `scope_id`: Document scope id.
@@ -6574,11 +6574,11 @@ kept changing under the write, or the read or write error.
 ```rust
 pub async fn books_requested_by_link(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
 ) -> Result<BTreeMap<HeldBookKey, DateTime<Utc>>>
 ```
 
-On a branch: every book the library `cluster_id` asked for, by store
+On a branch: every book the library `library_id` asked for, by store
 identity, with when it last asked (an unreadable stamp reads as now, so
 the book is sent rather than skipped). Read in keyset pages no larger
 than the database plugin's `maxResultRows`.
@@ -6692,12 +6692,12 @@ named one) currently lists the work, or the read error.
 ```rust
 pub async fn record_link_request(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     title: &AcquireTitle,
 ) -> Result<()>
 ```
 
-On a branch: records that the library `cluster_id` asked for `title`
+On a branch: records that the library `library_id` asked for `title`
 (by its holding account and store listing), so the catalog sync sends
 it there. Asking again moves the request to now.
 
@@ -6725,7 +6725,7 @@ pub async fn load_cache_settings(
 ) -> Result<Option<ConfigurationDocument<CacheSettingsV1>>>
 ```
 
-Loads the cluster cache document.
+Loads the library cache document.
 
 #### Returns
 
@@ -6747,7 +6747,7 @@ pub async fn update_cache_settings(
 ) -> Result<ConfigurationDocument<CacheSettingsV1>>
 ```
 
-Applies `edit` to the cluster cache document under compare-and-swap,
+Applies `edit` to the library cache document under compare-and-swap,
 creating it with the defaults when absent and retrying a few times on a
 concurrent edit. Nodes pick the change up at their next heartbeat.
 
@@ -6877,13 +6877,13 @@ Returns the read error.
 pub async fn import_carried_accounts(
     store: &LibraryStore,
     user_id: i64,
-    cluster_id: &str,
+    library_id: &str,
     accounts: &[CarriedAccount],
 ) -> Result<CarriedImport>
 ```
 
 Imports the accounts a library sent with its person, for `user_id`,
-recording that they came from the library `cluster_id`.
+recording that they came from the library `library_id`.
 
 Refused whole, storing nothing, when this instance's rule does not let
 the person connect accounts ([`member_may_connect_accounts`](#member_may_connect_accounts)). Each
@@ -6927,7 +6927,7 @@ As [`import_carried_accounts`](#import_carried_accounts).
 ### link_peer
 
 ```rust
-pub fn link_peer(cluster_id: &str) -> String
+pub fn link_peer(library_id: &str) -> String
 ```
 
 The `account_shares.peer` of a library this install received accounts
@@ -7380,10 +7380,7 @@ Returns the read error.
 ### forget_clerk_link
 
 ```rust
-pub async fn forget_clerk_link(
-    store: &LibraryStore,
-    library_cluster_id: &str,
-) -> Result<bool>
+pub async fn forget_clerk_link(store: &LibraryStore, library_id: &str) -> Result<bool>
 ```
 
 Deletes a signed-out link's row, so it leaves the list. Answers false
@@ -7430,7 +7427,7 @@ Returns [`LibraryError::Forbidden`](README.md#libraryerror) when the link is sig
 ```rust
 pub async fn load_clerk_link(
     store: &LibraryStore,
-    library_cluster_id: &str,
+    library_id: &str,
 ) -> Result<Option<ClerkLink>>
 ```
 
@@ -7459,7 +7456,7 @@ next sign-in.
 
 #### Errors
 
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed cluster id, origin,
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed library id, origin,
 pin, name or user id, [`LibraryError::Conflict`](README.md#libraryerror) when this install is
 already an active branch of that library (it reads that
 library's books through the link instead), an error when no master key
@@ -7470,7 +7467,7 @@ is configured, and the write error.
 ```rust
 pub async fn sign_out_clerk_link(
     store: &LibraryStore,
-    library_cluster_id: &str,
+    library_id: &str,
 ) -> Result<Option<ClerkLink>>
 ```
 
@@ -7484,469 +7481,6 @@ when the person signs out here.
 #### Errors
 
 Returns the read or write error.
-
-### decode_spki_pin
-
-```rust
-pub fn decode_spki_pin(pin: &str) -> Result<[u8; 32]>
-```
-
-Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest.
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for anything else.
-
-### join_cycle
-
-```rust
-pub async fn join_cycle(
-    store: &LibraryStore,
-    parent_ancestry: &[String],
-) -> Result<Option<String>>
-```
-
-This library's own cluster id when `parent_ancestry` names it: joining
-that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when
-it does not, or this install has no cluster identity yet.
-
-#### Errors
-
-Returns the read error.
-
-### join_overflows_ancestry
-
-```rust
-pub async fn join_overflows_ancestry(
-    store: &LibraryStore,
-    parent_ancestry: &[String],
-) -> Result<bool>
-```
-
-True when joining a library that reports `parent_ancestry` would give
-this library more ancestors (itself and every library above it) than
-[`bookclerk_node_proto::MAX_ANCESTRY`]: [`library_ancestry`](#library_ancestry) would then
-leave the farthest out, and a library joining this one later could no
-longer be checked for a loop through them. An ancestry cut at that
-limit by the library itself always holds exactly the limit, so this
-refuses it too. Such a join is refused rather than cut short.
-
-#### Errors
-
-Returns the read error.
-
-### leave_cluster_link
-
-```rust
-pub async fn leave_cluster_link(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    expected_node_id: Option<&str>,
-) -> Result<Option<ClusterLink>>
-```
-
-Leaves an owner cluster on this side: marks the link
-[`CLUSTER_LINK_LEFT`](#cluster_link_left) and deletes its sealed node keys, so this install
-can never sign as that node again. Answers the link as it now stands,
-or `None` when there is no such link.
-
-This only records the departure. Telling the owner (`node.leaving`,
-which revokes the node there) is the caller's, before the keys go:
-`bookclerk_node_client::announce_leaving` or the running client. A
-running daemon stops the link's client when it next re-reads the link.
-Joining again needs a new sign-in or invite.
-
-Only one enrollment is left: `expected_node_id` when given (the node the
-caller told the owner about), else the one read here. A link a join
-enrolled as another node, before this call or while it runs, is refused,
-so a new enrollment is never marked left with its keys still stored or
-left without the owner having been told.
-
-#### Arguments
-
-* `store` - Library store holding the link.
-* `owner_cluster_id` - Owner cluster the link joins.
-* `expected_node_id` - The node the caller means to leave, when it read
-  the link earlier (to send `node.leaving`); `None` leaves whatever node
-  the link names now.
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) when the link was re-enrolled as
-another node, and the read or write error.
-
-### library_ancestry
-
-```rust
-pub async fn library_ancestry(store: &LibraryStore) -> Result<Vec<String>>
-```
-
-This library's ancestry (what `GET /api/node/v1/info` reports): its own
-cluster id, then for each active link the owner's cluster id and the
-ancestry that owner reported, without repeats, at most
-[`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/README.md#max_ancestry) ids. Empty when this install has
-no cluster identity yet. A join that would take it past that limit is
-refused ([`join_overflows_ancestry`](#join_overflows_ancestry)); should a library above grow its
-ancestry later, the list is cut at exactly the limit, which in turn
-refuses every join under it.
-
-A shared branch shares its library's database, so it reports the same ancestry:
-it is the same node of the tree.
-
-#### Errors
-
-Returns the read error.
-
-### list_cluster_links
-
-```rust
-pub async fn list_cluster_links(store: &LibraryStore) -> Result<Vec<ClusterLink>>
-```
-
-Every cluster link, oldest enrollment first.
-
-#### Errors
-
-Returns the read error.
-
-### load_cluster_link
-
-```rust
-pub async fn load_cluster_link(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-) -> Result<Option<ClusterLink>>
-```
-
-One cluster link.
-
-#### Errors
-
-Returns the read error.
-
-### load_cluster_link_keys
-
-```rust
-pub async fn load_cluster_link_keys(
-    store: &LibraryStore,
-    link: &ClusterLink,
-) -> Result<ClusterLinkKeys>
-```
-
-Unseals the node keys of an active `link`.
-
-#### Errors
-
-Returns [`LibraryError::Forbidden`](README.md#libraryerror) when the link is not active (a
-revoked or departed node never signs again),
-[`LibraryError::NotFound`](README.md#libraryerror) when the key row is missing, and
-[`LibraryError::Invalid`](README.md#libraryerror) when it does not hold two 32-byte keys.
-
-### mark_cluster_link_revoked
-
-```rust
-pub async fn mark_cluster_link_revoked(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    remote_node_id: &str,
-) -> Result<bool>
-```
-
-Marks an **active** link still enrolled as `remote_node_id`
-[`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) (the owner closed with 4403 on that node's
-connection). A link this install already left stays `left`, and one a
-later join enrolled as another node keeps its new enrollment.
-
-#### Arguments
-
-* `store` - Library store holding the link.
-* `owner_cluster_id` - Owner cluster the link joins.
-* `remote_node_id` - The node the revoked connection ran as.
-
-#### Returns
-
-Whether a row changed: `false` when the link is gone, no longer active,
-or enrolled as another node.
-
-#### Errors
-
-Returns the write error.
-
-### parse_job_cap_request
-
-```rust
-pub fn parse_job_cap_request(body: &[u8]) -> Result<JobCapRequest>
-```
-
-Parses and validates a `POST /api/config/join/capacity` body from its
-raw bytes, sans IO, the way the route reads it: JSON into
-[`CapacityBody`](#capacitybody), then [`CapacityBody::validate`](#capacitybodyvalidate).
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
-shape (unknown or duplicate fields, wrong types, numbers outside `u32`),
-a missing `max_jobs`, or a cap above [`LinkJobCap::MAX`](#linkjobcapmax).
-
-### parse_sharing_request
-
-```rust
-pub fn parse_sharing_request(body: &[u8]) -> Result<SharingRequest>
-```
-
-Parses a `POST /api/config/join/sharing` body from its raw bytes, sans
-IO, the way the route reads it: JSON into [`SharingBody`](#sharingbody), then
-[`SharingBody::into_request`](#sharingbodyinto_request).
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
-shape: not an object, unknown or duplicate fields, a missing
-`cluster_id`, `share_books` or `include_branches`, or a value of the
-wrong type.
-
-### record_cluster_link
-
-```rust
-pub async fn record_cluster_link(
-    store: &LibraryStore,
-    link: &NewClusterLink,
-    keys: &ClusterLinkKeys,
-) -> Result<ClusterLink>
-```
-
-Seals `keys` and records the link, replacing an earlier link to the same
-cluster (a re-enrollment) as `active`.
-
-The key row is written first: a link row never exists without keys, and
-a key row left by a failed write is replaced by the next enrollment.
-When the re-enrollment minted a different node id, the earlier node's
-key row is deleted once the new link row is stored, so the sealed
-private keys of a node the owner no longer knows are not kept. The link
-is stored with no person bound (a re-enrollment unbinds it); the join
-binds one with [`set_cluster_link_person`](#set_cluster_link_person).
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed id, origin, or pin, an
-error when no master key is configured, and the write error.
-
-### set_cluster_link_ancestry
-
-```rust
-pub async fn set_cluster_link_ancestry(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    ancestry: &[String],
-) -> Result<bool>
-```
-
-Records the owner library's ancestry as it reported it (`info` at join,
-`catalog.session` on every sync). Ids that are not plain cluster ids are
-refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/README.md#max_ancestry) are kept.
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
-write error.
-
-### set_cluster_link_job_cap
-
-```rust
-pub async fn set_cluster_link_job_cap(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    max_jobs: Option<LinkJobCap>,
-) -> Result<bool>
-```
-
-Sets the most jobs this install runs for one library at once; `None`
-clears the cap, leaving the link its equal share of the machine.
-Answers false when no such link exists. The running client picks the
-new cap up on the next share update.
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_keep_copies
-
-```rust
-pub async fn set_cluster_link_keep_copies(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    keep_copies: bool,
-) -> Result<bool>
-```
-
-Sets the link's "Keep copies on this computer" setting.
-
-#### Arguments
-
-* `owner_cluster_id` - The library the link joined.
-* `keep_copies` - The new setting: whether the branch takes the
-  library's copies of its person's books.
-
-#### Returns
-
-Whether the link exists (`false` when there is no such link); setting
-the value it already has still returns `true`.
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_listing
-
-```rust
-pub async fn set_cluster_link_listing(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    list_members_books: bool,
-) -> Result<bool>
-```
-
-Sets the link's "List my members' books to *library*" setting.
-
-#### Arguments
-
-* `owner_cluster_id` - The library the link joined.
-* `list_members_books` - The new setting.
-
-#### Returns
-
-Whether the link exists (`false` when there is no such link); setting
-the value it already has still returns `true`.
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_person
-
-```rust
-pub async fn set_cluster_link_person(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    remote_node_id: &str,
-    person_user_id: Option<i64>,
-) -> Result<bool>
-```
-
-Binds the link to the local user who joined the library through it.
-
-Only that person may add their store connections to the library, or
-withdraw them from it, through this link.
-
-#### Arguments
-
-* `owner_cluster_id` - The library the link joined.
-* `remote_node_id` - The node id that join enrolled as: a join another
-  one replaced since binds nothing.
-* `person_user_id` - The local user who joined (`None` unbinds it).
-
-#### Returns
-
-Whether the link exists as that node (`false` otherwise).
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_settings
-
-```rust
-pub async fn set_cluster_link_settings(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    settings: ClusterLinkSettings,
-) -> Result<bool>
-```
-
-Sets a link's sharing, listing and work settings in one statement, so a
-failed write leaves every one of them as it was.
-
-#### Arguments
-
-* `owner_cluster_id` - The library the link joined.
-* `settings` - The new values; each `None` keeps the stored one.
-
-#### Returns
-
-Whether the link exists (`false` when there is no such link); setting
-the values it already has still returns `true`.
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_sharing
-
-```rust
-pub async fn set_cluster_link_sharing(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    share_books: bool,
-    include_branches: bool,
-) -> Result<bool>
-```
-
-Sets a link's two sharing settings: "Share this branch's books with
-*library*" and "Include books from my own branches". Answers false when
-no such link exists. The running catalog sync reports them to the owner
-on its next pass.
-
-#### Errors
-
-Returns the write error.
-
-### set_cluster_link_state
-
-```rust
-pub async fn set_cluster_link_state(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    state: &str,
-    remote_node_id: Option<&str>,
-) -> Result<bool>
-```
-
-Sets a link's state. Answers false when no such link exists.
-
-#### Arguments
-
-* `store` - Library store holding the link.
-* `owner_cluster_id` - Owner cluster the link joins.
-* `state` - One of [`CLUSTER_LINK_ACTIVE`](#cluster_link_active), [`CLUSTER_LINK_REVOKED`](#cluster_link_revoked) or
-  [`CLUSTER_LINK_LEFT`](#cluster_link_left).
-* `remote_node_id` - When set, only a link still enrolled as this node is
-  changed, so a client running under an earlier enrollment cannot touch the
-  link that replaced it. `None` changes the link whatever its node.
-
-#### Errors
-
-Returns [`LibraryError::Invalid`](README.md#libraryerror) for an unknown state, and the write
-error.
-
-### set_cluster_link_work
-
-```rust
-pub async fn set_cluster_link_work(
-    store: &LibraryStore,
-    owner_cluster_id: &str,
-    work_for_members: bool,
-    keep_member_copies: bool,
-) -> Result<bool>
-```
-
-Sets a link's two work settings: "Download for other members of
-*library*" and "Keep copies of other members' books". Answers false
-when no such link exists. The running client claims under the new
-scope from its next consent check.
-
-#### Errors
-
-Returns the write error.
 
 ### parse_add_connections_request
 
@@ -8191,7 +7725,7 @@ Returns an error when the read fails.
 pub async fn list_all_deployments(store: &LibraryStore) -> Result<Vec<PluginDeployment>>
 ```
 
-Every deployment row in the cluster.
+Every deployment row in the library.
 
 #### Errors
 
@@ -8580,7 +8114,7 @@ Returns an error when the actor is not an active user or the read fails.
 pub async fn load_host_enrollment(store: &LibraryStore) -> Result<HostEnrollmentSettings>
 ```
 
-Reads the cluster's host-enrollment switch. A missing document means the
+Reads the library's host-enrollment switch. A missing document means the
 default: enabled.
 
 #### Errors
@@ -8809,9 +8343,9 @@ pub async fn set_host_enrollment_enabled(
 ) -> Result<ConfigurationDocument<HostEnrollmentSettingsV1>>
 ```
 
-Turns host enrollment on or off for the cluster.
+Turns host enrollment on or off for the library.
 
-Only the operator or a verified Owner ([`verify_cluster_owner`](#verify_cluster_owner)) may write
+Only the operator or a verified Owner ([`verify_library_owner`](#verify_library_owner)) may write
 it. Retries a few times on a concurrent edit.
 
 #### Errors
@@ -8819,16 +8353,16 @@ it. Retries a few times on a concurrent edit.
 Returns [`LibraryError::Forbidden`](README.md#libraryerror) for any other actor, and the write
 error when the document cannot be stored.
 
-### verify_cluster_owner
+### verify_library_owner
 
 ```rust
-pub async fn verify_cluster_owner(
+pub async fn verify_library_owner(
     store: &LibraryStore,
     user_id: i64,
 ) -> Result<ConfigActor>
 ```
 
-Returns a [`ConfigActor::ClusterOwner`](#configactor) when `user_id` is an active Owner.
+Returns a [`ConfigActor::LibraryOwner`](#configactor) when `user_id` is an active Owner.
 
 #### Errors
 
@@ -8846,7 +8380,7 @@ This process's incarnation. Stable until the process exits.
 ### encode_node_identity_file
 
 ```rust
-pub fn encode_node_identity_file(node_id: &str, cluster_id: &str) -> Result<Vec<u8>>
+pub fn encode_node_identity_file(node_id: &str, library_id: &str) -> Result<Vec<u8>>
 ```
 
 The [`NODE_IDENTITY_FILE`](#node_identity_file) contents [`install_node_identity`](#install_node_identity) writes, for
@@ -8856,7 +8390,7 @@ one recoverable step) with mode `0600`.
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a node id that is not a UUID or an
-empty cluster id, and the encode error.
+empty library id, and the encode error.
 
 ### install_node_identity
 
@@ -8864,19 +8398,19 @@ empty cluster id, and the encode error.
 pub fn install_node_identity(
     files_dir: &Path,
     node_id: &str,
-    cluster_id: &str,
+    library_id: &str,
 ) -> Result<NodeIdentity>
 ```
 
-Writes the identity file for a node id the cluster already recorded,
-bound to `cluster_id`, replacing any file there atomically. A shared branch
+Writes the identity file for a node id the library already recorded,
+bound to `library_id`, replacing any file there atomically. A shared branch
 joining a library takes the node id the library minted for it at
 redeem, so its first heartbeat lands on that `nodes` row.
 
 #### Errors
 
 Returns [`LibraryError::Invalid`](README.md#libraryerror) for a node id that is not a UUID or an
-empty cluster id, and the write error.
+empty library id, and the write error.
 
 ### list_node_ids
 
@@ -9094,7 +8628,7 @@ pub async fn seal_instance_secret(
 ) -> Result<()>
 ```
 
-Seals one instance secret with the cluster DEK.
+Seals one instance secret with the library DEK.
 
 The plaintext is not written to `configuration_documents` or `configuration_audit`.
 
@@ -9139,7 +8673,7 @@ pub async fn create_node_local_instance(
 ```
 
 Inserts a node-local instance of `plugin_key` owned by `node_id` (H-2):
-it adds to the cluster's outputs on that node only, and a deployment of
+it adds to the library's outputs on that node only, and a deployment of
 it to any other node, or a placement, is refused.
 
 #### Errors
@@ -9292,7 +8826,7 @@ Returns an error when the read fails or `id` is not a UUID.
 pub fn account_semaphore(plugin_key: &str, account_id: &str) -> String
 ```
 
-Name of the cluster semaphore for one store account.
+Name of the library semaphore for one store account.
 
 ### claim_routed_job
 
@@ -9303,7 +8837,7 @@ pub async fn claim_routed_job(
 ) -> Result<Option<RoutedJobClaim>>
 ```
 
-Claims the best ready job this node can run, under the cluster semaphores.
+Claims the best ready job this node can run, under the library semaphores.
 
 Pages through the ready pending jobs of the class, best first
 ([`ROUTED_CLAIM_CANDIDATES`](#routed_claim_candidates) per page); skips those the node is not
@@ -9336,7 +8870,7 @@ failing attempt are released on a best-effort basis.
 pub fn class_semaphore(class: JobResourceClass) -> String
 ```
 
-Name of the cluster semaphore for one resource class.
+Name of the library semaphore for one resource class.
 
 ### common_deployment_nodes
 
@@ -9359,7 +8893,7 @@ Returns an error when a read fails.
 pub fn instance_semaphore(instance_id: &str) -> String
 ```
 
-Name of the cluster semaphore for one plugin instance.
+Name of the library semaphore for one plugin instance.
 
 ### job_permit_holder_prefix
 
@@ -9412,7 +8946,7 @@ pub async fn job_semaphores(
 ) -> Result<Vec<SemaphoreRequest>>
 ```
 
-The cluster semaphores `job` counts against under `limits`.
+The library semaphores `job` counts against under `limits`.
 
 Every job takes its class semaphore and one per required instance. Scan
 and acquire also take one per store account they touch: the payload's
@@ -9484,7 +9018,7 @@ The instances a new job must find on its claiming node.
 is a valid instance id with at least one deployment that should run, so a
 job pinned to an undeployed instance is claimed anywhere and fails there
 as before rather than waiting forever. For [`JobKind::Acquire`](README.md#jobkind), every
-cluster instance of a plugin key in `node_bound_plugin_keys` that is
+library instance of a plugin key in `node_bound_plugin_keys` that is
 deployed to run somewhere is added: the acquire writes to that output, so
 it must run where the output's disk is. A node-local instance (H-2,
 `owner_node_id` set) is not: it adds to the outputs of its own node only,
@@ -9573,12 +9107,12 @@ pub async fn keeps_for_link(
     store: &LibraryStore,
     plugin_key: &str,
     account_id: &str,
-    cluster_id: &str,
+    library_id: &str,
 ) -> Result<bool>
 ```
 
 True when this install keeps the account for the library it joined as
-`cluster_id` (it holds a share with that library).
+`library_id` (it holds a share with that library).
 
 #### Errors
 
@@ -9604,14 +9138,14 @@ pub async fn record_pushed_revision(
     store: &LibraryStore,
     plugin_key: &str,
     account_id: &str,
-    cluster_id: &str,
+    library_id: &str,
     revision: i64,
     observed: i64,
 ) -> Result<()>
 ```
 
 Records that the keeper sent `revision` of the account to the library
-`cluster_id` (whether it applied it or already had it), for the sign-in
+`library_id` (whether it applied it or already had it), for the sign-in
 whose fingerprint is `observed` ([`SignIn::fingerprint`](#signin)). Never lowers
 the recorded revision.
 
@@ -9646,7 +9180,7 @@ pub async fn acquire_lease(
     name: &str,
     holder: &str,
     ttl: Duration,
-) -> Result<Option<ClusterLease>>
+) -> Result<Option<LibraryLease>>
 ```
 
 Acquires or renews `name` for `holder` for `ttl`.
@@ -9668,7 +9202,7 @@ pub async fn acquire_lease_on<C: ConnectionTrait>(
     name: &str,
     holder: &str,
     ttl: Duration,
-) -> Result<Option<ClusterLease>>
+) -> Result<Option<LibraryLease>>
 ```
 
 [`acquire_lease`](#acquire_lease) on a bare connection (schema migration runs before a
@@ -9681,7 +9215,7 @@ Returns an error when the read or write fails.
 ### list_leases
 
 ```rust
-pub async fn list_leases(store: &LibraryStore) -> Result<Vec<ClusterLease>>
+pub async fn list_leases(store: &LibraryStore) -> Result<Vec<LibraryLease>>
 ```
 
 Every lease row, held or expired, by name.
@@ -9693,7 +9227,7 @@ Returns an error when the read fails.
 ### load_lease
 
 ```rust
-pub async fn load_lease(store: &LibraryStore, name: &str) -> Result<Option<ClusterLease>>
+pub async fn load_lease(store: &LibraryStore, name: &str) -> Result<Option<LibraryLease>>
 ```
 
 The current row of lease `name`, held or expired.
@@ -9708,7 +9242,7 @@ Returns an error when the read fails.
 pub async fn load_lease_on<C: ConnectionTrait>(
     db: &C,
     name: &str,
-) -> Result<Option<ClusterLease>>
+) -> Result<Option<LibraryLease>>
 ```
 
 [`load_lease`](#load_lease) on a bare connection.
@@ -9720,7 +9254,7 @@ Returns an error when the read fails.
 ### release_lease
 
 ```rust
-pub async fn release_lease(store: &LibraryStore, lease: &ClusterLease) -> Result<()>
+pub async fn release_lease(store: &LibraryStore, lease: &LibraryLease) -> Result<()>
 ```
 
 Gives up a held lease so another holder may take it at once.
@@ -9737,7 +9271,7 @@ Returns an error when the write fails.
 ```rust
 pub async fn release_lease_on<C: ConnectionTrait>(
     db: &C,
-    lease: &ClusterLease,
+    lease: &LibraryLease,
 ) -> Result<()>
 ```
 
@@ -9752,9 +9286,9 @@ Returns an error when the write fails.
 ```rust
 pub async fn renew_lease(
     store: &LibraryStore,
-    lease: &ClusterLease,
+    lease: &LibraryLease,
     ttl: Duration,
-) -> Result<Option<ClusterLease>>
+) -> Result<Option<LibraryLease>>
 ```
 
 Fencing check: extends a lease this holder still holds.
@@ -9773,9 +9307,9 @@ Returns an error when the write fails.
 ```rust
 pub async fn renew_lease_on<C: ConnectionTrait>(
     db: &C,
-    lease: &ClusterLease,
+    lease: &LibraryLease,
     ttl: Duration,
-) -> Result<Option<ClusterLease>>
+) -> Result<Option<LibraryLease>>
 ```
 
 [`renew_lease`](#renew_lease) on a bare connection.
@@ -9784,16 +9318,479 @@ pub async fn renew_lease_on<C: ConnectionTrait>(
 
 Returns an error when the write fails.
 
+### decode_spki_pin
+
+```rust
+pub fn decode_spki_pin(pin: &str) -> Result<[u8; 32]>
+```
+
+Decodes an SPKI pin: base64url (no padding) of a SHA-256 digest.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for anything else.
+
+### join_cycle
+
+```rust
+pub async fn join_cycle(
+    store: &LibraryStore,
+    parent_ancestry: &[String],
+) -> Result<Option<String>>
+```
+
+This library's own library id when `parent_ancestry` names it: joining
+that library would make a cycle (A ← B ← A, A ← B ← C ← A). `None` when
+it does not, or this install has no library identity yet.
+
+#### Errors
+
+Returns the read error.
+
+### join_overflows_ancestry
+
+```rust
+pub async fn join_overflows_ancestry(
+    store: &LibraryStore,
+    parent_ancestry: &[String],
+) -> Result<bool>
+```
+
+True when joining a library that reports `parent_ancestry` would give
+this library more ancestors (itself and every library above it) than
+[`bookclerk_node_proto::MAX_ANCESTRY`]: [`library_ancestry`](#library_ancestry) would then
+leave the farthest out, and a library joining this one later could no
+longer be checked for a loop through them. An ancestry cut at that
+limit by the library itself always holds exactly the limit, so this
+refuses it too. Such a join is refused rather than cut short.
+
+#### Errors
+
+Returns the read error.
+
+### leave_library_link
+
+```rust
+pub async fn leave_library_link(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    expected_node_id: Option<&str>,
+) -> Result<Option<LibraryLink>>
+```
+
+Leaves a library on this side: marks the link
+[`LIBRARY_LINK_LEFT`](#library_link_left) and deletes its sealed node keys, so this install
+can never sign as that node again. Answers the link as it now stands,
+or `None` when there is no such link.
+
+This only records the departure. Telling the owner (`node.leaving`,
+which revokes the node there) is the caller's, before the keys go:
+`bookclerk_node_client::announce_leaving` or the running client. A
+running daemon stops the link's client when it next re-reads the link.
+Joining again needs a new sign-in or invite.
+
+Only one enrollment is left: `expected_node_id` when given (the node the
+caller told the owner about), else the one read here. A link a join
+enrolled as another node, before this call or while it runs, is refused,
+so a new enrollment is never marked left with its keys still stored or
+left without the owner having been told.
+
+#### Arguments
+
+* `store` - Library store holding the link.
+* `parent_library_id` - Library the link joins.
+* `expected_node_id` - The node the caller means to leave, when it read
+  the link earlier (to send `node.leaving`); `None` leaves whatever node
+  the link names now.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) when the link was re-enrolled as
+another node, and the read or write error.
+
+### library_ancestry
+
+```rust
+pub async fn library_ancestry(store: &LibraryStore) -> Result<Vec<String>>
+```
+
+This library's ancestry (what `GET /api/node/v1/info` reports): its own
+library id, then for each active link the owner's library id and the
+ancestry that owner reported, without repeats, at most
+[`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/README.md#max_ancestry) ids. Empty when this install has
+no library identity yet. A join that would take it past that limit is
+refused ([`join_overflows_ancestry`](#join_overflows_ancestry)); should a library above grow its
+ancestry later, the list is cut at exactly the limit, which in turn
+refuses every join under it.
+
+A shared branch shares its library's database, so it reports the same ancestry:
+it is the same node of the tree.
+
+#### Errors
+
+Returns the read error.
+
+### list_library_links
+
+```rust
+pub async fn list_library_links(store: &LibraryStore) -> Result<Vec<LibraryLink>>
+```
+
+Every library link, oldest enrollment first.
+
+#### Errors
+
+Returns the read error.
+
+### load_library_link
+
+```rust
+pub async fn load_library_link(
+    store: &LibraryStore,
+    parent_library_id: &str,
+) -> Result<Option<LibraryLink>>
+```
+
+One library link.
+
+#### Errors
+
+Returns the read error.
+
+### load_library_link_keys
+
+```rust
+pub async fn load_library_link_keys(
+    store: &LibraryStore,
+    link: &LibraryLink,
+) -> Result<LibraryLinkKeys>
+```
+
+Unseals the node keys of an active `link`.
+
+#### Errors
+
+Returns [`LibraryError::Forbidden`](README.md#libraryerror) when the link is not active (a
+revoked or departed node never signs again),
+[`LibraryError::NotFound`](README.md#libraryerror) when the key row is missing, and
+[`LibraryError::Invalid`](README.md#libraryerror) when it does not hold two 32-byte keys.
+
+### mark_library_link_revoked
+
+```rust
+pub async fn mark_library_link_revoked(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    remote_node_id: &str,
+) -> Result<bool>
+```
+
+Marks an **active** link still enrolled as `remote_node_id`
+[`LIBRARY_LINK_REVOKED`](#library_link_revoked) (the owner closed with 4403 on that node's
+connection). A link this install already left stays `left`, and one a
+later join enrolled as another node keeps its new enrollment.
+
+#### Arguments
+
+* `store` - Library store holding the link.
+* `parent_library_id` - Library the link joins.
+* `remote_node_id` - The node the revoked connection ran as.
+
+#### Returns
+
+Whether a row changed: `false` when the link is gone, no longer active,
+or enrolled as another node.
+
+#### Errors
+
+Returns the write error.
+
+### parse_job_cap_request
+
+```rust
+pub fn parse_job_cap_request(body: &[u8]) -> Result<JobCapRequest>
+```
+
+Parses and validates a `POST /api/config/join/capacity` body from its
+raw bytes, sans IO, the way the route reads it: JSON into
+[`CapacityBody`](#capacitybody), then [`CapacityBody::validate`](#capacitybodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or duplicate fields, wrong types, numbers outside `u32`),
+a missing `max_jobs`, or a cap above [`LinkJobCap::MAX`](#linkjobcapmax).
+
+### parse_sharing_request
+
+```rust
+pub fn parse_sharing_request(body: &[u8]) -> Result<SharingRequest>
+```
+
+Parses a `POST /api/config/join/sharing` body from its raw bytes, sans
+IO, the way the route reads it: JSON into [`SharingBody`](#sharingbody), then
+[`SharingBody::into_request`](#sharingbodyinto_request).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape: not an object, unknown or duplicate fields, a missing
+`library_id`, `share_books` or `include_branches`, or a value of the
+wrong type.
+
+### record_library_link
+
+```rust
+pub async fn record_library_link(
+    store: &LibraryStore,
+    link: &NewLibraryLink,
+    keys: &LibraryLinkKeys,
+) -> Result<LibraryLink>
+```
+
+Seals `keys` and records the link, replacing an earlier link to the same
+library (a re-enrollment) as `active`.
+
+The key row is written first: a link row never exists without keys, and
+a key row left by a failed write is replaced by the next enrollment.
+When the re-enrollment minted a different node id, the earlier node's
+key row is deleted once the new link row is stored, so the sealed
+private keys of a node the owner no longer knows are not kept. The link
+is stored with no person bound (a re-enrollment unbinds it); the join
+binds one with [`set_library_link_person`](#set_library_link_person).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed id, origin, or pin, an
+error when no master key is configured, and the write error.
+
+### set_library_link_ancestry
+
+```rust
+pub async fn set_library_link_ancestry(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    ancestry: &[String],
+) -> Result<bool>
+```
+
+Records the owner library's ancestry as it reported it (`info` at join,
+`catalog.session` on every sync). Ids that are not plain library ids are
+refused; at most [`bookclerk_node_proto::MAX_ANCESTRY`](../bookclerk_node_proto/README.md#max_ancestry) are kept.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed ancestry, and the
+write error.
+
+### set_library_link_job_cap
+
+```rust
+pub async fn set_library_link_job_cap(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    max_jobs: Option<LinkJobCap>,
+) -> Result<bool>
+```
+
+Sets the most jobs this install runs for one library at once; `None`
+clears the cap, leaving the link its equal share of the machine.
+Answers false when no such link exists. The running client picks the
+new cap up on the next share update.
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_keep_copies
+
+```rust
+pub async fn set_library_link_keep_copies(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    keep_copies: bool,
+) -> Result<bool>
+```
+
+Sets the link's "Keep copies on this computer" setting.
+
+#### Arguments
+
+* `parent_library_id` - The library the link joined.
+* `keep_copies` - The new setting: whether the branch takes the
+  library's copies of its person's books.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the value it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_listing
+
+```rust
+pub async fn set_library_link_listing(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    list_members_books: bool,
+) -> Result<bool>
+```
+
+Sets the link's "List my members' books to *library*" setting.
+
+#### Arguments
+
+* `parent_library_id` - The library the link joined.
+* `list_members_books` - The new setting.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the value it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_person
+
+```rust
+pub async fn set_library_link_person(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    remote_node_id: &str,
+    person_user_id: Option<i64>,
+) -> Result<bool>
+```
+
+Binds the link to the local user who joined the library through it.
+
+Only that person may add their store connections to the library, or
+withdraw them from it, through this link.
+
+#### Arguments
+
+* `parent_library_id` - The library the link joined.
+* `remote_node_id` - The node id that join enrolled as: a join another
+  one replaced since binds nothing.
+* `person_user_id` - The local user who joined (`None` unbinds it).
+
+#### Returns
+
+Whether the link exists as that node (`false` otherwise).
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_settings
+
+```rust
+pub async fn set_library_link_settings(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    settings: LibraryLinkSettings,
+) -> Result<bool>
+```
+
+Sets a link's sharing, listing and work settings in one statement, so a
+failed write leaves every one of them as it was.
+
+#### Arguments
+
+* `parent_library_id` - The library the link joined.
+* `settings` - The new values; each `None` keeps the stored one.
+
+#### Returns
+
+Whether the link exists (`false` when there is no such link); setting
+the values it already has still returns `true`.
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_sharing
+
+```rust
+pub async fn set_library_link_sharing(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    share_books: bool,
+    include_branches: bool,
+) -> Result<bool>
+```
+
+Sets a link's two sharing settings: "Share this branch's books with
+*library*" and "Include books from my own branches". Answers false when
+no such link exists. The running catalog sync reports them to the owner
+on its next pass.
+
+#### Errors
+
+Returns the write error.
+
+### set_library_link_state
+
+```rust
+pub async fn set_library_link_state(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    state: &str,
+    remote_node_id: Option<&str>,
+) -> Result<bool>
+```
+
+Sets a link's state. Answers false when no such link exists.
+
+#### Arguments
+
+* `store` - Library store holding the link.
+* `parent_library_id` - Library the link joins.
+* `state` - One of [`LIBRARY_LINK_ACTIVE`](#library_link_active), [`LIBRARY_LINK_REVOKED`](#library_link_revoked) or
+  [`LIBRARY_LINK_LEFT`](#library_link_left).
+* `remote_node_id` - When set, only a link still enrolled as this node is
+  changed, so a client running under an earlier enrollment cannot touch the
+  link that replaced it. `None` changes the link whatever its node.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for an unknown state, and the write
+error.
+
+### set_library_link_work
+
+```rust
+pub async fn set_library_link_work(
+    store: &LibraryStore,
+    parent_library_id: &str,
+    work_for_members: bool,
+    keep_member_copies: bool,
+) -> Result<bool>
+```
+
+Sets a link's two work settings: "Download for other members of
+*library*" and "Keep copies of other members' books". Answers false
+when no such link exists. The running client claims under the new
+scope from its next consent check.
+
+#### Errors
+
+Returns the write error.
+
 ### books_imported_from_link
 
 ```rust
 pub async fn books_imported_from_link(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
 ) -> Result<BTreeSet<HeldBookKey>>
 ```
 
-Every book imported from the library `cluster_id`, by store identity:
+Every book imported from the library `library_id`, by store identity:
 the books the catalog sync must not send back to it. Read in keyset
 pages no larger than the database plugin's `maxResultRows`.
 
@@ -9828,13 +9825,13 @@ Returns an error when a read or write fails; the writes before it stay.
 ```rust
 pub async fn record_copy_taken_from_link(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     book: TakenCopy<'_>,
 ) -> Result<()>
 ```
 
 Records that this install took its copy of `book` from the library
-`cluster_id`, so the catalog sync never sends that library a book it
+`library_id`, so the catalog sync never sends that library a book it
 provided itself ([`books_imported_from_link`](#books_imported_from_link)). A book already
 recorded for that library is left as it is; one taken from several
 libraries is recorded once for each.
@@ -10052,7 +10049,7 @@ pub async fn import_output_if_absent(
 ) -> Result<ConfigurationDocument<OutputSettingsV1>>
 ```
 
-Inserts `[output]` when the cluster document is absent.
+Inserts `[output]` when the library document is absent.
 
 An existing document is parsed and returned without reading the seed, so
 an obsolete or out-of-range TOML/environment value cannot fail startup or
@@ -10081,7 +10078,7 @@ pub async fn load_output(
 ) -> Result<ConfigurationDocument<OutputSettingsV1>>
 ```
 
-Loads the cluster output document.
+Loads the library output document.
 
 #### Errors
 
@@ -10093,14 +10090,14 @@ Returns an error when the document is missing, unsupported, or invalid.
 pub fn overlay_output(
     config: &mut Config,
     output: &ConfigurationDocument<OutputSettingsV1>,
-    cluster_id: &str,
+    library_id: &str,
 )
 ```
 
-Copies the authoritative output document onto `config` for `cluster_id`.
+Copies the authoritative output document onto `config` for `library_id`.
 
-Revisions are only comparable within one cluster. Callers that switch
-databases pass the new cluster id explicitly.
+Revisions are only comparable within one library. Callers that switch
+databases pass the new library id explicitly.
 
 ### portable_output_seed
 
@@ -10132,7 +10129,7 @@ pub async fn replace_output(
 ) -> Result<OutputReplace>
 ```
 
-Replaces the cluster output document.
+Replaces the library output document.
 
 #### Errors
 
@@ -10412,7 +10409,7 @@ pub async fn create_pending_join(
     join: &NewPendingJoin,
     state: &str,
     verifier: &str,
-    keys: &ClusterLinkKeys,
+    keys: &LibraryLinkKeys,
 ) -> Result<PendingJoin>
 ```
 
@@ -10638,7 +10635,7 @@ nodes with the most room for this demand, and only to nodes where its
 memory fits the budget. A scale-down drops the replicas on the nodes
 with the least room first. When a replica's node is over its memory
 budget and another qualifying node has room, the replica moves there
-(one move per pass, so the cluster does not thrash).
+(one move per pass, so the library does not thrash).
 
 ### put_plugin_placement
 
@@ -10853,12 +10850,12 @@ Returns the read error.
 ```rust
 pub async fn list_remote_plugin_consents(
     store: &LibraryStore,
-    cluster_id: Option<&str>,
+    library_id: Option<&str>,
 ) -> Result<Vec<RemotePluginConsent>>
 ```
 
-Every consent row, of one cluster when `cluster_id` is given, by
-cluster then plugin key.
+Every consent row, of one library when `library_id` is given, by
+library then plugin key.
 
 #### Errors
 
@@ -10869,12 +10866,12 @@ Returns an error when the read fails.
 ```rust
 pub async fn load_remote_plugin_consent(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     plugin_key: &str,
 ) -> Result<Option<RemotePluginConsent>>
 ```
 
-The consent row for `plugin_key` of `cluster_id`.
+The consent row for `plugin_key` of `library_id`.
 
 #### Errors
 
@@ -10885,7 +10882,7 @@ Returns an error when the read fails.
 ```rust
 pub async fn record_remote_plugin_request(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     plugin_key: &str,
     version: &str,
     requested_grant_json: &str,
@@ -10935,12 +10932,12 @@ so any change to any of them gives another digest.
 ```rust
 pub async fn revoke_remote_plugin(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     plugin_key: &str,
 ) -> Result<Option<RemotePluginConsent>>
 ```
 
-Clears the approval of `plugin_key` of `cluster_id`, keeping its
+Clears the approval of `plugin_key` of `library_id`, keeping its
 request, and records the revoke so no automatic approval brings it
 back. Answers the row, or `None` when nothing is recorded.
 
@@ -11474,17 +11471,17 @@ older package against documents written for the newer schema.
 
 Returns an error when the read fails or `local_version` is not semver.
 
-### align_cluster_root
+### align_library_root
 
 ```rust
-pub async fn align_cluster_root(
+pub async fn align_library_root(
     store: &LibraryStore,
     files_dir: &Path,
     password: Option<&str>,
-) -> Result<ClusterSecret>
+) -> Result<LibrarySecret>
 ```
 
-Ensures this process's DEK is the cluster secret root.
+Ensures this process's DEK is the library secret root.
 
 * Existing fingerprint: the local key must match. A missing file is not minted.
 * No fingerprint and sealed secrets present: the local key must unseal one
@@ -11495,20 +11492,20 @@ Ensures this process's DEK is the cluster secret root.
   minted a different key deletes that new file and fails.
 
 On success the accepted DEK is installed in the process cache. The returned
-value is only the cluster id and fingerprint.
+value is only the library id and fingerprint.
 
 #### Errors
 
 Returns an error when bootstrap material is missing or does not match the
 database. Existing rows are not updated on failure.
 
-### load_cluster_row
+### load_library_row
 
 ```rust
-pub async fn load_cluster_row(store: &LibraryStore) -> Result<Option<Model>>
+pub async fn load_library_row(store: &LibraryStore) -> Result<Option<Model>>
 ```
 
-Reads the singleton cluster row when present.
+Reads the singleton library row when present.
 
 #### Errors
 
@@ -11629,7 +11626,7 @@ Returns an error when a write fails.
 ```rust
 pub async fn renew_fenced_lease(
     store: &LibraryStore,
-    lease: &ClusterLease,
+    lease: &LibraryLease,
     ttl: Duration,
 ) -> Result<bool>
 ```
@@ -11752,9 +11749,9 @@ pub async fn strip_install_state(store: &LibraryStore) -> Result<TemplateStrip>
 Removes this install's own state from the library so that copies of it
 can start as installs of their own.
 
-Deletes the cluster secret fingerprint, so the first daemon of each copy
+Deletes the library secret fingerprint, so the first daemon of each copy
 records the key it mints instead of refusing it as a mismatch, plus the
-cluster leases and node heartbeats left by the build. Library data,
+library leases and node heartbeats left by the build. Library data,
 plugin instances, deployments and the node rows stay. Run it only on a
 library no daemon has open.
 
@@ -12541,11 +12538,11 @@ Returns an error when the read or decode fails.
 ```rust
 pub async fn clear_window_books(
     store: &LibraryStore,
-    owner_cluster_id: &str,
+    parent_library_id: &str,
 ) -> Result<u64>
 ```
 
-Drops every window book of library `owner_cluster_id` (its link
+Drops every window book of library `parent_library_id` (its link
 downloads again, or was left).
 
 #### Returns
@@ -12561,7 +12558,7 @@ Returns the write error.
 ```rust
 pub async fn discard_window_read(
     store: &LibraryStore,
-    owner_cluster_id: &str,
+    parent_library_id: &str,
     seen_at: &str,
 ) -> Result<u64>
 ```
@@ -12583,12 +12580,12 @@ Returns the write error.
 ```rust
 pub async fn finish_window_read(
     store: &LibraryStore,
-    owner_cluster_id: &str,
+    parent_library_id: &str,
     seen_at: &str,
 ) -> Result<u64>
 ```
 
-Ends a complete read of library `owner_cluster_id`'s window books: drops
+Ends a complete read of library `parent_library_id`'s window books: drops
 its rows that read (stamped `seen_at`) did not name. Rows are compared
 by stamp equality, not order, so a clock moved back between reads still
 drops what the new read left out.
@@ -12635,13 +12632,13 @@ Returns the read error.
 ```rust
 pub async fn record_window_page(
     store: &LibraryStore,
-    owner_cluster_id: &str,
+    parent_library_id: &str,
     seen_at: &str,
     works: &[WindowWork],
 ) -> Result<usize>
 ```
 
-Stores one `window.page` from library `owner_cluster_id`, read under
+Stores one `window.page` from library `parent_library_id`, read under
 `seen_at` ([`window_read_stamp`](#window_read_stamp)).
 
 Each edition becomes (or refreshes) one `window_books` row. Each work is
@@ -12759,7 +12756,7 @@ heartbeat records the byte size of its `acquire` and `acquire-pdf` trees.
 
 #### Errors
 
-Returns an error when the secret root, cluster binding, schema, or a core
+Returns an error when the secret root, library binding, schema, or a core
 document cannot be established.
 
 ### overlay_core_documents
@@ -12768,7 +12765,7 @@ document cannot be established.
 pub fn overlay_core_documents(config: &mut Config, session: &ControlPlaneSession)
 ```
 
-Copies every authoritative cluster document in `session` onto `config`.
+Copies every authoritative library document in `session` onto `config`.
 
 ### overlay_events
 
@@ -12776,14 +12773,14 @@ Copies every authoritative cluster document in `session` onto `config`.
 pub fn overlay_events(
     config: &mut Config,
     events: &ConfigurationDocument<EventsSettingsV1>,
-    cluster_id: &str,
+    library_id: &str,
 )
 ```
 
-Copies the authoritative events document onto `config` for `cluster_id`.
+Copies the authoritative events document onto `config` for `library_id`.
 
-Revisions are only comparable within one cluster. Callers that switch
-databases pass the new cluster id explicitly.
+Revisions are only comparable within one library. Callers that switch
+databases pass the new library id explicitly.
 
 ### load_events
 
@@ -12793,7 +12790,7 @@ pub async fn load_events(
 ) -> Result<ConfigurationDocument<EventsSettingsV1>>
 ```
 
-Loads the cluster events document.
+Loads the library events document.
 
 #### Errors
 
@@ -12810,7 +12807,7 @@ pub async fn import_events_if_absent(
 ) -> Result<ConfigurationDocument<EventsSettingsV1>>
 ```
 
-Inserts `[events]` when the cluster document is absent.
+Inserts `[events]` when the library document is absent.
 
 An existing document is parsed and returned without reading the seed, so an
 obsolete or out-of-range TOML/environment value cannot fail startup.
@@ -12832,7 +12829,7 @@ pub async fn replace_events(
 ) -> Result<EventsReplace>
 ```
 
-Replaces the cluster events document.
+Replaces the library events document.
 
 #### Errors
 
@@ -13044,7 +13041,7 @@ merged away, or lost every identifier) when its branch came for it.
 pub const CACHE_NAMESPACE: &str = "core.cache";
 ```
 
-Namespace of the cluster cache document.
+Namespace of the library cache document.
 
 ### CACHE_SCHEMA_VERSION
 
@@ -13122,38 +13119,6 @@ pub const CLERK_CARD_NAME: &str = "library_card";
 
 `encrypted_secrets.name` of a clerk link's library card.
 
-### CLUSTER_LINK_ACTIVE
-
-```rust
-pub const CLUSTER_LINK_ACTIVE: &str = "active";
-```
-
-`cluster_links.state` of a link the host client connects.
-
-### CLUSTER_LINK_KEYS_NAME
-
-```rust
-pub const CLUSTER_LINK_KEYS_NAME: &str = "node_keys";
-```
-
-`encrypted_secrets.name` of a link's node keys.
-
-### CLUSTER_LINK_LEFT
-
-```rust
-pub const CLUSTER_LINK_LEFT: &str = "left";
-```
-
-`cluster_links.state` after this install left the cluster.
-
-### CLUSTER_LINK_REVOKED
-
-```rust
-pub const CLUSTER_LINK_REVOKED: &str = "revoked";
-```
-
-`cluster_links.state` once the owner revoked this node (close 4403).
-
 ### MAX_ADD_CONNECTIONS
 
 ```rust
@@ -13204,21 +13169,21 @@ pub const DESTINATION_SCHEMA_VERSION: i64 = 1;
 
 Schema version of [`DestinationPlacementV1`](#destinationplacementv1).
 
-### CLUSTER_SCOPE_ID
+### LIBRARY_SCOPE_ID
 
 ```rust
-pub const CLUSTER_SCOPE_ID: &str = "singleton";
+pub const LIBRARY_SCOPE_ID: &str = "singleton";
 ```
 
-Cluster scope instance. There is one cluster document per namespace.
+Library scope instance. There is one library document per namespace.
 
-### CLUSTER_SCOPE_TYPE
+### LIBRARY_SCOPE_TYPE
 
 ```rust
-pub const CLUSTER_SCOPE_TYPE: &str = "cluster";
+pub const LIBRARY_SCOPE_TYPE: &str = "library";
 ```
 
-Scope type stored for cluster documents.
+Scope type stored for library documents.
 
 ### MAX_CONFIGURATION_DOCUMENT_BYTES
 
@@ -13282,7 +13247,7 @@ Version tag that starts every enrollment token.
 pub const HOST_ENROLLMENT_NAMESPACE: &str = "core.host_enrollment";
 ```
 
-Namespace of the cluster's host-enrollment switch.
+Namespace of the library's host-enrollment switch.
 
 ### HOST_ENROLLMENT_SCHEMA_VERSION
 
@@ -13433,6 +13398,38 @@ pub const SESSION_EXPIRY_LEASE: &str = "maintenance.sessions";
 Lease of the session duty (expired operator sessions, OIDC RP states,
 WebAuthn challenges).
 
+### LIBRARY_LINK_ACTIVE
+
+```rust
+pub const LIBRARY_LINK_ACTIVE: &str = "active";
+```
+
+`library_links.state` of a link the host client connects.
+
+### LIBRARY_LINK_KEYS_NAME
+
+```rust
+pub const LIBRARY_LINK_KEYS_NAME: &str = "node_keys";
+```
+
+`encrypted_secrets.name` of a link's node keys.
+
+### LIBRARY_LINK_LEFT
+
+```rust
+pub const LIBRARY_LINK_LEFT: &str = "left";
+```
+
+`library_links.state` after this install left the library.
+
+### LIBRARY_LINK_REVOKED
+
+```rust
+pub const LIBRARY_LINK_REVOKED: &str = "revoked";
+```
+
+`library_links.state` once the owner revoked this node (close 4403).
+
 ### NODE_CONSUMER_PREFIX
 
 ```rust
@@ -13577,7 +13574,7 @@ Longest rule value, in UTF-8 bytes.
 pub const PATRON_SCOPE_NAMESPACE: &str = "core.patron_scope";
 ```
 
-Namespace of the cluster document that holds the library's default
+Namespace of the library document that holds the library's default
 scope.
 
 ### MAX_JOIN_NAME_BYTES
@@ -13634,7 +13631,7 @@ Implicit label name every node carries with its own id.
 pub const SCHEDULER_LEASE: &str = "scheduler";
 ```
 
-Name of the cluster lease the scheduler runs under.
+Name of the library lease the scheduler runs under.
 
 ### SCHEDULER_LEASE_TTL
 
@@ -13709,7 +13706,7 @@ restarts fit inside it.
 pub const REQUIREMENTS_SWEEP_LEASE: &str = "jobs:requirements-sweep";
 ```
 
-Cluster lease the daemon holds while it sweeps.
+Library lease the daemon holds while it sweeps.
 
 ### REQUIREMENTS_SWEEP_LEASE_TTL
 

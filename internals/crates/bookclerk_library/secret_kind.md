@@ -17,9 +17,9 @@ table. `BOOKCLERK_OPERATOR_TOKEN` may override the durable
 | [`OIDC_CLIENT`](#oidc_client) | constant | OIDC/OAuth relying-party client secret (`name` = provider id). |
 | [`TOTP`](#totp) | constant | User TOTP shared secret (`name` = `primary` or `pending`). |
 | [`PLUGIN_INSTANCE`](#plugin_instance) | constant | Plugin-instance secret referenced by a `plugin_instance` config document. |
-| [`CLUSTER_LINK`](#cluster_link) | constant | On a branch node: the private node keys of one owner-cluster link (`provider` = owner cluster id, `account_id` = this node's id there). |
-| [`CLUSTER_JOIN`](#cluster_join) | constant | On a host joining a library: the PKCE verifier and node keys of one sign-in in progress (`provider` = owner cluster id, `account_id` = the pending join's state hash). Deleted when the join completes or expires. |
-| [`CLERK_CARD`](#clerk_card) | constant | On a clerk: the library card of one library (`provider` = the library's cluster id, `account_id` = the same). Deleted when the card is signed out. |
+| [`LIBRARY_LINK`](#library_link) | constant | On a branch node: the private node keys of one owner-library link (`provider` = parent library id, `account_id` = this node's id there). |
+| [`LIBRARY_JOIN`](#library_join) | constant | On a host joining a library: the PKCE verifier and node keys of one sign-in in progress (`provider` = parent library id, `account_id` = the pending join's state hash). Deleted when the join completes or expires. |
+| [`CLERK_CARD`](#clerk_card) | constant | On a clerk: the library card of one library (`provider` = the library's id, `account_id` = the same). Deleted when the card is signed out. |
 
 ## Constants
 
@@ -82,23 +82,23 @@ Plugin-instance secret referenced by a `plugin_instance` config document.
 Ciphertext stays in this table. The configuration document stores the
 ref name only.
 
-### CLUSTER_LINK
+### LIBRARY_LINK
 
 ```rust
-pub const CLUSTER_LINK: &str = "cluster_link";
+pub const LIBRARY_LINK: &str = "library_link";
 ```
 
-On a branch node: the private node keys of one owner-cluster link
-(`provider` = owner cluster id, `account_id` = this node's id there).
+On a branch node: the private node keys of one owner-library link
+(`provider` = parent library id, `account_id` = this node's id there).
 
-### CLUSTER_JOIN
+### LIBRARY_JOIN
 
 ```rust
-pub const CLUSTER_JOIN: &str = "cluster_join";
+pub const LIBRARY_JOIN: &str = "library_join";
 ```
 
 On a host joining a library: the PKCE verifier and node keys of one
-sign-in in progress (`provider` = owner cluster id, `account_id` =
+sign-in in progress (`provider` = parent library id, `account_id` =
 the pending join's state hash). Deleted when the join completes or
 expires.
 
@@ -109,5 +109,5 @@ pub const CLERK_CARD: &str = "clerk_card";
 ```
 
 On a clerk: the library card of one library (`provider` = the
-library's cluster id, `account_id` = the same). Deleted when the card
+library's id, `account_id` = the same). Deleted when the card
 is signed out.

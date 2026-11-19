@@ -39,7 +39,7 @@ Row shape for one account's revision on one share.
 - `account_id`: Store account id, unique within its plugin key.
 - `peer`: The other instance, as in `account_shares.peer`: `node:<node_id>`
   for the keeper branch whose pushes this library applied,
-  `link:<cluster_id>` for a library this keeper pushed to.
+  `link:<library_id>` for a library this keeper pushed to.
 - `revision`: The revision that crossed this share: on a library, the newest one
   it applied from its keeper; on a keeper, the newest one it sent.
   Each push a keeper sends carries a higher one than the last.

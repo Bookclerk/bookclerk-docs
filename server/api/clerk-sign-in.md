@@ -23,9 +23,9 @@ session token. The code is spent by any attempt, matching or not.
 
 ### Responses
 
-- `200` — The session token (shown once), this library's cluster id, the signed-in user and how long the session stays signed in unused. Body: [`ClerkTokenAnswer`](schemas.md#clerktokenanswer) (`application/json`)
+- `200` — The session token (shown once), this library's id, the signed-in user and how long the session stays signed in unused. Body: [`ClerkTokenAnswer`](schemas.md#clerktokenanswer) (`application/json`)
   - `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Clerk <token>`. Shown once; the library keeps only its hash.
-  - `cluster_id` *string*, **required** — The library's cluster id.
+  - `library_id` *string*, **required** — The library id.
   - `user` *[`ClerkUser`](schemas.md#clerkuser)*, **required** — The signed-in person on that library.
   - `idle_secs` *integer (int64)*, **required** — Seconds the session stays signed in unused; each use resets it.
 - `400` — The body is not a token request (`invalid_request`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -88,12 +88,12 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The session token (shown once), this library's cluster id, the signed-in user and how long the session stays signed in unused.
+Status `200`: The session token (shown once), this library's id, the signed-in user and how long the session stays signed in unused.
 
 ```json
 {
   "token": "Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2FycGx5",
-  "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
   "user": {
     "id": 7,
     "display_name": "Riley"
@@ -110,7 +110,7 @@ Schema:
   "description": "`POST /api/clerk/v1/token` answer.",
   "required": [
     "token",
-    "cluster_id",
+    "library_id",
     "user",
     "idle_secs"
   ],
@@ -120,9 +120,9 @@ Schema:
       "description": "The session token, sent as `Authorization: Bookclerk-Clerk <token>`.\nShown once; the library keeps only its hash.",
       "example": "Zm9vYmFyYmF6cXV4cXV1eGNvcmdlZ3JhdWx0Z2FycGx5"
     },
-    "cluster_id": {
+    "library_id": {
       "type": "string",
-      "description": "The library's cluster id.",
+      "description": "The library id.",
       "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
     },
     "user": {

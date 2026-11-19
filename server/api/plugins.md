@@ -16,7 +16,7 @@ Back to the [web API reference](README.md).
 
 - `200` — Every plugin instance with its deployments. Body: [`PluginInstancesResponse`](schemas.md#plugininstancesresponse) (`application/json`)
   - `node_id` *string*, **required** — Id of the node that answered; its deployments carry its own observations.
-  - `instances` *array of [`PluginInstanceView`](schemas.md#plugininstanceview)*, **required** — Every plugin instance in the cluster.
+  - `instances` *array of [`PluginInstanceView`](schemas.md#plugininstanceview)*, **required** — Every plugin instance in the library.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -548,7 +548,7 @@ Schema:
           }
         }
       },
-      "description": "Every plugin instance in the cluster."
+      "description": "Every plugin instance in the library."
     }
   }
 }
@@ -705,7 +705,7 @@ a plugin, with an empty document so schema defaults apply. With
   - `plugin_instance_id` *string*, **required** — Id of the new instance.
   - `plugin_key` *string*, **required** — Canonical plugin key the instance belongs to.
   - `display_name` *string*, **required** — Operator-facing name, trimmed.
-  - `owner_node_id` *string or null* — Node the instance is local to; `null` for a cluster-wide instance.
+  - `owner_node_id` *string or null* — Node the instance is local to; `null` for a library-wide instance.
 - `400` — The body is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -818,7 +818,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Node the instance is local to; `null` for a cluster-wide instance.",
+      "description": "Node the instance is local to; `null` for a library-wide instance.",
       "example": "node-7f3a9c"
     }
   }

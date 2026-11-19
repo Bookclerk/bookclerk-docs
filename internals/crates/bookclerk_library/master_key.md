@@ -234,7 +234,7 @@ pub fn master_key_fingerprint(key: &MasterKey) -> String
 
 SHA-256 hex fingerprint of the unwrapped DEK.
 
-This identifies the cluster secret root. It is not a password hash: the
+This identifies the library secret root. It is not a password hash: the
 passphrase, when set, is stretched with Argon2id before it unwraps this
 key. Wrapping changes the file bytes and leaves this fingerprint stable.
 

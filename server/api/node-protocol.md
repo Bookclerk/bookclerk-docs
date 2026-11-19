@@ -7,7 +7,7 @@ Back to the [web API reference](README.md).
 ## `POST /api/node/v1/enroll`
 
 `POST /api/node/v1/enroll`: redeem an enrollment link. Answers
-`{cluster_id, node_id}`; 403 `transport_insecure` when the connection
+`{library_id, node_id}`; 403 `transport_insecure` when the connection
 fails the transport policy, 403 `enrollment_refused` for any link that
 does not redeem.
 
@@ -28,7 +28,7 @@ does not redeem.
 ### Responses
 
 - `200` — The host is enrolled; its node credential. Body: [`EnrolledNodeView`](schemas.md#enrollednodeview) (`application/json`)
-  - `cluster_id` *string*, **required** — The cluster the node joined.
+  - `library_id` *string*, **required** — The library the node joined.
   - `node_id` *string*, **required** — The node id minted for it.
 - `400` — The body is not an enroll request, or its keys are not base64url. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
@@ -94,7 +94,7 @@ Status `200`: The host is enrolled; its node credential.
 
 ```json
 {
-  "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
   "node_id": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
 }
 ```
@@ -106,13 +106,13 @@ Schema:
   "type": "object",
   "description": "JSON body after an enrollment link or branch sign-in was redeemed.",
   "required": [
-    "cluster_id",
+    "library_id",
     "node_id"
   ],
   "properties": {
-    "cluster_id": {
+    "library_id": {
       "type": "string",
-      "description": "The cluster the node joined.",
+      "description": "The library the node joined.",
       "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
     },
     "node_id": {
@@ -380,20 +380,20 @@ A `text/plain` body: a string.
 ### Responses
 
 - `200` — What this library says about itself to a joining install. Body: [`OwnerInfo`](schemas.md#ownerinfo) (`application/json`)
-  - `cluster_id` *string*, **required** — The library's cluster id.
+  - `library_id` *string*, **required** — The library id.
   - `library_name` *string*, **required** — A name to show for the library.
   - `origin` *string*, **required** — The library's canonical origin: the one the node handshake signs and the authorize endpoint lives under.
   - `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
   - `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.host_enrollment`).
   - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
   - `software_version` *string* — The library's Bookclerk version.
-  - `ancestry` *array of string* — The library's ancestry: its own cluster id first, then the cluster id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own cluster id, so a tree of libraries never becomes a cycle.
+  - `ancestry` *array of string* — The library's ancestry: its own library id first, then the library id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own library id, so a tree of libraries never becomes a cycle.
 - `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`). Body: [`TransportRefused`](schemas.md#transportrefused) (`application/json`)
   - `error` *string*, **required** — Always `transport_insecure`.
   - `reason` *string*, **required** — The transport check that refused the connection (`plain_http`, `unknown_peer`, `untrusted_forwarding`, `proxy_proto_missing`, `proxy_proto_ambiguous`, `proxy_proto_not_https`, `public_origin_not_https`, `listener_mode_mismatch`, `node_api_misconfigured`).
 - `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — This library's cluster row (`cluster_unavailable`) or origin (`origin_unavailable`) is not available yet. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+- `503` — This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -430,7 +430,7 @@ Status `200`: What this library says about itself to a joining install.
 
 ```json
 {
-  "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
   "library_name": "books.example.com",
   "origin": "https://books.example.com",
   "transport": "acme",
@@ -450,16 +450,16 @@ Schema:
   "type": "object",
   "description": "`GET /api/node/v1/info` answer.",
   "required": [
-    "cluster_id",
+    "library_id",
     "library_name",
     "origin",
     "transport",
     "enrollment"
   ],
   "properties": {
-    "cluster_id": {
+    "library_id": {
       "type": "string",
-      "description": "The library's cluster id.",
+      "description": "The library id.",
       "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
     },
     "library_name": {
@@ -500,7 +500,7 @@ Schema:
       "items": {
         "type": "string"
       },
-      "description": "The library's ancestry: its own cluster id first, then the cluster\nid of every library above it up to the root. A joining library\nrefuses a parent whose ancestry names its own cluster id, so a\ntree of libraries never becomes a cycle.",
+      "description": "The library's ancestry: its own library id first, then the library\nid of every library above it up to the root. A joining library\nrefuses a parent whose ancestry names its own library id, so a\ntree of libraries never becomes a cycle.",
       "example": [
         "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
       ]
@@ -570,11 +570,11 @@ Schema:
 }
 ```
 
-Status `503`: This library's cluster row (`cluster_unavailable`) or origin (`origin_unavailable`) is not available yet.
+Status `503`: This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet.
 
 ```json
 {
-  "error": "cluster_unavailable"
+  "error": "library_unavailable"
 }
 ```
 
@@ -610,7 +610,7 @@ A `text/plain` body: a string.
 ## `POST /api/node/v1/enroll/oauth`
 
 `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in.
-Answers `{cluster_id, node_id}` for a branch, plus `connection` and the
+Answers `{library_id, node_id}` for a branch, plus `connection` and the
 sealed `bootstrap` for a shared branch; 403 `transport_insecure` for a refused
 connection, 403 `enrollment_refused` for a code that does not redeem
 (unknown, used, expired, another client's, a wrong verifier or
@@ -635,8 +635,8 @@ redirect URI, enrollment off, or the user no longer active).
 
 ### Responses
 
-- `200` — The install is enrolled: its cluster and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key. Body: [`OAuthEnrollAnswer`](schemas.md#oauthenrollanswer) (`application/json`)
-  - `cluster_id` *string*, **required** — The library's cluster id.
+- `200` — The install is enrolled: its library and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key. Body: [`OAuthEnrollAnswer`](schemas.md#oauthenrollanswer) (`application/json`)
+  - `library_id` *string*, **required** — The library id.
   - `node_id` *string*, **required** — The node id recorded for the joining install.
   - `connection` *[`ConnectionType`](schemas.md#connectiontype)* — The connection type recorded (`branch` when left out).
   - `bootstrap` *string or null* — For a shared branch: the [`crate::SharedBranchBootstrap`] sealed to the node's box key ([`crate::seal_shared_branch_bootstrap`]), as base64url without padding.
@@ -703,11 +703,11 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The install is enrolled: its cluster and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key.
+Status `200`: The install is enrolled: its library and node ids for a branch, and for a shared branch join also `connection` and the bootstrap sealed to its box key.
 
 ```json
 {
-  "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
   "node_id": "7d2b9e4c-1f3a-4b8d-9c6e-2a5f8b1d4e7c"
 }
 ```
@@ -719,13 +719,13 @@ Schema:
   "type": "object",
   "description": "`POST /api/node/v1/enroll/oauth` answer.",
   "required": [
-    "cluster_id",
+    "library_id",
     "node_id"
   ],
   "properties": {
-    "cluster_id": {
+    "library_id": {
       "type": "string",
-      "description": "The library's cluster id.",
+      "description": "The library id.",
       "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
     },
     "node_id": {

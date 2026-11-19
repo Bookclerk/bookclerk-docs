@@ -42,7 +42,7 @@ The id is not a plugin key, alias, capability, or host id.
 - `created_at`: RFC 3339 timestamp of the insert.
 - `created_by`: Audit identity of the creator.
 - `owner_node_id`: The node that owns this instance (a node-local output, H-2): it is
-  deployed only there. `None` for cluster instances.
+  deployed only there. `None` for library instances.
 
 #### Model::into_ex
 

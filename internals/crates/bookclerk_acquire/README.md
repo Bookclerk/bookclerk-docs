@@ -48,7 +48,7 @@ content-source plugins; this crate never sees license keys. See
 | [`acquire_book`](#acquire_book) | function | Run the acquire pipeline for one book. |
 | [`acquire_book_indexed`](#acquire_book_indexed) | function | Acquire with an optional pre-built `StorageIndex` (avoids re-listing storage when liberating many titles). On success, newly written keys are inserted into the index so later books in the same batch can match them. |
 | [`acquire_pdf_only`](#acquire_pdf_only) | function | Download and store companion PDF only (classic `acquire --pdf`). |
-| [`library_id_of`](#library_id_of) | function | The short Bookclerk id of the edition `book_uuid` resolves to, for `<library id>` (`bookclerk_library::library_id`). |
+| [`call_number_of`](#call_number_of) | function | The short Bookclerk id of the edition `book_uuid` resolves to, for `<call number>` (`bookclerk_library::call_number`). |
 | [`planned_storage_key`](#planned_storage_key) | function | Compute the storage key that would be used (for dry-run / set-status). |
 | [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`. |
 | [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | Like `planned_storage_key_for` but with an explicit replacement-rule set (used by reconcile to probe wildcard patterns across sanitization profiles). |
@@ -588,7 +588,7 @@ pub struct NamingContext {
     pub codec: Option<String>,
     pub is_abridged: bool,
     pub content_kind: Option<String>,
-    pub library_id: Option<String>,
+    pub call_number: Option<String>,
     pub chapter_number: Option<u32>,
     pub chapter_count: Option<u32>,
     pub chapter_title: Option<String>,
@@ -621,7 +621,7 @@ Metadata available to naming templates.
 - `codec`: Audio codec label for naming templates, when known.
 - `is_abridged`: Whether the edition is abridged (template boolean).
 - `content_kind`: Title kind (`book`, `episode`, …) for naming templates.
-- `library_id`: The edition's short Bookclerk id for `<library id>`; `None` for a
+- `call_number`: The edition's short Bookclerk id for `<call number>`; `None` for a
   title with no edition, which then names by its product id.
 - `chapter_number`: Chapter-specific: 1-based index.
 - `chapter_count`: Total chapter count when naming a split chapter file.
@@ -692,8 +692,8 @@ pub struct AcquireRequest {
     pub placement: Option<PlacementFacts>,
     pub job_id: Option<String>,
     pub temp_quota_bytes: Option<u64>,
-    pub library_id: Option<String>,
-    pub parent_library_id: Option<String>,
+    pub call_number: Option<String>,
+    pub parent_call_number: Option<String>,
     pub metadata: AcquireMetadata,
     pub library_copies: LibraryCopySource,
 }
@@ -725,10 +725,10 @@ Request to acquire a single title.
   acquiring for an owner gets destinations the owner already chose.
 - `job_id`: Durable daemon job id that owns this acquire's scratch directory.
 - `temp_quota_bytes`: Refuse a new scratch dir when registered temps already exceed this.
-- `library_id`: The `<library id>` to name the title by instead of its edition in
+- `call_number`: The `<call number>` to name the title by instead of its edition in
   `library`: a host acquiring for a shared node names the title as the
   owner does, since its scratch library's edition ids are its own.
-- `parent_library_id`: Likewise for the title's podcast parent, whose folder an episode
+- `parent_call_number`: Likewise for the title's podcast parent, whose folder an episode
   may be saved in.
 - `metadata`: Metadata providers asked for the plain-audio catalog and chapter
   overlay. The default has none, so plain audio keeps its store tags.
@@ -1291,17 +1291,17 @@ Each PDF key written is recorded for the book's edition in `edition_files`.
 
 Returns an error when the operation fails.
 
-### library_id_of
+### call_number_of
 
 ```rust
-pub async fn library_id_of(
+pub async fn call_number_of(
     library: &LibraryStore,
     book_uuid: &str,
 ) -> Result<Option<String>>
 ```
 
 The short Bookclerk id of the edition `book_uuid` resolves to, for
-`<library id>` ([`bookclerk_library::library_id`](../bookclerk_library/README.md#library_id)).
+`<call number>` ([`bookclerk_library::call_number`](../bookclerk_library/README.md#call_number)).
 
 #### Returns
 

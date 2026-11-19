@@ -65,7 +65,7 @@ Adapters lower canonical DDL at the execution edge
 | [`host_migration_plan`](#host_migration_plan) | function | Frozen host migration steps. Empty until a release cut copies `unreleased_ops` into version 1. |
 | [`SCHEMA_VERSION`](#schema_version) | constant | Highest **frozen** schema version this binary knows (`0` while the plan is empty). |
 | [`SCHEMA_MIGRATIONS_DDL`](#schema_migrations_ddl) | constant | Host bookkeeping table created before applying plan versions. |
-| [`CLUSTER_LEASES_DDL`](#cluster_leases_ddl) | constant | `cluster_leases`: named singleton leases (scheduler, maintenance duties, schema migration). |
+| [`LIBRARY_LEASES_DDL`](#library_leases_ddl) | constant | `library_leases`: named singleton leases (scheduler, maintenance duties, schema migration). |
 | [`PLUGIN_MIGRATION_SLOT_KEY`](#plugin_migration_slot_key) | constant | Per-binding serialization slot for plugin migration apply. |
 | [`BINDING_SCHEMA_VERSION`](#binding_schema_version) | constant | Highest frozen binding-bootstrap version (`0` until a binding freeze). |
 
@@ -857,10 +857,10 @@ Host bookkeeping table created before applying plan versions.
 leftover rows. Plugin-owned history uses the separate `bookclerk_plugin_migrations`
 journal, not this table.
 
-### CLUSTER_LEASES_DDL
+### LIBRARY_LEASES_DDL
 
 ```rust
-pub const CLUSTER_LEASES_DDL: &str = r"CREATE TABLE IF NOT EXISTS cluster_leases (
+pub const LIBRARY_LEASES_DDL: &str = r"CREATE TABLE IF NOT EXISTS library_leases (
         name TEXT PRIMARY KEY NOT NULL,
         holder TEXT NOT NULL,
         token INTEGER NOT NULL,
@@ -869,7 +869,7 @@ pub const CLUSTER_LEASES_DDL: &str = r"CREATE TABLE IF NOT EXISTS cluster_leases
     )";
 ```
 
-`cluster_leases`: named singleton leases (scheduler, maintenance duties,
+`library_leases`: named singleton leases (scheduler, maintenance duties,
 schema migration).
 
 Part of the unreleased pack, and also created on its own before a

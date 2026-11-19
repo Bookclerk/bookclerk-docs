@@ -338,7 +338,7 @@ Status `200`: The `core.events` settings.
 ```json
 {
   "namespace": "core.events",
-  "scope_type": "cluster",
+  "scope_type": "library",
   "scope_id": "singleton",
   "schema_version": 1,
   "revision": 12,
@@ -375,12 +375,12 @@ Schema:
         },
         "scope_type": {
           "type": "string",
-          "description": "Scope type: `cluster` for a shared document, `node` for one node's.",
-          "example": "cluster"
+          "description": "Scope type: `library` for a shared document, `node` for one node's.",
+          "example": "library"
         },
         "scope_id": {
           "type": "string",
-          "description": "Scope id: `singleton` for the cluster, else the node id.",
+          "description": "Scope id: `singleton` for the library, else the node id.",
           "example": "singleton"
         },
         "schema_version": {
@@ -433,7 +433,7 @@ Schema:
         "concurrency": {
           "type": "integer",
           "format": "int32",
-          "description": "Local delivery workers and the cluster in-flight cap.",
+          "description": "Local delivery workers and the library in-flight cap.",
           "example": 4,
           "minimum": 0
         }
@@ -666,7 +666,7 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
 ```json
 {
   "namespace": "core.events",
-  "scope_type": "cluster",
+  "scope_type": "library",
   "scope_id": "singleton",
   "schema_version": 1,
   "revision": 12,
@@ -705,12 +705,12 @@ Schema:
             },
             "scope_type": {
               "type": "string",
-              "description": "Scope type: `cluster` for a shared document, `node` for one node's.",
-              "example": "cluster"
+              "description": "Scope type: `library` for a shared document, `node` for one node's.",
+              "example": "library"
             },
             "scope_id": {
               "type": "string",
-              "description": "Scope id: `singleton` for the cluster, else the node id.",
+              "description": "Scope id: `singleton` for the library, else the node id.",
               "example": "singleton"
             },
             "schema_version": {
@@ -763,7 +763,7 @@ Schema:
             "concurrency": {
               "type": "integer",
               "format": "int32",
-              "description": "Local delivery workers and the cluster in-flight cap.",
+              "description": "Local delivery workers and the library in-flight cap.",
               "example": 4,
               "minimum": 0
             }
@@ -1083,7 +1083,7 @@ Status `200`: The `core.output` settings.
 ```json
 {
   "namespace": "core.events",
-  "scope_type": "cluster",
+  "scope_type": "library",
   "scope_id": "singleton",
   "schema_version": 1,
   "revision": 12,
@@ -1168,12 +1168,12 @@ Schema:
         },
         "scope_type": {
           "type": "string",
-          "description": "Scope type: `cluster` for a shared document, `node` for one node's.",
-          "example": "cluster"
+          "description": "Scope type: `library` for a shared document, `node` for one node's.",
+          "example": "library"
         },
         "scope_id": {
           "type": "string",
-          "description": "Scope id: `singleton` for the cluster, else the node id.",
+          "description": "Scope id: `singleton` for the library, else the node id.",
           "example": "singleton"
         },
         "schema_version": {
@@ -1802,7 +1802,7 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
 ```json
 {
   "namespace": "core.events",
-  "scope_type": "cluster",
+  "scope_type": "library",
   "scope_id": "singleton",
   "schema_version": 1,
   "revision": 12,
@@ -1889,12 +1889,12 @@ Schema:
             },
             "scope_type": {
               "type": "string",
-              "description": "Scope type: `cluster` for a shared document, `node` for one node's.",
-              "example": "cluster"
+              "description": "Scope type: `library` for a shared document, `node` for one node's.",
+              "example": "library"
             },
             "scope_id": {
               "type": "string",
-              "description": "Scope id: `singleton` for the cluster, else the node id.",
+              "description": "Scope id: `singleton` for the library, else the node id.",
               "example": "singleton"
             },
             "schema_version": {
@@ -2615,7 +2615,7 @@ Status `200`: The libraries this install holds a library card for.
 {
   "cards": [
     {
-      "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
       "origin": "https://books.example.com",
       "library_name": "books.example.com",
       "pinned": false,
@@ -2646,7 +2646,7 @@ Schema:
         "type": "object",
         "description": "A library this install holds (or held) a library card for, without the\ncard.",
         "required": [
-          "cluster_id",
+          "library_id",
           "origin",
           "library_name",
           "pinned",
@@ -2655,9 +2655,9 @@ Schema:
           "signed_in_at"
         ],
         "properties": {
-          "cluster_id": {
+          "library_id": {
             "type": "string",
-            "description": "The library's cluster id.",
+            "description": "The library id.",
             "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
           },
           "origin": {
@@ -3042,7 +3042,7 @@ Status `200`: What the library says about itself.
 ```json
 {
   "library": {
-    "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
     "library_name": "books.example.com",
     "origin": "https://books.example.com",
     "transport": "self_signed",
@@ -3067,7 +3067,7 @@ Schema:
       "type": "object",
       "description": "What the library said about itself.",
       "required": [
-        "cluster_id",
+        "library_id",
         "library_name",
         "origin",
         "transport",
@@ -3075,9 +3075,9 @@ Schema:
         "needs_fingerprint"
       ],
       "properties": {
-        "cluster_id": {
+        "library_id": {
           "type": "string",
-          "description": "The library's cluster id.",
+          "description": "The library id.",
           "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
         },
         "library_name": {
@@ -3585,7 +3585,7 @@ Status `200`: The library's sign-in URL to open.
 {
   "authorize_url": "https://books.example.com/oidc/authorize?client_id=bookclerk-clerk&redirect_uri=…",
   "library": {
-    "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
     "library_name": "books.example.com",
     "origin": "https://books.example.com",
     "transport": "self_signed",
@@ -3620,7 +3620,7 @@ Schema:
       "type": "object",
       "description": "What the library said about itself.",
       "required": [
-        "cluster_id",
+        "library_id",
         "library_name",
         "origin",
         "transport",
@@ -3628,9 +3628,9 @@ Schema:
         "needs_fingerprint"
       ],
       "properties": {
-        "cluster_id": {
+        "library_id": {
           "type": "string",
-          "description": "The library's cluster id.",
+          "description": "The library id.",
           "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
         },
         "library_name": {
@@ -4178,7 +4178,7 @@ Status `200`: This install holds a library card for the library now.
 ```json
 {
   "card": {
-    "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
     "origin": "https://books.example.com",
     "library_name": "books.example.com",
     "pinned": false,
@@ -4204,7 +4204,7 @@ Schema:
       "type": "object",
       "description": "The library this install now holds a card for.",
       "required": [
-        "cluster_id",
+        "library_id",
         "origin",
         "library_name",
         "pinned",
@@ -4213,9 +4213,9 @@ Schema:
         "signed_in_at"
       ],
       "properties": {
-        "cluster_id": {
+        "library_id": {
           "type": "string",
-          "description": "The library's cluster id.",
+          "description": "The library id.",
           "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
         },
         "origin": {
@@ -4643,12 +4643,12 @@ and the library from the list here whatever the library answered.
 
 `application/json`: [`ClerkSignOutBody`](schemas.md#clerksignoutbody)
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 
 ### Responses
 
 - `200` — The card and its books are gone here; `library_signed_out` says whether the library ended its session too. Body: [`ClerkSignedOut`](schemas.md#clerksignedout) (`application/json`)
-  - `cluster_id` *string*, **required** — The library's cluster id.
+  - `library_id` *string*, **required** — The library id.
   - `library_signed_out` *boolean*, **required** — Whether the library ended the card's session too. False when it could not be reached (or the card had already ended): the session then stays in the person's session list there until it idles out or they revoke it.
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -4676,7 +4676,7 @@ $ curl 'http://127.0.0.1:8787/api/config/clerk/sign-out' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}'
+    -d '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}'
 ```
 
 ```powershell
@@ -4684,7 +4684,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clerk/sign-out' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}'
+    -Body '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}'
 ```
 
 ```python
@@ -4693,7 +4693,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/clerk/sign-out",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"},
+    json={"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"},
 )
 print(response.status_code, response.text)
 ```
@@ -4702,7 +4702,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/clerk/sign-out", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}),
+  body: JSON.stringify({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -4712,7 +4712,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/clerk/sign-out")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}))
+    .json(&serde_json::json!({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -4724,7 +4724,7 @@ Status `200`: The card and its books are gone here; `library_signed_out` says wh
 
 ```json
 {
-  "cluster_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  "library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
   "library_signed_out": true
 }
 ```
@@ -4736,13 +4736,13 @@ Schema:
   "type": "object",
   "description": "JSON body for `POST /api/config/clerk/sign-out`.",
   "required": [
-    "cluster_id",
+    "library_id",
     "library_signed_out"
   ],
   "properties": {
-    "cluster_id": {
+    "library_id": {
       "type": "string",
-      "description": "The library's cluster id.",
+      "description": "The library id.",
       "example": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
     },
     "library_signed_out": {
@@ -4968,7 +4968,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: missing field `cluster_id` at line 1 column 2
+Failed to deserialize the JSON body into the target type: missing field `library_id` at line 1 column 2
 ```
 
 Schema:

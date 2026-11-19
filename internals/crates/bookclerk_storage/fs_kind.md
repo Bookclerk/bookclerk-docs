@@ -4,7 +4,7 @@ What kind of file system a local path lives on, so the local backend only
 leans on hard links, inode numbers and atomic renames where the file
 system keeps their promises.
 
-Network file systems (NFS, SMB/CIFS, AFP, WebDAV, 9p, cluster file
+Network file systems (NFS, SMB/CIFS, AFP, WebDAV, 9p, library file
 systems) and FUSE mounts break several of them:
 
 - A retried NFS `LINK` or `RENAME` can answer "already exists" or "not
@@ -44,7 +44,7 @@ The kind of file system behind a path.
 
 - `Local`: A disk the operating system manages directly (ext4, XFS, Btrfs, ZFS,
   APFS, NTFS, FAT and the like).
-- `Remote`: A network or cluster file system, or a Windows network drive.
+- `Remote`: A network or library file system, or a Windows network drive.
 - `Userspace`: A FUSE (or macFUSE) mount: its guarantees depend on the program
   behind it, so it is treated like a remote file system.
 - `Unknown`: The kind could not be determined; treated like a remote file system.

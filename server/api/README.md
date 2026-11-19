@@ -129,12 +129,45 @@ Books in the library, scans and acquires.
 
 | Route | Summary |
 | --- | --- |
+| [`PUT /api/config/nodes/{node_id}/labels`](library.md#put-apiconfignodesnode_idlabels) | `PUT /api/config/nodes/{node_id}/labels`: replace a node's placement labels. The scheduler re-plans on the wakeup this publishes. |
+| [`PUT /api/config/nodes/{node_id}/owner`](library.md#put-apiconfignodesnode_idowner) | `PUT /api/config/nodes/{node_id}/owner`: assign or clear a node's owner. The owner may then edit that node's runtime settings without operator authority. |
+| [`GET /api/config/library-consents`](library.md#get-apiconfiglibrary-consents) | `GET /api/config/library-consents`. |
+| [`POST /api/config/libraries/{library_id}/scan`](library.md#post-apiconfiglibrarieslibrary_idscan) | `POST /api/config/libraries/{library_id}/scan`: asks the library to queue a scan for this node's owner (H-5). The owner's planner decides what that user may scan; the answer lists the queued job ids. |
+| [`POST /api/config/libraries/{library_id}/jobs`](library.md#post-apiconfiglibrarieslibrary_idjobs) | `POST /api/config/libraries/{library_id}/jobs`: the owner's view of jobs this node may see (those it would be trusted to claim). |
+| [`POST /api/config/library-consents/approve`](library.md#post-apiconfiglibrary-consentsapprove) | `POST /api/config/library-consents/approve`. |
+| [`POST /api/config/library-consents/revoke`](library.md#post-apiconfiglibrary-consentsrevoke) | `POST /api/config/library-consents/revoke`. |
+| [`GET /api/config/join`](library.md#get-apiconfigjoin) | `GET /api/config/join`. |
+| [`POST /api/config/join/inspect`](library.md#post-apiconfigjoininspect) | `POST /api/config/join/inspect`. |
+| [`POST /api/config/join/start`](library.md#post-apiconfigjoinstart) | `POST /api/config/join/start`. |
+| [`POST /api/config/join/callback`](library.md#post-apiconfigjoincallback) | `POST /api/config/join/callback`: redeems the library's code with the sign-in's sealed verifier and keys. The pending sign-in is kept when the redeem fails for a reason a retry can fix (answered as 502 `join_retry`; the page offers Try again with the same code), and ended on success, refusal, or anything else. |
+| [`POST /api/config/join/invite`](library.md#post-apiconfigjoininvite) | `POST /api/config/join/invite`: join with a pasted branch invite. The link is redeemed once and dropped; it is never logged or echoed. A library slower than [`REDEEM_TIMEOUT`] is answered 504 `join_pending` while the join carries on and starts its client when it lands. |
+| [`POST /api/config/join/leave`](library.md#post-apiconfigjoinleave) | `POST /api/config/join/leave`: Leave library. The leave runs on its own task, so a request cut short (the client gone, or the API deadline) still records it once the library has been told. |
+| [`GET /api/config/nodes`](library.md#get-apiconfignodes) | `GET /api/config/nodes`: every node for an operator; the caller's own nodes for a node owner. |
+| [`DELETE /api/config/nodes/{node_id}`](library.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. The operator or an Owner may remove any; another user only one they own. A running node, this node, or a branch is refused (a branch is revoked instead). |
+| [`GET /api/config/shared-branches`](library.md#get-apiconfigshared-branches) | `GET /api/config/shared-branches`: the shared nodes (this one and its shared branches) for Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets them remove any; another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
+| [`PUT /api/config/nodes/{node_id}/runtime`](library.md#put-apiconfignodesnode_idruntime) | `PUT /api/config/nodes/{node_id}/runtime`: edit a node's label, budgets, or drain switch. Applies at that node's next heartbeat. A node owner may edit only the nodes it owns. |
 | [`POST /api/library/scan`](library.md#post-apilibraryscan) | Plans and enqueues a library scan; returns the accepted job ids. |
 | [`POST /api/library/acquire`](library.md#post-apilibraryacquire) | Plans and enqueues acquire jobs; returns the accepted job ids. |
 | [`PUT /api/library/listings/{id}/pin`](library.md#put-apilibrarylistingsidpin) | Pins a store listing to the edition it sells. |
 | [`DELETE /api/library/listings/{id}/pin`](library.md#delete-apilibrarylistingsidpin) | Removes a listing's pin. |
 | [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
 | [`POST /api/library/works/{id}/split`](library.md#post-apilibraryworksidsplit) | Splits a work an automatic merge joined wrongly. |
+| [`GET /api/config/node-invites`](library.md#get-apiconfignode-invites) | `GET /api/config/node-invites`: every link for the operator or an Owner; the caller's own links for anyone else, and with `?mine=true`. |
+| [`POST /api/config/node-invites`](library.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while host enrollment is on; the operator or an Owner may mint for any active user. |
+| [`DELETE /api/config/node-invites/{id}`](library.md#delete-apiconfignode-invitesid) | `DELETE /api/config/node-invites/{id}`: revoke an unredeemed link. |
+| [`GET /api/config/branches`](library.md#get-apiconfigbranches) | `GET /api/config/branches`: this library's join settings: whether new branches may join, the transport mode, and the SPKI fingerprint a joining operator confirms in `self_signed` mode. |
+| [`PUT /api/config/branches`](library.md#put-apiconfigbranches) | `PUT /api/config/branches`: turn "Let new branches join" on or off. |
+| [`POST /api/config/branches/titles/remove`](library.md#post-apiconfigbranchestitlesremove) | `POST /api/config/branches/titles/remove`: removes the entries of titles from a branch that stopped sharing or left. Delivered files stay. |
+| [`PUT /api/config/branches/members-books`](library.md#put-apiconfigbranchesmembers-books) | `PUT /api/config/branches/members-books`: turn this library's "Acquire all of this branch's members' books" on or off for one branch. |
+| [`GET /api/config/join/sharing`](library.md#get-apiconfigjoinsharing) | `GET /api/config/join/sharing`: Settings → Library for the operator or an Owner: every library this install is a branch of, with its two sharing settings (`{libraries: [...]}`). |
+| [`POST /api/config/join/sharing`](library.md#post-apiconfigjoinsharing) | `POST /api/config/join/sharing`: Settings → Library's sharing and work settings for one library this install is a branch of (the two book-sharing settings, the two work settings, and optionally "List my members' books"). The operator or an Owner (verified from the stored role); anyone else gets 403. |
+| [`GET /api/config/join/window`](library.md#get-apiconfigjoinwindow) | `GET /api/config/join/window`: "Books in other libraries" for the operator or an Owner: every book of each library this install is a branch of, or holds a library card for, merged by work, each edition marked when it is this install's person's (`{libraries, cards, books}`). |
+| [`POST /api/config/join/connections`](library.md#post-apiconfigjoinconnections) | `POST /api/config/join/connections`: "Add my connections to *library*". |
+| [`POST /api/config/join/connections/disconnect`](library.md#post-apiconfigjoinconnectionsdisconnect) | `POST /api/config/join/connections/disconnect`: disconnects one of the person's store accounts here, and with `everywhere` in every linked library it was shared with. |
+| [`POST /api/config/join/capacity`](library.md#post-apiconfigjoincapacity) | `POST /api/config/join/capacity`: Settings → Library's job cap for one library this install is a branch of. The operator or an Owner (verified from the stored role); anyone else gets 403. The running link's share changes at once: its claims stop at the new share and its next heartbeat reports the library the new part of the machine. Jobs it already runs finish. |
+| [`DELETE /api/config/node-credentials/{node_id}`](library.md#delete-apiconfignode-credentialsnode_id) | `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled host's credential so it can no longer connect. |
+| [`GET /api/config/host-enrollment`](library.md#get-apiconfighost-enrollment) | `GET /api/config/host-enrollment`: whether branch nodes may enroll. |
+| [`PUT /api/config/host-enrollment`](library.md#put-apiconfighost-enrollment) | `PUT /api/config/host-enrollment`: turn host enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
 | [`PUT /api/library/works/{id}/state`](library.md#put-apilibraryworksidstate) | Changes the caller's own state for a work: finished, ratings and tags. |
@@ -212,7 +245,7 @@ Library and daemon snapshot.
 | Route | Summary |
 | --- | --- |
 | [`GET /api/status`](status.md#get-apistatus) | Returns library counts, listen addresses, storage backends, and whether operator auth is on. |
-| [`GET /api/cluster/status`](status.md#get-apiclusterstatus) | `GET /api/cluster/status`: cluster-wide health every node administrator may see (node counts, committed capacity, active jobs, delivery backlog), plus detail for the nodes the caller may see. |
+| [`GET /api/library-status`](status.md#get-apilibrary-status) | `GET /api/library-status`: library-wide health every node administrator may see (node counts, committed capacity, active jobs, delivery backlog), plus detail for the nodes the caller may see. |
 
 ### [Settings](settings.md)
 
@@ -270,46 +303,6 @@ Live configuration domains and reloads.
 | [`POST /api/config/clerk/callback`](configuration.md#post-apiconfigclerkcallback) | `POST /api/config/clerk/callback`: redeems the library's code with the sign-in's verifier, seals the card and starts reading the person's books. The pending sign-in is ended whatever the outcome; a failed one is started again. |
 | [`POST /api/config/clerk/sign-out`](configuration.md#post-apiconfigclerksign-out) | `POST /api/config/clerk/sign-out`: ends a library card at the library when it can be reached, then drops the card, the books read with it, and the library from the list here whatever the library answered. |
 
-### [Cluster](cluster.md)
-
-Nodes, branches, joining a library and host enrollment.
-
-| Route | Summary |
-| --- | --- |
-| [`PUT /api/config/nodes/{node_id}/labels`](cluster.md#put-apiconfignodesnode_idlabels) | `PUT /api/config/nodes/{node_id}/labels`: replace a node's placement labels. The scheduler re-plans on the wakeup this publishes. |
-| [`PUT /api/config/nodes/{node_id}/owner`](cluster.md#put-apiconfignodesnode_idowner) | `PUT /api/config/nodes/{node_id}/owner`: assign or clear a node's owner. The owner may then edit that node's runtime settings without operator authority. |
-| [`GET /api/config/cluster-consents`](cluster.md#get-apiconfigcluster-consents) | `GET /api/config/cluster-consents`. |
-| [`POST /api/config/clusters/{cluster_id}/scan`](cluster.md#post-apiconfigclusterscluster_idscan) | `POST /api/config/clusters/{cluster_id}/scan`: asks the owner cluster to queue a scan for this node's owner (H-5). The owner's planner decides what that user may scan; the answer lists the queued job ids. |
-| [`POST /api/config/clusters/{cluster_id}/jobs`](cluster.md#post-apiconfigclusterscluster_idjobs) | `POST /api/config/clusters/{cluster_id}/jobs`: the owner's view of jobs this node may see (those it would be trusted to claim). |
-| [`POST /api/config/cluster-consents/approve`](cluster.md#post-apiconfigcluster-consentsapprove) | `POST /api/config/cluster-consents/approve`. |
-| [`POST /api/config/cluster-consents/revoke`](cluster.md#post-apiconfigcluster-consentsrevoke) | `POST /api/config/cluster-consents/revoke`. |
-| [`GET /api/config/join`](cluster.md#get-apiconfigjoin) | `GET /api/config/join`. |
-| [`POST /api/config/join/inspect`](cluster.md#post-apiconfigjoininspect) | `POST /api/config/join/inspect`. |
-| [`POST /api/config/join/start`](cluster.md#post-apiconfigjoinstart) | `POST /api/config/join/start`. |
-| [`POST /api/config/join/callback`](cluster.md#post-apiconfigjoincallback) | `POST /api/config/join/callback`: redeems the library's code with the sign-in's sealed verifier and keys. The pending sign-in is kept when the redeem fails for a reason a retry can fix (answered as 502 `join_retry`; the page offers Try again with the same code), and ended on success, refusal, or anything else. |
-| [`POST /api/config/join/invite`](cluster.md#post-apiconfigjoininvite) | `POST /api/config/join/invite`: join with a pasted branch invite. The link is redeemed once and dropped; it is never logged or echoed. A library slower than [`REDEEM_TIMEOUT`] is answered 504 `join_pending` while the join carries on and starts its client when it lands. |
-| [`POST /api/config/join/leave`](cluster.md#post-apiconfigjoinleave) | `POST /api/config/join/leave`: Leave library. The leave runs on its own task, so a request cut short (the client gone, or the API deadline) still records it once the library has been told. |
-| [`GET /api/config/nodes`](cluster.md#get-apiconfignodes) | `GET /api/config/nodes`: every node for an operator; the caller's own nodes for a node owner. |
-| [`DELETE /api/config/nodes/{node_id}`](cluster.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. The operator or an Owner may remove any; another user only one they own. A running node, this node, or a branch is refused (a branch is revoked instead). |
-| [`GET /api/config/shared-branches`](cluster.md#get-apiconfigshared-branches) | `GET /api/config/shared-branches`: the shared nodes (this one and its shared branches) for Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets them remove any; another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
-| [`PUT /api/config/nodes/{node_id}/runtime`](cluster.md#put-apiconfignodesnode_idruntime) | `PUT /api/config/nodes/{node_id}/runtime`: edit a node's label, budgets, or drain switch. Applies at that node's next heartbeat. A node owner may edit only the nodes it owns. |
-| [`GET /api/config/node-invites`](cluster.md#get-apiconfignode-invites) | `GET /api/config/node-invites`: every link for the operator or an Owner; the caller's own links for anyone else, and with `?mine=true`. |
-| [`POST /api/config/node-invites`](cluster.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while host enrollment is on; the operator or an Owner may mint for any active user. |
-| [`DELETE /api/config/node-invites/{id}`](cluster.md#delete-apiconfignode-invitesid) | `DELETE /api/config/node-invites/{id}`: revoke an unredeemed link. |
-| [`GET /api/config/branches`](cluster.md#get-apiconfigbranches) | `GET /api/config/branches`: this library's join settings: whether new branches may join, the transport mode, and the SPKI fingerprint a joining operator confirms in `self_signed` mode. |
-| [`PUT /api/config/branches`](cluster.md#put-apiconfigbranches) | `PUT /api/config/branches`: turn "Let new branches join" on or off. |
-| [`POST /api/config/branches/titles/remove`](cluster.md#post-apiconfigbranchestitlesremove) | `POST /api/config/branches/titles/remove`: removes the entries of titles from a branch that stopped sharing or left. Delivered files stay. |
-| [`PUT /api/config/branches/members-books`](cluster.md#put-apiconfigbranchesmembers-books) | `PUT /api/config/branches/members-books`: turn this library's "Acquire all of this branch's members' books" on or off for one branch. |
-| [`GET /api/config/join/sharing`](cluster.md#get-apiconfigjoinsharing) | `GET /api/config/join/sharing`: Settings → Library for the operator or an Owner: every library this install is a branch of, with its two sharing settings (`{clusters: [...]}`). |
-| [`POST /api/config/join/sharing`](cluster.md#post-apiconfigjoinsharing) | `POST /api/config/join/sharing`: Settings → Library's sharing and work settings for one library this install is a branch of (the two book-sharing settings, the two work settings, and optionally "List my members' books"). The operator or an Owner (verified from the stored role); anyone else gets 403. |
-| [`GET /api/config/join/window`](cluster.md#get-apiconfigjoinwindow) | `GET /api/config/join/window`: "Books in other libraries" for the operator or an Owner: every book of each library this install is a branch of, or holds a library card for, merged by work, each edition marked when it is this install's person's (`{clusters, cards, books}`). |
-| [`POST /api/config/join/connections`](cluster.md#post-apiconfigjoinconnections) | `POST /api/config/join/connections`: "Add my connections to *library*". |
-| [`POST /api/config/join/connections/disconnect`](cluster.md#post-apiconfigjoinconnectionsdisconnect) | `POST /api/config/join/connections/disconnect`: disconnects one of the person's store accounts here, and with `everywhere` in every linked library it was shared with. |
-| [`POST /api/config/join/capacity`](cluster.md#post-apiconfigjoincapacity) | `POST /api/config/join/capacity`: Settings → Library's job cap for one library this install is a branch of. The operator or an Owner (verified from the stored role); anyone else gets 403. The running link's share changes at once: its claims stop at the new share and its next heartbeat reports the library the new part of the machine. Jobs it already runs finish. |
-| [`DELETE /api/config/node-credentials/{node_id}`](cluster.md#delete-apiconfignode-credentialsnode_id) | `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled host's credential so it can no longer connect. |
-| [`GET /api/config/host-enrollment`](cluster.md#get-apiconfighost-enrollment) | `GET /api/config/host-enrollment`: whether branch nodes may enroll. |
-| [`PUT /api/config/host-enrollment`](cluster.md#put-apiconfighost-enrollment) | `PUT /api/config/host-enrollment`: turn host enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
-
 ### [Accounts](accounts.md)
 
 Store accounts a library user connects (the Accounts page).
@@ -343,9 +336,9 @@ Node-to-node enrollment, socket, artifacts and uploads; each route checks its ow
 
 | Route | Summary |
 | --- | --- |
-| [`POST /api/node/v1/enroll`](node-protocol.md#post-apinodev1enroll) | `POST /api/node/v1/enroll`: redeem an enrollment link. Answers `{cluster_id, node_id}`; 403 `transport_insecure` when the connection fails the transport policy, 403 `enrollment_refused` for any link that does not redeem. |
+| [`POST /api/node/v1/enroll`](node-protocol.md#post-apinodev1enroll) | `POST /api/node/v1/enroll`: redeem an enrollment link. Answers `{library_id, node_id}`; 403 `transport_insecure` when the connection fails the transport policy, 403 `enrollment_refused` for any link that does not redeem. |
 | [`GET /api/node/v1/info`](node-protocol.md#get-apinodev1info) | `GET /api/node/v1/info`. |
-| [`POST /api/node/v1/enroll/oauth`](node-protocol.md#post-apinodev1enrolloauth) | `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in. Answers `{cluster_id, node_id}` for a branch, plus `connection` and the sealed `bootstrap` for a shared branch; 403 `transport_insecure` for a refused connection, 403 `enrollment_refused` for a code that does not redeem (unknown, used, expired, another client's, a wrong verifier or redirect URI, enrollment off, or the user no longer active). |
+| [`POST /api/node/v1/enroll/oauth`](node-protocol.md#post-apinodev1enrolloauth) | `POST /api/node/v1/enroll/oauth`: redeem an approved branch sign-in. Answers `{library_id, node_id}` for a branch, plus `connection` and the sealed `bootstrap` for a shared branch; 403 `transport_insecure` for a refused connection, 403 `enrollment_refused` for a code that does not redeem (unknown, used, expired, another client's, a wrong verifier or redirect URI, enrollment off, or the user no longer active). |
 | [`GET /api/node/v1/connect`](node-protocol.md#get-apinodev1connect) | `GET /api/node/v1/connect`: upgrade to the branch-node socket after the transport check. 403 `transport_insecure` for a refused connection, 400 `subprotocol_required` without [`SUBPROTOCOL`]. |
 | [`GET /api/node/v1/artifacts/{sha256}`](node-protocol.md#get-apinodev1artifactssha256) | `GET /api/node/v1/artifacts/{sha256}`. |
 | [`PUT /api/node/v1/uploads/{upload_id}/files/{index}`](node-protocol.md#put-apinodev1uploadsupload_idfilesindex) | `PUT /api/node/v1/uploads/{upload_id}/files/{index}`. |

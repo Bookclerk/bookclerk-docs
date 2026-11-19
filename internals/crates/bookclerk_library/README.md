@@ -55,7 +55,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EventStreamPage`](#eventstreampage) | struct | One page of `EventStreamRead`. |
 | [`EventStreamRead`](#eventstreamread) | struct | One page request over the domain-event outbox (`EventPublisher.read`). |
 | [`EventSubscriber`](#eventsubscriber) | struct | Subscriber snapshot used when creating deliveries for one event. |
-| [`EventSubscriberCatalogRecord`](#eventsubscribercatalogrecord) | struct | Cluster-authoritative catalog row after collapsing live nodes by `plugin_id`. |
+| [`EventSubscriberCatalogRecord`](#eventsubscribercatalogrecord) | struct | Library-authoritative catalog row after collapsing live nodes by `plugin_id`. |
 | [`EventSubscriberNodeRecord`](#eventsubscribernoderecord) | struct | Live per-node catalog row (`event_subscriber_nodes`). |
 | [`EventWakeGrant`](#eventwakegrant) | struct | Host-derived wake grant: schema versions plus an intersected payload filter. |
 | [`GlobalQueueEntry`](#globalqueueentry) | struct | Aggregated global request-queue entry (one work, many wishers). |
@@ -281,9 +281,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
 | [`inject_dispatch_page_failures`](#inject_dispatch_page_failures) | function | Fail after the next `n` successful dispatch pages (tests only). |
-| [`edition_id_for_listing`](#edition_id_for_listing) | function | The id of an edition first seen through the store listing `key`: a version 5 UUID over its plugin key, marketplace and product id. Two nodes (or one library rebuilt from a fresh scan) that resolve the same listing first give its edition the same id, and so the same `<library id>` in file names. |
+| [`call_number`](#call_number) | function | The `<call number>` of edition `edition_id`: its first 40 bits as 8 lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id that is not a UUID falls back to its first 8 ASCII letters and digits. Returns `None` when that leaves nothing. |
+| [`edition_id_for_listing`](#edition_id_for_listing) | function | The id of an edition first seen through the store listing `key`: a version 5 UUID over its plugin key, marketplace and product id. Two nodes (or one library rebuilt from a fresh scan) that resolve the same listing first give its edition the same id, and so the same `<call number>` in file names. |
 | [`holding_from_book`](#holding_from_book) | function | The holding a flat library row describes. |
-| [`library_id`](#library_id) | function | The `<library id>` of edition `edition_id`: its first 40 bits as 8 lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id that is not a UUID falls back to its first 8 ASCII letters and digits. Returns `None` when that leaves nothing. |
 | [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`plan_pass`](#plan_pass) | function | Decides how the next pass of an account starts. |
@@ -386,7 +386,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`migrations::binding_bootstrap_type_env`](migrations.md#binding_bootstrap_type_env)
 - [`migrations::host_migration_plan`](migrations.md#host_migration_plan)
 - [`migrations::min_supported_schema_version`](migrations.md#min_supported_schema_version)
-- [`migrations::CLUSTER_LEASES_DDL`](migrations.md#cluster_leases_ddl)
+- [`migrations::LIBRARY_LEASES_DDL`](migrations.md#library_leases_ddl)
 - [`migrations::SCHEMA_MIGRATIONS_DDL`](migrations.md#schema_migrations_ddl)
 - [`migrations::SCHEMA_VERSION`](migrations.md#schema_version)
 - [`models::is_episode`](../bookclerk_storefront/content_kind.md#is_episode)
@@ -2695,7 +2695,7 @@ pub struct EventSubscriberCatalogRecord {
 }
 ```
 
-Cluster-authoritative catalog row after collapsing live nodes by `plugin_id`.
+Library-authoritative catalog row after collapsing live nodes by `plugin_id`.
 
 **Fields**
 
@@ -13841,7 +13841,7 @@ Named atomic library operation compiled by the host into a generic plan.
   - `owner`: Worker id stored as `lease_owner`.
   - `lease_secs`: Lease length in seconds.
   - `plugin_ids_json`: JSON array of plugin ids this worker can execute (`[]` claims nothing).
-  - `max_in_flight`: Cluster-wide max `running` deliveries per `(plugin_id, resource_class)`.
+  - `max_in_flight`: Library-wide max `running` deliveries per `(plugin_id, resource_class)`.
 - `LinkListing`: Write one resolved store listing: new work, expression and edition,
   identifiers, the listing, its holding, conflicts and events.
   
@@ -13968,9 +13968,9 @@ pub enum EntityKind {
     Node,
     EnrollmentLink,
     PendingJoin,
-    ClusterIdentity,
-    ClusterLink,
-    ClusterNodeKeys,
+    LibraryIdentity,
+    LibraryLink,
+    LibraryNodeKeys,
     ClerkLink,
     ClerkCard,
     Configuration,
@@ -14009,12 +14009,12 @@ such as `enrollment link`.
 - `Passkey`: A registered passkey.
 - `OidcState`: An OpenID Connect relying-party sign-in state.
 - `WebauthnChallenge`: A WebAuthn ceremony challenge.
-- `Node`: A cluster node.
+- `Node`: A library node.
 - `EnrollmentLink`: A node enrollment link.
 - `PendingJoin`: A pending join of this host to another library.
-- `ClusterIdentity`: This cluster's identity.
-- `ClusterLink`: A link to another library.
-- `ClusterNodeKeys`: The node keys a linked library published.
+- `LibraryIdentity`: This library's identity.
+- `LibraryLink`: A link to another library.
+- `LibraryNodeKeys`: The node keys a linked library published.
 - `ClerkLink`: A library this install holds a library card for, as a clerk.
 - `ClerkCard`: The sealed library card of a clerk link.
 - `Configuration`: A configuration document, by namespace.
@@ -14324,7 +14324,7 @@ Kind of durable daemon work stored in the `jobs` table.
   (`search_index_rebuild`); only the node named by
   [`JobPayload::node_id`](#jobpayload) claims it.
 - `LibraryIndexRebuild`: Rebuild the library's page index (`library_work_rows`) from the
-  library model (`library_index_rebuild`); one for the whole cluster,
+  library model (`library_index_rebuild`); one for the whole library,
   any node claims it.
 - `BranchRequest`: An interlibrary request (`branch_request`): send this library a
   book one of its branches listed. Pinned by
@@ -14619,7 +14619,7 @@ First-party user role (`owner` | `administrator` | `host` | `member`).
 
 **Variants**
 
-- `Owner`: Cluster super-user: may elevate to Operator after password re-auth.
+- `Owner`: Library super-user: may elevate to Operator after password re-auth.
 - `Administrator`: Library / user administration without Operator elevation.
 - `Host`: Member who administers the nodes they own (budgets, drain, name).
   Not trusted with other users' work; promote to Administrator for that.
@@ -15966,7 +15966,7 @@ where
 Migrates toward `target` using `run_batch` (typed `executeAtomic`) per version.
 
 A walk that writes anything (backup or DDL) runs under the
-[`MIGRATION_LEASE`](control_plane.md#migration_lease) cluster lease, like a start that migrates: it waits
+[`MIGRATION_LEASE`](control_plane.md#migration_lease) library lease, like a start that migrates: it waits
 up to [`MIGRATION_LEASE_WAIT`](#migration_lease_wait) for another migrator, renews the lease
 while it works, and checks it before every DDL batch. A no-op walk only
 checks the database and takes no lease.
@@ -16647,6 +16647,17 @@ pub fn inject_dispatch_page_failures(n: u32)
 
 Fail after the next `n` successful dispatch pages (tests only).
 
+### call_number
+
+```rust
+pub fn call_number(edition_id: &str) -> Option<String>
+```
+
+The `<call number>` of edition `edition_id`: its first 40 bits as 8
+lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id
+that is not a UUID falls back to its first 8 ASCII letters and digits.
+Returns `None` when that leaves nothing.
+
 ### edition_id_for_listing
 
 ```rust
@@ -16657,7 +16668,7 @@ The id of an edition first seen through the store listing `key`: a
 version 5 UUID over its plugin key, marketplace and product id. Two
 nodes (or one library rebuilt from a fresh scan) that resolve the same
 listing first give its edition the same id, and so the same
-`<library id>` in file names.
+`<call number>` in file names.
 
 ### holding_from_book
 
@@ -16666,17 +16677,6 @@ pub fn holding_from_book(book: &NewBook) -> HoldingDraft
 ```
 
 The holding a flat library row describes.
-
-### library_id
-
-```rust
-pub fn library_id(edition_id: &str) -> Option<String>
-```
-
-The `<library id>` of edition `edition_id`: its first 40 bits as 8
-lower-case Crockford base32 characters (no `i`, `l`, `o` or `u`). An id
-that is not a UUID falls back to its first 8 ASCII letters and digits.
-Returns `None` when that leaves nothing.
 
 ### listing_from_book
 

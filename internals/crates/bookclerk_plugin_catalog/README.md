@@ -66,7 +66,7 @@ See `docs/plugins/registry.md`.
 | [`parse_sha256_hex`](#parse_sha256_hex) | function | Decode hex SHA-256 into 32 bytes. |
 | [`validate_sha256_hex`](#validate_sha256_hex) | function | Validate lowercase hex SHA-256 (64 chars). |
 | [`acquire_plugins_lock`](#acquire_plugins_lock) | function | Acquires the host mutation lock for `plugins_root`'s parent files dir. |
-| [`check_owner_artifact_url`](#check_owner_artifact_url) | function | Checks a URL an owner cluster asks this host to fetch an archive from. |
+| [`check_owner_artifact_url`](#check_owner_artifact_url) | function | Checks a URL a library asks this host to fetch an archive from. |
 | [`fetch_owner_artifact`](#fetch_owner_artifact) | function | Fetches an owner-chosen `https:` archive into `dest`, bounded by `MAX_DOWNLOAD_BYTES` and `DOWNLOAD_TIMEOUT` per request. Redirects are followed (at most `MAX_REDIRECTS`) only when each hop passes `check_owner_artifact_url`, and every hop connects only to addresses that pass `owner_address_allowed` (`PublicOnlyResolver`); no proxy is used. The caller checks the archive digest. |
 | [`manifest_sha256`](#manifest_sha256) | function | SHA-256 of `plugin.toml` at `plugin_root`. |
 | [`payload_root_sha256`](#payload_root_sha256) | function | Deterministic payload root: sorted relative path + type + content hash. |
@@ -1290,7 +1290,7 @@ pub fn acquire(files_dir: &Path) -> Result<Self>
 Acquires an exclusive inter-process lock for `files_dir`.
 
 Blocks until the lock is available. Creates `files_dir` and the lock
-file when missing. Does not take a shared-database or cluster lock.
+file when missing. Does not take a shared-database or library lock.
 
 Operator-selected roots may contain `..` spelling; they are resolved via
 canonicalize. Escaping or dangling leaf symlinks at the lock path are
@@ -1685,7 +1685,7 @@ How Bookclerk established (or lost) trust in an installed tree.
 - `VerifiedStaged`: Installed from a registry/archive; receipt hashes still match.
 - `LocalDevelopment`: Local/dev tree with no verified receipt (or path-only identity).
 - `Modified`: Receipt exists but the immutable payload no longer matches.
-- `Installed`: Materialized from a cluster install: the payload-root digest of the
+- `Installed`: Materialized from a library install: the payload-root digest of the
   cached tree matched the `plugin_versions` row the node trusts.
 
 #### PluginProvenance::grants_platform_defaults
@@ -2181,7 +2181,7 @@ parent (no host files dir).
 pub fn check_owner_artifact_url(url: &str) -> Result<Url>
 ```
 
-Checks a URL an owner cluster asks this host to fetch an archive from.
+Checks a URL a library asks this host to fetch an archive from.
 
 This is the textual half of the policy; the fetch enforces the address
 half again on what each name resolves to (`PublicOnlyResolver`).

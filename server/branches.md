@@ -27,7 +27,7 @@ the older names:
 
 | Web UI | Code, API and CLI |
 | --- | --- |
-| Library | Owner cluster (`clusters`) |
+| Library | Library (`libraries`) |
 | The library's own daemons, shared branches included | Shared nodes (`kind = shared`) |
 | Branch | Branch node (`nodes`, `kind = branch`) |
 | Branch invite | Enrollment link |
@@ -206,7 +206,7 @@ The exchange runs in five steps:
    `node_credentials` and a receipt.
 5. **Done.** The daemon checks that the answer names the library it read.
    It seals both private keys into its `encrypted_secrets`, records the
-   link in `cluster_links`, and starts the link's client.
+   link in `library_links`, and starts the link's client.
 
 A clerk's library card uses the same authorization server with a
 second built-in public client, `bookclerk-clerk` (scope
@@ -276,12 +276,12 @@ gone.
 
 - **Add to a library.** On the branch, **Accounts** shows **Add to
   *library*** beside each connection
-  (`POST /api/config/join/connections` with `{cluster_id, accounts}`, at
+  (`POST /api/config/join/connections` with `{library_id, accounts}`, at
   most 64). The branch picks the person's own connected accounts, records
-  each as sent to `link:<cluster id>` in
+  each as sent to `link:<library id>` in
   `account_shares`, and sends them over the link's socket as
   `accounts.add`: one bundle sealed to the connection's owner box key from
-  `welcome`, bound to the cluster and node ids under its own
+  `welcome`, bound to the library and node ids under its own
   associated-data domain, so a joining bundle never opens as an offer.
 - **On the library.** The library keeps the accounts for the user its node
   row names as the branch's owner (the user who let the branch join),
@@ -320,7 +320,7 @@ A single-keeper store (Audible) breaks a sign-in that two places refresh
 on their own, so each such account has one keeper per library. Which side
 keeps it follows from `account_shares`: the library sees the branch it
 first recorded the account against (`node:<id>`), and that branch sees a
-share with `link:<cluster id>`. A library with no such share keeps the
+share with `link:<library id>`. A library with no such share keeps the
 account itself.
 
 - **On the branch.** The branch's copy is the one that refreshes: Accounts
@@ -367,10 +367,10 @@ Disconnecting on a library does not yet reach its branches.
 ### On the command line
 
 ```sh
-bookclerk clusters join --url https://library.example [--name "Den PC"] [--fingerprint <fingerprint>]
-bookclerk clusters join             # prompts for a branch invite
-bookclerk clusters join < invite.txt
-bookclerk clusters list             # library id, origin, node id, state
+bookclerk libraries join --url https://library.example [--name "Den PC"] [--fingerprint <fingerprint>]
+bookclerk libraries join             # prompts for a branch invite
+bookclerk libraries join < invite.txt
+bookclerk libraries list             # library id, origin, node id, state
 ```
 
 `--url` is the same sign-in, for an operator with a browser on the same
@@ -482,7 +482,7 @@ start finishes undoing it, or refuses with instructions naming each file.
 ### On the command line
 
 ```sh
-bookclerk clusters join --url https://library.example --as shared branch
+bookclerk libraries join --url https://library.example --as shared branch
 ```
 
 `--as` is `branch` by default. With `--as shared-branch` the CLI writes the same
@@ -524,11 +524,11 @@ deployed plugin shows up as a **request**, with:
 - a `request_digest` covering all of it.
 
 ```sh
-bookclerk clusters consents [--cluster <id>]
-bookclerk clusters approve <plugin_key> --request <request_digest> \
+bookclerk libraries consents [--library <id>]
+bookclerk libraries approve <plugin_key> --request <request_digest> \
     [--deny-domain cdn.store.example]... [--deny-binding secrets]... \
     [--deny-own-user-agent api.store.example]... [--deny-network]
-bookclerk clusters revoke <plugin_key>
+bookclerk libraries revoke <plugin_key>
 ```
 
 The same is in the web UI under **Settings → Library** (operator only; an
@@ -541,9 +541,9 @@ The HTTP routes behind it are operator-only:
 
 | Route | Body |
 | --- | --- |
-| `GET /api/config/cluster-consents` | → `{clusters, consents}` (links carry ids, origin, state and whether they are pinned; never keys) |
-| `POST /api/config/cluster-consents/approve` | `{cluster_id, plugin_key, request_digest, deny_domains?, deny_bindings?, deny_own_user_agent_hosts?, deny_network?}` |
-| `POST /api/config/cluster-consents/revoke` | `{cluster_id, plugin_key}` |
+| `GET /api/config/library-consents` | → `{libraries, consents}` (links carry ids, origin, state and whether they are pinned; never keys) |
+| `POST /api/config/library-consents/approve` | `{library_id, plugin_key, request_digest, deny_domains?, deny_bindings?, deny_own_user_agent_hosts?, deny_network?}` |
+| `POST /api/config/library-consents/revoke` | `{library_id, plugin_key}` |
 
 ### Consent rules
 
@@ -561,7 +561,7 @@ The HTTP routes behind it are operator-only:
   outside what was approved is `awaiting_host_reapproval` and doesn't run
   until approved. That covers a domain, TCP target, address range,
   binding, compatibility flag, entrypoint, a larger budget, or network at
-  all. Asking for less needs nothing. `clusters consents`, the web UI
+  all. Asking for less needs nothing. `libraries consents`, the web UI
   and the API (`pending` on each consent) list what changed since the
   approval, in the same words the
   [local consent flow](../plugins/capabilities.md#upgrades) uses.
@@ -589,7 +589,7 @@ There is no in-process fallback.
 A branch keeps each joined library's plugin state apart from every other
 library's and from its own. A guest that runs for a library gets
 `plugin-state/link-<32 hex>/<PluginKey fs-id>/data` and `…/tmp`. The leaf
-is the first 128 bits of the SHA-256 of that library's cluster id. The
+is the first 128 bits of the SHA-256 of that library's id. The
 branch's own guests keep `plugin-state/<PluginKey fs-id>/`. So when two
 libraries deploy the same plugin, their guests never see each other's
 caches, cookies or logins. The plugin code cache under
@@ -623,7 +623,7 @@ A host never writes library SQL.
    destination deployed on the shared node that answered, each with its own
    naming options (templates, replacement characters, path limits). Each
    title carries its store account's holding id on the owner, which its
-   upload names, and its library id on the owner, so the `<library id>`
+   upload names, and its call number on the owner, so the `<call number>`
    naming tag writes the owner's id rather than the host's scratch one.
    It also carries the store listing the acquire needs (store, product id,
    marketplace, title, people, series and dates), read from the owner's
@@ -663,7 +663,7 @@ library can take the whole machine.
 2. **The branch's own work comes first.** Each job its own workers run
    takes a slot.
 3. **The rest is split equally** between the libraries it is a branch of,
-   one slot at a time in cluster id order. A library capped below its
+   one slot at a time in library id order. A library capped below its
    equal share leaves its unused slots to the others.
 
 Each library sees only its share:
@@ -681,24 +681,24 @@ Each library sees only its share:
 
 For example, a branch of two libraries with four slots runs up to two
 jobs for each. While it runs one job of its own, the first library (by
-cluster id) keeps two slots and the second gets one.
+library id) keeps two slots and the second gets one.
 
 **Settings → Library → Work for <library> on this computer** caps one
 library: **Equal share** (the default), **None** (no work for that
 library), or **Up to N jobs**. B's operator or an Owner of B may change
 it. The route is `POST /api/config/join/capacity`
-`{cluster_id, max_jobs}` (required; `null` for an equal share, 0 to 16), and the
+`{library_id, max_jobs}` (required; `null` for an equal share, 0 to 16), and the
 listing routes report each running library's `job_share` now.
 
 ## Asking the owner for a scan
 
 ```sh
-bookclerk clusters scan [--cluster <id>] [--account <id>] [--instance <id>] [--no-wait]
+bookclerk libraries scan [--library <id>] [--account <id>] [--instance <id>] [--no-wait]
 ```
 
-The host's operator asks the owner cluster to queue a scan, through this
+The host's operator asks the library to queue a scan, through this
 install's running daemon and its link
-(`POST /api/config/clusters/{cluster_id}/scan`, a `scan.request` frame).
+(`POST /api/config/libraries/{library_id}/scan`, a `scan.request` frame).
 It runs as the user who owns this node:
 
 - An Owner or Administrator scanning every account gets one job per
@@ -887,7 +887,7 @@ it expires.
 
 An instance can be **local to one node**: it deploys only on that node and
 the scheduler never places it. The usual case is a node's own `local`
-output (its own disk), which adds to the cluster's outputs on that node
+output (its own disk), which adds to the library's outputs on that node
 rather than replacing them.
 
 ```sh
@@ -964,9 +964,9 @@ libraries, these settings and each library's job cap (see
 joining, leaving and plugin approvals stay the operator's. Anyone else is
 refused (403).
 
-The routes are `GET /api/config/join/sharing` (→ `{clusters}`) and
+The routes are `GET /api/config/join/sharing` (→ `{libraries}`) and
 `POST /api/config/join/sharing`
-`{cluster_id, share_books, include_branches, list_members_books?, keep_copies?}`
+`{library_id, share_books, include_branches, list_members_books?, keep_copies?}`
 (`list_members_books` and `keep_copies` are left as they are when absent),
 which also takes the [work settings](#work-settings-on-the-branch).
 
@@ -1189,16 +1189,16 @@ libraries hold it, from which stores, and in which formats.
 The list also has the books of every library B holds a library card for
 (see [Signing in with a library card](sign-in.md#signing-in-with-a-library-card)).
 
-The route is `GET /api/config/join/window` (→ `{clusters, cards, books}`),
+The route is `GET /api/config/join/window` (→ `{libraries, cards, books}`),
 for B's operator or an Owner of B.
 
 ### No loops
 
-`GET /api/node/v1/info` reports the library's ancestry: its own cluster id
+`GET /api/node/v1/info` reports the library's ancestry: its own library id
 and every library above it.
 
 - Joining refuses a library whose ancestry contains the joining install's
-  own cluster id (`409 join_cycle`). So neither A ← B ← A nor
+  own library id (`409 join_cycle`). So neither A ← B ← A nor
   A ← B ← C ← A can be made.
 - A tree holds at most 64 libraries along one path. A join that would take
   the joining install's ancestry past that is refused
@@ -1210,7 +1210,7 @@ library.
 ## Leaving
 
 Open **Settings → Library → Leave library**, or run
-`bookclerk clusters leave [--cluster <id>]`.
+`bookclerk libraries leave [--library <id>]`.
 
 1. The branch tells the library first, with a `node.leaving` frame. The
    library revokes the node's credential, drops its live status, and

@@ -23,9 +23,6 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
 - [`claim_tickets`](claim_tickets.md): SeaORM entity for the `claim_tickets` table.
 - [`clerk_links`](clerk_links.md): SeaORM entity for `clerk_links`: on a clerk, the libraries this install holds a library card for (written by `control_plane::record_clerk_link`).
-- [`cluster_identity`](cluster_identity.md): SeaORM entity for the singleton cluster identity and secret-root fingerprint.
-- [`cluster_leases`](cluster_leases.md): SeaORM entity for `cluster_leases`: singleton maintenance leases.
-- [`cluster_links`](cluster_links.md): SeaORM entity for `cluster_links`: on a branch node, the owner clusters it enrolled into (written by `control_plane::record_cluster_link`).
 - [`configuration_audit`](configuration_audit.md): SeaORM entity for successful configuration commits.
 - [`configuration_changes`](configuration_changes.md): SeaORM entity for the configuration change notice written with each commit.
 - [`configuration_documents`](configuration_documents.md): SeaORM entity for one typed configuration document.
@@ -55,7 +52,10 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`job_secret_handoffs`](job_secret_handoffs.md): SeaORM entity for `job_secret_handoffs`: which store-account secrets a Host was handed with a job, per lease generation.
 - [`job_temp_paths`](job_temp_paths.md): SeaORM entity for scratch directories associated with a durable job.
 - [`jobs`](jobs.md): SeaORM entity for the durable daemon `jobs` table.
+- [`library_identity`](library_identity.md): SeaORM entity for the singleton library identity and secret-root fingerprint.
 - [`library_index_builds`](library_index_builds.md): SeaORM entity for `library_index_builds`: finished page index builds.
+- [`library_leases`](library_leases.md): SeaORM entity for `library_leases`: singleton maintenance leases.
+- [`library_links`](library_links.md): SeaORM entity for `library_links`: on a branch node, the libraries it enrolled into (written by `control_plane::record_library_link`).
 - [`library_work_facets`](library_work_facets.md): SeaORM entity for `library_work_facets`: the page index's filter values.
 - [`library_work_rows`](library_work_rows.md): SeaORM entity for `library_work_rows`: the library's page index.
 - [`link_imports`](link_imports.md): SeaORM entity for `link_imports`: on a branch, the branch owner's books acquired for a library it joined and imported into this library as well (written by `control_plane::link_imports`). The catalog sync never sends a library a book recorded here for it.
@@ -64,7 +64,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
 - [`member_account_rules`](member_account_rules.md): SeaORM entity for the `member_account_rules` table: the operator's per-member rule "may connect store accounts here".
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
-- [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this cluster. Only the hash of each link's secret is stored.
+- [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this library. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.
 - [`node_upload_sessions`](node_upload_sessions.md): SeaORM entity for `node_upload_sessions`: one title's streamed upload from a branch node to a shared node (H-4 design, section 6). Written by `control_plane::uploads`.
 - [`nodes`](nodes.md): SeaORM entity for durable node identity and liveness observations.
@@ -88,7 +88,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`plugin_versions`](plugin_versions.md): SeaORM entity for `plugin_versions`: one installed version of a plugin.
 - [`portal_identities`](portal_identities.md): SeaORM entity for the `portal_identities` table.
 - [`portal_sessions`](portal_sessions.md): SeaORM entity for the `portal_sessions` table.
-- [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a branch node, this install's operator consent for each owner plugin an owner cluster wants to run here (written by `control_plane::remote_consents`).
+- [`remote_plugin_consents`](remote_plugin_consents.md): SeaORM entity for `remote_plugin_consents`: on a branch node, this install's operator consent for each owner plugin a library wants to run here (written by `control_plane::remote_consents`).
 - [`resolution_conflicts`](resolution_conflicts.md): SeaORM entity for the `resolution_conflicts` table (composite primary key).
 - [`resolution_overrides`](resolution_overrides.md): SeaORM entity for the `resolution_overrides` table (composite primary key).
 - [`saved_filters`](saved_filters.md): SeaORM entity for the `saved_filters` table.

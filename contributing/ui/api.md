@@ -726,299 +726,9 @@ sort_dir?: string;
 
 ***
 
-### ClusterConsentsResponse
-
-`GET /api/config/cluster-consents`.
-
-#### Properties
-
-##### clusters
-
-```ts
-clusters: ClusterLinkView[];
-```
-
-Every owner cluster link this install holds, in any state.
-
-##### consents
-
-```ts
-consents: RemoteConsentView[];
-```
-
-Every recorded owner plugin request, approved or not.
-
-***
-
-### ClusterLinkView
-
-An owner cluster this install is enrolled in as a host (no key material).
-
-#### Properties
-
-##### cluster\_id
-
-```ts
-cluster_id: string;
-```
-
-Id of the owner cluster; one link per cluster.
-
-##### enrolled\_at
-
-```ts
-enrolled_at: string;
-```
-
-RFC 3339 time of the latest enrollment (a re-enrollment resets it).
-
-##### include\_branches?
-
-```ts
-include_branches?: boolean;
-```
-
-"Include books from my own branches" (on by default).
-
-##### job\_share?
-
-```ts
-job_share?: number;
-```
-
-Jobs the library may have running here now; absent while its link is not running.
-
-##### keep\_copies?
-
-```ts
-keep_copies?: boolean;
-```
-
-"Keep copies on this computer" (on by default): take the library's copies of this server's person's books.
-
-##### keep\_member\_copies?
-
-```ts
-keep_member_copies?: boolean;
-```
-
-"Keep copies of other members' books" (off by default).
-
-##### list\_members\_books?
-
-```ts
-list_members_books?: boolean;
-```
-
-"List my members' books" when the library asks (on by default).
-
-##### max\_jobs?
-
-```ts
-max_jobs?: number | null;
-```
-
-The most jobs this host runs for the library at once; `null` is an equal share of the machine.
-
-##### node\_id
-
-```ts
-node_id: string;
-```
-
-Node id the owner minted for this install.
-
-##### owner\_origin
-
-```ts
-owner_origin: string;
-```
-
-Canonical origin (`https://host[:port]`) this host dials the owner at.
-
-##### pinned
-
-```ts
-pinned: boolean;
-```
-
-True when the link pins the owner's self-signed certificate.
-
-##### share\_books?
-
-```ts
-share_books?: boolean;
-```
-
-"Share this branch's books with <library>" (on by default).
-
-##### state
-
-```ts
-state: string;
-```
-
-`active`, `revoked` (by the owner), or `left` (by this host).
-
-##### work\_for\_members?
-
-```ts
-work_for_members?: boolean;
-```
-
-"Download for other members of <library>" (off by default).
-
-***
-
-### ClusterStatusResponse
-
-`GET /api/cluster/status`: cluster health plus the nodes the caller may see.
-
-#### Extends
-
-- [`NodesResponse`](#nodesresponse)
-
-#### Properties
-
-##### capabilities
-
-```ts
-capabilities: NodeCapabilities;
-```
-
-###### Inherited from
-
-[`NodesResponse`](#nodesresponse).[`capabilities`](#capabilities-1)
-
-##### cluster
-
-```ts
-cluster: ClusterSummary;
-```
-
-##### node\_id
-
-```ts
-node_id: string;
-```
-
-###### Inherited from
-
-[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-6)
-
-##### nodes
-
-```ts
-nodes: ConfigNodeView[];
-```
-
-###### Inherited from
-
-[`NodesResponse`](#nodesresponse).[`nodes`](#nodes-2)
-
-***
-
-### ClusterSummary
-
-Cluster-wide health from `GET /api/cluster/status`.
-
-#### Properties
-
-##### active\_jobs
-
-```ts
-active_jobs: number;
-```
-
-##### branch\_nodes
-
-```ts
-branch_nodes: number;
-```
-
-##### cpu\_budget\_millicores
-
-```ts
-cpu_budget_millicores: number;
-```
-
-##### cpu\_reserved\_millicores
-
-```ts
-cpu_reserved_millicores: number;
-```
-
-##### deliveries
-
-```ts
-deliveries: object;
-```
-
-###### dead\_letter
-
-```ts
-dead_letter: number;
-```
-
-###### oldest\_pending\_age\_secs
-
-```ts
-oldest_pending_age_secs: number | null;
-```
-
-###### pending
-
-```ts
-pending: number;
-```
-
-###### running
-
-```ts
-running: number;
-```
-
-##### drained
-
-```ts
-drained: number;
-```
-
-##### live
-
-```ts
-live: number;
-```
-
-##### memory\_budget\_bytes
-
-```ts
-memory_budget_bytes: number;
-```
-
-##### memory\_reserved\_bytes
-
-```ts
-memory_reserved_bytes: number;
-```
-
-##### nodes
-
-```ts
-nodes: number;
-```
-
-##### running\_guests
-
-```ts
-running_guests: number;
-```
-
-***
-
 ### ConfigNodeView
 
-One cluster node as `GET /api/config/nodes` returns it.
+One library node as `GET /api/config/nodes` returns it.
 
 #### Properties
 
@@ -1906,6 +1616,296 @@ status: string;
 
 ***
 
+### LibraryConsentsResponse
+
+`GET /api/config/library-consents`.
+
+#### Properties
+
+##### consents
+
+```ts
+consents: RemoteConsentView[];
+```
+
+Every recorded owner plugin request, approved or not.
+
+##### libraries
+
+```ts
+libraries: LibraryLinkView[];
+```
+
+Every library link this install holds, in any state.
+
+***
+
+### LibraryLinkView
+
+A library this install is enrolled in as a host (no key material).
+
+#### Properties
+
+##### enrolled\_at
+
+```ts
+enrolled_at: string;
+```
+
+RFC 3339 time of the latest enrollment (a re-enrollment resets it).
+
+##### include\_branches?
+
+```ts
+include_branches?: boolean;
+```
+
+"Include books from my own branches" (on by default).
+
+##### job\_share?
+
+```ts
+job_share?: number;
+```
+
+Jobs the library may have running here now; absent while its link is not running.
+
+##### keep\_copies?
+
+```ts
+keep_copies?: boolean;
+```
+
+"Keep copies on this computer" (on by default): take the library's copies of this server's person's books.
+
+##### keep\_member\_copies?
+
+```ts
+keep_member_copies?: boolean;
+```
+
+"Keep copies of other members' books" (off by default).
+
+##### library\_id
+
+```ts
+library_id: string;
+```
+
+Id of the library; one link per library.
+
+##### list\_members\_books?
+
+```ts
+list_members_books?: boolean;
+```
+
+"List my members' books" when the library asks (on by default).
+
+##### max\_jobs?
+
+```ts
+max_jobs?: number | null;
+```
+
+The most jobs this host runs for the library at once; `null` is an equal share of the machine.
+
+##### node\_id
+
+```ts
+node_id: string;
+```
+
+Node id the owner minted for this install.
+
+##### owner\_origin
+
+```ts
+owner_origin: string;
+```
+
+Canonical origin (`https://host[:port]`) this host dials the owner at.
+
+##### pinned
+
+```ts
+pinned: boolean;
+```
+
+True when the link pins the owner's self-signed certificate.
+
+##### share\_books?
+
+```ts
+share_books?: boolean;
+```
+
+"Share this branch's books with <library>" (on by default).
+
+##### state
+
+```ts
+state: string;
+```
+
+`active`, `revoked` (by the owner), or `left` (by this host).
+
+##### work\_for\_members?
+
+```ts
+work_for_members?: boolean;
+```
+
+"Download for other members of <library>" (off by default).
+
+***
+
+### LibraryStatusResponse
+
+`GET /api/library-status`: library health plus the nodes the caller may see.
+
+#### Extends
+
+- [`NodesResponse`](#nodesresponse)
+
+#### Properties
+
+##### capabilities
+
+```ts
+capabilities: NodeCapabilities;
+```
+
+###### Inherited from
+
+[`NodesResponse`](#nodesresponse).[`capabilities`](#capabilities-1)
+
+##### library
+
+```ts
+library: LibrarySummary;
+```
+
+##### node\_id
+
+```ts
+node_id: string;
+```
+
+###### Inherited from
+
+[`NodesResponse`](#nodesresponse).[`node_id`](#node_id-6)
+
+##### nodes
+
+```ts
+nodes: ConfigNodeView[];
+```
+
+###### Inherited from
+
+[`NodesResponse`](#nodesresponse).[`nodes`](#nodes-2)
+
+***
+
+### LibrarySummary
+
+Library-wide health from `GET /api/library-status`.
+
+#### Properties
+
+##### active\_jobs
+
+```ts
+active_jobs: number;
+```
+
+##### branch\_nodes
+
+```ts
+branch_nodes: number;
+```
+
+##### cpu\_budget\_millicores
+
+```ts
+cpu_budget_millicores: number;
+```
+
+##### cpu\_reserved\_millicores
+
+```ts
+cpu_reserved_millicores: number;
+```
+
+##### deliveries
+
+```ts
+deliveries: object;
+```
+
+###### dead\_letter
+
+```ts
+dead_letter: number;
+```
+
+###### oldest\_pending\_age\_secs
+
+```ts
+oldest_pending_age_secs: number | null;
+```
+
+###### pending
+
+```ts
+pending: number;
+```
+
+###### running
+
+```ts
+running: number;
+```
+
+##### drained
+
+```ts
+drained: number;
+```
+
+##### live
+
+```ts
+live: number;
+```
+
+##### memory\_budget\_bytes
+
+```ts
+memory_budget_bytes: number;
+```
+
+##### memory\_reserved\_bytes
+
+```ts
+memory_reserved_bytes: number;
+```
+
+##### nodes
+
+```ts
+nodes: number;
+```
+
+##### running\_guests
+
+```ts
+running_guests: number;
+```
+
+***
+
 ### LinkedIdentity
 
 Linked portal identity (local or `oidc:{id}`).
@@ -2411,7 +2411,7 @@ False drains the node: nothing new is placed there.
 
 #### Extended by
 
-- [`ClusterStatusResponse`](#clusterstatusresponse)
+- [`LibraryStatusResponse`](#librarystatusresponse)
 
 #### Properties
 
@@ -3406,7 +3406,7 @@ desired: string;
 ```
 
 `present` / `absent` when an operator manages the instance (the Enabled
-switch), `placed` / `unplaced` when the cluster scheduler does. The
+switch), `placed` / `unplaced` when the library scheduler does. The
 host runs it for `present` and `placed`.
 
 ##### detail?
@@ -4780,14 +4780,6 @@ An approval can only narrow the request, never widen it.
 
 #### Properties
 
-##### cluster\_id
-
-```ts
-cluster_id: string;
-```
-
-Owner cluster of the request.
-
 ##### deny\_bindings?
 
 ```ts
@@ -4819,6 +4811,14 @@ deny_own_user_agent_hosts?: string[];
 ```
 
 Requested hosts refused the plugin's own User-Agent; they get Bookclerk's agent.
+
+##### library\_id
+
+```ts
+library_id: string;
+```
+
+Library of the request.
 
 ##### plugin\_key
 
@@ -4868,14 +4868,6 @@ approved_version: string | null;
 
 Version this host approved, if any.
 
-##### cluster\_id
-
-```ts
-cluster_id: string;
-```
-
-Owner cluster that asks; matches a [ClusterLinkView.cluster\_id](#cluster_id).
-
 ##### grant
 
 ```ts
@@ -4883,6 +4875,14 @@ grant: RemoteGrantView | null;
 ```
 
 What this host granted (the request, narrowed), if approved.
+
+##### library\_id
+
+```ts
+library_id: string;
+```
+
+Library that asks; matches a [LibraryLinkView.library\_id](#library_id).
 
 ##### pending?
 
@@ -6880,10 +6880,10 @@ Edition ids for [triggerAcquire](#triggeracquire)'s `editions`.
 
 ***
 
-### approveClusterConsent()
+### approveLibraryConsent()
 
 ```ts
-function approveClusterConsent(body): Promise<{
+function approveLibraryConsent(body): Promise<{
   consent: RemoteConsentView;
 }>;
 ```
@@ -7456,23 +7456,6 @@ The choice, and how many libraries it applies to.
 
 ***
 
-### fetchClusterStatus()
-
-```ts
-function fetchClusterStatus(): Promise<ClusterStatusResponse>;
-```
-
-Cluster health every node administrator may see, with detail for the
-caller's visible nodes.
-
-#### Returns
-
-`Promise`\<[`ClusterStatusResponse`](#clusterstatusresponse)\>
-
-Cluster summary, visible nodes, and the caller's capabilities.
-
-***
-
 ### fetchDiagnosticsReports()
 
 ```ts
@@ -7563,6 +7546,23 @@ Lists recent background jobs for the jobs strip / status polling.
 `Promise`\<[`JobInfo`](#jobinfo)[]\>
 
 Job rows from `/api/jobs` (newest first as returned by the daemon).
+
+***
+
+### fetchLibraryStatus()
+
+```ts
+function fetchLibraryStatus(): Promise<LibraryStatusResponse>;
+```
+
+Library health every node administrator may see, with detail for the
+caller's visible nodes.
+
+#### Returns
+
+`Promise`\<[`LibraryStatusResponse`](#librarystatusresponse)\>
+
+Library summary, visible nodes, and the caller's capabilities.
 
 ***
 
@@ -8012,23 +8012,6 @@ Whether `error` is an [ApiError](#apierror) instance.
 
 ***
 
-### listClusterConsents()
-
-```ts
-function listClusterConsents(): Promise<ClusterConsentsResponse>;
-```
-
-Lists the owner clusters this host is enrolled in and what each asks to
-run here. Operator only.
-
-#### Returns
-
-`Promise`\<[`ClusterConsentsResponse`](#clusterconsentsresponse)\>
-
-Links and consent rows.
-
-***
-
 ### listConfigNodes()
 
 ```ts
@@ -8043,6 +8026,23 @@ owned ones for a node owner.
 `Promise`\<[`NodesResponse`](#nodesresponse)\>
 
 The serving node's id, the visible nodes, and what the caller may edit.
+
+***
+
+### listLibraryConsents()
+
+```ts
+function listLibraryConsents(): Promise<LibraryConsentsResponse>;
+```
+
+Lists the libraries this host is enrolled in and what each asks to
+run here. Operator only.
+
+#### Returns
+
+`Promise`\<[`LibraryConsentsResponse`](#libraryconsentsresponse)\>
+
+Links and consent rows.
 
 ***
 
@@ -8923,7 +8923,7 @@ function putPluginPlacement(instanceId, body): Promise<{
 }>;
 ```
 
-Hands an instance's deployments to the cluster scheduler, or changes its
+Hands an instance's deployments to the library scheduler, or changes its
 placement (compare-and-swap on `expected_revision`; 0 creates).
 
 #### Parameters
@@ -9137,10 +9137,10 @@ Action ack from the daemon.
 
 ***
 
-### revokeClusterConsent()
+### revokeLibraryConsent()
 
 ```ts
-function revokeClusterConsent(clusterId, pluginKey): Promise<{
+function revokeLibraryConsent(libraryId, pluginKey): Promise<{
   consent: RemoteConsentView;
 }>;
 ```
@@ -9152,7 +9152,7 @@ back, and nothing of it is claimed until approved again.
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `clusterId` | `string` | Owner cluster. |
+| `libraryId` | `string` | Library. |
 | `pluginKey` | `string` | Canonical plugin key. |
 
 #### Returns

@@ -1,6 +1,6 @@
-# bookclerk_library::entities::cluster_leases
+# bookclerk_library::entities::library_leases
 
-SeaORM entity for `cluster_leases`: singleton maintenance leases.
+SeaORM entity for `library_leases`: singleton maintenance leases.
 
 | Item | Kind | Summary |
 | --- | --- | --- |

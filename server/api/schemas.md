@@ -57,7 +57,7 @@ Generic mutation result with success flag, message, and optional job id.
 
 `POST /api/config/join/connections` body.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id) to add the connections to.
+- `library_id` *string*, **required** — The library (parent library id) to add the connections to.
 - `accounts` *array of [`AccountRef`](#accountref)*, **required** — The person's accounts to add; 1 to 64.
 
 ## ApiError
@@ -70,9 +70,9 @@ An error. `error` is a stable slug; bodies the error middleware writes also carr
 
 ## ApproveBody
 
-`POST /api/config/cluster-consents/approve` body.
+`POST /api/config/library-consents/approve` body.
 
-- `cluster_id` *string*, **required** — Owner cluster id.
+- `library_id` *string*, **required** — Library id.
 - `plugin_key` *string*, **required** — Canonical plugin key.
 - `request_digest` *string*, **required** — The `request_digest` of the request the operator reviewed, as the listing shows it (refused when the recorded request is another one).
 - `deny_domains` *array of string* — Domains to take out of the request. No duplicates.
@@ -228,7 +228,7 @@ JSON body for `GET /api/config/branches`.
 
 JSON body once this install joined a library as a branch.
 
-- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The new link.
+- `library` *[`LibraryLinkView`](#librarylinkview)*, **required** — The new link.
 - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
 - `running` *boolean*, **required** — Whether the link's client is running now.
 - `connections` *[`BroughtConnectionsView`](#broughtconnectionsview) or null* — What became of the store connections the library's user chose to bring to this branch; left out when none came.
@@ -341,7 +341,7 @@ Query or form_post fields from the IdP callback.
 `POST /api/config/join/capacity` body: one library and the job cap to
 set for it.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id).
+- `library_id` *string*, **required** — The library (parent library id).
 - `max_jobs` *integer (int32) or null*, **required** — The most jobs to run for the library at once (0 runs none); `null` gives it an equal share of the machine. Required: a body without it is refused rather than read as `null`. At least 0; at most 16.
 
 ## CatalogListing
@@ -475,7 +475,7 @@ JSON body for `GET /api/auth/clerk-consent`: what the consent page shows.
 A library this install holds (or held) a library card for, without the
 card.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `origin` *string*, **required** — The library's canonical origin.
 - `library_name` *string*, **required** — The library's name at sign-in.
 - `pinned` *boolean*, **required** — Whether the card's connection pins the library's self-signed certificate.
@@ -494,14 +494,14 @@ JSON body for `POST /api/config/clerk/callback`.
 
 JSON body for `POST /api/config/clerk/sign-out`.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `library_signed_out` *boolean*, **required** — Whether the library ended the card's session too. False when it could not be reached (or the card had already ended): the session then stays in the person's session list there until it idles out or they revoke it.
 
 ## ClerkSignOutBody
 
 `POST /api/config/clerk/sign-out` body.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 
 ## ClerkStartBody
 
@@ -525,7 +525,7 @@ JSON body for `POST /api/config/clerk/start`.
 `POST /api/clerk/v1/token` answer.
 
 - `token` *string*, **required** — The session token, sent as `Authorization: Bookclerk-Clerk <token>`. Shown once; the library keeps only its hash.
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `user` *[`ClerkUser`](#clerkuser)*, **required** — The signed-in person on that library.
 - `idle_secs` *integer (int64)*, **required** — Seconds the session stays signed in unused; each use resets it.
 
@@ -544,88 +544,6 @@ The person a clerk session signs in as.
 
 - `id` *integer (int64)*, **required** — The user's id on the library.
 - `display_name` *string or null* — The user's display name on the library, when set.
-
-## ClusterConsentsResponse
-
-JSON body for `GET /api/config/cluster-consents`.
-
-- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of.
-- `consents` *array of [`RemoteConsentView`](#remoteconsentview)*, **required** — Every plugin request from those libraries, pending or answered.
-
-## ClusterJobsBody
-
-`POST /api/config/clusters/{cluster_id}/jobs` body.
-
-- `job_ids` *array of string*, **required** — Job ids on the owner cluster.
-
-## ClusterJobsResponse
-
-JSON body for `POST /api/config/clusters/{cluster_id}/jobs`.
-
-- `jobs` *array of [`JobStatusEntry`](#jobstatusentry)*, **required** — The owner's state of each job this install may see, in request order.
-
-## ClusterLinkView
-
-A library this install is a branch of: ids, origin and state, never key material.
-
-- `cluster_id` *string*, **required** — The library's cluster id.
-- `owner_origin` *string*, **required** — The library's canonical origin.
-- `node_id` *string*, **required** — The node id the library minted for this install.
-- `pinned` *boolean*, **required** — Whether the link pins the library's self-signed certificate.
-- `state` *string*, **required** — `active`, `revoked`, or `left`.
-- `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
-- `share_books` *boolean*, **required** — "Share this branch's books with the library".
-- `include_branches` *boolean*, **required** — "Include books from my own branches".
-- `work_for_members` *boolean*, **required** — "Download for other members of the library": this install takes the library's work for its other members too, not only its owner's (off by default).
-- `keep_member_copies` *boolean*, **required** — "Keep copies of other members' books": a book acquired here for another member is also written to this install's own destinations (off by default).
-- `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
-- `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
-- `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
-- `keep_copies` *boolean*, **required** — "Keep copies on this computer": the branch takes the library's copies of its person's books into its own storage. The branch takes the library's work and shows its books whether or not this is on.
-- `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
-
-## ClusterScanBody
-
-`POST /api/config/clusters/{cluster_id}/scan` body.
-
-- `account` *string or null* — Scan only this store account of the owner cluster.
-- `plugin_instance_id` *string or null* — Pin every planned job to this owner plugin instance.
-
-## ClusterScanPlanned
-
-JSON body after the owner library queued a scan for this install.
-
-- `cluster_id` *string*, **required** — The owner library's cluster id.
-- `created` *array of string*, **required** — Ids of the jobs the owner created.
-- `duplicates` *array of string*, **required** — Ids of jobs that were already pending or running.
-- `queue_full` *integer (int64)*, **required** — Planned jobs the owner's queue had no room for. At least 0.
-
-## ClusterStatusResponse
-
-`GET /api/cluster/status` body.
-
-- `cluster` *[`ClusterSummary`](#clustersummary)*, **required** — Cluster-wide counters.
-- `node_id` *string*, **required** — Id of the node that answered.
-- `nodes` *array of [`NodeView`](#nodeview)*, **required** — The nodes the caller administers.
-- `capabilities` *[`NodeCapabilities`](#nodecapabilities)*, **required** — What the caller may do with them.
-
-## ClusterSummary
-
-Cluster-wide counters every node administrator may see.
-
-- `nodes` *integer*, **required** — Nodes in the library's node list. At least 0.
-- `live` *integer*, **required** — Nodes whose last heartbeat is recent enough. At least 0.
-- `drained` *integer*, **required** — Live nodes an operator drained. At least 0.
-- `branch_nodes` *integer*, **required** — Enrolled hosts (nodes with their own database). At least 0.
-- `cpu_budget_millicores` *integer (int64)*, **required** — CPU the scheduler may commit across live nodes, in millicores.
-- `cpu_reserved_millicores` *integer (int64)*, **required** — CPU the running guests' ceilings add up to, in millicores.
-- `memory_budget_bytes` *integer (int64)*, **required** — Memory the scheduler may commit across live nodes, in bytes.
-- `memory_reserved_bytes` *integer (int64)*, **required** — Memory the running guests' ceilings add up to, in bytes.
-- `running_guests` *integer (int64)*, **required** — Guests running across live nodes.
-- `active_jobs` *integer (int64)*, **required** — Jobs queued or running.
-- `deliveries` *[`DeliveryBacklog`](#deliverybacklog)*, **required** — Event delivery backlog.
-- `leases` *array of [`LeaseView`](#leaseview)*, **required** — Every cluster lease, held or expired.
-- `schema` *[`SchemaStateView`](#schemastateview)*, **required** — The database schema against this binary.
 
 ## ConfigOptionValueInfo
 
@@ -797,7 +715,7 @@ The library's default scope as the scope routes report it.
 
 ## DeliveryBacklog
 
-Event delivery backlog across the cluster.
+Event delivery backlog across the library.
 
 - `pending` *integer (int64)*, **required** — Deliveries waiting for a consumer.
 - `running` *integer (int64)*, **required** — Deliveries a consumer is handling now.
@@ -867,7 +785,7 @@ One diagnostics report this install sent.
 JSON body after `POST /api/config/join/connections/disconnect`.
 
 - `here` *boolean*, **required** — The account was the person's here and is disconnected here now.
-- `libraries` *array of string*, **required** — Linked libraries (owner cluster ids) that confirmed the disconnect.
+- `libraries` *array of string*, **required** — Linked libraries (parent library ids) that confirmed the disconnect.
 - `unreached` *array of string*, **required** — Linked libraries that could not be reached or refused; the account stays connected there until the person disconnects it there.
 
 ## DiscoverFeed
@@ -949,8 +867,8 @@ Where a configuration domain document lives and which revision it is at:
 the metadata every domain response carries before its settings.
 
 - `namespace` *string*, **required** — Domain namespace (`core.events` or `core.output`).
-- `scope_type` *string*, **required** — Scope type: `cluster` for a shared document, `node` for one node's.
-- `scope_id` *string*, **required** — Scope id: `singleton` for the cluster, else the node id.
+- `scope_type` *string*, **required** — Scope type: `library` for a shared document, `node` for one node's.
+- `scope_id` *string*, **required** — Scope id: `singleton` for the library, else the node id.
 - `schema_version` *integer (int64)*, **required** — Version of the document's schema, starting at 1.
 - `revision` *integer (int64)*, **required** — Compare-and-swap revision; send it back as `expected_revision`.
 - `updated_at` *string*, **required** — RFC 3339 time of the last write.
@@ -1003,7 +921,7 @@ JSON body for Owner password re-auth before issuing an elevated operator cookie.
 
 JSON body after an enrollment link or branch sign-in was redeemed.
 
-- `cluster_id` *string*, **required** — The cluster the node joined.
+- `library_id` *string*, **required** — The library the node joined.
 - `node_id` *string*, **required** — The node id minted for it.
 
 ## EnrollFinish
@@ -1118,7 +1036,7 @@ Typed `[events]` document, schema version 1.
 
 - `retention_days` *integer (int64)*, **required** — Days to keep acked and rejected deliveries. At least 0.
 - `dead_letter_retention_days` *integer (int64)*, **required** — Days to keep dead-lettered deliveries. At least 0.
-- `concurrency` *integer (int32)*, **required** — Local delivery workers and the cluster in-flight cap. At least 0.
+- `concurrency` *integer (int32)*, **required** — Local delivery workers and the library in-flight cap. At least 0.
 
 ## ExpressionKindJson
 
@@ -1207,7 +1125,7 @@ One holding of a listing.
 
 The host-enrollment switch.
 
-- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
 - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
 
 ## ImpersonateRequest
@@ -1239,7 +1157,7 @@ JSON body for `POST /api/config/join/inspect`.
 
 A library as `POST /api/config/join/inspect` saw it.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `library_name` *string*, **required** — A name to show for the library.
 - `origin` *string*, **required** — Its canonical origin.
 - `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
@@ -1376,7 +1294,7 @@ JSON body for `GET /api/config/join`.
 - `shared_branch_eligible` *boolean*, **required** — Whether this install could still join a library as a shared branch.
 - `shared_branch_problem` *string or null* — Why it cannot join as a shared branch, when it cannot.
 - `default_branch_name` *string*, **required** — The name a join is offered under by default (this machine's name).
-- `links` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with whether its client runs.
+- `links` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of, with whether its client runs.
 
 ## LameConfig
 
@@ -1391,7 +1309,7 @@ LAME encoder tuning (classic `Lame*` settings).
 
 ## LeaseView
 
-A cluster lease as the status page shows it.
+A library lease as the status page shows it.
 
 - `name` *string*, **required** — Lease name.
 - `holder` *string*, **required** — Holder (a node id).
@@ -1403,14 +1321,96 @@ A cluster lease as the status page shows it.
 
 `POST /api/config/join/leave` body.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id) to leave.
+- `library_id` *string*, **required** — The library (parent library id) to leave.
 
 ## LeaveStarted
 
 JSON body once leaving a library started.
 
-- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The link, now `left`.
+- `library` *[`LibraryLinkView`](#librarylinkview)*, **required** — The link, now `left`.
 - `owner_notified` *boolean*, **required** — Whether the library was told (otherwise it notices the missed heartbeats).
+
+## LibraryConsentsResponse
+
+JSON body for `GET /api/config/library-consents`.
+
+- `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of.
+- `consents` *array of [`RemoteConsentView`](#remoteconsentview)*, **required** — Every plugin request from those libraries, pending or answered.
+
+## LibraryJobsBody
+
+`POST /api/config/libraries/{library_id}/jobs` body.
+
+- `job_ids` *array of string*, **required** — Job ids on the library.
+
+## LibraryJobsResponse
+
+JSON body for `POST /api/config/libraries/{library_id}/jobs`.
+
+- `jobs` *array of [`JobStatusEntry`](#jobstatusentry)*, **required** — The owner's state of each job this install may see, in request order.
+
+## LibraryLinkView
+
+A library this install is a branch of: ids, origin and state, never key material.
+
+- `library_id` *string*, **required** — The library id.
+- `owner_origin` *string*, **required** — The library's canonical origin.
+- `node_id` *string*, **required** — The node id the library minted for this install.
+- `pinned` *boolean*, **required** — Whether the link pins the library's self-signed certificate.
+- `state` *string*, **required** — `active`, `revoked`, or `left`.
+- `enrolled_at` *string*, **required** — RFC 3339 enrollment time.
+- `share_books` *boolean*, **required** — "Share this branch's books with the library".
+- `include_branches` *boolean*, **required** — "Include books from my own branches".
+- `work_for_members` *boolean*, **required** — "Download for other members of the library": this install takes the library's work for its other members too, not only its owner's (off by default).
+- `keep_member_copies` *boolean*, **required** — "Keep copies of other members' books": a book acquired here for another member is also written to this install's own destinations (off by default).
+- `max_jobs` *integer or null* — The most jobs this install runs for the library at once, as its operator set it; `null` gives the library an equal share of the machine. At least 0; at most 16.
+- `job_share` *integer or null* — How many jobs the library may have running here now: its share of the machine after this install's own work, within `max_jobs`. Only the listing and sharing routes report it, and only while the link's client runs. At least 0.
+- `list_members_books` *boolean*, **required** — "List my members' books to the library": the library's catalog lookups are answered with members' books (except those who opted out) as well as the owner's.
+- `keep_copies` *boolean*, **required** — "Keep copies on this computer": the branch takes the library's copies of its person's books into its own storage. The branch takes the library's work and shows its books whether or not this is on.
+- `running` *boolean or null* — Whether this install's client for the link is running now; only the join routes report it.
+
+## LibraryScanBody
+
+`POST /api/config/libraries/{library_id}/scan` body.
+
+- `account` *string or null* — Scan only this store account of the library.
+- `plugin_instance_id` *string or null* — Pin every planned job to this owner plugin instance.
+
+## LibraryScanPlanned
+
+JSON body after the owner library queued a scan for this install.
+
+- `library_id` *string*, **required** — The parent library's id.
+- `created` *array of string*, **required** — Ids of the jobs the owner created.
+- `duplicates` *array of string*, **required** — Ids of jobs that were already pending or running.
+- `queue_full` *integer (int64)*, **required** — Planned jobs the owner's queue had no room for. At least 0.
+
+## LibraryStatusResponse
+
+`GET /api/library-status` body.
+
+- `library` *[`LibrarySummary`](#librarysummary)*, **required** — Library-wide counters.
+- `node_id` *string*, **required** — Id of the node that answered.
+- `nodes` *array of [`NodeView`](#nodeview)*, **required** — The nodes the caller administers.
+- `capabilities` *[`NodeCapabilities`](#nodecapabilities)*, **required** — What the caller may do with them.
+
+## LibrarySummary
+
+Library-wide counters every node administrator may see.
+
+- `nodes` *integer*, **required** — Nodes in the library's node list. At least 0.
+- `live` *integer*, **required** — Nodes whose last heartbeat is recent enough. At least 0.
+- `drained` *integer*, **required** — Live nodes an operator drained. At least 0.
+- `branch_nodes` *integer*, **required** — Enrolled hosts (nodes with their own database). At least 0.
+- `cpu_budget_millicores` *integer (int64)*, **required** — CPU the scheduler may commit across live nodes, in millicores.
+- `cpu_reserved_millicores` *integer (int64)*, **required** — CPU the running guests' ceilings add up to, in millicores.
+- `memory_budget_bytes` *integer (int64)*, **required** — Memory the scheduler may commit across live nodes, in bytes.
+- `memory_reserved_bytes` *integer (int64)*, **required** — Memory the running guests' ceilings add up to, in bytes.
+- `running_guests` *integer (int64)*, **required** — Guests running across live nodes.
+- `active_jobs` *integer (int64)*, **required** — Jobs queued or running.
+- `deliveries` *[`DeliveryBacklog`](#deliverybacklog)*, **required** — Event delivery backlog.
+- `leases` *array of [`LeaseView`](#leaseview)*, **required** — Every library lease, held or expired.
+- `schema` *[`SchemaStateView`](#schemastateview)*, **required** — The database schema against this binary.
 
 ## LinkedIdentitiesResponse
 
@@ -1570,7 +1570,7 @@ JSON body for `GET /api/config/node-invites`.
 
 ## NodeKind
 
-How a node joined the cluster.
+How a node joined the library.
 
 Type: one of `shared`, `branch`
 
@@ -1609,7 +1609,7 @@ write.
 
 Typed node-scoped runtime document, schema version 1.
 
-Desired state for one node, editable from any node in the cluster: an
+Desired state for one node, editable from any node in the library: an
 operator label, and the budget the scheduler may commit on this node.
 Budgets are shares of the capacity the node detects at heartbeat
 (CPU cores and memory, the tighter of the machine and its cgroup).
@@ -1618,7 +1618,7 @@ Budgets are shares of the capacity the node detects at heartbeat
 - `cpu_budget_percent` *integer (int32)* — Share of detected CPU cores the scheduler may commit to plugin guests on this node (1..=100). At least 1; at most 100.
 - `memory_budget_percent` *integer (int32)* — Share of detected memory the scheduler may commit (1..=100). At least 1; at most 100.
 - `schedulable` *boolean* — False drains the node: the scheduler places nothing new here and moves its replicas elsewhere. Hand-managed deployments still run.
-- `cache_budget_bytes` *integer (int64) or null* — Disk space, in bytes, this node's image caches may use together, overriding the cluster's `core.cache` budget (16 MiB to 1 TiB). Absent means the cluster budget applies. At least 16777216; at most 1099511627776.
+- `cache_budget_bytes` *integer (int64) or null* — Disk space, in bytes, this node's image caches may use together, overriding the library's `core.cache` budget (16 MiB to 1 TiB). Absent means the library budget applies. At least 16777216; at most 1099511627776.
 
 ## NodeScope
 
@@ -1665,7 +1665,7 @@ A node's latest heartbeat with budget, accounting, and availability.
 One node with its latest heartbeat, budget and owner.
 
 - `node_id` *string*, **required** — Node id.
-- `cluster_id` *string*, **required** — Cluster the node belongs to.
+- `library_id` *string*, **required** — Library the node belongs to.
 - `created_at` *string*, **required** — RFC 3339 time the node first enrolled.
 - `heartbeat_at` *string*, **required** — RFC 3339 time of the last heartbeat the node row recorded.
 - `software_version` *string*, **required** — Bookclerk version the node runs.
@@ -1688,7 +1688,7 @@ One node with its latest heartbeat, budget and owner.
 
 `POST /api/node/v1/enroll/oauth` answer.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `node_id` *string*, **required** — The node id recorded for the joining install.
 - `connection` *[`ConnectionType`](#connectiontype)* — The connection type recorded (`branch` when left out).
 - `bootstrap` *string or null* — For a shared branch: the [`crate::SharedBranchBootstrap`] sealed to the node's box key ([`crate::seal_shared_branch_bootstrap`]), as base64url without padding.
@@ -1970,14 +1970,14 @@ The consent page's connection block for an Owner, who may pick shared branch.
 
 `GET /api/node/v1/info` answer.
 
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `library_name` *string*, **required** — A name to show for the library.
 - `origin` *string*, **required** — The library's canonical origin: the one the node handshake signs and the authorize endpoint lives under.
 - `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
 - `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.host_enrollment`).
 - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
 - `software_version` *string* — The library's Bookclerk version.
-- `ancestry` *array of string* — The library's ancestry: its own cluster id first, then the cluster id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own cluster id, so a tree of libraries never becomes a cycle.
+- `ancestry` *array of string* — The library's ancestry: its own library id first, then the library id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own library id, so a tree of libraries never becomes a cycle.
 
 ## PasskeyCreationOptions
 
@@ -2326,7 +2326,7 @@ and the configuration the guest receives.
 - `plugin_instance_id` *string*, **required** — Id of the new instance.
 - `plugin_key` *string*, **required** — Canonical plugin key the instance belongs to.
 - `display_name` *string*, **required** — Operator-facing name, trimmed.
-- `owner_node_id` *string or null* — Node the instance is local to; `null` for a cluster-wide instance.
+- `owner_node_id` *string or null* — Node the instance is local to; `null` for a library-wide instance.
 
 ## PluginInstanceDeleted
 
@@ -2341,7 +2341,7 @@ and the configuration the guest receives.
 sees it.
 
 - `node_id` *string*, **required** — Id of the node that answered; its deployments carry its own observations.
-- `instances` *array of [`PluginInstanceView`](#plugininstanceview)*, **required** — Every plugin instance in the cluster.
+- `instances` *array of [`PluginInstanceView`](#plugininstanceview)*, **required** — Every plugin instance in the library.
 
 ## PluginInstanceView
 
@@ -2619,7 +2619,7 @@ JSON body for `PUT /api/config/domains/core.events`.
 
 `PUT /api/config/host-enrollment` body.
 
-- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this cluster.
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
 
 ## PutNodeLabels
 
@@ -2642,7 +2642,7 @@ node's runtime document.
 - `cpu_budget_percent` *integer (int32) or null* — Share of detected CPU the scheduler may commit (1..=100). At least 0.
 - `memory_budget_percent` *integer (int32) or null* — Share of detected memory the scheduler may commit (1..=100). At least 0.
 - `schedulable` *boolean or null* — False drains the node.
-- `cache_budget_bytes` *integer (int64) or null* — This node's image cache budget in bytes (16 MiB to 1 TiB), overriding the cluster's `cache.budget_bytes`. `null` removes the override; leaving the field out keeps it as it is. At least 0.
+- `cache_budget_bytes` *integer (int64) or null* — This node's image cache budget in bytes (16 MiB to 1 TiB), overriding the library's `cache.budget_bytes`. `null` removes the override; leaving the field out keeps it as it is. At least 0.
 
 ## PutOutputDomainRequest
 
@@ -2789,7 +2789,7 @@ JSON body for `POST /redeem` (claim ticket plus retry nonce).
 
 An owner library's request to run a plugin on this install, and what the operator answered.
 
-- `cluster_id` *string*, **required** — The owner library's cluster id.
+- `library_id` *string*, **required** — The parent library's id.
 - `plugin_key` *string*, **required** — Canonical plugin key.
 - `requested_version` *string*, **required** — Version the owner deploys here now.
 - `requested_grant` *any JSON*, **required** — A plugin grant document (the plugin host's `PluginGrant`): the plugin key, the entrypoints, network mode and domains, and the bindings it may use; `null` when nothing was approved.
@@ -2841,9 +2841,9 @@ Body of a `409 Conflict` from a compare-and-swap write whose
 
 ## RevokeBody
 
-`POST /api/config/cluster-consents/revoke` body.
+`POST /api/config/library-consents/revoke` body.
 
-- `cluster_id` *string*, **required** — Owner cluster id.
+- `library_id` *string*, **required** — Library id.
 - `plugin_key` *string*, **required** — Canonical plugin key.
 
 ## RevokeForm
@@ -3003,7 +3003,7 @@ One allowed value of an `enum` setting: the stored id and its label.
 JSON body once this install joined a library as a shared branch.
 
 - `connection` *string*, **required** — Always `shared_branch`.
-- `cluster_id` *string*, **required** — The library's cluster id.
+- `library_id` *string*, **required** — The library id.
 - `node_id` *string*, **required** — The node id the library minted for this install.
 - `library_name` *string*, **required** — The library's name.
 - `database` *string*, **required** — The database plugin this install now runs (`postgres` or `d1`).
@@ -3022,7 +3022,7 @@ JSON body once this install joined a library as a shared branch.
 `POST /api/config/join/sharing` body: one library and the settings to
 change for it.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id).
+- `library_id` *string*, **required** — The library (parent library id).
 - `share_books` *boolean*, **required** — "Share this branch's books with *library*".
 - `include_branches` *boolean*, **required** — "Include books from my own branches".
 - `list_members_books` *boolean or null* — "List my members' books to *library*"; absent or `null` keeps the stored setting.
@@ -3034,13 +3034,13 @@ change for it.
 
 JSON body after `POST /api/config/join/sharing`.
 
-- `cluster` *[`ClusterLinkView`](#clusterlinkview)*, **required** — The link with its settings as stored now.
+- `library` *[`LibraryLinkView`](#librarylinkview)*, **required** — The link with its settings as stored now.
 
 ## SharingSettings
 
 JSON body for `GET /api/config/join/sharing`.
 
-- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — Every library this install is a branch of, with its sharing and work settings.
+- `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — Every library this install is a branch of, with its sharing and work settings.
 
 ## ShelfKindInfo
 
@@ -3561,7 +3561,7 @@ status, never the password hash.
 
 JSON body for `GET /api/config/join/window`.
 
-- `clusters` *array of [`ClusterLinkView`](#clusterlinkview)*, **required** — The libraries this install is an active branch of.
+- `libraries` *array of [`LibraryLinkView`](#librarylinkview)*, **required** — The libraries this install is an active branch of.
 - `cards` *array of [`ClerkLinkView`](#clerklinkview)*, **required** — The libraries this install holds an active library card for.
 - `books` *array of [`WindowEntryView`](#windowentryview)*, **required** — Their books, every one they list for a member, one entry per work, by title; each edition says whether it is this install's person's.
 
@@ -3569,7 +3569,7 @@ JSON body for `GET /api/config/join/window`.
 
 One edition in [`WindowBooks`], and the library that holds it.
 
-- `cluster_id` *string*, **required** — The library (owner cluster id) that holds it.
+- `library_id` *string*, **required** — The library (parent library id) that holds it.
 - `owner_origin` *string*, **required** — The library's origin.
 - `store` *string*, **required** — The store's plain id.
 - `marketplace` *string*, **required** — Lower-cased store marketplace; empty when the store has none.

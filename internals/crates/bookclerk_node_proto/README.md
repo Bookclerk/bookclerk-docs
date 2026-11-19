@@ -1,6 +1,6 @@
 # bookclerk_node_proto
 
-Wire protocol between a Bookclerk branch node and its owner cluster.
+Wire protocol between a Bookclerk branch node and its library.
 
 A host connects to `GET /api/node/v1/connect` with the WebSocket
 subprotocol [`SUBPROTOCOL`](#subprotocol) and proves itself with the Ed25519 key it
@@ -8,7 +8,7 @@ enrolled (H-4 design, section 3):
 
 1. host → owner: [`Body::Hello`](#body) `{node_id, incarnation,
    software_version, resume}`
-2. owner → host: [`Body::Challenge`](#body) `{nonce, cluster_id}`
+2. owner → host: [`Body::Challenge`](#body) `{nonce, library_id}`
 3. host → owner: [`Body::Auth`](#body) `{sig}`, an Ed25519 signature over
    [`auth_transcript`](#auth_transcript)
 4. owner → host: [`Body::Welcome`](#body), or a close with
@@ -108,12 +108,12 @@ bytes.
 | [`CopyFile`](#copyfile) | struct | One file of a copy (`crate::Body::CopyGranted`). |
 | [`CopyGrantedFrame`](#copygrantedframe) | struct | The fields of a `crate::Body::CopyGranted`, borrowed for `copy_granted_problem`. |
 | [`AcquireTarget`](#acquiretarget) | struct | One title an acquire job should fetch on a host (`Body::AcquireTargets`). |
+| [`CallNumber`](#callnumber) | struct | A title's short call number as the owner names it: 1 to `MAX_CALL_NUMBER_BYTES` ASCII letters and digits, so it is safe in any storage key segment. Deserializing anything else fails, which refuses the whole frame. |
 | [`ClaimFilter`](#claimfilter) | struct | What a host is willing to claim (`claim.filter`). |
 | [`FileCopy`](#filecopy) | struct | Where one uploaded file is written: a destination and its key there. |
 | [`Frame`](#frame) | struct | One frame: the envelope and its body. |
 | [`HeldFence`](#heldfence) | struct | A lease the host still holds when it reconnects (`hello.resume`). |
 | [`JobStatusEntry`](#jobstatusentry) | struct | One job's state in `Body::JobStatuses`. |
-| [`LibraryId`](#libraryid) | struct | A title's short library id as the owner names it: 1 to `MAX_LIBRARY_ID_BYTES` ASCII letters and digits, so it is safe in any storage key segment. Deserializing anything else fails, which refuses the whole frame. |
 | [`PlanDestination`](#plandestination) | struct | One output destination of the shared node that answered an acquire plan (`Body::AcquireTargets`). |
 | [`RemoteArtifact`](#remoteartifact) | struct | One downloadable artifact of a `RemoteVersion`. |
 | [`RemoteDeployment`](#remotedeployment) | struct | One deployment that targets a host (`deployments.items`). |
@@ -164,16 +164,16 @@ bytes.
 | [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`SharedBranchDatabase`](#sharedbranchdatabase) | enum | The library's database, as a shared branch needs it to connect. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
-| [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
-| [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `cluster_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
+| [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
+| [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `library_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
 | [`check_account_bundle`](#check_account_bundle) | function | Checks `bundle` against every rule `parse_account_bundle` applies. |
-| [`open_account_bundle`](#open_account_bundle) | function | Opens a bundle made by `seal_account_bundle` with the joining node's box secret, for the cluster and node ids the redeem answered. |
-| [`open_account_offer`](#open_account_offer) | function | Opens an offer made by `seal_account_offer` with the library's owner box secret, for the cluster id and the node id of the authenticated connection it arrived on. |
-| [`parse_account_bundle`](#parse_account_bundle) | function | Parses the opened bytes of an account bundle for `node_id` of `cluster_id` and checks it (`check_account_bundle`). Sans-IO: the branch runs it on what `open` returns, and the fuzz target runs it on arbitrary bytes. |
+| [`open_account_bundle`](#open_account_bundle) | function | Opens a bundle made by `seal_account_bundle` with the joining node's box secret, for the library and node ids the redeem answered. |
+| [`open_account_offer`](#open_account_offer) | function | Opens an offer made by `seal_account_offer` with the library's owner box secret, for the library id and the node id of the authenticated connection it arrived on. |
+| [`parse_account_bundle`](#parse_account_bundle) | function | Parses the opened bytes of an account bundle for `node_id` of `library_id` and checks it (`check_account_bundle`). Sans-IO: the branch runs it on what `open` returns, and the fuzz target runs it on arbitrary bytes. |
 | [`seal_account_bundle`](#seal_account_bundle) | function | Seals `bundle` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
 | [`seal_account_offer`](#seal_account_offer) | function | Seals a branch's `bundle` to its library's owner box key `recipient` (`crate::Body::Welcome`), for `crate::Body::AccountsAdd`. The box is bound with `account_offer_aad`, so a joining bundle never opens as an offer, nor the other way round. |
-| [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain cluster id and there are at most `MAX_ANCESTRY`. |
-| [`is_cluster_id`](#is_cluster_id) | function | True for a plain cluster id in an ancestry. |
+| [`is_ancestry`](#is_ancestry) | function | True when every id in `ancestry` is a plain library id and there are at most `MAX_ANCESTRY`. |
+| [`is_library_id`](#is_library_id) | function | True for a plain library id in an ancestry. |
 | [`is_marketplace`](#is_marketplace) | function | True for a marketplace: empty, or up to `MAX_MARKETPLACE_BYTES` lowercase ASCII letters and digits. |
 | [`is_product_id`](#is_product_id) | function | True for a product id: 1 to 256 bytes, no whitespace at the ends and no control characters. |
 | [`is_store_id`](#is_store_id) | function | True for a store id: a short lowercase token. |
@@ -230,9 +230,9 @@ bytes.
 | [`secret_update_aad`](#secret_update_aad) | function | Associated data of a token write-back from `node_id` for `secret_ref`, handed with `job_id` under `fence`. |
 | [`secrets_aad`](#secrets_aad) | function | Associated data of the secret bundle handed to `node_id` for `job_id` under lease generation `fence`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`upload_token_aad`](#upload_token_aad) | function | Associated data of the token for upload `upload_id`, granted to `node_id` for `job_id` under lease generation `fence`. |
-| [`open_shared_branch_bootstrap`](#open_shared_branch_bootstrap) | function | Opens a bootstrap made by `seal_shared_branch_bootstrap` with the joining node's box secret, for the cluster and node ids the redeem answered. |
+| [`open_shared_branch_bootstrap`](#open_shared_branch_bootstrap) | function | Opens a bootstrap made by `seal_shared_branch_bootstrap` with the joining node's box secret, for the library and node ids the redeem answered. |
 | [`seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap) | function | Seals `bootstrap` to the joining node's box key `recipient`, as base64url text for the redeem answer. |
-| [`shared_branch_bootstrap_aad`](#shared_branch_bootstrap_aad) | function | Associated data of a shared branch bootstrap for `node_id` of `cluster_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
+| [`shared_branch_bootstrap_aad`](#shared_branch_bootstrap_aad) | function | Associated data of a shared branch bootstrap for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`artifact_transcript`](#artifact_transcript) | function | The bytes a host signs for an artifact request: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`auth_transcript`](#auth_transcript) | function | The bytes a host signs: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`canonical_origin`](#canonical_origin) | function | The ASCII origin (`scheme://host[:port]`) of an http(s) URL, with the default port and any path dropped and the host lowercased. |
@@ -255,7 +255,7 @@ bytes.
 | [`MAX_CARRIED_PLUGIN_KEY_BYTES`](#max_carried_plugin_key_bytes) | constant | Longest plugin key carried, in bytes. |
 | [`MAX_CARRIED_SECRET_BYTES`](#max_carried_secret_bytes) | constant | Largest secret value carried, in bytes. |
 | [`CATALOG_ITEM`](#catalog_item) | constant | Item kind of the catalog fence (`lost.item`), and the job id a catalog upload's token is sealed for. |
-| [`MAX_ANCESTRY`](#max_ancestry) | constant | Most cluster ids an ancestry may list. |
+| [`MAX_ANCESTRY`](#max_ancestry) | constant | Most library ids an ancestry may list. |
 | [`MAX_CATALOG_BATCH_TITLES`](#max_catalog_batch_titles) | constant | Most titles one `crate::Body::CatalogSync` batch may carry. |
 | [`MAX_CATALOG_CURSOR_BYTES`](#max_catalog_cursor_bytes) | constant | Longest cursor. |
 | [`MAX_CATALOG_TITLE_BYTES`](#max_catalog_title_bytes) | constant | Largest serialized title in a batch. |
@@ -287,8 +287,8 @@ bytes.
 | [`MAX_COPY_NAME_BYTES`](#max_copy_name_bytes) | constant | Longest `CopyFile::name`, in bytes. |
 | [`MAX_COPY_TOKEN_SECS`](#max_copy_token_secs) | constant | Longest a copy token may be stated to live, in seconds (one day). |
 | [`ITEM_JOB`](#item_job) | constant | Work item kind for jobs. |
+| [`MAX_CALL_NUMBER_BYTES`](#max_call_number_bytes) | constant | Longest call number (see `CallNumber`). |
 | [`MAX_DESTINATION_ID_BYTES`](#max_destination_id_bytes) | constant | Longest destination id. |
-| [`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) | constant | Longest library id (see `LibraryId`). |
 | [`MAX_PROBE_BITRATE_KBPS`](#max_probe_bitrate_kbps) | constant | Highest bitrate an `UploadProbe` may state, in kilobits per second: above any audiobook encoding, so a forged value cannot win by size alone. |
 | [`MAX_SCAN_BATCH_ROWS`](#max_scan_batch_rows) | constant | Most rows one `Body::ScanResults` batch may carry. |
 | [`MAX_SCAN_PRODUCT_ID_BYTES`](#max_scan_product_id_bytes) | constant | Longest product id a `Body::ScanRemoved` batch may carry. |
@@ -364,7 +364,7 @@ bytes.
 ```rust
 pub struct AccountBundle {
     pub v: u32,
-    pub cluster_id: String,
+    pub library_id: String,
     pub node_id: String,
     pub accounts: Vec<CarriedAccount>,
 }
@@ -376,7 +376,7 @@ The store accounts a library hands a joining branch, for one person.
 **Fields**
 
 - `v`: [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version).
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `node_id`: The node id the library minted for the branch.
 - `accounts`: The person's accounts, each with its secrets.
 
@@ -606,7 +606,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `IntoPa
 ```rust
 pub struct ClerkTokenAnswer {
     pub token: String,
-    pub cluster_id: String,
+    pub library_id: String,
     pub user: ClerkUser,
     pub idle_secs: i64,
 }
@@ -618,7 +618,7 @@ pub struct ClerkTokenAnswer {
 
 - `token`: The session token, sent as `Authorization: Bookclerk-Clerk <token>`.
   Shown once; the library keeps only its hash.
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `user`: The signed-in person on that library.
 - `idle_secs`: Seconds the session stays signed in unused; each use resets it.
 
@@ -828,8 +828,8 @@ pub struct AcquireTarget {
     pub account_id: String,
     pub title: TargetTitle,
     pub parent: Option<TargetTitle>,
-    pub library_id: Option<LibraryId>,
-    pub parent_library_id: Option<LibraryId>,
+    pub call_number: Option<CallNumber>,
+    pub parent_call_number: Option<CallNumber>,
 }
 ```
 
@@ -847,14 +847,35 @@ One title an acquire job should fetch on a host
   the title is an episode whose show an account of the same store
   holds there: a destination that saves episodes to the parent's
   folder names them from it, as an acquire on the owner would.
-- `library_id`: The title's library id on the owner (the short id of its edition
-  there), which the `<library id>` naming tag writes. A host acquires
+- `call_number`: The title's call number on the owner (the short id of its edition
+  there), which the `<call number>` naming tag writes. A host acquires
   into a scratch library whose edition ids differ, so it names with
   this one to plan the same keys the owner grants.
-- `parent_library_id`: The podcast parent's library id on the owner, for a destination that
+- `parent_call_number`: The podcast parent's call number on the owner, for a destination that
   saves episodes to the parent's folder.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CallNumber
+
+```rust
+pub struct CallNumber(/* private */);
+```
+
+A title's short call number as the owner names it: 1 to
+[`MAX_CALL_NUMBER_BYTES`](#max_call_number_bytes) ASCII letters and digits, so it is safe in any
+storage key segment. Deserializing anything else fails, which refuses
+the whole frame.
+
+#### CallNumber::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as text.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `From<CallNumber>`, `PartialEq`, `Serialize`, `TryFrom<String>`
 
 ### ClaimFilter
 
@@ -989,27 +1010,6 @@ One job's state in [`Body::JobStatuses`](#body).
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
-### LibraryId
-
-```rust
-pub struct LibraryId(/* private */);
-```
-
-A title's short library id as the owner names it: 1 to
-[`MAX_LIBRARY_ID_BYTES`](#max_library_id_bytes) ASCII letters and digits, so it is safe in any
-storage key segment. Deserializing anything else fails, which refuses
-the whole frame.
-
-#### LibraryId::as_str
-
-```rust
-pub fn as_str(&self) -> &str
-```
-
-The id as text.
-
-Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `From<LibraryId>`, `PartialEq`, `Serialize`, `TryFrom<String>`
-
 ### PlanDestination
 
 ```rust
@@ -1111,7 +1111,7 @@ The active version of a plugin a host is asked to run.
 - `manifest_toml`: `plugin.toml` text.
 - `settings`: Settings schema the version declares (JSON).
 - `artifacts`: Per-target artifacts.
-- `grant_json`: The grant the cluster's operator approved (JSON); empty while the
+- `grant_json`: The grant the library's operator approved (JSON); empty while the
   version is unapproved, in which case nothing runs.
 - `publisher_verified`: True when the publisher was verified at install.
 
@@ -1376,7 +1376,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ```rust
 pub struct OAuthEnrollAnswer {
-    pub cluster_id: String,
+    pub library_id: String,
     pub node_id: String,
     pub connection: ConnectionType,
     pub bootstrap: Option<String>,
@@ -1388,7 +1388,7 @@ pub struct OAuthEnrollAnswer {
 
 **Fields**
 
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `node_id`: The node id recorded for the joining install.
 - `connection`: The connection type recorded (`branch` when left out).
 - `bootstrap`: For a shared branch: the [`crate::SharedBranchBootstrap`](#sharedbranchbootstrap) sealed to the node's box
@@ -1437,7 +1437,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `Partia
 
 ```rust
 pub struct OwnerInfo {
-    pub cluster_id: String,
+    pub library_id: String,
     pub library_name: String,
     pub origin: String,
     pub transport: String,
@@ -1452,7 +1452,7 @@ pub struct OwnerInfo {
 
 **Fields**
 
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `library_name`: A name to show for the library.
 - `origin`: The library's canonical origin: the one the node handshake signs and
   the authorize endpoint lives under.
@@ -1463,9 +1463,9 @@ pub struct OwnerInfo {
   SubjectPublicKeyInfo, which the joining operator confirms against
   the owner's Settings → Branches page.
 - `software_version`: The library's Bookclerk version.
-- `ancestry`: The library's ancestry: its own cluster id first, then the cluster
+- `ancestry`: The library's ancestry: its own library id first, then the library
   id of every library above it up to the root. A joining library
-  refuses a parent whose ancestry names its own cluster id, so a
+  refuses a parent whose ancestry names its own library id, so a
   tree of libraries never becomes a cycle.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
@@ -1724,7 +1724,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 ```rust
 pub struct SharedBranchBootstrap {
     pub v: u32,
-    pub cluster_id: String,
+    pub library_id: String,
     pub node_id: String,
     pub database: SharedBranchDatabase,
     pub dek: SecretValue,
@@ -1738,7 +1738,7 @@ secret.
 **Fields**
 
 - `v`: [`SHARED_BRANCH_BOOTSTRAP_VERSION`](#shared_branch_bootstrap_version).
-- `cluster_id`: The library's cluster id.
+- `library_id`: The library id.
 - `node_id`: The node id recorded for this shared branch.
 - `database`: How to reach the library's database.
 - `dek`: The library's 32-byte data-encryption key.
@@ -1749,7 +1749,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ```rust
 pub struct ArtifactRequest<'a> {
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub node_id: &'a str,
     pub owner_origin: &'a str,
     pub archive_sha256: &'a str,
@@ -1761,7 +1761,7 @@ What a signed artifact request covers.
 
 **Fields**
 
-- `cluster_id`: Owner cluster id.
+- `library_id`: Library id.
 - `node_id`: Requesting node id.
 - `owner_origin`: Owner origin as [`canonical_origin`](#canonical_origin) spells it.
 - `archive_sha256`: Lowercase hex SHA-256 of the archive asked for.
@@ -1773,7 +1773,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub struct AuthContext<'a> {
-    pub cluster_id: &'a str,
+    pub library_id: &'a str,
     pub node_id: &'a str,
     pub incarnation: &'a str,
     pub nonce: &'a [u8; 32],
@@ -1785,7 +1785,7 @@ What a handshake signature covers.
 
 **Fields**
 
-- `cluster_id`: Owner cluster id from the challenge.
+- `library_id`: Library id from the challenge.
 - `node_id`: Node id from the hello.
 - `incarnation`: Incarnation from the hello.
 - `nonce`: Nonce from the challenge.
@@ -2173,9 +2173,9 @@ Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialE
 ```rust
 pub enum Body {
     Hello { node_id: String, incarnation: String, software_version: String, resume: Vec<HeldFence> },
-    Challenge { nonce: String, cluster_id: String },
+    Challenge { nonce: String, library_id: String },
     Auth { sig: String },
-    Welcome { node_id: String, cluster_id: String, box_key: String },
+    Welcome { node_id: String, library_id: String, box_key: String },
     Resumed { renewed: Vec<HeldFence>, lost: Vec<HeldFence>, unchecked: Vec<HeldFence>, lease_secs: Option<u64> },
     Error { code: String, message: String },
     Heartbeat { started_at: String, interval_secs: u64, cpu_millicores: i64, memory_bytes: Option<i64>, cpu_used_millicores: Option<i64>, memory_available_bytes: Option<i64>, files_dir_free_bytes: Option<i64> },
@@ -2245,13 +2245,13 @@ What a frame says, tagged by `type`.
   - `resume`: Leases the host still holds from an earlier connection.
 - `Challenge`: Owner → host: the nonce to sign.
   - `nonce`: 32 random bytes, base64url without padding.
-  - `cluster_id`: Owner cluster id (also signed).
+  - `library_id`: Library id (also signed).
 - `Auth`: Host → owner: proof of key possession.
   - `sig`: Ed25519 signature over [`crate::auth_transcript`](#auth_transcript), base64url
     without padding.
 - `Welcome`: Owner → host: the handshake succeeded.
   - `node_id`: Authenticated node id.
-  - `cluster_id`: Owner cluster id.
+  - `library_id`: Library id.
   - `box_key`: The owner's X25519 box key for this connection, base64url
     without padding. The host seals token write-backs to it
     (`crate::seal_secret_update`), so no secret travels as frame
@@ -2448,10 +2448,10 @@ What a frame says, tagged by `type`.
   - `expires_in_secs`: Seconds the token stays valid unless extended: the owner
     extends it while the job's fence is live (each renewal and each
     accepted file).
-- `ScanRequest`: Host → owner: queue a library scan on the owner cluster for the
+- `ScanRequest`: Host → owner: queue a library scan on the library for the
   node's owner (H-5). The owner's scan planner runs as that user: an
   Owner or Administrator scanning every account gets one job per
-  scan-enabled account, routed across the cluster's nodes and hosts;
+  scan-enabled account, routed across the library's nodes and hosts;
   anyone else scans only the accounts they own. Answered with
   [`Body::ScanPlanned`](#body) or `error {code: "forbidden" | "invalid" |
   "unavailable"}`.
@@ -2471,7 +2471,7 @@ What a frame says, tagged by `type`.
   answers [`Body::Ack`](#body) with the same frame id once it has acted.
   - `message`: The queue message (`{"type": "deployment.changed", ...}`).
 - `Ack`: Host → owner: the wake with this frame id was handled.
-- `NodeLeaving`: Host → owner: this host is leaving the cluster (its operator chose
+- `NodeLeaving`: Host → owner: this host is leaving the library (its operator chose
   Leave library). The owner revokes the node's credential and stops
   counting it as live at once, instead of waiting for missed
   heartbeats, answers [`Body::Accepted`](#body), and closes the connection.
@@ -2484,7 +2484,7 @@ What a frame says, tagged by `type`.
 - `CatalogSession`: Library → branch: the answer to [`Body::CatalogBegin`](#body).
   - `fence`: The catalog fence every later `catalog.*` frame names.
   - `cursor`: Resume after this cursor (empty: from the start).
-  - `ancestry`: The library's ancestry: its own cluster id, then each library
+  - `ancestry`: The library's ancestry: its own library id, then each library
     above it, up to the root.
   - `destinations`: The library node's output destination ids, the primary first;
     a catalog upload copies each file to every one under its key.
@@ -2524,7 +2524,7 @@ What a frame says, tagged by `type`.
 - `AccountsAdd`: Branch → library: add the branch person's store connections to this
   library ("Add my connections to *library*"). `sealed` is an
   [`crate::AccountBundle`](#accountbundle) sealed to the connection's owner box key
-  ([`Body::Welcome`](#body)) and bound to the cluster and node ids
+  ([`Body::Welcome`](#body)) and bound to the library and node ids
   ([`crate::seal_account_offer`](#seal_account_offer)). The library keeps them for the
   user its node row names as the branch's owner, under that user's
   account rule. Answered with [`Body::AccountsAdded`](#body) or `error`.
@@ -2958,21 +2958,21 @@ Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 ### account_bundle_aad
 
 ```rust
-pub fn account_bundle_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+pub fn account_bundle_aad(library_id: &str, node_id: &str) -> Vec<u8>
 ```
 
-Associated data of the account bundle for `node_id` of `cluster_id`:
+Associated data of the account bundle for `node_id` of `library_id`:
 the domain tag, then each field as a 4-byte big-endian length and its
 bytes.
 
 ### account_offer_aad
 
 ```rust
-pub fn account_offer_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+pub fn account_offer_aad(library_id: &str, node_id: &str) -> Vec<u8>
 ```
 
 Associated data of an account offer from `node_id` to its library
-`cluster_id`: [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain), then the two ids as in
+`library_id`: [`ACCOUNT_OFFER_AAD_DOMAIN`](#account_offer_aad_domain), then the two ids as in
 [`account_bundle_aad`](#account_bundle_aad).
 
 ### check_account_bundle
@@ -2980,7 +2980,7 @@ Associated data of an account offer from `node_id` to its library
 ```rust
 pub fn check_account_bundle(
     bundle: &AccountBundle,
-    cluster_id: &str,
+    library_id: &str,
     node_id: &str,
 ) -> Result<(), SealError>
 ```
@@ -2998,19 +2998,19 @@ account, or a repeated secret within an account.
 ```rust
 pub fn open_account_bundle(
     recipient_secret: &[u8; 32],
-    cluster_id: &str,
+    library_id: &str,
     node_id: &str,
     sealed: &str,
 ) -> Result<AccountBundle, SealError>
 ```
 
 Opens a bundle made by [`seal_account_bundle`](#seal_account_bundle) with the joining node's
-box secret, for the cluster and node ids the redeem answered.
+box secret, for the library and node ids the redeem answered.
 
 #### Errors
 
 Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
-another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
+another library or node, or was altered, and [`SealError::Bundle`](#sealerror) when
 its content is refused by [`parse_account_bundle`](#parse_account_bundle).
 
 ### open_account_offer
@@ -3018,14 +3018,14 @@ its content is refused by [`parse_account_bundle`](#parse_account_bundle).
 ```rust
 pub fn open_account_offer(
     recipient_secret: &[u8; 32],
-    cluster_id: &str,
+    library_id: &str,
     node_id: &str,
     sealed: &str,
 ) -> Result<AccountBundle, SealError>
 ```
 
 Opens an offer made by [`seal_account_offer`](#seal_account_offer) with the library's owner
-box secret, for the cluster id and the node id of the authenticated
+box secret, for the library id and the node id of the authenticated
 connection it arrived on.
 
 #### Errors
@@ -3037,13 +3037,13 @@ As [`open_account_bundle`](#open_account_bundle).
 ```rust
 pub fn parse_account_bundle(
     plaintext: &[u8],
-    cluster_id: &str,
+    library_id: &str,
     node_id: &str,
 ) -> Result<AccountBundle, SealError>
 ```
 
 Parses the opened bytes of an account bundle for `node_id` of
-`cluster_id` and checks it ([`check_account_bundle`](#check_account_bundle)). Sans-IO: the
+`library_id` and checks it ([`check_account_bundle`](#check_account_bundle)). Sans-IO: the
 branch runs it on what [`open`](#open) returns, and the fuzz target runs it on
 arbitrary bytes.
 
@@ -3097,16 +3097,16 @@ As [`seal_account_bundle`](#seal_account_bundle).
 pub fn is_ancestry(ancestry: &[String]) -> bool
 ```
 
-True when every id in `ancestry` is a plain cluster id and there are at
+True when every id in `ancestry` is a plain library id and there are at
 most [`MAX_ANCESTRY`](#max_ancestry).
 
-### is_cluster_id
+### is_library_id
 
 ```rust
-pub fn is_cluster_id(id: &str) -> bool
+pub fn is_library_id(id: &str) -> bool
 ```
 
-True for a plain cluster id in an ancestry.
+True for a plain library id in an ancestry.
 
 ### is_marketplace
 
@@ -3251,7 +3251,7 @@ Reads the library's `POST /api/clerk/v1/token` answer on the clerk.
 The answer comes from another machine, so it is checked before any of
 it is kept: at most [`MAX_CLERK_ANSWER_BYTES`](#max_clerk_answer_bytes) of UTF-8 (all of it,
 unknown keys included), one JSON object with no known key written twice, `token` a session token ([`is_clerk_token`](#is_clerk_token)),
-`cluster_id` a cluster id ([`crate::is_cluster_id`](#is_cluster_id)), `user.id` a
+`library_id` a library id ([`crate::is_library_id`](#is_library_id)), `user.id` a
 positive integer, `user.display_name` (optional) at most
 [`MAX_CLERK_DISPLAY_NAME_BYTES`](#max_clerk_display_name_bytes) bytes with no control characters, and
 `idle_secs` from 1 second to a year. Keys it does not know are ignored,
@@ -3934,19 +3934,19 @@ Associated data of the token for upload `upload_id`, granted to
 ```rust
 pub fn open_shared_branch_bootstrap(
     recipient_secret: &[u8; 32],
-    cluster_id: &str,
+    library_id: &str,
     node_id: &str,
     sealed: &str,
 ) -> Result<SharedBranchBootstrap, SealError>
 ```
 
 Opens a bootstrap made by [`seal_shared_branch_bootstrap`](#seal_shared_branch_bootstrap) with the joining
-node's box secret, for the cluster and node ids the redeem answered.
+node's box secret, for the library and node ids the redeem answered.
 
 #### Errors
 
 Returns [`SealError::Open`](#sealerror) when the box was sealed to another key, for
-another cluster or node, or was altered, and [`SealError::Bundle`](#sealerror) when
+another library or node, or was altered, and [`SealError::Bundle`](#sealerror) when
 its content is malformed or names other ids.
 
 ### seal_shared_branch_bootstrap
@@ -3971,10 +3971,10 @@ is not 32 bytes.
 ### shared_branch_bootstrap_aad
 
 ```rust
-pub fn shared_branch_bootstrap_aad(cluster_id: &str, node_id: &str) -> Vec<u8>
+pub fn shared_branch_bootstrap_aad(library_id: &str, node_id: &str) -> Vec<u8>
 ```
 
-Associated data of a shared branch bootstrap for `node_id` of `cluster_id`: the
+Associated data of a shared branch bootstrap for `node_id` of `library_id`: the
 domain tag, then each field as a 4-byte big-endian length and its bytes.
 
 ### artifact_transcript
@@ -4200,7 +4200,7 @@ upload's token is sealed for.
 pub const MAX_ANCESTRY: usize = 64;
 ```
 
-Most cluster ids an ancestry may list.
+Most library ids an ancestry may list.
 
 ### MAX_CATALOG_BATCH_TITLES
 
@@ -4456,6 +4456,14 @@ pub const ITEM_JOB: &str = "job";
 
 Work item kind for jobs.
 
+### MAX_CALL_NUMBER_BYTES
+
+```rust
+pub const MAX_CALL_NUMBER_BYTES: usize = 16;
+```
+
+Longest call number (see [`CallNumber`](#callnumber)).
+
 ### MAX_DESTINATION_ID_BYTES
 
 ```rust
@@ -4463,14 +4471,6 @@ pub const MAX_DESTINATION_ID_BYTES: usize = 64;
 ```
 
 Longest destination id.
-
-### MAX_LIBRARY_ID_BYTES
-
-```rust
-pub const MAX_LIBRARY_ID_BYTES: usize = 16;
-```
-
-Longest library id (see [`LibraryId`](#libraryid)).
 
 ### MAX_PROBE_BITRATE_KBPS
 

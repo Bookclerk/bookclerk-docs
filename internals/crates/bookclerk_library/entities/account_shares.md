@@ -36,7 +36,7 @@ Row shape for one place an account was sent to or received from.
 - `plugin_key`: Provenance-qualified PluginKey that owns the account.
 - `account_id`: Store account id, unique within its plugin key.
 - `peer`: The other instance: `node:<node_id>` for a branch this library sent
-  the account to, `link:<cluster_id>` for a library it came from.
+  the account to, `link:<library_id>` for a library it came from.
 - `direction`: `sent` or `received`.
 - `shared_at`: RFC 3339 time the account last travelled this way.
 

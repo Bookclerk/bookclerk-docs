@@ -74,7 +74,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`EventPublisher`](#eventpublisher) | trait | `EVENTS` binding: host-served outbox publisher (`Bindings::events`). |
 | [`GuestDatabase`](#guestdatabase) | trait | Host-granted SQL transport for job plugin authors (no `capabilities`). |
 | [`JobRunner`](#jobrunner) | trait | `[triggers] jobs` handler (`Entrypoints::job_runner`). |
-| [`KvNamespace`](#kvnamespace) | trait | Durable key/value namespace: Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names. Values live in the cluster, so an instance moved to another host reads its own keys. |
+| [`KvNamespace`](#kvnamespace) | trait | Durable key/value namespace: Workers `KVNamespace`-shaped binding the host serves from the library database, scoped to the plugin and the namespace a `[[kv_namespaces]]` row names. Values live in the library, so an instance moved to another host reads its own keys. |
 | [`MetadataFiles`](#metadatafiles) | trait | `metadataFiles` entrypoint: converts metadata files (sidecars) next to an edition's media to and from `crate::MetadataFileRecord`s. |
 | [`MetadataProvider`](#metadataprovider) | trait | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`Oidc`](#oidc) | trait | `oidc` entrypoint: relying-party client templates and credential verification on behalf of the host authorization server. |
@@ -2536,7 +2536,7 @@ pub trait KvNamespace {
 
 Durable key/value namespace: Workers `KVNamespace`-shaped binding the host
 serves from the library database, scoped to the plugin and the namespace a
-`[[kv_namespaces]]` row names. Values live in the cluster, so an instance
+`[[kv_namespaces]]` row names. Values live in the library, so an instance
 moved to another host reads its own keys.
 
 #### KvNamespace::get

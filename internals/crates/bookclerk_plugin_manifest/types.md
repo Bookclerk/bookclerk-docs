@@ -382,7 +382,7 @@ serves from the library database, scoped to this plugin.
 The `binding` key names the property on `env` (default `KV`). The
 `namespace` defaults to the binding name lowercased, so two rows are
 distinct stores unless they name the same namespace on purpose. Values
-live in the cluster: an instance moved to another host reads its own keys.
+live in the library: an instance moved to another host reads its own keys.
 
 **Fields**
 
@@ -609,7 +609,7 @@ entrypoint's `queue(batch)` handler.
   [`DEFAULT_QUEUE_MAX_RETRIES`](#default_queue_max_retries)).
 - `dead_letter_queue`: Queue that receives messages after `max_retries` is exhausted.
 - `retry_delay`: Seconds a retried message waits before redelivery (default `0`).
-- `max_concurrency`: Most concurrent `queue(batch)` invocations across the cluster; `None`
+- `max_concurrency`: Most concurrent `queue(batch)` invocations across the library; `None`
   lets the host choose.
 - `message_retention_period`: Seconds a message may wait, due but never handed to the plugin, before
   the host expires it. `None` uses the host default; the value is

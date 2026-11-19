@@ -287,7 +287,7 @@ so two sample titles never become one book (the first, in
 ```rust
 pub async fn seed(
     store: &LibraryStore,
-    cluster_id: &str,
+    library_id: &str,
     plugin_keys: &BTreeMap<&str, String>,
     records: &StoreRecords,
     when: DateTime<Utc>,
@@ -303,7 +303,7 @@ changes nothing.
 #### Arguments
 
 * `store` - The open library.
-* `cluster_id` - The library's cluster id, recorded on the branch's node row.
+* `library_id` - The library id, recorded on the branch's node row.
 * `plugin_keys` - PluginKey of each enrolled storefront, by plugin id
   ([`Storefront::id`](#storefront)). A storefront missing from it gets no account and
   its titles are left out, so an image without one still gets the rest.
