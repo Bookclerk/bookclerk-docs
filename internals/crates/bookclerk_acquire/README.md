@@ -32,7 +32,7 @@ content-source plugins; this crate never sees license keys. See
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
 | [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
-| [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know, or one from another store, is not taken: the install fetches its own. |
+| [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know is never taken, and one from another store only replaces the install's own download when it is the better copy. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
 | [`match_storage_using_index`](#match_storage_using_index) | function | Match library rows against an existing scan index. |
 | [`audio_basename`](#audio_basename) | function | Basename of the acquired audio file (for `.cue` `FILE` lines). |
@@ -101,16 +101,20 @@ The copy a library this install joined offers of `listing`; `None`
 when no library holds one this install's person may take, when
 this install does not keep copies, or when no library answers.
 
-The acquire takes only a copy from the listing's own store
-([`from_store`](#from_store)). An implementation that asks several libraries
-therefore keeps asking past a copy from another store, so that
-copy does not hide a later library's usable one.
+A copy from the listing's own store ([`from_store`](#from_store)) is taken
+instead of the store download; a copy from another store only
+replaces the store download when it is the better one. An
+implementation that asks several libraries therefore keeps asking
+past a copy from another store and returns it only when no library
+has one from the listing's own, and never returns a copy whose
+store the library does not know.
 
 ### LibraryCopy
 
 ```rust
 pub trait LibraryCopy: Send + Sync {
     fn source_store(&self) -> Option<&str>;
+    fn probe(&self) -> FileProbe;
     fn files(&self) -> &[LibraryCopyFile];
     fn fetch_file<'life0, 'life1, 'async_trait>(
         &'life0 self,
@@ -139,6 +143,18 @@ fn source_store(&self) -> Option<&str>
 ```
 
 The store the library downloaded the copy from, when it knows.
+
+#### LibraryCopy::probe
+
+```rust
+fn probe(&self) -> FileProbe
+```
+
+What the library's probe found in the copy's primary audio: its
+media type, average bitrate and whether it is lossless. The acquire
+compares it with its own store download when the copy came from
+another store (`bookclerk_library::FileProbe::is_better_than`),
+and probes the copy itself before it believes the answer.
 
 #### LibraryCopy::files
 
@@ -976,8 +992,8 @@ pub fn from_store(copy_store: Option<&str>, store: &str) -> bool
 
 True when the library downloaded its copy from `store`, the store this
 install's title belongs to. A copy whose store the library does not
-know, or one from another store, is not taken: the install fetches its
-own.
+know is never taken, and one from another store only replaces the
+install's own download when it is the better copy.
 
 An implementation of [`LibraryCopies`](#librarycopies) that asks several libraries uses
 this to pass over a copy from another store and ask the next library.
