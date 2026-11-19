@@ -55,6 +55,18 @@ pub fn get_hint(self) -> Result<Reader<'a>>
 pub fn has_hint(&self) -> bool
 ```
 
+#### Reader::get_records
+
+```rust
+pub fn get_records(self) -> Result<Reader<'a, Owned>>
+```
+
+#### Reader::has_records
+
+```rust
+pub fn has_records(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -123,6 +135,30 @@ pub fn init_hint(self) -> Builder<'a>
 
 ```rust
 pub fn has_hint(&self) -> bool
+```
+
+#### Builder::get_records
+
+```rust
+pub fn get_records(self) -> Result<Builder<'a, Owned>>
+```
+
+#### Builder::set_records
+
+```rust
+pub fn set_records(&mut self, value: Reader<'_, Owned>) -> Result<()>
+```
+
+#### Builder::init_records
+
+```rust
+pub fn init_records(self, size: u32) -> Builder<'a, Owned>
+```
+
+#### Builder::has_records
+
+```rust
+pub fn has_records(&self) -> bool
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

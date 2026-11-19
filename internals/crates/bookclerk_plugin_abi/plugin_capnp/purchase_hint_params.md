@@ -115,6 +115,12 @@ pub fn has_region(&self) -> bool
 pub fn get_with_price(self) -> bool
 ```
 
+#### Reader::get_lookup
+
+```rust
+pub fn get_lookup(self) -> Result<PriceLookup, NotInSchema>
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -303,6 +309,18 @@ pub fn get_with_price(self) -> bool
 
 ```rust
 pub fn set_with_price(&mut self, value: bool)
+```
+
+#### Builder::get_lookup
+
+```rust
+pub fn get_lookup(self) -> Result<PriceLookup, NotInSchema>
+```
+
+#### Builder::set_lookup
+
+```rust
+pub fn set_lookup(&mut self, value: PriceLookup)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

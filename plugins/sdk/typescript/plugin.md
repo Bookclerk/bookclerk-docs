@@ -4302,27 +4302,44 @@ Continuation for [StorefrontEntrypoint.loginComplete](#logincomplete).
 ##### purchaseHint()
 
 ```ts
-purchaseHint(_params): Promise<PurchaseHint | null>;
+purchaseHint(_params): Promise<
+  | PurchaseHint
+  | PurchaseHintAnswer
+| null>;
 ```
 
 Purchase link / price hint; `null` when the title is unknown.
+
+`params.lookup` says how the host names the title: `"isbn"` or
+`"asin"` (sent only when `describe().catalog` declares `priceByIsbn` /
+`priceByAsin`) want that exact edition or `null`, never a title match;
+`"product"` names the store's own product; `"title"` asks for a search
+by title and authors, answered best with a [PurchaseHintAnswer](#purchasehintanswer)
+listing every priced result; `"unspecified"` (older hosts) leaves the
+choice to the store.
 
 ###### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `_params` | [`PurchaseHintParams`](generated.md#purchasehintparams) | Title identifiers. |
+| `_params` | [`PurchaseHintParams`](generated.md#purchasehintparams) | Title identifiers and how to look the title up. |
 
 ###### Returns
 
-`Promise`\<[`PurchaseHint`](generated.md#purchasehint-1) \| `null`\>
+`Promise`\<
+  \| [`PurchaseHint`](generated.md#purchasehint-1)
+  \| [`PurchaseHintAnswer`](#purchasehintanswer)
+  \| `null`\>
 
-Hint or `null`.
+Hint, an answer with title-search records, or `null`.
 
 ##### purchaseHints()
 
 ```ts
-purchaseHints(params): Promise<(PurchaseHint | null)[]>;
+purchaseHints(params): Promise<(
+  | PurchaseHint
+  | PurchaseHintAnswer
+| null)[]>;
 ```
 
 Purchase links / price hints for several titles in one call, one
@@ -4342,9 +4359,12 @@ long) when the store asks to slow down, so the host leaves it alone.
 
 ###### Returns
 
-`Promise`\<([`PurchaseHint`](generated.md#purchasehint-1) \| `null`)[]\>
+`Promise`\<(
+  \| [`PurchaseHint`](generated.md#purchasehint-1)
+  \| [`PurchaseHintAnswer`](#purchasehintanswer)
+  \| `null`)[]\>
 
-One hint or `null` per query.
+One hint, answer with records, or `null` per query.
 
 ##### revokeAccount()
 
@@ -5842,6 +5862,38 @@ versionId?: string;
 ```
 
 Backend object version id (versioned buckets).
+
+***
+
+### PurchaseHintAnswer
+
+A purchase-hint answer that carries the priced listings a title search
+matched, for a host that asked with `lookup = "title"`.
+
+Return it from [StorefrontEntrypoint.purchaseHint](#purchasehint) (or as an entry
+of [StorefrontEntrypoint.purchaseHints](#purchasehints)) instead of a bare
+[PurchaseHint](generated.md#purchasehint-1) when the store's search returned more than one
+listing: the host places each record in its library model by
+identifiers, credits and kinds, and keeps only the recording it asked
+for. `hint` stays the store's own pick for hosts that ignore records.
+
+#### Properties
+
+##### hint
+
+```ts
+hint: PurchaseHint | null;
+```
+
+The store's own pick, or `null` when it found nothing.
+
+##### records
+
+```ts
+records: PricedRecord[];
+```
+
+Every priced listing the search matched, with its full catalog record.
 
 ***
 

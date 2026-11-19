@@ -54,6 +54,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CatalogDetail`](#catalogdetail) | struct | Success payload of `ContentSource.catalogDetail`. |
 | [`PurchaseHint`](#purchasehint) | struct | Purchase hint for SPA / CLI purchase deep-links. |
 | [`PurchaseHintResult`](#purchasehintresult) | struct | Success payload of `ContentSource.purchaseHint`. |
+| [`PricedRecord`](#pricedrecord) | struct | One priced listing returned by a title search. |
 | [`PurchaseHintsParams`](#purchasehintsparams) | struct | Params of `ContentSource.purchaseHints`: the titles to price together. |
 | [`PurchaseHintsResult`](#purchasehintsresult) | struct | Success payload of `ContentSource.purchaseHints`. |
 | [`ScanLibraryParams`](#scanlibraryparams) | struct | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
@@ -116,6 +117,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`FetchedFileRole`](#fetchedfilerole) | enum | What one fetched file is to the edition it belongs to. |
 | [`CatalogSort`](#catalogsort) | enum | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
+| [`PriceLookup`](#pricelookup) | enum | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
@@ -229,6 +231,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_purchase_hint`](#read_purchase_hint) | function | Decode a `PurchaseHint` from a Cap'n Proto reader. |
 | [`write_purchase_hint_result`](#write_purchase_hint_result) | function | Encode a `PurchaseHintResult` onto a Cap'n Proto builder. |
 | [`read_purchase_hint_result`](#read_purchase_hint_result) | function | Decode a `PurchaseHintResult` from a Cap'n Proto reader. |
+| [`write_priced_record`](#write_priced_record) | function | Encode a `PricedRecord` onto a Cap'n Proto builder. |
+| [`read_priced_record`](#read_priced_record) | function | Decode a `PricedRecord` from a Cap'n Proto reader. |
 | [`write_purchase_hint_reply`](#write_purchase_hint_reply) | function | Encode a `PurchaseHintReply` union from a typed result. |
 | [`read_purchase_hint_reply`](#read_purchase_hint_reply) | function | Decode a `PurchaseHintReply` union into a typed result. |
 | [`write_purchase_hints_params`](#write_purchase_hints_params) | function | Encode a `PurchaseHintsParams` onto a Cap'n Proto builder. |
@@ -444,6 +448,8 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 ```rust
 pub struct CatalogCapabilities {
     pub detail_by_isbn: bool,
+    pub price_by_isbn: bool,
+    pub price_by_asin: bool,
 }
 ```
 
@@ -457,6 +463,12 @@ false, so a guest that says nothing keeps the plain behaviour.
   and `isbn`) to a full bibliographic record. Catalog search then asks this
   store to fill description, narrators, runtime and genres on lean result
   rows from any store that carry an ISBN.
+- `price_by_isbn`: True when `purchaseHint` / `purchaseHints` price a query by its exact
+  ISBN (`lookup = isbn`): the answer is the store's listing of that ISBN
+  or not found, never a title match. The host then prices a card at this
+  store by the ISBNs of the card's recording before searching by title.
+- `price_by_asin`: True when `purchaseHint` / `purchaseHints` price a query by its exact
+  ASIN (`lookup = asin`), as `priceByIsbn` does for ISBNs.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1348,6 +1360,7 @@ pub struct PurchaseHintParams {
     pub isbn: Option<String>,
     pub region: String,
     pub with_price: bool,
+    pub lookup: PriceLookup,
 }
 ```
 
@@ -1369,6 +1382,8 @@ return `invalid_params` when none are usable.
   `None` when absent (wire zero value).
 - `region`: Storefront region / marketplace code.
 - `with_price`: When true, guests should include live price fields when available.
+- `lookup`: How the host asks the store to find the title. `unspecified` (an older
+  host) leaves the guest free to use any field, as before.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1600,6 +1615,7 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 pub struct PurchaseHintResult {
     pub found: bool,
     pub hint: PurchaseHint,
+    pub records: Vec<PricedRecord>,
 }
 ```
 
@@ -1609,8 +1625,31 @@ Success payload of `ContentSource.purchaseHint`.
 
 - `found`: False when the guest could not resolve the title (`hint` is empty).
 - `hint`: Purchase hint when `found`.
+- `records`: Every priced listing a title search matched (`lookup = title`), each
+  with its full catalog record, so the host can tell recordings apart by
+  identifiers, credits and kinds rather than by title. Empty for other
+  lookups and for guests that do not return records; `hint` then stays
+  the answer.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### PricedRecord
+
+```rust
+pub struct PricedRecord {
+    pub record: CatalogHit,
+    pub hint: PurchaseHint,
+}
+```
+
+One priced listing returned by a title search.
+
+**Fields**
+
+- `record`: The listing's catalog record: identifiers, credits, kinds, language.
+- `hint`: Its purchase link and prices, as `PurchaseHint` carries them.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
 ### PurchaseHintsParams
 
@@ -1642,7 +1681,7 @@ Success payload of `ContentSource.purchaseHints`.
 
 - `results`: One answer per query, in the order the queries were sent.
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
 ### ScanLibraryParams
 
@@ -3290,6 +3329,50 @@ Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<CatalogField>`, `Hash`, `PartialEq`, `Serialize`
 
+### PriceLookup
+
+```rust
+pub enum PriceLookup {
+    Unspecified,
+    Product,
+    Isbn,
+    Asin,
+    Title,
+}
+```
+
+How a purchase-hint query names the title to price.
+
+**Variants**
+
+- `Unspecified`: Any field may be used, strongest first (older hosts).
+- `Product`: `productId` names the store's own product; answer for it alone.
+- `Isbn`: `isbn` names the edition; answer for that exact ISBN or not found.
+  Sent only to a store that declared `CatalogCapabilities.priceByIsbn`.
+- `Asin`: `asin` names the edition; answer for that exact ASIN or not found.
+  Sent only to a store that declared `CatalogCapabilities.priceByAsin`.
+- `Title`: Search by `title` and `authors`, and return every priced listing the
+  search matched in `PurchaseHintResult.records`, so the host can place
+  each one in the library model and keep only the recording it asked for.
+
+#### PriceLookup::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### PriceLookup::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<PriceLookup>`, `Hash`, `PartialEq`, `Serialize`
+
 ### Abridgement
 
 ```rust
@@ -4778,6 +4861,30 @@ pub fn read_purchase_hint_result(r: Reader<'_>) -> Result<PurchaseHintResult>
 ```
 
 Decode a [`PurchaseHintResult`](#purchasehintresult) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_priced_record
+
+```rust
+pub fn write_priced_record(b: Builder<'_>, v: &PricedRecord) -> Result<()>
+```
+
+Encode a [`PricedRecord`](#pricedrecord) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_priced_record
+
+```rust
+pub fn read_priced_record(r: Reader<'_>) -> Result<PricedRecord>
+```
+
+Decode a [`PricedRecord`](#pricedrecord) from a Cap'n Proto reader.
 
 #### Errors
 
@@ -6661,7 +6768,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 126;
+pub const READ_ANY_COUNT: u8 = 127;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

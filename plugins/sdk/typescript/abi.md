@@ -202,6 +202,16 @@ Union of `PORTAL_AUTH_MODES` wire names.
 
 ***
 
+### PriceLookup
+
+```ts
+type PriceLookup = typeof PRICE_LOOKUPS[number];
+```
+
+Union of `PRICE_LOOKUPS` wire names.
+
+***
+
 ### ResolvedSqlType
 
 ```ts
@@ -943,6 +953,18 @@ const PORTAL_AUTH_MODES: readonly ["unspecified", "password", "oauth"];
 Portal Accounts connect mode for storefronts.
 
 Ordinal-ordered `PortalAuthMode` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### PRICE\_LOOKUPS
+
+```ts
+const PRICE_LOOKUPS: readonly ["unspecified", "product", "isbn", "asin", "title"];
+```
+
+How a purchase-hint query names the title to price.
+
+Ordinal-ordered `PriceLookup` wire names (index = Cap'n Proto ordinal).
 
 ***
 

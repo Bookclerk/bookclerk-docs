@@ -488,6 +488,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::FetchedFileRole`](generated.md#fetchedfilerole)
 - [`generated::CatalogSort`](generated.md#catalogsort)
 - [`generated::CatalogField`](generated.md#catalogfield)
+- [`generated::PriceLookup`](generated.md#pricelookup)
 - [`generated::Abridgement`](generated.md#abridgement)
 - [`generated::MetadataField`](generated.md#metadatafield)
 - [`generated::EventConsumerSpec`](generated.md#eventconsumerspec)
@@ -534,6 +535,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::CatalogDetail`](generated.md#catalogdetail)
 - [`generated::PurchaseHint`](generated.md#purchasehint)
 - [`generated::PurchaseHintResult`](generated.md#purchasehintresult)
+- [`generated::PricedRecord`](generated.md#pricedrecord)
 - [`generated::PurchaseHintsParams`](generated.md#purchasehintsparams)
 - [`generated::PurchaseHintsResult`](generated.md#purchasehintsresult)
 - [`generated::ScanLibraryParams`](generated.md#scanlibraryparams)
@@ -694,6 +696,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_purchase_hint`](generated.md#read_purchase_hint)
 - [`generated::write_purchase_hint_result`](generated.md#write_purchase_hint_result)
 - [`generated::read_purchase_hint_result`](generated.md#read_purchase_hint_result)
+- [`generated::write_priced_record`](generated.md#write_priced_record)
+- [`generated::read_priced_record`](generated.md#read_priced_record)
 - [`generated::write_purchase_hint_reply`](generated.md#write_purchase_hint_reply)
 - [`generated::read_purchase_hint_reply`](generated.md#read_purchase_hint_reply)
 - [`generated::write_purchase_hints_params`](generated.md#write_purchase_hints_params)
@@ -1463,6 +1467,20 @@ pub trait ContentSource {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn purchase_hint_result<'life0, 'async_trait>(
+        &'life0 self,
+        params: PurchaseHintParams,
+    ) -> Pin<Box<dyn Future<Output = Result<PurchaseHintResult>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
+    fn purchase_hints_results<'life0, 'async_trait>(
+        &'life0 self,
+        params: PurchaseHintsParams,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<PurchaseHintResult>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn list_deals<'life0, 'async_trait>(
         &'life0 self,
         _params: ListDealsParams,
@@ -1656,6 +1674,44 @@ so the host's batch gets what the store managed instead of nothing.
 A guest whose backend prices many products per request overrides
 this to make one request. A `rate_limited` error applies to the
 whole batch.
+
+#### ContentSource::purchase_hint_result
+
+```rust
+fn purchase_hint_result<'life0, 'async_trait>(
+    &'life0 self,
+    params: PurchaseHintParams,
+) -> Pin<Box<dyn Future<Output = Result<PurchaseHintResult>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+[`Self::purchase_hint`](#contentsourcepurchase_hint) with the priced records a title search
+matched (`PurchaseHintResult.records`), for a host that asked with
+`lookup = title`.
+
+The default wraps [`Self::purchase_hint`](#contentsourcepurchase_hint) and returns no records, so
+the host falls back to the bare hint. A guest that can tell its
+search results apart (identifiers, credits, kinds) overrides this
+and [`Self::purchase_hints_results`](#contentsourcepurchase_hints_results).
+
+#### ContentSource::purchase_hints_results
+
+```rust
+fn purchase_hints_results<'life0, 'async_trait>(
+    &'life0 self,
+    params: PurchaseHintsParams,
+) -> Pin<Box<dyn Future<Output = Result<Vec<PurchaseHintResult>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+[`Self::purchase_hints`](#contentsourcepurchase_hints) with each query's priced records, as
+[`Self::purchase_hint_result`](#contentsourcepurchase_hint_result) gives them for one query.
+
+The default wraps [`Self::purchase_hints`](#contentsourcepurchase_hints) and returns no records.
 
 #### ContentSource::list_deals
 

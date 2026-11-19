@@ -2354,16 +2354,23 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 ```rust
 pub async fn resolve_purchase_hints(
     registry: &SourceRegistry,
+    library: Option<&LibraryStore>,
     query: &PurchaseHintsQuery,
 ) -> Result<PurchaseHintsResponse, DiscoverError>
 ```
 
 Resolve every catalog match and attach live prices (view-time).
 
+One query through [`resolve_purchase_hints_batch`](#resolve_purchase_hints_batch), so a single card
+is priced the same way as a page of them: the same lookups, the same
+evaluation of title-search records, and the same cache.
+
 #### Arguments
 
 * `registry` - Configured content-source or integration registry.
-* `query` - Query vector or free-text search string.
+* `library` - The library whose listing pool places title-search
+  records; `None` keeps only records that carry the card's ISBN or ASIN.
+* `query` - The card to price.
 
 #### Returns
 
@@ -2378,6 +2385,7 @@ Returns an error when the underlying I/O, parse, network, or store operation fai
 ```rust
 pub async fn resolve_purchase_hints_batch(
     registry: &SourceRegistry,
+    library: Option<&LibraryStore>,
     queries: &[PurchaseHintsQuery],
     max_concurrent: usize,
 ) -> Vec<Result<PurchaseHintsResponse, DiscoverError>>
@@ -2398,9 +2406,17 @@ that asks to slow down
 (`bookclerk_source::SourceError::RateLimited`) is left alone for the
 time it said (see [`RATE_LIMIT_FIRST_PAUSE`](#rate_limit_first_pause)).
 
+Each store is asked the strongest way it supports: by the product it
+already sells, by the card's exact ISBN or ASIN when it declared that
+lookup, else by title. A title search's records are
+stored in the listing pool and kept only for the card's recording.
+
 #### Arguments
 
 * `registry` - Configured content-source or integration registry.
+* `library` - The library whose listing pool places title-search
+  records, keeping those of the card's recording; `None` keeps only
+  records that carry the card's ISBN or ASIN.
 * `queries` - Batch of purchase-hint queries.
 * `max_concurrent` - Unused since each store is asked once; kept for
   the route's call shape.

@@ -3285,6 +3285,18 @@ Re-exports [PreparedStatement](db-execute.md#preparedstatement)
 
 ***
 
+### PricedRecord
+
+Re-exports [PricedRecord](generated.md#pricedrecord)
+
+***
+
+### PriceLookup
+
+Re-exports [PriceLookup](abi.md#pricelookup)
+
+***
+
 ### PRODUCT\_API\_VERSION
 
 Re-exports [PRODUCT_API_VERSION](abi.md#product_api_version)
@@ -3330,6 +3342,12 @@ Re-exports [PullReply](generated.md#pullreply)
 ### PurchaseHint
 
 Re-exports [PurchaseHint](generated.md#purchasehint-1)
+
+***
+
+### PurchaseHintAnswer
+
+Re-exports [PurchaseHintAnswer](plugin.md#purchasehintanswer)
 
 ***
 

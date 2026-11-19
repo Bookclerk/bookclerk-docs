@@ -203,6 +203,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CatalogDetailReplyErr`](#catalogdetailreplyerr) | class | `CatalogDetailReply` member `err`. |
 | [`PurchaseHint`](#purchasehint) | class | Purchase hint for SPA / CLI purchase deep-links. |
 | [`PurchaseHintResult`](#purchasehintresult) | class | Success payload of `ContentSource.purchaseHint`. |
+| [`PricedRecord`](#pricedrecord) | class | One priced listing returned by a title search. |
 | [`PurchaseHintReplyOk`](#purchasehintreplyok) | class | `PurchaseHintReply` member `ok`. |
 | [`PurchaseHintReplyErr`](#purchasehintreplyerr) | class | `PurchaseHintReply` member `err`. |
 | [`PurchaseHintsParams`](#purchasehintsparams) | class | Params of `ContentSource.purchaseHints`: the titles to price together. |
@@ -380,6 +381,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`FetchedFileRole`](#fetchedfilerole) | constant | What one fetched file is to the edition it belongs to. |
 | [`CatalogSort`](#catalogsort) | constant | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
+| [`PriceLookup`](#pricelookup) | constant | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
@@ -3459,6 +3461,8 @@ false, so a guest that says nothing keeps the plain behaviour.
 **Attributes**
 
 - `detailByIsbn`: True when `catalogDetail` resolves a bare ISBN (sent in both `productId` and `isbn`) to a full bibliographic record. Catalog search then asks this store to fill description, narrators, runtime and genres on lean result rows from any store that carry an ISBN.
+- `priceByIsbn`: True when `purchaseHint` / `purchaseHints` price a query by its exact ISBN (`lookup = isbn`): the answer is the store's listing of that ISBN or not found, never a title match. The host then prices a card at this store by the ISBNs of the card's recording before searching by title.
+- `priceByAsin`: True when `purchaseHint` / `purchaseHints` price a query by its exact ASIN (`lookup = asin`), as `priceByIsbn` does for ISBNs.
 
 ### Brand
 
@@ -4260,6 +4264,7 @@ return `invalid_params` when none are usable.
 - `isbn`: ISBN when known. Omitted when absent (wire zero value).
 - `region`: Storefront region / marketplace code.
 - `withPrice`: When true, guests should include live price fields when available.
+- `lookup`: How the host asks the store to find the title. `unspecified` (an older host) leaves the guest free to use any field, as before.
 
 ### ListDealsParams
 
@@ -4456,6 +4461,20 @@ Success payload of `ContentSource.purchaseHint`.
 
 - `found`: False when the guest could not resolve the title (`hint` is empty).
 - `hint`: Purchase hint when `found`.
+- `records`: Every priced listing a title search matched (`lookup = title`), each with its full catalog record, so the host can tell recordings apart by identifiers, credits and kinds rather than by title. Empty for other lookups and for guests that do not return records; `hint` then stays the answer.
+
+### PricedRecord
+
+```python
+class PricedRecord(TypedDict)
+```
+
+One priced listing returned by a title search.
+
+**Attributes**
+
+- `record`: The listing's catalog record: identifiers, credits, kinds, language.
+- `hint`: Its purchase link and prices, as `PurchaseHint` carries them.
 
 ### PurchaseHintReplyOk
 
@@ -7314,6 +7333,14 @@ CatalogField = Literal['any', 'author', 'narrator', 'series', 'genre']
 ```
 
 Catalog search facet restricting which field the query matches.
+
+### PriceLookup
+
+```python
+PriceLookup = Literal['unspecified', 'product', 'isbn', 'asin', 'title']
+```
+
+How a purchase-hint query names the title to price.
 
 ### Abridgement
 

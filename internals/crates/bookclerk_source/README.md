@@ -47,6 +47,9 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`bookclerk_storefront::OAuthProgress`](../bookclerk_storefront/README.md#oauthprogress)
 - [`bookclerk_storefront::PlainAudioPart`](../bookclerk_storefront/README.md#plainaudiopart)
 - [`bookclerk_storefront::PlainFetch`](../bookclerk_storefront/README.md#plainfetch)
+- [`bookclerk_storefront::PriceLookup`](../bookclerk_plugin_abi/generated.md#pricelookup)
+- [`bookclerk_storefront::PricedAnswer`](../bookclerk_storefront/README.md#pricedanswer)
+- [`bookclerk_storefront::PricedListing`](../bookclerk_storefront/README.md#pricedlisting)
 - [`bookclerk_storefront::PurchaseHintOpts`](../bookclerk_storefront/README.md#purchasehintopts)
 - [`bookclerk_storefront::Result`](../bookclerk_storefront/README.md#result)
 - [`bookclerk_storefront::ScanOptions`](../bookclerk_storefront/README.md#scanoptions)
@@ -210,6 +213,16 @@ pub trait ContentSource: Send + Sync {
         &'life0 self,
         opts: &'life1 [PurchaseHintOpts],
     ) -> Pin<Box<dyn Future<Output = Result<Vec<Option<SourcePurchaseHint>>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn answers_price_by_isbn(&self) -> bool;
+    fn answers_price_by_asin(&self) -> bool;
+    fn purchase_hint_answers<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        opts: &'life1 [PurchaseHintOpts],
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<PricedAnswer>>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,
@@ -608,6 +621,54 @@ error applies to the whole batch.
 ##### Errors
 
 Returns the first query's error.
+
+#### ContentSource::answers_price_by_isbn
+
+```rust
+fn answers_price_by_isbn(&self) -> bool
+```
+
+Whether [`Self::purchase_hint_answers`](#contentsourcepurchase_hint_answers) prices a query with
+`lookup = PriceLookup::Isbn` by that exact ISBN (the guest's
+declared `CatalogCapabilities.priceByIsbn`).
+
+Default: `false`, so the host never sends ISBN lookups.
+
+#### ContentSource::answers_price_by_asin
+
+```rust
+fn answers_price_by_asin(&self) -> bool
+```
+
+Whether [`Self::purchase_hint_answers`](#contentsourcepurchase_hint_answers) prices a query with
+`lookup = PriceLookup::Asin` by that exact ASIN (the guest's
+declared `CatalogCapabilities.priceByAsin`).
+
+Default: `false`, so the host never sends ASIN lookups.
+
+#### ContentSource::purchase_hint_answers
+
+```rust
+fn purchase_hint_answers<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    opts: &'life1 [PurchaseHintOpts],
+) -> Pin<Box<dyn Future<Output = Result<Vec<PricedAnswer>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+[`Self::purchase_hints`](#contentsourcepurchase_hints) with each query's title-search records
+(`PricedAnswer::records`), one answer per query in order.
+
+Default: [`Self::purchase_hints`](#contentsourcepurchase_hints) with no records, so a caller falls
+back to the store's own pick. External guests override this to pass
+the records a `PriceLookup::Title` query returned.
+
+##### Errors
+
+As [`Self::purchase_hints`](#contentsourcepurchase_hints).
 
 #### ContentSource::list_deals
 

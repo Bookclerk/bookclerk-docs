@@ -20,6 +20,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`FetchedFileRole`](#fetchedfilerole) | enum |  |
 | [`CatalogSort`](#catalogsort) | enum |  |
 | [`CatalogField`](#catalogfield) | enum |  |
+| [`PriceLookup`](#pricelookup) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
 | [`DbType`](#dbtype) | enum |  |
@@ -232,6 +233,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`catalog_detail_reply`](catalog_detail_reply.md)
 - [`purchase_hint`](purchase_hint.md)
 - [`purchase_hint_result`](purchase_hint_result.md)
+- [`priced_record`](priced_record.md)
 - [`purchase_hint_reply`](purchase_hint_reply.md)
 - [`purchase_hints_params`](purchase_hints_params.md)
 - [`purchase_hints_result`](purchase_hints_result.md)
@@ -554,6 +556,20 @@ pub enum CatalogField {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<CatalogField>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### PriceLookup
+
+```rust
+pub enum PriceLookup {
+    Unspecified = 0,
+    Product = 1,
+    Isbn = 2,
+    Asin = 3,
+    Title = 4,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<PriceLookup>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### Abridgement
 

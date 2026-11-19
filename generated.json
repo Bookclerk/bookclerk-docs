@@ -475,6 +475,7 @@
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/catalog_detail_reply",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/purchase_hint",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/purchase_hint_result",
+    "internals/crates/bookclerk_plugin_abi/plugin_capnp/priced_record",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/purchase_hint_reply",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/purchase_hints_params",
     "internals/crates/bookclerk_plugin_abi/plugin_capnp/purchase_hints_result",

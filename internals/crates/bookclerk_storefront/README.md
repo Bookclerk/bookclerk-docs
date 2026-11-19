@@ -32,6 +32,8 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`LoginOptions`](#loginoptions) | struct | Options for interactive / CLI login. |
 | [`PlainAudioPart`](#plainaudiopart) | struct | One DRM-free audio part (chapter file or single book). |
 | [`PlainFetch`](#plainfetch) | struct | DRM-free fetch result. Sources that use DRM decrypt inside the plugin and return clear media here — the host never sees ciphertext or keys. |
+| [`PricedAnswer`](#pricedanswer) | struct | A store's answer to one purchase-hint query, with any title-search records. |
+| [`PricedListing`](#pricedlisting) | struct | One priced listing a title search matched, with its catalog record. |
 | [`PurchaseHintOpts`](#purchasehintopts) | struct | Options for the host's `ContentSource::purchase_hint`. |
 | [`ScanOptions`](#scanoptions) | struct | Options for a library scan. |
 | [`ScanSummary`](#scansummary) | struct | Summary of a scan run. |
@@ -64,6 +66,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`text::decode_html_entities_opt`](text.md#decode_html_entities_opt)
 - [`text::decode_html_entities_opt_in_place`](text.md#decode_html_entities_opt_in_place)
 - [`text::str_maybe_html_entity`](text.md#str_maybe_html_entity)
+- [`types::PriceLookup`](../bookclerk_plugin_abi/generated.md#pricelookup)
 
 ## Modules
 
@@ -483,6 +486,56 @@ return clear media here — the host never sees ciphertext or keys.
 
 Implements: `Clone`, `Debug`, `From<PlainFetch>`, `TryFrom<PlainFetch>`
 
+### PricedAnswer
+
+```rust
+pub struct PricedAnswer {
+    pub hint: Option<SourcePurchaseHint>,
+    pub records: Vec<PricedListing>,
+}
+```
+
+A store's answer to one purchase-hint query, with any title-search
+records.
+
+**Fields**
+
+- `hint`: The store's own pick; `None` when it found nothing.
+- `records`: Every priced listing a title search matched, for the host to place.
+  Empty for identifier lookups and for stores that return no records.
+
+#### PricedAnswer::decode_html_entities
+
+```rust
+pub fn decode_html_entities(self) -> Self
+```
+
+Decode HTML entities in every hint and record (no-op when no `&`).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<Option<SourcePurchaseHint>>`, `From<PurchaseHintResult>`, `Serialize`
+
+### PricedListing
+
+```rust
+pub struct PricedListing {
+    pub record: CatalogHit,
+    pub hint: SourcePurchaseHint,
+}
+```
+
+One priced listing a title search matched, with its catalog record.
+
+A store answering a `PriceLookup::Title` query returns every listing the
+search found, so the host can place each one in the library model (by
+identifiers, credits and kinds) and keep only the recording it asked for.
+
+**Fields**
+
+- `record`: The listing's catalog record: identifiers, credits, kinds, language.
+- `hint`: Its purchase link and prices.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Serialize`
+
 ### PurchaseHintOpts
 
 ```rust
@@ -494,6 +547,7 @@ pub struct PurchaseHintOpts {
     pub isbn: Option<String>,
     pub region: String,
     pub with_price: bool,
+    pub lookup: PriceLookup,
 }
 ```
 
@@ -508,6 +562,9 @@ Options for the host's `ContentSource::purchase_hint`.
 - `isbn`: ISBN used for cross-store hints.
 - `region`: Marketplace / catalog region (`us`, `uk`, …); empty = plugin default.
 - `with_price`: When true, resolve live price if the source can.
+- `lookup`: How the host asks the store to find the title (product id, exact
+  ISBN or ASIN, or a title search that returns records);
+  `Unspecified` leaves the store free to use any field.
 
 Implements: `Clone`, `Debug`, `Default`, `From<&PurchaseHintOpts>`, `From<PurchaseHintParams>`
 

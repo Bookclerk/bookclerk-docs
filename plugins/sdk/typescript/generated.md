@@ -663,6 +663,26 @@ and `isbn`) to a full bibliographic record. Catalog search then asks this
 store to fill description, narrators, runtime and genres on lean result
 rows from any store that carry an ISBN.
 
+##### priceByAsin
+
+```ts
+priceByAsin: boolean;
+```
+
+True when `purchaseHint` / `purchaseHints` price a query by its exact
+ASIN (`lookup = asin`), as `priceByIsbn` does for ISBNs.
+
+##### priceByIsbn
+
+```ts
+priceByIsbn: boolean;
+```
+
+True when `purchaseHint` / `purchaseHints` price a query by its exact
+ISBN (`lookup = isbn`): the answer is the store's listing of that ISBN
+or not found, never a title match. The host then prices a card at this
+store by the ISBNs of the card's recording before searching by title.
+
 ***
 
 ### CatalogDetail
@@ -7466,6 +7486,30 @@ Flush and release resources before the process exits.
 
 ***
 
+### PricedRecord
+
+One priced listing returned by a title search.
+
+#### Properties
+
+##### hint
+
+```ts
+hint: PurchaseHint;
+```
+
+Its purchase link and prices, as `PurchaseHint` carries them.
+
+##### record
+
+```ts
+record: CatalogHit;
+```
+
+The listing's catalog record: identifiers, credits, kinds, language.
+
+***
+
 ### ProgressSink
 
 Host-side progress reporter handed to job handlers.
@@ -7675,6 +7719,15 @@ isbn?: string;
 ISBN when known.
 Omitted when absent (wire zero value).
 
+##### lookup
+
+```ts
+lookup: "unspecified" | "isbn" | "asin" | "title" | "product";
+```
+
+How the host asks the store to find the title. `unspecified` (an older
+host) leaves the guest free to use any field, as before.
+
 ##### productId?
 
 ```ts
@@ -7732,6 +7785,18 @@ hint: PurchaseHint;
 ```
 
 Purchase hint when `found`.
+
+##### records
+
+```ts
+records: PricedRecord[];
+```
+
+Every priced listing a title search matched (`lookup = title`), each
+with its full catalog record, so the host can tell recordings apart by
+identifiers, credits and kinds rather than by title. Empty for other
+lookups and for guests that do not return records; `hint` then stays
+the answer.
 
 ***
 
@@ -11144,6 +11209,12 @@ Re-exports [PluginErrorCode](abi.md#pluginerrorcode)
 ### PortalAuthMode
 
 Re-exports [PortalAuthMode](abi.md#portalauthmode)
+
+***
+
+### PriceLookup
+
+Re-exports [PriceLookup](abi.md#pricelookup)
 
 ***
 

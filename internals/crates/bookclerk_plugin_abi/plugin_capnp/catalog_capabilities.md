@@ -43,6 +43,18 @@ pub fn total_size(&self) -> Result<MessageSize>
 pub fn get_detail_by_isbn(self) -> bool
 ```
 
+#### Reader::get_price_by_isbn
+
+```rust
+pub fn get_price_by_isbn(self) -> bool
+```
+
+#### Reader::get_price_by_asin
+
+```rust
+pub fn get_price_by_asin(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -87,6 +99,30 @@ pub fn get_detail_by_isbn(self) -> bool
 
 ```rust
 pub fn set_detail_by_isbn(&mut self, value: bool)
+```
+
+#### Builder::get_price_by_isbn
+
+```rust
+pub fn get_price_by_isbn(self) -> bool
+```
+
+#### Builder::set_price_by_isbn
+
+```rust
+pub fn set_price_by_isbn(&mut self, value: bool)
+```
+
+#### Builder::get_price_by_asin
+
+```rust
+pub fn get_price_by_asin(self) -> bool
+```
+
+#### Builder::set_price_by_asin
+
+```rust
+pub fn set_price_by_asin(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
