@@ -73,6 +73,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`oidc_refresh_tokens`](oidc_refresh_tokens.md): SeaORM entity for the `oidc_refresh_tokens` — refresh tokens bound to a User.
 - [`oidc_rp_states`](oidc_rp_states.md): SeaORM entity for OIDC relying-party authorize state (PKCE + nonce).
 - [`operator_sessions`](operator_sessions.md): SeaORM entity for the `operator_sessions` table.
+- [`patron_scope_keys`](patron_scope_keys.md): SeaORM entity for the `patron_scope_keys` table: the include and exclude values of a patron scope as rows, so the Library filter joins them instead of binding one parameter per rule.
+- [`patron_scopes`](patron_scopes.md): SeaORM entity for the `patron_scopes` table: a Member's own patron scope, set by an Administrator.
 - [`pending_joins`](pending_joins.md): SeaORM entity for `pending_joins`: on a host joining a library, one sign-in in progress (written by `control_plane::create_pending_join`). The PKCE verifier and the node keys are sealed in `encrypted_secrets`, never stored here.
 - [`plugin_artifacts`](plugin_artifacts.md): SeaORM entity for `plugin_artifacts`: the header of a version archive stored in the library when no shared artifact location exists.
 - [`plugin_cron_cursors`](plugin_cron_cursors.md): SeaORM entity for `plugin_cron_cursors`: the last claimed fire of each plugin cron schedule.

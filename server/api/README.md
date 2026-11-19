@@ -114,6 +114,10 @@ Library users and their claim tickets.
 | [`POST /api/users`](users.md#post-apiusers) | Owner/admin or operator creates a user and optional invite magic link. |
 | [`DELETE /api/users/{id}`](users.md#delete-apiusersid) | Delete a user and their personal data (wishlist / links / sessions); keep acquired books. |
 | [`PATCH /api/users/{id}`](users.md#patch-apiusersid) | Patch role/status/display/login, or the store-account rule, for a first-party user (provisioner). |
+| [`GET /api/users/default-scope`](users.md#get-apiusersdefault-scope) | Reads the library's default scope, which patrons without their own follow. |
+| [`PUT /api/users/default-scope`](users.md#put-apiusersdefault-scope) | Replaces the library's default scope. Every patron without their own scope follows the change at once. |
+| [`GET /api/users/{id}/scope`](users.md#get-apiusersidscope) | Reads which part of the library a patron sees. |
+| [`PUT /api/users/{id}/scope`](users.md#put-apiusersidscope) | Gives a patron their own scope, or returns them to the library's default with `"scope": null`. |
 | [`POST /api/users/{id}/claim-ticket`](users.md#post-apiusersidclaim-ticket) | Mint a fresh local claim ticket for an active first-party user. |
 | [`POST /api/users/{id}/reset-password`](users.md#post-apiusersidreset-password) | Invalidate a user's password, revoke sessions, and mint a claim ticket for reset. |
 | [`GET /api/avatars/gravatar/{hash}`](users.md#get-apiavatarsgravatarhash) | Serves a user's Gravatar as a 128 px JPEG through the cover service. |

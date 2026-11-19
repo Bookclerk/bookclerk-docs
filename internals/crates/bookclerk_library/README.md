@@ -99,6 +99,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`WorkCursor`](#workcursor) | struct | Where the next page of a `WorkSort` order starts: the sort values of the last row returned. |
 | [`WorkPage`](#workpage) | struct | One page of library works. |
 | [`WorkPageQuery`](#workpagequery) | struct | Filters and position of one page of library works. |
+| [`WorkScope`](#workscope) | struct | The part of the library a patron may see, as the page index applies it. |
 | [`EditionDetail`](#editiondetail) | struct | One edition of a work with its expression and listings. |
 | [`EditionListing`](#editionlisting) | struct | One store listing of an edition. |
 | [`ListingHolding`](#listingholding) | struct | One holding of a listing. |
@@ -4235,6 +4236,7 @@ pub struct WorkPageQuery {
     pub status: Option<AcquireStatus>,
     pub account: Option<String>,
     pub filter: Option<WorkFilter>,
+    pub scope: Option<WorkScope>,
     pub after: Option<WorkCursor>,
     pub limit: u64,
 }
@@ -4250,10 +4252,58 @@ Filters and position of one page of library works.
 - `status`: Only works whose furthest acquire state is this one.
 - `account`: Only works held by this store account id (any plugin).
 - `filter`: Only works that pass this filter.
+- `scope`: Only works inside this patron scope; `None` for a caller who sees
+  the whole library.
 - `after`: Continue after this cursor.
 - `limit`: Most rows to return; at least 1.
 
 Implements: `Clone`, `Debug`, `Default`
+
+### WorkScope
+
+```rust
+pub struct WorkScope {
+    pub include: Vec<(WorkFacet, String)>,
+    pub exclude: Vec<(WorkFacet, String)>,
+    pub owner: Option<i64>,
+}
+```
+
+The part of the library a patron may see, as the page index applies it.
+
+A work passes when one of the patron's own store accounts holds it, or
+when it matches no exclude value and, if there are include values,
+matches at least one of them. Values are [`facet_key`](#facet_key)s of the page
+index's facets.
+
+**Fields**
+
+- `include`: `(facet, key)` pairs a work must match one of; empty lets every
+  work through.
+- `exclude`: `(facet, key)` pairs that hide a work, whatever `include` says.
+- `owner`: The patron (`users.id`) whose linked store accounts' books always
+  pass; `None` for a caller with no accounts of their own.
+
+#### WorkScope::sees_everything
+
+```rust
+pub fn sees_everything(&self) -> bool
+```
+
+True when the scope hides nothing.
+
+#### WorkScope::key_set_id
+
+```rust
+pub fn key_set_id(&self) -> String
+```
+
+Content id of the scope's include and exclude values: lowercase hex
+SHA-256 over its `(effect, facet, key)` rows, sorted and without
+duplicates, each field length-prefixed, so two
+scopes share an id exactly when they hold the same values.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### EditionDetail
 
@@ -7754,6 +7804,20 @@ limit are not used. Unheld works and ids with no row are left out.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
+#### LibraryStore::work_in_scope
+
+```rust
+pub async fn work_in_scope(&self, work_id: &str, scope: &WorkScope) -> Result<bool>
+```
+
+Whether a work is inside a patron scope: its top-level work (the
+show, for an episode) is a held work of the page index that passes
+`scope`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
 #### LibraryStore::library_facet_values
 
 ```rust
@@ -7762,6 +7826,7 @@ pub async fn library_facet_values(
     of: FacetValuesOf,
     after: Option<&str>,
     limit: u64,
+    scope: Option<&WorkScope>,
 ) -> Result<FacetValuesPage>
 ```
 
@@ -7773,6 +7838,8 @@ One page of the values a facet has across the held works, by key.
 * `after` - The `next` key of the previous page; `None` to start.
 * `limit` - Most values to return; at least 1, further capped at the
   database's result-row limit.
+* `scope` - Count only the works inside this patron scope; `None`
+  for a caller who sees the whole library.
 
 ##### Errors
 

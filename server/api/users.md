@@ -1667,6 +1667,1208 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/users/default-scope`
+
+Reads the library's default scope, which patrons without their own
+follow.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — The default scope. Body: [`DefaultScopeJson`](schemas.md#defaultscopejson) (`application/json`)
+  - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope patrons without their own follow.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or Administrator. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The scope could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-scope' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-scope' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/default-scope",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-scope", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/default-scope")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default scope.
+
+```json
+{
+  "scope": {
+    "rules": [
+      {
+        "field": "genre",
+        "value": "Kids",
+        "effect": "include"
+      }
+    ]
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default scope as the scope routes report it.",
+  "required": [
+    "scope"
+  ],
+  "properties": {
+    "scope": {
+      "type": "object",
+      "description": "The scope patrons without their own follow.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a scope: a field, one value of it, and its effect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "genre",
+                  "series",
+                  "author",
+                  "narrator"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value, compared without case and surrounding space (1 to 256\nbytes).",
+                "example": "Kids"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
+          "maxItems": 16
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or Administrator.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The scope could not be read.
+
+```json
+{
+  "error": "the patron scope could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/users/default-scope`
+
+Replaces the library's default scope. Every patron without their own
+scope follows the change at once.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`PatronScope`](schemas.md#patronscope)
+
+- `rules` *array of [`ScopeRule`](schemas.md#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
+
+### Responses
+
+- `200` — The default scope after the change. Body: [`DefaultScopeJson`](schemas.md#defaultscopejson) (`application/json`)
+  - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope patrons without their own follow.
+- `400` — The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Owner or Administrator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The default kept changing underneath the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The scope could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/default-scope' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/default-scope' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/users/default-scope",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/default-scope", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/users/default-scope")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The default scope after the change.
+
+```json
+{
+  "scope": {
+    "rules": [
+      {
+        "field": "genre",
+        "value": "Kids",
+        "effect": "include"
+      }
+    ]
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The library's default scope as the scope routes report it.",
+  "required": [
+    "scope"
+  ],
+  "properties": {
+    "scope": {
+      "type": "object",
+      "description": "The scope patrons without their own follow.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a scope: a field, one value of it, and its effect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "genre",
+                  "series",
+                  "author",
+                  "narrator"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value, compared without case and surrounding space (1 to 256\nbytes).",
+                "example": "Kids"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
+          "maxItems": 16
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+Status `400`: The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid patron scope: a scope holds at most 64 rules"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Owner or Administrator. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The default kept changing underneath the write; retry.
+
+```json
+{
+  "error": "core.patron_scope kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: rules: invalid type: integer `1`, expected a sequence at line 1 column 10
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The scope could not be written.
+
+```json
+{
+  "error": "the patron scope could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/users/{id}/scope`
+
+Reads which part of the library a patron sees.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Responses
+
+- `200` — The patron's scope. Body: [`UserScopeJson`](schemas.md#userscopejson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
+  - `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
+  - `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller may not manage this user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The scope could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/scope' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/scope' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/users/<id>/scope",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/scope", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/users/<id>/scope")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The patron's scope.
+
+```json
+{
+  "user_id": 7,
+  "scope": {
+    "rules": [
+      {
+        "field": "genre",
+        "value": "Kids",
+        "effect": "include"
+      }
+    ]
+  },
+  "own": false,
+  "applies": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A patron's scope as the scope routes report it.",
+  "required": [
+    "user_id",
+    "scope",
+    "own",
+    "applies"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 7
+    },
+    "scope": {
+      "type": "object",
+      "description": "The scope that applies to them: their own, or the library's default.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a scope: a field, one value of it, and its effect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "genre",
+                  "series",
+                  "author",
+                  "narrator"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value, compared without case and surrounding space (1 to 256\nbytes).",
+                "example": "Kids"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
+          "maxItems": 16
+        }
+      },
+      "additionalProperties": false
+    },
+    "own": {
+      "type": "boolean",
+      "description": "True when an Administrator gave them this scope; false when they\nfollow the library's default.",
+      "example": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether the scope applies to the user's role: false for an Owner or\nAdministrator, who always see the whole library.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller may not manage this user.
+
+```json
+{
+  "error": "you may not manage this user"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 7 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The scope could not be read.
+
+```json
+{
+  "error": "the patron scope could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/users/{id}/scope`
+
+Gives a patron their own scope, or returns them to the library's
+default with `"scope": null`.
+
+Nobody sets their own scope. Owners and Administrators always see the
+whole library, so a scope stored for one only applies if their role
+changes to Member or Host.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *integer (int64)*, **required** — User id.
+
+### Request body
+
+`application/json`: [`PutUserScope`](schemas.md#putuserscope)
+
+- `scope` *[`PatronScope`](schemas.md#patronscope) or null* — The patron's own scope, or `null` to return them to the library's default.
+
+### Responses
+
+- `200` — The patron's scope after the change. Body: [`UserScopeJson`](schemas.md#userscopejson) (`application/json`)
+  - `user_id` *integer (int64)*, **required** — The user (`users.id`).
+  - `scope` *[`PatronScope`](schemas.md#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
+  - `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
+  - `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
+- `400` — The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller may not manage this user, or tried to set their own scope. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The scope could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/users/<id>/scope' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/users/<id>/scope' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/users/<id>/scope",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/users/<id>/scope", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/users/<id>/scope")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The patron's scope after the change.
+
+```json
+{
+  "user_id": 7,
+  "scope": {
+    "rules": [
+      {
+        "field": "genre",
+        "value": "Kids",
+        "effect": "include"
+      }
+    ]
+  },
+  "own": false,
+  "applies": true
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A patron's scope as the scope routes report it.",
+  "required": [
+    "user_id",
+    "scope",
+    "own",
+    "applies"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The user (`users.id`).",
+      "example": 7
+    },
+    "scope": {
+      "type": "object",
+      "description": "The scope that applies to them: their own, or the library's default.",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "One rule of a scope: a field, one value of it, and its effect.",
+            "required": [
+              "field",
+              "value",
+              "effect"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The field the rule matches.",
+                "enum": [
+                  "genre",
+                  "series",
+                  "author",
+                  "narrator"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The value, compared without case and surrounding space (1 to 256\nbytes).",
+                "example": "Kids"
+              },
+              "effect": {
+                "type": "string",
+                "description": "Include or exclude.",
+                "enum": [
+                  "include",
+                  "exclude"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
+          "maxItems": 16
+        }
+      },
+      "additionalProperties": false
+    },
+    "own": {
+      "type": "boolean",
+      "description": "True when an Administrator gave them this scope; false when they\nfollow the library's default.",
+      "example": false
+    },
+    "applies": {
+      "type": "boolean",
+      "description": "Whether the scope applies to the user's role: false for an Owner or\nAdministrator, who always see the whole library.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The scope is invalid. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "invalid patron scope: a scope rule needs a value"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller may not manage this user, or tried to set their own scope. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "you may not set your own scope"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `404`: No such user.
+
+```json
+{
+  "error": "user 7 not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: invalid type: null, expected struct PutUserScope at line 1 column 4
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The scope could not be written.
+
+```json
+{
+  "error": "the patron scope could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/users/{id}/claim-ticket`
 
 Mint a fresh local claim ticket for an active first-party user.

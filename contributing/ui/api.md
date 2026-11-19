@@ -1529,7 +1529,7 @@ One value of a facet, from `GET /api/library/works/facets/{facet}`.
 value: string;
 ```
 
-The value, as [WorksQuery.value](#value-4) takes it.
+The value, as [WorksQuery.value](#value-5) takes it.
 
 ##### works
 
@@ -3032,6 +3032,22 @@ scopes: string[];
 ```ts
 secret_source: OidcSecretSource;
 ```
+
+***
+
+### PatronScope
+
+Which part of the library a patron sees.
+
+#### Properties
+
+##### rules
+
+```ts
+rules: ScopeRule[];
+```
+
+Visibility rules; empty means every book is visible.
 
 ***
 
@@ -5110,6 +5126,38 @@ ports: number[];
 
 ***
 
+### ScopeRule
+
+One rule of a patron scope.
+
+#### Properties
+
+##### effect
+
+```ts
+effect: RuleEffect;
+```
+
+Include or exclude.
+
+##### field
+
+```ts
+field: ScopeField;
+```
+
+The field the rule matches.
+
+##### value
+
+```ts
+value: string;
+```
+
+One value of the field, compared without case.
+
+***
+
 ### SettingsResponse
 
 Flat config map plus per-plugin setting groups.
@@ -5781,6 +5829,46 @@ Appearance: `system` follows the OS (fallback light); `light` / `dark` pin it.
 
 ***
 
+### UserScope
+
+A patron's scope as `GET`/`PUT /api/users/{id}/scope` report it.
+
+#### Properties
+
+##### applies
+
+```ts
+applies: boolean;
+```
+
+False for an Owner or Administrator, who always see everything.
+
+##### own
+
+```ts
+own: boolean;
+```
+
+True when the user has their own scope.
+
+##### scope
+
+```ts
+scope: PatronScope;
+```
+
+The scope that applies: their own, or the library default.
+
+##### user\_id
+
+```ts
+user_id: number;
+```
+
+The user.
+
+***
+
 ### WorkDetail
 
 One work from `GET /api/library/works/{id}`.
@@ -5921,7 +6009,7 @@ The previous page's `next_cursor`.
 facet?: WorkFacet;
 ```
 
-Only works with [WorksQuery.value](#value-4) under this facet.
+Only works with [WorksQuery.value](#value-5) under this facet.
 
 ##### kind?
 
@@ -6453,6 +6541,26 @@ type RemoteConsentState =
 ```
 
 Where an owner plugin's request to run here stands.
+
+***
+
+### RuleEffect
+
+```ts
+type RuleEffect = "include" | "exclude";
+```
+
+Whether a patron scope rule lets matching books in or keeps them out.
+
+***
+
+### ScopeField
+
+```ts
+type ScopeField = "genre" | "series" | "author" | "narrator";
+```
+
+The book field a patron scope rule matches one value of.
 
 ***
 
@@ -7784,6 +7892,48 @@ The page and the next page's cursor.
 
 ***
 
+### getDefaultScope()
+
+```ts
+function getDefaultScope(): Promise<{
+  scope: PatronScope;
+}>;
+```
+
+Reads the library's default patron scope.
+
+#### Returns
+
+`Promise`\<\{
+  `scope`: [`PatronScope`](#patronscope);
+\}\>
+
+The default.
+
+***
+
+### getUserScope()
+
+```ts
+function getUserScope(id): Promise<UserScope>;
+```
+
+Reads which part of the library a patron sees.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+
+#### Returns
+
+`Promise`\<[`UserScope`](#userscope)\>
+
+The scope that applies and where it comes from.
+
+***
+
 ### isApiError()
 
 ```ts
@@ -8487,6 +8637,32 @@ Source descriptors including brand metadata.
 
 ***
 
+### putDefaultScope()
+
+```ts
+function putDefaultScope(scope): Promise<{
+  scope: PatronScope;
+}>;
+```
+
+Replaces the library's default patron scope.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `scope` | [`PatronScope`](#patronscope) | The new default. |
+
+#### Returns
+
+`Promise`\<\{
+  `scope`: [`PatronScope`](#patronscope);
+\}\>
+
+The default after the change.
+
+***
+
 ### putMfaPolicy()
 
 ```ts
@@ -8712,6 +8888,30 @@ placement (compare-and-swap on `expected_revision`; 0 creates).
 \}\>
 
 The stored placement.
+
+***
+
+### putUserScope()
+
+```ts
+function putUserScope(id, scope): Promise<UserScope>;
+```
+
+Gives a patron their own scope, or with `null` returns them to the
+library's default.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `id` | `number` | The user. |
+| `scope` | [`PatronScope`](#patronscope) \| `null` | Their own scope, or `null`. |
+
+#### Returns
+
+`Promise`\<[`UserScope`](#userscope)\>
+
+The scope after the change.
 
 ***
 

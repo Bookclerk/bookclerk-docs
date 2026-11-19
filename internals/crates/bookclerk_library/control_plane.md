@@ -57,6 +57,7 @@ See `docs/adr/control-plane.md`.
 | [`StoredDocument`](#storeddocument) | struct | One stored document before domain parsing. |
 | [`VerifiedClusterOwner`](#verifiedclusterowner) | struct | Proof that a user was an active Owner when the write was authorized. |
 | [`VerifiedNodeOwner`](#verifiednodeowner) | struct | Proof that a user owned a node when the write was authorized. |
+| [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a patron scope write was authorized. |
 | [`EnrolledNode`](#enrollednode) | struct | Result of a successful redeem. |
 | [`EnrollmentLink`](#enrollmentlink) | struct | One link as listings show it. The secret and its hash are not included. |
 | [`EnrollmentSecret`](#enrollmentsecret) | struct | A link's plaintext secret. Shown once at mint and never stored; `Debug` does not print it. |
@@ -95,6 +96,10 @@ See `docs/adr/control-plane.md`.
 | [`NodeSampler`](#nodesampler) | struct | Samples capacity and measured use for heartbeats. Keeps the previous CPU counters so each sample reports utilization since the last one. |
 | [`NodeStatus`](#nodestatus) | struct | A node's latest heartbeat with budget, accounting, and availability. |
 | [`OutputSettingsV1`](#outputsettingsv1) | struct | Typed `core.output` document, schema version 1. |
+| [`AssignedScope`](#assignedscope) | struct | A Member's scope and where it came from. |
+| [`PatronScope`](#patronscope) | struct | Which part of the library a patron sees. |
+| [`PutUserScope`](#putuserscope) | struct | `PUT /api/users/{id}/scope` body. |
+| [`ScopeRule`](#scoperule) | struct | One rule of a scope: a field, one value of it, and its effect. |
 | [`NewPendingJoin`](#newpendingjoin) | struct | What a joining daemon records when it starts a sign-in. |
 | [`PendingJoin`](#pendingjoin) | struct | A pending join as stored (no secrets). |
 | [`TakenJoin`](#takenjoin) | struct | A consumed pending join with its secrets. `Debug` prints no secret. |
@@ -163,6 +168,8 @@ See `docs/adr/control-plane.md`.
 | [`LiveTopic`](#livetopic) | enum | A topic of the live socket. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
 | [`OutputReplace`](#outputreplace) | enum | Outcome of `replace_output`. |
+| [`RuleEffect`](#ruleeffect) | enum | Whether a `ScopeRule` lets matching books in or keeps them out. |
+| [`ScopeField`](#scopefield) | enum | The book field a `ScopeRule` matches one value of. |
 | [`PlacementWrite`](#placementwrite) | enum | Outcome of `put_plugin_placement`. |
 | [`Replicas`](#replicas) | enum | How many nodes should run a placed instance. |
 | [`RemoteApprover`](#remoteapprover) | enum | Who gives an approval. |
@@ -390,6 +397,18 @@ See `docs/adr/control-plane.md`.
 | [`nodes_owned_by`](#nodes_owned_by) | function | Nodes `user_id` owns, sorted by id. |
 | [`set_node_owner`](#set_node_owner) | function | Assigns `node_id` to `owner` (a user id), or clears its owner. |
 | [`verify_node_owner`](#verify_node_owner) | function | Returns a `ConfigActor::NodeOwner` for `user_id` on `node_id` when the node's stored owner is that user. |
+| [`assigned_patron_scope`](#assigned_patron_scope) | function | The scope a user has: their own, or the library's default. |
+| [`default_patron_scope`](#default_patron_scope) | function | The library's default scope: the stored document, or no restriction. |
+| [`default_work_scope`](#default_work_scope) | function | The page index filter for a caller who is not a library user, such as a session whose identity is linked to nobody: the library default, with no store accounts of their own. `None` when the default hides nothing. |
+| [`load_default_patron_scope`](#load_default_patron_scope) | function | Loads the library's default scope document. |
+| [`parse_patron_scope`](#parse_patron_scope) | function | Parses the body of `PUT /api/users/default-scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PatronScope`, then trimmed (`PatronScope::normalized`) and checked (`PatronScope::validate`) as `set_default_patron_scope` does. |
+| [`parse_user_scope_request`](#parse_user_scope_request) | function | Parses the body of `PUT /api/users/{id}/scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PutUserScope`, then the scope (when one is given) trimmed and checked as `set_patron_scope` does. |
+| [`role_is_scoped`](#role_is_scoped) | function | Whether a role is ever scoped: Members and Hosts are patrons, while Owners and Administrators always see the whole library. |
+| [`scope_for_user`](#scope_for_user) | function | The scope that applies to `user`: `None` for an Owner or Administrator, who see everything, and the assigned scope for a Member. |
+| [`set_default_patron_scope`](#set_default_patron_scope) | function | Replaces the library's default scope under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
+| [`set_patron_scope`](#set_patron_scope) | function | Gives a user their own scope, or with `None` returns them to the library's default. |
+| [`verify_patron_administrator`](#verify_patron_administrator) | function | Checks that `user_id` is an active Owner or Administrator and returns the actor that may write the library's default scope. |
+| [`work_scope_for_user`](#work_scope_for_user) | function | The page index filter for `user`: `None` when nothing is hidden from them (an Owner or Administrator, or a patron whose scope has no rules). |
 | [`create_pending_join`](#create_pending_join) | function | Records a sign-in in progress: seals `verifier` and `keys` and writes the row under `hash_token(state)`. Expired rows are purged first. |
 | [`finish_pending_join`](#finish_pending_join) | function | Ends the pending join for `state`: deletes its row and sealed material. |
 | [`open_pending_join`](#open_pending_join) | function | Reads the pending join for `state` without consuming it: its facts and unsealed secrets, so a redeem that fails for a reason a retry can fix (the library unreachable, or its answer lost) can be tried again with the same keys. `None` for an unknown, finished or expired state. |
@@ -586,6 +605,10 @@ See `docs/adr/control-plane.md`.
 | [`OUTPUT_SCHEMA_VERSION`](#output_schema_version) | constant | Schema version of `OutputSettingsV1`. |
 | [`OUTPUT_SETTING_ALIASES`](#output_setting_aliases) | constant | Write-only aliases `OutputSettingsV1::set` also accepts. |
 | [`OUTPUT_SETTING_KEYS`](#output_setting_keys) | constant | Every `output.*` key `OutputSettingsV1::get` and `OutputSettingsV1::set` accept, in display order. |
+| [`MAX_SCOPE_JSON_BYTES`](#max_scope_json_bytes) | constant | Largest scope as compact JSON, in bytes: one cell of the smallest reply the host accepts from a database plugin (`HOST_MIN_CELL_BYTES`), so a stored scope can be read back on every supported database. Sixteen rules fit when their values are short. |
+| [`MAX_SCOPE_RULES`](#max_scope_rules) | constant | Most rules one scope may hold. |
+| [`MAX_SCOPE_VALUE_BYTES`](#max_scope_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
+| [`PATRON_SCOPE_NAMESPACE`](#patron_scope_namespace) | constant | Namespace of the cluster document that holds the library's default scope. |
 | [`MAX_JOIN_NAME_BYTES`](#max_join_name_bytes) | constant | Longest branch or library name stored. |
 | [`PENDING_JOIN_TTL`](#pending_join_ttl) | constant | How long a sign-in may take before its pending row is refused. |
 | [`MAX_NODE_LABELS`](#max_node_labels) | constant | Most operator labels one node may carry. |
@@ -1921,6 +1944,29 @@ pub fn node_id(&self) -> &str
 ```
 
 Node this owner may administer.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### VerifiedPatronAdministrator
+
+```rust
+pub struct VerifiedPatronAdministrator {
+    /* private fields */
+}
+```
+
+Proof that a user was an active Owner or Administrator when a patron
+scope write was authorized.
+
+Only [`super::verify_patron_administrator`](#verify_patron_administrator) constructs one.
+
+#### VerifiedPatronAdministrator::user_id
+
+```rust
+pub fn user_id(&self) -> i64
+```
+
+The user's id.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -3360,6 +3406,128 @@ the domain rejects. `self` may be partially changed on error; callers
 edit a clone.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### AssignedScope
+
+```rust
+pub struct AssignedScope {
+    pub scope: PatronScope,
+    pub own: bool,
+}
+```
+
+A Member's scope and where it came from.
+
+**Fields**
+
+- `scope`: The scope that applies.
+- `own`: True when an Administrator gave the patron this scope; false when the
+  patron follows the library's default.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PatronScope
+
+```rust
+pub struct PatronScope {
+    pub rules: Vec<ScopeRule>,
+}
+```
+
+Which part of the library a patron sees.
+
+**Fields**
+
+- `rules`: Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means
+  every book is visible.
+
+#### PatronScope::unrestricted
+
+```rust
+pub fn unrestricted() -> Self
+```
+
+A scope that restricts nothing: no rules.
+
+#### PatronScope::sees_everything
+
+```rust
+pub fn sees_everything(&self) -> bool
+```
+
+True when the scope hides no book.
+
+#### PatronScope::facet_keys
+
+```rust
+pub fn facet_keys(&self, effect: RuleEffect) -> Vec<(WorkFacet, String)>
+```
+
+The rules with the given effect, as `(facet, facet key)` pairs for
+the page index.
+
+#### PatronScope::validate
+
+```rust
+pub fn validate(&self) -> Result<()>
+```
+
+Checks the scope's bounds.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for more than [`MAX_SCOPE_RULES`](#max_scope_rules)
+rules, an empty or over-long value, a rule given twice (the same
+field, value and effect, compared without case), or a scope longer
+than [`MAX_SCOPE_JSON_BYTES`](#max_scope_json_bytes) as JSON.
+
+#### PatronScope::normalized
+
+```rust
+pub fn normalized(self) -> Self
+```
+
+The scope with each value trimmed, as it is stored.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### PutUserScope
+
+```rust
+pub struct PutUserScope {
+    pub scope: Option<PatronScope>,
+}
+```
+
+`PUT /api/users/{id}/scope` body.
+
+**Fields**
+
+- `scope`: The patron's own scope, or `null` to return them to the library's
+  default.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `ToSchema`
+
+### ScopeRule
+
+```rust
+pub struct ScopeRule {
+    pub field: ScopeField,
+    pub value: String,
+    pub effect: RuleEffect,
+}
+```
+
+One rule of a scope: a field, one value of it, and its effect.
+
+**Fields**
+
+- `field`: The field the rule matches.
+- `value`: The value, compared without case and surrounding space (1 to 256
+  bytes).
+- `effect`: Include or exclude.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NewPendingJoin
 
@@ -5164,6 +5332,7 @@ pub enum ConfigActor {
     Scheduler,
     NodeOwner(VerifiedNodeOwner),
     ClusterOwner(VerifiedClusterOwner),
+    PatronAdministrator(VerifiedPatronAdministrator),
 }
 ```
 
@@ -5190,6 +5359,10 @@ Who is allowed to write a configuration document.
   (`core.host_enrollment`) only; every other document stays an
   operator write. Built by [`super::verify_cluster_owner`](#verify_cluster_owner), which reads
   the user's stored role and status.
+- `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
+  default patron scope (`core.patron_scope`) only. Built by
+  [`super::verify_patron_administrator`](#verify_patron_administrator), which reads the user's
+  stored role and status.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -5547,6 +5720,55 @@ Outcome of [`replace_output`](#replace_output).
   - `revision`: Revision of the original commit.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### RuleEffect
+
+```rust
+pub enum RuleEffect {
+    Include,
+    Exclude,
+}
+```
+
+Whether a [`ScopeRule`](#scoperule) lets matching books in or keeps them out.
+
+**Variants**
+
+- `Include`: Matching books are visible (once any include rule exists, only books
+  that match one are).
+- `Exclude`: Matching books are hidden, whatever the include rules say.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
+### ScopeField
+
+```rust
+pub enum ScopeField {
+    Genre,
+    Series,
+    Author,
+    Narrator,
+}
+```
+
+The book field a [`ScopeRule`](#scoperule) matches one value of.
+
+**Variants**
+
+- `Genre`: A genre (store category), such as "Kids".
+- `Series`: A series name, such as "Discworld".
+- `Author`: An author (a show's host, for a podcast).
+- `Narrator`: A narrator.
+
+#### ScopeField::facet
+
+```rust
+pub fn facet(self) -> WorkFacet
+```
+
+The page index facet whose values the field matches.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
 ### PlacementWrite
 
@@ -9845,6 +10067,218 @@ node's stored owner is that user.
 Returns [`LibraryError::Forbidden`](README.md#libraryerror) when the node is unknown or owned by
 someone else, and the read error when the lookup fails.
 
+### assigned_patron_scope
+
+```rust
+pub async fn assigned_patron_scope(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<AssignedScope>
+```
+
+The scope a user has: their own, or the library's default.
+
+The role is not considered; see [`scope_for_user`](#scope_for_user) for the scope that
+applies to a signed-in user.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user, or a read or
+parse error.
+
+### default_patron_scope
+
+```rust
+pub async fn default_patron_scope(store: &LibraryStore) -> Result<PatronScope>
+```
+
+The library's default scope: the stored document, or no restriction.
+
+#### Errors
+
+Returns the read or parse error.
+
+### default_work_scope
+
+```rust
+pub async fn default_work_scope(store: &LibraryStore) -> Result<Option<WorkScope>>
+```
+
+The page index filter for a caller who is not a library user, such as a
+session whose identity is linked to nobody: the library default, with
+no store accounts of their own. `None` when the default hides nothing.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
+### load_default_patron_scope
+
+```rust
+pub async fn load_default_patron_scope(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<PatronScope>>>
+```
+
+Loads the library's default scope document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one: the default
+is then [`PatronScope::unrestricted`](#patronscopeunrestricted).
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### parse_patron_scope
+
+```rust
+pub fn parse_patron_scope(body: &[u8]) -> Result<PatronScope>
+```
+
+Parses the body of `PUT /api/users/default-scope` from its raw bytes,
+sans IO, the way the route reads it: JSON into [`PatronScope`](#patronscope), then
+trimmed ([`PatronScope::normalized`](#patronscopenormalized)) and checked
+([`PatronScope::validate`](#patronscopevalidate)) as [`set_default_patron_scope`](#set_default_patron_scope) does.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the scope's JSON
+shape (unknown or repeated fields, wrong types, a missing rule field) or
+a scope that fails [`PatronScope::validate`](#patronscopevalidate).
+
+### parse_user_scope_request
+
+```rust
+pub fn parse_user_scope_request(body: &[u8]) -> Result<Option<PatronScope>>
+```
+
+Parses the body of `PUT /api/users/{id}/scope` from its raw bytes, sans
+IO, the way the route reads it: JSON into [`PutUserScope`](#putuserscope), then the
+scope (when one is given) trimmed and checked as [`set_patron_scope`](#set_patron_scope)
+does.
+
+#### Returns
+
+The patron's own scope, or `None` (`"scope": null`, or no `scope` key)
+to return them to the default.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape or a scope that fails [`PatronScope::validate`](#patronscopevalidate).
+
+### role_is_scoped
+
+```rust
+pub fn role_is_scoped(role: UserRole) -> bool
+```
+
+Whether a role is ever scoped: Members and Hosts are patrons, while
+Owners and Administrators always see the whole library.
+
+### scope_for_user
+
+```rust
+pub async fn scope_for_user(
+    store: &LibraryStore,
+    user: &UserRecord,
+) -> Result<Option<PatronScope>>
+```
+
+The scope that applies to `user`: `None` for an Owner or Administrator,
+who see everything, and the assigned scope for a Member.
+
+#### Errors
+
+Returns a read or parse error.
+
+### set_default_patron_scope
+
+```rust
+pub async fn set_default_patron_scope(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    scope: PatronScope,
+) -> Result<ConfigurationDocument<PatronScope>>
+```
+
+Replaces the library's default scope under compare-and-swap, creating the
+document when absent and retrying a few times on a concurrent edit.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - Who is writing, for authorization and the audit log.
+* `scope` - The new default.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a scope that fails
+[`PatronScope::validate`](#patronscopevalidate), an error when the actor may not write, or
+[`LibraryError::Conflict`](README.md#libraryerror) when the document keeps changing underneath.
+
+### set_patron_scope
+
+```rust
+pub async fn set_patron_scope(
+    store: &LibraryStore,
+    user_id: i64,
+    scope: Option<PatronScope>,
+) -> Result<AssignedScope>
+```
+
+Gives a user their own scope, or with `None` returns them to the
+library's default.
+
+The caller has already checked that the actor may manage the user. One
+atomic batch updates the stored row, or inserts it when there is none.
+
+#### Errors
+
+Returns [`LibraryError::NotFound`](README.md#libraryerror) for an unknown user,
+[`LibraryError::Invalid`](README.md#libraryerror) for a scope that fails
+[`PatronScope::validate`](#patronscopevalidate), or the write error.
+
+### verify_patron_administrator
+
+```rust
+pub async fn verify_patron_administrator(
+    store: &LibraryStore,
+    user_id: i64,
+) -> Result<ConfigActor>
+```
+
+Checks that `user_id` is an active Owner or Administrator and returns
+the actor that may write the library's default scope.
+
+#### Errors
+
+Returns [`LibraryError::Forbidden`](README.md#libraryerror) for anyone else (including an unknown
+user), and the read error when the lookup fails.
+
+### work_scope_for_user
+
+```rust
+pub async fn work_scope_for_user(
+    store: &LibraryStore,
+    user: &UserRecord,
+) -> Result<Option<WorkScope>>
+```
+
+The page index filter for `user`: `None` when nothing is hidden from
+them (an Owner or Administrator, or a patron whose scope has no rules).
+
+The filter names the user as its owner, so the books held by every
+store account linked to them, connected or not, are the patron's own
+and always pass.
+
+#### Errors
+
+Returns a read or parse error; callers fail closed on it.
+
 ### create_pending_join
 
 ```rust
@@ -12967,6 +13401,43 @@ pub const OUTPUT_SETTING_KEYS: &[&str] = _;
 
 Every `output.*` key [`OutputSettingsV1::get`](#outputsettingsv1get) and [`OutputSettingsV1::set`](#outputsettingsv1set)
 accept, in display order.
+
+### MAX_SCOPE_JSON_BYTES
+
+```rust
+pub const MAX_SCOPE_JSON_BYTES: usize = 1024;
+```
+
+Largest scope as compact JSON, in bytes: one cell of the smallest reply
+the host accepts from a database plugin
+([`HOST_MIN_CELL_BYTES`](../bookclerk_plugin_abi/db_execute.md#host_min_cell_bytes)),
+so a stored scope can be read back on every supported database. Sixteen
+rules fit when their values are short.
+
+### MAX_SCOPE_RULES
+
+```rust
+pub const MAX_SCOPE_RULES: usize = 16;
+```
+
+Most rules one scope may hold.
+
+### MAX_SCOPE_VALUE_BYTES
+
+```rust
+pub const MAX_SCOPE_VALUE_BYTES: usize = 256;
+```
+
+Longest rule value, in UTF-8 bytes.
+
+### PATRON_SCOPE_NAMESPACE
+
+```rust
+pub const PATRON_SCOPE_NAMESPACE: &str = "core.patron_scope";
+```
+
+Namespace of the cluster document that holds the library's default
+scope.
 
 ### MAX_JOIN_NAME_BYTES
 

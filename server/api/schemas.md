@@ -789,6 +789,12 @@ Body for copying library rows between database plugins.
 - `force` *boolean* — When true, overwrite a destination that is not empty.
 - `apply` *boolean* — Update `[database].plugin` in config.toml after a successful copy.
 
+## DefaultScopeJson
+
+The library's default scope as the scope routes report it.
+
+- `scope` *[`PatronScope`](#patronscope)*, **required** — The scope patrons without their own follow.
+
 ## DeliveryBacklog
 
 Event delivery backlog across the cluster.
@@ -2029,6 +2035,12 @@ is empty (explicit rules always win).
 
 Type: one of `auto`, `windows`, `posix`, `s3`, `none`
 
+## PatronScope
+
+Which part of the library a patron sees.
+
+- `rules` *array of [`ScopeRule`](#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
+
 ## PinBody
 
 Body of `PUT /api/library/listings/{id}/pin`.
@@ -2612,6 +2624,12 @@ JSON body for `PUT /api/config/domains/core.output`.
 - `constraints` *array of string* — Label constraints (`name`, `name=value`, `!name`).
 - `expected_revision` *integer (int64) or null* — Current revision to replace; omit (or 0) to create.
 
+## PutUserScope
+
+`PUT /api/users/{id}/scope` body.
+
+- `scope` *[`PatronScope`](#patronscope) or null* — The patron's own scope, or `null` to return them to the library's default.
+
 ## QueueDetail
 
 Operator JSON for `GET /api/queues/{name}`.
@@ -2790,6 +2808,12 @@ Optional password for rotating a confidential client's secret.
 
 - `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
+## RuleEffect
+
+Whether a [`ScopeRule`] lets matching books in or keeps them out.
+
+Type: one of `include`, `exclude`
+
 ## ScanPlanResponse
 
 Result of a planned scan or acquire: [`ActionResponse`] plus every job id.
@@ -2817,6 +2841,20 @@ null, `compatible` false and the `error` text.
 - `state` *string or null* — The schema state (`uninitialized`, `unreleased@base<n>+<checksum>` or `frozen@<n>+<checksum>`); `null` when it could not be read.
 - `compatible` *boolean*, **required** — True when this binary can run against that schema.
 - `error` *string or null* — Why the state could not be read; omitted when it was.
+
+## ScopeField
+
+The book field a [`ScopeRule`] matches one value of.
+
+Type: one of `genre`, `series`, `author`, `narrator`
+
+## ScopeRule
+
+One rule of a scope: a field, one value of it, and its effect.
+
+- `field` *[`ScopeField`](#scopefield)*, **required** — The field the rule matches.
+- `value` *string*, **required** — The value, compared without case and surrounding space (1 to 256 bytes).
+- `effect` *[`RuleEffect`](#ruleeffect)*, **required** — Include or exclude.
 
 ## SessionsResponse
 
@@ -3429,6 +3467,15 @@ Body of `POST /api/users/{id}/reset-password`.
 First-party user role (`owner` | `administrator` | `host` | `member`).
 
 Type: one of `owner`, `administrator`, `host`, `member`
+
+## UserScopeJson
+
+A patron's scope as the scope routes report it.
+
+- `user_id` *integer (int64)*, **required** — The user (`users.id`).
+- `scope` *[`PatronScope`](#patronscope)*, **required** — The scope that applies to them: their own, or the library's default.
+- `own` *boolean*, **required** — True when an Administrator gave them this scope; false when they follow the library's default.
+- `applies` *boolean*, **required** — Whether the scope applies to the user's role: false for an Owner or Administrator, who always see the whole library.
 
 ## UserSsoPictureSummary
 
