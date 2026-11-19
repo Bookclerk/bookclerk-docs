@@ -126,7 +126,8 @@ A Libro.fm seed with an ISBN gets the app's related titles from
 `explore/audiobook_details`. Otherwise, or when that returns none, a
 Libro.fm seed gets more titles by its first author and a seed from
 another store gets a title-and-author search. The seed itself is never
-returned.
+returned. Every row is then read in full from its details
+(`read_in_full`), since the lists leave out the language and price.
 
 #### Arguments
 

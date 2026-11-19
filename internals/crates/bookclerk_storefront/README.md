@@ -1003,8 +1003,10 @@ pub fn normalize_language(raw: &str) -> Option<String>
 
 Normalize a language tag or display name to a primary ISO-ish code.
 
-Accepts BCP-47 (`en-US`), bare codes (`en`), and common Audible display
-names (`english`). Returns `None` for empty / unrecognized input.
+Accepts BCP-47 (`en-US`), bare codes (`en`), ISO 639-2 codes in either
+their terminology or bibliographic (MARC) form (`fra` / `fre`, as
+Libro.fm sends them), and common Audible display names (`english`).
+Returns `None` for empty / unrecognized input.
 
 ### audio_extension
 
