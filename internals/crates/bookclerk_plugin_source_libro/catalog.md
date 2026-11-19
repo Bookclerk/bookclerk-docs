@@ -25,6 +25,7 @@ This crate intentionally does **not** depend on `bookclerk-enrich`.
 | [`catalog_detail`](#catalog_detail) | function | Catalog record for one ISBN (or ISBN-leading slug). |
 | [`expand_candidates`](#expand_candidates) | function | Related candidates for Discover. |
 | [`purchase_hint`](#purchase_hint) | function | Resolve a Libro.fm product link for a title, by ISBN first and then by title and author. |
+| [`purchase_answer`](#purchase_answer) | function | Resolve a Libro.fm product link for a title, with every for-sale listing a title search found. |
 | [`parse_details`](#parse_details) | function | Parses one `explore/audiobook_details` body. |
 | [`parse_search_page`](#parse_search_page) | function | Parses one catalog search response body into at most `limit` hits. |
 | [`CATALOG_USER_AGENT`](#catalog_user_agent) | constant | User agent for signed-out catalog calls: names Bookclerk and its site so Libro.fm can identify (and contact) the client. |
@@ -149,10 +150,8 @@ pub async fn purchase_hint(
 Resolve a Libro.fm product link for a title, by ISBN first and then by
 title and author.
 
-With `opts.with_price`, the list price comes from
-`explore/audiobook_details` (`purchase_info.price`, USD). An edition that
-details report as not for sale is never offered, priced or not: the title
-match then moves on to the next search row.
+The bare-hint form of [`purchase_answer`]: its pick, without the
+title-search records.
 
 #### Arguments
 
@@ -161,10 +160,47 @@ match then moves on to the next search row.
 
 #### Errors
 
-Currently never: a failed ISBN lookup or title search is logged and
-treated as no match, so `Ok(None)` can also mean the lookup failed. The
-`Result` matches the guest `purchaseHint` entrypoint, which can fail for
-other storefronts.
+As [`purchase_answer`](#purchase_answer).
+
+### purchase_answer
+
+```rust
+pub async fn purchase_answer(
+    base_url: &str,
+    opts: &PurchaseHintOpts,
+) -> Result<PricedAnswer>
+```
+
+Resolve a Libro.fm product link for a title, with every for-sale
+listing a title search found.
+
+1. An ISBN (the query's `isbn`, else an ISBN-shaped `product_id`) is
+   looked up exactly. An ISBN lookup (`PriceLookup::Isbn`, which this
+   store declares) stops there: the host asked whether Libro.fm sells
+   that edition, so a miss answers nothing rather than another edition.
+2. Otherwise the title and author are searched. Each of the first
+   `TITLE_HINT_ROWS` (5) rows is read in full (`explore/audiobook_details`,
+   which also says whether it is for sale and its list price), and every
+   for-sale row is returned as a priced record for the host to place.
+   The first one is also the store's pick, so a host that reads only
+   the hint still gets the best match.
+
+With `opts.with_price`, the list price comes from
+`explore/audiobook_details` (`purchase_info.price`, USD). An edition that
+details report as not for sale is never offered, priced or not.
+
+#### Arguments
+
+* `base_url` - Libro.fm API origin.
+* `opts` - ISBN, product id, title and authors to match, and how the
+  host asks (`lookup`).
+
+#### Errors
+
+Returns `SourceError::RateLimited`
+when Libro.fm asks to slow down. Any other failed ISBN lookup or title
+search is logged and treated as no match, so an empty answer can also
+mean the lookup failed.
 
 ### parse_details
 

@@ -488,6 +488,22 @@ Resolves the storefront price and link for a title; `None` when not sold.
 Currently never: a failed lookup is treated as no match, so `Ok(None)`
 can also mean the store could not be reached.
 
+#### LibroSource::purchase_answer
+
+```rust
+pub async fn purchase_answer(&self, opts: &PurchaseHintOpts) -> Result<PricedAnswer>
+```
+
+Resolves the storefront price and link for a title, with every
+for-sale listing a title search found (see
+[`crate::catalog::purchase_answer`](catalog.md#purchase_answer)).
+
+##### Errors
+
+Only when Libro.fm asks to slow down; other failed lookups are
+treated as no match, so an empty answer can also mean the store
+could not be reached.
+
 Implements: `Clone`, `Debug`, `Default`
 
 ## Enums

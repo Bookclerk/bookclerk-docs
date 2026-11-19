@@ -512,7 +512,7 @@ pub fn decode_html_entities(self) -> Self
 
 Decode HTML entities in every hint and record (no-op when no `&`).
 
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<Option<SourcePurchaseHint>>`, `From<PurchaseHintResult>`, `Serialize`
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `From<Option<SourcePurchaseHint>>`, `From<PricedAnswer>`, `From<PurchaseHintResult>`, `Serialize`
 
 ### PricedListing
 

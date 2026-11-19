@@ -219,6 +219,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`read_all`](#read_all) | function | Reads a small transferred body, stopping at `crate::MAX_SCALAR_BYTES`. |
 | [`stream_copy_keys`](#stream_copy_keys) | function | Copies `from` → `to` through granted source/destination streams. |
 | [`cover_sink_slot`](#cover_sink_slot) | function | Parses a `CoverFetcher.fetchCovers` sink key into the URL index it names. |
+| [`hint_result`](#hint_result) | function | A bare hint as a `PurchaseHintResult` with no records. |
+| [`purchase_hint_results_one_by_one`](#purchase_hint_results_one_by_one) | function | `ContentSource::purchase_hints_results` for a store without a bulk endpoint: asks `ContentSource::purchase_hint_result` for each query, with the same order, concurrency and `PURCHASE_HINTS_BUDGET` as the default `ContentSource::purchase_hints`. A query not started within the budget answers an empty result (`found = false`, no records). |
 | [`byte_source_from_async_read`](#byte_source_from_async_read) | function | Returns a `ByteSource` client that pulls from `reader`. |
 | [`connect_plugin`](#connect_plugin) | function | Connects as the client side of a two-party vat. |
 | [`connect_socket_broker`](#connect_socket_broker) | function | Connects the host's side of the host-to-broker link (see `serve_socket_broker`). |
@@ -6842,6 +6844,50 @@ canonical decimal spelling is accepted (`0`, `7`, `31`; never `07`, `+7`,
 #### Returns
 
 The index, or `None` when `key` is not a canonical index below `slots`.
+
+### hint_result
+
+```rust
+pub fn hint_result(hint: Option<PurchaseHint>) -> PurchaseHintResult
+```
+
+A bare hint as a [`PurchaseHintResult`](generated.md#purchasehintresult) with no records.
+
+#### Arguments
+
+* `hint` - The store's answer; `None` when it did not find the title.
+
+### purchase_hint_results_one_by_one
+
+```rust
+pub async fn purchase_hint_results_one_by_one<S: ContentSource + ?Sized>(
+    source: &S,
+    params: PurchaseHintsParams,
+) -> Result<Vec<PurchaseHintResult>>
+```
+
+[`ContentSource::purchase_hints_results`](#contentsourcepurchase_hints_results) for a store without a bulk
+endpoint: asks [`ContentSource::purchase_hint_result`](#contentsourcepurchase_hint_result) for each query,
+with the same order, concurrency and [`PURCHASE_HINTS_BUDGET`](#purchase_hints_budget) as the
+default [`ContentSource::purchase_hints`](#contentsourcepurchase_hints). A query not started within
+the budget answers an empty result (`found = false`, no records).
+
+A guest that overrides [`ContentSource::purchase_hint_result`](#contentsourcepurchase_hint_result) to
+return title-search records, but has no bulk endpoint, calls this from
+its `purchase_hints_results` so batches carry the records too.
+
+#### Arguments
+
+* `source` - The store answering.
+* `params` - The batch's queries.
+
+#### Returns
+
+One result per query, in order.
+
+#### Errors
+
+The first lookup error, which fails the whole batch.
 
 ### byte_source_from_async_read
 

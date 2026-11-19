@@ -701,6 +701,31 @@ Returns an error when a storefront request or its parse fails and the
 method cannot fall back. Failed lookups are soft, so `Ok(None)` can also
 mean the store could not be reached, not only that the title is not sold.
 
+#### GraphicAudioSource::purchase_answer
+
+```rust
+pub async fn purchase_answer(&self, opts: &PurchaseHintOpts) -> Result<PricedAnswer>
+```
+
+Resolves a title's GraphicAudio product and price, with every
+listing a title search matched.
+
+A known product id, or a host that did not ask for a title search
+(`lookup` other than `PriceLookup::Title`), gets
+[`Self::purchase_hint`](#graphicaudiosourcepurchase_hint)'s answer. A title search reads the product
+page of each of up to `TITLE_RECORDS` (3) matching results (series sets
+left out) once, for its full record (author, cast, ISBN, release
+date, running time) and its price, and returns them as priced
+records for the host to place. The store's pick is the best title
+match.
+
+##### Errors
+
+Returns `bookclerk_storefront::SourceError::RateLimited` when the
+store answers 429. Other failures are soft: a failed search answers
+nothing, and a product page that cannot be read leaves that record
+lean and unpriced.
+
 Implements: `Clone`, `Debug`, `Default`
 
 ## Enums

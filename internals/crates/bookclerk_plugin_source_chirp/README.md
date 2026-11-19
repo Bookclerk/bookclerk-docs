@@ -696,11 +696,34 @@ pub async fn purchase_hint(
 
 Resolves the storefront price and link for a title; `None` when not sold.
 
+The bare-hint form of [`Self::purchase_answer`](#chirpsourcepurchase_answer).
+
 ##### Errors
 
-Returns an error when a storefront request or its parse fails and the
-method cannot fall back. Failed lookups are soft, so `Ok(None)` can also
-mean the store could not be reached, not only that the title is not sold.
+As [`Self::purchase_answer`](#chirpsourcepurchase_answer).
+
+#### ChirpSource::purchase_answer
+
+```rust
+pub async fn purchase_answer(&self, opts: &PurchaseHintOpts) -> Result<PricedAnswer>
+```
+
+Resolves a title's Chirp product and price, with every listing a
+title search found.
+
+A known Chirp product id is priced as it is. Otherwise the title and
+author go to the store's typeahead search, and up to
+`TITLE_RECORDS` audiobooks come back as priced records (credits,
+series, publisher, length and language) for the host to place. The
+store's pick is the first one whose title matches, as before records
+existed.
+
+##### Errors
+
+Returns `bookclerk_storefront::SourceError::RateLimited` when Chirp
+asks to slow down. Other failed lookups are soft, so an empty answer
+can also mean the store could not be reached, not only that the
+title is not sold.
 
 #### ChirpSource::purchase_hints
 
@@ -714,9 +737,28 @@ pub async fn purchase_hints(
 Resolves purchase hints for several titles, pricing them in one
 aliased GraphQL request instead of one per card.
 
+The bare-hint form of [`Self::purchase_answers`](#chirpsourcepurchase_answers).
+
+##### Errors
+
+As [`Self::purchase_answers`](#chirpsourcepurchase_answers).
+
+#### ChirpSource::purchase_answers
+
+```rust
+pub async fn purchase_answers(
+    &self,
+    opts: &[PurchaseHintOpts],
+) -> Result<Vec<PricedAnswer>>
+```
+
+Resolves several titles with each title search's records, pricing
+every product found in one aliased GraphQL request per
+`PRICE_BATCH_IDS` (50) instead of one per card.
+
 Titles whose Chirp product id is known resolve first, without a
 search; the rest are looked up by title until the 5 s `RESOLVE_BUDGET` runs
-out, and a title not tried by then answers `None`, which the host
+out, and a title not tried by then answers nothing, which the host
 does not take as an answer.
 
 ##### Errors
