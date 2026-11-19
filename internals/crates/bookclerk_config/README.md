@@ -23,6 +23,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`EventsConfig`](#eventsconfig) | struct | `[events]` — outbox retention and local delivery-worker concurrency. |
 | [`LameConfig`](#lameconfig) | struct | LAME encoder tuning (classic `Lame*` settings). |
 | [`ReplacementRule`](#replacementrule) | struct | Character replacement rule (`ReplacementCharacters` in classic Settings.json). |
+| [`CheckIn`](#checkin) | struct | Body of `POST /checkin`. |
+| [`InstallId`](#installid) | struct | A random install ID: a version-4 UUID in lowercase hyphenated form. |
 | [`JobsConcurrencyConfig`](#jobsconcurrencyconfig) | struct | Per-resource-class worker counts and cluster-wide job semaphores. |
 | [`JobsConfig`](#jobsconfig) | struct | `[jobs]` — durable queue admission, leases, and resource-class concurrency. |
 | [`OsLogLayer`](#osloglayer) | struct | Structured sink that writes **redacted** events to the platform log facility. |
@@ -55,6 +57,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`CacheSettingError`](#cachesettingerror) | enum | Why a `cache.*` value was refused. |
 | [`CacheSettingKey`](#cachesettingkey) | enum | A `cache.*` settings key. |
 | [`DatabasePluginKind`](#databasepluginkind) | enum | Which first-party database plugin is active. |
+| [`ProcessRole`](#processrole) | enum | Which kind of Bookclerk process installed the subscriber. |
 | [`ConfigError`](#configerror) | enum | Errors produced while loading or validating configuration. |
 | [`FileTimestampMode`](#filetimestampmode) | enum | Which timestamp to apply after acquire (`CreationTime` / `LastWriteTime`). |
 | [`PathSanitizationMode`](#pathsanitizationmode) | enum | How to sanitize storage path segments when `crate::OutputConfig::replacement_characters` is empty (explicit rules always win). |
@@ -91,10 +94,14 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`resolve_replacement_characters`](#resolve_replacement_characters) | function | Resolve the character-replacement map used when sanitising storage path segments. |
 | [`s3_replacement_characters`](#s3_replacement_characters) | function | Characters AWS recommends avoiding in S3 object keys, plus path separators. |
 | [`windows_replacement_characters`](#windows_replacement_characters) | function | NTFS-safe replacement map (classic Libation Windows defaults subset). |
+| [`checkin_due`](#checkin_due) | function | Whether a check-in is due. |
+| [`record_checkin`](#record_checkin) | function | Records an accepted check-in. |
+| [`send_checkin`](#send_checkin) | function | Sends one check-in to the collector. |
 | [`journald_available`](#journald_available) | function | Back-compat alias. |
 | [`os_log_available`](#os_log_available) | function | Probe whether an OS log facility appears available. |
 | [`init_tracing`](#init_tracing) | function | Convenience wrapper matching the historical CLI/daemon call site. |
 | [`init_tracing_with`](#init_tracing_with) | function | Install a global tracing subscriber (stderr + optional OS facility + diagnostics). |
+| [`ring_filter`](#ring_filter) | function | The diagnostics ring's per-layer filter: TRACE for `RING_TRACE_TARGETS` (matched as prefixes, so `bookclerkd` and `bookclerk_library` count), `RING_DEPENDENCY_LEVEL` for the rest. |
 | [`strip_ansi_escapes`](#strip_ansi_escapes) | function | Remove ECMA-48/ANSI escape sequences so piped guest logs stay plain text. |
 | [`allowlist_permits`](#allowlist_permits) | function | Whether an allowlist provider admits this `(email, sub)`. |
 | [`email_domain_allowed`](#email_domain_allowed) | function | Whether `email` matches an allowlist of domains (empty list = unrestricted). |
@@ -137,7 +144,11 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_CACHE_BUDGET_BYTES`](#max_cache_budget_bytes) | constant | Largest accepted cache budget: 1 TiB. |
 | [`MAX_CACHE_UNVIEWED_DAYS`](#max_cache_unviewed_days) | constant | Largest accepted `unviewed_days`, about ten years. |
 | [`MIN_CACHE_BUDGET_BYTES`](#min_cache_budget_bytes) | constant | Smallest accepted cache budget: 16 MiB, room for a few hundred covers. |
+| [`SLOW_TARGET`](#slow_target) | constant | Target of the events that mark a slow response. |
 | [`RECONCILE_WILDCARD`](#reconcile_wildcard) | constant | Sentinel placed in reconcile path *patterns* where a sanitizable character appeared in metadata. Matches any single character in an on-disk key. |
+| [`CHECKIN_INTERVAL_MS`](#checkin_interval_ms) | constant | Time between check-ins: one week, in milliseconds. |
+| [`RING_DEPENDENCY_LEVEL`](#ring_dependency_level) | constant | Level the diagnostics ring keeps for targets outside `RING_TRACE_TARGETS`. |
+| [`RING_TRACE_TARGETS`](#ring_trace_targets) | constant | Target prefixes the diagnostics ring keeps through TRACE. Every other target (dependencies such as `h2`, `hyper`, `rustls`, `reqwest`, and `log`-crate records) is kept from INFO up, so their per-frame TRACE events do not crowd Bookclerk's own events out of the ring. |
 | [`DEFAULT_MAX_FILENAME_LENGTH`](#default_max_filename_length) | constant | Classic Libation `LongPath.MaxFilenameLength` — per path component. |
 | [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) | constant | AWS S3 maximum object key length (UTF-8 bytes), including any prefix. |
 | [`BOOKCLERK_CONFIG_ENV`](#bookclerk_config_env) | constant | Override for the config file path (`BOOKCLERK_CONFIG`). |
@@ -352,6 +363,28 @@ pub fn version(&self) -> &str
 
 Bookclerk version string recorded at subscriber install.
 
+#### DiagnosticsHandle::set_install_id
+
+```rust
+pub fn set_install_id(&self, id: &InstallId)
+```
+
+Attaches the install's random ID to later uploads. Does nothing unless
+`diagnostics.share_usage` is on; the first ID set stays.
+
+##### Arguments
+
+* `id` - The install ID ([`crate::InstallId`](#installid)).
+
+#### DiagnosticsHandle::deployment
+
+```rust
+pub fn deployment(&self) -> &'static str
+```
+
+What uploads report as `deployment`: `demo` for a copy of the hosted
+demo, otherwise the process role.
+
 #### DiagnosticsHandle::uploads_attempted
 
 ```rust
@@ -366,7 +399,29 @@ Number of upload attempts since init (successful or failed HTTP tries).
 pub fn record_event(&self, event: &Event<'_>)
 ```
 
-Record a redacted event into the ring buffer and maybe trigger an error-burst upload.
+Record a redacted event into the ring buffer and maybe trigger a burst upload.
+
+#### DiagnosticsHandle::record_event_with_spans
+
+```rust
+pub fn record_event_with_spans(
+    &self,
+    event: &Event<'_>,
+    span_fields: Vec<(String, String)>,
+)
+```
+
+Record a redacted event with fields copied from the spans it happened
+in, and maybe trigger a burst upload.
+
+`log`-crate records take their own target (`log.target`) and lose the
+fields that describe the record itself (module path, file, line).
+
+##### Arguments
+
+* `event` - The tracing event.
+* `span_fields` - Redacted `(span.field, value)` pairs, innermost span
+  first (see `DiagnosticsLayer`).
 
 #### DiagnosticsHandle::request_upload
 
@@ -399,6 +454,8 @@ Implements: `Clone`
 ```rust
 pub struct UploadPayload {
     pub trigger: String,
+    pub deployment: String,
+    pub install_id: Option<String>,
     pub version: String,
     pub os: String,
     pub arch: String,
@@ -414,7 +471,12 @@ JSON body POSTed to the diagnostics collector `/submit` endpoint.
 
 **Fields**
 
-- `trigger`: Why this upload was produced (`crash`, `error_burst`, `cli_error`, …).
+- `trigger`: Why this upload was produced (`crash`, `error_burst`, `slow_burst`,
+  `cli_error`, …).
+- `deployment`: What sent it: `daemon`, `desktop`, `cli`, or `demo` for a copy of the
+  hosted demo.
+- `install_id`: The install's random ID, sent only when `diagnostics.share_usage` is
+  on. The collector keeps only a monthly-salted hash of it.
 - `version`: Bookclerk version string recorded at subscriber install.
 - `os`: Host OS (`linux`, `macos`, `windows`, …).
 - `arch`: CPU architecture (`x86_64`, `aarch64`, …).
@@ -500,6 +562,111 @@ Character replacement rule (`ReplacementCharacters` in classic Settings.json).
 - `replace`: Replacement text (may be empty to strip `find`).
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### CheckIn
+
+```rust
+pub struct CheckIn {
+    pub install_id: String,
+    pub version: String,
+    pub os: String,
+    pub arch: String,
+    pub kind: String,
+}
+```
+
+Body of `POST /checkin`.
+
+**Fields**
+
+- `install_id`: The install's random ID.
+- `version`: Bookclerk version.
+- `os`: Operating system (`linux`, `macos`, `windows`, …).
+- `arch`: CPU architecture (`x86_64`, `aarch64`, …).
+- `kind`: Kind of process: `daemon` or `desktop`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### InstallId
+
+```rust
+pub struct InstallId(/* private */);
+```
+
+A random install ID: a version-4 UUID in lowercase hyphenated form.
+
+#### InstallId::generate
+
+```rust
+pub fn generate() -> Result<Self>
+```
+
+Generates a new random ID from the operating system's random source.
+
+##### Errors
+
+Returns an error when the random source is unavailable.
+
+#### InstallId::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses an ID as [`InstallId::generate`](#installidgenerate) writes it.
+
+##### Arguments
+
+* `text` - Candidate text; surrounding whitespace is ignored.
+
+##### Returns
+
+The ID, or `None` unless the text is a lowercase hyphenated version-4
+UUID.
+
+#### InstallId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The ID as text.
+
+#### InstallId::load_or_create
+
+```rust
+pub fn load_or_create(files_dir: &Path) -> Result<Self>
+```
+
+Reads the ID from the files directory, creating it on first use (or
+when the file does not hold a valid ID).
+
+##### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+
+##### Errors
+
+Returns an error when the file cannot be read or written.
+
+#### InstallId::reset
+
+```rust
+pub fn reset(files_dir: &Path) -> Result<Self>
+```
+
+Replaces the ID with a new random one and forgets the last check-in,
+so the new ID checks in on the next pass.
+
+##### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+
+##### Errors
+
+Returns an error when the file cannot be written.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### JobsConcurrencyConfig
 
@@ -746,6 +913,7 @@ pub struct TracingOptions {
     pub diagnostics: DiagnosticsConfig,
     pub version: String,
     pub enable_journald: bool,
+    pub role: ProcessRole,
 }
 ```
 
@@ -755,11 +923,13 @@ Options for [`init_tracing_with`](#init_tracing_with).
 
 - `format`: Stderr format (text vs JSON).
 - `default_level`: Default `EnvFilter` directive when `BOOKCLERK_LOG` / `RUST_LOG` are unset.
-  Affects stderr + OS facility only — the diagnostics ring always keeps TRACE.
+  Affects stderr + OS facility only — the diagnostics ring has its own
+  filter ([`ring_filter`](#ring_filter)).
 - `syslog_identifier`: Identifier for journald / Event Log source / os_log category.
 - `diagnostics`: Opt-in crash / error-burst upload settings.
 - `version`: Package version embedded in diagnostics uploads.
 - `enable_journald`: Attempt to attach an OS log facility (no-op when unavailable).
+- `role`: What kind of process this is, reported in diagnostics uploads.
 
 Implements: `Clone`, `Debug`, `Default`
 
@@ -1797,6 +1967,8 @@ pub struct DiagnosticsConfig {
     pub warn_burst_threshold: u32,
     pub warn_burst_window_secs: u64,
     pub ring_buffer_capacity: u32,
+    pub share_usage: bool,
+    pub demo: bool,
 }
 ```
 
@@ -1821,7 +1993,14 @@ runtime (Windows Event Log / macOS unified logging are future work).
 - `error_burst_window_secs`: Sliding window length for error-burst detection, in seconds.
 - `warn_burst_threshold`: Number of WARN events inside the window that trigger an upload.
 - `warn_burst_window_secs`: Sliding window length for warn-burst detection, in seconds.
-- `ring_buffer_capacity`: Max redacted events retained for upload (all levels through TRACE).
+- `ring_buffer_capacity`: Max redacted events retained for upload: Bookclerk's own events
+  through TRACE, other crates' from INFO up.
+- `share_usage`: When true, send a weekly anonymous check-in (a random install ID,
+  version, platform and kind) so the project can count active installs.
+  Separate from `share_reports`; reports carry the install ID only when
+  this is on.
+- `demo`: Marks this install as a copy of the hosted demo: reports say
+  `deployment = "demo"` and no check-in is sent. The demo image sets it.
 
 #### DiagnosticsConfig::effective_collector_url
 
@@ -2130,6 +2309,34 @@ discovered install (PluginKey + verified provenance).
 `Some` when recognised; `None` for unknown values.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### ProcessRole
+
+```rust
+pub enum ProcessRole {
+    Daemon,
+    Desktop,
+    Cli,
+}
+```
+
+Which kind of Bookclerk process installed the subscriber.
+
+**Variants**
+
+- `Daemon`: The long-running daemon (`bookclerkd`).
+- `Desktop`: The desktop window, which runs the host in-process.
+- `Cli`: The command-line tool (`bookclerk`).
+
+#### ProcessRole::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Name reported in uploads and check-ins (`daemon`, `desktop`, `cli`).
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### ConfigError
 
@@ -2920,6 +3127,60 @@ pub fn windows_replacement_characters() -> Vec<ReplacementRule>
 
 NTFS-safe replacement map (classic Libation Windows defaults subset).
 
+### checkin_due
+
+```rust
+pub fn checkin_due(files_dir: &Path, now_ms: u64) -> bool
+```
+
+Whether a check-in is due.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+* `now_ms` - Current Unix time in milliseconds.
+
+#### Returns
+
+True when no check-in was recorded, the record is unreadable, or the last
+one is at least [`CHECKIN_INTERVAL_MS`](#checkin_interval_ms) old (or in the future, after a
+clock change).
+
+### record_checkin
+
+```rust
+pub fn record_checkin(files_dir: &Path, now_ms: u64) -> Result<()>
+```
+
+Records an accepted check-in.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+* `now_ms` - When it was accepted, Unix milliseconds.
+
+#### Errors
+
+Returns an error when the record cannot be written.
+
+### send_checkin
+
+```rust
+pub fn send_checkin(config: &DiagnosticsConfig, checkin: &CheckIn) -> Result<(), String>
+```
+
+Sends one check-in to the collector.
+
+#### Arguments
+
+* `config` - Diagnostics settings (collector URL).
+* `checkin` - The body.
+
+#### Errors
+
+Returns an error when no collector URL is configured, the body cannot be
+serialized, or the request fails.
+
 ### journald_available
 
 ```rust
@@ -2954,10 +3215,21 @@ Install a global tracing subscriber (stderr + optional OS facility + diagnostics
 
 Filter precedence for stderr/OS facility: `BOOKCLERK_LOG` → `RUST_LOG` →
 `opts.default_level`. The diagnostics ring buffer is **not** filtered by that
-directive — it always records TRACE and above so uploads retain deep context.
+directive — it records Bookclerk's own TRACE and above (other crates' INFO
+and above, see [`ring_filter`](#ring_filter)) so uploads retain deep context.
 Widen local verbosity with e.g. `BOOKCLERK_LOG=bookclerk=debug` when investigating.
 
 Secrets are redacted on every sink via the public `register_secret` / `redact_str` helpers.
+
+### ring_filter
+
+```rust
+pub fn ring_filter() -> Targets
+```
+
+The diagnostics ring's per-layer filter: TRACE for
+[`RING_TRACE_TARGETS`](#ring_trace_targets) (matched as prefixes, so `bookclerkd` and
+`bookclerk_library` count), [`RING_DEPENDENCY_LEVEL`](#ring_dependency_level) for the rest.
 
 ### strip_ansi_escapes
 
@@ -3425,6 +3697,19 @@ pub const MIN_CACHE_BUDGET_BYTES: u64 = _;
 
 Smallest accepted cache budget: 16 MiB, room for a few hundred covers.
 
+### SLOW_TARGET
+
+```rust
+pub const SLOW_TARGET: &str = "bookclerk::slow";
+```
+
+Target of the events that mark a slow response.
+
+Events on this target count toward the `slow_burst` trigger instead of
+`warn_burst`, so slowness on a starved machine and real faults reach the
+collector as different kinds of report. The daemon's request log
+(`bookclerkd`) is the writer today.
+
 ### RECONCILE_WILDCARD
 
 ```rust
@@ -3433,6 +3718,33 @@ pub const RECONCILE_WILDCARD: char = '\u{E000}';
 
 Sentinel placed in reconcile path *patterns* where a sanitizable character
 appeared in metadata. Matches any single character in an on-disk key.
+
+### CHECKIN_INTERVAL_MS
+
+```rust
+pub const CHECKIN_INTERVAL_MS: u64 = _;
+```
+
+Time between check-ins: one week, in milliseconds.
+
+### RING_DEPENDENCY_LEVEL
+
+```rust
+pub const RING_DEPENDENCY_LEVEL: LevelFilter = LevelFilter::INFO;
+```
+
+Level the diagnostics ring keeps for targets outside [`RING_TRACE_TARGETS`](#ring_trace_targets).
+
+### RING_TRACE_TARGETS
+
+```rust
+pub const RING_TRACE_TARGETS: [&str; 1] = _;
+```
+
+Target prefixes the diagnostics ring keeps through TRACE. Every other
+target (dependencies such as `h2`, `hyper`, `rustls`, `reqwest`, and
+`log`-crate records) is kept from INFO up, so their per-frame TRACE events
+do not crowd Bookclerk's own events out of the ring.
 
 ### DEFAULT_MAX_FILENAME_LENGTH
 
