@@ -19,9 +19,11 @@ library stack.
 | [`CatalogError`](#catalogerror) | enum | Failures talking to the public Audible catalog. |
 | [`CatalogList`](#cataloglist) | enum | Which product list of an Audible catalog answer to read. |
 | [`CatalogReviewsSort`](#catalogreviewssort) | enum | Audible catalog reviews sort (`MostHelpful` or `MostRecent`). |
+| [`catalog_origin`](#catalog_origin) | function | The public catalog's origin for a marketplace, without a trailing slash (`https://api.audible.co.uk` for `uk`). |
 | [`fetch_audible_catalog_rating`](#fetch_audible_catalog_rating) | function | Fetch Audible community ratings for one ASIN (public catalog; no account). |
 | [`fetch_audible_catalog_reviews`](#fetch_audible_catalog_reviews) | function | Fetch a short list of helpful Audible customer reviews (public; no account). |
 | [`fetch_audible_catalog_reviews_page`](#fetch_audible_catalog_reviews_page) | function | Paginated Audible catalog reviews (`page` is 1-based). |
+| [`fetch_products_by_asins`](#fetch_products_by_asins) | function | Looks titles up by ASIN in the public catalog, with their genre ladders. |
 | [`is_audible_podcast_product`](#is_audible_podcast_product) | function | True for Audible podcast shows / episodes (`content_type` / delivery type). |
 | [`normalize_region`](#normalize_region) | function | Normalize a marketplace string to an Audible / Audnexus `region` value. |
 | [`normalize_review_body`](#normalize_review_body) | function | Normalize review text for clients: decode HTML entities and preserve Audible guided questionnaire JSON (`[{ type, question, id, answer }, …]`) so the UI can render Q&A sections. Unrelated JSON arrays are left unchanged. |
@@ -66,6 +68,7 @@ pub struct CatalogProduct {
     pub length_minutes: Option<i64>,
     pub published_at: Option<String>,
     pub categories: Option<String>,
+    pub genre_roots: Vec<String>,
     pub language: Option<String>,
     pub price_cents: Option<i64>,
     pub currency: Option<String>,
@@ -93,6 +96,11 @@ One Audible catalog product (public search hit).
 - `length_minutes`: Audiobook runtime in whole minutes when known.
 - `published_at`: Publication date string from the catalog (ISO or storefront format).
 - `categories`: Genre / subject labels (`;`-separated).
+- `genre_roots`: The top-level genre of each of the title's genre ladders
+  (`Science Fiction & Fantasy`, `Children's Audiobooks`), each once,
+  in ladder order; empty when the catalog gave no ladders. Unlike
+  [`Self::categories`](#catalogproduct), which joins every rung, this tells an adult
+  "Action & Adventure" from a children's one.
 - `language`: BCP-47 / storefront language code (`en`, `de`, …) when known.
 - `price_cents`: List or deal price in integer cents of [`Self::currency`](#catalogproduct).
 - `currency`: ISO 4217 currency code for price fields (`USD`, `EUR`, …).
@@ -274,6 +282,24 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
+### catalog_origin
+
+```rust
+pub fn catalog_origin(region: &str) -> String
+```
+
+The public catalog's origin for a marketplace, without a trailing slash
+(`https://api.audible.co.uk` for `uk`).
+
+#### Arguments
+
+* `region` - Marketplace / region code (`us`, `uk`, …); an unknown code
+  gets the US origin.
+
+#### Returns
+
+The origin to pass to [`fetch_products_by_asins`](#fetch_products_by_asins).
+
 ### fetch_audible_catalog_rating
 
 ```rust
@@ -362,6 +388,33 @@ On success, the inner `CatalogReviewsPage` value.
 #### Errors
 
 Returns an error when the underlying I/O, parse, network, or store operation fails.
+
+### fetch_products_by_asins
+
+```rust
+pub async fn fetch_products_by_asins(
+    http: &Client,
+    origin: &str,
+    asins: &[&str],
+) -> Result<Vec<CatalogProduct>>
+```
+
+Looks titles up by ASIN in the public catalog, with their genre ladders.
+
+#### Arguments
+
+* `http` - Client from [`public_http_client`](#public_http_client).
+* `origin` - Catalog origin without a trailing slash, from
+  [`catalog_origin`](#catalog_origin) (or a test server).
+* `asins` - ASINs to look up; values that are not ASINs are skipped.
+
+#### Returns
+
+The titles the catalog knows, in its order; none when no value is an ASIN.
+
+#### Errors
+
+Returns an error when the request fails or the answer is not JSON.
 
 ### is_audible_podcast_product
 

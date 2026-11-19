@@ -199,6 +199,7 @@ bytes.
 | [`is_storage_key`](#is_storage_key) | function | True when `key` is a relative storage key: no empty, `.` or `..` segment, no backslash or control character, not absolute, at most `MAX_UPLOAD_KEY_BYTES`, and never a Windows path that leaves the destination's root (`colon_is_safe`). |
 | [`scan_pass_end_problem`](#scan_pass_end_problem) | function | Why a `Body::ScanPassEnd` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id and a sync token of at most `MAX_SCAN_SYNC_TOKEN_BYTES` with no control characters. |
 | [`scan_removed_problem`](#scan_removed_problem) | function | Why a `Body::ScanRemoved` the owner received is malformed, or `None` when it is one a host could send: a non-blank account id, at most `MAX_SCAN_REMOVED_IDS` product ids, each non-blank, at most `MAX_SCAN_PRODUCT_ID_BYTES` and free of control characters. |
+| [`target_destinations_problem`](#target_destinations_problem) | function | Why `target`'s destination list (`AcquireTarget::destinations`) does not fit the plan it came with, or `None`: every id it names is one of `plan`'s destinations, named once, in the plan's order. |
 | [`is_branch_name`](#is_branch_name) | function | True for a branch name: 1 to `MAX_BRANCH_NAME_BYTES` bytes, no control characters. |
 | [`is_branch_redirect_uri`](#is_branch_redirect_uri) | function | True for a redirect URI `BRANCH_CLIENT_ID` may use: an absolute `https` URL, or an `http` URL whose host is a loopback IP literal or `localhost` (RFC 8252 section 7.3), with no user info and no fragment. |
 | [`is_library_name`](#is_library_name) | function | True for a library name: 1 to `MAX_LIBRARY_NAME_BYTES` bytes, no control characters. |
@@ -830,6 +831,7 @@ pub struct AcquireTarget {
     pub parent: Option<TargetTitle>,
     pub call_number: Option<CallNumber>,
     pub parent_call_number: Option<CallNumber>,
+    pub destinations: Option<Vec<String>>,
 }
 ```
 
@@ -853,6 +855,12 @@ One title an acquire job should fetch on a host
   this one to plan the same keys the owner grants.
 - `parent_call_number`: The podcast parent's call number on the owner, for a destination that
   saves episodes to the parent's folder.
+- `destinations`: The ids of the plan's destinations whose filter takes this title, in
+  the plan's order: the title's target set, which the host writes and
+  uploads to and nowhere else. An empty list means no destination
+  takes it, so the host fails the title without fetching it. `None`
+  comes from an owner that predates destination filters and means
+  every destination of the plan.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3495,6 +3503,28 @@ Why a [`Body::ScanRemoved`](#body) the owner received is malformed, or `None`
 when it is one a host could send: a non-blank account id, at most
 [`MAX_SCAN_REMOVED_IDS`](#max_scan_removed_ids) product ids, each non-blank, at most
 [`MAX_SCAN_PRODUCT_ID_BYTES`](#max_scan_product_id_bytes) and free of control characters.
+
+### target_destinations_problem
+
+```rust
+pub fn target_destinations_problem(
+    target: &AcquireTarget,
+    plan: &[PlanDestination],
+) -> Option<&'static str>
+```
+
+Why `target`'s destination list ([`AcquireTarget::destinations`](#acquiretarget)) does
+not fit the plan it came with, or `None`: every id it names is one of
+`plan`'s destinations, named once, in the plan's order.
+
+#### Arguments
+
+* `target` - One target of an `acquire.targets` answer.
+* `plan` - That answer's destinations, the primary first.
+
+#### Returns
+
+`None` when the list fits (or is absent), otherwise a short reason.
 
 ### is_branch_name
 
