@@ -2666,12 +2666,6 @@ client_id?: string;
 confidential: boolean;
 ```
 
-##### current\_password?
-
-```ts
-current_password?: string;
-```
-
 ##### enabled
 
 ```ts
@@ -2708,12 +2702,6 @@ Body for `PUT /api/auth/oidc/config`.
 
 ```ts
 allowed_email_domains: string[];
-```
-
-##### current\_password?
-
-```ts
-current_password?: string;
 ```
 
 ##### enabled
@@ -7368,17 +7356,16 @@ Created title-request row.
 ### deleteOidcClient()
 
 ```ts
-function deleteOidcClient(clientId, currentPassword?): Promise<void>;
+function deleteOidcClient(clientId): Promise<void>;
 ```
 
-Deletes a registered OIDC client.
+Deletes a registered OIDC client (operator or elevated Owner only).
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `clientId` | `string` | Client to remove. |
-| `currentPassword?` | `string` | Owner re-auth when the session is older than 15 minutes. |
 
 #### Returns
 
@@ -8911,19 +8898,19 @@ The default after the change.
 ### putMfaPolicy()
 
 ```ts
-function putMfaPolicy(requireSecondFactor, currentPassword?): Promise<{
+function putMfaPolicy(requireSecondFactor): Promise<{
   require_second_factor: boolean;
 }>;
 ```
 
-Persists whether password login requires TOTP or a passkey.
+Persists whether password login requires TOTP or a passkey (operator or
+elevated Owner only).
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `requireSecondFactor` | `boolean` | When true, password-only sign-in is not enough once enrolled. |
-| `currentPassword?` | `string` | Owner step-up; operators omit this. |
 
 #### Returns
 
@@ -9403,17 +9390,17 @@ Resolves when the revoke succeeds.
 ### rotateOidcClientSecret()
 
 ```ts
-function rotateOidcClientSecret(clientId, currentPassword?): Promise<OidcAsClient>;
+function rotateOidcClientSecret(clientId): Promise<OidcAsClient>;
 ```
 
-Rotates a confidential client's secret; plaintext is returned once.
+Rotates a confidential client's secret (operator or elevated Owner only);
+plaintext is returned once.
 
 #### Parameters
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `clientId` | `string` | Confidential client to rotate. |
-| `currentPassword?` | `string` | Owner re-auth when required. |
 
 #### Returns
 

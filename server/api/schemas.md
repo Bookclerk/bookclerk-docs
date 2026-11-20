@@ -1587,7 +1587,6 @@ The host-wide second-factor policy.
 PUT body for the host-wide second-factor policy.
 
 - `require_second_factor` *boolean*, **required** — When true, password login requires TOTP or the user must use a passkey.
-- `current_password` *string or null* — Current password for Owner step-up (operators omit this).
 
 ## MultiDestinationMode
 
@@ -1834,7 +1833,6 @@ Body for creating or updating a Bookclerk-as-IdP client.
 - `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
 - `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
 - `enabled` *boolean* — When true, authorize and token endpoints accept this client.
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ## OidcConfigPut
 
@@ -1844,7 +1842,6 @@ Operator PUT body that replaces the broker table (secrets omitted or replaced).
 - `allowed_email_domains` *array of string* — Replacement broker-wide email domain allowlist.
 - `providers` *array of [`OidcProviderPut`](#oidcproviderput)* — Full replacement list of IdPs (omitted secrets keep the previous generation).
 - `public_origin` *string or null* — `integrations.public_origin`. Omit to leave unchanged; empty string clears.
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ## OidcConfigResponse
 
@@ -3026,12 +3023,6 @@ Form body for `POST /oidc/revoke` (RFC 7009-style refresh-token revoke).
 
 - `token` *string*, **required** — Token to revoke; treated as a refresh token (hashed before lookup).
 - `token_type_hint` *string or null* — Optional hint ignored; this server only stores refresh tokens.
-
-## RotateSecretBody
-
-Optional password for rotating a confidential client's secret.
-
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ## RuleEffect
 

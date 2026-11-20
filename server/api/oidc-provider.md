@@ -1732,9 +1732,9 @@ A `text/plain` body: a string.
 
 Create a client; confidential clients return the generated secret once.
 
-**Access:** The operator, or a signed-in Owner.
+**Access:** The operator (token or session) only.
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession`
 
 ### Request body
 
@@ -1747,7 +1747,6 @@ Create a client; confidential clients return the generated secret once.
 - `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
 - `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
 - `enabled` *boolean* — When true, authorize and token endpoints accept this client.
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
@@ -1766,29 +1765,21 @@ Create a client; confidential clients return the generated secret once.
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `409` — A client with this id already exists (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
-- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The client could not be read or stored (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2002,7 +1993,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
+Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
@@ -2017,40 +2008,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
 
-Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "oidc_client",
-  "message": "forbidden",
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
   "status": 403
 }
 ```
@@ -2060,29 +2053,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2151,99 +2146,13 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+Status `500`: The client could not be read or stored (`oidc_client`).
 
 ```json
 {
   "error": "oidc_client",
-  "message": "too many wrong passwords for this account; try again later",
-  "status": 429
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
-
-```json
-{
-  "error": "oidc_client",
-  "message": "the current password could not be checked",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
   "status": 500
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
 }
 ```
 
@@ -2294,9 +2203,9 @@ A `text/plain` body: a string.
 
 Update redirects, name, scopes, and public/confidential mode; switching a public client to confidential mints its secret, shown once.
 
-**Access:** The operator, or a signed-in Owner.
+**Access:** The operator (token or session) only.
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession`
 
 ### Parameters
 
@@ -2313,7 +2222,6 @@ Update redirects, name, scopes, and public/confidential mode; switching a public
 - `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
 - `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
 - `enabled` *boolean* — When true, authorize and token endpoints accept this client.
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
@@ -2332,29 +2240,21 @@ Update redirects, name, scopes, and public/confidential mode; switching a public
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
-- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The client could not be read or stored (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2568,7 +2468,7 @@ Schema:
 }
 ```
 
-Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
+Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
@@ -2583,40 +2483,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
 
-Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "oidc_client",
-  "message": "forbidden",
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
   "status": 403
 }
 ```
@@ -2626,29 +2528,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -2717,99 +2621,13 @@ Schema:
 
 A `text/plain` body: a string.
 
-Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+Status `500`: The client could not be read or stored (`oidc_client`).
 
 ```json
 {
   "error": "oidc_client",
-  "message": "too many wrong passwords for this account; try again later",
-  "status": 429
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The client could not be read or stored, or an Owner's current password could not be read or checked (`oidc_client`).
-
-```json
-{
-  "error": "oidc_client",
-  "message": "the current password could not be checked",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
   "status": 500
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
 }
 ```
 
@@ -2860,41 +2678,25 @@ A `text/plain` body: a string.
 
 Delete a registered client.
 
-**Access:** The operator, or a signed-in Owner.
+**Access:** The operator (token or session) only.
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession`
 
 ### Parameters
 
 - `client_id` (path) *string*, **required** — Client id.
 
-### Request body
-
-Optional; only `current_password` is read, to confirm an Owner outside the recent sign-in window. Optional.
-
-`application/json`: [`OidcClientWrite`](schemas.md#oidcclientwrite) or null
-
-- `client_id` *string or null* — Public client_id (create only; path wins on update).
-- `name` *string or null* — Operator-facing display name.
-- `redirect_uris` *array of string* — Allowed OAuth redirect URIs.
-- `confidential` *boolean* — When true, mint a client secret (confidential). When false, public PKCE.
-- `issue_refresh_token` *boolean* — When true, token responses include a refresh token.
-- `allowed_scopes` *array of string* — Scopes this client may request (`openid`, `profile`, `email`).
-- `enabled` *boolean* — When true, authorize and token endpoints accept this client.
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
-
 ### Responses
 
 - `204` — The client was deleted. No body.
-- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
-- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
@@ -2903,16 +2705,7 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
-- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The client could not be read or removed (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -2923,17 +2716,13 @@ Optional; only `current_password` is read, to confirm an Owner outside the recen
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' \
     -X DELETE \
-    -H 'Authorization: Bearer <operatorToken>' \
-    -H 'Content-Type: application/json' \
-    -d '{}'
+    -H 'Authorization: Bearer <operatorToken>'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>' `
     -Method Delete `
-    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
-    -ContentType 'application/json' `
-    -Body '{}'
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
 ```
 
 ```python
@@ -2942,7 +2731,6 @@ import requests
 response = requests.delete(
     "http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={},
 )
 print(response.status_code, response.text)
 ```
@@ -2950,8 +2738,7 @@ print(response.status_code, response.text)
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>", {
   method: "DELETE",
-  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({}),
+  headers: { Authorization: "Bearer <operatorToken>" },
 });
 console.log(response.status, await response.text());
 ```
@@ -2961,7 +2748,6 @@ let client = reqwest::Client::new();
 let response = client
     .delete("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -2971,17 +2757,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 Status `204`: The client was deleted. No body.
 
-Status `400`: The body is not syntactically valid JSON.
-
-```text
-Failed to parse the request body as JSON: expected value at line 1 column 1
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
+Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
@@ -2996,40 +2772,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
 
-Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "oidc_client",
-  "message": "forbidden",
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
   "status": 403
 }
 ```
@@ -3039,29 +2817,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3153,109 +2933,13 @@ Schema:
 }
 ```
 
-Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
-
-```text
-Failed to deserialize the JSON body into the target type: client_id: invalid type: integer `1`, expected a string at line 1 column 14
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+Status `500`: The client could not be read or removed (`oidc_client`).
 
 ```json
 {
   "error": "oidc_client",
-  "message": "too many wrong passwords for this account; try again later",
-  "status": 429
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The client could not be read or removed, or an Owner's current password could not be read or checked (`oidc_client`).
-
-```json
-{
-  "error": "oidc_client",
-  "message": "the current password could not be checked",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
   "status": 500
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
 }
 ```
 
@@ -3306,21 +2990,13 @@ A `text/plain` body: a string.
 
 Mint a new secret for a confidential client; plaintext is returned once.
 
-**Access:** The operator, or a signed-in Owner.
+**Access:** The operator (token or session) only.
 
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+**Credentials:** `operatorToken` or `operatorSession`
 
 ### Parameters
 
 - `client_id` (path) *string*, **required** — Client id.
-
-### Request body
-
-Optional.
-
-`application/json`: [`RotateSecretBody`](schemas.md#rotatesecretbody) or null
-
-- `current_password` *string or null* — Required for a non-elevated Owner whose portal session is older than 15 minutes.
 
 ### Responses
 
@@ -3335,29 +3011,19 @@ Optional.
   - `enabled` *boolean*, **required** — Whether the authorize and token endpoints accept this client.
   - `plugin_id` *string or null* — Plugin that provides this client, or `null` for an operator-created one.
   - `client_secret` *string or null* — The new secret, shown once after create, rotate-secret, or a PUT that makes a public client confidential; never stored in clear.
-- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
-- `401` — The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `403` — The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
 - `404` — No such client (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
-- `429` — Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The secret could not be stored (`oidc_client`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -3368,17 +3034,13 @@ Optional.
 ```console
 $ curl 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' \
     -X POST \
-    -H 'Authorization: Bearer <operatorToken>' \
-    -H 'Content-Type: application/json' \
-    -d '{}'
+    -H 'Authorization: Bearer <operatorToken>'
 ```
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret' `
     -Method Post `
-    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
-    -ContentType 'application/json' `
-    -Body '{}'
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
 ```
 
 ```python
@@ -3387,7 +3049,6 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={},
 )
 print(response.status_code, response.text)
 ```
@@ -3395,8 +3056,7 @@ print(response.status_code, response.text)
 ```javascript
 const response = await fetch("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret", {
   method: "POST",
-  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({}),
+  headers: { Authorization: "Bearer <operatorToken>" },
 });
 console.log(response.status, await response.text());
 ```
@@ -3406,7 +3066,6 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/auth/oidc/clients/<client_id>/rotate-secret")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3528,17 +3187,7 @@ Schema:
 }
 ```
 
-Status `400`: The body is not syntactically valid JSON.
-
-```text
-Failed to parse the request body as JSON: expected value at line 1 column 1
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `401`: The caller is not signed in (the standard error body), or an Owner's session is older than fifteen minutes and `current_password` is missing or wrong (`oidc_client`).
+Status `401`: The caller is not signed in, or the credential is wrong.
 
 ```json
 {
@@ -3553,40 +3202,42 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
 ```
 
-Status `403`: The caller is neither the operator nor an Owner (the standard error body before the handler, `oidc_client` from it), or must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "oidc_client",
-  "message": "forbidden",
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
   "status": 403
 }
 ```
@@ -3596,29 +3247,31 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
     },
     "message": {
       "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
     },
     "status": {
       "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
     }
   }
 }
@@ -3667,109 +3320,13 @@ Schema:
 }
 ```
 
-Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
-
-```text
-Failed to deserialize the JSON body into the target type: current_password: invalid type: integer `1`, expected a string at line 1 column 21
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `429`: Too many wrong `current_password` attempts for this account; try again after the lockout (`oidc_client`).
+Status `500`: The secret could not be stored (`oidc_client`).
 
 ```json
 {
   "error": "oidc_client",
-  "message": "too many wrong passwords for this account; try again later",
-  "status": 429
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The secret could not be stored, or an Owner's current password could not be read or checked (`oidc_client`).
-
-```json
-{
-  "error": "oidc_client",
-  "message": "the current password could not be checked",
+  "message": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection",
   "status": 500
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
 }
 ```
 

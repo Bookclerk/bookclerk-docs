@@ -87,7 +87,7 @@ Sign-in, sessions, passkeys, TOTP and the operator's elevation.
 | [`GET /api/auth/oidc/callback`](auth.md#get-apiauthoidccallback) | GET callback (most IdPs); finishes the code exchange. |
 | [`POST /api/auth/oidc/callback`](auth.md#post-apiauthoidccallback) | POST callback (Apple `form_post`); finishes the code exchange. |
 | [`GET /api/auth/oidc/config`](auth.md#get-apiauthoidcconfig) | Operator GET: broker settings plus secret-presence flags (never plaintext). |
-| [`PUT /api/auth/oidc/config`](auth.md#put-apiauthoidcconfig) | Operator PUT: writes next-generation sealed secrets, then publishes config.toml. |
+| [`PUT /api/auth/oidc/config`](auth.md#put-apiauthoidcconfig) | Operator-only PUT: writes next-generation sealed secrets, then publishes config.toml. |
 | [`GET /api/auth/passkeys`](auth.md#get-apiauthpasskeys) | Lists this user's stored passkeys as `{ id, credential_id }` rows. |
 | [`POST /api/auth/passkeys/register/begin`](auth.md#post-apiauthpasskeysregisterbegin) | Starts passkey registration (skips reauth only for first local-only setup). |
 | [`POST /api/auth/passkeys/register/finish`](auth.md#post-apiauthpasskeysregisterfinish) | Completes registration, stores the passkey, and revokes elevated operator sessions. |
@@ -133,6 +133,7 @@ Books in the library, scans and acquires.
 
 | Route | Summary |
 | --- | --- |
+| [`DELETE /api/config/nodes/{node_id}`](library.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. Only the operator (or an elevated Owner) may: it deletes the node and its rows, which is hard to undo. A running node, this node, or a branch is refused (a branch is revoked instead). |
 | [`PUT /api/config/nodes/{node_id}/labels`](library.md#put-apiconfignodesnode_idlabels) | `PUT /api/config/nodes/{node_id}/labels`: replace a node's placement labels. The scheduler re-plans on the wakeup this publishes. |
 | [`PUT /api/config/nodes/{node_id}/owner`](library.md#put-apiconfignodesnode_idowner) | `PUT /api/config/nodes/{node_id}/owner`: assign or clear a node's owner. The owner may then edit that node's runtime settings without operator authority. |
 | [`GET /api/config/library-consents`](library.md#get-apiconfiglibrary-consents) | `GET /api/config/library-consents`. |
@@ -147,8 +148,7 @@ Books in the library, scans and acquires.
 | [`POST /api/config/join/invite`](library.md#post-apiconfigjoininvite) | `POST /api/config/join/invite`: join with a pasted branch invite. The link is redeemed once and dropped; it is never logged or echoed. A library slower than [`REDEEM_TIMEOUT`] is answered 504 `join_pending` while the join carries on and starts its client when it lands. |
 | [`POST /api/config/join/leave`](library.md#post-apiconfigjoinleave) | `POST /api/config/join/leave`: Leave library. The leave runs on its own task, so a request cut short (the client gone, or the API deadline) still records it once the library has been told. |
 | [`GET /api/config/nodes`](library.md#get-apiconfignodes) | `GET /api/config/nodes`: every node for an operator; the caller's own nodes for a node owner. |
-| [`DELETE /api/config/nodes/{node_id}`](library.md#delete-apiconfignodesnode_id) | `DELETE /api/config/nodes/{node_id}`: remove a shared node (a shared branch, or any node sharing this database) that is no longer running from the library's node list. The operator or an Owner may remove any; another user only one they own. A running node, this node, or a branch is refused (a branch is revoked instead). |
-| [`GET /api/config/shared-branches`](library.md#get-apiconfigshared-branches) | `GET /api/config/shared-branches`: the shared nodes (this one and its shared branches) for Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets them remove any; another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
+| [`GET /api/config/shared-branches`](library.md#get-apiconfigshared-branches) | `GET /api/config/shared-branches`: the shared nodes (this one and its shared branches) for Settings → Shared branches, shaped like `GET /api/config/nodes`. The operator or an Owner sees every one (only the operator may remove one, with `DELETE /api/config/nodes/{node_id}`); another user only the ones they own, which the nodes listing already shows them. Branches are not listed. |
 | [`PUT /api/config/nodes/{node_id}/runtime`](library.md#put-apiconfignodesnode_idruntime) | `PUT /api/config/nodes/{node_id}/runtime`: edit a node's label, budgets, or drain switch. Applies at that node's next heartbeat. A node owner may edit only the nodes it owns. |
 | [`POST /api/library/scan`](library.md#post-apilibraryscan) | Plans and enqueues a library scan; returns the accepted job ids. |
 | [`POST /api/library/acquire`](library.md#post-apilibraryacquire) | Plans and enqueues acquire jobs; returns the accepted job ids. |
