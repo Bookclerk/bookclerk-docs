@@ -45,6 +45,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 | [`CatalogSearchSort`](#catalogsearchsort) | enum | Sort mode for the host's `ContentSource::search_catalog`. |
 | [`CatalogSortDir`](#catalogsortdir) | enum | Ascending / descending for catalog search host re-rank. |
 | [`OAuthProgress`](#oauthprogress) | enum | Progress events for interactive OAuth login (portal / CLI). |
+| [`is_throttle_reason`](#is_throttle_reason) | function | True when a store's refusal text says the account is being throttled (rate limited) rather than refused outright. |
 | [`default_preferred_language`](#default_preferred_language) | function | Preferred language for Discover when the client omits one. |
 | [`language_rank`](#language_rank) | function | Rank a hit's language relative to the preferred code. |
 | [`normalize_language`](#normalize_language) | function | Normalize a language tag or display name to a primary ISO-ish code. |
@@ -974,6 +975,30 @@ Progress events for interactive OAuth login (portal / CLI).
 Implements: `Clone`, `Debug`
 
 ## Functions
+
+### is_throttle_reason
+
+```rust
+pub fn is_throttle_reason(reason: &str) -> bool
+```
+
+True when a store's refusal text says the account is being throttled
+(rate limited) rather than refused outright.
+
+Stores rarely give throttling a code of its own (Audible's license
+refusals do not), so this reads the words they use: throttled, rate
+limit, too many requests, HTTP 429. Case is ignored; any other text,
+including other limits such as a device or download limit, is not a
+throttle. A storefront that answers `true` returns
+[`SourceError::RateLimited`](#sourceerror), which pauses the whole account.
+
+#### Arguments
+
+* `reason` - The refusal text the store sent, untrusted.
+
+#### Returns
+
+Whether the text contains one of the throttle words.
 
 ### default_preferred_language
 

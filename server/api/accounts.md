@@ -1848,6 +1848,18 @@ Status `200`: Store accounts linked to the caller.
         "fg": "#F4F1EA",
         "accent": "#2F6B53",
         "logo": "/api/images/aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zMi9mYXZpY29ucz9kb21haW49bGlicm8uZm0mc3o9MTI4.N14rqh66Bok9-eCqJKBNoQ"
+      },
+      "pace": {
+        "mode": "default",
+        "downloads_per_day": 100,
+        "min_gap_seconds": 30,
+        "store_downloads_per_day": 100,
+        "store_min_gap_seconds": 30,
+        "custom_downloads_per_day": null,
+        "custom_min_gap_seconds": null,
+        "downloads_last_day": 12,
+        "cooldown_until": null,
+        "next_automatic_at": null
       }
     }
   ]
@@ -1874,7 +1886,8 @@ Schema:
           "source",
           "plugin_key",
           "connection_status",
-          "source_enabled"
+          "source_enabled",
+          "pace"
         ],
         "properties": {
           "account_id": {
@@ -1948,6 +1961,101 @@ Schema:
                 "type": "null"
               }
             ]
+          },
+          "pace": {
+            "type": "object",
+            "description": "How fast Bookclerk downloads from this account when it starts the\ndownloads itself.",
+            "required": [
+              "mode",
+              "min_gap_seconds",
+              "downloads_last_day"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "description": "`default` (the store's pace), `custom` or `unlimited`.",
+                "example": "default"
+              },
+              "downloads_per_day": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "Downloads allowed in any rolling 24 hours now in force; `null` for\nno daily budget.",
+                "example": 100,
+                "minimum": 0
+              },
+              "min_gap_seconds": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Seconds between two downloads now in force.",
+                "example": 30,
+                "minimum": 0
+              },
+              "store_downloads_per_day": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "The store's declared daily budget; `null` when it declares none or\nits plugin is not deployed here.",
+                "example": 100,
+                "minimum": 0
+              },
+              "store_min_gap_seconds": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "description": "The store's declared gap in seconds; `null` when its plugin is not\ndeployed here.",
+                "example": 30,
+                "minimum": 0
+              },
+              "custom_downloads_per_day": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "Custom daily budget the operator set, when `mode` is `custom`.",
+                "example": null,
+                "minimum": 0
+              },
+              "custom_min_gap_seconds": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32",
+                "description": "Custom gap the operator set, when `mode` is `custom`.",
+                "example": null,
+                "minimum": 0
+              },
+              "downloads_last_day": {
+                "type": "integer",
+                "description": "Downloads from this account in the last 24 hours, by hand or not.",
+                "example": 12,
+                "minimum": 0
+              },
+              "cooldown_until": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "End of the cool-down the store asked for (RFC 3339), when one is\nrunning.",
+                "example": null
+              },
+              "next_automatic_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "When the next automatic download may start (RFC 3339); `null` when\none may start now.",
+                "example": null
+              }
+            }
           }
         }
       },
@@ -2245,6 +2353,397 @@ Status `503`: A cleanup step failed: marking the account revoked, or the batch t
 ```json
 {
   "error": "revoke cleanup failed: ORM / database plugin error: Execution Error: error returned from database: database is locked"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/portal/sources/{source}/connections/{account_id}/pace`
+
+Changes how fast Bookclerk downloads from one of the caller's store
+accounts when it starts the downloads itself, and returns the result.
+
+The body sets `mode` (`default`, `custom` or `unlimited`); a custom pace
+carries `downloads_per_day` (1 to 10000) and/or `min_gap_seconds` (0 to
+86400). `clear_cooldown: true` also ends a cool-down the store asked
+for. Downloads a person starts are never held, whatever the pace.
+
+**Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
+
+**Credentials:** `portalSession`
+
+### Parameters
+
+- `source` (path) *string*, **required** — Source plugin id or PluginKey.
+- `account_id` (path) *string*, **required** — Store account id.
+
+### Request body
+
+`application/json`: [`PaceRequestBody`](schemas.md#pacerequestbody)
+
+- `mode` *[`PaceModeSchema`](schemas.md#pacemodeschema) or null* — `default`, `custom` or `unlimited`. Leave it out to only end the cool-down (then `clear_cooldown` must be `true`) and keep the stored pace.
+- `downloads_per_day` *integer (int32) or null* — Custom downloads per rolling 24 hours; `custom` only. At least 1; at most 10000.
+- `min_gap_seconds` *integer (int32) or null* — Custom seconds between downloads; `custom` only. At least 0; at most 86400.
+- `clear_cooldown` *boolean or null* — Also end a cool-down the store asked for.
+
+### Responses
+
+- `200` — The pace was stored; the account's pace as it now stands. Body: [`PaceView`](schemas.md#paceview) (`application/json`)
+  - `mode` *string*, **required** — `default` (the store's pace), `custom` or `unlimited`.
+  - `downloads_per_day` *integer (int32) or null* — Downloads allowed in any rolling 24 hours now in force; `null` for no daily budget. At least 0.
+  - `min_gap_seconds` *integer (int64)*, **required** — Seconds between two downloads now in force. At least 0.
+  - `store_downloads_per_day` *integer (int32) or null* — The store's declared daily budget; `null` when it declares none or its plugin is not deployed here. At least 0.
+  - `store_min_gap_seconds` *integer (int64) or null* — The store's declared gap in seconds; `null` when its plugin is not deployed here. At least 0.
+  - `custom_downloads_per_day` *integer (int32) or null* — Custom daily budget the operator set, when `mode` is `custom`. At least 0.
+  - `custom_min_gap_seconds` *integer (int32) or null* — Custom gap the operator set, when `mode` is `custom`. At least 0.
+  - `downloads_last_day` *integer*, **required** — Downloads from this account in the last 24 hours, by hand or not. At least 0.
+  - `cooldown_until` *string or null* — End of the cool-down the store asked for (RFC 3339), when one is running.
+  - `next_automatic_at` *string or null* — When the next automatic download may start (RFC 3339); `null` when one may start now.
+- `400` — The body breaks a rule, or the account is not linked to this identity. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `403` — A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `413` — The body is longer than 4096 bytes. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `415` — The request did not declare an `application/json` body. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_id>/pace' \
+    -X POST \
+    -b 'bookclerk_portal_session=<portalSession>' \
+    -H 'Origin: http://127.0.0.1:8787' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.Cookies.Add((New-Object System.Net.Cookie('bookclerk_portal_session', '<portalSession>', '/', '127.0.0.1')))
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_id>/pace' `
+    -Method Post `
+    -WebSession $session `
+    -Headers @{ Origin = 'http://127.0.0.1:8787' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_id>/pace",
+    headers={"Cookie": "bookclerk_portal_session=<portalSession>", "Origin": "http://127.0.0.1:8787"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_id>/pace", {
+  method: "POST",
+  headers: { Cookie: "bookclerk_portal_session=<portalSession>", Origin: "http://127.0.0.1:8787", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/portal/sources/<source>/connections/<account_id>/pace")
+    .header("Cookie", "bookclerk_portal_session=<portalSession>")
+    .header("Origin", "http://127.0.0.1:8787")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The pace was stored; the account's pace as it now stands.
+
+```json
+{
+  "mode": "default",
+  "downloads_per_day": 100,
+  "min_gap_seconds": 30,
+  "store_downloads_per_day": 100,
+  "store_min_gap_seconds": 30,
+  "custom_downloads_per_day": null,
+  "custom_min_gap_seconds": null,
+  "downloads_last_day": 12,
+  "cooldown_until": null,
+  "next_automatic_at": null
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "How fast Bookclerk downloads from one store account when it starts the\ndownloads itself, for the Accounts page.",
+  "required": [
+    "mode",
+    "min_gap_seconds",
+    "downloads_last_day"
+  ],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "description": "`default` (the store's pace), `custom` or `unlimited`.",
+      "example": "default"
+    },
+    "downloads_per_day": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32",
+      "description": "Downloads allowed in any rolling 24 hours now in force; `null` for\nno daily budget.",
+      "example": 100,
+      "minimum": 0
+    },
+    "min_gap_seconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Seconds between two downloads now in force.",
+      "example": 30,
+      "minimum": 0
+    },
+    "store_downloads_per_day": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32",
+      "description": "The store's declared daily budget; `null` when it declares none or\nits plugin is not deployed here.",
+      "example": 100,
+      "minimum": 0
+    },
+    "store_min_gap_seconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "The store's declared gap in seconds; `null` when its plugin is not\ndeployed here.",
+      "example": 30,
+      "minimum": 0
+    },
+    "custom_downloads_per_day": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32",
+      "description": "Custom daily budget the operator set, when `mode` is `custom`.",
+      "example": null,
+      "minimum": 0
+    },
+    "custom_min_gap_seconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int32",
+      "description": "Custom gap the operator set, when `mode` is `custom`.",
+      "example": null,
+      "minimum": 0
+    },
+    "downloads_last_day": {
+      "type": "integer",
+      "description": "Downloads from this account in the last 24 hours, by hand or not.",
+      "example": 12,
+      "minimum": 0
+    },
+    "cooldown_until": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "End of the cool-down the store asked for (RFC 3339), when one is\nrunning.",
+      "example": null
+    },
+    "next_automatic_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When the next automatic download may start (RFC 3339); `null` when\none may start now.",
+      "example": null
+    }
+  }
+}
+```
+
+Status `400`: The body breaks a rule, or the account is not linked to this identity.
+
+```json
+{
+  "error": "invalid input: pace body: a custom pace needs downloads_per_day or min_gap_seconds"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the portal session expired.
+
+```json
+{
+  "error": "not signed in"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `403`: A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `413`: The body is longer than 4096 bytes.
+
+```json
+{
+  "error": "the body is at most 4096 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare an `application/json` body.
+
+```json
+{
+  "error": "the body must be sent as application/json"
 }
 ```
 

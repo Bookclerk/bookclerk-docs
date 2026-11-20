@@ -801,6 +801,7 @@ pub struct AcquireResult {
     pub written_keys: Vec<String>,
     pub matched_existing: bool,
     pub from_library: bool,
+    pub store_fetches: u32,
     pub copies: Vec<CopyOutcome>,
 }
 ```
@@ -815,6 +816,12 @@ Result after a successful acquire.
 - `matched_existing`: True when an existing file was matched and no download ran.
 - `from_library`: True when the audio was taken from the copy a library this install
   joined already held, instead of fetched from the store.
+- `store_fetches`: How many times this acquire downloaded the title (or its companion
+  PDF) from the store: 0 for a copy matched in storage or taken from a
+  joined library, 1 for a store download (even one a better copy from
+  a joined library replaced afterwards), 2 when that library copy then
+  failed packaging and the store was asked again. Download pacing
+  counts each against the account (`bookclerk_library::pacing`).
 - `copies`: Each destination this acquire wrote or found the audio on, and the
   ones whose writes failed; recorded as the edition's copies
   (`edition_copies`) once the acquire returns. Empty when nothing was

@@ -214,6 +214,7 @@ pub enum AudibleError {
     NoAccounts(String),
     Sync(String),
     License(String),
+    Throttled(String),
     NoAaxcAsset { asin: String, message: String },
     Widevine(String),
     Download(String),
@@ -230,6 +231,9 @@ Failures from Audible login, library sync, licensing, or download/decrypt.
 - `NoAccounts`: The host passed no credentials, or none matching the requested accounts.
 - `Sync`: Library listing or metadata sync against Audible APIs failed.
 - `License`: Content license request was rejected or returned an unexpected payload.
+- `Throttled`: Audible refused a license because the account is downloading too
+  much (it throttles for a day or two). The host pauses automatic
+  downloads on the account instead of retrying into the throttle.
 - `NoAaxcAsset`: Adrm licenserequest returned 000307 — title is Widevine-only (no aaxc).
   - `asin`: Title ASIN that has no AAXC asset.
   - `message`: Upstream error detail from Audible.
@@ -237,6 +241,29 @@ Failures from Audible login, library sync, licensing, or download/decrypt.
 - `Download`: HTTP download of audio/PDF/cover bytes failed.
 - `Io`: Local filesystem I/O while reading or writing cache files.
 - `Other`: Unexpected failure wrapped from `anyhow`.
+
+#### AudibleError::license_refused
+
+```rust
+pub fn license_refused(reason: &str, message: String) -> Self
+```
+
+The error for a refused license: [`Self::Throttled`](#audibleerror) when Audible's
+reason says the account is being throttled, otherwise
+[`Self::License`](#audibleerror) with `message`.
+
+##### Arguments
+
+* `reason` - Audible's denial reason, as it sent it.
+* `message` - The full message for a plain refusal.
+
+#### AudibleError::is_throttled
+
+```rust
+pub fn is_throttled(&self) -> bool
+```
+
+True when this error says Audible is throttling the account.
 
 #### AudibleError::is_no_aaxc_asset
 

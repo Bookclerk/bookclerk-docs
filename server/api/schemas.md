@@ -635,6 +635,7 @@ One linked store account on the portal Accounts page.
 - `connection_status` *string*, **required** — Connection state (`active`, revoked, …); defaults to `active` if the account row is missing.
 - `source_enabled` *boolean*, **required** — Whether `[sources.<id>] enabled` is currently true (new connects blocked when false).
 - `brand` *[`BrandInfo`](#brandinfo) or null* — Storefront or integration brand when a plugin or fallback palette is available.
+- `pace` *[`PaceView`](#paceview)*, **required** — How fast Bookclerk downloads from this account when it starts the downloads itself.
 
 ## ConnectionsAdded
 
@@ -2112,6 +2113,38 @@ The consent page's connection block for an Owner, who may pick shared branch.
 - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
 - `software_version` *string* — The library's Bookclerk version.
 - `ancestry` *array of string* — The library's ancestry: its own library id first, then the library id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own library id, so a tree of libraries never becomes a cycle.
+
+## PaceModeSchema
+
+The `mode` of a [`PaceRequestBody`], for the API reference.
+
+Type: one of `default`, `custom`, `unlimited`
+
+## PaceRequestBody
+
+Request body of the pace route, for the API reference (the route reads
+the raw bytes with `bookclerk_library::pacing::parse_pace_request`).
+
+- `mode` *[`PaceModeSchema`](#pacemodeschema) or null* — `default`, `custom` or `unlimited`. Leave it out to only end the cool-down (then `clear_cooldown` must be `true`) and keep the stored pace.
+- `downloads_per_day` *integer (int32) or null* — Custom downloads per rolling 24 hours; `custom` only. At least 1; at most 10000.
+- `min_gap_seconds` *integer (int32) or null* — Custom seconds between downloads; `custom` only. At least 0; at most 86400.
+- `clear_cooldown` *boolean or null* — Also end a cool-down the store asked for.
+
+## PaceView
+
+How fast Bookclerk downloads from one store account when it starts the
+downloads itself, for the Accounts page.
+
+- `mode` *string*, **required** — `default` (the store's pace), `custom` or `unlimited`.
+- `downloads_per_day` *integer (int32) or null* — Downloads allowed in any rolling 24 hours now in force; `null` for no daily budget. At least 0.
+- `min_gap_seconds` *integer (int64)*, **required** — Seconds between two downloads now in force. At least 0.
+- `store_downloads_per_day` *integer (int32) or null* — The store's declared daily budget; `null` when it declares none or its plugin is not deployed here. At least 0.
+- `store_min_gap_seconds` *integer (int64) or null* — The store's declared gap in seconds; `null` when its plugin is not deployed here. At least 0.
+- `custom_downloads_per_day` *integer (int32) or null* — Custom daily budget the operator set, when `mode` is `custom`. At least 0.
+- `custom_min_gap_seconds` *integer (int32) or null* — Custom gap the operator set, when `mode` is `custom`. At least 0.
+- `downloads_last_day` *integer*, **required** — Downloads from this account in the last 24 hours, by hand or not. At least 0.
+- `cooldown_until` *string or null* — End of the cool-down the store asked for (RFC 3339), when one is running.
+- `next_automatic_at` *string or null* — When the next automatic download may start (RFC 3339); `null` when one may start now.
 
 ## PasskeyCreationOptions
 

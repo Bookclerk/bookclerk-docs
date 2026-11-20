@@ -13,7 +13,9 @@ at the record boundary and uses these entities (`Entity::find`,
 ## Modules
 
 - [`account_credential_revisions`](account_credential_revisions.md): SeaORM entity for the `account_credential_revisions` table: the newest sign-in of a single-keeper account that crossed each share (`control_plane::keeper`).
+- [`account_downloads`](account_downloads.md): SeaORM entity for `account_downloads`: each download that reached a store, counted against the account's rolling daily budget.
 - [`account_links`](account_links.md): SeaORM entity for the `account_links` table.
+- [`account_pace`](account_pace.md): SeaORM entity for `account_pace`: the operator's override of a storefront's download pace for one store account, and the store's cool-down.
 - [`account_scan_state`](account_scan_state.md): SeaORM entity for `account_scan_state`: where each account's storefront scan stands between passes and between pages.
 - [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).
 - [`accounts`](accounts.md): SeaORM entity for the `accounts` table.

@@ -220,6 +220,7 @@ pub trait ContentSource: Send + Sync {
         'life1: 'async_trait,;
     fn answers_price_by_isbn(&self) -> bool;
     fn answers_price_by_asin(&self) -> bool;
+    fn acquire_pace(&self) -> AcquirePace;
     fn purchase_hint_answers<'life0, 'life1, 'async_trait>(
         &'life0 self,
         opts: &'life1 [PurchaseHintOpts],
@@ -660,6 +661,18 @@ Whether [`Self::purchase_hint_answers`](#contentsourcepurchase_hint_answers) pri
 declared `CatalogCapabilities.priceByAsin`).
 
 Default: `false`, so the host never sends ASIN lookups.
+
+#### ContentSource::acquire_pace
+
+```rust
+fn acquire_pace(&self) -> AcquirePace
+```
+
+How fast the host may download from one store account of this
+storefront when it starts the downloads itself (the manifest's
+`[acquire]` table; see `bookclerk_library::pacing`).
+
+Default: no budget, no gap, the host's default cool-down.
 
 #### ContentSource::purchase_hint_answers
 

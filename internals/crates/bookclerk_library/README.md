@@ -117,6 +117,8 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListeningProgressWrite`](#listeningprogresswrite) | struct | One stored listening row a batched write produced. |
 | [`ConflictCursor`](#conflictcursor) | struct | Where a conflicts page stopped: the last row's key, in key order. |
 | [`ResolutionConflict`](#resolutionconflict) | struct | One conflict the resolver recorded for an Administrator. |
+| [`AccountPaceState`](#accountpacestate) | struct | One account's pacing state as stored. |
+| [`DownloadId`](#downloadid) | struct | One store download's ledger identity. |
 | [`Bookmark`](#bookmark) | struct | A place one person marked in one edition. |
 | [`NewPlaybackSession`](#newplaybacksession) | struct | A play session to open (`LibraryStore::open_playback_session`). |
 | [`PlaybackChange`](#playbackchange) | struct | The result of a sync or of setting progress outright. |
@@ -207,6 +209,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`PinOutcome`](#pinoutcome) | enum | What `LibraryStore::pin_listing` did. |
+| [`DownloadStarter`](#downloadstarter) | enum | Who started a download, for the ledger. |
 | [`PlaybackEvent`](#playbackevent) | enum | A host event about someone's listening, published after the write it describes (`LibraryStore::publish_playback_event`). |
 | [`PlayerKind`](#playerkind) | enum | What kind of player opened a play session. |
 | [`PlayerKindParam`](#playerkindparam) | enum | The kind of first-party player that opens a session. Outside player apps open theirs through the player API. |
@@ -497,6 +500,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key`](master_key.md): Data-encryption key (DEK) for `encrypted_secrets`.
 - [`migrations`](migrations.md): Host library schema: frozen plan steps plus the unreleased development pack.
 - [`operator_token`](operator_token.md): Durable operator API token in `encrypted_secrets`.
+- [`pacing`](pacing.md): Download pacing per store account: the limits, the operator's override, and the decision whether a download may start now.
 - [`password`](password.md): Argon2id password hashing for first-party local login.
 - [`proxy_txn`](proxy_txn.md): Fail-closed transaction injects re-exported from `bookclerk_db_exec`.
 - [`scope`](scope.md): Plugin-scoped library access.
@@ -2962,6 +2966,7 @@ pub struct JobPayload {
     pub invocation_sequence: Option<u32>,
     pub resume_pending: bool,
     pub pdf_only: bool,
+    pub paced: bool,
     pub requires_unsettled_since_ms: Option<i64>,
     pub cron: Option<String>,
     pub scheduled_time_ms: Option<i64>,
@@ -3005,6 +3010,11 @@ JSON command envelope stored on a job row.
   
   Run only by nodes that hold the library database; a Host is never
   handed such a job (`control_plane::node_may_claim_job`).
+- `paced`: For [`JobKind::Acquire`]: the host started this acquire itself
+  (auto-acquire, quality upgrades, acquire-all, a request from another
+  library), so each download waits for its store account's pace
+  (`crate::pacing`). An acquire a person starts by hand leaves it
+  false: its downloads are counted but never held.
 - `requires_unsettled_since_ms`: Unix milliseconds when the requirements sweep first found this pending
   job's [`Self::requires`](#jobpayload) unsettled: no node runs all of them, or one of
   them is no longer deployed anywhere.
@@ -4925,6 +4935,56 @@ One conflict the resolver recorded for an Administrator.
 - `updated_at`: RFC 3339 time the conflict was last seen.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### AccountPaceState
+
+```rust
+pub struct AccountPaceState {
+    pub override_: PaceOverride,
+    pub cooldown_until: Option<DateTime<Utc>>,
+    pub window: DownloadWindow,
+}
+```
+
+One account's pacing state as stored.
+
+**Fields**
+
+- `override_`: The operator's override of the storefront's pace.
+- `cooldown_until`: End of the store's cool-down, when one is set (it may be past).
+- `window`: Downloads in the last [`BUDGET_WINDOW`](pacing.md#budget_window), oldest first.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### DownloadId
+
+```rust
+pub struct DownloadId(/* private */);
+```
+
+One store download's ledger identity.
+
+It is made once, when a download is kept for recording, and every write
+attempt of that download passes the same one, so a write that committed
+but whose answer was lost inserts no second row when it is tried again.
+
+#### DownloadId::new
+
+```rust
+pub fn new() -> Self
+```
+
+A fresh identity (a random UUID) for a new download.
+
+#### DownloadId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The identity as the ledger's `id` column stores it.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
 ### Bookmark
 
@@ -9228,6 +9288,118 @@ not decide would. Test support only.
 
 When the write fails.
 
+#### LibraryStore::account_pace_state
+
+```rust
+pub async fn account_pace_state(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    now: DateTime<Utc>,
+) -> Result<AccountPaceState>
+```
+
+Reads one account's pacing state at `now`.
+
+##### Arguments
+
+* `plugin_key` - The account's plugin.
+* `account_id` - The account.
+* `now` - The current time (the window ends here).
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::set_account_pace_override
+
+```rust
+pub async fn set_account_pace_override(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    override_: &PaceOverride,
+) -> Result<()>
+```
+
+Stores the operator's override of an account's pace (the cool-down
+is kept), and wakes parked paced acquires that may download on it so
+they look at the new pace ([`Self::wake_paced_acquires`](#librarystorewake_paced_acquires)).
+
+##### Errors
+
+Returns [`LibraryError::Other`](#libraryerror) when the override is out of range
+([`PaceOverride::validate`](pacing.md#paceoverridevalidate)), or an error when the batch fails.
+
+#### LibraryStore::extend_account_cooldown
+
+```rust
+pub async fn extend_account_cooldown(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    until: DateTime<Utc>,
+) -> Result<()>
+```
+
+Records the store's cool-down for an account, unless one that ends
+later is already recorded.
+
+##### Errors
+
+Returns an error when the batch fails.
+
+#### LibraryStore::clear_account_cooldown
+
+```rust
+pub async fn clear_account_cooldown(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<()>
+```
+
+Clears an account's cool-down (the operator knows better), and wakes
+parked paced acquires that may download on it
+([`Self::wake_paced_acquires`](#librarystorewake_paced_acquires)).
+
+##### Errors
+
+Returns an error when the batch fails.
+
+#### LibraryStore::record_account_download
+
+```rust
+pub async fn record_account_download(
+    &self,
+    id: &DownloadId,
+    plugin_key: &str,
+    account_id: &str,
+    started_at: DateTime<Utc>,
+    job_id: Option<&str>,
+    starter: DownloadStarter,
+) -> Result<()>
+```
+
+Records a download that reached the store, and prunes the account's
+ledger rows older than [`LEDGER_RETENTION`](pacing.md#ledger_retention), in one batch.
+
+Writing the same `id` again adds no second row, so a write whose
+answer was lost may be retried.
+
+##### Arguments
+
+* `id` - The download's identity, the same for every write attempt.
+* `plugin_key` - The account's plugin.
+* `account_id` - The account.
+* `started_at` - When the download started.
+* `job_id` - The acquire job that ran it, if any.
+* `starter` - Whether the host or a person started it.
+
+##### Errors
+
+Returns an error when the batch fails.
+
 #### LibraryStore::playback_edition
 
 ```rust
@@ -10738,6 +10910,33 @@ mark them `invalid_job`).
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
+#### LibraryStore::wake_paced_acquires
+
+```rust
+pub async fn wake_paced_acquires(&self, account_id: &str) -> Result<u32>
+```
+
+Makes parked paced acquires that may download on an account ready
+to run now, after its pace was relaxed or its pause cleared.
+
+A paced acquire parked by the pace ([`Self::defer_job`](#librarystoredefer_job)) waits until
+the moment its account was due to download again. When a person or
+the operator loosens the limit, the job must look again rather than
+sleep out the old deadline. Every pending paced acquire that names
+`account_id`, or names no account, and whose `run_after` is later
+than now is moved to now; on its next claim it checks the pace and
+parks again if it still has to wait. Each write is a compare-and-swap
+on `state = 'pending'` and the generation it read, which it bumps, so
+a job claimed meanwhile is left alone.
+
+##### Returns
+
+How many jobs were woken.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read or write fails.
+
 #### LibraryStore::rewrite_pending_job_payload
 
 ```rust
@@ -10879,6 +11078,36 @@ replaced with `checkpoint` (other payload fields are preserved).
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read or update fails, or [`LibraryError::Other`](#libraryerror)
 when the stored payload is not valid JSON.
+
+#### LibraryStore::defer_job
+
+```rust
+pub async fn defer_job(
+    &self,
+    fence: &JobFence,
+    wake_at: DateTime<Utc>,
+    progress: &str,
+) -> Result<bool>
+```
+
+Parks a running job as `pending` until `wake_at` without spending an
+attempt, with `progress` saying why it waits.
+
+For a job that cannot go on yet and has nothing to resume from, such
+as an acquire waiting for its store account's download pace
+(`crate::pacing`). Unlike [`Self::suspend_job`](#librarystoresuspend_job) it drops any stored
+checkpoint, so the next claim starts fresh. The CAS matches
+[`Self::complete_job`]: `state=running` and the caller's fence.
+
+##### Returns
+
+`true` when the row was parked; `false` when `fence` no longer owns
+the running generation.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when the read or update fails, or
+[`LibraryError::Other`](#libraryerror) when the stored payload is not valid JSON.
 
 #### LibraryStore::checkpoint_running_job
 
@@ -16120,6 +16349,25 @@ What [`LibraryStore::pin_listing`](#librarystorepin_listing) did.
 - `UnknownEdition`: No edition has this id.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DownloadStarter
+
+```rust
+pub enum DownloadStarter {
+    Host,
+    Person,
+}
+```
+
+Who started a download, for the ledger.
+
+**Variants**
+
+- `Host`: The host started it (auto-acquire, upgrades, acquire-all, requests
+  from other libraries): held for the pace.
+- `Person`: A person started it by hand: counted, never held.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### PlaybackEvent
 

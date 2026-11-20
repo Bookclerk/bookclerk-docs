@@ -4454,6 +4454,14 @@ connection_status: string;
 label: string | null;
 ```
 
+##### pace
+
+```ts
+pace: PortalPace;
+```
+
+How fast Bookclerk downloads from this account when it starts the downloads itself.
+
 ##### plugin\_key
 
 ```ts
@@ -4531,6 +4539,138 @@ label: string | null;
 ```ts
 provider: string;
 ```
+
+***
+
+### PortalPace
+
+A store account's download pace from `/api/portal/connections`: the limits
+in force for downloads Bookclerk starts itself (auto-acquire, upgrades,
+requests from other libraries). Downloads a person starts are counted but
+never held.
+
+#### Properties
+
+##### cooldown\_until
+
+```ts
+cooldown_until: string | null;
+```
+
+End of the store's cool-down (RFC 3339), when one is running.
+
+##### custom\_downloads\_per\_day
+
+```ts
+custom_downloads_per_day: number | null;
+```
+
+The custom daily budget, when `mode` is `custom`.
+
+##### custom\_min\_gap\_seconds
+
+```ts
+custom_min_gap_seconds: number | null;
+```
+
+The custom gap, when `mode` is `custom`.
+
+##### downloads\_last\_day
+
+```ts
+downloads_last_day: number;
+```
+
+Downloads from this account in the last 24 hours.
+
+##### downloads\_per\_day
+
+```ts
+downloads_per_day: number | null;
+```
+
+Downloads allowed in any rolling 24 hours; `null` for no daily budget.
+
+##### min\_gap\_seconds
+
+```ts
+min_gap_seconds: number;
+```
+
+Seconds between two downloads.
+
+##### mode
+
+```ts
+mode: PortalPaceMode;
+```
+
+`default` (the store's pace), `custom` or `unlimited`.
+
+##### next\_automatic\_at
+
+```ts
+next_automatic_at: string | null;
+```
+
+When the next automatic download may start (RFC 3339); `null` for now.
+
+##### store\_downloads\_per\_day
+
+```ts
+store_downloads_per_day: number | null;
+```
+
+The store's declared daily budget; `null` when none or its plugin isn't deployed here.
+
+##### store\_min\_gap\_seconds
+
+```ts
+store_min_gap_seconds: number | null;
+```
+
+The store's declared gap; `null` when its plugin isn't deployed here.
+
+***
+
+### PortalPaceChange
+
+Body of [portalSetConnectionPace](#portalsetconnectionpace).
+
+#### Properties
+
+##### clear\_cooldown?
+
+```ts
+clear_cooldown?: boolean;
+```
+
+Also end a cool-down the store asked for.
+
+##### downloads\_per\_day?
+
+```ts
+downloads_per_day?: number;
+```
+
+Custom downloads per rolling 24 hours (1 to 10000); `custom` only.
+
+##### min\_gap\_seconds?
+
+```ts
+min_gap_seconds?: number;
+```
+
+Custom seconds between downloads (0 to 86400); `custom` only.
+
+##### mode?
+
+```ts
+mode?: PortalPaceMode;
+```
+
+`default`, `custom` or `unlimited`. Leave it out to only end the
+cool-down (with `clear_cooldown: true`) and keep the stored pace.
 
 ***
 
@@ -6936,6 +7076,16 @@ Where a provider client secret is stored (never returned in plaintext).
 
 ***
 
+### PortalPaceMode
+
+```ts
+type PortalPaceMode = "default" | "custom" | "unlimited";
+```
+
+How a store account's pace is set.
+
+***
+
 ### RemoteConsentState
 
 ```ts
@@ -9119,6 +9269,35 @@ the address: the same account id may exist on two stores.
 `Promise`\<`void`\>
 
 Resolves when the revoke POST succeeds.
+
+***
+
+### portalSetConnectionPace()
+
+```ts
+function portalSetConnectionPace(
+   source, 
+   accountId, 
+   change
+): Promise<PortalPace>;
+```
+
+Changes how fast Bookclerk downloads from one of the caller's store accounts
+when it starts the downloads itself.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `source` | `string` | Source id or PluginKey from [portalConnections](#portalconnections). |
+| `accountId` | `string` | Store account id from [portalConnections](#portalconnections). |
+| `change` | [`PortalPaceChange`](#portalpacechange) | The new pace, and whether to end the store's cool-down. |
+
+#### Returns
+
+`Promise`\<[`PortalPace`](#portalpace)\>
+
+The account's pace as it now stands.
 
 ***
 

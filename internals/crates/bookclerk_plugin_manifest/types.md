@@ -10,6 +10,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`MediaManifest`](#mediamanifest) | struct | `[media]`: the work kinds and edition carriers a storefront or metadata provider reports, and the carriers a storefront can download. |
+| [`AcquireManifest`](#acquiremanifest) | struct | `[acquire]`: how fast the host may download from one store account of this storefront when it starts the downloads itself. |
 | [`MetadataFilesManifest`](#metadatafilesmanifest) | struct | `[metadata_files]`: the metadata file dialects a `metadataFiles` plugin implements. Required for that entrypoint and forbidden without it. |
 | [`MetadataFileDialectManifest`](#metadatafiledialectmanifest) | struct | One `[[metadata_files.dialects]]` row: a file format the plugin reads, and writes when `writes` is true. |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
@@ -46,6 +47,9 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`is_reserved_queue_name`](#is_reserved_queue_name) | function | True when `name` starts with a `RESERVED_QUEUE_PREFIXES` entry. |
 | [`ALL_ENTRYPOINTS`](#all_entrypoints) | constant | Every entrypoint in declaration order (mirrors the Cap'n Proto enum). |
 | [`REGISTRY_ENTRYPOINTS`](#registry_entrypoints) | constant | Entrypoints the host loads into their own registry (sources, destinations, database adapters) rather than the integration registry. |
+| [`MAX_DOWNLOADS_PER_DAY`](#max_downloads_per_day) | constant | Most downloads a day `[acquire].downloads_per_day` may declare. |
+| [`MAX_MIN_GAP_SECONDS`](#max_min_gap_seconds) | constant | Longest gap between downloads `[acquire].min_gap_seconds` may declare (one day). |
+| [`MAX_COOLDOWN_SECONDS`](#max_cooldown_seconds) | constant | Longest cool-down `[acquire].cooldown_seconds` may declare (one week). |
 | [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) | constant | Longest `OwnUserAgent::reason` a manifest may declare, in characters. |
 | [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) | constant | Most hosts one `OwnUserAgent` table may list. |
 | [`MAX_DATABASE_BINDINGS`](#max_database_bindings) | constant | Maximum named database bindings one plugin may declare. |
@@ -115,6 +119,57 @@ pub fn to_wire(&self) -> MediaSupport
 ```
 
 The declaration in its wire shape, as `describe()` returns it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### AcquireManifest
+
+```rust
+pub struct AcquireManifest {
+    pub downloads_per_day: Option<i64>,
+    pub min_gap_seconds: Option<i64>,
+    pub cooldown_seconds: Option<i64>,
+}
+```
+
+`[acquire]`: how fast the host may download from one store account of
+this storefront when it starts the downloads itself.
+
+Stores rarely publish their limits and throttle after the fact, so a
+storefront declares a safe pace here and the host keeps every automatic
+download (auto-acquire, quality upgrades, acquire-all, requests from
+other libraries) under it. Every field is optional: a missing
+`downloads_per_day` means no daily budget, a missing `min_gap_seconds`
+no gap, and a missing `cooldown_seconds` the host's one-hour default.
+Only a plugin with the `storefront` entrypoint may declare the table.
+
+The fields are signed so a negative value reaches validation and gets
+the same message in every author tool, rather than a parser error.
+
+**Fields**
+
+- `downloads_per_day`: Downloads allowed per store account in any rolling 24 hours, from 1
+  to [`MAX_DOWNLOADS_PER_DAY`](#max_downloads_per_day); `None` for no daily budget.
+- `min_gap_seconds`: Seconds between the start of two downloads on one store account,
+  from 0 to [`MAX_MIN_GAP_SECONDS`](#max_min_gap_seconds); `None` for no gap.
+- `cooldown_seconds`: Seconds automatic downloads on an account pause after the store
+  answers `rateLimited` without saying how long, from 1 to
+  [`MAX_COOLDOWN_SECONDS`](#max_cooldown_seconds); `None` for the host default.
+
+#### AcquireManifest::validate
+
+```rust
+pub fn validate(&self) -> Result<()>
+```
+
+Checks each declared value against its range.
+
+The same rules, with the same messages, run in the TypeScript and
+Python author tools (`manifest-cases.json`).
+
+##### Errors
+
+Returns [`Error::Message`](error.md#error) naming the first field outside its range.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -803,6 +858,7 @@ pub struct PluginManifest {
     pub sockets: Option<NamedBinding>,
     pub credentials: Option<CredentialSharing>,
     pub media: Option<MediaManifest>,
+    pub acquire: Option<AcquireManifest>,
     pub metadata_files: Option<MetadataFilesManifest>,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
@@ -884,6 +940,8 @@ rejected.
   export the `storefront` or `metadata` entrypoint and forbidden for
   every other plugin. `describe()` must return the same lists; see
   [`MediaManifest`](#mediamanifest).
+- `acquire`: How fast the host may download from one store account (`[acquire]`):
+  optional, storefronts only; see [`AcquireManifest`](#acquiremanifest).
 - `metadata_files`: Metadata file dialects (`[metadata_files]`): required for plugins
   that export the `metadataFiles` entrypoint and forbidden for every
   other plugin; see [`MetadataFilesManifest`](#metadatafilesmanifest).
@@ -1599,6 +1657,31 @@ destinations, database adapters) rather than the integration registry.
 
 Crons are rejected beside these, and job triggers beside them stay on
 that registry's session instead of making the plugin an integration.
+
+### MAX_DOWNLOADS_PER_DAY
+
+```rust
+pub const MAX_DOWNLOADS_PER_DAY: i64 = 10_000;
+```
+
+Most downloads a day `[acquire].downloads_per_day` may declare.
+
+### MAX_MIN_GAP_SECONDS
+
+```rust
+pub const MAX_MIN_GAP_SECONDS: i64 = 86_400;
+```
+
+Longest gap between downloads `[acquire].min_gap_seconds` may declare
+(one day).
+
+### MAX_COOLDOWN_SECONDS
+
+```rust
+pub const MAX_COOLDOWN_SECONDS: i64 = 604_800;
+```
+
+Longest cool-down `[acquire].cooldown_seconds` may declare (one week).
 
 ### MAX_OWN_USER_AGENT_REASON_CHARS
 
