@@ -7193,6 +7193,17 @@ How `/api/library/works` orders a page (ignored while searching).
 
 ## Variables
 
+### BEFORE\_SIGN\_OUT\_WAIT\_MS
+
+```ts
+const BEFORE_SIGN_OUT_WAIT_MS: 3000 = 3000;
+```
+
+How long a change of identity waits for the work registered with
+[beforeSignOut](#beforesignout), in milliseconds.
+
+***
+
 ### endElevate
 
 ```ts
@@ -7407,6 +7418,30 @@ One line naming the branches a title is available through.
 
 For example "Available through Riley's branch", or `null` when
   no branch lists the title.
+
+***
+
+### beforeSignOut()
+
+```ts
+function beforeSignOut(task, after?): () => void;
+```
+
+Registers work that must finish while the signed-in identity still
+holds, such as the player's last position report.
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `task` | () => `Promise`\<`void`\> | Run twice at the start of every sign-out and before impersonation starts or stops, so it must do nothing when there is nothing left to finish, and awaited for up to [BEFORE\_SIGN\_OUT\_WAIT\_MS](#before_sign_out_wait_ms). A task that fails, throws or takes longer does not stop the change. |
+| `after?` | () => `void` | Run once the request that changes the identity has answered or failed, to take back whatever `task` held off meanwhile (the player starts no book in between). |
+
+#### Returns
+
+Removes the task and `after`.
+
+() => `void`
 
 ***
 
@@ -9841,7 +9876,8 @@ Count of revoked sessions.
 function signOut(role?): Promise<void>;
 ```
 
-Signs out regardless of operator vs user/portal session.
+Signs out regardless of operator vs user/portal session, after the
+work registered with [beforeSignOut](#beforesignout).
 
 #### Parameters
 
@@ -9863,7 +9899,9 @@ Resolves when logout completes.
 function startImpersonate(userId): Promise<void>;
 ```
 
-Starts operator (or elevated Owner) impersonation of another user.
+Starts operator (or elevated Owner) impersonation of another user,
+after the work registered with [beforeSignOut](#beforesignout): what is playing
+belongs to the identity being left.
 
 #### Parameters
 
@@ -9885,7 +9923,9 @@ Resolves when impersonation is active.
 function stopImpersonate(): Promise<void>;
 ```
 
-Stops the current operator impersonation session.
+Stops the current operator impersonation session, after the work
+registered with [beforeSignOut](#beforesignout): a book the impersonated person
+was playing is closed as them, not reported as the restored account.
 
 #### Returns
 
