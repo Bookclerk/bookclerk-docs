@@ -70,6 +70,7 @@ pub struct LibationExportOptions {
     pub dest: PathBuf,
     pub force: bool,
     pub dry_run: bool,
+    pub user: Option<String>,
 }
 ```
 
@@ -81,6 +82,9 @@ Options for Libation-compatible export.
 - `dest`: Destination path for the export archive or directory.
 - `force`: When true, overwrite existing data instead of failing on conflict.
 - `dry_run`: When true, report what would change without writing files.
+- `user`: Whose tags, ratings and finished flags to export (login name or
+  user id); `None` exports every title with them empty, since they
+  belong to each person.
 
 Implements: `Clone`, `Debug`
 

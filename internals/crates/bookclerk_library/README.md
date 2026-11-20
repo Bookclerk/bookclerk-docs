@@ -5701,6 +5701,7 @@ pub struct AcquireTitle {
     pub is_abridged: bool,
     pub content_kind: &'static str,
     pub purchased_at: Option<DateTime<Utc>>,
+    pub added_at: Option<DateTime<Utc>>,
     pub published_at: Option<DateTime<Utc>>,
     pub status: AcquireStatus,
     pub storage_key: Option<String>,
@@ -5743,6 +5744,8 @@ One title an account holds, as acquire reads it from the library model.
 - `content_kind`: What the title is, in the flat row's labels: `episode` for a
   podcast episode, `podcast` for a show, `book` otherwise.
 - `purchased_at`: When the account bought the title, when the store reported it.
+- `added_at`: When this library first recorded the account's holding of the
+  title; the added date when the store reports no purchase time.
 - `published_at`: Publication time as the store reported it, else the edition's.
 - `status`: The edition's acquire state; not acquired when no title of it was
   ever queued.
