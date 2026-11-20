@@ -28,6 +28,7 @@ the worker itself calls.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`RangeSource`](#rangesource) | trait | Where a file's bytes come from: a local file, a storage plugin's ranged read, or a buffer in tests. |
+| [`PcmFormat`](#pcmformat) | struct | The PCM layout of a decoded stream. |
 | [`ChapterAlignOptions`](#chapteralignoptions) | struct | Tunables for silence / speech-onset chapter snapping. |
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
@@ -36,11 +37,13 @@ the worker itself calls.
 | [`AudioProbe`](#audioprobe) | struct | What a probe found in one audio file. |
 | [`FileRange`](#filerange) | struct | A file on this machine, read a range at a time. |
 | [`MediaOutcome`](#mediaoutcome) | struct | Outcome of a successful media operation. |
+| [`OutChannels`](#outchannels) | enum | How many channels the caller wants decoded PCM in. |
 | [`MediaError`](#mediaerror) | enum | Errors from in-process codecs, MP4 plumbing, and confined media workers. |
 | [`MediaJob`](#mediajob) | enum | A single codec operation. |
 | [`MediaJobOutput`](#mediajoboutput) | enum | What a finished job produced. |
 | [`MediaJobReply`](#mediajobreply) | enum | Wire form of a finished job. `Result` is not `Serialize`, so the worker and the pool exchange this instead. |
 | [`Confinement`](#confinement) | enum | How strictly a worker must be confined before it will process a job. |
+| [`decode_pcm_bytes`](#decode_pcm_bytes) | function | Decodes a whole media file held in memory to PCM, the path the `media_decode` fuzz target and its replay test drive. |
 | [`write_output_within_budget`](#write_output_within_budget) | function | Appends `data` only when the result stays within `max`. |
 | [`align_chapter_starts`](#align_chapter_starts) | function | Snap chapter starts just before nearby speech onsets (spoken chapter titles). |
 | [`scale_chapters_to_duration`](#scale_chapters_to_duration) | function | Scale rebased chapter starts so they span the probed plain-audio duration. |
@@ -57,6 +60,7 @@ the worker itself calls.
 | [`remux_trimmed_async`](#remux_trimmed_async) | function | Copy/trim a progressive M4B/M4A into a new file (chapter split helper). |
 | [`align_chapter_starts_async`](#align_chapter_starts_async) | function | Snap chapter starts to spoken-title onsets by local waveform analysis. |
 | [`Result`](#result) | type alias | Result alias for media packaging and worker operations in this crate. |
+| [`MAX_SAMPLE_RATE_HZ`](#max_sample_rate_hz) | constant | Highest sample rate a decoded stream may report, in Hz. Anything above is refused as malformed rather than handed to an encoder. |
 | [`COVER_THREADS_ENV`](#cover_threads_env) | constant | Environment variable carrying the cover worker's decode thread count. |
 | [`COVER_WORKER_ARG`](#cover_worker_arg) | constant | First worker argument that selects the cover server. |
 | [`BOOKCLERK_TOOL_NAME`](#bookclerk_tool_name) | constant | Product / CLI name written into tool attribution tags. |
@@ -84,6 +88,10 @@ the worker itself calls.
 - [`bookclerk_mp4::TrimRange`](../bookclerk_mp4/README.md#trimrange)
 - [`bookclerk_tags::ByteSpan`](../bookclerk_tags/README.md#bytespan)
 - [`bookclerk_tags::TagRecord`](../bookclerk_tags/README.md#tagrecord)
+
+## Modules
+
+- [`capabilities`](capabilities.md): What this build of the media worker can read and write.
 
 ## Traits
 
@@ -117,6 +125,25 @@ Any I/O failure; the read of that file then fails.
 Implemented by: `FileRange`
 
 ## Structs
+
+### PcmFormat
+
+```rust
+pub struct PcmFormat {
+    pub sample_rate: u32,
+    pub channels: u16,
+}
+```
+
+The PCM layout of a decoded stream.
+
+**Fields**
+
+- `sample_rate`: Samples per second per channel, in Hz; between 1 and
+  [`MAX_SAMPLE_RATE_HZ`](#max_sample_rate_hz).
+- `channels`: Interleaved channels in every chunk: 1 (mono) or 2 (stereo).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### ChapterAlignOptions
 
@@ -478,6 +505,24 @@ Implements: `Clone`, `Debug`, `From<MediaJobOutput>`
 
 ## Enums
 
+### OutChannels
+
+```rust
+pub enum OutChannels {
+    SourceUpToStereo,
+    Mono,
+}
+```
+
+How many channels the caller wants decoded PCM in.
+
+**Variants**
+
+- `SourceUpToStereo`: The source's own count, folded to stereo when it has more than two.
+- `Mono`: One channel: the average of the source's first two.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### MediaError
 
 ```rust
@@ -728,6 +773,34 @@ The value to pass through [`WORKER_ENFORCEMENT_ENV`](#worker_enforcement_env).
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ## Functions
+
+### decode_pcm_bytes
+
+```rust
+pub fn decode_pcm_bytes<F>(
+    bytes: Vec<u8>,
+    out: OutChannels,
+    on_pcm: F,
+) -> Result<PcmFormat>
+where
+    F: FnMut(PcmFormat, &[i16]) -> Result<()>,
+```
+
+Decodes a whole media file held in memory to PCM, the path the
+`media_decode` fuzz target and its replay test drive.
+
+#### Arguments
+
+* `bytes` - The file.
+* `out` - The channel layout wanted.
+* `on_pcm` - Called once per decoded packet with the stream's layout and
+  that packet's interleaved samples (a whole number of frames).
+
+#### Errors
+
+[`MediaError::Native`](#mediaerror) when no known container or audio track is found,
+no decoder handles the codec, the demuxer fails, or the file decodes to
+no PCM at all; or what `on_pcm` returns.
 
 ### write_output_within_budget
 
@@ -993,6 +1066,15 @@ pub type Result<T> = Result<T, MediaError>;
 Result alias for media packaging and worker operations in this crate.
 
 ## Constants
+
+### MAX_SAMPLE_RATE_HZ
+
+```rust
+pub const MAX_SAMPLE_RATE_HZ: u32 = 768_000;
+```
+
+Highest sample rate a decoded stream may report, in Hz. Anything above
+is refused as malformed rather than handed to an encoder.
 
 ### COVER_THREADS_ENV
 

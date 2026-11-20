@@ -248,6 +248,7 @@
     "internals/crates/bookclerk_library/sql_plan/host_ir",
     "internals/crates/bookclerk_library/test_support/paging",
     "internals/crates/bookclerk_media/README",
+    "internals/crates/bookclerk_media/capabilities",
     "internals/crates/bookclerk_migrate/README",
     "internals/crates/bookclerk_mp4/README",
     "internals/crates/bookclerk_mp4/boxutil",
