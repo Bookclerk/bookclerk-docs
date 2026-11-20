@@ -386,7 +386,7 @@ Bookclerk as an OpenID Connect provider for other apps.
 | [`GET /.well-known/openid-configuration`](oidc-provider.md#get-well-knownopenid-configuration) | Serves the OIDC discovery document for registered clients. |
 | [`GET /oidc/authorize`](oidc-provider.md#get-oidcauthorize) | Starts the authorization-code flow; unauthenticated users are sent to SPA login. |
 | [`POST /oidc/authorize`](oidc-provider.md#post-oidcauthorize) | Completes consent: deny redirects with `access_denied`, grant issues a code. |
-| [`POST /oidc/token`](oidc-provider.md#post-oidctoken) | Dispatches token grants; unknown `grant_type` values return 400. |
+| [`POST /oidc/token`](oidc-provider.md#post-oidctoken) | Dispatches token grants. Every refusal is an RFC 6749 §5.2 JSON body ([`TokenError`]), never the branded error page, so a client library can tell `invalid_grant` from `invalid_client`. |
 | [`GET /oidc/userinfo`](oidc-provider.md#get-oidcuserinfo) | Returns `sub` / `name` / `preferred_username` for a valid access JWT. |
 | [`POST /oidc/revoke`](oidc-provider.md#post-oidcrevoke) | Best-effort refresh-token revoke; always returns 200 per RFC 7009. |
 | [`GET /api/auth/oidc/clients`](oidc-provider.md#get-apiauthoidcclients) | Owner/operator list of Bookclerk-as-IdP clients (secrets never included). |

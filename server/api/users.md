@@ -28,6 +28,10 @@ listening within the last 30 minutes, and linked storefront accounts.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -541,6 +545,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -595,6 +642,10 @@ Owner/admin or operator creates a user and optional invite magic link.
   - `status` *integer* — The HTTP status, repeated.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -967,6 +1018,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -1012,6 +1106,10 @@ only their own account (self-service).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1265,6 +1363,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -1322,6 +1463,10 @@ Patch role/status/display/login/email for a first-party user
   - `error` *string*, **required** — Why the change was refused: `last_owner` or `last_administrator`.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1692,6 +1837,49 @@ Schema:
 
 A `text/plain` body: a string.
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -1721,6 +1909,10 @@ follow.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The scope could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -1922,6 +2114,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -1963,6 +2198,10 @@ scope follows the change at once.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The scope could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2248,6 +2487,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -2285,6 +2567,10 @@ Reads which part of the library a patron sees.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The scope could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2535,6 +2821,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -2587,6 +2916,10 @@ changes to Member.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The scope could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -2894,6 +3227,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -2923,6 +3299,10 @@ follows unless a control is set for them alone.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The controls could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3113,6 +3493,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -3160,6 +3583,10 @@ Administrators do not follow the default.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The controls could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3434,6 +3861,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -3474,6 +3944,10 @@ overrides, and what applies.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The controls could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -3823,6 +4297,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -3881,6 +4398,10 @@ only an Owner or the operator sets those.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The controls could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4314,6 +4835,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -4354,6 +4918,10 @@ Mint a fresh local claim ticket for an active first-party user.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4576,6 +5144,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -4616,6 +5227,10 @@ Invalidate a user's password, revoke sessions, and mint a claim ticket for reset
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -4840,6 +5455,49 @@ Schema:
 }
 ```
 
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`); ask again after `Retry-After` seconds.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
 Status `504`: The request ran past the API's time budget.
 
 ```text
@@ -4886,10 +5544,10 @@ browser never contacts Gravatar.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `503` — This node cannot fetch or process images right now, or too many Gravatars are downloading at once. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `503` — This node cannot fetch or process images right now, or too many Gravatars are downloading at once. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -5119,12 +5777,12 @@ Schema:
 }
 ```
 
-Status `503`: This node cannot fetch or process images right now, or too many Gravatars are downloading at once. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: This node cannot fetch or process images right now, or too many Gravatars are downloading at once. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
-  "error": "service_unavailable",
-  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
   "status": 503
 }
 ```
@@ -5134,31 +5792,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
   "required": [
-    "error"
+    "error",
+    "message",
+    "status"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
     },
     "message": {
       "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
     },
     "status": {
       "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }
@@ -5205,7 +5861,7 @@ Serves a stored avatar JPEG for any authenticated household member.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -5436,7 +6092,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {

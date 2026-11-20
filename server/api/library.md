@@ -7855,7 +7855,7 @@ nodes for a node owner.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -8556,7 +8556,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -8636,7 +8636,7 @@ own, which the nodes listing already shows them. Branches are not listed.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The configuration could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -9295,7 +9295,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -9393,7 +9393,7 @@ edit only the nodes it owns.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The configuration could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -9773,7 +9773,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -9884,11 +9884,7 @@ Optional.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
-- `503` — Job admission is paused. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when the action was accepted or completed.
-  - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
-  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `503` — Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ActionResponse`](schemas.md#actionresponse) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -10464,7 +10460,7 @@ Schema:
 }
 ```
 
-Status `503`: Job admission is paused. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -10479,38 +10475,70 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "Generic mutation result with success flag, message, and optional job id.",
-  "required": [
-    "ok",
-    "message",
-    "job_id"
-  ],
-  "properties": {
-    "ok": {
-      "type": "boolean",
-      "description": "True when the action was accepted or completed.",
-      "example": true
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing status text.",
-      "example": "scan queued"
-    },
-    "job_id": {
-      "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous.",
-      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
-    },
-    "error": {
-      "type": [
-        "string",
-        "null"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Generic mutation result with success flag, message, and optional job id.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
-      "example": "queue_full"
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -10590,11 +10618,7 @@ Optional.
   - `message` *string*, **required** — Operator-facing status text.
   - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
   - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
-- `503` — Job admission is paused. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ActionResponse`](schemas.md#actionresponse) (`application/json`)
-  - `ok` *boolean*, **required** — True when the action was accepted or completed.
-  - `message` *string*, **required** — Operator-facing status text.
-  - `job_id` *string*, **required** — Queued job id, or empty when the action is synchronous.
-  - `error` *string or null* — Machine slug when admission failed (`conflict`, `queue_full`).
+- `503` — Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ActionResponse`](schemas.md#actionresponse) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -11169,7 +11193,7 @@ Schema:
 }
 ```
 
-Status `503`: Job admission is paused. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: Job admission is paused. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -11184,38 +11208,70 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "Generic mutation result with success flag, message, and optional job id.",
-  "required": [
-    "ok",
-    "message",
-    "job_id"
-  ],
-  "properties": {
-    "ok": {
-      "type": "boolean",
-      "description": "True when the action was accepted or completed.",
-      "example": true
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing status text.",
-      "example": "scan queued"
-    },
-    "job_id": {
-      "type": "string",
-      "description": "Queued job id, or empty when the action is synchronous.",
-      "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
-    },
-    "error": {
-      "type": [
-        "string",
-        "null"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "Generic mutation result with success flag, message, and optional job id.",
+      "required": [
+        "ok",
+        "message",
+        "job_id"
       ],
-      "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
-      "example": "queue_full"
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True when the action was accepted or completed.",
+          "example": true
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing status text.",
+          "example": "scan queued"
+        },
+        "job_id": {
+          "type": "string",
+          "description": "Queued job id, or empty when the action is synchronous.",
+          "example": "scan-7d0c1e2f-3a4b-4c5d-8e6f-9a0b1c2d3e4f"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Machine slug when admission failed (`conflict`, `queue_full`).",
+          "example": "queue_full"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -11267,7 +11323,7 @@ the operator, an Owner or an Administrator may pin.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The pin could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -11539,7 +11595,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -11617,7 +11673,7 @@ moves it again.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The pin could not be removed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -11811,7 +11867,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -11890,7 +11946,7 @@ to settle with a pin.
 - `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `500` — The conflicts could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -12190,7 +12246,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -12285,7 +12341,7 @@ split.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The split could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -12592,7 +12648,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -12672,7 +12728,7 @@ Owner; the caller's own links for anyone else, and with `?mine=true`.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -12948,7 +13004,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -13052,8 +13108,7 @@ response when the library refuses the mint.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The node API's certificate pin is not available yet (`node_api_pin_unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The node API's certificate pin is not available yet (`node_api_pin_unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -13448,7 +13503,7 @@ Schema:
 }
 ```
 
-Status `503`: The node API's certificate pin is not available yet (`node_api_pin_unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The node API's certificate pin is not available yet (`node_api_pin_unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -13460,18 +13515,50 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -13515,7 +13602,7 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -13842,7 +13929,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -13921,8 +14008,7 @@ joining operator confirms in `self_signed` mode.
 - `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -14295,7 +14381,7 @@ Schema:
 }
 ```
 
-Status `503`: This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: This library's identity row (`library_unavailable`) or origin (`origin_unavailable`) is not available yet. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -14307,18 +14393,50 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -14362,7 +14480,7 @@ A `text/plain` body: a string.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -14655,7 +14773,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -14737,7 +14855,7 @@ titles from a branch that stopped sharing or left. Delivered files stay.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -15005,7 +15123,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -15098,8 +15216,7 @@ are withdrawn when that pass ends; files already delivered stay.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The branch's catalog sync kept changing under the write; retry. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The branch's catalog sync kept changing under the write; retry. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -15413,7 +15530,7 @@ Schema:
 }
 ```
 
-Status `503`: The branch's catalog sync kept changing under the write; retry. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The branch's catalog sync kept changing under the write; retry. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -15425,18 +15542,50 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -15471,7 +15620,7 @@ sharing settings (`{libraries: [...]}`).
 - `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -15821,7 +15970,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -15915,7 +16064,7 @@ an Owner (verified from the stored role); anyone else gets 403.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -16333,7 +16482,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -16410,7 +16559,7 @@ is this install's person's (`{libraries, cards, books}`).
 - `403` — The user is not an active Owner (`forbidden`), the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -16997,7 +17146,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -17092,9 +17241,7 @@ A `text/plain` body: a string.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The library could not be reached (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug clients branch on.
-  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `503` — The library could not be reached (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorDetail`](schemas.md#errordetail) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -17481,12 +17628,13 @@ Schema:
 }
 ```
 
-Status `503`: The library could not be reached (`unavailable`). The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The library could not be reached (`unavailable`). When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
-  "detail": "the library could not be reached; try again",
-  "error": "unavailable"
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
 }
 ```
 
@@ -17494,24 +17642,56 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
-  "required": [
-    "error",
-    "detail"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug clients branch on.",
-      "example": "invalid_request"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
     },
-    "detail": {
-      "type": "string",
-      "description": "What went wrong, for the person reading the answer.",
-      "example": "the redirect URI must be loopback or https"
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -17559,7 +17739,7 @@ library it was shared with.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -17836,7 +18016,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -17928,7 +18108,7 @@ already runs finish.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -18370,7 +18550,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -18471,7 +18651,7 @@ response when the write fails.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -18760,7 +18940,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -18845,7 +19025,7 @@ Returns an error response when the switch cannot be read.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -19044,7 +19224,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -19144,7 +19324,7 @@ and an error response when the switch cannot be written.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -19449,7 +19629,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -19545,8 +19725,7 @@ match come best first; pass `next_cursor` back with the same `q`.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -19922,7 +20101,7 @@ Schema:
 }
 ```
 
-Status `503`: A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: A search (`q`) arrived before the node's works search index was first built; that answer carries no `Retry-After`. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -19934,18 +20113,50 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 
@@ -19997,7 +20208,7 @@ own state.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -20632,7 +20843,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -20732,7 +20943,7 @@ value.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The state could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -21126,7 +21337,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -21212,7 +21423,7 @@ lists the caller's own tags (none for an operator token).
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -21463,7 +21674,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -21544,7 +21755,7 @@ node's local destination.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library or the cover could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -21739,7 +21950,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -21823,7 +22034,7 @@ own progress and bookmarks.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -22333,7 +22544,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -22409,7 +22620,7 @@ Lists the caller's bookmarks in an edition.
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -22736,7 +22947,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {
@@ -22831,7 +23042,7 @@ Adds a bookmark of the caller's in an edition.
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -23252,7 +23463,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {

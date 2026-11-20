@@ -431,10 +431,7 @@ transport check and the library card.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `503` — The card could not be checked yet (`session_check_unavailable`), or too many clerk sockets are open (`clerk_sockets_busy`); retry after `Retry-After` seconds. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
+- `503` — The card could not be checked yet (`session_check_unavailable`), or too many clerk sockets are open (`clerk_sockets_busy`); retry after `Retry-After` seconds. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
 ### Example request
@@ -664,9 +661,7 @@ Status `503`: The card could not be checked yet (`session_check_unavailable`), o
 
 ```json
 {
-  "error": "service_unavailable",
-  "message": "The Bookclerk daemon is not ready to handle this request.",
-  "status": 503
+  "error": "clerk_sockets_busy"
 }
 ```
 
@@ -674,34 +669,50 @@ Schema:
 
 ```json
 {
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
     },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
     }
-  }
+  ]
 }
 ```
 

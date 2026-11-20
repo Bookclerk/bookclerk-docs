@@ -687,7 +687,9 @@ Schema:
 
 ## `POST /oidc/token`
 
-Dispatches token grants; unknown `grant_type` values return 400.
+Dispatches token grants. Every refusal is an RFC 6749 §5.2 JSON body
+([`TokenError`]), never the branded error page, so a client library can
+tell `invalid_grant` from `invalid_client`.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -714,22 +716,15 @@ Dispatches token grants; unknown `grant_type` values return 400.
   - `refresh_token` *string or null* — Opaque refresh token when the client is allowed to receive one.
   - `id_token` *string*, **required** — HS256 ID token; profile/email claims follow the granted scope.
   - `scope` *string*, **required** — Space-separated scopes granted to this token pair.
-- `400` — The grant is invalid or unsupported. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/html`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `401` — The client failed to authenticate. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/html`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `403` — The token's user is disabled. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/html`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The code, the token or the user could not be read or stored. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`); string (`text/html`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `400` — The request is malformed (`invalid_request`), the code, refresh token or PKCE verifier is invalid, expired or already used, or the token's user is disabled (`invalid_grant`), or the grant type is not supported (`unsupported_grant_type`). Body: [`TokenError`](schemas.md#tokenerror) (`application/json`)
+  - `error` *[`TokenErrorCode`](schemas.md#tokenerrorcode)*, **required** — What went wrong, as a client library branches on it.
+  - `error_description` *string or null* — A sentence for the person debugging the client; never a secret or a token.
+- `401` — The client is unknown or disabled, or its secret is wrong (`invalid_client`). Body: [`TokenError`](schemas.md#tokenerror) (`application/json`)
+  - `error` *[`TokenErrorCode`](schemas.md#tokenerrorcode)*, **required** — What went wrong, as a client library branches on it.
+  - `error_description` *string or null* — A sentence for the person debugging the client; never a secret or a token.
+- `500` — The code, the token or the user could not be read or stored (`server_error`). Body: [`TokenError`](schemas.md#tokenerror) (`application/json`)
+  - `error` *[`TokenErrorCode`](schemas.md#tokenerrorcode)*, **required** — What went wrong, as a client library branches on it.
+  - `error_description` *string or null* — A sentence for the person debugging the client; never a secret or a token.
 
 ### Example request
 
@@ -841,13 +836,12 @@ Schema:
 }
 ```
 
-Status `400`: The grant is invalid or unsupported. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body.
+Status `400`: The request is malformed (`invalid_request`), the code, refresh token or PKCE verifier is invalid, expired or already used, or the token's user is disabled (`invalid_grant`), or the grant type is not supported (`unsupported_grant_type`).
 
 ```json
 {
-  "error": "bad_request",
-  "message": "The request could not be understood.",
-  "status": 400
+  "error": "invalid_grant",
+  "error_description": "The authorization code is invalid, expired or already used."
 }
 ```
 
@@ -856,41 +850,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "A token-endpoint refusal as RFC 6749 §5.2 writes it: JSON with an\n`error` code and a human-readable `error_description`, sent with\n`Cache-Control: no-store`.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "What went wrong, as a client library branches on it.",
+      "enum": [
+        "invalid_request",
+        "invalid_client",
+        "invalid_grant",
+        "unsupported_grant_type",
+        "server_error"
+      ]
     },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+    "error_description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A sentence for the person debugging the client; never a secret or\na token.",
+      "example": "The authorization code is invalid, expired or already used."
     }
   }
 }
 ```
 
-Status `401`: The client failed to authenticate. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body.
+Status `401`: The client is unknown or disabled, or its secret is wrong (`invalid_client`).
 
 ```json
 {
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
+  "error": "invalid_client",
+  "error_description": "The client could not be authenticated."
 }
 ```
 
@@ -899,41 +892,40 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "A token-endpoint refusal as RFC 6749 §5.2 writes it: JSON with an\n`error` code and a human-readable `error_description`, sent with\n`Cache-Control: no-store`.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "What went wrong, as a client library branches on it.",
+      "enum": [
+        "invalid_request",
+        "invalid_client",
+        "invalid_grant",
+        "unsupported_grant_type",
+        "server_error"
+      ]
     },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+    "error_description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A sentence for the person debugging the client; never a secret or\na token.",
+      "example": "The authorization code is invalid, expired or already used."
     }
   }
 }
 ```
 
-Status `403`: The token's user is disabled. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body.
+Status `500`: The code, the token or the user could not be read or stored (`server_error`).
 
 ```json
 {
-  "error": "forbidden",
-  "message": "You do not have access to this resource.",
-  "status": 403
+  "error": "server_error",
+  "error_description": "The token could not be issued. Try again."
 }
 ```
 
@@ -942,72 +934,29 @@ Schema:
 ```json
 {
   "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "description": "A token-endpoint refusal as RFC 6749 §5.2 writes it: JSON with an\n`error` code and a human-readable `error_description`, sent with\n`Cache-Control: no-store`.",
   "required": [
-    "error",
-    "message",
-    "status"
+    "error"
   ],
   "properties": {
     "error": {
       "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
+      "description": "What went wrong, as a client library branches on it.",
+      "enum": [
+        "invalid_request",
+        "invalid_client",
+        "invalid_grant",
+        "unsupported_grant_type",
+        "server_error"
+      ]
     },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The code, the token or the user could not be read or stored. Browsers get an HTML page; a request that asks for JSON (`Accept` or `Content-Type`) gets the standard error body.
-
-```json
-{
-  "error": "internal_error",
-  "message": "Something went wrong on the Bookclerk daemon.",
-  "status": 500
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
+    "error_description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A sentence for the person debugging the client; never a secret or\na token.",
+      "example": "The authorization code is invalid, expired or already used."
     }
   }
 }
@@ -1367,7 +1316,7 @@ Owner/operator list of Bookclerk-as-IdP clients (secrets never included).
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
   - `message` *string*, **required** — Operator-facing explanation.
   - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
@@ -1675,7 +1624,7 @@ Schema:
 }
 ```
 
-Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
 
 ```json
 {

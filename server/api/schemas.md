@@ -3577,6 +3577,22 @@ Query for a page of Audible customer reviews.
 - `page_size` *integer (int32)* — Page size (clamped server-side to 1..=20). At least 0.
 - `sort_by` *string* — `MostHelpful` (default) or `MostRecent`.
 
+## TokenError
+
+A token-endpoint refusal as RFC 6749 §5.2 writes it: JSON with an
+`error` code and a human-readable `error_description`, sent with
+`Cache-Control: no-store`.
+
+- `error` *[`TokenErrorCode`](#tokenerrorcode)*, **required** — What went wrong, as a client library branches on it.
+- `error_description` *string or null* — A sentence for the person debugging the client; never a secret or a token.
+
+## TokenErrorCode
+
+The `error` code of a token-endpoint refusal (RFC 6749 §5.2), which also
+fixes its status.
+
+Type: one of `invalid_request`, `invalid_client`, `invalid_grant`, `unsupported_grant_type`, `server_error`
+
 ## TokenForm
 
 `application/x-www-form-urlencoded` body for `POST /oidc/token`.
