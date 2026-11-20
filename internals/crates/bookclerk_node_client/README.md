@@ -49,7 +49,7 @@ for a clerk, which holds a plain token).
 
 An install may instead sign in to a library as a clerk, holding a
 library card for its person rather than node keys ([`authorize_clerk`](#authorize_clerk),
-[`redeem_clerk_code`](#redeem_clerk_code)); the daemon reads the person's books over the
+[`exchange_clerk_code`](#exchange_clerk_code)); the daemon reads the person's books over the
 library's clerk socket ([`OwnerEndpoint::connect_clerk_socket`](#ownerendpointconnect_clerk_socket)).
 
 The consent decisions themselves (which plugins, which grant) and how a
@@ -65,7 +65,8 @@ job runs its guest are the daemon's.
 | [`InspectedLibrary`](#inspectedlibrary) | struct | A library as `inspect_library` found it. |
 | [`RedeemedBranch`](#redeemedbranch) | struct | A branch sign-in the library redeemed and this install recorded. |
 | [`ClerkAuthorization`](#clerkauthorization) | struct | One clerk sign-in about to start. `Debug` prints no secret. |
-| [`ClerkRedeem`](#clerkredeem) | struct | What `redeem_clerk_code` needs: the inspected library and the pending sign-in. |
+| [`ClerkRedeem`](#clerkredeem) | struct | What `exchange_clerk_code` needs: the inspected library and the pending sign-in. |
+| [`ExchangedCard`](#exchangedcard) | struct | A library card the library handed over for a clerk sign-in, not yet recorded here. `Debug` prints no secret. |
 | [`CatalogBatchAccepted`](#catalogbatchaccepted) | struct | A recorded catalog batch (`HostClientHandle::catalog_sync`). |
 | [`CatalogSession`](#catalogsession) | struct | An opened catalog session (`HostClientHandle::catalog_begin`). |
 | [`ClientTiming`](#clienttiming) | struct | Timers of the client. The defaults follow the protocol constants. |
@@ -102,7 +103,7 @@ job runs its guest are the daemon's.
 | [`library_origin`](#library_origin) | function | Normalizes what an operator typed (`owner.example:8443`, `https://owner.example/`) to a canonical origin. A bare `host[:port]` means `https`. |
 | [`redeem_branch_code`](#redeem_branch_code) | function | Redeems an approved sign-in: the library runs the same redeem as for a link (one node, a receipt, idempotent retries), then this install seals `keys` and records the link. The code and verifier go once in the request body and are never logged. |
 | [`authorize_clerk`](#authorize_clerk) | function | Starts a clerk sign-in at `library` for this install as `clerk_name`, coming back to `redirect_uri` (a loopback or https URL). |
-| [`redeem_clerk_code`](#redeem_clerk_code) | function | Redeems a clerk sign-in's code for a library card and records it. |
+| [`exchange_clerk_code`](#exchange_clerk_code) | function | Sends a clerk sign-in's code and verifier to the library and checks the card it answers is for the library that was inspected, without recording it here (`ExchangedCard::record` does). |
 | [`fetch_copy_file`](#fetch_copy_file) | function | Downloads file `index` of the copy `copy_id` to `dest`. |
 | [`check_join_ancestry`](#check_join_ancestry) | function | Reads the library's `info` over `endpoint` and refuses a library whose ancestry names this install's own library id (A ← B ← A). Answers its ancestry, to record on the link. |
 | [`join_library`](#join_library) | function | Enrolls this install into the library named by `link`. |
@@ -338,7 +339,7 @@ pub struct ClerkRedeem<'a> {
 }
 ```
 
-What [`redeem_clerk_code`](#redeem_clerk_code) needs: the inspected library and the pending
+What [`exchange_clerk_code`](#exchange_clerk_code) needs: the inspected library and the pending
 sign-in.
 
 **Fields**
@@ -351,6 +352,43 @@ sign-in.
 - `verifier`: The sign-in's PKCE verifier.
 - `redirect_uri`: The redirect URI the authorize request named.
 - `clerk_name`: The name this install signed in as.
+
+### ExchangedCard
+
+```rust
+pub struct ExchangedCard {
+    /* private fields */
+}
+```
+
+A library card the library handed over for a clerk sign-in, not yet
+recorded here. `Debug` prints no secret.
+
+#### ExchangedCard::library_id
+
+```rust
+pub fn library_id(&self) -> &str
+```
+
+The library the card is for.
+
+#### ExchangedCard::record
+
+```rust
+pub async fn record(self, store: &LibraryStore) -> Result<ClerkLink, JoinError>
+```
+
+Seals the card into a clerk link
+(`bookclerk_library::control_plane::record_clerk_link`).
+
+##### Errors
+
+Returns [`JoinError::Unsaved`](#joinerror) when the card could not be recorded
+here, among others while this install is still an active branch of
+the library (the library then holds a session this install cannot
+use; the person ends it from the library's session list).
+
+Implements: `Debug`
 
 ### CatalogBatchAccepted
 
@@ -2209,16 +2247,17 @@ coming back to `redirect_uri` (a loopback or https URL).
 Returns [`JoinError::Link`](#joinerror) for a redirect URI the library would refuse
 or a malformed clerk name.
 
-### redeem_clerk_code
+### exchange_clerk_code
 
 ```rust
-pub async fn redeem_clerk_code(
-    store: &LibraryStore,
+pub async fn exchange_clerk_code(
     redeem: &ClerkRedeem<'_>,
-) -> Result<ClerkLink, JoinError>
+) -> Result<ExchangedCard, JoinError>
 ```
 
-Redeems a clerk sign-in's code for a library card and records it.
+Sends a clerk sign-in's code and verifier to the library and checks
+the card it answers is for the library that was inspected, without
+recording it here ([`ExchangedCard::record`](#exchangedcardrecord) does).
 
 The code, the verifier and the card are registered for redaction before
 they could reach a log; the code and verifier go once in the request
@@ -2228,10 +2267,8 @@ body.
 
 Returns [`JoinError::Refused`](#joinerror) when the library refuses the code (spent,
 expired, or not this sign-in's), [`JoinError`](#joinerror) when it is unreachable
-or answers another status, [`JoinError::Record`](#joinerror) when its answer is
-malformed or names another library, and [`JoinError::Unsaved`](#joinerror) when the
-card could not be recorded here (the library then holds a session this
-install cannot use; the person ends it from the library's session list).
+or answers another status, and [`JoinError::Record`](#joinerror) when its answer is
+malformed or names another library.
 
 ### fetch_copy_file
 

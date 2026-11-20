@@ -233,6 +233,7 @@ JSON body once this install joined a library as a branch.
 - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
 - `running` *boolean*, **required** — Whether the link's client is running now.
 - `connections` *[`BroughtConnectionsView`](#broughtconnectionsview) or null* — What became of the store connections the library's user chose to bring to this branch; left out when none came.
+- `replaced_card` *[`ReplacedCard`](#replacedcard) or null* — Set when this install held a library card for the library: the branch replaced it. Whether the card is gone here and whether the library ended its session are in [`ReplacedCard`]. Left out when there was none.
 
 ## BranchJoinSetting
 
@@ -490,6 +491,7 @@ card.
 JSON body for `POST /api/config/clerk/callback`.
 
 - `card` *[`ClerkLinkView`](#clerklinkview)*, **required** — The library this install now holds a card for.
+- `left_branch` *[`LeftBranch`](#leftbranch) or null* — Set when the card replaced this install's branch link to the library (a sign-in started `from_branch`): the branch was left.
 
 ## ClerkSignedOut
 
@@ -508,7 +510,8 @@ JSON body for `POST /api/config/clerk/sign-out`.
 
 `POST /api/config/clerk/start` body.
 
-- `address` *string*, **required** — The library's address.
+- `address` *string* — The library's address. Left out with `from_branch`.
+- `from_branch` *string or null* — The library id of a library this install is an active branch of: the card replaces the branch. The library's address and pinned certificate come from the branch link, so `address` and `fingerprint` are left out; once the library hands over the card, the callback leaves the branch (as Leave library does) and records the card. Only the operator may, as only the operator leaves a library.
 - `fingerprint` *string or null* — The fingerprint the person confirmed (self-signed libraries).
 - `clerk_name` *string or null* — The name to sign in as (default: this machine's name).
 
@@ -1364,6 +1367,12 @@ JSON body once leaving a library started.
 
 - `library` *[`LibraryLinkView`](#librarylinkview)*, **required** — The link, now `left`.
 - `owner_notified` *boolean*, **required** — Whether the library was told (otherwise it notices the missed heartbeats).
+
+## LeftBranch
+
+The branch a card sign-in left.
+
+- `owner_notified` *boolean*, **required** — Whether the library accepted the leave notice. False when it could not be told: the branch then stays in its list until it is removed there.
 
 ## LibraryConsentsResponse
 
@@ -2870,6 +2879,13 @@ An owner library's request to run a plugin on this install, and what the operato
 
 - `node_id` *string or null* — Only this branch's entries; every branch's when absent.
 
+## ReplacedCard
+
+The library card a branch join replaced.
+
+- `card_removed` *boolean*, **required** — Whether the card was dropped here. False when it could not be read or dropped: it is then still listed under Library cards, and the person signs it out there. The branch join stands either way.
+- `library_signed_out` *boolean*, **required** — Whether the library ended the card's session too. False when it could not be reached, or the card was not dropped here.
+
 ## ReplacementRule
 
 Character replacement rule (`ReplacementCharacters` in classic Settings.json).
@@ -3177,7 +3193,8 @@ The result of a split.
 
 `POST /api/config/join/start` body.
 
-- `address` *string*, **required** — The library's address.
+- `address` *string* — The library's address. Left out with `from_card`.
+- `from_card` *string or null* — The library id of a library this install holds an active library card for: the branch replaces the card. The library's address and pinned certificate come from the card, so `address` and `fingerprint` are left out, and the branch name defaults to the card's name. Not with `shared_branch`.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
 - `shared_branch` *boolean* — Offer to join as a shared branch (a shared node that shares the library's database): only an empty install may, and its data is replaced.

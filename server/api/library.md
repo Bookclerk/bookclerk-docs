@@ -5040,7 +5040,8 @@ A `text/plain` body: a string.
 
 `application/json`: [`StartBody`](schemas.md#startbody)
 
-- `address` *string*, **required** — The library's address.
+- `address` *string* — The library's address. Left out with `from_card`.
+- `from_card` *string or null* — The library id of a library this install holds an active library card for: the branch replaces the card. The library's address and pinned certificate come from the card, so `address` and `fingerprint` are left out, and the branch name defaults to the card's name. Not with `shared_branch`.
 - `fingerprint` *string or null* — The fingerprint the operator confirmed (self-signed libraries).
 - `branch_name` *string or null* — The name to join as (default: this machine's name).
 - `shared_branch` *boolean* — Offer to join as a shared branch (a shared node that shares the library's database): only an empty install may, and its data is replaced.
@@ -5053,7 +5054,7 @@ A `text/plain` body: a string.
   - `branch_name` *string*, **required** — The name this install asked to join as.
   - `shared_branch_offered` *boolean*, **required** — Whether joining as a shared branch was offered.
   - `expires_in_secs` *integer (int64)*, **required** — Seconds the pending sign-in stays valid. At least 0.
-- `400` — The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+- `400` — The address is not a library (`invalid_address`), is plain HTTP off this machine (`transport_insecure`), or a shared branch would replace a card (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -5061,7 +5062,10 @@ A `text/plain` body: a string.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library is not accepting new branches (`enrollment_disabled`), or the session is impersonating a user (the standard error body). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
-- `409` — The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `404` — With `from_card`: this install holds no active library card for that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `409` — The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -5078,7 +5082,7 @@ $ curl 'http://127.0.0.1:8787/api/config/join/start' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"address": "https://books.example.com"}'
+    -d '{}'
 ```
 
 ```powershell
@@ -5086,7 +5090,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/join/start' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"address": "https://books.example.com"}'
+    -Body '{}'
 ```
 
 ```python
@@ -5095,7 +5099,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/join/start",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"address": "https://books.example.com"},
+    json={},
 )
 print(response.status_code, response.text)
 ```
@@ -5104,7 +5108,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/join/start", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"address": "https://books.example.com"}),
+  body: JSON.stringify({}),
 });
 console.log(response.status, await response.text());
 ```
@@ -5114,7 +5118,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/join/start")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"address": "https://books.example.com"}))
+    .json(&serde_json::json!({}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -5234,7 +5238,7 @@ Schema:
 }
 ```
 
-Status `400`: The address is not a library (`invalid_address`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON.
+Status `400`: The address is not a library (`invalid_address`), is plain HTTP off this machine (`transport_insecure`), or a shared branch would replace a card (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -5394,7 +5398,41 @@ Schema:
 }
 ```
 
-Status `409`: The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given (`origin_mismatch`).
+Status `404`: With `from_card`: this install holds no active library card for that library (`not_found`).
+
+```json
+{
+  "detail": "this install holds no library card for that library",
+  "error": "not_found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `409`: The library's fingerprint is not confirmed, or changed since the card signed in (`fingerprint_unconfirmed`), this install holds data of its own for a shared branch join (`not_empty`), joining would make a loop (`join_cycle`, `ancestry_too_deep`), or the library's address is not the one given, or no longer the card's library (`origin_mismatch`).
 
 ```json
 {
@@ -5472,7 +5510,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: missing field `address` at line 1 column 2
+Failed to deserialize the JSON body into the target type: address: invalid type: integer `1`, expected a string at line 1 column 12
 ```
 
 Schema:
@@ -5678,6 +5716,10 @@ Status `200`: The join completed.
     "taken": 0,
     "failed": 0,
     "not_kept": null
+  },
+  "replaced_card": {
+    "card_removed": true,
+    "library_signed_out": true
   }
 }
 ```
@@ -5865,6 +5907,33 @@ Schema:
                   ],
                   "description": "Why none were kept, when none were: `not_allowed` (this install's\noperator does not let the person connect store accounts),\n`no_owner` (no single Owner here to keep them for) or `failed`.",
                   "example": null
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replaced_card": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Set when this install held a library card for the library: the\nbranch replaced it. Whether the card is gone here and whether the\nlibrary ended its session are in [`ReplacedCard`]. Left out when\nthere was none.",
+              "required": [
+                "card_removed",
+                "library_signed_out"
+              ],
+              "properties": {
+                "card_removed": {
+                  "type": "boolean",
+                  "description": "Whether the card was dropped here. False when it could not be read\nor dropped: it is then still listed under Library cards, and the\nperson signs it out there. The branch join stands either way.",
+                  "example": true
+                },
+                "library_signed_out": {
+                  "type": "boolean",
+                  "description": "Whether the library ended the card's session too. False when it\ncould not be reached, or the card was not dropped here.",
+                  "example": true
                 }
               }
             },
@@ -6273,6 +6342,7 @@ while the join carries on and starts its client when it lands.
   - `library_name` *string or null* — The library's name, when the join came from a sign-in (not an invite link).
   - `running` *boolean*, **required** — Whether the link's client is running now.
   - `connections` *[`BroughtConnectionsView`](schemas.md#broughtconnectionsview) or null* — What became of the store connections the library's user chose to bring to this branch; left out when none came.
+  - `replaced_card` *[`ReplacedCard`](schemas.md#replacedcard) or null* — Set when this install held a library card for the library: the branch replaced it. Whether the card is gone here and whether the library ended its session are in [`ReplacedCard`]. Left out when there was none.
 - `400` — The link is not a branch invite (`invalid_invite`), or is plain HTTP off this machine (`transport_insecure`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -6375,6 +6445,10 @@ Status `200`: The join completed.
     "taken": 0,
     "failed": 0,
     "not_kept": null
+  },
+  "replaced_card": {
+    "card_removed": true,
+    "library_signed_out": true
   }
 }
 ```
@@ -6560,6 +6634,33 @@ Schema:
               ],
               "description": "Why none were kept, when none were: `not_allowed` (this install's\noperator does not let the person connect store accounts),\n`no_owner` (no single Owner here to keep them for) or `failed`.",
               "example": null
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "replaced_card": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Set when this install held a library card for the library: the\nbranch replaced it. Whether the card is gone here and whether the\nlibrary ended its session are in [`ReplacedCard`]. Left out when\nthere was none.",
+          "required": [
+            "card_removed",
+            "library_signed_out"
+          ],
+          "properties": {
+            "card_removed": {
+              "type": "boolean",
+              "description": "Whether the card was dropped here. False when it could not be read\nor dropped: it is then still listed under Library cards, and the\nperson signs it out there. The branch join stands either way.",
+              "example": true
+            },
+            "library_signed_out": {
+              "type": "boolean",
+              "description": "Whether the library ended the card's session too. False when it\ncould not be reached, or the card was not dropped here.",
+              "example": true
             }
           }
         },

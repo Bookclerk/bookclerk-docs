@@ -3587,7 +3587,8 @@ A `text/plain` body: a string.
 
 `application/json`: [`ClerkStartBody`](schemas.md#clerkstartbody)
 
-- `address` *string*, **required** — The library's address.
+- `address` *string* — The library's address. Left out with `from_branch`.
+- `from_branch` *string or null* — The library id of a library this install is an active branch of: the card replaces the branch. The library's address and pinned certificate come from the branch link, so `address` and `fingerprint` are left out; once the library hands over the card, the callback leaves the branch (as Leave library does) and records the card. Only the operator may, as only the operator leaves a library.
 - `fingerprint` *string or null* — The fingerprint the person confirmed (self-signed libraries).
 - `clerk_name` *string or null* — The name to sign in as (default: this machine's name).
 
@@ -3605,8 +3606,11 @@ A `text/plain` body: a string.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The user is not an active Owner, or the session has no user account. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-- `409` — The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install already joined that library as a branch (`already_joined`), or the library's address is not the one given (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
+- `403` — The user is not an active Owner, the session has no user account, or a sign-in `from_branch` is not the operator's. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — With `from_branch`: this install is not an active branch of that library (`not_found`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `409` — The library's fingerprint is not confirmed, or changed since the branch joined (`fingerprint_unconfirmed`), this install already joined that library as a branch (`already_joined`), or the library's address is not the one given or no longer the library the branch joined (`origin_mismatch`). Body: [`JoinConflict`](schemas.md#joinconflict) (`application/json`)
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
@@ -3627,7 +3631,7 @@ $ curl 'http://127.0.0.1:8787/api/config/clerk/start' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"address": "https://books.example.com"}'
+    -d '{}'
 ```
 
 ```powershell
@@ -3635,7 +3639,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clerk/start' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"address": "https://books.example.com"}'
+    -Body '{}'
 ```
 
 ```python
@@ -3644,7 +3648,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/clerk/start",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"address": "https://books.example.com"},
+    json={},
 )
 print(response.status_code, response.text)
 ```
@@ -3653,7 +3657,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/clerk/start", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"address": "https://books.example.com"}),
+  body: JSON.stringify({}),
 });
 console.log(response.status, await response.text());
 ```
@@ -3663,7 +3667,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/clerk/start")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"address": "https://books.example.com"}))
+    .json(&serde_json::json!({}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -3855,7 +3859,7 @@ Schema:
 }
 ```
 
-Status `403`: The user is not an active Owner, or the session has no user account. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The user is not an active Owner, the session has no user account, or a sign-in `from_branch` is not the operator's. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
@@ -3967,7 +3971,41 @@ Schema:
 }
 ```
 
-Status `409`: The library's fingerprint is not confirmed (`fingerprint_unconfirmed`), this install already joined that library as a branch (`already_joined`), or the library's address is not the one given (`origin_mismatch`).
+Status `404`: With `from_branch`: this install is not an active branch of that library (`not_found`).
+
+```json
+{
+  "detail": "this install is not a branch of that library",
+  "error": "not_found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `409`: The library's fingerprint is not confirmed, or changed since the branch joined (`fingerprint_unconfirmed`), this install already joined that library as a branch (`already_joined`), or the library's address is not the one given or no longer the library the branch joined (`origin_mismatch`).
 
 ```json
 {
@@ -4045,7 +4083,7 @@ A `text/plain` body: a string.
 Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
 
 ```text
-Failed to deserialize the JSON body into the target type: missing field `address` at line 1 column 2
+Failed to deserialize the JSON body into the target type: address: invalid type: integer `1`, expected a string at line 1 column 12
 ```
 
 Schema:
@@ -4187,8 +4225,9 @@ is started again.
 
 ### Responses
 
-- `200` — This install holds a library card for the library now. Body: [`ClerkSignedIn`](schemas.md#clerksignedin) (`application/json`)
+- `200` — This install holds a library card for the library now; a sign-in that replaced a branch left it first (`left_branch`). Body: [`ClerkSignedIn`](schemas.md#clerksignedin) (`application/json`)
   - `card` *[`ClerkLinkView`](schemas.md#clerklinkview)*, **required** — The library this install now holds a card for.
+  - `left_branch` *[`LeftBranch`](schemas.md#leftbranch) or null* — Set when the card replaced this install's branch link to the library (a sign-in started `from_branch`): the branch was left.
 - `400` — The callback carries no code (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -4197,7 +4236,7 @@ is started again.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The library's user did not approve (`denied`), the library refused the code (`refused`), or the user is not an active Owner (`forbidden`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-- `409` — This install joined that library as a branch meanwhile (`already_joined`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `409` — This install joined that library as a branch meanwhile (`already_joined`), or joined it again after a sign-in that replaces its branch started (`enrollment_changed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `410` — The sign-in is unknown, already used, or older than ten minutes; start again (`join_expired`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
@@ -4205,6 +4244,7 @@ is started again.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The sign-in stopped before it finished (`sign_in_failed`), or the branch it replaces could not be left (the library database could not be read or written). Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `502` — The library could not be reached (`unreachable`), answered with an error (`library_error`), its answer did not parse (`join_failed`), or the card could not be saved here (`join_unsaved`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
@@ -4265,7 +4305,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: This install holds a library card for the library now.
+Status `200`: This install holds a library card for the library now; a sign-in that replaced a branch left it first (`left_branch`).
 
 ```json
 {
@@ -4278,6 +4318,9 @@ Status `200`: This install holds a library card for the library now.
     "clerk_name": "Riley's laptop",
     "state": "active",
     "signed_in_at": "2026-11-17T09:02:41Z"
+  },
+  "left_branch": {
+    "owner_notified": true
   }
 }
 ```
@@ -4349,6 +4392,27 @@ Schema:
           "example": "2026-11-17T09:02:41Z"
         }
       }
+    },
+    "left_branch": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Set when the card replaced this install's branch link to the\nlibrary (a sign-in started `from_branch`): the branch was left.",
+          "required": [
+            "owner_notified"
+          ],
+          "properties": {
+            "owner_notified": {
+              "type": "boolean",
+              "description": "Whether the library accepted the leave notice. False when it could\nnot be told: the branch then stays in its list until it is removed\nthere.",
+              "example": true
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }
@@ -4546,7 +4610,7 @@ Schema:
 }
 ```
 
-Status `409`: This install joined that library as a branch meanwhile (`already_joined`).
+Status `409`: This install joined that library as a branch meanwhile (`already_joined`), or joined it again after a sign-in that replaces its branch started (`enrollment_changed`).
 
 ```json
 {
@@ -4633,6 +4697,87 @@ Failed to deserialize the JSON body into the target type: code: invalid type: in
 Schema:
 
 A `text/plain` body: a string.
+
+Status `500`: The sign-in stopped before it finished (`sign_in_failed`), or the branch it replaces could not be left (the library database could not be read or written).
+
+```json
+{
+  "detail": "the sign-in stopped before it finished; check the library list",
+  "error": "sign_in_failed"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
 
 Status `502`: The library could not be reached (`unreachable`), answered with an error (`library_error`), its answer did not parse (`join_failed`), or the card could not be saved here (`join_unsaved`).
 
