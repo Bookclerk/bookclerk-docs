@@ -907,7 +907,8 @@
     "internals/crates/bookclerk_workerd/state_sweep",
     "internals/crates/bookclerk_workerd/unix_bind",
     "internals/crates/bookclerkd/README",
-    "internals/crates/bookclerkd/embedded",
+    "internals/crates/bookclerkd/embedded/README",
+    "internals/crates/bookclerkd/embedded/session",
     "internals/crates/README"
    ]
   },

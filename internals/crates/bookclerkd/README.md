@@ -4,7 +4,7 @@
 
 The library holds the whole host. The `bookclerkd` binary runs it behind
 the HTTP listeners ([`run`](#run)); the desktop window runs the same host with
-no listener and hands it requests in-process ([`embedded`](embedded.md)).
+no listener and hands it requests in-process ([`embedded`](embedded/README.md)).
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -14,7 +14,7 @@ no listener and hands it requests in-process ([`embedded`](embedded.md)).
 
 ## Modules
 
-- [`embedded`](embedded.md): The host embedded in a desktop window, with no listener.
+- [`embedded`](embedded/README.md): The host embedded in a desktop window, with no listener.
 
 ## Structs
 

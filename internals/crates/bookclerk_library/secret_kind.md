@@ -20,6 +20,7 @@ table. `BOOKCLERK_OPERATOR_TOKEN` may override the durable
 | [`LIBRARY_LINK`](#library_link) | constant | On a branch node: the private node keys of one owner-library link (`provider` = parent library id, `account_id` = this node's id there). |
 | [`LIBRARY_JOIN`](#library_join) | constant | On a host joining a library: the PKCE verifier and node keys of one sign-in in progress (`provider` = parent library id, `account_id` = the pending join's state hash). Deleted when the join completes or expires. |
 | [`CLERK_CARD`](#clerk_card) | constant | On a clerk: the library card of one library (`provider` = the library's id, `account_id` = the same). Deleted when the card is signed out. |
+| [`WINDOW_SESSION`](#window_session) | constant | On a desktop branch: the portal session of the patron its window is signed in as (`provider` and `account_id` = this node's id, so branches sharing one database keep their own). Replaced at every launch and deleted when the window signs out. |
 
 ## Constants
 
@@ -111,3 +112,14 @@ pub const CLERK_CARD: &str = "clerk_card";
 On a clerk: the library card of one library (`provider` = the
 library's id, `account_id` = the same). Deleted when the card
 is signed out.
+
+### WINDOW_SESSION
+
+```rust
+pub const WINDOW_SESSION: &str = "window_session";
+```
+
+On a desktop branch: the portal session of the patron its window is
+signed in as (`provider` and `account_id` = this node's id, so
+branches sharing one database keep their own). Replaced at every
+launch and deleted when the window signs out.

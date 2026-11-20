@@ -9,21 +9,34 @@ The window's webview loads the SPA over its own custom scheme, and the
 shell passes each request to [`EmbeddedHost::handle`](#embeddedhosthandle), which calls the
 router in-process.
 
-**Who the caller is.** The window belongs to whoever runs the desktop app
-on this machine, the person the tray already hands an operator session
-to. Every request is the operator: the host adds the current operator
-token as `Authorization: Bearer`, read again for every request so a
-rotation applies at once, and the token never reaches the page. Whatever
-the page sent as cookies, `Authorization`, `Origin`, `Referer` or
-forwarding headers is dropped first, and `Set-Cookie` is dropped from
-every response, so the page holds no credential of its own. With
-`daemon.auth.enabled = false` no token is added. The router sees every
-request as coming from [`EMBEDDED_ORIGIN`](../bookclerk_window_policy/README.md#embedded_origin), a loopback origin, so a join
+**Who the caller is.** The window belongs to the person signed in to this
+computer's OS account (see `docs/adr/desktop-window-identity.md`). Until
+the library has an active Owner (first run, or a computer that is only a
+clerk of another library) every request is the operator: the host adds
+the current operator token as `Authorization: Bearer`, read again for
+every request so a rotation applies at once. After that the window is a
+patron: the one whose portal session this branch keeps sealed in its
+own database, which the host renews at every launch, or nobody until
+they sign in on the app's own sign-in screen. The host keeps that patron's session cookies in a
+[`session::WindowJar`](session.md#windowjar) and adds them to each request; an elevation's
+operator session lands there too, so elevation, impersonation and
+sign-out work as on the web. Whatever the page sent as cookies,
+`Authorization`, `Origin`, `Referer` or forwarding headers is dropped
+first, and `Set-Cookie` never reaches the page, so the page holds no
+credential of its own. With `daemon.auth.enabled = false` nothing is
+added.
+
+**The kept session.** A sign-in in the window (a response that sets the
+patron's portal session while no elevation is active) seals the session
+for the next launch; creating the library's first Owner in the window
+signs the window in as that Owner; signing out forgets it. Elevating,
+impersonating and ending either never touch it. The router sees every
+request as coming from [`EMBEDDED_ORIGIN`](../../bookclerk_window_policy/README.md#embedded_origin), a loopback origin, so a join
 or a library card sign-in asks the library to send the window back there.
 
 **Other pages.** Because the token is added here, a page from anywhere
 else must not be able to reach the scheme: a request whose `Origin` is
-not one of [`APP_ORIGINS`](../bookclerk_window_policy/README.md#app_origins) (or, for a write, whose `Referer` is from
+not one of [`APP_ORIGINS`](../../bookclerk_window_policy/README.md#app_origins) (or, for a write, whose `Referer` is from
 elsewhere) is refused with `403` before routing.
 
 **Leaving the app.** The window shows only app pages, with one exception:
@@ -51,17 +64,22 @@ the page over its own channel.
 | --- | --- | --- |
 | [`EmbeddedOptions`](#embeddedoptions) | struct | Where the embedded host reads its files and configuration, as `bookclerkd`'s `--bookclerk-files` and `--config` do. |
 | [`EmbeddedHost`](#embeddedhost) | struct | A running host with no listener, answering requests handed to it. |
+| [`WindowRequest`](#windowrequest) | struct | Marks a request the window handed to the router. The window refuses pages from other origins itself, before routing, so the cookie CSRF check (`csrf::require_csrf_for_cookie_api`), which compares `Origin` with `integrations.public_origin`, does not apply. Only the embedded host can set it: it is a request extension, not a header. |
 | [`MAX_RESPONSE_BYTES`](#max_response_bytes) | constant | Largest response body the window receives. Larger answers (none of the web app's routes produce one) become `502 Bad Gateway`. |
 | [`RESPONSE_TIMEOUT`](#response_timeout) | constant | Longest a single request may take before it is answered with `504 Gateway Timeout`. A route that streams without end (none should be reachable here) would otherwise hold the request forever. |
 
 ## Re-exports
 
-- [`bookclerk_window_policy::live_refusal`](../bookclerk_window_policy/README.md#live_refusal)
-- [`bookclerk_window_policy::LiveRefusal`](../bookclerk_window_policy/README.md#liverefusal)
-- [`bookclerk_window_policy::Navigation`](../bookclerk_window_policy/README.md#navigation)
-- [`bookclerk_window_policy::APP_ORIGINS`](../bookclerk_window_policy/README.md#app_origins)
-- [`bookclerk_window_policy::EMBEDDED_ORIGIN`](../bookclerk_window_policy/README.md#embedded_origin)
-- [`bookclerk_window_policy::MAIN_WINDOW_LABEL`](../bookclerk_window_policy/README.md#main_window_label)
+- [`bookclerk_window_policy::live_refusal`](../../bookclerk_window_policy/README.md#live_refusal)
+- [`bookclerk_window_policy::LiveRefusal`](../../bookclerk_window_policy/README.md#liverefusal)
+- [`bookclerk_window_policy::Navigation`](../../bookclerk_window_policy/README.md#navigation)
+- [`bookclerk_window_policy::APP_ORIGINS`](../../bookclerk_window_policy/README.md#app_origins)
+- [`bookclerk_window_policy::EMBEDDED_ORIGIN`](../../bookclerk_window_policy/README.md#embedded_origin)
+- [`bookclerk_window_policy::MAIN_WINDOW_LABEL`](../../bookclerk_window_policy/README.md#main_window_label)
+
+## Modules
+
+- [`session`](session.md): Who the desktop window is: the patron whose session this branch keeps sealed for its window, and the session cookies the window holds for them where the page cannot see them.
 
 ## Structs
 
@@ -155,7 +173,7 @@ Decides whether the window may show `url`.
 
 ##### Returns
 
-What the window should do (see [`Navigation`](../bookclerk_window_policy/README.md#navigation)). A
+What the window should do (see [`Navigation`](../../bookclerk_window_policy/README.md#navigation)). A
 `Navigation::SignInReturn` also closes the sign-in window.
 
 #### EmbeddedHost::live
@@ -165,8 +183,9 @@ pub async fn live(&self, send: impl FnMut(String) -> bool + Send)
 ```
 
 Feeds the live frames the SPA's `/api/live` socket would carry, for
-the shell to forward to the page: `hello` with every topic (the
-window is the operator), then a `changed` frame for each change.
+the shell to forward to the page: `hello` with every topic, then a
+`changed` frame for each change. The frames name topics only, so a
+patron's window hears the same ones the operator's would.
 
 Runs until `send` answers false. The frames name topics only, as on
 the socket.
@@ -185,6 +204,20 @@ Stops the integration watchers before the process exits, as
 `bookclerkd` does on shutdown.
 
 Implements: `Debug`
+
+### WindowRequest
+
+```rust
+pub struct WindowRequest;
+```
+
+Marks a request the window handed to the router. The window refuses
+pages from other origins itself, before routing, so the cookie CSRF
+check (`csrf::require_csrf_for_cookie_api`), which compares `Origin` with
+`integrations.public_origin`, does not apply. Only the embedded host can
+set it: it is a request extension, not a header.
+
+Implements: `Clone`, `Copy`, `Debug`
 
 ## Constants
 

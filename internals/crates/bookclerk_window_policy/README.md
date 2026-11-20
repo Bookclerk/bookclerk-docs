@@ -3,7 +3,7 @@
 What the desktop window's custom scheme lets a page reach.
 
 The desktop window runs the host in-process and hands every request its
-webview makes on the app scheme to the router, adding the operator token
+webview makes on the app scheme to the router, adding its own credential
 itself (`bookclerkd::embedded`). That makes the scheme handler an
 authorization boundary over bytes the host did not produce: the method,
 headers and path a page sent, and the URLs the window is asked to open.
@@ -16,7 +16,9 @@ window does:
   the live socket, before routing.
 - [`rewrite_request_headers`]: the headers the router sees. The page's
   credentials, origins and forwarding headers are dropped; `Host`,
-  `Origin` ([`EMBEDDED_ORIGIN`](#embedded_origin)) and the operator token are set.
+  `Origin` ([`EMBEDDED_ORIGIN`](#embedded_origin)) and the window's own [`Credential`](#credential) are
+  set: the patron session from this OS user's profile, or the operator
+  token before the library has an Owner.
 - [`classify_navigation`]: the window stays on the app's pages, except
   for a library's sign-in while one started from the window is open: a
   join (this install becomes a branch) or a library card (this install
@@ -29,11 +31,12 @@ window does:
 | [`Refusal`](#refusal) | enum | Why a request was refused before it reached the router. |
 | [`Navigation`](#navigation) | enum | Where the window may go, as `classify_navigation` decides. |
 | [`LiveRefusal`](#liverefusal) | enum | Why the desktop window's `live` command refused a caller. |
+| [`Credential`](#credential) | enum | The credential the window presents for a request: the page never holds one, so the embedded host chooses it. |
 | [`refusal`](#refusal-1) | function | Refuses requests from other origins and paths the window must not reach. |
 | [`classify_navigation`](#classify_navigation) | function | Where the window may go. |
 | [`live_refusal`](#live_refusal) | function | Decides whether a page may start the window's live updates, which carry the operator's feed. |
 | [`sign_in_ttl`](#sign_in_ttl) | function | How long the window may show the library's sign-in, from a successful start route's JSON answer (a join's or a library card's). |
-| [`rewrite_request_headers`](#rewrite_request_headers) | function | The headers the router sees for an embedded request: the page's own, less credentials, origins and forwarding headers, plus `Host`, `Origin` (`EMBEDDED_ORIGIN`) and, when operator auth is on, the operator's bearer token. |
+| [`rewrite_request_headers`](#rewrite_request_headers) | function | The headers the router sees for an embedded request: the page's own, less credentials, origins and forwarding headers, plus `Host`, `Origin` (`EMBEDDED_ORIGIN`) and the window's own credential. |
 | [`EMBEDDED_HOST`](#embedded_host) | constant | The `Host` every embedded request is routed under. |
 | [`EMBEDDED_ORIGIN`](#embedded_origin) | constant | The origin the router sees every embedded request come from: loopback, so a sign-in's return address is one the library accepts. |
 | [`APP_ORIGINS`](#app_origins) | constant | Origins of the window's own pages: the custom scheme, and the form WebView2 (Windows) gives it. |
@@ -108,6 +111,31 @@ Why the desktop window's `live` command refused a caller.
 - `OtherWebview`: A webview other than the main window called it.
 - `ForeignPage`: The calling page is not one of the app's own pages, such as a
   library's sign-in page.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### Credential
+
+```rust
+pub enum Credential<'a> {
+    None,
+    Operator(&'a str),
+    Cookies(&'a str),
+}
+```
+
+The credential the window presents for a request: the page never holds
+one, so the embedded host chooses it.
+
+**Variants**
+
+- `None`: No credential: operator auth is off, or nobody is signed in yet and
+  the page should show the sign-in screen.
+- `Operator`: The operator's bearer token: the library has no Owner yet (first
+  run, or a computer that is only a clerk of another library).
+- `Cookies`: The `Cookie` header the window's own session jar holds: the patron
+  this OS user's profile names, and an elevated operator session when
+  that patron elevated.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -194,24 +222,24 @@ JSON object with a string `authorize_url` and an unsigned integer
 ### rewrite_request_headers
 
 ```rust
-pub fn rewrite_request_headers(page: &HeaderMap, bearer: Option<&str>) -> HeaderMap
+pub fn rewrite_request_headers(page: &HeaderMap, credential: Credential<'_>) -> HeaderMap
 ```
 
 The headers the router sees for an embedded request: the page's own,
 less credentials, origins and forwarding headers, plus `Host`, `Origin`
-([`EMBEDDED_ORIGIN`](#embedded_origin)) and, when operator auth is on, the operator's bearer
-token.
+([`EMBEDDED_ORIGIN`](#embedded_origin)) and the window's own credential.
 
 #### Arguments
 
 * `page` - The headers the webview sent.
-* `bearer` - The operator token, or `None` when operator auth is off.
+* `credential` - What the window presents: nothing, the operator's
+  bearer token, or its session jar's `Cookie` header.
 
 #### Returns
 
-The rewritten headers. A token that is not a valid header value is left
-out, so the request goes unauthenticated (fail closed); the caller can
-tell from the missing `Authorization`.
+The rewritten headers. A token or cookie text that is not a valid header
+value is left out, so the request goes unauthenticated (fail closed);
+the caller can tell from the missing `Authorization` or `Cookie`.
 
 ## Constants
 
