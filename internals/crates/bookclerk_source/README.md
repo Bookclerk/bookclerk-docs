@@ -763,6 +763,7 @@ pub struct DownloadOptions {
     pub retain_aax_file: bool,
     pub download_speed_limit_kbps: u32,
     pub lame: LameConfig,
+    pub copies: Vec<OutputCopy>,
     pub max_sample_rate: Option<u32>,
     pub creation_time: FileTimestampMode,
     pub last_write_time: FileTimestampMode,
@@ -811,6 +812,8 @@ Audible’s download helpers can overlay the plugin bitrate for a single fetch.
 - `retain_aax_file`: When true, keep the encrypted download in storage (`RetainAaxFile`).
 - `download_speed_limit_kbps`: Fetch speed cap in KB/s (`0` = unlimited).
 - `lame`: LAME encoder knobs used when packaging to MP3.
+- `copies`: Further copies of each book beside the one [`Self::format`](#downloadoptions) and
+  [`Self::lame`](#downloadoptions) make (`output.copies`).
 - `max_sample_rate`: Optional ceiling for output sample rate in Hz (`None` = leave source rate).
 - `creation_time`: How to set the file creation / birth timestamp after acquire.
 - `last_write_time`: How to set the file last-write / mtime after acquire.
@@ -860,6 +863,25 @@ pub fn effective_output(&self) -> OutputFormat
 ```
 
 Resolved post-processing format.
+
+#### DownloadOptions::copies_to_make
+
+```rust
+pub fn copies_to_make(&self) -> Vec<OutputCopy>
+```
+
+Every copy an acquire makes, the one [`Self::format`](#downloadoptions) and
+[`Self::lame`](#downloadoptions) make first ([`bookclerk_config::copies_to_make`](../bookclerk_config/README.md#copies_to_make)).
+
+#### DownloadOptions::for_copy
+
+```rust
+pub fn for_copy(&self, copy: &OutputCopy) -> Self
+```
+
+The options packaging `copy`: its format and the encoder settings
+its quality gives, with chapter splitting on exactly for
+`mp3_chapters`.
 
 #### DownloadOptions::wants_mp3
 

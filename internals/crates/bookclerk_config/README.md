@@ -39,6 +39,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`DestinationId`](#destinationid) | struct | Id of one output destination: the plugin instance id of the deployed storage plugin instance that serves it. |
 | [`DestinationNaming`](#destinationnaming) | struct | Optional naming overrides for one destination plugin. |
 | [`OutputConfig`](#outputconfig) | struct | Acquire packaging (`[output]`). |
+| [`CopyError`](#copyerror) | struct | Why a copy list was refused. |
+| [`CopyQuality`](#copyquality) | struct | The quality of one copy, by name. |
+| [`OutputCopy`](#outputcopy) | struct | One copy of every acquired book: a format at a quality. |
 | [`PathLimits`](#pathlimits) | struct | Limits applied when hardening acquired storage keys. |
 | [`Paths`](#paths) | struct | Resolved filesystem locations for Bookclerk data. |
 | [`DestinationFilter`](#destinationfilter) | struct | Which books one destination takes. |
@@ -76,6 +79,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`BadBookAction`](#badbookaction) | enum | How to handle acquire failures (`BadBook` setting). |
 | [`DestinationKeyStyle`](#destinationkeystyle) | enum | How a destination names what it stores, which decides how acquire sanitizes and limits keys. |
 | [`MultiDestinationMode`](#multidestinationmode) | enum | Behavior when some output destinations already have a title and others do not. |
+| [`CopyFormat`](#copyformat) | enum | The format of one copy of a book. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
 | [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
@@ -123,6 +127,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`read_operator_token_env`](#read_operator_token_env) | function | Read `BOOKCLERK_OPERATOR_TOKEN` when set and non-empty. |
 | [`validate_operator_token`](#validate_operator_token) | function | Reject tokens that can break URL fragments, HTTP headers, or shell pastes. |
 | [`normalize_storage_prefix`](#normalize_storage_prefix) | function | Normalize a storage key prefix: empty stays empty; otherwise ensure a trailing `/`. |
+| [`copies_to_make`](#copies_to_make) | function | Every copy an acquire makes, in order: the main output's copy first (when the pipeline can make it), then each valid extra copy that differs from every earlier one, at most `MAX_EXTRA_COPIES` of them whatever the list holds. |
+| [`mp3_cbr_kbps`](#mp3_cbr_kbps) | function | The constant bitrate, in kbit/s, the MP3 encoder writes for a requested `kbps`: the smallest of `MP3_CBR_KBPS` at or above it, else 320. |
+| [`validate_copies`](#validate_copies) | function | Checks a list of extra copies: at most `MAX_EXTRA_COPIES`, each valid (`OutputCopy::validate`), none given twice and none the main output's copy `main`. |
 | [`apply_config_updates`](#apply_config_updates) | function | Load config, apply `pairs`, and write the result back to the resolved config path. |
 | [`apply_config_updates_from_path`](#apply_config_updates_from_path) | function | Load `path`, apply `pairs`, and write the updated TOML back to the same path. |
 | [`apply_setting_overrides`](#apply_setting_overrides) | function | Apply classic-style `-o Setting=value` overrides onto `config`. |
@@ -163,6 +170,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`CHECKIN_INTERVAL_MS`](#checkin_interval_ms) | constant | Time between check-ins: one week, in milliseconds. |
 | [`RING_DEPENDENCY_LEVEL`](#ring_dependency_level) | constant | Level the diagnostics ring keeps for targets outside `RING_TRACE_TARGETS`. |
 | [`RING_TRACE_TARGETS`](#ring_trace_targets) | constant | Target prefixes the diagnostics ring keeps through TRACE. Every other target (dependencies such as `h2`, `hyper`, `rustls`, `reqwest`, and `log`-crate records) is kept from INFO up, so their per-frame TRACE events do not crowd Bookclerk's own events out of the ring. |
+| [`MAX_EXTRA_COPIES`](#max_extra_copies) | constant | Most copies a library may keep beside its main output. |
+| [`MAX_QUALITY_BYTES`](#max_quality_bytes) | constant | Longest quality name, in bytes (`320k-mono` is nine). |
+| [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1) | constant | The constant bitrates, in kbit/s, the MP3 encoder writes. |
 | [`DEFAULT_MAX_FILENAME_LENGTH`](#default_max_filename_length) | constant | Classic Libation `LongPath.MaxFilenameLength` — per path component. |
 | [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) | constant | AWS S3 maximum object key length (UTF-8 bytes), including any prefix. |
 | [`BOOKCLERK_CONFIG_ENV`](#bookclerk_config_env) | constant | Override for the config file path (`BOOKCLERK_CONFIG`). |
@@ -1366,6 +1376,7 @@ Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, 
 ```rust
 pub struct OutputConfig {
     pub format: OutputFormat,
+    pub copies: Vec<OutputCopy>,
     pub widevine: bool,
     pub xhe_aac: bool,
     pub widevine_cdm: Option<PathBuf>,
@@ -1417,6 +1428,9 @@ in `config.toml`.
 **Fields**
 
 - `format`: Post-acquire packaging format (default: enriched M4B).
+- `copies`: Further copies of every acquired book, beside the main output
+  ([`Self::format`](#outputconfig) with [`Self::lame`](#outputconfig)), at most
+  [`crate::MAX_EXTRA_COPIES`](#max_extra_copies). Empty (the default) keeps one copy.
 - `widevine`: Prefer Widevine/CENC (also enables Adrm→Widevine fallback; auto-provisions L3 CDM).
 - `xhe_aac`: Prefer xHE-AAC on the Widevine path when offered.
 - `widevine_cdm`: Optional local Widevine `.wvd` path (absolute or relative to `BOOKCLERK_FILES_DIR`).
@@ -1466,6 +1480,15 @@ pub fn effective_format(&self) -> OutputFormat
 
 Packaging format used for acquire (currently the raw [`Self::format`](#outputconfig) field).
 
+#### OutputConfig::copies_to_make
+
+```rust
+pub fn copies_to_make(&self) -> Vec<OutputCopy>
+```
+
+Every copy an acquire makes, main output first
+([`crate::copies_to_make`](#copies_to_make)).
+
 #### OutputConfig::effective_chapter_json
 
 ```rust
@@ -1483,6 +1506,143 @@ pub fn resolve_naming_templates(&self) -> ResolvedNamingTemplates
 Resolve folder / file / chapter-file templates.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### CopyError
+
+```rust
+pub struct CopyError(/* private */);
+```
+
+Why a copy list was refused.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### CopyQuality
+
+```rust
+pub struct CopyQuality {
+    /* private fields */
+}
+```
+
+The quality of one copy, by name.
+
+The names are `original` (the store's audio, re-packaged without
+re-encoding where the format allows), a constant bitrate such as `64k`
+(one of the encoder's rates, [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1)) or a LAME VBR quality
+`v0` to `v9`; either of the last two may end in `-mono` for a copy mixed
+down to one channel. Names are stored in lower case.
+
+#### CopyQuality::ORIGINAL
+
+```rust
+pub const ORIGINAL: Self = _
+```
+
+The `original` quality.
+
+#### CopyQuality::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Reads a quality name, without case; `None` for any text that is not
+one (see the type's documentation).
+
+#### CopyQuality::is_original
+
+```rust
+pub fn is_original(&self) -> bool
+```
+
+True for `original`.
+
+#### CopyQuality::of_lame
+
+```rust
+pub fn of_lame(lame: &LameConfig) -> Self
+```
+
+The quality the library's LAME settings give an MP3.
+
+#### CopyQuality::lame
+
+```rust
+pub fn lame(&self, base: &LameConfig) -> LameConfig
+```
+
+`base` with this quality's encoder settings: a bitrate selects a
+constant bitrate, a VBR level a VBR quality, and `-mono` mixes down.
+`original` leaves `base` as it is.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `PartialSchema`, `Serialize`, `ToSchema`
+
+### OutputCopy
+
+```rust
+pub struct OutputCopy {
+    pub format: CopyFormat,
+    pub quality: CopyQuality,
+}
+```
+
+One copy of every acquired book: a format at a quality.
+
+**Fields**
+
+- `format`: The copy's format.
+- `quality`: The copy's quality.
+
+#### OutputCopy::main
+
+```rust
+pub fn main(format: OutputFormat, lame: &LameConfig) -> Option<Self>
+```
+
+The copy the library's main output makes: its format, with
+`original` quality for M4B and as-delivered output and the LAME
+settings' quality for MP3. `None` for an output format the acquire
+pipeline refuses.
+
+#### OutputCopy::validate
+
+```rust
+pub fn validate(&self) -> Result<(), CopyError>
+```
+
+Checks that the quality suits the format: M4B and as-delivered
+copies are `original` only (the M4B is re-packaged, not
+re-encoded), and MP3 copies need an encoder setting.
+
+##### Errors
+
+Returns a [`CopyError`](#copyerror) naming the copy when they do not suit.
+
+#### OutputCopy::label
+
+```rust
+pub fn label(&self) -> String
+```
+
+The copy's label in a storage key, for a destination that keeps
+more than one copy of a book: `mp3 64k-mono`.
+
+#### OutputCopy::parse
+
+```rust
+pub fn parse(raw: &str) -> Result<Self, CopyError>
+```
+
+Reads one copy written `format:quality` (`mp3:64k-mono`), as the
+`output.copies` setting lists them.
+
+##### Errors
+
+Returns a [`CopyError`](#copyerror) for text that is not that shape, an unknown
+format or quality, or a quality that does not suit the format.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
 ### PathLimits
 
@@ -1614,9 +1774,30 @@ A filter that takes every book: no rules.
 pub fn accepts(&self, facts: &PlacementFacts) -> bool
 ```
 
-True when the destination takes the book described by `facts`: no
+True when the destination takes the book described by `facts`:
+among the book rules (every rule but `format` and `quality`), no
 exclude rule matches, and either there is no include rule or one of
-them matches.
+them matches. Copy rules are not considered.
+
+#### DestinationFilter::accepts_copy
+
+```rust
+pub fn accepts_copy(&self, copy: &OutputCopy) -> bool
+```
+
+True when the destination receives `copy` of a book it takes: among
+the copy rules (`format` and `quality`), no exclude rule matches,
+and either there is no include rule or one of them matches. Book
+rules are not considered; a filter with no copy rules receives every
+copy.
+
+#### DestinationFilter::has_copy_rules
+
+```rust
+pub fn has_copy_rules(&self) -> bool
+```
+
+True when the filter has a `format` or `quality` rule.
 
 #### DestinationFilter::validate
 
@@ -1631,8 +1812,9 @@ Checks the filter's bounds.
 Returns a [`FilterError`](#filtererror) for more than [`MAX_FILTER_RULES`](#max_filter_rules) rules,
 an empty or over-long value, a value with a NUL, a `patron` value
 that is not a positive user id, a `media_kind` value other than
-`book` or `podcast`, or a rule given twice (the same field, value and
-effect, compared without case).
+`book` or `podcast`, a `format` value that is not a copy format, a
+`quality` value that is not a copy quality, or a rule given twice
+(the same field, value and effect, compared without case).
 
 #### DestinationFilter::normalized
 
@@ -1671,7 +1853,8 @@ effect.
 
 - `field`: The field the rule matches.
 - `value`: The value: a user id for `patron`, `book` or `podcast` for
-  `media_kind`, otherwise 1 to 128 bytes of text.
+  `media_kind`, a copy format for `format`, a copy quality for
+  `quality`, otherwise 1 to 128 bytes of text.
 - `effect`: Include or exclude.
 
 #### FilterRule::matches
@@ -1681,7 +1864,17 @@ pub fn matches(&self, facts: &PlacementFacts) -> bool
 ```
 
 True when the book described by `facts` has this rule's value in
-the rule's field. The effect is not considered.
+the rule's field. The effect is not considered, and a copy rule
+(`format`, `quality`) never matches a book.
+
+#### FilterRule::matches_copy
+
+```rust
+pub fn matches_copy(&self, copy: &OutputCopy) -> bool
+```
+
+True when `copy` has this rule's value in the rule's field. The
+effect is not considered, and a book rule never matches a copy.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
@@ -2930,6 +3123,78 @@ Behavior when some output destinations already have a title and others do not.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
+### CopyFormat
+
+```rust
+pub enum CopyFormat {
+    M4b,
+    Mp3,
+    Mp3Chapters,
+    Original,
+}
+```
+
+The format of one copy of a book.
+
+**Variants**
+
+- `M4b`: One M4B with tags and chapters (output format `enriched_m4b`).
+- `Mp3`: One MP3 (output format `single_mp3`).
+- `Mp3Chapters`: One MP3 per chapter (output format `split_mp3_by_chapter`).
+- `Original`: The audio as the store delivered it (output format `none`).
+
+#### CopyFormat::ALL
+
+```rust
+pub const ALL: [Self; 4] = _
+```
+
+Every format, in the order the names are documented.
+
+#### CopyFormat::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The format's name in settings, filter rules and file rows.
+
+#### CopyFormat::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Reads a format name, without case; `None` for any other text.
+
+#### CopyFormat::of_output
+
+```rust
+pub fn of_output(format: OutputFormat) -> Option<Self>
+```
+
+The copy format an output format produces; `None` for the formats
+the acquire pipeline refuses (`split_mp3_by_size`, `opus`).
+
+#### CopyFormat::output
+
+```rust
+pub fn output(self) -> OutputFormat
+```
+
+The output format the acquire pipeline packages this copy with.
+
+#### CopyFormat::is_encoded
+
+```rust
+pub fn is_encoded(self) -> bool
+```
+
+True for the formats the MP3 encoder writes, whose quality is an
+encoder setting rather than `original`.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
 ### PathLengthMeasure
 
 ```rust
@@ -3123,6 +3388,8 @@ pub enum FilterField {
     Storefront,
     Account,
     MediaKind,
+    Format,
+    Quality,
 }
 ```
 
@@ -3136,6 +3403,27 @@ The book field a [`FilterRule`](#filterrule) matches one value of.
 - `Account`: The store account that holds the book, by its id at the store.
 - `MediaKind`: What the book is: `book` or `podcast` (a podcast episode is a
   podcast).
+- `Format`: A copy's format ([`CopyFormat`]: `m4b`, `mp3`, `mp3_chapters` or
+  `original`), compared without case.
+- `Quality`: A copy's quality ([`CopyQuality`]: `original`, `64k`, `v2-mono` and
+  so on), compared without case.
+
+#### FilterField::ALL
+
+```rust
+pub const ALL: [Self; 6] = _
+```
+
+Every field, in the order the names are documented.
+
+#### FilterField::parse
+
+```rust
+pub fn parse(name: &str) -> Option<Self>
+```
+
+Reads a field by its wire name ([`Self::as_str`](#filterfieldas_str)), exactly; `None`
+for any other text.
 
 #### FilterField::as_str
 
@@ -3144,6 +3432,15 @@ pub fn as_str(self) -> &'static str
 ```
 
 The field's name on the wire.
+
+#### FilterField::is_copy_field
+
+```rust
+pub fn is_copy_field(self) -> bool
+```
+
+True for the fields that describe a copy of the book (`format`,
+`quality`) rather than the book.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
@@ -3727,6 +4024,43 @@ pub fn normalize_storage_prefix(prefix: &str) -> String
 
 Normalize a storage key prefix: empty stays empty; otherwise ensure a trailing `/`.
 
+### copies_to_make
+
+```rust
+pub fn copies_to_make(main: Option<OutputCopy>, extra: &[OutputCopy]) -> Vec<OutputCopy>
+```
+
+Every copy an acquire makes, in order: the main output's copy first
+(when the pipeline can make it), then each valid extra copy that
+differs from every earlier one, at most [`MAX_EXTRA_COPIES`](#max_extra_copies) of them
+whatever the list holds.
+
+### mp3_cbr_kbps
+
+```rust
+pub fn mp3_cbr_kbps(kbps: u32) -> u16
+```
+
+The constant bitrate, in kbit/s, the MP3 encoder writes for a requested
+`kbps`: the smallest of [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1) at or above it, else 320.
+
+### validate_copies
+
+```rust
+pub fn validate_copies(
+    main: Option<&OutputCopy>,
+    copies: &[OutputCopy],
+) -> Result<(), CopyError>
+```
+
+Checks a list of extra copies: at most [`MAX_EXTRA_COPIES`](#max_extra_copies), each valid
+([`OutputCopy::validate`](#outputcopyvalidate)), none given twice and none the main output's
+copy `main`.
+
+#### Errors
+
+Returns a [`CopyError`](#copyerror) for the first copy that breaks a rule.
+
 ### apply_config_updates
 
 ```rust
@@ -4192,6 +4526,34 @@ Target prefixes the diagnostics ring keeps through TRACE. Every other
 target (dependencies such as `h2`, `hyper`, `rustls`, `reqwest`, and
 `log`-crate records) is kept from INFO up, so their per-frame TRACE events
 do not crowd Bookclerk's own events out of the ring.
+
+### MAX_EXTRA_COPIES
+
+```rust
+pub const MAX_EXTRA_COPIES: usize = 8;
+```
+
+Most copies a library may keep beside its main output.
+
+### MAX_QUALITY_BYTES
+
+```rust
+pub const MAX_QUALITY_BYTES: usize = 16;
+```
+
+Longest quality name, in bytes (`320k-mono` is nine).
+
+### MP3_CBR_KBPS
+
+```rust
+pub const MP3_CBR_KBPS: [u16; 7] = _;
+```
+
+The constant bitrates, in kbit/s, the MP3 encoder writes.
+
+`bookclerk-media` rounds any other requested bitrate up to the next of
+these (and anything above 256 to 320), so a quality name only offers
+these rates: the name then always describes the audio written.
 
 ### DEFAULT_MAX_FILENAME_LENGTH
 

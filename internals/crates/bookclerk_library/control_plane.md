@@ -3416,6 +3416,7 @@ Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `
 ```rust
 pub struct OutputSettingsV1 {
     pub format: OutputFormat,
+    pub copies: Vec<OutputCopy>,
     pub widevine: bool,
     pub xhe_aac: bool,
     pub widevine_cdm: Option<PathBuf>,
@@ -3465,6 +3466,9 @@ instead of being silently truncated on the next write.
 **Fields**
 
 - `format`: Post-acquire packaging format.
+- `copies`: Further copies of every acquired book beside the main output, at
+  most 8; empty keeps one copy. Each needs a quality that suits its
+  format, and none may repeat another or the main output's copy.
 - `widevine`: Prefer Widevine/CENC.
 - `xhe_aac`: Prefer xHE-AAC on the Widevine path when offered.
 - `widevine_cdm`: Optional `.wvd` path; relative paths resolve under each host's files dir.

@@ -406,6 +406,32 @@ first destination that does becomes it.
 Returns [`AcquireError::NoDestinationAccepts`](#acquireerror) when no destination's
 filter takes the book.
 
+#### AcquireDestinations::copy_plan
+
+```rust
+pub fn copy_plan(&self) -> Vec<(OutputCopy, AcquireDestinations)>
+```
+
+The copies of each book this acquire makes and the destinations
+that receive each, in order: the main output's copy first, then
+`output.copies` (see `bookclerk_source::DownloadOptions::copies_to_make`,
+read from the primary destination's options). A destination
+receives a copy when its filter's copy rules take it
+(`DestinationFilter::accepts_copy`). A copy no destination takes
+is left out.
+
+Each destination's options package the copy
+(`bookclerk_source::DownloadOptions::for_copy`). The main
+output's copy keeps the plain names; every other copy goes under a
+folder of its own at the top, named after the copy's label, then the
+destination's usual folder template (`mp3 64k-mono/Title [ID]`). Two
+copies so never share a folder or a key, on one destination or
+across several, and a file at the plain names is always the main
+copy's. The label is a short folder of its own, so path-length
+limits shorten the book's folders before it. Each copy's primary
+destination is the set's primary when it receives the copy, else the
+first that does.
+
 #### AcquireDestinations::listing_backend
 
 ```rust

@@ -669,6 +669,20 @@ allowed for an Administrator.
 - `request_books` *boolean or null* — Overrides [`MemberControls::request_books`].
 - `see_prices` *boolean or null* — Overrides [`MemberControls::see_prices`].
 
+## CopyFormat
+
+The format of one copy of a book.
+
+Type: one of `m4b`, `mp3`, `mp3_chapters`, `original`
+
+## CopyQuality
+
+A copy's quality: `original`, a constant bitrate the MP3 encoder writes (`64k`, `96k`, `128k`, `160k`, `192k`, `256k` or `320k`), or a LAME VBR quality `v0` to `v9`; the last two may end in `-mono`.
+
+Type: string
+
+Constraints: matches `^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$`
+
 ## CreatePluginInstance
 
 `POST /api/config/plugin-instances` body.
@@ -1101,7 +1115,7 @@ Type: one of `include`, `exclude`
 
 The book field a [`FilterRule`] matches one value of.
 
-Type: one of `patron`, `storefront`, `account`, `media_kind`
+Type: one of `patron`, `storefront`, `account`, `media_kind`, `format`, `quality`
 
 ## FilterRule
 
@@ -1109,7 +1123,7 @@ One rule of a destination filter: a field, one value of it, and its
 effect.
 
 - `field` *[`FilterField`](#filterfield)*, **required** — The field the rule matches.
-- `value` *string*, **required** — The value: a user id for `patron`, `book` or `podcast` for `media_kind`, otherwise 1 to 128 bytes of text.
+- `value` *string*, **required** — The value: a user id for `patron`, `book` or `podcast` for `media_kind`, a copy format for `format`, a copy quality for `quality`, otherwise 1 to 128 bytes of text.
 - `effect` *[`FilterEffect`](#filtereffect)*, **required** — Include or exclude.
 
 ## GuestReservation
@@ -1907,6 +1921,13 @@ also carries the address to use.
 - `detail` *string*, **required** — Why, naming the address to join with instead.
 - `origin` *string*, **required** — The library's canonical origin, to join with instead.
 
+## OutputCopy
+
+One copy of every acquired book: a format at a quality.
+
+- `format` *[`CopyFormat`](#copyformat)*, **required** — The copy's format.
+- `quality` *[`CopyQuality`](#copyquality)*, **required** — The copy's quality.
+
 ## OutputDomainChange
 
 Body of `PUT /api/config/domains/core.output`: the settings after the
@@ -1941,6 +1962,7 @@ written by a newer binary under the same schema version fails closed
 instead of being silently truncated on the next write.
 
 - `format` *[`OutputFormat`](#outputformat)*, **required** — Post-acquire packaging format.
+- `copies` *array of [`OutputCopy`](#outputcopy)* — Further copies of every acquired book beside the main output, at most 8; empty keeps one copy. Each needs a quality that suits its format, and none may repeat another or the main output's copy. At most 8 items.
 - `widevine` *boolean*, **required** — Prefer Widevine/CENC.
 - `xhe_aac` *boolean*, **required** — Prefer xHE-AAC on the Widevine path when offered.
 - `widevine_cdm` *string or null* — Optional `.wvd` path; relative paths resolve under each host's files dir.

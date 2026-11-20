@@ -6592,6 +6592,32 @@ edition holds it.
 
 Returns an error when a write fails.
 
+#### LibraryStore::record_edition_copy_file
+
+```rust
+pub async fn record_edition_copy_file(
+    &self,
+    destination: &str,
+    key: &str,
+    owner: &FileOwner,
+    role: FileRole,
+    copy: Option<&OutputCopy>,
+) -> Result<bool>
+```
+
+[`Self::record_edition_file`](#librarystorerecord_edition_file) for a file of one library copy
+(`output.copies`): the row also names the copy's format and quality,
+or none when `copy` is `None`.
+
+##### Returns
+
+`true` when the key is now `owner`'s; `false` when another live
+edition holds it.
+
+##### Errors
+
+Returns an error when a write fails.
+
 #### LibraryStore::claim_edition_file
 
 ```rust
@@ -6775,6 +6801,24 @@ pub async fn edition_file_probe(
 
 What the last probe found in the file at `key` on `destination`;
 `None` when the key is unrecorded or was never probed.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::edition_file_copy
+
+```rust
+pub async fn edition_file_copy(
+    &self,
+    destination: &str,
+    key: &str,
+) -> Result<Option<OutputCopy>>
+```
+
+The library copy (`output.copies`) the file at `key` on
+`destination` belongs to; `None` when the key is unrecorded, belongs
+to no one copy, or names a copy this build cannot read.
 
 ##### Errors
 

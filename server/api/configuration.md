@@ -1091,6 +1091,12 @@ Status `200`: The `core.output` settings.
   "updated_by": "operator",
   "document": {
     "format": "enriched_m4b",
+    "copies": [
+      {
+        "format": "mp3",
+        "quality": "64k-mono"
+      }
+    ],
     "widevine": true,
     "xhe_aac": false,
     "widevine_cdm": "cdm/device.wvd",
@@ -1254,6 +1260,46 @@ Schema:
                 "none"
               ],
               "example": "enriched_m4b"
+            },
+            "copies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "One copy of every acquired book: a format at a quality.",
+                "required": [
+                  "format",
+                  "quality"
+                ],
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "description": "The copy's format.",
+                    "enum": [
+                      "m4b",
+                      "mp3",
+                      "mp3_chapters",
+                      "original"
+                    ]
+                  },
+                  "quality": {
+                    "type": "string",
+                    "description": "The copy's quality.",
+                    "examples": [
+                      "64k-mono"
+                    ],
+                    "pattern": "^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "description": "Further copies of every acquired book beside the main output, at\nmost 8; empty keeps one copy. Each needs a quality that suits its\nformat, and none may repeat another or the main output's copy.",
+              "example": [
+                {
+                  "format": "mp3",
+                  "quality": "64k-mono"
+                }
+              ],
+              "maxItems": 8
             },
             "widevine": {
               "type": "boolean",
@@ -1810,6 +1856,12 @@ Status `200`: The settings after the change, or a `replayed: true` note with the
   "updated_by": "operator",
   "document": {
     "format": "enriched_m4b",
+    "copies": [
+      {
+        "format": "mp3",
+        "quality": "64k-mono"
+      }
+    ],
     "widevine": true,
     "xhe_aac": false,
     "widevine_cdm": "cdm/device.wvd",
@@ -1975,6 +2027,46 @@ Schema:
                     "none"
                   ],
                   "example": "enriched_m4b"
+                },
+                "copies": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "One copy of every acquired book: a format at a quality.",
+                    "required": [
+                      "format",
+                      "quality"
+                    ],
+                    "properties": {
+                      "format": {
+                        "type": "string",
+                        "description": "The copy's format.",
+                        "enum": [
+                          "m4b",
+                          "mp3",
+                          "mp3_chapters",
+                          "original"
+                        ]
+                      },
+                      "quality": {
+                        "type": "string",
+                        "description": "The copy's quality.",
+                        "examples": [
+                          "64k-mono"
+                        ],
+                        "pattern": "^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "description": "Further copies of every acquired book beside the main output, at\nmost 8; empty keeps one copy. Each needs a quality that suits its\nformat, and none may repeat another or the main output's copy.",
+                  "example": [
+                    {
+                      "format": "mp3",
+                      "quality": "64k-mono"
+                    }
+                  ],
+                  "maxItems": 8
                 },
                 "widevine": {
                   "type": "boolean",

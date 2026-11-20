@@ -2493,12 +2493,14 @@ Schema:
                   "patron",
                   "storefront",
                   "account",
-                  "media_kind"
+                  "media_kind",
+                  "format",
+                  "quality"
                 ]
               },
               "value": {
                 "type": "string",
-                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, otherwise 1 to 128 bytes of text.",
+                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, a copy format for `format`, a copy quality for\n`quality`, otherwise 1 to 128 bytes of text.",
                 "example": "audible"
               },
               "effect": {
@@ -2865,12 +2867,14 @@ Schema:
                   "patron",
                   "storefront",
                   "account",
-                  "media_kind"
+                  "media_kind",
+                  "format",
+                  "quality"
                 ]
               },
               "value": {
                 "type": "string",
-                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, otherwise 1 to 128 bytes of text.",
+                "description": "The value: a user id for `patron`, `book` or `podcast` for\n`media_kind`, a copy format for `format`, a copy quality for\n`quality`, otherwise 1 to 128 bytes of text.",
                 "example": "audible"
               },
               "effect": {
