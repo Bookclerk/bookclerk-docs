@@ -133,6 +133,7 @@ bytes.
 | [`LookupEdition`](#lookupedition) | struct | One edition a branch can supply. |
 | [`LookupIdentifier`](#lookupidentifier) | struct | One identifier of the work a question is about. |
 | [`LookupWork`](#lookupwork) | struct | One question: "can you supply this work?". |
+| [`BranchOrigin`](#branchorigin) | struct | A branch's public origin: `http` or `https`, a host, an optional port and nothing else (no user, path, query or fragment), at most `MAX_BRANCH_ORIGIN_BYTES` bytes, in the form `Url` serializes it (lowercase scheme and host, default port dropped). |
 | [`BranchRequest`](#branchrequest) | struct | One request a branch claimed: "send this library that book". |
 | [`SecretEntry`](#secretentry) | struct | One secret in a bundle. |
 | [`SecretRef`](#secretref) | struct | Names one `encrypted_secrets` row of a store account. It carries no secret material. |
@@ -316,6 +317,7 @@ bytes.
 | [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) | constant | Most identifiers one `LookupWork` may carry. |
 | [`MAX_LOOKUP_WORKS`](#max_lookup_works) | constant | Most works one `crate::Body::CatalogAsk` or `crate::Body::CatalogFound` may name. |
 | [`MAX_WORK_REF_BYTES`](#max_work_ref_bytes) | constant | Longest correlation key (`LookupWork::work`). |
+| [`MAX_BRANCH_ORIGIN_BYTES`](#max_branch_origin_bytes) | constant | Longest origin a branch may report, in bytes. |
 | [`ITEM_REQUEST`](#item_request) | constant | The work item name of a request in a `crate::Body::Lost` answer. |
 | [`MAX_CLAIMED_REQUESTS`](#max_claimed_requests) | constant | Most requests one `crate::Body::RequestsClaimed` may carry. |
 | [`MAX_REQUEST_JOB_BYTES`](#max_request_job_bytes) | constant | Longest job id a request may carry. |
@@ -1466,7 +1468,7 @@ pub struct OwnerInfo {
   the authorize endpoint lives under.
 - `transport`: The node API transport mode (`acme`, `proxy`, `self_signed`,
   `loopback`).
-- `enrollment`: Whether the library lets new branches join (`core.host_enrollment`).
+- `enrollment`: Whether the library lets new branches join (`core.branch_enrollment`).
 - `spki_fingerprint`: In `self_signed` mode: base64url SHA-256 of the certificate's
   SubjectPublicKeyInfo, which the joining operator confirms against
   the owner's Settings → Branches page.
@@ -1603,6 +1605,55 @@ Why the question is malformed, or `None`: a correlation key
 well-formed identifiers.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### BranchOrigin
+
+```rust
+pub struct BranchOrigin(/* private */);
+```
+
+A branch's public origin: `http` or `https`, a host, an optional port and
+nothing else (no user, path, query or fragment), at most
+[`MAX_BRANCH_ORIGIN_BYTES`](#max_branch_origin_bytes) bytes, in the form [`Url`](https://docs.rs/url/latest/url/struct.Url.html) serializes it
+(lowercase scheme and host, default port dropped).
+
+#### BranchOrigin::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses the origin a branch reported.
+
+Surrounding whitespace and one trailing `/` are ignored, as in the
+branch's own `integrations.public_origin` setting.
+
+##### Arguments
+
+* `raw` - The `public_origin` text from a heartbeat frame.
+
+##### Returns
+
+The normalized origin, or `None` when the text is not a plain
+`http(s)` origin within the size limit.
+
+#### BranchOrigin::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The origin as text, such as `https://branch.example:8443`.
+
+#### BranchOrigin::into_string
+
+```rust
+pub fn into_string(self) -> String
+```
+
+The origin as owned text.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### BranchRequest
 
@@ -2186,7 +2237,7 @@ pub enum Body {
     Welcome { node_id: String, library_id: String, box_key: String },
     Resumed { renewed: Vec<HeldFence>, lost: Vec<HeldFence>, unchecked: Vec<HeldFence>, lease_secs: Option<u64> },
     Error { code: String, message: String },
-    Heartbeat { started_at: String, interval_secs: u64, cpu_millicores: i64, memory_bytes: Option<i64>, cpu_used_millicores: Option<i64>, memory_available_bytes: Option<i64>, files_dir_free_bytes: Option<i64> },
+    Heartbeat { started_at: String, interval_secs: u64, cpu_millicores: i64, memory_bytes: Option<i64>, cpu_used_millicores: Option<i64>, memory_available_bytes: Option<i64>, files_dir_free_bytes: Option<i64>, public_origin: Option<String> },
     Claim { item: String, class: Option<String>, filter: Option<ClaimFilter> },
     Work { item: String, job: WorkJob, fence: i64, lease_secs: u64, sealed_secrets: Option<String>, plugin_keys: Vec<String>, source_plugin_key: Option<String>, resumed: bool },
     NoWork { retry_after_secs: u64 },
@@ -2290,6 +2341,10 @@ What a frame says, tagged by `type`.
   - `cpu_used_millicores`: Measured CPU in use, in millicores.
   - `memory_available_bytes`: Measured memory available to new work.
   - `files_dir_free_bytes`: Free bytes on the host's files directory.
+  - `public_origin`: The branch's `integrations.public_origin`, the address other
+    installs reach it at; absent for a branch that has none (a
+    local branch). The library keeps it only when
+    [`crate::BranchOrigin::parse`](#branchoriginparse) accepts it.
 - `Claim`: Host → owner: pull one work item. Answered with [`Body::Work`](#body) or
   [`Body::NoWork`](#body).
   - `item`: [`ITEM_JOB`](#item_job) (deliveries are not served yet).
@@ -4716,6 +4771,14 @@ pub const MAX_WORK_REF_BYTES: usize = 64;
 ```
 
 Longest correlation key ([`LookupWork::work`](#lookupwork)).
+
+### MAX_BRANCH_ORIGIN_BYTES
+
+```rust
+pub const MAX_BRANCH_ORIGIN_BYTES: usize = 255;
+```
+
+Longest origin a branch may report, in bytes.
 
 ### ITEM_REQUEST
 

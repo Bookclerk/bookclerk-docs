@@ -1,6 +1,6 @@
 # bookclerk_library::entities::node_credentials
 
-SeaORM entity for `node_credentials`: the public keys an enrolled host
+SeaORM entity for `node_credentials`: the public keys an enrolled branch
 node proves itself with.
 
 | Item | Kind | Summary |

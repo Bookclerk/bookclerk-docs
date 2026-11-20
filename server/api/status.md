@@ -621,10 +621,12 @@ Status `200`: Library-wide node health.
         "online_since_ms": 1793167200000,
         "cache_bytes": 734003200,
         "cache_budget_bytes": 1073741824,
-        "cache_swept_ms": 1793212800000
+        "cache_swept_ms": 1793212800000,
+        "public_origin": "https://branch.example"
       },
       "this_node": true,
       "kind": "shared",
+      "relationship": "remote_branch",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -878,7 +880,8 @@ Schema:
           "live",
           "runtime",
           "this_node",
-          "kind"
+          "kind",
+          "relationship"
         ],
         "properties": {
           "node_id": {
@@ -1174,6 +1177,14 @@ Schema:
                     "format": "int64",
                     "description": "When the node's last cache sweep finished, in Unix milliseconds.",
                     "example": 1793212800000
+                  },
+                  "public_origin": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The address other installs reach this branch at, as it last\nreported it; `null` for a local branch and for a shared node. A\nbranch with one is a remote branch of this library.",
+                    "example": "https://branch.example"
                   }
                 }
               },
@@ -1189,12 +1200,22 @@ Schema:
           },
           "kind": {
             "type": "string",
-            "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+            "description": "`shared` for a node sharing this library's database, `branch` for an\nenrolled branch.",
             "enum": [
               "shared",
               "branch"
             ],
             "example": "shared"
+          },
+          "relationship": {
+            "type": "string",
+            "description": "How the node relates to this library: `shared_branch` (shares its\ndatabase), `remote_branch` (a branch reporting a public address in\nits heartbeat, `status.public_origin`) or `local_branch` (a branch\nwith none).",
+            "enum": [
+              "shared_branch",
+              "remote_branch",
+              "local_branch"
+            ],
+            "example": "remote_branch"
           },
           "owner_user_id": {
             "type": [
@@ -1210,7 +1231,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for a\nshared node.",
             "example": true
           },
           "include_branches": {

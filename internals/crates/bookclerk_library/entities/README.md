@@ -63,7 +63,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`link_requests`](link_requests.md): SeaORM entity for `link_requests`: on a branch, the books a library it joined asked for through an interlibrary request (written by `control_plane::branch_requests`). The catalog sync sends that library a book recorded here for it, although the book is a member's.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
-- [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled host node proves itself with.
+- [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled branch node proves itself with.
 - [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this library. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.
 - [`node_upload_sessions`](node_upload_sessions.md): SeaORM entity for `node_upload_sessions`: one title's streamed upload from a branch node to a shared node (H-4 design, section 6). Written by `control_plane::uploads`.

@@ -157,7 +157,7 @@ Books in the library, scans and acquires.
 | [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
 | [`POST /api/library/works/{id}/split`](library.md#post-apilibraryworksidsplit) | Splits a work an automatic merge joined wrongly. |
 | [`GET /api/config/node-invites`](library.md#get-apiconfignode-invites) | `GET /api/config/node-invites`: every link for the operator or an Owner; the caller's own links for anyone else, and with `?mine=true`. |
-| [`POST /api/config/node-invites`](library.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while host enrollment is on; the operator or an Owner may mint for any active user. |
+| [`POST /api/config/node-invites`](library.md#post-apiconfignode-invites) | `POST /api/config/node-invites`: mint an enrollment link. Any user may mint one for themselves while branch enrollment is on; the operator or an Owner may mint for any active user. |
 | [`DELETE /api/config/node-invites/{id}`](library.md#delete-apiconfignode-invitesid) | `DELETE /api/config/node-invites/{id}`: revoke an unredeemed link. |
 | [`GET /api/config/branches`](library.md#get-apiconfigbranches) | `GET /api/config/branches`: this library's join settings: whether new branches may join, the transport mode, and the SPKI fingerprint a joining operator confirms in `self_signed` mode. |
 | [`PUT /api/config/branches`](library.md#put-apiconfigbranches) | `PUT /api/config/branches`: turn "Let new branches join" on or off. |
@@ -170,8 +170,6 @@ Books in the library, scans and acquires.
 | [`POST /api/config/join/connections/disconnect`](library.md#post-apiconfigjoinconnectionsdisconnect) | `POST /api/config/join/connections/disconnect`: disconnects one of the person's store accounts here, and with `everywhere` in every linked library it was shared with. |
 | [`POST /api/config/join/capacity`](library.md#post-apiconfigjoincapacity) | `POST /api/config/join/capacity`: Settings → Library's job cap for one library this install is a branch of. The operator or an Owner (verified from the stored role); anyone else gets 403. The running link's share changes at once: its claims stop at the new share and its next heartbeat reports the library the new part of the machine. Jobs it already runs finish. |
 | [`DELETE /api/config/node-credentials/{node_id}`](library.md#delete-apiconfignode-credentialsnode_id) | `DELETE /api/config/node-credentials/{node_id}`: revoke an enrolled host's credential so it can no longer connect. |
-| [`GET /api/config/host-enrollment`](library.md#get-apiconfighost-enrollment) | `GET /api/config/host-enrollment`: whether branch nodes may enroll. |
-| [`PUT /api/config/host-enrollment`](library.md#put-apiconfighost-enrollment) | `PUT /api/config/host-enrollment`: turn host enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
 | [`GET /api/library/works`](library.md#get-apilibraryworks) | Lists the library's works, one page at a time. |
 | [`GET /api/library/works/{id}`](library.md#get-apilibraryworksid) | Reads one work with its editions, listings, holdings and the caller's own state. |
 | [`PUT /api/library/works/{id}/state`](library.md#put-apilibraryworksidstate) | Changes the caller's own state for a work: finished, ratings and tags. |
@@ -327,6 +325,8 @@ Live configuration domains and reloads.
 | [`POST /api/config/clerk/start`](configuration.md#post-apiconfigclerkstart) | `POST /api/config/clerk/start`. |
 | [`POST /api/config/clerk/callback`](configuration.md#post-apiconfigclerkcallback) | `POST /api/config/clerk/callback`: redeems the library's code with the sign-in's verifier, seals the card and starts reading the person's books. The pending sign-in is ended whatever the outcome; a failed one is started again. |
 | [`POST /api/config/clerk/sign-out`](configuration.md#post-apiconfigclerksign-out) | `POST /api/config/clerk/sign-out`: ends a library card at the library when it can be reached, then drops the card, the books read with it, and the library from the list here whatever the library answered. |
+| [`GET /api/config/branch-enrollment`](configuration.md#get-apiconfigbranch-enrollment) | `GET /api/config/branch-enrollment`: whether branch nodes may enroll. |
+| [`PUT /api/config/branch-enrollment`](configuration.md#put-apiconfigbranch-enrollment) | `PUT /api/config/branch-enrollment`: turn branch enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
 
 ### [Accounts](accounts.md)
 

@@ -5291,3 +5291,692 @@ request timed out
 Schema:
 
 A `text/plain` body: a string.
+
+## `GET /api/config/branch-enrollment`
+
+`GET /api/config/branch-enrollment`: whether branch nodes may enroll.
+
+### Returns
+
+`{enabled, revision}`; `revision` is `null` while the default (enabled)
+applies.
+
+### Errors
+
+Returns an error response when the switch cannot be read.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — Whether branch nodes may enroll. Body: [`BranchEnrollment`](schemas.md#branchenrollment) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
+  - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branch-enrollment' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/branch-enrollment' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/branch-enrollment",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/branch-enrollment", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/branch-enrollment")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Whether branch nodes may enroll.
+
+```json
+{
+  "enabled": true,
+  "revision": 3
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The branch-enrollment switch.",
+  "required": [
+    "enabled"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether branch nodes may enroll into this library.",
+      "example": true
+    },
+    "revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Stored revision; `null` while the default (enabled) applies.",
+      "example": 3
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`).
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The library database could not be read.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/config/branch-enrollment`
+
+`PUT /api/config/branch-enrollment`: turn branch enrollment on or off. The
+operator may always; a user only while the stored role is an active
+Owner.
+
+### Arguments
+
+* `caller` - Who is asking; a user's role is read from the database.
+* `body` - The new switch value.
+
+### Returns
+
+`{enabled, revision}` as stored.
+
+### Errors
+
+Returns 403 when the caller is neither the operator nor an active Owner,
+and an error response when the switch cannot be written.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Request body
+
+`application/json`: [`PutBranchEnrollment`](schemas.md#putbranchenrollment)
+
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
+
+### Responses
+
+- `200` — The switch after the change. Body: [`BranchEnrollment`](schemas.md#branchenrollment) (`application/json`)
+  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
+  - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The user is not an active Owner, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `409` — The setting kept changing under the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/branch-enrollment' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"enabled": true}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/branch-enrollment' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"enabled": true}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/branch-enrollment",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"enabled": True},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/branch-enrollment", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"enabled": true}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/branch-enrollment")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"enabled": true}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The switch after the change.
+
+```json
+{
+  "enabled": true,
+  "revision": 3
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The branch-enrollment switch.",
+  "required": [
+    "enabled"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether branch nodes may enroll into this library.",
+      "example": true
+    },
+    "revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Stored revision; `null` while the default (enabled) applies.",
+      "example": 3
+    }
+  }
+}
+```
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The user is not an active Owner, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "The session middleware's standard body (`error`, `message`, `status`).",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug or a sentence in `error`.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "A slug in `error` and a sentence in `detail`.",
+      "required": [
+        "error",
+        "detail"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Stable machine slug clients branch on.",
+          "example": "invalid_request"
+        },
+        "detail": {
+          "type": "string",
+          "description": "What went wrong, for the person reading the answer.",
+          "example": "the redirect URI must be loopback or https"
+        }
+      }
+    }
+  ],
+  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
+}
+```
+
+Status `409`: The setting kept changing under the write; retry.
+
+```json
+{
+  "error": "core.branch_enrollment kept changing; retry"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `enabled` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library database could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.

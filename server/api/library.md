@@ -365,9 +365,10 @@ labels. The scheduler re-plans on the wakeup this publishes.
   - `runtime` *[`NodeRuntimeSettingsV1`](schemas.md#noderuntimesettingsv1)*, **required** — The node's runtime document, or the defaults when it never wrote one.
   - `status` *[`NodeStatus`](schemas.md#nodestatus) or null* — The latest heartbeat; `null` before the first one.
   - `this_node` *boolean*, **required** — True for the node that answered the request.
-  - `kind` *[`NodeKind`](schemas.md#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
+  - `kind` *[`NodeKind`](schemas.md#nodekind)*, **required** — `shared` for a node sharing this library's database, `branch` for an enrolled branch.
+  - `relationship` *[`BranchRelationship`](schemas.md#branchrelationship)*, **required** — How the node relates to this library: `shared_branch` (shares its database), `remote_branch` (a branch reporting a public address in its heartbeat, `status.public_origin`) or `local_branch` (a branch with none).
   - `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
-  - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an shared node.
+  - `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for a shared node.
   - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for a shared node.
   - `owner` *[`NodeOwnerSummary`](schemas.md#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 - `400` — The body is invalid, or a label is malformed. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
@@ -490,10 +491,12 @@ Status `200`: The node after the change.
     "online_since_ms": 1793167200000,
     "cache_bytes": 734003200,
     "cache_budget_bytes": 1073741824,
-    "cache_swept_ms": 1793212800000
+    "cache_swept_ms": 1793212800000,
+    "public_origin": "https://branch.example"
   },
   "this_node": true,
   "kind": "shared",
+  "relationship": "remote_branch",
   "owner_user_id": 7,
   "share_books": true,
   "include_branches": false,
@@ -525,7 +528,8 @@ Schema:
     "live",
     "runtime",
     "this_node",
-    "kind"
+    "kind",
+    "relationship"
   ],
   "properties": {
     "node_id": {
@@ -821,6 +825,14 @@ Schema:
               "format": "int64",
               "description": "When the node's last cache sweep finished, in Unix milliseconds.",
               "example": 1793212800000
+            },
+            "public_origin": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The address other installs reach this branch at, as it last\nreported it; `null` for a local branch and for a shared node. A\nbranch with one is a remote branch of this library.",
+              "example": "https://branch.example"
             }
           }
         },
@@ -836,12 +848,22 @@ Schema:
     },
     "kind": {
       "type": "string",
-      "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+      "description": "`shared` for a node sharing this library's database, `branch` for an\nenrolled branch.",
       "enum": [
         "shared",
         "branch"
       ],
       "example": "shared"
+    },
+    "relationship": {
+      "type": "string",
+      "description": "How the node relates to this library: `shared_branch` (shares its\ndatabase), `remote_branch` (a branch reporting a public address in\nits heartbeat, `status.public_origin`) or `local_branch` (a branch\nwith none).",
+      "enum": [
+        "shared_branch",
+        "remote_branch",
+        "local_branch"
+      ],
+      "example": "remote_branch"
     },
     "owner_user_id": {
       "type": [
@@ -857,7 +879,7 @@ Schema:
         "boolean",
         "null"
       ],
-      "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
+      "description": "A branch's sharing setting, as it last reported it; `null` for a\nshared node.",
       "example": true
     },
     "include_branches": {
@@ -7956,10 +7978,12 @@ Status `200`: The nodes the caller administers.
         "online_since_ms": 1793167200000,
         "cache_bytes": 734003200,
         "cache_budget_bytes": 1073741824,
-        "cache_swept_ms": 1793212800000
+        "cache_swept_ms": 1793212800000,
+        "public_origin": "https://branch.example"
       },
       "this_node": true,
       "kind": "shared",
+      "relationship": "remote_branch",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -8015,7 +8039,8 @@ Schema:
           "live",
           "runtime",
           "this_node",
-          "kind"
+          "kind",
+          "relationship"
         ],
         "properties": {
           "node_id": {
@@ -8311,6 +8336,14 @@ Schema:
                     "format": "int64",
                     "description": "When the node's last cache sweep finished, in Unix milliseconds.",
                     "example": 1793212800000
+                  },
+                  "public_origin": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The address other installs reach this branch at, as it last\nreported it; `null` for a local branch and for a shared node. A\nbranch with one is a remote branch of this library.",
+                    "example": "https://branch.example"
                   }
                 }
               },
@@ -8326,12 +8359,22 @@ Schema:
           },
           "kind": {
             "type": "string",
-            "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+            "description": "`shared` for a node sharing this library's database, `branch` for an\nenrolled branch.",
             "enum": [
               "shared",
               "branch"
             ],
             "example": "shared"
+          },
+          "relationship": {
+            "type": "string",
+            "description": "How the node relates to this library: `shared_branch` (shares its\ndatabase), `remote_branch` (a branch reporting a public address in\nits heartbeat, `status.public_origin`) or `local_branch` (a branch\nwith none).",
+            "enum": [
+              "shared_branch",
+              "remote_branch",
+              "local_branch"
+            ],
+            "example": "remote_branch"
           },
           "owner_user_id": {
             "type": [
@@ -8347,7 +8390,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for a\nshared node.",
             "example": true
           },
           "include_branches": {
@@ -8737,10 +8780,12 @@ Status `200`: This node and its shared branches.
         "online_since_ms": 1793167200000,
         "cache_bytes": 734003200,
         "cache_budget_bytes": 1073741824,
-        "cache_swept_ms": 1793212800000
+        "cache_swept_ms": 1793212800000,
+        "public_origin": "https://branch.example"
       },
       "this_node": true,
       "kind": "shared",
+      "relationship": "remote_branch",
       "owner_user_id": 7,
       "share_books": true,
       "include_branches": false,
@@ -8789,7 +8834,8 @@ Schema:
           "live",
           "runtime",
           "this_node",
-          "kind"
+          "kind",
+          "relationship"
         ],
         "properties": {
           "node_id": {
@@ -9085,6 +9131,14 @@ Schema:
                     "format": "int64",
                     "description": "When the node's last cache sweep finished, in Unix milliseconds.",
                     "example": 1793212800000
+                  },
+                  "public_origin": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The address other installs reach this branch at, as it last\nreported it; `null` for a local branch and for a shared node. A\nbranch with one is a remote branch of this library.",
+                    "example": "https://branch.example"
                   }
                 }
               },
@@ -9100,12 +9154,22 @@ Schema:
           },
           "kind": {
             "type": "string",
-            "description": "`owner` for a node sharing this library, `host` for an enrolled\nhost.",
+            "description": "`shared` for a node sharing this library's database, `branch` for an\nenrolled branch.",
             "enum": [
               "shared",
               "branch"
             ],
             "example": "shared"
+          },
+          "relationship": {
+            "type": "string",
+            "description": "How the node relates to this library: `shared_branch` (shares its\ndatabase), `remote_branch` (a branch reporting a public address in\nits heartbeat, `status.public_origin`) or `local_branch` (a branch\nwith none).",
+            "enum": [
+              "shared_branch",
+              "remote_branch",
+              "local_branch"
+            ],
+            "example": "remote_branch"
           },
           "owner_user_id": {
             "type": [
@@ -9121,7 +9185,7 @@ Schema:
               "boolean",
               "null"
             ],
-            "description": "A branch's sharing setting, as it last reported it; `null` for an\nshared node.",
+            "description": "A branch's sharing setting, as it last reported it; `null` for a\nshared node.",
             "example": true
           },
           "include_branches": {
@@ -13060,7 +13124,7 @@ A `text/plain` body: a string.
 ## `POST /api/config/node-invites`
 
 `POST /api/config/node-invites`: mint an enrollment link. Any user may
-mint one for themselves while host enrollment is on; the operator or an
+mint one for themselves while branch enrollment is on; the operator or an
 Owner may mint for any active user.
 
 ### Arguments
@@ -13101,7 +13165,7 @@ response when the library refuses the mint.
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `403` — The user may not mint a link for that user, host enrollment is off, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
+- `403` — The user may not mint a link for that user, branch enrollment is off, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
 - `404` — No such user. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
@@ -13349,11 +13413,11 @@ Schema:
 }
 ```
 
-Status `403`: The user may not mint a link for that user, host enrollment is off, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+Status `403`: The user may not mint a link for that user, branch enrollment is off, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
 
 ```json
 {
-  "error": "host enrollment is disabled for this library"
+  "error": "branch enrollment is disabled for this library"
 }
 ```
 
@@ -14462,7 +14526,7 @@ A `text/plain` body: a string.
 
 `application/json`: [`PutBranches`](schemas.md#putbranches)
 
-- `enrollment` *boolean*, **required** — "Let new branches join" (`core.host_enrollment.enabled`).
+- `enrollment` *boolean*, **required** — "Let new branches join" (`core.branch_enrollment.enabled`).
 
 ### Responses
 
@@ -14703,7 +14767,7 @@ Status `409`: The setting kept changing under the write; retry.
 
 ```json
 {
-  "error": "core.host_enrollment kept changing; retry"
+  "error": "core.branch_enrollment kept changing; retry"
 }
 ```
 
@@ -18912,695 +18976,6 @@ Schema:
   }
 }
 ```
-
-Status `500`: The library database could not be read or written.
-
-```json
-{
-  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `504`: The request ran past the API's time budget.
-
-```text
-request timed out
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-## `GET /api/config/host-enrollment`
-
-`GET /api/config/host-enrollment`: whether branch nodes may enroll.
-
-### Returns
-
-`{enabled, revision}`; `revision` is `null` while the default (enabled)
-applies.
-
-### Errors
-
-Returns an error response when the switch cannot be read.
-
-**Access:** The operator, or any signed-in user.
-
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
-
-### Responses
-
-- `200` — Whether branch nodes may enroll. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
-  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
-  - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `500` — The library database could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
-
-### Example request
-
-```console
-$ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
-    -H 'Authorization: Bearer <operatorToken>'
-```
-
-```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/host-enrollment' `
-    -Headers @{ Authorization = 'Bearer <operatorToken>' }
-```
-
-```python
-import requests
-
-response = requests.get(
-    "http://127.0.0.1:8787/api/config/host-enrollment",
-    headers={"Authorization": "Bearer <operatorToken>"},
-)
-print(response.status_code, response.text)
-```
-
-```javascript
-const response = await fetch("http://127.0.0.1:8787/api/config/host-enrollment", {
-  headers: { Authorization: "Bearer <operatorToken>" },
-});
-console.log(response.status, await response.text());
-```
-
-```rust
-let client = reqwest::Client::new();
-let response = client
-    .get("http://127.0.0.1:8787/api/config/host-enrollment")
-    .header("Authorization", "Bearer <operatorToken>")
-    .send()
-    .await?;
-println!("{} {}", response.status(), response.text().await?);
-```
-
-### Example response
-
-Status `200`: Whether branch nodes may enroll.
-
-```json
-{
-  "enabled": true,
-  "revision": 3
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "The host-enrollment switch.",
-  "required": [
-    "enabled"
-  ],
-  "properties": {
-    "enabled": {
-      "type": "boolean",
-      "description": "Whether branch nodes may enroll into this library.",
-      "example": true
-    },
-    "revision": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int64",
-      "description": "Stored revision; `null` while the default (enabled) applies.",
-      "example": 3
-    }
-  }
-}
-```
-
-Status `401`: The caller is not signed in.
-
-```json
-{
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
-    }
-  }
-}
-```
-
-Status `403`: The session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`).
-
-```json
-{
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
-  "status": 403
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `500`: The library database could not be read.
-
-```json
-{
-  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
-Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
-
-```json
-{
-  "error": "session_check_unavailable",
-  "message": "Your sign-in could not be checked yet. Try again in a moment.",
-  "status": 503
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
-  "required": [
-    "error",
-    "message",
-    "status"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Machine slug (same as [`ErrorBody::code`]).",
-      "example": "not_found"
-    },
-    "message": {
-      "type": "string",
-      "description": "Operator-facing explanation.",
-      "example": "That page or resource was not found."
-    },
-    "status": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Numeric HTTP status (duplicates the response status for clients).",
-      "example": 404,
-      "minimum": 0
-    }
-  }
-}
-```
-
-Status `504`: The request ran past the API's time budget.
-
-```text
-request timed out
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-## `PUT /api/config/host-enrollment`
-
-`PUT /api/config/host-enrollment`: turn host enrollment on or off. The
-operator may always; a user only while the stored role is an active
-Owner.
-
-### Arguments
-
-* `caller` - Who is asking; a user's role is read from the database.
-* `body` - The new switch value.
-
-### Returns
-
-`{enabled, revision}` as stored.
-
-### Errors
-
-Returns 403 when the caller is neither the operator nor an active Owner,
-and an error response when the switch cannot be written.
-
-**Access:** The operator, or any signed-in user.
-
-**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
-
-### Request body
-
-`application/json`: [`PutHostEnrollment`](schemas.md#puthostenrollment)
-
-- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
-
-### Responses
-
-- `200` — The switch after the change. Body: [`HostEnrollment`](schemas.md#hostenrollment) (`application/json`)
-  - `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
-  - `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
-- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
-- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
-  - `error` *string*, **required** — Stable machine slug.
-  - `message` *string* — Explanation for people.
-  - `status` *integer* — The HTTP status, repeated.
-- `403` — The user is not an active Owner, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) (`application/json`)
-- `409` — The setting kept changing under the write; retry. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
-- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
-- `500` — The library database could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
-  - `error` *string*, **required** — What went wrong, as the handler describes it.
-- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
-  - `message` *string*, **required** — Operator-facing explanation.
-  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
-- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
-
-### Example request
-
-```console
-$ curl 'http://127.0.0.1:8787/api/config/host-enrollment' \
-    -X PUT \
-    -H 'Authorization: Bearer <operatorToken>' \
-    -H 'Content-Type: application/json' \
-    -d '{"enabled": true}'
-```
-
-```powershell
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/host-enrollment' `
-    -Method Put `
-    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
-    -ContentType 'application/json' `
-    -Body '{"enabled": true}'
-```
-
-```python
-import requests
-
-response = requests.put(
-    "http://127.0.0.1:8787/api/config/host-enrollment",
-    headers={"Authorization": "Bearer <operatorToken>"},
-    json={"enabled": True},
-)
-print(response.status_code, response.text)
-```
-
-```javascript
-const response = await fetch("http://127.0.0.1:8787/api/config/host-enrollment", {
-  method: "PUT",
-  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"enabled": true}),
-});
-console.log(response.status, await response.text());
-```
-
-```rust
-let client = reqwest::Client::new();
-let response = client
-    .put("http://127.0.0.1:8787/api/config/host-enrollment")
-    .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"enabled": true}))
-    .send()
-    .await?;
-println!("{} {}", response.status(), response.text().await?);
-```
-
-### Example response
-
-Status `200`: The switch after the change.
-
-```json
-{
-  "enabled": true,
-  "revision": 3
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "The host-enrollment switch.",
-  "required": [
-    "enabled"
-  ],
-  "properties": {
-    "enabled": {
-      "type": "boolean",
-      "description": "Whether branch nodes may enroll into this library.",
-      "example": true
-    },
-    "revision": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "int64",
-      "description": "Stored revision; `null` while the default (enabled) applies.",
-      "example": 3
-    }
-  }
-}
-```
-
-Status `400`: The body is not syntactically valid JSON.
-
-```text
-Failed to parse the request body as JSON: expected value at line 1 column 1
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `401`: The caller is not signed in.
-
-```json
-{
-  "error": "unauthorized",
-  "message": "Operator authentication is required. Sign in with your operator token.",
-  "status": 401
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "Stable machine slug.",
-      "examples": [
-        "not_found"
-      ]
-    },
-    "message": {
-      "type": "string",
-      "description": "Explanation for people.",
-      "examples": [
-        "That page or resource was not found."
-      ]
-    },
-    "status": {
-      "type": "integer",
-      "description": "The HTTP status, repeated.",
-      "examples": [
-        404
-      ]
-    }
-  }
-}
-```
-
-Status `403`: The user is not an active Owner, the session has no user account (the standard error body), or the user must enroll a second factor first (`mfa_enrollment_required`). A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
-
-```json
-{
-  "error": "mfa_enrollment_required",
-  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
-  "status": 403
-}
-```
-
-Schema:
-
-```json
-{
-  "anyOf": [
-    {
-      "type": "object",
-      "description": "The session middleware's standard body (`error`, `message`, `status`).",
-      "required": [
-        "error",
-        "message",
-        "status"
-      ],
-      "properties": {
-        "error": {
-          "type": "string",
-          "description": "Machine slug (same as [`ErrorBody::code`]).",
-          "example": "not_found"
-        },
-        "message": {
-          "type": "string",
-          "description": "Operator-facing explanation.",
-          "example": "That page or resource was not found."
-        },
-        "status": {
-          "type": "integer",
-          "format": "int32",
-          "description": "Numeric HTTP status (duplicates the response status for clients).",
-          "example": 404,
-          "minimum": 0
-        }
-      }
-    },
-    {
-      "type": "object",
-      "description": "A slug or a sentence in `error`.",
-      "required": [
-        "error"
-      ],
-      "properties": {
-        "error": {
-          "type": "string",
-          "description": "What went wrong, as the handler describes it.",
-          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-        }
-      }
-    },
-    {
-      "type": "object",
-      "description": "A slug in `error` and a sentence in `detail`.",
-      "required": [
-        "error",
-        "detail"
-      ],
-      "properties": {
-        "error": {
-          "type": "string",
-          "description": "Stable machine slug clients branch on.",
-          "example": "invalid_request"
-        },
-        "detail": {
-          "type": "string",
-          "description": "What went wrong, for the person reading the answer.",
-          "example": "the redirect URI must be loopback or https"
-        }
-      }
-    }
-  ],
-  "description": "An error answer in one of several shapes: the standard body, `error` alone, or `error` with `detail`; the route's examples name each."
-}
-```
-
-Status `409`: The setting kept changing under the write; retry.
-
-```json
-{
-  "error": "core.host_enrollment kept changing; retry"
-}
-```
-
-Schema:
-
-```json
-{
-  "type": "object",
-  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
-  "required": [
-    "error"
-  ],
-  "properties": {
-    "error": {
-      "type": "string",
-      "description": "What went wrong, as the handler describes it.",
-      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
-    }
-  }
-}
-```
-
-Status `415`: The request did not declare a JSON body.
-
-```text
-Expected request with `Content-Type: application/json`
-```
-
-Schema:
-
-A `text/plain` body: a string.
-
-Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
-
-```text
-Failed to deserialize the JSON body into the target type: missing field `enabled` at line 1 column 2
-```
-
-Schema:
-
-A `text/plain` body: a string.
 
 Status `500`: The library database could not be read or written.
 

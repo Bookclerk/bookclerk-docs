@@ -239,6 +239,13 @@ JSON body for `GET /api/auth/branch-consent`: what the consent page shows.
 - `connection` *[`ConnectionChoice`](#connectionchoice)*, **required** — The connection types the page may offer.
 - `connections` *array of [`ConsentConnection`](#consentconnection)*, **required** — The user's store connections here, and whether each would travel to the branch if the user chooses to bring them.
 
+## BranchEnrollment
+
+The branch-enrollment switch.
+
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
+- `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
+
 ## BranchesResponse
 
 JSON body for `GET /api/config/branches`.
@@ -279,6 +286,16 @@ The consent page's connection block when only a branch is offered.
 
 - `choice` *boolean*, **required** — Always `false`.
 - `default` *string*, **required** — Always `branch`.
+
+## BranchRelationship
+
+How a node relates to the library, as people are told: a shared branch
+serves the library from its database, and a branch with its own
+database is a remote branch when it reports a public address (it is a
+core branch other installs can reach) and a local branch when it does
+not.
+
+Type: one of `shared_branch`, `remote_branch`, `local_branch`
 
 ## BranchRequestBody
 
@@ -1205,13 +1222,6 @@ One holding of a listing.
 - `purchased_at` *string or null* — RFC 3339 purchase time, when the store reported one.
 - `added_at` *string*, **required** — RFC 3339 time the holding was first recorded.
 
-## HostEnrollment
-
-The host-enrollment switch.
-
-- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
-- `revision` *integer (int64) or null* — Stored revision; `null` while the default (enabled) applies.
-
 ## ImpersonateRequest
 
 JSON body naming the first-party user to impersonate.
@@ -1767,6 +1777,7 @@ A node's latest heartbeat with budget, accounting, and availability.
 - `cache_bytes` *integer (int64) or null* — Bytes the node's image caches hold; `None` from a node that keeps none.
 - `cache_budget_bytes` *integer (int64) or null* — Bytes the node's image caches may hold.
 - `cache_swept_ms` *integer (int64) or null* — When the node's last cache sweep finished, in Unix milliseconds.
+- `public_origin` *string or null* — The address other installs reach this branch at, as it last reported it; `null` for a local branch and for a shared node. A branch with one is a remote branch of this library.
 
 ## NodeView
 
@@ -1786,9 +1797,10 @@ One node with its latest heartbeat, budget and owner.
 - `runtime` *[`NodeRuntimeSettingsV1`](#noderuntimesettingsv1)*, **required** — The node's runtime document, or the defaults when it never wrote one.
 - `status` *[`NodeStatus`](#nodestatus) or null* — The latest heartbeat; `null` before the first one.
 - `this_node` *boolean*, **required** — True for the node that answered the request.
-- `kind` *[`NodeKind`](#nodekind)*, **required** — `owner` for a node sharing this library, `host` for an enrolled host.
+- `kind` *[`NodeKind`](#nodekind)*, **required** — `shared` for a node sharing this library's database, `branch` for an enrolled branch.
+- `relationship` *[`BranchRelationship`](#branchrelationship)*, **required** — How the node relates to this library: `shared_branch` (shares its database), `remote_branch` (a branch reporting a public address in its heartbeat, `status.public_origin`) or `local_branch` (a branch with none).
 - `owner_user_id` *integer (int64) or null* — User id of the node's owner; `null` when unassigned.
-- `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for an shared node.
+- `share_books` *boolean or null* — A branch's sharing setting, as it last reported it; `null` for a shared node.
 - `include_branches` *boolean or null* — A branch's include-branches setting, as it last reported it; `null` for a shared node.
 - `owner` *[`NodeOwnerSummary`](#nodeownersummary) or null* — The owner, when the node has one and the user still exists.
 
@@ -2096,7 +2108,7 @@ The consent page's connection block for an Owner, who may pick shared branch.
 - `library_name` *string*, **required** — A name to show for the library.
 - `origin` *string*, **required** — The library's canonical origin: the one the node handshake signs and the authorize endpoint lives under.
 - `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
-- `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.host_enrollment`).
+- `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.branch_enrollment`).
 - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
 - `software_version` *string* — The library's Bookclerk version.
 - `ancestry` *array of string* — The library's ancestry: its own library id first, then the library id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own library id, so a tree of libraries never becomes a cycle.
@@ -2779,11 +2791,17 @@ Priced catalog matches for one title, sorted best-first.
 
 - `version` *string*, **required** — Installed version to activate.
 
+## PutBranchEnrollment
+
+`PUT /api/config/branch-enrollment` body.
+
+- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
+
 ## PutBranches
 
 `PUT /api/config/branches` body.
 
-- `enrollment` *boolean*, **required** — "Let new branches join" (`core.host_enrollment.enabled`).
+- `enrollment` *boolean*, **required** — "Let new branches join" (`core.branch_enrollment.enabled`).
 
 ## PutEventsDomainRequest
 
@@ -2793,12 +2811,6 @@ JSON body for `PUT /api/config/domains/core.events`.
 - `retention_days` *integer (int64)*, **required** — Replacement `[events]` document. At least 0.
 - `dead_letter_retention_days` *integer (int64)*, **required** — Replacement dead-letter retention. At least 0.
 - `concurrency` *integer (int32)*, **required** — Replacement concurrency cap. At least 0.
-
-## PutHostEnrollment
-
-`PUT /api/config/host-enrollment` body.
-
-- `enabled` *boolean*, **required** — Whether branch nodes may enroll into this library.
 
 ## PutNodeLabels
 

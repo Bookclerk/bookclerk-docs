@@ -52,12 +52,12 @@ See `docs/adr/control-plane.md`.
 | [`VerifiedLibraryOwner`](#verifiedlibraryowner) | struct | Proof that a user was an active Owner when the write was authorized. |
 | [`VerifiedNodeOwner`](#verifiednodeowner) | struct | Proof that a user owned a node when the write was authorized. |
 | [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a write of the library's patron defaults was authorized. |
+| [`BranchEnrollmentSettings`](#branchenrollmentsettings) | struct | The branch-enrollment switch as stored, or its default when no document was ever written. |
+| [`BranchEnrollmentSettingsV1`](#branchenrollmentsettingsv1) | struct | Typed `core.branch_enrollment` document, schema version 1. |
 | [`EnrolledNode`](#enrollednode) | struct | Result of a successful redeem. |
 | [`EnrollmentLink`](#enrollmentlink) | struct | One link as listings show it. The secret and its hash are not included. |
 | [`EnrollmentSecret`](#enrollmentsecret) | struct | A link's plaintext secret. Shown once at mint and never stored; `Debug` does not print it. |
 | [`EnrollmentToken`](#enrollmenttoken) | struct | A parsed enrollment token. |
-| [`HostEnrollmentSettings`](#hostenrollmentsettings) | struct | The host-enrollment switch as stored, or its default when no document was ever written. |
-| [`HostEnrollmentSettingsV1`](#hostenrollmentsettingsv1) | struct | Typed `core.host_enrollment` document, schema version 1. |
 | [`MintedLink`](#mintedlink) | struct | A freshly minted link and its secret, which is returned only here. |
 | [`NodeCredential`](#nodecredential) | struct | A branch node's stored credential. |
 | [`RedeemRequest`](#redeemrequest) | struct | What a host submits to redeem a link. |
@@ -168,6 +168,7 @@ See `docs/adr/control-plane.md`.
 | [`ConfigActor`](#configactor) | enum | Who is allowed to write a configuration document. |
 | [`ReplaceOutcome`](#replaceoutcome) | enum | Result of a compare-and-swap replacement. |
 | [`EnrollmentActor`](#enrollmentactor) | enum | Who is acting on enrollment links and node credentials. |
+| [`BranchRelationship`](#branchrelationship) | enum | How a node relates to the library, as people are told: a shared branch serves the library from its database, and a branch with its own database is a remote branch when it reports a public address (it is a core branch other installs can reach) and a local branch when it does not. |
 | [`NodeKind`](#nodekind) | enum | How a node joined the library. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
@@ -300,7 +301,7 @@ See `docs/adr/control-plane.md`.
 | [`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts) | function | Whether the user who approved the sign-in behind `link_id` chose to bring their store connections to the branch (`record_authorized_enrollment_link`). `false` for an unknown link and for every minted invite. |
 | [`format_enrollment_token`](#format_enrollment_token) | function | Formats `bcn1.<link_id>.<secret>[.<spki_pin>]`. |
 | [`list_enrollment_links`](#list_enrollment_links) | function | Links `actor` may see, newest first: every link for the operator or an Owner, the caller's own links for anyone else. |
-| [`load_host_enrollment`](#load_host_enrollment) | function | Reads the library's host-enrollment switch. A missing document means the default: enabled. |
+| [`load_branch_enrollment`](#load_branch_enrollment) | function | Reads the library's branch-enrollment switch. A missing document means the default: enabled. |
 | [`load_node_credential`](#load_node_credential) | function | Reads a branch node's credential. |
 | [`mint_enrollment_link`](#mint_enrollment_link) | function | Mints a link that enrolls one branch node for `for_user_id`. |
 | [`parse_enrollment_token`](#parse_enrollment_token) | function | Parses a token, or a whole link whose fragment is the token. |
@@ -311,7 +312,7 @@ See `docs/adr/control-plane.md`.
 | [`redeem_enrollment_link_as`](#redeem_enrollment_link_as) | function | `redeem_enrollment_link` for a node of `kind`: the same canonical batch, recording `kind` on the `nodes` row. |
 | [`revoke_enrollment_link`](#revoke_enrollment_link) | function | Revokes an unredeemed link. Returns the link as stored afterwards. |
 | [`revoke_node_credential`](#revoke_node_credential) | function | Revokes a branch node's credential and tells every node, so the node holding that host's connection can close it. |
-| [`set_host_enrollment_enabled`](#set_host_enrollment_enabled) | function | Turns host enrollment on or off for the library. |
+| [`set_branch_enrollment_enabled`](#set_branch_enrollment_enabled) | function | Turns branch enrollment on or off for the library. |
 | [`verify_library_owner`](#verify_library_owner) | function | Returns a `ConfigActor::LibraryOwner` when `user_id` is an active Owner. |
 | [`current_process_incarnation`](#current_process_incarnation) | function | This process's incarnation. Stable until the process exits. |
 | [`encode_node_identity_file`](#encode_node_identity_file) | function | The `NODE_IDENTITY_FILE` contents `install_node_identity` writes, for a caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) with mode `0600`. |
@@ -600,10 +601,10 @@ See `docs/adr/control-plane.md`.
 | [`PLUGIN_INSTANCE_CONFIG_NAMESPACE`](#plugin_instance_config_namespace) | constant | Namespace of a plugin instance's typed configuration document. |
 | [`PLUGIN_INSTANCE_SCOPE_TYPE`](#plugin_instance_scope_type) | constant | Scope type stored for one plugin instance's configuration. |
 | [`AUTHORIZED_LINK_CREATED_BY`](#authorized_link_created_by) | constant | Prefix of the `created_by` audit id of a link a sign-in created. |
+| [`BRANCH_ENROLLMENT_NAMESPACE`](#branch_enrollment_namespace) | constant | Namespace of the library's branch-enrollment switch. |
+| [`BRANCH_ENROLLMENT_SCHEMA_VERSION`](#branch_enrollment_schema_version) | constant | Schema version of `BranchEnrollmentSettingsV1`. |
 | [`DEFAULT_LINK_TTL`](#default_link_ttl) | constant | Default lifetime of a link. |
 | [`ENROLLMENT_TOKEN_PREFIX`](#enrollment_token_prefix) | constant | Version tag that starts every enrollment token. |
-| [`HOST_ENROLLMENT_NAMESPACE`](#host_enrollment_namespace) | constant | Namespace of the library's host-enrollment switch. |
-| [`HOST_ENROLLMENT_SCHEMA_VERSION`](#host_enrollment_schema_version) | constant | Schema version of `HostEnrollmentSettingsV1`. |
 | [`MAX_LINK_LABEL_BYTES`](#max_link_label_bytes) | constant | Longest `label` stored on a link. |
 | [`MAX_LINK_TTL`](#max_link_ttl) | constant | Longest lifetime a link may be minted with. |
 | [`MIN_LINK_TTL`](#min_link_ttl) | constant | Shortest lifetime a link may be minted with. |
@@ -1765,6 +1766,41 @@ The user's id.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### BranchEnrollmentSettings
+
+```rust
+pub struct BranchEnrollmentSettings {
+    pub body: BranchEnrollmentSettingsV1,
+    pub revision: Option<i64>,
+}
+```
+
+The branch-enrollment switch as stored, or its default when no document
+was ever written.
+
+**Fields**
+
+- `body`: Effective settings.
+- `revision`: Stored revision; `None` while the default applies.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### BranchEnrollmentSettingsV1
+
+```rust
+pub struct BranchEnrollmentSettingsV1 {
+    pub enabled: bool,
+}
+```
+
+Typed `core.branch_enrollment` document, schema version 1.
+
+**Fields**
+
+- `enabled`: When false, no link may be minted or redeemed.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### EnrolledNode
 
 ```rust
@@ -1873,41 +1909,6 @@ A parsed enrollment token.
 - `spki_pin`: SPKI pin of the owner's self-signed certificate, when present.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### HostEnrollmentSettings
-
-```rust
-pub struct HostEnrollmentSettings {
-    pub body: HostEnrollmentSettingsV1,
-    pub revision: Option<i64>,
-}
-```
-
-The host-enrollment switch as stored, or its default when no document
-was ever written.
-
-**Fields**
-
-- `body`: Effective settings.
-- `revision`: Stored revision; `None` while the default applies.
-
-Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### HostEnrollmentSettingsV1
-
-```rust
-pub struct HostEnrollmentSettingsV1 {
-    pub enabled: bool,
-}
-```
-
-Typed `core.host_enrollment` document, schema version 1.
-
-**Fields**
-
-- `enabled`: When false, no link may be minted or redeemed.
-
-Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### MintedLink
 
@@ -3333,6 +3334,7 @@ pub struct NodeHeartbeat {
     pub memory_available_bytes: Option<i64>,
     pub files_dir_free_bytes: Option<i64>,
     pub cache: Option<CacheUsage>,
+    pub public_origin: Option<String>,
 }
 ```
 
@@ -3348,7 +3350,12 @@ One heartbeat's measurements, before budget and accounting are applied.
 - `cpu_used_millicores`: Measured CPU in use, in millicores.
 - `memory_available_bytes`: Measured memory available to new work.
 - `files_dir_free_bytes`: Free bytes on the files directory's filesystem.
-- `cache`: The image caches' use; `None` from a node that keeps none (a Host).
+- `cache`: The image caches' use; `None` from a node that keeps none (a
+  branch).
+- `public_origin`: The address other installs reach the node at, as a branch reports it
+  (already parsed into a [`bookclerk_node_proto::BranchOrigin`](../bookclerk_node_proto/README.md#branchorigin) by the
+  node API); `None` for a branch without one (a local branch) and for
+  a shared node, which reports none.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -3416,6 +3423,7 @@ pub struct NodeStatus {
     pub cache_bytes: Option<i64>,
     pub cache_budget_bytes: Option<i64>,
     pub cache_swept_ms: Option<i64>,
+    pub public_origin: Option<String>,
 }
 ```
 
@@ -3445,6 +3453,9 @@ A node's latest heartbeat with budget, accounting, and availability.
   none.
 - `cache_budget_bytes`: Bytes the node's image caches may hold.
 - `cache_swept_ms`: When the node's last cache sweep finished, in Unix milliseconds.
+- `public_origin`: The address other installs reach this branch at, as it last
+  reported it; `null` for a local branch and for a shared node. A
+  branch with one is a remote branch of this library.
 
 #### NodeStatus::is_live
 
@@ -5662,8 +5673,8 @@ Who is allowed to write a configuration document.
 - `NodeOwner`: The user who owns one node. Writes that node's `node.runtime`
   document only. Built by [`super::verify_node_owner`](#verify_node_owner), which checks
   `nodes.owner_user_id`, so a caller cannot claim a node it does not own.
-- `LibraryOwner`: An active portal Owner. Writes the library's host-enrollment switch
-  (`core.host_enrollment`) only; every other document stays an
+- `LibraryOwner`: An active portal Owner. Writes the library's branch-enrollment switch
+  (`core.branch_enrollment`) only; every other document stays an
   operator write. Built by [`super::verify_library_owner`](#verify_library_owner), which reads
   the user's stored role and status.
 - `PatronAdministrator`: An active portal Owner or Administrator. Writes the library's
@@ -5719,6 +5730,60 @@ do.
   - `user_id`: Calling user.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### BranchRelationship
+
+```rust
+pub enum BranchRelationship {
+    SharedBranch,
+    RemoteBranch,
+    LocalBranch,
+}
+```
+
+How a node relates to the library, as people are told: a shared branch
+serves the library from its database, and a branch with its own
+database is a remote branch when it reports a public address (it is a
+core branch other installs can reach) and a local branch when it does
+not.
+
+**Variants**
+
+- `SharedBranch`: Shares the library's database and keys ([`NodeKind::Shared`](#nodekind)).
+- `RemoteBranch`: Its own install, reachable at the public address it reports.
+- `LocalBranch`: Its own install with no public address; it dials the library and is
+  never dialed.
+
+#### BranchRelationship::of
+
+```rust
+pub fn of(kind: NodeKind, public_origin: Option<&str>) -> Self
+```
+
+The relationship of a node of `kind` whose latest heartbeat reported
+`public_origin`. A branch counts as local until a heartbeat reports
+an address.
+
+##### Arguments
+
+* `kind` - How the node joined.
+* `public_origin` - The address its latest heartbeat reported, if any.
+
+##### Returns
+
+[`Self::SharedBranch`](#branchrelationship) for a shared node, whatever it reports;
+otherwise [`Self::RemoteBranch`](#branchrelationship) with an address and
+[`Self::LocalBranch`](#branchrelationship) without.
+
+#### BranchRelationship::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Wire text (`shared_branch`, `remote_branch`, `local_branch`).
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### NodeKind
 
@@ -8577,13 +8642,15 @@ Owner, the caller's own links for anyone else.
 
 Returns an error when the actor is not an active user or the read fails.
 
-### load_host_enrollment
+### load_branch_enrollment
 
 ```rust
-pub async fn load_host_enrollment(store: &LibraryStore) -> Result<HostEnrollmentSettings>
+pub async fn load_branch_enrollment(
+    store: &LibraryStore,
+) -> Result<BranchEnrollmentSettings>
 ```
 
-Reads the library's host-enrollment switch. A missing document means the
+Reads the library's branch-enrollment switch. A missing document means the
 default: enabled.
 
 #### Errors
@@ -8677,7 +8744,7 @@ A second call for the same link id leaves the first row as it is.
 
 #### Errors
 
-Returns [`LibraryError::Forbidden`](README.md#libraryerror) while host enrollment is off or the
+Returns [`LibraryError::Forbidden`](README.md#libraryerror) while branch enrollment is off or the
 user is not active, [`LibraryError::Invalid`](README.md#libraryerror) for a malformed label, and
 the write error.
 
@@ -8802,17 +8869,17 @@ caller's (the two read the same), [`LibraryError::Invalid`](README.md#libraryerr
 node has no host credential (a shared node), and the write error when
 the update fails.
 
-### set_host_enrollment_enabled
+### set_branch_enrollment_enabled
 
 ```rust
-pub async fn set_host_enrollment_enabled(
+pub async fn set_branch_enrollment_enabled(
     store: &LibraryStore,
     actor: &ConfigActor,
     enabled: bool,
-) -> Result<ConfigurationDocument<HostEnrollmentSettingsV1>>
+) -> Result<ConfigurationDocument<BranchEnrollmentSettingsV1>>
 ```
 
-Turns host enrollment on or off for the library.
+Turns branch enrollment on or off for the library.
 
 Only the operator or a verified Owner ([`verify_library_owner`](#verify_library_owner)) may write
 it. Retries a few times on a concurrent edit.
@@ -13929,6 +13996,22 @@ pub const AUTHORIZED_LINK_CREATED_BY: &str = "oauth:";
 
 Prefix of the `created_by` audit id of a link a sign-in created.
 
+### BRANCH_ENROLLMENT_NAMESPACE
+
+```rust
+pub const BRANCH_ENROLLMENT_NAMESPACE: &str = "core.branch_enrollment";
+```
+
+Namespace of the library's branch-enrollment switch.
+
+### BRANCH_ENROLLMENT_SCHEMA_VERSION
+
+```rust
+pub const BRANCH_ENROLLMENT_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`BranchEnrollmentSettingsV1`](#branchenrollmentsettingsv1).
+
 ### DEFAULT_LINK_TTL
 
 ```rust
@@ -13944,22 +14027,6 @@ pub const ENROLLMENT_TOKEN_PREFIX: &str = "bcn1";
 ```
 
 Version tag that starts every enrollment token.
-
-### HOST_ENROLLMENT_NAMESPACE
-
-```rust
-pub const HOST_ENROLLMENT_NAMESPACE: &str = "core.host_enrollment";
-```
-
-Namespace of the library's host-enrollment switch.
-
-### HOST_ENROLLMENT_SCHEMA_VERSION
-
-```rust
-pub const HOST_ENROLLMENT_SCHEMA_VERSION: i64 = 1;
-```
-
-Schema version of [`HostEnrollmentSettingsV1`](#hostenrollmentsettingsv1).
 
 ### MAX_LINK_LABEL_BYTES
 

@@ -384,7 +384,7 @@ A `text/plain` body: a string.
   - `library_name` *string*, **required** — A name to show for the library.
   - `origin` *string*, **required** — The library's canonical origin: the one the node handshake signs and the authorize endpoint lives under.
   - `transport` *string*, **required** — The node API transport mode (`acme`, `proxy`, `self_signed`, `loopback`).
-  - `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.host_enrollment`).
+  - `enrollment` *boolean*, **required** — Whether the library lets new branches join (`core.branch_enrollment`).
   - `spki_fingerprint` *string or null* — In `self_signed` mode: base64url SHA-256 of the certificate's SubjectPublicKeyInfo, which the joining operator confirms against the owner's Settings → Branches page.
   - `software_version` *string* — The library's Bookclerk version.
   - `ancestry` *array of string* — The library's ancestry: its own library id first, then the library id of every library above it up to the root. A joining library refuses a parent whose ancestry names its own library id, so a tree of libraries never becomes a cycle.
@@ -479,7 +479,7 @@ Schema:
     },
     "enrollment": {
       "type": "boolean",
-      "description": "Whether the library lets new branches join (`core.host_enrollment`).",
+      "description": "Whether the library lets new branches join (`core.branch_enrollment`).",
       "example": true
     },
     "spki_fingerprint": {

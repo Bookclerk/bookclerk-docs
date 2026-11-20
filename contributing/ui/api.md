@@ -765,7 +765,7 @@ Labels every node carries (`node=<id>`, `target=<target>`).
 kind: "shared" | "branch";
 ```
 
-`owner` (shares the database) or `host` (its own database, enrolled to contribute).
+`shared` (shares the database) or `branch` (its own database, enrolled to contribute).
 
 ##### labels
 
@@ -802,6 +802,15 @@ owner:
 ```
 
 User who administers this node, when one is assigned.
+
+##### relationship
+
+```ts
+relationship: BranchRelationship;
+```
+
+`shared_branch` (shares the database), `remote_branch` (a branch that
+reports a public address) or `local_branch` (a branch with none).
 
 ##### runtime
 
@@ -2767,6 +2776,15 @@ memory_bytes: number | null;
 ```
 
 Detected memory in bytes, when the node could read it.
+
+##### public\_origin?
+
+```ts
+public_origin?: string | null;
+```
+
+The address other installs reach a branch at, as its heartbeat last
+reported it; null for a local branch and for a shared node.
 
 ##### reserved
 
@@ -6674,6 +6692,16 @@ type AuthRole = "operator" | "owner" | "administrator" | "member";
 ```
 
 Session role returned by the daemon auth APIs.
+
+***
+
+### BranchRelationship
+
+```ts
+type BranchRelationship = "shared_branch" | "remote_branch" | "local_branch";
+```
+
+How a node relates to the library.
 
 ***
 
