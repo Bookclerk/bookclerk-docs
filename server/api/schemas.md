@@ -157,6 +157,30 @@ rather than a JSON array.
 
 Type: binary
 
+## BookmarkEditBody
+
+`PUT /api/playback/bookmarks/{id}` body: what to change. A field left
+out keeps its stored value.
+
+- `position_ms` *integer (int64) or null* — The new place, in milliseconds. At least 0.
+- `title` *string or null* — The new note; an empty string clears it.
+
+## BookmarkJson
+
+A place the caller marked in an edition.
+
+- `id` *string*, **required** — Bookmark id.
+- `edition_id` *string*, **required** — The edition it is in.
+- `position_ms` *integer (int64)*, **required** — The marked place, in milliseconds from the edition's start. At least 0.
+- `title` *string*, **required** — The caller's note; may be empty.
+- `created_at` *string*, **required** — When it was made (RFC 3339).
+
+## BookmarksJson
+
+`GET /api/library/editions/{id}/bookmarks` answer.
+
+- `bookmarks` *array of [`BookmarkJson`](#bookmarkjson)*, **required** — The caller's bookmarks in the edition, in timeline order.
+
 ## BootstrapRequest
 
 Operator-only body for creating the first Owner when none exist.
@@ -1580,6 +1604,13 @@ set.
 
 Type: one of `audiobookshelf`, `classic`
 
+## NewBookmarkBody
+
+`POST /api/library/editions/{id}/bookmarks` body.
+
+- `position_ms` *integer (int64)*, **required** — The place to mark, in milliseconds (at most sixty days). At least 0.
+- `title` *string* — A note for it, at most 200 bytes, no control characters; empty when left out.
+
 ## NodeCapabilities
 
 What the caller may do on the nodes it sees.
@@ -1905,6 +1936,14 @@ document could not be restated as 3.0.3.
 - `error` *string*, **required** — Always `openapi_v30_unavailable`.
 - `message` *string*, **required** — What to do: the daemon log names the form that could not be restated.
 
+## OpenSessionBody
+
+`POST /api/playback/sessions` body.
+
+- `edition_id` *string*, **required** — The edition to play (1 to 128 bytes).
+- `player` *[`PlayerKindParam`](#playerkindparam)* — What kind of player asks; `web` when left out.
+- `player_name` *string* — The player's own name, shown in listening history. Control characters are dropped and at most 64 bytes are kept.
+
 ## OperatorSessionView
 
 An operator session as listed by `GET /api/auth/sessions`.
@@ -2198,6 +2237,35 @@ pass's result.
 `POST /api/library/scan` and `POST /api/library/acquire` `409` body: the two conflicts a plan can hit.
 
 Type: [`ScanPlanResponse`](#scanplanresponse) or [`ActionResponse`](#actionresponse)
+
+## PlaybackManifestJson
+
+`GET /api/library/editions/{id}/playback` answer.
+
+- `edition_id` *string*, **required** — The edition.
+- `work_id` *string or null* — Its work.
+- `title` *string*, **required** — The edition's display title.
+- `playable` *boolean*, **required** — True when this node holds a copy the caller may play. False when the library has not acquired the edition, no destination of this node holds it, or the caller may not take it.
+- `duration_ms` *integer (int64) or null* — Runtime in milliseconds: the last player's report when the caller has one, else the catalog's, to the minute; null when neither is known. At least 0.
+- `tracks` *array of [`TrackJson`](#trackjson)*, **required** — The tracks in play order; empty when not playable. A session's answer adds the stream paths.
+- `progress` *[`ProgressJson`](#progressjson) or null* — The caller's progress; null before they first play it.
+- `bookmarks` *array of [`BookmarkJson`](#bookmarkjson)*, **required** — The caller's bookmarks, in timeline order.
+
+## PlaybackSyncBody
+
+`POST /api/playback/sessions/{id}/sync` and `.../close` body: where
+the listener is.
+
+- `position_ms` *integer (int64)*, **required** — Position on the edition's timeline, in milliseconds from its start (at most sixty days). At least 0.
+- `listened_ms` *integer (int64)*, **required** — Milliseconds listened since this session's last report, as the player counted them; left out reads as 0. At least 0.
+- `duration_ms` *integer (int64) or null* — The edition's whole runtime in milliseconds, when the player knows it; left out or `null` keeps the stored one. At least 0.
+
+## PlayerKindParam
+
+The kind of first-party player that opens a session. Outside player
+apps open theirs through the player API.
+
+Type: one of `web`, `desktop`
 
 ## PluginArtifactSummary
 
@@ -2607,6 +2675,35 @@ JSON body after `PATCH /api/auth/profile`.
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `user` *[`AuthMeUser`](#authmeuser)*, **required** — The profile after the change, as `GET /api/auth/me` reports it.
 
+## ProgressEditBody
+
+`PUT /api/playback/progress/{edition_id}` body: what to set. A field
+left out keeps its stored value.
+
+- `position_ms` *integer (int64) or null* — Position in milliseconds (at most sixty days). At least 0.
+- `duration_ms` *integer (int64) or null* — The edition's runtime in milliseconds, when the page knows it. At least 0.
+- `is_finished` *boolean or null* — True marks the edition and its work finished; false clears the edition's flag (the work's stays, and is changed with the work's own state). Left out, the position decides.
+
+## ProgressJson
+
+One person's progress in one edition.
+
+- `edition_id` *string*, **required** — The edition.
+- `work_id` *string or null* — The edition's work, when known: what a Continue listening shelf reads the title and cover from.
+- `position_ms` *integer (int64)*, **required** — Position on the edition's timeline, in milliseconds. At least 0.
+- `duration_ms` *integer (int64) or null* — The edition's runtime in milliseconds as the last player reported it; null until one has. At least 0.
+- `is_finished` *boolean*, **required** — True once the caller reached the end of this edition.
+- `started_at` *string*, **required** — When the caller first played it (RFC 3339).
+- `finished_at` *string or null* — When the caller last reached the end (RFC 3339).
+- `updated_at` *string*, **required** — When the progress last changed (RFC 3339).
+
+## ProgressPage
+
+`GET /api/playback/progress` answer.
+
+- `items` *array of [`ProgressJson`](#progressjson)*, **required** — The caller's progress rows, most recently played first. Editions their patron scope no longer shows are left out, so a page can be shorter than `limit` with more to come.
+- `next_cursor` *string or null* — Cursor of the next page; absent on the last.
+
 ## PurchaseHint
 
 A purchase / catalog availability hint (optionally priced at view time).
@@ -2983,6 +3080,18 @@ One rule of a scope: a field, one value of it, and its effect.
 - `value` *string*, **required** — The value, compared without case and surrounding space (1 to 256 bytes).
 - `effect` *[`RuleEffect`](#ruleeffect)*, **required** — Include or exclude.
 
+## SessionJson
+
+`POST /api/playback/sessions` answer.
+
+- `session_id` *string*, **required** — The session's id, for its sync, close and track routes.
+- `edition_id` *string*, **required** — The edition being played.
+- `work_id` *string or null* — Its work.
+- `position_ms` *integer (int64)*, **required** — Where to start, in milliseconds: the caller's stored position, or 0 for a first listen or an edition they had finished. At least 0.
+- `duration_ms` *integer (int64) or null* — Runtime in milliseconds when known (see the manifest). At least 0.
+- `tracks` *array of [`TrackJson`](#trackjson)*, **required** — The tracks in play order, each with the path to stream it from.
+- `idle_secs` *integer (int64)*, **required** — Seconds without a report after which the session stops streaming and the player opens a new one.
+
 ## SessionsResponse
 
 JSON body for `GET /api/auth/sessions`.
@@ -3227,6 +3336,13 @@ One storefront edition of a work (for multi-store purchase links).
 - `source` *string*, **required** — Canonical storefront / plugin id (`audible`, `libro`, `chirp`, …).
 - `product_id` *string*, **required** — Storefront-native product id (ASIN, ISBN, UUID, …).
 
+## SyncJson
+
+`POST /api/playback/sessions/{id}/sync` and `.../close` answer.
+
+- `progress` *[`ProgressJson`](#progressjson)*, **required** — The caller's progress after the report.
+- `finished_now` *boolean*, **required** — True when this report is the one that reached the edition's end: the edition and its work are now finished for the caller.
+
 ## TcpGrantView
 
 Operator-facing TCP grant (`host` + `ports`).
@@ -3446,6 +3562,16 @@ Optional current password for enroll/disable step-up.
 JSON body for `GET /api/auth/totp`.
 
 - `enabled` *boolean*, **required** — Whether an authenticator app is confirmed for the caller.
+
+## TrackJson
+
+One audio file of an edition, as a player sees it.
+
+- `index` *integer*, **required** — The track's place in play order, from 0. At least 0.
+- `path` *string or null* — Path to stream it from, on this origin; only in a session's answer.
+- `content_type` *string*, **required** — Media type the stream states, such as `audio/mp4`.
+- `bitrate_kbps` *integer (int32) or null* — Average bitrate in kilobits per second, once probed. At least 0.
+- `lossless` *boolean*, **required** — True for a lossless encoding.
 
 ## TransportRefused
 

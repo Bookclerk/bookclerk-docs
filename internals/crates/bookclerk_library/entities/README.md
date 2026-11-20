@@ -18,6 +18,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`account_shares`](account_shares.md): SeaORM entity for the `account_shares` table: where a store account travelled with its person (`control_plane::carried_accounts`).
 - [`accounts`](accounts.md): SeaORM entity for the `accounts` table.
 - [`bookclerk_receipts`](bookclerk_receipts.md): SeaORM entity for durable atomic result receipts.
+- [`bookmarks`](bookmarks.md): SeaORM entity for `bookmarks`: places one person marked in one edition. Written by `crate::LibraryStore`'s playback methods (`store::playback`).
 - [`books`](books.md): SeaORM entity for the `books` table.
 - [`catalog_listing_optouts`](catalog_listing_optouts.md): SeaORM entity for `catalog_listing_optouts`: on a branch, the members whose books it does not list to the libraries it joined.
 - [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
@@ -76,6 +77,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`patron_scope_keys`](patron_scope_keys.md): SeaORM entity for the `patron_scope_keys` table: the include and exclude values of a patron scope as rows, so the Library filter joins them instead of binding one parameter per rule.
 - [`patron_scopes`](patron_scopes.md): SeaORM entity for the `patron_scopes` table: a Member's own patron scope, set by an Administrator.
 - [`pending_joins`](pending_joins.md): SeaORM entity for `pending_joins`: on a host joining a library, one sign-in in progress (written by `control_plane::create_pending_join`). The PKCE verifier and the node keys are sealed in `encrypted_secrets`, never stored here.
+- [`playback_progress`](playback_progress.md): SeaORM entity for `playback_progress`: how far one person has listened to one edition. Written by `crate::LibraryStore`'s playback methods (`store::playback`).
+- [`playback_sessions`](playback_sessions.md): SeaORM entity for `playback_sessions`: one stretch of listening by one person on one player. A session is also the leave to stream the edition's files from one destination, checked afresh on every request (`control_plane::copies::authorize_playback`).
 - [`plugin_artifacts`](plugin_artifacts.md): SeaORM entity for `plugin_artifacts`: the header of a version archive stored in the library when no shared artifact location exists.
 - [`plugin_cron_cursors`](plugin_cron_cursors.md): SeaORM entity for `plugin_cron_cursors`: the last claimed fire of each plugin cron schedule.
 - [`plugin_deployment_observations`](plugin_deployment_observations.md): SeaORM entity for observed plugin deployment state.

@@ -41,6 +41,8 @@ See `docs/adr/control-plane.md`.
 | [`CopyPlan`](#copyplan) | struct | The copy of one edition a holder may take. |
 | [`CopyPlanFile`](#copyplanfile) | struct | One file of a planned copy, on one destination. |
 | [`OpenedCopy`](#openedcopy) | struct | A grant just opened by `open_copy`. |
+| [`PlaybackPlan`](#playbackplan) | struct | What a person may play of one edition (`plan_playback`). |
+| [`PlaybackTrack`](#playbacktrack) | struct | One audio file a player streams for an edition, on one destination. |
 | [`CronCursor`](#croncursor) | struct | One `plugin_cron_cursors` row. |
 | [`DeploymentObservation`](#deploymentobservation) | struct | One node's observation of a deployment. |
 | [`PluginDeployment`](#plugindeployment) | struct | One desired deployment row. |
@@ -259,8 +261,10 @@ See `docs/adr/control-plane.md`.
 | [`parse_add_connections_request`](#parse_add_connections_request) | function | Parses and validates a `POST /api/config/join/connections` body from its raw bytes, sans IO, the way the route reads it: JSON into `AddConnectionsBody`, then `AddConnectionsBody::validate`. |
 | [`parse_disconnect_request`](#parse_disconnect_request) | function | Parses a `POST /api/config/join/connections/disconnect` body from its raw bytes, sans IO, the way the route reads it: JSON into `DisconnectBody`, then `DisconnectBody::into_request`. |
 | [`authorize_copy`](#authorize_copy) | function | The files `token` may download for copy `copy_id`, or `None`. |
+| [`authorize_playback`](#authorize_playback) | function | The tracks a play session may still stream, or `None`. |
 | [`open_copy`](#open_copy) | function | Records that `holder` may download `plan`'s files from `destination` on node `serving_node_id`, and mints the token. |
 | [`plan_copy`](#plan_copy) | function | Decides whether `holder` may take this library's copy of the edition `listing` names, and lists the copy's files. |
+| [`plan_playback`](#plan_playback) | function | Decides whether `person` may play this library's copy of `edition_id`, and lists its tracks: the one check behind the playback manifest, a new play session and every stream request. |
 | [`claim_cron_fire`](#claim_cron_fire) | function | Claims the fire at `fire_ms` for `(plugin_instance_id, cron)` and admits its `plugin_scheduled` job in the same batch. |
 | [`ensure_cron_cursor`](#ensure_cron_cursor) | function | Creates the cursor at `initial_last_ms` unless one exists, and returns the stored cursor. |
 | [`load_cron_cursor`](#load_cron_cursor) | function | Reads one cursor. |
@@ -1456,6 +1460,62 @@ A grant just opened by [`open_copy`](#open_copy).
 - `expires_in_secs`: Seconds the token is accepted.
 
 Implements: `Debug`, `Drop`
+
+### PlaybackPlan
+
+```rust
+pub struct PlaybackPlan {
+    pub person: i64,
+    pub edition_id: String,
+    pub destinations: BTreeMap<String, Vec<PlaybackTrack>>,
+    /* private fields */
+}
+```
+
+What a person may play of one edition ([`plan_playback`](#plan_playback)).
+
+**Fields**
+
+- `person`: The listener.
+- `edition_id`: The edition.
+- `destinations`: The edition's tracks on each destination that holds its primary
+  audio, by destination id: the primary audio first, then its other
+  parts in key order. A track's place in its list is its stream
+  index. Chapter files of a title also stored whole are left out,
+  since they repeat the primary audio.
+
+#### PlaybackPlan::digest
+
+```rust
+pub fn digest(&self, destination: &str) -> Option<&str>
+```
+
+The digest of the edition's file rows on `destination`, or `None`
+when the destination does not hold the edition.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackTrack
+
+```rust
+pub struct PlaybackTrack {
+    pub key: String,
+    pub content_type: Option<String>,
+    pub bitrate_kbps: Option<u32>,
+    pub lossless: bool,
+}
+```
+
+One audio file a player streams for an edition, on one destination.
+
+**Fields**
+
+- `key`: Storage key on the destination.
+- `content_type`: Media type of the file, once probed.
+- `bitrate_kbps`: Average bitrate in kilobits per second, once probed.
+- `lossless`: True for a lossless encoding; false also for a file not probed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ### CronCursor
 
@@ -5786,6 +5846,7 @@ pub enum LiveTopic {
     Libraries,
     Users,
     Discover,
+    Playback,
 }
 ```
 
@@ -5803,11 +5864,14 @@ A topic of the live socket.
 - `Users`: Users (`users`).
 - `Discover`: Stored Discover shelves (`discover_feeds`): a ranking job wrote or
   dropped someone's shelves.
+- `Playback`: Listening progress and bookmarks (`playback_progress`, `bookmarks`):
+  someone started, stopped or finished an edition, or changed a
+  bookmark. Position syncs while a session plays do not move it.
 
 #### LiveTopic::ALL
 
 ```rust
-pub const ALL: [Self; 9] = _
+pub const ALL: [Self; 10] = _
 ```
 
 Every topic.
@@ -5837,9 +5901,11 @@ pub fn stamp_column(self) -> Option<(&'static str, &'static str)>
 The table behind the topic and its change-stamp column, which every
 write to the table sets to the time of the write.
 
-`None` for `library_links`, which has no change stamp, and for
+`None` for `library_links`, which has no change stamp, for
 `configuration_changes`, an append-only log whose stamp is not
-indexed; their writes bump on a probe instead.
+indexed, and for `playback`, which has two tables and moves only
+on some of their writes; their writes bump on a probe or outright
+instead.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 
@@ -7733,6 +7799,38 @@ same `None`.
 
 Returns the read error.
 
+### authorize_playback
+
+```rust
+pub async fn authorize_playback(
+    store: &LibraryStore,
+    person: i64,
+    edition_id: &str,
+    destination: &str,
+    files_digest: &str,
+) -> Result<Option<Vec<PlaybackTrack>>>
+```
+
+The tracks a play session may still stream, or `None`.
+
+Read afresh on every stream request: the person must still be allowed
+the edition ([`plan_playback`](#plan_playback)), and the edition's files on
+`destination` must be the ones the session's `files_digest` was made
+from, so a replaced file ends the session's streams instead of
+splicing two encodings.
+
+#### Arguments
+
+* `store` - The library.
+* `person` - The session's listener.
+* `edition_id` - The session's edition.
+* `destination` - The destination the session streams from.
+* `files_digest` - The digest the session stored when it opened.
+
+#### Errors
+
+Returns the read error.
+
 ### open_copy
 
 ```rust
@@ -7773,6 +7871,42 @@ The holder must be one this library gives copies to ([`CopyHolder`](#copyholder)
 the edition must be one the person may take (`visible_to`) and one
 this library has acquired, with its primary audio recorded on at least
 one destination.
+
+#### Errors
+
+Returns the read error.
+
+### plan_playback
+
+```rust
+pub async fn plan_playback(
+    store: &LibraryStore,
+    person: i64,
+    edition_id: &str,
+) -> Result<Option<PlaybackPlan>>
+```
+
+Decides whether `person` may play this library's copy of
+`edition_id`, and lists its tracks: the one check behind the playback
+manifest, a new play session and every stream request.
+
+The person's member controls must allow downloads
+([`super::MemberControl::Download`](#membercontrol), which covers streaming). The
+edition must be one the person may take (`visible_to`, the same rule
+a copy grant uses) and one this library has acquired, with its
+primary audio recorded on at least one destination. Whether the person's
+patron scope shows them the work at all is the caller's check
+([`crate::LibraryStore::work_in_scope`](README.md#librarystorework_in_scope)).
+
+#### Arguments
+
+* `store` - The library.
+* `person` - The listener (`users.id`).
+* `edition_id` - The edition.
+
+#### Returns
+
+The plan, or `None` for "you may not" and "there is no copy" alike.
 
 #### Errors
 

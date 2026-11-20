@@ -1731,7 +1731,7 @@ Most `[triggers] crons` entries one manifest may declare.
 ### HOST_EVENT_TYPES
 
 ```rust
-pub const HOST_EVENT_TYPES: [&str; 8] = _;
+pub const HOST_EVENT_TYPES: [&str; 11] = _;
 ```
 
 Domain event types only the host emits.
@@ -1748,8 +1748,11 @@ when it moves to anything other than acquired (queued, in progress,
 failed); becoming acquired publishes `book_acquired` instead.
 `wishlist_changed` is written when a wishlist entry is added or changes
 status, and `listening_synced` when a listening sync changed what someone
-has started or finished. Plugins consume these types but cannot declare
-them under `[[events.producers]]`.
+has started or finished. `playback_started` is written when someone
+opens a play session in the built-in player, `playback_progress` when a
+session closes or progress is set outright, and `playback_finished`
+when a listener reaches the end of an edition. Plugins consume these
+types but cannot declare them under `[[events.producers]]`.
 
 ### MAX_QUEUE_NAME_LEN
 

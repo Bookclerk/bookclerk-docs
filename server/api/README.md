@@ -177,6 +177,25 @@ Books in the library, scans and acquires.
 | [`PUT /api/library/works/{id}/state`](library.md#put-apilibraryworksidstate) | Changes the caller's own state for a work: finished, ratings and tags. |
 | [`GET /api/library/works/facets/{facet}`](library.md#get-apilibraryworksfacetsfacet) | Lists the values a facet has across the library's held works, with how many works have each, for the library page's filter menus. `tag` lists the caller's own tags (none for an operator token). |
 | [`GET /api/library/editions/{id}/cover`](library.md#get-apilibraryeditionsidcover) | Serves the JPEG cover written beside an edition's acquired file on this node's local destination. |
+| [`GET /api/library/editions/{id}/playback`](library.md#get-apilibraryeditionsidplayback) | Reads whether and what the caller may play of an edition, with their own progress and bookmarks. |
+| [`GET /api/library/editions/{id}/bookmarks`](library.md#get-apilibraryeditionsidbookmarks) | Lists the caller's bookmarks in an edition. |
+| [`POST /api/library/editions/{id}/bookmarks`](library.md#post-apilibraryeditionsidbookmarks) | Adds a bookmark of the caller's in an edition. |
+
+### [Playback](playback.md)
+
+Play sessions, audio streams, listening progress and bookmarks.
+
+| Route | Summary |
+| --- | --- |
+| [`POST /api/playback/sessions`](playback.md#post-apiplaybacksessions) | Opens a play session for the caller. |
+| [`POST /api/playback/sessions/{id}/sync`](playback.md#post-apiplaybacksessionsidsync) | Reports where the caller is in a playing session. |
+| [`POST /api/playback/sessions/{id}/close`](playback.md#post-apiplaybacksessionsidclose) | Sends a session's last report and ends it. |
+| [`GET /api/playback/sessions/{id}/tracks/{index}`](playback.md#get-apiplaybacksessionsidtracksindex) | Streams one track of a play session. |
+| [`GET /api/playback/progress`](playback.md#get-apiplaybackprogress) | Lists the caller's progress, most recently played first. |
+| [`PUT /api/playback/progress/{edition_id}`](playback.md#put-apiplaybackprogressedition_id) | Sets the caller's progress in an edition outright: Mark finished, Start over, or a place chosen with no session open. |
+| [`DELETE /api/playback/progress/{edition_id}`](playback.md#delete-apiplaybackprogressedition_id) | Forgets the caller's progress in an edition. The work's finished flag is left as it is. |
+| [`PUT /api/playback/bookmarks/{id}`](playback.md#put-apiplaybackbookmarksid) | Changes one of the caller's bookmarks. |
+| [`DELETE /api/playback/bookmarks/{id}`](playback.md#delete-apiplaybackbookmarksid) | Removes one of the caller's bookmarks. |
 
 ### [Discover](discover.md)
 

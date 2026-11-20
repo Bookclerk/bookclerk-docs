@@ -117,6 +117,25 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListeningProgressWrite`](#listeningprogresswrite) | struct | One stored listening row a batched write produced. |
 | [`ConflictCursor`](#conflictcursor) | struct | Where a conflicts page stopped: the last row's key, in key order. |
 | [`ResolutionConflict`](#resolutionconflict) | struct | One conflict the resolver recorded for an Administrator. |
+| [`Bookmark`](#bookmark) | struct | A place one person marked in one edition. |
+| [`NewPlaybackSession`](#newplaybacksession) | struct | A play session to open (`LibraryStore::open_playback_session`). |
+| [`PlaybackChange`](#playbackchange) | struct | The result of a sync or of setting progress outright. |
+| [`PlaybackEdition`](#playbackedition) | struct | What the player needs to know of an edition before it plays (`LibraryStore::playback_edition`). |
+| [`PlaybackMs`](#playbackms) | struct | A length of time on a recording's timeline, in milliseconds: a position, a duration or time listened. At most `MAX_PLAYBACK_MS`. |
+| [`PlaybackProgress`](#playbackprogress) | struct | How far one person has listened to one edition. |
+| [`PlaybackProgressEdit`](#playbackprogressedit) | struct | Progress to set outright (`LibraryStore::set_playback_progress`): a seek from a page with no session, Mark finished, or Start over. |
+| [`PlaybackSession`](#playbacksession) | struct | One stretch of listening on one player. |
+| [`PlaybackSync`](#playbacksync) | struct | What a player reports about a playing session (`LibraryStore::sync_playback_session`). |
+| [`ProgressCursor`](#progresscursor) | struct | A page position of `LibraryStore::list_playback_progress`: the last row of the page before. |
+| [`BookmarkEditBody`](#bookmarkeditbody) | struct | `PUT /api/playback/bookmarks/{id}` body: what to change. A field left out keeps its stored value. |
+| [`BookmarkEditRequest`](#bookmarkeditrequest) | struct | A checked change to a bookmark. |
+| [`NewBookmarkBody`](#newbookmarkbody) | struct | `POST /api/library/editions/{id}/bookmarks` body. |
+| [`NewBookmarkRequest`](#newbookmarkrequest) | struct | A checked bookmark to add. |
+| [`OpenSessionBody`](#opensessionbody) | struct | `POST /api/playback/sessions` body. |
+| [`OpenSessionRequest`](#opensessionrequest) | struct | A checked request to open a play session. |
+| [`PlaybackSyncBody`](#playbacksyncbody) | struct | `POST /api/playback/sessions/{id}/sync` and `.../close` body: where the listener is. |
+| [`ProgressEditBody`](#progresseditbody) | struct | `PUT /api/playback/progress/{edition_id}` body: what to set. A field left out keeps its stored value. |
+| [`TrackPath`](#trackpath) | struct | The file a stream request names (`parse_track_path`). |
 | [`PluginDatabaseRecord`](#plugindatabaserecord) | struct | One provisioned plugin database binding registry row. |
 | [`KvEntry`](#kventry) | struct | One live key/value row. |
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
@@ -187,6 +206,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`PinOutcome`](#pinoutcome) | enum | What `LibraryStore::pin_listing` did. |
+| [`PlaybackEvent`](#playbackevent) | enum | A host event about someone's listening, published after the write it describes (`LibraryStore::publish_playback_event`). |
+| [`PlayerKind`](#playerkind) | enum | What kind of player opened a play session. |
+| [`PlayerKindParam`](#playerkindparam) | enum | The kind of first-party player that opens a session. Outside player apps open theirs through the player API. |
 | [`KvPutOutcome`](#kvputoutcome) | enum | Why a write was refused, so the binding can map it onto a wire code. |
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
@@ -285,6 +307,15 @@ the external guest RPC. This crate owns the greenfield schema
 | [`edition_id_for_listing`](#edition_id_for_listing) | function | The id of an edition first seen through the store listing `key`: a version 5 UUID over its plugin key, marketplace and product id. Two nodes (or one library rebuilt from a fresh scan) that resolve the same listing first give its edition the same id, and so the same `<call number>` in file names. |
 | [`holding_from_book`](#holding_from_book) | function | The holding a flat library row describes. |
 | [`listing_from_book`](#listing_from_book) | function | The structured listing a flat library row describes, for paths that only have a `NewBook` (imports, seeds, tests). |
+| [`reaches_end`](#reaches_end) | function | True when `position` in a recording `duration` long counts as having reached its end: within the last one percent, or within the last thirty seconds of a recording longer than a minute. |
+| [`parse_bookmark_edit_request`](#parse_bookmark_edit_request) | function | Parses and validates a `PUT /api/playback/bookmarks/{id}` body from its raw bytes, sans IO. |
+| [`parse_new_bookmark_request`](#parse_new_bookmark_request) | function | Parses and validates a `POST /api/library/editions/{id}/bookmarks` body from its raw bytes, sans IO. |
+| [`parse_open_session_request`](#parse_open_session_request) | function | Parses and validates a `POST /api/playback/sessions` body from its raw bytes, sans IO: JSON into `OpenSessionBody`, then `OpenSessionBody::validate`. |
+| [`parse_playback_sync_request`](#parse_playback_sync_request) | function | Parses and validates a sync or close body from its raw bytes, sans IO, the way the routes read it: JSON into `PlaybackSyncBody`, then `PlaybackSyncBody::validate`. |
+| [`parse_progress_cursor`](#parse_progress_cursor) | function | Parses the `cursor` of `GET /api/playback/progress`, sans IO. |
+| [`parse_progress_edit_request`](#parse_progress_edit_request) | function | Parses and validates a `PUT /api/playback/progress/{edition_id}` body from its raw bytes, sans IO. |
+| [`parse_track_path`](#parse_track_path) | function | Parses the two path parts of `GET /api/playback/sessions/{id}/tracks/{n}`, sans IO. |
+| [`progress_cursor_token`](#progress_cursor_token) | function | The opaque token of a progress cursor: unpadded URL-safe Base64 of the row's change time, a `\|`, and its edition id. |
 | [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`plan_pass`](#plan_pass) | function | Decides how the next pass of an account starts. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
@@ -330,6 +361,15 @@ the external guest RPC. This crate owns the greenfield schema
 | [`LIBRARY_INDEX_LAYOUT`](#library_index_layout) | constant | Layout of `library_work_rows` this binary writes. A library with no finished build of this layout is rebuilt; bump it when a change to how rows are derived needs every row rewritten. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
 | [`MAX_CONFLICT_PAGE`](#max_conflict_page) | constant | Largest conflicts page `LibraryStore::list_resolution_conflicts` reads. |
+| [`MAX_BOOKMARKS_PER_EDITION`](#max_bookmarks_per_edition) | constant | Most bookmarks one person keeps in one edition. |
+| [`MAX_BOOKMARK_TITLE_BYTES`](#max_bookmark_title_bytes) | constant | Longest bookmark title, in bytes (well inside the minimum database profile's cell size). |
+| [`MAX_PLAYBACK_MS`](#max_playback_ms) | constant | The longest position or duration the player stores: sixty days, far past any recording, and small enough that sums of two stay exact in every database profile's integer. |
+| [`MAX_PLAYER_NAME_BYTES`](#max_player_name_bytes) | constant | Longest player name a session stores, in bytes. |
+| [`MAX_EDITION_ID_BYTES`](#max_edition_id_bytes) | constant | Longest edition id a session is opened for, in bytes; a real one is a 36-byte UUID. |
+| [`MAX_PLAYBACK_BODY_BYTES`](#max_playback_body_bytes) | constant | Largest body the other playback parsers read, in bytes: room for an escaped bookmark title or a long player name. |
+| [`MAX_PLAYBACK_SYNC_BYTES`](#max_playback_sync_bytes) | constant | Largest sync body the routes read, in bytes; a real one is under 100. |
+| [`MAX_PLAYBACK_TRACKS`](#max_playback_tracks) | constant | Most tracks a play session lists: a stream path's index is below it. |
+| [`MAX_PROGRESS_CURSOR_BYTES`](#max_progress_cursor_bytes) | constant | Longest progress cursor token the route reads, in bytes; a real one is about 100. |
 | [`KV_LIST_DEFAULT_LIMIT`](#kv_list_default_limit) | constant | Default page size for `LibraryStore::kv_list` when the caller passes 0. |
 | [`AUDIT_RETENTION_DAYS`](#audit_retention_days) | constant | Days `security_audit_events` and `configuration_audit` rows are kept. |
 | [`CONFIGURATION_CHANGE_RETENTION_DAYS`](#configuration_change_retention_days) | constant | Days `configuration_changes` notices are kept. They only signal that a document changed; the document and its audit row hold the content. |
@@ -4877,6 +4917,493 @@ One conflict the resolver recorded for an Administrator.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### Bookmark
+
+```rust
+pub struct Bookmark {
+    pub id: String,
+    pub user_id: i64,
+    pub edition_id: String,
+    pub position: PlaybackMs,
+    pub title: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+A place one person marked in one edition.
+
+**Fields**
+
+- `id`: Bookmark id (hyphenated UUID).
+- `user_id`: The person who made it (`users.id`).
+- `edition_id`: The edition it is in.
+- `position`: The marked place.
+- `title`: The person's note; may be empty.
+- `created_at`: When it was made.
+- `updated_at`: When it last changed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### NewPlaybackSession
+
+```rust
+pub struct NewPlaybackSession<'a> {
+    pub user_id: i64,
+    pub edition_id: &'a str,
+    pub serving_node_id: &'a str,
+    pub destination: &'a str,
+    pub files_digest: &'a str,
+    pub client_kind: PlayerKind,
+    pub client_name: &'a str,
+}
+```
+
+A play session to open ([`LibraryStore::open_playback_session`](#librarystoreopen_playback_session)).
+
+**Fields**
+
+- `user_id`: The listener (`users.id`).
+- `edition_id`: The edition to play.
+- `serving_node_id`: This node's id: it streams the files.
+- `destination`: The destination the files will be read from.
+- `files_digest`: Digest of the edition's file rows on that destination
+  ([`crate::control_plane::PlaybackPlan::digest`](control_plane.md#playbackplandigest)).
+- `client_kind`: What kind of player asks.
+- `client_name`: The player's own name; at most [`MAX_PLAYER_NAME_BYTES`](#max_player_name_bytes) bytes are
+  kept.
+
+Implements: `Clone`, `Copy`, `Debug`
+
+### PlaybackChange
+
+```rust
+pub struct PlaybackChange {
+    pub progress: PlaybackProgress,
+    pub became_finished: bool,
+}
+```
+
+The result of a sync or of setting progress outright.
+
+**Fields**
+
+- `progress`: The person's progress after the write.
+- `became_finished`: True when this write is the one that reached the edition's end.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackEdition
+
+```rust
+pub struct PlaybackEdition {
+    pub edition_id: String,
+    pub work_id: Option<String>,
+    pub title: String,
+    pub runtime: Option<PlaybackMs>,
+}
+```
+
+What the player needs to know of an edition before it plays
+([`LibraryStore::playback_edition`](#librarystoreplayback_edition)).
+
+**Fields**
+
+- `edition_id`: The edition.
+- `work_id`: The work it belongs to; `None` only while the edition is being
+  moved between works.
+- `title`: The edition's display title.
+- `runtime`: Its runtime as the catalog states it, to the minute; players
+  report the exact one once they have loaded the audio.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackMs
+
+```rust
+pub struct PlaybackMs(/* private */);
+```
+
+A length of time on a recording's timeline, in milliseconds: a
+position, a duration or time listened. At most [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+#### PlaybackMs::ZERO
+
+```rust
+pub const ZERO: Self = _
+```
+
+The start of a recording.
+
+#### PlaybackMs::new
+
+```rust
+pub fn new(ms: u64) -> Option<Self>
+```
+
+`ms` as a timeline length.
+
+##### Returns
+
+`None` when `ms` is past [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+#### PlaybackMs::get
+
+```rust
+pub fn get(self) -> u64
+```
+
+The length in milliseconds.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### PlaybackProgress
+
+```rust
+pub struct PlaybackProgress {
+    pub user_id: i64,
+    pub edition_id: String,
+    pub position: PlaybackMs,
+    pub duration: Option<PlaybackMs>,
+    pub is_finished: bool,
+    pub started_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+How far one person has listened to one edition.
+
+**Fields**
+
+- `user_id`: The listener (`users.id`).
+- `edition_id`: The edition.
+- `position`: Where they are on the edition's timeline.
+- `duration`: The edition's runtime as the last player reported it.
+- `is_finished`: True once they reached the end of this edition.
+- `started_at`: When they first played it.
+- `finished_at`: When they last reached the end.
+- `updated_at`: When the row last changed.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackProgressEdit
+
+```rust
+pub struct PlaybackProgressEdit {
+    pub position: Option<PlaybackMs>,
+    pub duration: Option<PlaybackMs>,
+    pub finished: Option<bool>,
+}
+```
+
+Progress to set outright ([`LibraryStore::set_playback_progress`](#librarystoreset_playback_progress)): a
+seek from a page with no session, Mark finished, or Start over.
+
+**Fields**
+
+- `position`: The position to store; `None` keeps it.
+- `duration`: The runtime to store; `None` keeps it.
+- `finished`: `Some(true)` marks the edition (and its work) finished,
+  `Some(false)` clears the edition's flag only, `None` decides from
+  the position and runtime.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackSession
+
+```rust
+pub struct PlaybackSession {
+    pub id: String,
+    pub user_id: i64,
+    pub edition_id: String,
+    pub serving_node_id: String,
+    pub destination: String,
+    pub files_digest: String,
+    pub client_kind: PlayerKind,
+    pub client_name: String,
+    pub start_position: PlaybackMs,
+    pub position: PlaybackMs,
+    pub listened: PlaybackMs,
+    pub started_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
+}
+```
+
+One stretch of listening on one player.
+
+**Fields**
+
+- `id`: Session id (hyphenated UUID).
+- `user_id`: The listener (`users.id`).
+- `edition_id`: The edition being played.
+- `serving_node_id`: The node that opened the session and streams its files.
+- `destination`: The destination the files are read from.
+- `files_digest`: Digest of the edition's file rows when the session opened.
+- `client_kind`: What kind of player opened it.
+- `client_name`: The player's own name for itself.
+- `start_position`: Where the session started from.
+- `position`: Where it was at the last sync.
+- `listened`: Time spent listening in it, as the player counted.
+- `started_at`: When it opened.
+- `updated_at`: When it last synced.
+- `closed_at`: When the player closed it; `None` while open.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackSync
+
+```rust
+pub struct PlaybackSync {
+    pub position: PlaybackMs,
+    pub listened: PlaybackMs,
+    pub duration: Option<PlaybackMs>,
+    pub close: bool,
+}
+```
+
+What a player reports about a playing session
+([`LibraryStore::sync_playback_session`](#librarystoresync_playback_session)).
+
+**Fields**
+
+- `position`: Where the listener is now.
+- `listened`: Time listened since the last sync of this session.
+- `duration`: The recording's whole runtime, when the player knows it.
+- `close`: True when this is the session's last report: it closes.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ProgressCursor
+
+```rust
+pub struct ProgressCursor {
+    pub updated_at: String,
+    pub edition_id: String,
+}
+```
+
+A page position of [`LibraryStore::list_playback_progress`]: the last
+row of the page before.
+
+**Fields**
+
+- `updated_at`: That row's `updated_at`, as stored.
+- `edition_id`: That row's edition.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### BookmarkEditBody
+
+```rust
+pub struct BookmarkEditBody {
+    /* private fields */
+}
+```
+
+`PUT /api/playback/bookmarks/{id}` body: what to change. A field left
+out keeps its stored value.
+
+#### BookmarkEditBody::validate
+
+```rust
+pub fn validate(self) -> Result<BookmarkEditRequest>
+```
+
+Checks the body.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a position past
+[`MAX_PLAYBACK_MS`](#max_playback_ms), or a title that is too long or has a control
+character.
+
+Implements: `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `ToSchema`
+
+### BookmarkEditRequest
+
+```rust
+pub struct BookmarkEditRequest {
+    pub position: Option<PlaybackMs>,
+    pub title: Option<String>,
+}
+```
+
+A checked change to a bookmark.
+
+**Fields**
+
+- `position`: The new place; `None` keeps it.
+- `title`: The new note, trimmed; `None` keeps it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### NewBookmarkBody
+
+```rust
+pub struct NewBookmarkBody {
+    /* private fields */
+}
+```
+
+`POST /api/library/editions/{id}/bookmarks` body.
+
+#### NewBookmarkBody::validate
+
+```rust
+pub fn validate(self) -> Result<NewBookmarkRequest>
+```
+
+Checks the body.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a position past
+[`MAX_PLAYBACK_MS`](#max_playback_ms), or a title that is too long or has a control
+character.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### NewBookmarkRequest
+
+```rust
+pub struct NewBookmarkRequest {
+    pub position: PlaybackMs,
+    pub title: String,
+}
+```
+
+A checked bookmark to add.
+
+**Fields**
+
+- `position`: The place to mark.
+- `title`: The note, trimmed; may be empty.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### OpenSessionBody
+
+```rust
+pub struct OpenSessionBody {
+    /* private fields */
+}
+```
+
+`POST /api/playback/sessions` body.
+
+#### OpenSessionBody::validate
+
+```rust
+pub fn validate(self) -> Result<OpenSessionRequest>
+```
+
+Checks the body and tidies the player's name.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for an empty edition id or one
+over [`MAX_EDITION_ID_BYTES`](#max_edition_id_bytes).
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### OpenSessionRequest
+
+```rust
+pub struct OpenSessionRequest {
+    pub edition_id: String,
+    pub player: PlayerKind,
+    pub player_name: String,
+}
+```
+
+A checked request to open a play session.
+
+**Fields**
+
+- `edition_id`: The edition to play, as sent.
+- `player`: What kind of player asks.
+- `player_name`: The player's name as stored: no control characters, trimmed, at
+  most [`MAX_PLAYER_NAME_BYTES`](#max_player_name_bytes) bytes.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### PlaybackSyncBody
+
+```rust
+pub struct PlaybackSyncBody {
+    /* private fields */
+}
+```
+
+`POST /api/playback/sessions/{id}/sync` and `.../close` body: where
+the listener is.
+
+#### PlaybackSyncBody::validate
+
+```rust
+pub fn validate(self, close: bool) -> Result<PlaybackSync>
+```
+
+Checks the body: every length at most [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+##### Arguments
+
+* `close` - True for the `close` route: the report ends the session.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) naming the field that is too
+large.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### ProgressEditBody
+
+```rust
+pub struct ProgressEditBody {
+    /* private fields */
+}
+```
+
+`PUT /api/playback/progress/{edition_id}` body: what to set. A field
+left out keeps its stored value.
+
+#### ProgressEditBody::validate
+
+```rust
+pub fn validate(self) -> Result<PlaybackProgressEdit>
+```
+
+Checks the body: every length at most [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) naming the field that is too
+large.
+
+Implements: `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `ToSchema`
+
+### TrackPath
+
+```rust
+pub struct TrackPath {
+    pub session_id: String,
+    pub index: usize,
+}
+```
+
+The file a stream request names ([`parse_track_path`](#parse_track_path)).
+
+**Fields**
+
+- `session_id`: The play session's id: a hyphenated lowercase UUID.
+- `index`: The track's index in the session's list, below
+  [`MAX_PLAYBACK_TRACKS`](#max_playback_tracks).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### PluginDatabaseRecord
 
 ```rust
@@ -8521,6 +9048,320 @@ not decide would. Test support only.
 ##### Panics
 
 When the write fails.
+
+#### LibraryStore::playback_edition
+
+```rust
+pub async fn playback_edition(&self, edition_id: &str) -> Result<Option<PlaybackEdition>>
+```
+
+The edition a player asks about, with its work and catalog runtime.
+
+##### Returns
+
+`None` for an unknown edition.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::playback_progress
+
+```rust
+pub async fn playback_progress(
+    &self,
+    user_id: i64,
+    edition_id: &str,
+) -> Result<Option<PlaybackProgress>>
+```
+
+One person's progress in one edition.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::list_playback_progress
+
+```rust
+pub async fn list_playback_progress(
+    &self,
+    user_id: i64,
+    include_finished: bool,
+    after: Option<&ProgressCursor>,
+    limit: u64,
+) -> Result<(Vec<PlaybackProgress>, Option<ProgressCursor>)>
+```
+
+A page of one person's progress rows, most recently played first.
+
+##### Arguments
+
+* `user_id` - The listener.
+* `include_finished` - False lists only editions not yet finished
+  (Continue listening).
+* `after` - The last row of the page before; `None` for the first.
+* `limit` - Most rows to return.
+
+##### Returns
+
+The rows, and the cursor of the next page when there may be one.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::set_playback_progress
+
+```rust
+pub async fn set_playback_progress(
+    &self,
+    user_id: i64,
+    edition_id: &str,
+    work_id: Option<&str>,
+    edit: &PlaybackProgressEdit,
+) -> Result<PlaybackChange>
+```
+
+Sets one person's progress in one edition outright, with no
+session: a seek from the book's page, Mark finished or Start over.
+
+The row is created when the person has none. Finishing also sets
+the work's finished flag when `work_id` is given. One atomic batch;
+nothing is written for an unknown edition on an engine that checks
+foreign keys, which is then the returned error.
+
+##### Arguments
+
+* `user_id` - The listener.
+* `edition_id` - The edition.
+* `work_id` - The edition's work, for the finished flag.
+* `edit` - What to store.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::delete_playback_progress
+
+```rust
+pub async fn delete_playback_progress(
+    &self,
+    user_id: i64,
+    edition_id: &str,
+) -> Result<bool>
+```
+
+Forgets one person's progress in one edition. The work's finished
+flag is left as it is.
+
+##### Returns
+
+True when a row was removed.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::open_playback_session
+
+```rust
+pub async fn open_playback_session(
+    &self,
+    new: NewPlaybackSession<'_>,
+) -> Result<PlaybackSession>
+```
+
+Opens a play session and answers it.
+
+The session starts where the person's progress is, or at the start
+when they have none or had finished the edition (playing a finished
+edition again starts it over and clears the edition's finished
+flag; the work stays finished). One atomic batch.
+
+##### Errors
+
+Returns the database error, for example for an unknown edition on
+an engine that checks foreign keys.
+
+#### LibraryStore::playback_session
+
+```rust
+pub async fn playback_session(&self, id: &str) -> Result<Option<PlaybackSession>>
+```
+
+One play session by id.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::sync_playback_session
+
+```rust
+pub async fn sync_playback_session(
+    &self,
+    session: &PlaybackSession,
+    work_id: Option<&str>,
+    sync: &PlaybackSync,
+) -> Result<Option<PlaybackChange>>
+```
+
+Records a player's report for an open session: the position, the
+time listened since the last report and, with `close`, its end.
+
+The person's progress moves with it. When the position reaches the
+recording's end ([`reaches_end`](#reaches_end)) the edition is marked finished,
+and so is its work when `work_id` is given. One atomic batch, in
+which the progress only moves if the session was still open.
+
+##### Arguments
+
+* `session` - The session, as read just before.
+* `work_id` - The edition's work, for the finished flag.
+* `sync` - The player's report.
+
+##### Returns
+
+`None` when the session had already closed; nothing is written
+then.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::publish_playback_event
+
+```rust
+pub async fn publish_playback_event(
+    &self,
+    event: PlaybackEvent,
+    progress: &PlaybackProgress,
+    work_id: Option<&str>,
+    session_id: Option<&str>,
+)
+```
+
+Publishes a playback host event, after the write it describes.
+
+Best effort: the listening state is already committed, so a failed
+publish is logged rather than undoing it.
+
+Payload: `userId`, `editionId`, `workId` (or null), `sessionId` (or
+null when progress was set outright), `positionMs` and `durationMs`
+(or null while no player has reported the runtime).
+
+##### Arguments
+
+* `event` - Which event.
+* `progress` - The listener's progress after the write.
+* `work_id` - The edition's work.
+* `session_id` - The play session, when the write came from one.
+
+#### LibraryStore::list_bookmarks
+
+```rust
+pub async fn list_bookmarks(
+    &self,
+    user_id: i64,
+    edition_id: &str,
+) -> Result<Vec<Bookmark>>
+```
+
+One person's bookmarks in one edition, in timeline order.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::bookmark
+
+```rust
+pub async fn bookmark(&self, id: &str) -> Result<Option<Bookmark>>
+```
+
+One bookmark by id.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::add_bookmark
+
+```rust
+pub async fn add_bookmark(
+    &self,
+    user_id: i64,
+    edition_id: &str,
+    position: PlaybackMs,
+    title: &str,
+) -> Result<Option<Bookmark>>
+```
+
+Adds a bookmark for one person in one edition.
+
+##### Arguments
+
+* `user_id` - The person.
+* `edition_id` - The edition.
+* `position` - The place to mark.
+* `title` - Their note; at most [`MAX_BOOKMARK_TITLE_BYTES`](#max_bookmark_title_bytes) bytes
+  are kept.
+
+##### Returns
+
+The bookmark, or `None` when the person already keeps
+[`MAX_BOOKMARKS_PER_EDITION`](#max_bookmarks_per_edition) in the edition.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::edit_bookmark
+
+```rust
+pub async fn edit_bookmark(
+    &self,
+    user_id: i64,
+    id: &str,
+    position: Option<PlaybackMs>,
+    title: Option<&str>,
+) -> Result<Option<Bookmark>>
+```
+
+Changes one of a person's bookmarks.
+
+##### Arguments
+
+* `user_id` - The person; another person's bookmark is not found.
+* `id` - The bookmark.
+* `position` - The new place; `None` keeps it.
+* `title` - The new note; `None` keeps it.
+
+##### Returns
+
+The bookmark after the change, or `None` when the person has no
+such bookmark.
+
+##### Errors
+
+Returns the database error.
+
+#### LibraryStore::delete_bookmark
+
+```rust
+pub async fn delete_bookmark(&self, user_id: i64, id: &str) -> Result<bool>
+```
+
+Removes one of a person's bookmarks.
+
+##### Returns
+
+True when a bookmark of theirs was removed.
+
+##### Errors
+
+Returns the database error.
 
 #### LibraryStore::record_plugin_database
 
@@ -15105,6 +15946,109 @@ What [`LibraryStore::pin_listing`](#librarystorepin_listing) did.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### PlaybackEvent
+
+```rust
+pub enum PlaybackEvent {
+    Started,
+    Progress,
+    Finished,
+}
+```
+
+A host event about someone's listening, published after the write it
+describes ([`LibraryStore::publish_playback_event`](#librarystorepublish_playback_event)).
+
+**Variants**
+
+- `Started`: A play session opened (`playback_started`).
+- `Progress`: A play session closed, or progress was set outright
+  (`playback_progress`). The position syncs of a playing session
+  publish nothing.
+- `Finished`: The listener reached the end of an edition (`playback_finished`).
+
+#### PlaybackEvent::ALL
+
+```rust
+pub const ALL: [Self; 3] = _
+```
+
+Every event, in the order of a listen.
+
+#### PlaybackEvent::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The event type plugins subscribe to.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### PlayerKind
+
+```rust
+pub enum PlayerKind {
+    Web,
+    Desktop,
+    App,
+}
+```
+
+What kind of player opened a play session.
+
+**Variants**
+
+- `Web`: The web app in a browser.
+- `Desktop`: The desktop window's native engine.
+- `App`: An outside player app, through the player API.
+
+#### PlayerKind::ALL
+
+```rust
+pub const ALL: [Self; 3] = _
+```
+
+Every kind, in stored order (the `playback_sessions.client_kind`
+CHECK list).
+
+#### PlayerKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### PlayerKind::parse
+
+```rust
+pub fn parse(stored: &str) -> Self
+```
+
+The kind a stored spelling names; [`Self::App`](#playerkind) for an unknown one.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<PlayerKindParam>`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### PlayerKindParam
+
+```rust
+pub enum PlayerKindParam {
+    Web,
+    Desktop,
+}
+```
+
+The kind of first-party player that opens a session. Outside player
+apps open theirs through the player API.
+
+**Variants**
+
+- `Web`: The web app in a browser.
+- `Desktop`: The desktop window.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<PlayerKindParam>`, `PartialEq`, `ToSchema`
+
 ### KvPutOutcome
 
 ```rust
@@ -16804,6 +17748,158 @@ Scans that carry a plugin's structured record use that instead.
 
 Returns [`resolve::ListingError`](../bookclerk_resolve/listing.md#listingerror) when the row fails listing validation.
 
+### reaches_end
+
+```rust
+pub fn reaches_end(position: PlaybackMs, duration: PlaybackMs) -> bool
+```
+
+True when `position` in a recording `duration` long counts as having
+reached its end: within the last one percent, or within the last
+thirty seconds of a recording longer than a minute.
+
+#### Arguments
+
+* `position` - Where the listener is.
+* `duration` - The recording's whole runtime; a zero duration is
+  unknown and never finished.
+
+### parse_bookmark_edit_request
+
+```rust
+pub fn parse_bookmark_edit_request(body: &[u8]) -> Result<BookmarkEditRequest>
+```
+
+Parses and validates a `PUT /api/playback/bookmarks/{id}` body from
+its raw bytes, sans IO.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_PLAYBACK_BODY_BYTES`](#max_playback_body_bytes), bytes that are not the body's JSON shape,
+a position past [`MAX_PLAYBACK_MS`](#max_playback_ms) or a refused title.
+
+### parse_new_bookmark_request
+
+```rust
+pub fn parse_new_bookmark_request(body: &[u8]) -> Result<NewBookmarkRequest>
+```
+
+Parses and validates a `POST /api/library/editions/{id}/bookmarks`
+body from its raw bytes, sans IO.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_PLAYBACK_BODY_BYTES`](#max_playback_body_bytes), bytes that are not the body's JSON shape,
+a position past [`MAX_PLAYBACK_MS`](#max_playback_ms) or a refused title.
+
+### parse_open_session_request
+
+```rust
+pub fn parse_open_session_request(body: &[u8]) -> Result<OpenSessionRequest>
+```
+
+Parses and validates a `POST /api/playback/sessions` body from its raw
+bytes, sans IO: JSON into [`OpenSessionBody`](#opensessionbody), then
+[`OpenSessionBody::validate`](#opensessionbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_PLAYBACK_BODY_BYTES`](#max_playback_body_bytes), bytes that are not the body's JSON shape
+(unknown or repeated fields, wrong types, a missing `edition_id`, an
+unknown `player`, an array instead of an object) or an edition id that
+is empty or too long.
+
+### parse_playback_sync_request
+
+```rust
+pub fn parse_playback_sync_request(body: &[u8], close: bool) -> Result<PlaybackSync>
+```
+
+Parses and validates a sync or close body from its raw bytes, sans IO,
+the way the routes read it: JSON into [`PlaybackSyncBody`](#playbacksyncbody), then
+[`PlaybackSyncBody::validate`](#playbacksyncbodyvalidate).
+
+#### Arguments
+
+* `body` - The request body.
+* `close` - True for the `close` route.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_PLAYBACK_SYNC_BYTES`](#max_playback_sync_bytes), bytes that are not the body's JSON shape
+(unknown or repeated fields, wrong types, a missing `position_ms`, an
+array instead of an object) or a length past [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+### parse_progress_cursor
+
+```rust
+pub fn parse_progress_cursor(token: &str) -> Option<ProgressCursor>
+```
+
+Parses the `cursor` of `GET /api/playback/progress`, sans IO.
+
+#### Arguments
+
+* `token` - The query value as sent.
+
+#### Returns
+
+`None` unless `token` is at most [`MAX_PROGRESS_CURSOR_BYTES`](#max_progress_cursor_bytes) of
+canonical unpadded URL-safe Base64 that decodes to UTF-8 text of a
+change time (see [`progress_cursor_token`](#progress_cursor_token)), a `|` and an edition id
+of 1 to [`MAX_EDITION_ID_BYTES`](#max_edition_id_bytes) bytes. An accepted token is exactly
+what [`progress_cursor_token`](#progress_cursor_token) writes for the cursor it yields.
+
+### parse_progress_edit_request
+
+```rust
+pub fn parse_progress_edit_request(body: &[u8]) -> Result<PlaybackProgressEdit>
+```
+
+Parses and validates a `PUT /api/playback/progress/{edition_id}` body
+from its raw bytes, sans IO.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_PLAYBACK_BODY_BYTES`](#max_playback_body_bytes), bytes that are not the body's JSON shape
+or a length past [`MAX_PLAYBACK_MS`](#max_playback_ms).
+
+### parse_track_path
+
+```rust
+pub fn parse_track_path(session_id: &str, index: &str) -> Option<TrackPath>
+```
+
+Parses the two path parts of
+`GET /api/playback/sessions/{id}/tracks/{n}`, sans IO.
+
+#### Arguments
+
+* `session_id` - The `{id}` part as sent.
+* `index` - The `{n}` part as sent.
+
+#### Returns
+
+`None` unless `session_id` is a UUID in its canonical spelling (36
+bytes, lowercase, hyphenated) and `index` is a decimal number below
+[`MAX_PLAYBACK_TRACKS`](#max_playback_tracks) written with ASCII digits only and no leading
+zero. Anything else names no session or track, and the route answers
+404 without reading the library.
+
+### progress_cursor_token
+
+```rust
+pub fn progress_cursor_token(cursor: &ProgressCursor) -> String
+```
+
+The opaque token of a progress cursor: unpadded URL-safe Base64 of
+the row's change time, a `|`, and its edition id.
+
 ### prefer_enrichment_source
 
 ```rust
@@ -17288,6 +18384,84 @@ pub const MAX_CONFLICT_PAGE: u64 = 200;
 ```
 
 Largest conflicts page [`LibraryStore::list_resolution_conflicts`](#librarystorelist_resolution_conflicts) reads.
+
+### MAX_BOOKMARKS_PER_EDITION
+
+```rust
+pub const MAX_BOOKMARKS_PER_EDITION: u64 = 200;
+```
+
+Most bookmarks one person keeps in one edition.
+
+### MAX_BOOKMARK_TITLE_BYTES
+
+```rust
+pub const MAX_BOOKMARK_TITLE_BYTES: usize = 200;
+```
+
+Longest bookmark title, in bytes (well inside the minimum database
+profile's cell size).
+
+### MAX_PLAYBACK_MS
+
+```rust
+pub const MAX_PLAYBACK_MS: u64 = _;
+```
+
+The longest position or duration the player stores: sixty days, far
+past any recording, and small enough that sums of two stay exact in
+every database profile's integer.
+
+### MAX_PLAYER_NAME_BYTES
+
+```rust
+pub const MAX_PLAYER_NAME_BYTES: usize = 64;
+```
+
+Longest player name a session stores, in bytes.
+
+### MAX_EDITION_ID_BYTES
+
+```rust
+pub const MAX_EDITION_ID_BYTES: usize = 128;
+```
+
+Longest edition id a session is opened for, in bytes; a real one is a
+36-byte UUID.
+
+### MAX_PLAYBACK_BODY_BYTES
+
+```rust
+pub const MAX_PLAYBACK_BODY_BYTES: usize = 4096;
+```
+
+Largest body the other playback parsers read, in bytes: room for an
+escaped bookmark title or a long player name.
+
+### MAX_PLAYBACK_SYNC_BYTES
+
+```rust
+pub const MAX_PLAYBACK_SYNC_BYTES: usize = 1024;
+```
+
+Largest sync body the routes read, in bytes; a real one is under 100.
+
+### MAX_PLAYBACK_TRACKS
+
+```rust
+pub const MAX_PLAYBACK_TRACKS: usize = 512;
+```
+
+Most tracks a play session lists: a stream path's index is below it.
+
+### MAX_PROGRESS_CURSOR_BYTES
+
+```rust
+pub const MAX_PROGRESS_CURSOR_BYTES: usize = 256;
+```
+
+Longest progress cursor token the route reads, in bytes; a real one is
+about 100.
 
 ### KV_LIST_DEFAULT_LIMIT
 

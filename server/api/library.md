@@ -21839,3 +21839,1516 @@ request timed out
 Schema:
 
 A `text/plain` body: a string.
+
+## `GET /api/library/editions/{id}/playback`
+
+Reads whether and what the caller may play of an edition, with their
+own progress and bookmarks.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id (an `id` in a work's `editions`).
+
+### Responses
+
+- `200` — What the caller may play, and where they are. Body: [`PlaybackManifestJson`](schemas.md#playbackmanifestjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `work_id` *string or null* — Its work.
+  - `title` *string*, **required** — The edition's display title.
+  - `playable` *boolean*, **required** — True when this node holds a copy the caller may play. False when the library has not acquired the edition, no destination of this node holds it, or the caller may not take it.
+  - `duration_ms` *integer (int64) or null* — Runtime in milliseconds: the last player's report when the caller has one, else the catalog's, to the minute; null when neither is known. At least 0.
+  - `tracks` *array of [`TrackJson`](schemas.md#trackjson)*, **required** — The tracks in play order; empty when not playable. A session's answer adds the stream paths.
+  - `progress` *[`ProgressJson`](schemas.md#progressjson) or null* — The caller's progress; null before they first play it.
+  - `bookmarks` *array of [`BookmarkJson`](schemas.md#bookmarkjson)*, **required** — The caller's bookmarks, in timeline order.
+- `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/playback' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/playback' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/editions/<id>/playback",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/playback", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/editions/<id>/playback")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What the caller may play, and where they are.
+
+```json
+{
+  "edition_id": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d",
+  "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+  "title": "The Left Hand of Darkness",
+  "playable": true,
+  "duration_ms": 41400000,
+  "tracks": [
+    {
+      "index": 0,
+      "path": "/api/playback/sessions/7c9e6679-7425-40de-944b-e07fc1f90ae7/tracks/0",
+      "content_type": "audio/mp4",
+      "bitrate_kbps": 125,
+      "lossless": false
+    }
+  ],
+  "progress": {
+    "edition_id": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d",
+    "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b",
+    "position_ms": 754000,
+    "duration_ms": 41400000,
+    "is_finished": false,
+    "started_at": "2026-11-19T08:15:00+00:00",
+    "finished_at": null,
+    "updated_at": "2026-11-19T09:02:41+00:00"
+  },
+  "bookmarks": [
+    {
+      "id": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+      "edition_id": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d",
+      "position_ms": 754000,
+      "title": "The storm",
+      "created_at": "2026-11-19T09:02:41+00:00"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/library/editions/{id}/playback` answer.",
+  "required": [
+    "edition_id",
+    "title",
+    "playable",
+    "tracks",
+    "bookmarks"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d"
+    },
+    "work_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Its work.",
+      "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+    },
+    "title": {
+      "type": "string",
+      "description": "The edition's display title.",
+      "example": "The Left Hand of Darkness"
+    },
+    "playable": {
+      "type": "boolean",
+      "description": "True when this node holds a copy the caller may play. False when\nthe library has not acquired the edition, no destination of this\nnode holds it, or the caller may not take it.",
+      "example": true
+    },
+    "duration_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Runtime in milliseconds: the last player's report when the caller\nhas one, else the catalog's, to the minute; null when neither is\nknown.",
+      "example": 41400000,
+      "minimum": 0
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One audio file of an edition, as a player sees it.",
+        "required": [
+          "index",
+          "content_type",
+          "lossless"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "The track's place in play order, from 0.",
+            "example": 0,
+            "minimum": 0
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Path to stream it from, on this origin; only in a session's answer.",
+            "example": "/api/playback/sessions/7c9e6679-7425-40de-944b-e07fc1f90ae7/tracks/0"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Media type the stream states, such as `audio/mp4`.",
+            "example": "audio/mp4"
+          },
+          "bitrate_kbps": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Average bitrate in kilobits per second, once probed.",
+            "example": 125,
+            "minimum": 0
+          },
+          "lossless": {
+            "type": "boolean",
+            "description": "True for a lossless encoding.",
+            "example": false
+          }
+        }
+      },
+      "description": "The tracks in play order; empty when not playable. A session's\nanswer adds the stream paths."
+    },
+    "progress": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The caller's progress; null before they first play it.",
+          "required": [
+            "edition_id",
+            "position_ms",
+            "is_finished",
+            "started_at",
+            "updated_at"
+          ],
+          "properties": {
+            "edition_id": {
+              "type": "string",
+              "description": "The edition.",
+              "example": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d"
+            },
+            "work_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The edition's work, when known: what a Continue listening shelf\nreads the title and cover from.",
+              "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+            },
+            "position_ms": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Position on the edition's timeline, in milliseconds.",
+              "example": 754000,
+              "minimum": 0
+            },
+            "duration_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "The edition's runtime in milliseconds as the last player reported\nit; null until one has.",
+              "example": 41400000,
+              "minimum": 0
+            },
+            "is_finished": {
+              "type": "boolean",
+              "description": "True once the caller reached the end of this edition.",
+              "example": false
+            },
+            "started_at": {
+              "type": "string",
+              "description": "When the caller first played it (RFC 3339).",
+              "example": "2026-11-19T08:15:00+00:00"
+            },
+            "finished_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "When the caller last reached the end (RFC 3339).",
+              "example": null
+            },
+            "updated_at": {
+              "type": "string",
+              "description": "When the progress last changed (RFC 3339).",
+              "example": "2026-11-19T09:02:41+00:00"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "bookmarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A place the caller marked in an edition.",
+        "required": [
+          "id",
+          "edition_id",
+          "position_ms",
+          "title",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Bookmark id.",
+            "example": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d"
+          },
+          "edition_id": {
+            "type": "string",
+            "description": "The edition it is in.",
+            "example": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d"
+          },
+          "position_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The marked place, in milliseconds from the edition's start.",
+            "example": 754000,
+            "minimum": 0
+          },
+          "title": {
+            "type": "string",
+            "description": "The caller's note; may be empty.",
+            "example": "The storm"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "When it was made (RFC 3339).",
+            "example": "2026-11-19T09:02:41+00:00"
+          }
+        }
+      },
+      "description": "The caller's bookmarks, in timeline order."
+    }
+  }
+}
+```
+
+Status `401`: The session ended.
+
+```json
+{
+  "error": "sign in again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/editions/{id}/bookmarks`
+
+Lists the caller's bookmarks in an edition.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Responses
+
+- `200` — The caller's bookmarks, in timeline order. Body: [`BookmarksJson`](schemas.md#bookmarksjson) (`application/json`)
+  - `bookmarks` *array of [`BookmarkJson`](schemas.md#bookmarkjson)*, **required** — The caller's bookmarks in the edition, in timeline order.
+- `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/bookmarks' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/bookmarks' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/editions/<id>/bookmarks",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/bookmarks", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/editions/<id>/bookmarks")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The caller's bookmarks, in timeline order.
+
+```json
+{
+  "bookmarks": [
+    {
+      "id": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+      "edition_id": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d",
+      "position_ms": 754000,
+      "title": "The storm",
+      "created_at": "2026-11-19T09:02:41+00:00"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/library/editions/{id}/bookmarks` answer.",
+  "required": [
+    "bookmarks"
+  ],
+  "properties": {
+    "bookmarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A place the caller marked in an edition.",
+        "required": [
+          "id",
+          "edition_id",
+          "position_ms",
+          "title",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Bookmark id.",
+            "example": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d"
+          },
+          "edition_id": {
+            "type": "string",
+            "description": "The edition it is in.",
+            "example": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d"
+          },
+          "position_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The marked place, in milliseconds from the edition's start.",
+            "example": 754000,
+            "minimum": 0
+          },
+          "title": {
+            "type": "string",
+            "description": "The caller's note; may be empty.",
+            "example": "The storm"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "When it was made (RFC 3339).",
+            "example": "2026-11-19T09:02:41+00:00"
+          }
+        }
+      },
+      "description": "The caller's bookmarks in the edition, in timeline order."
+    }
+  }
+}
+```
+
+Status `401`: The session ended.
+
+```json
+{
+  "error": "sign in again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/library/editions/{id}/bookmarks`
+
+Adds a bookmark of the caller's in an edition.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Request body
+
+`application/json`: [`NewBookmarkBody`](schemas.md#newbookmarkbody)
+
+- `position_ms` *integer (int64)*, **required** — The place to mark, in milliseconds (at most sixty days). At least 0.
+- `title` *string* — A note for it, at most 200 bytes, no control characters; empty when left out.
+
+### Responses
+
+- `200` — The new bookmark. Body: [`BookmarkJson`](schemas.md#bookmarkjson) (`application/json`)
+  - `id` *string*, **required** — Bookmark id.
+  - `edition_id` *string*, **required** — The edition it is in.
+  - `position_ms` *integer (int64)*, **required** — The marked place, in milliseconds from the edition's start. At least 0.
+  - `title` *string*, **required** — The caller's note; may be empty.
+  - `created_at` *string*, **required** — When it was made (RFC 3339).
+- `400` — The position is past sixty days, or the title is too long or has control characters. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The caller already keeps 200 bookmarks in the edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The body is over 4096 bytes. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/bookmarks' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"position_ms": 754000}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/bookmarks' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"position_ms": 754000}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/library/editions/<id>/bookmarks",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"position_ms": 754000},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/bookmarks", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"position_ms": 754000}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/library/editions/<id>/bookmarks")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"position_ms": 754000}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The new bookmark.
+
+```json
+{
+  "id": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+  "edition_id": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d",
+  "position_ms": 754000,
+  "title": "The storm",
+  "created_at": "2026-11-19T09:02:41+00:00"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "A place the caller marked in an edition.",
+  "required": [
+    "id",
+    "edition_id",
+    "position_ms",
+    "title",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Bookmark id.",
+      "example": "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d"
+    },
+    "edition_id": {
+      "type": "string",
+      "description": "The edition it is in.",
+      "example": "5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d"
+    },
+    "position_ms": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The marked place, in milliseconds from the edition's start.",
+      "example": 754000,
+      "minimum": 0
+    },
+    "title": {
+      "type": "string",
+      "description": "The caller's note; may be empty.",
+      "example": "The storm"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "When it was made (RFC 3339).",
+      "example": "2026-11-19T09:02:41+00:00"
+    }
+  }
+}
+```
+
+Status `400`: The position is past sixty days, or the title is too long or has control characters. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "title must be at most 200 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The session ended.
+
+```json
+{
+  "error": "sign in again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The session has no library user. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 5d2c8e1a-7b3f-4a6e-9c0d-1e2f3a4b5c6d not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The caller already keeps 200 bookmarks in the edition.
+
+```json
+{
+  "error": "an edition takes at most 200 bookmarks"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The body is over 4096 bytes.
+
+```json
+{
+  "error": "the body is at most 4096 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `position_ms` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "the listening state could not be written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time. The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
