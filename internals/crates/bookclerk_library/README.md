@@ -219,7 +219,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`HoldingSelection`](#holdingselection) | enum | Which holdings of one account a removal takes. |
 | [`NodeHoldingSelection`](#nodeholdingselection) | enum | Which holdings of one branch (node) a removal takes. |
 | [`SeedScope`](#seedscope) | enum | Which seeds a subject's candidates and feed were built from. |
-| [`migrate_library_backend`](#migrate_library_backend) | function | Copy all library tables from `source` into `dest`. |
+| [`migrate_library_backend`](#migrate_library_backend) | function | Copy the whole library from `source` into `dest`. |
 | [`restore_backup_unit`](#restore_backup_unit) | function | Destructively replaces one logical database with `unit`. Never merges. |
 | [`library_ddl_for_schema_state`](#library_ddl_for_schema_state) | function | Library DDL that matches `state`, not necessarily this binary's latest pack. |
 | [`sort_tables_by_foreign_keys`](#sort_tables_by_foreign_keys) | function | FK-safe table order (parents before children). Cycles fail closed. |
@@ -328,6 +328,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`pick_better_description`](#pick_better_description) | function | Prefer HTML blurbs over plain text; otherwise the longer string wins. |
 | [`Result`](#result) | type alias | Result alias for `LibraryError`. |
 | [`InProcessSqliteAtomic`](#inprocesssqliteatomic) | type alias | The `crate::AtomicTxnBackend` over a local SQLite connection. |
+| [`LEFT_BEHIND_TABLES`](#left_behind_tables) | constant | Tables the copy leaves behind on purpose, each with the reason. |
 | [`CHUNK_TARGET_UNCOMPRESSED_BYTES`](#chunk_target_uncompressed_bytes) | constant | Target uncompressed JSON size for one table-data chunk. |
 | [`BACKUPS_DIR`](#backups_dir) | constant | Subdirectory of `$BOOKCLERK_FILES_DIR` holding the backup repository. |
 | [`BACKUP_FORMAT_VERSION`](#backup_format_version) | constant | Manifest format written by this binary. |
@@ -1196,6 +1197,7 @@ Per-table row counts copied (or that would be copied in dry-run mode).
 **Fields**
 
 - `tables`: Map of table name → rows copied (or counted in dry-run).
+  `plugin_artifacts` counts archives; their chunks are not counted.
 - `dry_run`: When true, counts rows without writing to the destination.
 
 #### BackendMigrateSummary::total_rows
@@ -1204,7 +1206,8 @@ Per-table row counts copied (or that would be copied in dry-run mode).
 pub fn total_rows(&self) -> usize
 ```
 
-Sums row counts across all tables in the summary.
+Sums row counts across all tables in the summary, leaving out
+`plugin_artifacts`, which counts archives rather than rows.
 
 Implements: `Clone`, `Debug`, `Default`, `Serialize`
 
@@ -16414,16 +16417,19 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub async fn migrate_library_backend(
-    source: &DatabaseConnection,
-    dest: &DatabaseConnection,
+    source: &LibraryStore,
+    dest: &LibraryStore,
     opts: &BackendMigrateOptions,
 ) -> Result<BackendMigrateSummary>
 ```
 
-Copy all library tables from `source` into `dest`.
+Copy the whole library from `source` into `dest`.
 
 The destination should be empty unless [`BackendMigrateOptions::force`](#backendmigrateoptions) is set.
-Runs in a single transaction on the destination when not dry-run.
+Plugin artifacts are written first through the destination's own chunked
+writer (they are content-addressed, so a second run rewrites nothing);
+every other row is then copied in a single transaction on the
+destination.
 
 #### Arguments
 
@@ -18078,6 +18084,17 @@ pub type InProcessSqliteAtomic = NamedAtomicBackend<InProcessSqlite>;
 The [`crate::AtomicTxnBackend`](#atomictxnbackend) over a local SQLite connection.
 
 ## Constants
+
+### LEFT_BEHIND_TABLES
+
+```rust
+pub const LEFT_BEHIND_TABLES: &[(&str, &str)] = _;
+```
+
+Tables the copy leaves behind on purpose, each with the reason.
+
+Every other table of the library schema is copied; a test checks that
+the two lists together cover the schema.
 
 ### CHUNK_TARGET_UNCOMPRESSED_BYTES
 
