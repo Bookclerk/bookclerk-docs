@@ -1700,7 +1700,9 @@ Status `200`: The install's sent reports, newest first.
       "report_id": "0e9ced79-df3c-4dae-872b-2e5772b06e69",
       "trigger": "error_burst",
       "version": "0.4.0",
-      "sent_at_unix_ms": 1763520000000
+      "sent_at_unix_ms": 1763520000000,
+      "access_code": "K7QM-3XRD-PW9T-H2CF",
+      "deleted_at_unix_ms": null
     }
   ]
 }
@@ -1748,6 +1750,24 @@ Schema:
             "format": "int64",
             "description": "When the collector accepted it, Unix milliseconds.",
             "example": 1763520000000,
+            "minimum": 0
+          },
+          "access_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The code that reads the report back or deletes it, in groups of\nfour, or null when the collector issued none. With the ID it also\nopens the collector's public lookup page.",
+            "example": "K7QM-3XRD-PW9T-H2CF"
+          },
+          "deleted_at_unix_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "When this install deleted the collector's stored copy, Unix\nmilliseconds, or null while it is stored.",
+            "example": null,
             "minimum": 0
           }
         }
@@ -1843,6 +1863,1131 @@ Schema:
       "examples": [
         404
       ]
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/diagnostics/reports/{id}`
+
+Reads a sent report back from the collector with its access code: the
+stored report (redacted, as sent), the GitHub issues tracking it and the
+fix, if one is recorded.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — The report's ID, from `GET /api/diagnostics/reports`.
+
+### Responses
+
+- `200` — The report as the collector holds it. Body: [`DiagnosticsReportLookup`](schemas.md#diagnosticsreportlookup) (`application/json`)
+  - `report_id` *string*, **required** — The report's ID.
+  - `received_at_unix_ms` *integer (int64)*, **required** — When the collector received it, Unix milliseconds. At least 0.
+  - `deleted_at_unix_ms` *integer (int64) or null* — When its stored copy was deleted, Unix milliseconds, or null. At least 0.
+  - `report` *[`StoredReportView`](schemas.md#storedreportview) or null* — The stored report, or null once deleted.
+  - `issues` *array of [`ReportIssueView`](schemas.md#reportissueview)*, **required** — Issues tracking it, the tracking issue first.
+  - `fix` *[`ReportFixView`](schemas.md#reportfixview) or null* — The tracking issue's fix, or null.
+- `400` — The ID is not a version-4 UUID (`invalid_report_id`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — This install has not sent that report (`report_unknown`), has no code for it (`no_access_code`), or the collector no longer has it (`report_not_found`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many lookups of this report lately; try again in a minute (`rate_limited`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `502` — The collector could not be reached or answered badly (`collector_error`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — No collector is configured, or it offers no lookups (`lookup_unavailable`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/diagnostics/reports/<id>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/diagnostics/reports/<id>' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/diagnostics/reports/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/diagnostics/reports/<id>", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/diagnostics/reports/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The report as the collector holds it.
+
+```json
+{
+  "report_id": "3f2a9c4e-7b1d-4e8a-9c0f-1a2b3c4d5e6f",
+  "received_at_unix_ms": 1763520000000,
+  "deleted_at_unix_ms": null,
+  "report": {
+    "version": "0.9.0",
+    "trigger": "error_burst",
+    "os": "linux",
+    "arch": "x86_64",
+    "distro": "debian",
+    "events": [
+      {
+        "ts_unix_ms": 1763519999000,
+        "level": "ERROR",
+        "target": "bookclerk_library::scan",
+        "message": "scan failed",
+        "fields": []
+      }
+    ]
+  },
+  "issues": [
+    {
+      "number": 1204,
+      "title": "Scan fails with timeout",
+      "state": "open",
+      "url": "https://github.com/bookclerk/bookclerk/issues/1204"
+    }
+  ],
+  "fix": {
+    "pr_number": 1210,
+    "pr_url": "https://github.com/bookclerk/bookclerk/pull/1210",
+    "fixed_in": "0.9.1"
+  }
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Body of `GET /api/diagnostics/reports/{id}`: the report as the collector\nholds it, and what became of it.",
+  "required": [
+    "report_id",
+    "received_at_unix_ms",
+    "issues"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "The report's ID.",
+      "example": "3f2a9c4e-7b1d-4e8a-9c0f-1a2b3c4d5e6f"
+    },
+    "received_at_unix_ms": {
+      "type": "integer",
+      "format": "int64",
+      "description": "When the collector received it, Unix milliseconds.",
+      "example": 1763520000000,
+      "minimum": 0
+    },
+    "deleted_at_unix_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "When its stored copy was deleted, Unix milliseconds, or null.",
+      "example": null,
+      "minimum": 0
+    },
+    "report": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The stored report, or null once deleted.",
+          "required": [
+            "version",
+            "trigger",
+            "os",
+            "arch",
+            "distro",
+            "events"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "description": "The Bookclerk version that sent it.",
+              "example": "0.9.0"
+            },
+            "trigger": {
+              "type": "string",
+              "description": "Why it was sent.",
+              "example": "error_burst"
+            },
+            "os": {
+              "type": "string",
+              "description": "The sender's operating system.",
+              "example": "linux"
+            },
+            "arch": {
+              "type": "string",
+              "description": "The sender's CPU architecture.",
+              "example": "x86_64"
+            },
+            "distro": {
+              "type": "string",
+              "description": "The sender's Linux distribution, or empty.",
+              "example": "debian"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "description": "One logged event in a stored report.",
+                "required": [
+                  "ts_unix_ms",
+                  "level",
+                  "target",
+                  "message",
+                  "fields"
+                ],
+                "properties": {
+                  "ts_unix_ms": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "When it happened, Unix milliseconds, or `0` when the report had none.",
+                    "example": 1763519999000,
+                    "minimum": 0
+                  },
+                  "level": {
+                    "type": "string",
+                    "description": "Its severity.",
+                    "enum": [
+                      "ERROR",
+                      "WARN",
+                      "INFO",
+                      "DEBUG",
+                      "TRACE"
+                    ]
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Where it was logged (the tracing target).",
+                    "example": "bookclerk_library::scan"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "The message, redacted before the report was sent.",
+                    "example": "scan failed"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "description": "One field recorded with an event.",
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The field's name.",
+                          "example": "attempt"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "Its value, redacted before the report was sent.",
+                          "example": "2"
+                        }
+                      }
+                    },
+                    "description": "Fields recorded with it."
+                  }
+                }
+              },
+              "description": "Its events, oldest first."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A GitHub issue tracking the report.",
+        "required": [
+          "number",
+          "title",
+          "state",
+          "url"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The issue number.",
+            "example": 1204,
+            "minimum": 0
+          },
+          "title": {
+            "type": "string",
+            "description": "Its title.",
+            "example": "Scan fails with timeout"
+          },
+          "state": {
+            "type": "string",
+            "description": "Whether it is open.",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page (always `https://`).",
+            "example": "https://github.com/bookclerk/bookclerk/issues/1204"
+          }
+        }
+      },
+      "description": "Issues tracking it, the tracking issue first."
+    },
+    "fix": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The tracking issue's fix, or null.",
+          "properties": {
+            "pr_number": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "description": "The pull request that fixed it, when known.",
+              "example": 1210,
+              "minimum": 0
+            },
+            "pr_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "That pull request's page (`https://`), when known.",
+              "example": "https://github.com/bookclerk/bookclerk/pull/1210"
+            },
+            "fixed_in": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The first release with the fix, when one has shipped.",
+              "example": "0.9.1"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `400`: The ID is not a version-4 UUID (`invalid_report_id`).
+
+```json
+{
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: This install has not sent that report (`report_unknown`), has no code for it (`no_access_code`), or the collector no longer has it (`report_not_found`).
+
+```json
+{
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many lookups of this report lately; try again in a minute (`rate_limited`).
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `502`: The collector could not be reached or answered badly (`collector_error`).
+
+```json
+{
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `503`: No collector is configured, or it offers no lookups (`lookup_unavailable`).
+
+```json
+{
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `DELETE /api/diagnostics/reports/{id}`
+
+Deletes the collector's stored copy of a sent report. The collector keeps
+its one-line index entry and issue links, so the report still counts;
+the install's history notes the deletion.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — The report's ID, from `GET /api/diagnostics/reports`.
+
+### Responses
+
+- `200` — The stored copy is gone (deleting again answers the same). Body: [`DiagnosticsReportDeleted`](schemas.md#diagnosticsreportdeleted) (`application/json`)
+  - `report_id` *string*, **required** — The report's ID.
+  - `deleted_at_unix_ms` *integer (int64)*, **required** — When its stored copy was deleted, Unix milliseconds. At least 0.
+- `400` — The ID is not a version-4 UUID (`invalid_report_id`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `404` — This install has not sent that report (`report_unknown`), has no code for it (`no_access_code`), or the collector no longer has it (`report_not_found`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `429` — Too many attempts for this report lately; try again in a minute (`rate_limited`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `502` — The collector could not be reached, answered badly or could not delete the copy (`collector_error`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — No collector is configured, or it offers no lookups (`lookup_unavailable`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/diagnostics/reports/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/diagnostics/reports/<id>' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/diagnostics/reports/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/diagnostics/reports/<id>", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/diagnostics/reports/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The stored copy is gone (deleting again answers the same).
+
+```json
+{
+  "report_id": "3f2a9c4e-7b1d-4e8a-9c0f-1a2b3c4d5e6f",
+  "deleted_at_unix_ms": 1763600000000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Body of `DELETE /api/diagnostics/reports/{id}`.",
+  "required": [
+    "report_id",
+    "deleted_at_unix_ms"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "The report's ID.",
+      "example": "3f2a9c4e-7b1d-4e8a-9c0f-1a2b3c4d5e6f"
+    },
+    "deleted_at_unix_ms": {
+      "type": "integer",
+      "format": "int64",
+      "description": "When its stored copy was deleted, Unix milliseconds.",
+      "example": 1763600000000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: The ID is not a version-4 UUID (`invalid_report_id`).
+
+```json
+{
+  "error": "bad_request",
+  "message": "The request could not be understood.",
+  "status": 400
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `404`: This install has not sent that report (`report_unknown`), has no code for it (`no_access_code`), or the collector no longer has it (`report_not_found`).
+
+```json
+{
+  "error": "not_found",
+  "message": "That page or resource was not found.",
+  "status": 404
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `429`: Too many attempts for this report lately; try again in a minute (`rate_limited`).
+
+```json
+{
+  "error": "too_many_requests",
+  "message": "Too many requests. Try again shortly.",
+  "status": 429
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `502`: The collector could not be reached, answered badly or could not delete the copy (`collector_error`).
+
+```json
+{
+  "error": "bad_gateway",
+  "message": "An upstream service failed.",
+  "status": 502
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `503`: No collector is configured, or it offers no lookups (`lookup_unavailable`).
+
+```json
+{
+  "error": "service_unavailable",
+  "message": "The Bookclerk daemon is not ready to handle this request.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
     }
   }
 }

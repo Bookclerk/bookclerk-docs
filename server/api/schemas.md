@@ -820,6 +820,25 @@ books a storage destination takes.
 - `revision` *integer (int64)*, **required** — Revision of the destination's `core.destination` document; `0` when none was written, so the destination takes every book.
 - `filter` *[`DestinationFilter`](#destinationfilter)*, **required** — The filter; no rules take every book.
 
+## DiagnosticsReportDeleted
+
+Body of `DELETE /api/diagnostics/reports/{id}`.
+
+- `report_id` *string*, **required** — The report's ID.
+- `deleted_at_unix_ms` *integer (int64)*, **required** — When its stored copy was deleted, Unix milliseconds. At least 0.
+
+## DiagnosticsReportLookup
+
+Body of `GET /api/diagnostics/reports/{id}`: the report as the collector
+holds it, and what became of it.
+
+- `report_id` *string*, **required** — The report's ID.
+- `received_at_unix_ms` *integer (int64)*, **required** — When the collector received it, Unix milliseconds. At least 0.
+- `deleted_at_unix_ms` *integer (int64) or null* — When its stored copy was deleted, Unix milliseconds, or null. At least 0.
+- `report` *[`StoredReportView`](#storedreportview) or null* — The stored report, or null once deleted.
+- `issues` *array of [`ReportIssueView`](#reportissueview)*, **required** — Issues tracking it, the tracking issue first.
+- `fix` *[`ReportFixView`](#reportfixview) or null* — The tracking issue's fix, or null.
+
 ## DiagnosticsReportsResponse
 
 Body of `GET /api/diagnostics/reports`.
@@ -834,6 +853,8 @@ One diagnostics report this install sent.
 - `trigger` *string*, **required** — Why it was sent: `crash`, `error_burst`, `slow_burst`, `job_failed`, `cli_error`, `cli_manual`, ….
 - `version` *string*, **required** — The Bookclerk version that sent it.
 - `sent_at_unix_ms` *integer (int64)*, **required** — When the collector accepted it, Unix milliseconds. At least 0.
+- `access_code` *string or null* — The code that reads the report back or deletes it, in groups of four, or null when the collector issued none. With the ID it also opens the collector's public lookup page.
+- `deleted_at_unix_ms` *integer (int64) or null* — When this install deleted the collector's stored copy, Unix milliseconds, or null while it is stored. At least 0.
 
 ## DisconnectBody
 
@@ -2988,6 +3009,52 @@ Character replacement rule (`ReplacementCharacters` in classic Settings.json).
 - `find` *string*, **required** — Substring to search for in each path segment / tag value.
 - `replace` *string*, **required** — Replacement text (may be empty to strip `find`).
 
+## ReportEventField
+
+One field recorded with an event.
+
+- `name` *string*, **required** — The field's name.
+- `value` *string*, **required** — Its value, redacted before the report was sent.
+
+## ReportEventLevel
+
+Severity of one event in a report.
+
+Type: one of `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`
+
+## ReportEventView
+
+One logged event in a stored report.
+
+- `ts_unix_ms` *integer (int64)*, **required** — When it happened, Unix milliseconds, or `0` when the report had none. At least 0.
+- `level` *[`ReportEventLevel`](#reporteventlevel)*, **required** — Its severity.
+- `target` *string*, **required** — Where it was logged (the tracing target).
+- `message` *string*, **required** — The message, redacted before the report was sent.
+- `fields` *array of [`ReportEventField`](#reporteventfield)*, **required** — Fields recorded with it.
+
+## ReportFixView
+
+The fix recorded for the report's tracking issue.
+
+- `pr_number` *integer (int64) or null* — The pull request that fixed it, when known. At least 0.
+- `pr_url` *string or null* — That pull request's page (`https://`), when known.
+- `fixed_in` *string or null* — The first release with the fix, when one has shipped.
+
+## ReportIssueState
+
+Whether an issue is open.
+
+Type: one of `open`, `closed`
+
+## ReportIssueView
+
+A GitHub issue tracking the report.
+
+- `number` *integer (int64)*, **required** — The issue number. At least 0.
+- `title` *string*, **required** — Its title.
+- `state` *[`ReportIssueState`](#reportissuestate)*, **required** — Whether it is open.
+- `url` *string*, **required** — Its page (always `https://`).
+
 ## RequestedArtifact
 
 The archive an owner library deploys to this install.
@@ -3320,6 +3387,17 @@ Library and daemon snapshot for `GET /api/status`.
 A fresh second factor for a shared branch consent. `Debug` prints no code.
 
 Type: object
+
+## StoredReportView
+
+The stored report as the collector keeps it.
+
+- `version` *string*, **required** — The Bookclerk version that sent it.
+- `trigger` *string*, **required** — Why it was sent.
+- `os` *string*, **required** — The sender's operating system.
+- `arch` *string*, **required** — The sender's CPU architecture.
+- `distro` *string*, **required** — The sender's Linux distribution, or empty.
+- `events` *array of [`ReportEventView`](#reporteventview)*, **required** — Its events, oldest first.
 
 ## StoreEdition
 

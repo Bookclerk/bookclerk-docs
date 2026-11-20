@@ -845,6 +845,22 @@ One diagnostics report this install sent (`GET /api/diagnostics/reports`).
 
 #### Properties
 
+##### access\_code
+
+```ts
+access_code: string | null;
+```
+
+The code that reads it back or deletes it (`XXXX-XXXX-XXXX-XXXX`), or null when the collector issued none.
+
+##### deleted\_at\_unix\_ms
+
+```ts
+deleted_at_unix_ms: number | null;
+```
+
+When this install deleted the collector's stored copy, Unix milliseconds, or null.
+
 ##### report\_id
 
 ```ts
@@ -876,6 +892,228 @@ version: string;
 ```
 
 The Bookclerk version that sent it.
+
+***
+
+### DiagnosticsReportEvent
+
+One logged event in a stored report.
+
+#### Properties
+
+##### fields
+
+```ts
+fields: object[];
+```
+
+Redacted fields recorded with it.
+
+###### name
+
+```ts
+name: string;
+```
+
+###### value
+
+```ts
+value: string;
+```
+
+##### level
+
+```ts
+level: "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
+```
+
+Severity.
+
+##### message
+
+```ts
+message: string;
+```
+
+The redacted message.
+
+##### target
+
+```ts
+target: string;
+```
+
+Where it was logged.
+
+##### ts\_unix\_ms
+
+```ts
+ts_unix_ms: number;
+```
+
+When it happened, Unix milliseconds, or 0 when unknown.
+
+***
+
+### DiagnosticsReportLookup
+
+A report read back from the collector (`GET /api/diagnostics/reports/{id}`).
+
+#### Properties
+
+##### deleted\_at\_unix\_ms
+
+```ts
+deleted_at_unix_ms: number | null;
+```
+
+When its stored copy was deleted, Unix milliseconds, or null.
+
+##### fix
+
+```ts
+fix: 
+  | {
+  fixed_in: string | null;
+  pr_number: number | null;
+  pr_url: string | null;
+}
+  | null;
+```
+
+The tracking issue's fix, or null.
+
+##### issues
+
+```ts
+issues: object[];
+```
+
+GitHub issues tracking it, the tracking issue first.
+
+###### number
+
+```ts
+number: number;
+```
+
+###### state
+
+```ts
+state: "open" | "closed";
+```
+
+###### title
+
+```ts
+title: string;
+```
+
+###### url
+
+```ts
+url: string;
+```
+
+##### received\_at\_unix\_ms
+
+```ts
+received_at_unix_ms: number;
+```
+
+When the collector received it, Unix milliseconds.
+
+##### report
+
+```ts
+report: 
+  | {
+  arch: string;
+  distro: string;
+  events: DiagnosticsReportEvent[];
+  os: string;
+  trigger: string;
+  version: string;
+}
+  | null;
+```
+
+The stored report, or null once deleted.
+
+###### Union Members
+
+###### Type Literal
+
+```ts
+{
+  arch: string;
+  distro: string;
+  events: DiagnosticsReportEvent[];
+  os: string;
+  trigger: string;
+  version: string;
+}
+```
+
+###### arch
+
+```ts
+arch: string;
+```
+
+CPU architecture.
+
+###### distro
+
+```ts
+distro: string;
+```
+
+Linux distribution, or empty.
+
+###### events
+
+```ts
+events: DiagnosticsReportEvent[];
+```
+
+Events, oldest first.
+
+###### os
+
+```ts
+os: string;
+```
+
+Operating system.
+
+###### trigger
+
+```ts
+trigger: string;
+```
+
+Why it was sent.
+
+###### version
+
+```ts
+version: string;
+```
+
+Version that sent it.
+
+***
+
+`null`
+
+##### report\_id
+
+```ts
+report_id: string;
+```
+
+The report's ID.
 
 ***
 
@@ -7353,6 +7591,29 @@ Created title-request row.
 
 ***
 
+### deleteDiagnosticsReport()
+
+```ts
+function deleteDiagnosticsReport(reportId): Promise<number>;
+```
+
+Deletes the collector's stored copy of a sent report; its summary and issue
+links stay (operator only).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `reportId` | `string` | The report's ID. |
+
+#### Returns
+
+`Promise`\<`number`\>
+
+When the copy was deleted, Unix milliseconds.
+
+***
+
 ### deleteOidcClient()
 
 ```ts
@@ -7562,6 +7823,28 @@ server is a branch of (`GET /api/auth/profile/catalog-listing`).
 `Promise`\<[`CatalogListingView`](#cataloglistingview)\>
 
 The choice, and how many libraries it applies to.
+
+***
+
+### fetchDiagnosticsReport()
+
+```ts
+function fetchDiagnosticsReport(reportId): Promise<DiagnosticsReportLookup>;
+```
+
+Reads a sent report back from the collector with its access code (operator only).
+
+#### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `reportId` | `string` | The report's ID. |
+
+#### Returns
+
+`Promise`\<[`DiagnosticsReportLookup`](#diagnosticsreportlookup)\>
+
+The report, its issues and its fix.
 
 ***
 

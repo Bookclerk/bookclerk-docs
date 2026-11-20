@@ -52,8 +52,15 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`PluginRegistryEntry`](#pluginregistryentry) | struct | One configured plugin registry source (`[[plugins.registries]]`). |
 | [`PluginsConfig`](#pluginsconfig) | struct | `[plugins]` — how external plugin guests are run. |
 | [`PluginsJailConfig`](#pluginsjailconfig) | struct | Optional global resource ceilings for plugin guest jails under `[plugins.jail]`. |
+| [`AccessCode`](#accesscode) | struct | A report's access code: the credential that reads the report back from the collector or deletes it. Canonical form: exactly `ACCESS_CODE_LENGTH` characters of `ACCESS_CODE_ALPHABET`, no separators. `Debug` never prints it. |
 | [`ReportId`](#reportid) | struct | A report ID the collector assigned: a version-4 UUID in lowercase hyphenated form. |
 | [`ReportRecord`](#reportrecord) | struct | One report this install sent. |
+| [`SubmitReply`](#submitreply) | struct | What the collector's `POST /submit` reply names. |
+| [`LookupAnswer`](#lookupanswer) | struct | The collector's answer to a lookup. |
+| [`LookupEvent`](#lookupevent) | struct | One logged event in a stored report, already redacted by the install that sent it. |
+| [`LookupFix`](#lookupfix) | struct | The fix recorded for the report's tracking issue. |
+| [`LookupIssue`](#lookupissue) | struct | A GitHub issue that tracks the report. |
+| [`LookupReport`](#lookupreport) | struct | A stored report as the collector returns it. |
 | [`AuthConfig`](#authconfig) | struct | Auth encryption settings (`[auth]` section). |
 | [`Config`](#config) | struct | Top-level Bookclerk configuration. |
 | [`DaemonAuthConfig`](#daemonauthconfig) | struct | Operator token / session settings for the daemon HTTP API. |
@@ -87,6 +94,10 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
 | [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
 | [`SubmitReplyError`](#submitreplyerror) | enum | Why a collector reply was refused. |
+| [`EventLevel`](#eventlevel) | enum | Severity of one logged event in a report. |
+| [`IssueState`](#issuestate) | enum | Whether a GitHub issue is open. |
+| [`LookupError`](#lookuperror) | enum | Why a lookup or delete did not succeed. |
+| [`LookupReplyError`](#lookupreplyerror) | enum | Why a collector answer was refused. |
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
 | [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
@@ -155,9 +166,15 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`sanitize_for_remote_upload`](#sanitize_for_remote_upload) | function | Extra sanitization for payloads that leave the machine (collector / B2). |
 | [`truncate_upload_message`](#truncate_upload_message) | function | Cap message length used in remote diagnostics events. |
 | [`unregister_secret`](#unregister_secret) | function | Forget a secret `register_secret` registered, with its encoded forms, once nothing in the process holds it any more (a short-lived bearer token whose holder was dropped), so per-request credentials do not pile up in the registry every log line is checked against. Lines captured while it was registered were scrubbed then. Only for values unique to one holder: the registry keeps no count, so a value two holders share would stop being scrubbed for both. |
+| [`find_report`](#find_report) | function | The report with this ID in the history, if it is there. |
 | [`load_report_history`](#load_report_history) | function | Reads the report history, oldest first. |
-| [`parse_submit_reply`](#parse_submit_reply) | function | Reads the report ID from the collector's `POST /submit` reply. |
+| [`mark_report_deleted`](#mark_report_deleted) | function | Notes in the history that the collector's copy of a report was deleted. |
+| [`parse_submit_reply`](#parse_submit_reply) | function | Reads the report ID and access code from the collector's `POST /submit` reply. |
 | [`record_report`](#record_report) | function | Adds a report to the history, keeping the newest `MAX_REPORT_HISTORY`. |
+| [`delete_report`](#delete_report) | function | Deletes the collector's stored copy of a sent report. Its one-line index entry and issue links stay on the collector. |
+| [`fetch_report`](#fetch_report) | function | Reads a sent report back from the collector. |
+| [`parse_delete_reply`](#parse_delete_reply) | function | Reads the collector's answer to `POST /lookup/delete`. |
+| [`parse_lookup_reply`](#parse_lookup_reply) | function | Reads the collector's answer to `POST /lookup`. |
 | [`read_node_api_spki_pin`](#read_node_api_spki_pin) | function | The SPKI pin of the daemon's self-signed node API certificate, once the daemon has generated it. Enrollment links carry it in `[daemon.node_api] mode = "self_signed"`. |
 | [`Result`](#result) | type alias | Result alias for configuration load and validation helpers in this crate. |
 | [`DEFAULT_CACHE_BUDGET_BYTES`](#default_cache_budget_bytes) | constant | Default disk budget for one node's image caches: 1 GiB. |
@@ -180,9 +197,12 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_FILTER_RULES`](#max_filter_rules) | constant | Most rules one destination filter may hold. |
 | [`MAX_FILTER_VALUE_BYTES`](#max_filter_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
 | [`REDACTED`](#redacted) | constant | Replacement token used wherever a secret or sensitive value is scrubbed. |
+| [`ACCESS_CODE_ALPHABET`](#access_code_alphabet) | constant | Crockford's base32 alphabet, which access codes are written in: digits and letters without I, L, O and U. |
+| [`ACCESS_CODE_LENGTH`](#access_code_length) | constant | Characters in an access code, without the group separators. |
 | [`MAX_REPORT_HISTORY`](#max_report_history) | constant | How many reports the history keeps; older ones are dropped first. |
 | [`MAX_SUBMIT_REPLY_BYTES`](#max_submit_reply_bytes) | constant | Longest collector reply, in bytes, that `parse_submit_reply` reads. The real reply is about 200 bytes. |
 | [`REPORT_HISTORY_FILE`](#report_history_file) | constant | File, relative to the files directory, that holds the report history. |
+| [`MAX_LOOKUP_REPLY_BYTES`](#max_lookup_reply_bytes) | constant | Longest collector answer, in bytes, that `parse_lookup_reply` and `parse_delete_reply` read. A stored report is at most 256 KiB, and the answer caps every event, so a real answer is well under this. |
 | [`LETS_ENCRYPT_DIRECTORY`](#lets_encrypt_directory) | constant | Let's Encrypt's production ACME directory. |
 | [`NODE_API_ACME_DIR`](#node_api_acme_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the ACME account and certificate cache (mode 0700 on Unix). |
 | [`NODE_API_SELF_SIGNED_DIR`](#node_api_self_signed_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the self-signed node API certificate, its key, and its SPKI pin (mode 0700 on Unix). |
@@ -2027,6 +2047,53 @@ Clamp CPU / extra-process ceilings into host-safe ranges when set.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### AccessCode
+
+```rust
+pub struct AccessCode(/* private */);
+```
+
+A report's access code: the credential that reads the report back from
+the collector or deletes it. Canonical form: exactly
+[`ACCESS_CODE_LENGTH`](#access_code_length) characters of [`ACCESS_CODE_ALPHABET`](#access_code_alphabet), no
+separators. `Debug` never prints it.
+
+#### AccessCode::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Parses a canonical access code, as the collector sends it.
+
+##### Arguments
+
+* `text` - Candidate text.
+
+##### Returns
+
+The code, or `None` unless the text is exactly
+[`ACCESS_CODE_LENGTH`](#access_code_length) alphabet characters.
+
+#### AccessCode::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The canonical code.
+
+#### AccessCode::display
+
+```rust
+pub fn display(&self) -> String
+```
+
+The code as people read it, in hyphenated groups of four
+(`K7QM-3XRD-PW9T-H2CF`).
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### ReportId
 
 ```rust
@@ -2072,6 +2139,8 @@ pub struct ReportRecord {
     pub trigger: String,
     pub version: String,
     pub sent_at_unix_ms: u64,
+    pub access_code: Option<AccessCode>,
+    pub deleted_at_unix_ms: Option<u64>,
 }
 ```
 
@@ -2083,8 +2152,153 @@ One report this install sent.
 - `trigger`: Why it was sent (`crash`, `error_burst`, `cli_error`, …).
 - `version`: The Bookclerk version that sent it.
 - `sent_at_unix_ms`: When the collector accepted it, Unix milliseconds.
+- `access_code`: The code that reads it back or deletes it, when the collector
+  issued one.
+- `deleted_at_unix_ms`: When this install deleted the collector's stored copy, Unix
+  milliseconds, or `None` while it is stored.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### SubmitReply
+
+```rust
+pub struct SubmitReply {
+    pub report_id: ReportId,
+    pub access_code: Option<AccessCode>,
+}
+```
+
+What the collector's `POST /submit` reply names.
+
+**Fields**
+
+- `report_id`: The report's ID.
+- `access_code`: Its access code, or `None` when the collector issued none (no
+  dashboard database, its daily cap reached, or an older collector) or
+  sent one that is not a canonical code.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### LookupAnswer
+
+```rust
+pub struct LookupAnswer {
+    pub report_id: ReportId,
+    pub received_at_unix_ms: u64,
+    pub deleted_at_unix_ms: Option<u64>,
+    pub report: Option<LookupReport>,
+    pub issues: Vec<LookupIssue>,
+    pub fix: Option<LookupFix>,
+}
+```
+
+The collector's answer to a lookup.
+
+**Fields**
+
+- `report_id`: The report's ID; always the one that was asked for.
+- `received_at_unix_ms`: When the collector received it, Unix milliseconds.
+- `deleted_at_unix_ms`: When its sender deleted the stored copy, Unix milliseconds, or
+  `None` while it is stored.
+- `report`: The stored report, or `None` once deleted (or when the collector
+  could not read it).
+- `issues`: Issues tracking it, the tracking issue first.
+- `fix`: The tracking issue's fix, if one is recorded.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupEvent
+
+```rust
+pub struct LookupEvent {
+    pub ts_unix_ms: u64,
+    pub level: EventLevel,
+    pub target: String,
+    pub message: String,
+    pub fields: Vec<(String, String)>,
+}
+```
+
+One logged event in a stored report, already redacted by the install
+that sent it.
+
+**Fields**
+
+- `ts_unix_ms`: When it happened, Unix milliseconds, or `0` when the report had none.
+- `level`: Its severity.
+- `target`: Where it was logged (the tracing target).
+- `message`: The message.
+- `fields`: `(name, value)` pairs recorded with it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupFix
+
+```rust
+pub struct LookupFix {
+    pub pr_number: Option<u64>,
+    pub pr_url: Option<String>,
+    pub fixed_in: Option<String>,
+}
+```
+
+The fix recorded for the report's tracking issue.
+
+**Fields**
+
+- `pr_number`: The pull request that fixed it, when known.
+- `pr_url`: That pull request's page (`https://`), when known.
+- `fixed_in`: The first release that contains the fix, when one has shipped.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupIssue
+
+```rust
+pub struct LookupIssue {
+    pub number: u64,
+    pub title: String,
+    pub state: IssueState,
+    pub url: String,
+}
+```
+
+A GitHub issue that tracks the report.
+
+**Fields**
+
+- `number`: The issue number.
+- `title`: Its title.
+- `state`: Whether it is open.
+- `url`: Its page; always an `https://` link.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupReport
+
+```rust
+pub struct LookupReport {
+    pub version: String,
+    pub trigger: String,
+    pub os: String,
+    pub arch: String,
+    pub distro: String,
+    pub events: Vec<LookupEvent>,
+}
+```
+
+A stored report as the collector returns it.
+
+**Fields**
+
+- `version`: The Bookclerk version that sent it.
+- `trigger`: Why it was sent.
+- `os`: The sender's operating system.
+- `arch`: The sender's CPU architecture.
+- `distro`: The sender's Linux distribution, or empty.
+- `events`: The events it carried, oldest first.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`, `Serialize`
 
 ### AuthConfig
 
@@ -2453,6 +2667,16 @@ pub fn effective_collector_url(&self) -> String
 ```
 
 Resolved Worker origin: config/env `collector_url`, else baked deploy URL.
+
+#### DiagnosticsConfig::effective_lookup_url
+
+```rust
+pub fn effective_lookup_url(&self) -> String
+```
+
+HTTPS endpoint the install reads its own reports back from
+(`…/lookup`; deletion is `…/lookup/delete`), or empty when no
+collector is configured.
 
 #### DiagnosticsConfig::effective_submit_url
 
@@ -3508,6 +3732,124 @@ Why a collector reply was refused.
 
 Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
+### EventLevel
+
+```rust
+pub enum EventLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+```
+
+Severity of one logged event in a report.
+
+**Variants**
+
+- `Error`: `ERROR`.
+- `Warn`: `WARN`.
+- `Info`: `INFO`.
+- `Debug`: `DEBUG`.
+- `Trace`: `TRACE`.
+
+#### EventLevel::parse
+
+```rust
+pub fn parse(text: &str) -> Option<Self>
+```
+
+Reads the collector's spelling.
+
+##### Arguments
+
+* `text` - `ERROR`, `WARN`, `INFO`, `DEBUG` or `TRACE`.
+
+##### Returns
+
+The level, or `None` for anything else.
+
+#### EventLevel::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The level as the collector and the CLI spell it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### IssueState
+
+```rust
+pub enum IssueState {
+    Open,
+    Closed,
+}
+```
+
+Whether a GitHub issue is open.
+
+**Variants**
+
+- `Open`: Still open.
+- `Closed`: Closed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`, `Serialize`
+
+### LookupError
+
+```rust
+pub enum LookupError {
+    NotConfigured,
+    NotFound,
+    RateLimited,
+    Unavailable,
+    Status(u16),
+    Transport(String),
+    BadReply(LookupReplyError),
+}
+```
+
+Why a lookup or delete did not succeed.
+
+**Variants**
+
+- `NotConfigured`: No collector URL is configured.
+- `NotFound`: The collector knows no report with this ID and code (`404`); the two
+  cases are not told apart.
+- `RateLimited`: Too many attempts for this report lately (`429`); try again in a
+  minute.
+- `Unavailable`: The collector cannot serve lookups (`503`: no dashboard database).
+- `Status`: The collector answered with another error status.
+- `Transport`: The request did not complete.
+- `BadReply`: The collector's answer was refused.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
+### LookupReplyError
+
+```rust
+pub enum LookupReplyError {
+    TooLong,
+    NotJson,
+    BadShape,
+    OtherReport,
+}
+```
+
+Why a collector answer was refused.
+
+**Variants**
+
+- `TooLong`: Longer than [`MAX_LOOKUP_REPLY_BYTES`](#max_lookup_reply_bytes).
+- `NotJson`: Not a JSON object.
+- `BadShape`: A field is missing, of the wrong type, or a link is not `https://`.
+- `OtherReport`: The answer names a report other than the one asked for.
+
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
+
 ### AudioQuality
 
 ```rust
@@ -4353,6 +4695,23 @@ while it was registered were scrubbed then. Only for values unique to
 one holder: the registry keeps no count, so a value two holders share
 would stop being scrubbed for both.
 
+### find_report
+
+```rust
+pub fn find_report(files_dir: &Path, report_id: &ReportId) -> Option<ReportRecord>
+```
+
+The report with this ID in the history, if it is there.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+* `report_id` - The report.
+
+#### Returns
+
+The newest record with that ID, or `None`.
+
 ### load_report_history
 
 ```rust
@@ -4369,15 +4728,40 @@ Reads the report history, oldest first.
 
 The recorded reports. A missing file is an empty history; an unreadable
 or damaged one is too, because the history is a convenience and the
-next report rewrites it.
+next report rewrites it. Every access code read is registered with log
+redaction.
+
+### mark_report_deleted
+
+```rust
+pub fn mark_report_deleted(
+    files_dir: &Path,
+    report_id: &ReportId,
+    deleted_at_unix_ms: u64,
+) -> Result<()>
+```
+
+Notes in the history that the collector's copy of a report was deleted.
+
+#### Arguments
+
+* `files_dir` - The Bookclerk files directory.
+* `report_id` - The report.
+* `deleted_at_unix_ms` - When the collector deleted it.
+
+#### Errors
+
+Returns an error when the lock cannot be taken or the history cannot be
+written. A report not in the history is not an error.
 
 ### parse_submit_reply
 
 ```rust
-pub fn parse_submit_reply(body: &[u8]) -> Result<ReportId, SubmitReplyError>
+pub fn parse_submit_reply(body: &[u8]) -> Result<SubmitReply, SubmitReplyError>
 ```
 
-Reads the report ID from the collector's `POST /submit` reply.
+Reads the report ID and access code from the collector's `POST /submit`
+reply.
 
 #### Arguments
 
@@ -4385,7 +4769,9 @@ Reads the report ID from the collector's `POST /submit` reply.
 
 #### Returns
 
-The report ID.
+The report ID, and the access code when `access_code` is a string
+holding a canonical code (anything else there is ignored, since the
+report is stored either way).
 
 #### Errors
 
@@ -4400,11 +4786,7 @@ pub fn record_report(files_dir: &Path, record: ReportRecord) -> Result<()>
 
 Adds a report to the history, keeping the newest [`MAX_REPORT_HISTORY`](#max_report_history).
 
-The daemon and a CLI run can both upload from the same files directory,
-so the read, append and replace happen under an exclusive lock on
-`diagnostics/reports.json.lock`: a second writer waits for the first and
-then appends to what the first wrote, rather than both appending to the
-same old list and one replacement dropping the other's report.
+Its access code, if any, is registered with log redaction first.
 
 #### Arguments
 
@@ -4415,6 +4797,122 @@ same old list and one replacement dropping the other's report.
 
 Returns an error when the lock cannot be taken or the history cannot be
 written.
+
+### delete_report
+
+```rust
+pub fn delete_report(
+    config: &DiagnosticsConfig,
+    report_id: &ReportId,
+    code: &AccessCode,
+) -> Result<u64, LookupError>
+```
+
+Deletes the collector's stored copy of a sent report. Its one-line index
+entry and issue links stay on the collector.
+
+Blocking: call it off an async runtime's worker threads.
+
+#### Arguments
+
+* `config` - Diagnostics settings (for the collector URL).
+* `report_id` - The report.
+* `code` - Its access code.
+
+#### Returns
+
+When the copy was deleted, Unix milliseconds.
+
+#### Errors
+
+[`LookupError`](#lookuperror) when no collector is configured, the request fails, the
+collector refuses it, or its answer is malformed.
+
+### fetch_report
+
+```rust
+pub fn fetch_report(
+    config: &DiagnosticsConfig,
+    report_id: &ReportId,
+    code: &AccessCode,
+) -> Result<LookupAnswer, LookupError>
+```
+
+Reads a sent report back from the collector.
+
+Blocking: call it off an async runtime's worker threads.
+
+#### Arguments
+
+* `config` - Diagnostics settings (for the collector URL).
+* `report_id` - The report.
+* `code` - Its access code.
+
+#### Returns
+
+The collector's answer.
+
+#### Errors
+
+[`LookupError`](#lookuperror) when no collector is configured, the request fails, the
+collector refuses it, or its answer is malformed.
+
+### parse_delete_reply
+
+```rust
+pub fn parse_delete_reply(
+    body: &[u8],
+    expected: &ReportId,
+) -> Result<u64, LookupReplyError>
+```
+
+Reads the collector's answer to `POST /lookup/delete`.
+
+#### Arguments
+
+* `body` - The answer body as received.
+* `expected` - The report whose deletion was asked for.
+
+#### Returns
+
+When the stored copy was deleted, Unix milliseconds (the first deletion's
+time when it was already gone).
+
+#### Errors
+
+Returns [`LookupReplyError`](#lookupreplyerror) when the body is too long, not a JSON
+object, has no integer `deleted_at_unix_ms`, or names another report.
+
+### parse_lookup_reply
+
+```rust
+pub fn parse_lookup_reply(
+    body: &[u8],
+    expected: &ReportId,
+) -> Result<LookupAnswer, LookupReplyError>
+```
+
+Reads the collector's answer to `POST /lookup`.
+
+Every field the collector sends is required with its type, except that
+`deleted_at_unix_ms`, `report`, `fix` and the fix's fields may be absent
+or `null`; other keys are ignored and, as in any JSON reader, a repeated
+key keeps its last value.
+
+#### Arguments
+
+* `body` - The answer body as received.
+* `expected` - The report that was asked for.
+
+#### Returns
+
+The answer.
+
+#### Errors
+
+Returns [`LookupReplyError`](#lookupreplyerror) when the body is too long, not a JSON
+object, malformed (including an issue or pull request link that is not
+`https://`), or names another report.
 
 ### read_node_api_spki_pin
 
@@ -4611,6 +5109,23 @@ pub const REDACTED: &str = "[REDACTED]";
 
 Replacement token used wherever a secret or sensitive value is scrubbed.
 
+### ACCESS_CODE_ALPHABET
+
+```rust
+pub const ACCESS_CODE_ALPHABET: &str = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+```
+
+Crockford's base32 alphabet, which access codes are written in: digits
+and letters without I, L, O and U.
+
+### ACCESS_CODE_LENGTH
+
+```rust
+pub const ACCESS_CODE_LENGTH: usize = 16;
+```
+
+Characters in an access code, without the group separators.
+
 ### MAX_REPORT_HISTORY
 
 ```rust
@@ -4635,6 +5150,16 @@ pub const REPORT_HISTORY_FILE: &str = "diagnostics/reports.json";
 ```
 
 File, relative to the files directory, that holds the report history.
+
+### MAX_LOOKUP_REPLY_BYTES
+
+```rust
+pub const MAX_LOOKUP_REPLY_BYTES: usize = _;
+```
+
+Longest collector answer, in bytes, that [`parse_lookup_reply`](#parse_lookup_reply) and
+[`parse_delete_reply`](#parse_delete_reply) read. A stored report is at most 256 KiB, and the
+answer caps every event, so a real answer is well under this.
 
 ### LETS_ENCRYPT_DIRECTORY
 

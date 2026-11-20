@@ -279,6 +279,8 @@ Daemon settings and user preferences.
 | [`GET /api/settings`](settings.md#get-apisettings) | Returns file-backed and runtime-effective Settings plus per-plugin groups. |
 | [`PATCH /api/settings`](settings.md#patch-apisettings) | Validates, writes, and reloads allowlisted Settings keys under `reload_lock`. |
 | [`GET /api/diagnostics/reports`](settings.md#get-apidiagnosticsreports) | Lists the diagnostics reports this install sent, newest first, with the IDs the collector gave them. |
+| [`GET /api/diagnostics/reports/{id}`](settings.md#get-apidiagnosticsreportsid) | Reads a sent report back from the collector with its access code: the stored report (redacted, as sent), the GitHub issues tracking it and the fix, if one is recorded. |
+| [`DELETE /api/diagnostics/reports/{id}`](settings.md#delete-apidiagnosticsreportsid) | Deletes the collector's stored copy of a sent report. The collector keeps its one-line index entry and issue links, so the report still counts; the install's history notes the deletion. |
 | [`POST /api/database/migrate`](settings.md#post-apidatabasemigrate) | Copies library rows between database plugins and optionally switches `[database].plugin`. |
 | [`GET /api/preferences`](settings.md#get-apipreferences) | Loads preferences for the caller with a 3s timeout, creating defaults when missing. |
 | [`PATCH /api/preferences`](settings.md#patch-apipreferences) | Merges a preferences PATCH onto the caller’s stored row and writes it back. |
