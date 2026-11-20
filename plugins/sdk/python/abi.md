@@ -31,6 +31,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MoveManyPage`](#movemanypage) | class | One page of `Destination.moveMany` progress. |
 | [`DeleteManyResult`](#deletemanyresult) | class | Result of `Destination.deleteMany`. |
 | [`HeadManyResult`](#headmanyresult) | class | Result of `Destination.headMany`. |
+| [`TranslateKeysResult`](#translatekeysresult) | class | Success payload of `Destination.translateKeys`. |
 | [`ChangesRequest`](#changesrequest) | class | Argument of `Destination.changes`. Fields are only ever appended. |
 | [`ObjectChange`](#objectchange) | class | One entry of a change feed. |
 | [`ChangesPage`](#changespage) | class | One page of `Destination.changes`. |
@@ -94,6 +95,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`DeleteManyReplyErr`](#deletemanyreplyerr) | class | `DeleteManyReply` member `err`. |
 | [`HeadManyReplyOk`](#headmanyreplyok) | class | `HeadManyReply` member `ok`. |
 | [`HeadManyReplyErr`](#headmanyreplyerr) | class | `HeadManyReply` member `err`. |
+| [`TranslateKeysReplyOk`](#translatekeysreplyok) | class | `TranslateKeysReply` member `ok`. |
+| [`TranslateKeysReplyErr`](#translatekeysreplyerr) | class | `TranslateKeysReply` member `err`. |
 | [`ChangesReplyOk`](#changesreplyok) | class | `ChangesReply` member `ok`. |
 | [`ChangesReplyErr`](#changesreplyerr) | class | `ChangesReply` member `err`. |
 | [`EmptyReplyOk`](#emptyreplyok) | class | `EmptyReply` member `ok`. |
@@ -407,6 +410,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MoveManyReply`](#movemanyreply) | constant | Result union of `Destination.moveMany`. |
 | [`DeleteManyReply`](#deletemanyreply) | constant | Result union of `Destination.deleteMany`. |
 | [`HeadManyReply`](#headmanyreply) | constant | Result union of `Destination.headMany`. |
+| [`TranslateKeysReply`](#translatekeysreply) | constant | Result union of `Destination.translateKeys`. |
 | [`ChangesReply`](#changesreply) | constant | Result union of `Destination.changes`. |
 | [`EmptyReply`](#emptyreply) | constant | Result union of `methods without a success payload`. |
 | [`PullReply`](#pullreply) | constant | Result union of `ByteSource.pull`. |
@@ -758,6 +762,18 @@ Result of `Destination.headMany`.
 **Attributes**
 
 - `objects`: One probe per requested key, in request order.
+
+### TranslateKeysResult
+
+```python
+class TranslateKeysResult(TypedDict)
+```
+
+Success payload of `Destination.translateKeys`.
+
+**Attributes**
+
+- `keys`: One translated key per requested host key, in request order: the key the guest stores that host key under. Each is a relative key with no empty, `.` or `..` segment.
 
 ### ChangesRequest
 
@@ -1740,6 +1756,36 @@ Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
 
+### TranslateKeysReplyOk
+
+```python
+class TranslateKeysReplyOk(TypedDict)
+```
+
+`TranslateKeysReply` member `ok`.
+
+Success: one translated key per host key.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: one translated key per host key.
+
+### TranslateKeysReplyErr
+
+```python
+class TranslateKeysReplyErr(TypedDict)
+```
+
+`TranslateKeysReply` member `err`.
+
+Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure of the whole call; `code` is a `PluginErrorCode` wire string.
+
 ### ChangesReplyOk
 
 ```python
@@ -2304,6 +2350,26 @@ what to read; a scheduled listing stays the backstop.
 **Returns**
 
 `ChangesReply`
+
+#### Destination.translate_keys
+
+```python
+async def translate_keys(self, keys: list[str]) -> TranslateKeysReply
+```
+
+Translate up to `maxBatchKeys` host keys into the keys the guest stores
+them under (requires `storage.translateKeys`). A host key is `/`-joined
+segments, none empty, `.`, `..` or holding `\` or a control character.
+The same host key must always translate to the same key. Without the
+feature the host stores each host key as written.
+
+**Args**
+
+- `keys`: Host keys to translate.
+
+**Returns**
+
+`TranslateKeysReply`
 
 ### Source
 
@@ -7552,6 +7618,14 @@ HeadManyReply = Union[HeadManyReplyOk, HeadManyReplyErr]
 ```
 
 Result union of `Destination.headMany`.
+
+### TranslateKeysReply
+
+```python
+TranslateKeysReply = Union[TranslateKeysReplyOk, TranslateKeysReplyErr]
+```
+
+Result union of `Destination.translateKeys`.
 
 ### ChangesReply
 

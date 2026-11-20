@@ -32,6 +32,8 @@
 | [`HeadManyResults`](#headmanyresults) | type alias |  |
 | [`ChangesParams`](#changesparams) | type alias |  |
 | [`ChangesResults`](#changesresults) | type alias |  |
+| [`TranslateKeysParams`](#translatekeysparams) | type alias |  |
+| [`TranslateKeysResults`](#translatekeysresults) | type alias |  |
 
 ## Modules
 
@@ -61,6 +63,8 @@
 - [`head_many_results`](head_many_results.md)
 - [`changes_params`](changes_params.md)
 - [`changes_results`](changes_results.md)
+- [`translate_keys_params`](translate_keys_params.md)
+- [`translate_keys_results`](translate_keys_results.md)
 
 ## Traits
 
@@ -132,6 +136,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: ChangesParams,
         _: ChangesResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn translate_keys(
+        self: Rc<Self>,
+        _: TranslateKeysParams,
+        _: TranslateKeysResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -266,6 +275,16 @@ fn changes(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::translate_keys
+
+```rust
+fn translate_keys(
+    self: Rc<Self>,
+    _: TranslateKeysParams,
+    _: TranslateKeysResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 Implemented by: `DestinationServer`
 
 ## Structs
@@ -354,6 +373,12 @@ pub fn head_many_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn changes_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::translate_keys_request
+
+```rust
+pub fn translate_keys_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -543,4 +568,16 @@ pub type ChangesParams = Params<Owned>;
 
 ```rust
 pub type ChangesResults = Results<Owned>;
+```
+
+### TranslateKeysParams
+
+```rust
+pub type TranslateKeysParams = Params<Owned>;
+```
+
+### TranslateKeysResults
+
+```rust
+pub type TranslateKeysResults = Results<Owned>;
 ```

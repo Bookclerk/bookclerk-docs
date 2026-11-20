@@ -50,6 +50,7 @@ pub struct StorageCapabilities {
     pub head_many: bool,
     pub conditional_write: bool,
     pub changes: bool,
+    pub translate_keys: bool,
 }
 ```
 
@@ -72,6 +73,8 @@ after the check).
 - `conditional_write`: Conditional writes enforced by the backend
   ([`StorageBackend::put_stream_conditional`](README.md#storagebackendput_stream_conditional)).
 - `changes`: A change feed ([`StorageBackend::changes`](README.md#storagebackendchanges)).
+- `translate_keys`: Its own translation of host keys ([`StorageBackend::translate_keys`](README.md#storagebackendtranslate_keys));
+  without it a host key is stored as written.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

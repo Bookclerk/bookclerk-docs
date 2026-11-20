@@ -3861,6 +3861,18 @@ Re-exports [toBridgeJson](plugin.md#tobridgejson)
 
 ***
 
+### TranslateKeysReply
+
+Re-exports [TranslateKeysReply](generated.md#translatekeysreply)
+
+***
+
+### TranslateKeysResult
+
+Re-exports [TranslateKeysResult](generated.md#translatekeysresult)
+
+***
+
 ### TypedDbStatement
 
 Re-exports [TypedDbStatement](db-execute.md#typeddbstatement)

@@ -239,6 +239,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`validate_head_many`](#validate_head_many) | function | Checks a guest's `headMany` probes against the keys the host sent. |
 | [`validate_key_outcomes`](#validate_key_outcomes) | function | Checks a guest's per-key outcomes against the keys the host sent. |
 | [`validate_move_many_page`](#validate_move_many_page) | function | Checks a guest's `moveMany` page against the request it answers. |
+| [`validate_translated_keys`](#validate_translated_keys) | function | Checks a guest's `translateKeys` answer against the host keys it was sent. |
 | [`MAX_PLUGIN_MIGRATION_ID_BYTES`](#max_plugin_migration_id_bytes) | constant | Maximum UTF-8 bytes of one plugin-chosen migration id. |
 | [`PLUGIN_MIGRATIONS_TABLE`](#plugin_migrations_table) | constant | Host-private plugin-binding migration journal (not a plugin-owned table). |
 | [`PHYSICAL_STAR_COLUMN`](#physical_star_column) | constant | Column name recorded for `SELECT *` / `alias.*` / `RETURNING *` on a physical table. |
@@ -259,6 +260,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant | Guest implements `super::Destination::head_many`. |
 | [`FEATURE_STORAGE_MOVE`](#feature_storage_move) | constant | Guest implements `super::Destination::move_object`. |
 | [`FEATURE_STORAGE_MOVE_MANY`](#feature_storage_move_many) | constant | Guest implements `super::Destination::move_many`. |
+| [`FEATURE_STORAGE_TRANSLATE_KEYS`](#feature_storage_translate_keys) | constant | Guest implements `super::Destination::translate_keys`. |
 | [`FEATURE_STREAMS`](#feature_streams) | constant | Media moves through transferred `crate::roles::ByteRange` / `ByteSource` streams. |
 | [`STORAGE_OPERATION_FEATURES`](#storage_operation_features) | constant | Every optional storage operation a host offers a storage guest, beside `FEATURE_STORAGE_COPY`. Each one the guest accepts replaces the host's fallback for that operation. |
 | [`MAX_COVER_BYTES`](#max_cover_bytes) | constant | Largest image body one `CoverFetcher.fetchCovers` URL may return. |
@@ -300,6 +302,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`MAX_BATCH_KEYS`](#max_batch_keys) | constant | Maximum keys or key pairs in one `moveMany`, `deleteMany` or `headMany` call, and maximum outcomes in one reply. |
 | [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) | constant | Maximum bytes of a `Destination.changes` cursor. |
 | [`MAX_CHANGES_PAGE`](#max_changes_page) | constant | Maximum changes in one `Destination.changes` page. |
+| [`MAX_TRANSLATED_KEY_BYTES`](#max_translated_key_bytes) | constant | Longest key a guest may translate a host key into, in UTF-8 bytes. Generous next to any store's own limit (S3 keys stop at 1024 bytes, file-system paths usually at 4096). |
 | [`PLUGIN_TOML_SCHEMA_JSON`](#plugin_toml_schema_json) | constant | Embedded JSON Schema for install `plugin.toml` files (shared with language SDK author tools and `bookclerk plugins` validation). |
 
 ## Re-exports
@@ -2043,6 +2046,13 @@ pub trait Destination {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn translate_keys<'life0, 'async_trait>(
+        &'life0 self,
+        _keys: Vec<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
 }
 ```
 
@@ -2260,6 +2270,23 @@ where
 ```
 
 Keys changed since a cursor (`storage.changes`).
+
+#### Destination::translate_keys
+
+```rust
+fn translate_keys<'life0, 'async_trait>(
+    &'life0 self,
+    _keys: Vec<String>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+Translate up to [`crate::MAX_BATCH_KEYS`](#max_batch_keys) host keys into the keys
+this destination stores them under (`storage.translateKeys`), one
+per host key in order. The same host key must always translate to
+the same key.
 
 Implemented by: `DestinationClient`
 
@@ -6225,6 +6252,7 @@ pub enum StorageReply {
     HeadMany(Vec<Option<ObjectMetadata>>),
     Changes(ChangesPage),
     List(ListPage),
+    TranslateKeys(Vec<String>),
 }
 ```
 
@@ -6237,6 +6265,7 @@ A guest reply the `storage_reply` fuzz target decodes.
 - `HeadMany`: `headMany` probes.
 - `Changes`: A `changes` page.
 - `List`: A `list` page.
+- `TranslateKeys`: `translateKeys` keys.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -6249,6 +6278,7 @@ pub enum StorageReplyKind {
     HeadMany,
     Changes,
     List,
+    TranslateKeys,
 }
 ```
 
@@ -6261,6 +6291,7 @@ Which reply [`decode_storage_reply_bytes`](#decode_storage_reply_bytes) reads.
 - `HeadMany`: `HeadManyResult`.
 - `Changes`: `ChangesPage`.
 - `List`: `ListPage`.
+- `TranslateKeys`: `TranslateKeysResult`.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -7254,6 +7285,22 @@ most [`MAX_CHANGES_CURSOR_BYTES`](#max_changes_cursor_bytes) and not the one the
 
 Returns `internal` describing the first broken rule.
 
+### validate_translated_keys
+
+```rust
+pub fn validate_translated_keys(sent: &[String], translated: &[String]) -> Result<()>
+```
+
+Checks a guest's `translateKeys` answer against the host keys it was sent.
+
+#### Errors
+
+Returns `internal` unless there is one key per host key and every key is
+relative (no leading `/`), at most [`MAX_TRANSLATED_KEY_BYTES`](#max_translated_key_bytes) long, free
+of control characters, and has no empty, `.` or `..` segment between `/`
+or `\` separators: a key the host can store and read back without
+leaving the destination.
+
 ## Constants
 
 ### MAX_PLUGIN_MIGRATION_ID_BYTES
@@ -7424,6 +7471,14 @@ pub const FEATURE_STORAGE_MOVE_MANY: &str = crate::plugin_capnp::FEATURE_STORAGE
 ```
 
 Guest implements [`super::Destination::move_many`](#destinationmove_many).
+
+### FEATURE_STORAGE_TRANSLATE_KEYS
+
+```rust
+pub const FEATURE_STORAGE_TRANSLATE_KEYS: &str = crate::plugin_capnp::FEATURE_STORAGE_TRANSLATE_KEYS;
+```
+
+Guest implements [`super::Destination::translate_keys`](#destinationtranslate_keys).
 
 ### FEATURE_STREAMS
 
@@ -7770,6 +7825,16 @@ pub const MAX_CHANGES_PAGE: u32 = crate::plugin_capnp::MAX_CHANGES_PAGE;
 ```
 
 Maximum changes in one `Destination.changes` page.
+
+### MAX_TRANSLATED_KEY_BYTES
+
+```rust
+pub const MAX_TRANSLATED_KEY_BYTES: usize = 4096;
+```
+
+Longest key a guest may translate a host key into, in UTF-8 bytes.
+Generous next to any store's own limit (S3 keys stop at 1024 bytes,
+file-system paths usually at 4096).
 
 ### PLUGIN_TOML_SCHEMA_JSON
 

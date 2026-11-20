@@ -1561,6 +1561,31 @@ Streamed write. `body` ownership is transferred to the destination.
 
 Bytes written and optional etag / sha256.
 
+##### translateKeys()
+
+```ts
+translateKeys(_keys): Promise<string[]>;
+```
+
+Translate up to `MAX_BATCH_KEYS` host keys into the keys this
+destination stores them under (declare `storage.translateKeys`). A host
+key is `/`-joined segments, none empty, `.`, `..` or holding `` or a
+control character; return a relative key with the same properties. The
+same host key must always translate to the same key. Without the
+feature the host stores each host key as written.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Host keys. |
+
+###### Returns
+
+`Promise`\<`string`[]\>
+
+One translated key per host key, in order.
+
 ***
 
 ### EventBatch
@@ -3970,6 +3995,31 @@ Streamed write. `body` ownership is transferred to the destination.
 `Promise`\<[`PutResult`](#putresult)\>
 
 Bytes written and optional etag / sha256.
+
+##### translateKeys()
+
+```ts
+translateKeys(_keys): Promise<string[]>;
+```
+
+Translate up to `MAX_BATCH_KEYS` host keys into the keys this
+destination stores them under (declare `storage.translateKeys`). A host
+key is `/`-joined segments, none empty, `.`, `..` or holding `` or a
+control character; return a relative key with the same properties. The
+same host key must always translate to the same key. Without the
+feature the host stores each host key as written.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_keys` | `string`[] | Host keys. |
+
+###### Returns
+
+`Promise`\<`string`[]\>
+
+One translated key per host key, in order.
 
 ***
 

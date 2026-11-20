@@ -450,6 +450,16 @@ Guest implements `Destination.moveMany` (`storage.moveMany`).
 
 ***
 
+### FEATURE\_STORAGE\_TRANSLATE\_KEYS
+
+```ts
+const FEATURE_STORAGE_TRANSLATE_KEYS: "storage.translateKeys";
+```
+
+Guest implements `Destination.translateKeys` (`storage.translateKeys`).
+
+***
+
 ### FEATURE\_STREAMS
 
 ```ts

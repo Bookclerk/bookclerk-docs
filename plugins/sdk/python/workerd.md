@@ -1654,6 +1654,20 @@ One page of the change feed after a cursor (declare `storage.changes`).
 Returns `{"changes", "cursor", "more", "complete"}`; `complete`
 is false when changes may have been missed and the host must relist.
 
+#### StorageEntrypoint.translateKeys
+
+```python
+async def translateKeys(self, _keys: list[str])
+```
+
+Translate up to `MAX_BATCH_KEYS` host keys (declare `storage.translateKeys`).
+
+A host key is `/`-joined segments, none empty, `.`, `..` or
+holding a backslash or a control character. Returns one relative key
+per host key, in order: the key this destination stores it under.
+The same host key must always translate to the same key; without the
+feature the host stores each host key as written.
+
 ### StorefrontEntrypoint
 
 ```python

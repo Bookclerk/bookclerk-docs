@@ -21,6 +21,7 @@ natively (see `docs/plugins/abi.md#intent-operations`).
 | [`move_many`](#move_many) | function | Moves explicit pairs, or one page of a prefix. |
 | [`delete_many`](#delete_many) | function | Deletes up to `MAX_BATCH_KEYS` keys, one outcome per key in order. |
 | [`head_many`](#head_many) | function | Probes up to `MAX_BATCH_KEYS` keys, one entry per key in order. |
+| [`translate_keys`](#translate_keys) | function | Translates up to `MAX_BATCH_KEYS` host keys into the keys the backend stores them under, one per key in order. |
 | [`changes`](#changes) | function | Serves `changes` from the backend's change feed. |
 
 ## Functions
@@ -156,6 +157,24 @@ Probes up to [`MAX_BATCH_KEYS`](../bookclerk_plugin_abi/README.md#max_batch_keys
 
 Returns `PluginError::invalid_params` for too many keys, and the first
 probe failure other than absence.
+
+### translate_keys
+
+```rust
+pub async fn translate_keys<B: StorageBackend + ?Sized>(
+    backend: &B,
+    keys: Vec<String>,
+) -> Result<Vec<String>, PluginError>
+```
+
+Translates up to [`MAX_BATCH_KEYS`](../bookclerk_plugin_abi/README.md#max_batch_keys) host keys into the keys the backend
+stores them under, one per key in order.
+
+#### Errors
+
+Returns `PluginError::invalid_params` for too many keys or a key that
+breaks the host key syntax ([`crate::key_syntax::HostKey`](key_syntax.md#hostkey)), and the
+backend's failure.
 
 ### changes
 

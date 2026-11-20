@@ -16,6 +16,7 @@ content-source plugins; this crate never sees license keys. See
 | [`ConvertSummary`](#convertsummary) | struct | Summary of a batch convert run. |
 | [`AcquireDestination`](#acquiredestination) | struct | One configured output destination for an acquire run. |
 | [`AcquireDestinations`](#acquiredestinations) | struct | Ordered set of acquire destinations built from the deployed destination plugins. |
+| [`DestinationKeys`](#destinationkeys) | struct | The destination an acquire request names files for, which translates its host keys. |
 | [`LibraryCopyFile`](#librarycopyfile) | struct | One file of a library's copy, as the library listed it. |
 | [`LibraryCopyListing`](#librarycopylisting) | struct | The title an acquire wants, as its store lists it. |
 | [`LibraryCopySource`](#librarycopysource) | struct | The libraries an acquire asks for a copy before it fetches from the store. The default asks none, so every title comes from its store. |
@@ -52,8 +53,8 @@ content-source plugins; this crate never sees license keys. See
 | [`acquire_pdf_only`](#acquire_pdf_only) | function | Download and store companion PDF only (classic `acquire --pdf`). |
 | [`call_number_of`](#call_number_of) | function | The short Bookclerk id of the edition `book_uuid` resolves to, for `<call number>` (`bookclerk_library::call_number`). |
 | [`planned_storage_key`](#planned_storage_key) | function | Compute the storage key that would be used (for dry-run / set-status). |
-| [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`. |
-| [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | Like `planned_storage_key_for` but with an explicit replacement-rule set (used by reconcile to probe wildcard patterns across sanitization profiles). |
+| [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`: the host key the templates build, translated by the request's destination (`AcquireRequest::destination_keys`). |
+| [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | The host key `planned_storage_key_for` translates, built with an explicit replacement-rule set and not translated (used by reconcile to probe wildcard patterns across sanitization profiles). |
 | [`planned_title_folders`](#planned_title_folders) | function | The folders an acquire of `req` writes the title's files under on a destination with `req.options`: the folder of its planned audio key, which its sidecars, chapter files and parts share. When podcast episodes are saved to the parent's folder, the episode's own folder is included too, since a library without the parent's row names it so. An empty string is the destination's root (a template with no folder). |
 | [`planned_title_names`](#planned_title_names) | function | The title's planned names on the destination `req.options` describe: `PlannedTitleNames`. |
 | [`share_acquired_sibling`](#share_acquired_sibling) | function | Marks `book` acquired at the files of its edition, when another book of the edition acquired it (`edition_acquisitions`) and every destination holds the copy, so the edition is not fetched again. The edition's companion PDF is shared too when that book has one. |
@@ -488,6 +489,45 @@ Consumes this set and returns a listing backend over the primary destination.
 
 Returns an error when the operation fails.
 
+### DestinationKeys
+
+```rust
+pub struct DestinationKeys {
+    /* private fields */
+}
+```
+
+The destination an acquire request names files for, which translates
+its host keys.
+
+The default stands for no destination in particular: host keys are
+kept as written. [`crate::AcquireRequest`](#acquirerequest)s made for one destination
+carry that destination's backend.
+
+#### DestinationKeys::of
+
+```rust
+pub fn of(backend: &dyn StorageBackend) -> Self
+```
+
+Keys translated by `backend`.
+
+#### DestinationKeys::translate
+
+```rust
+pub async fn translate(&self, host_key: String) -> String
+```
+
+The key the destination stores `host_key` under.
+
+A key that is not a valid host key (a reconcile pattern, an empty
+name) is returned as given. When the destination cannot translate it
+(its guest is down), the host key is returned and a warning logged:
+the write that follows then either stores it as written or fails and
+is retried like any other failed copy.
+
+Implements: `Clone`, `Debug`, `Default`
+
 ### LibraryCopyFile
 
 ```rust
@@ -751,6 +791,7 @@ pub struct AcquireRequest {
     pub parent_call_number: Option<String>,
     pub metadata: AcquireMetadata,
     pub library_copies: LibraryCopySource,
+    pub destination_keys: DestinationKeys,
 }
 ```
 
@@ -789,6 +830,9 @@ Request to acquire a single title.
   overlay. The default has none, so plain audio keeps its store tags.
 - `library_copies`: The libraries asked for the copy they already hold of the title
   before it is fetched from its store. The default asks none.
+- `destination_keys`: The destination this request names files for, which translates the
+  host keys its naming templates build. The default keeps host keys;
+  the per-destination requests set it for each destination.
 
 Implements: `Clone`, `Debug`
 
@@ -1443,7 +1487,9 @@ pub async fn planned_storage_key_for(
 ```
 
 Planned audio storage key for `ext`, honoring folder/file templates and
-`save_podcasts_to_parent_folder`.
+`save_podcasts_to_parent_folder`: the host key the templates build,
+translated by the request's destination
+([`AcquireRequest::destination_keys`](#acquirerequest)).
 
 ### planned_storage_key_with_rules
 
@@ -1456,8 +1502,9 @@ pub async fn planned_storage_key_with_rules(
 ) -> String
 ```
 
-Like [`planned_storage_key_for`](#planned_storage_key_for) but with an explicit replacement-rule set
-(used by reconcile to probe wildcard patterns across sanitization profiles).
+The host key [`planned_storage_key_for`](#planned_storage_key_for) translates, built with an
+explicit replacement-rule set and not translated (used by reconcile to
+probe wildcard patterns across sanitization profiles).
 
 ### planned_title_folders
 

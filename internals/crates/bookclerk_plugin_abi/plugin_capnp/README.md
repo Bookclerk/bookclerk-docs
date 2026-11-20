@@ -76,6 +76,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`FEATURE_STORAGE_HEAD_MANY`](#feature_storage_head_many) | constant |  |
 | [`FEATURE_STORAGE_CONDITIONAL_WRITE`](#feature_storage_conditional_write) | constant |  |
 | [`FEATURE_STORAGE_CHANGES`](#feature_storage_changes) | constant |  |
+| [`FEATURE_STORAGE_TRANSLATE_KEYS`](#feature_storage_translate_keys) | constant |  |
 
 ## Modules
 
@@ -99,6 +100,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`move_many_page`](move_many_page.md)
 - [`delete_many_result`](delete_many_result.md)
 - [`head_many_result`](head_many_result.md)
+- [`translate_keys_result`](translate_keys_result.md)
 - [`changes_request`](changes_request.md)
 - [`object_change`](object_change.md)
 - [`changes_page`](changes_page.md)
@@ -142,6 +144,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`move_many_reply`](move_many_reply.md)
 - [`delete_many_reply`](delete_many_reply.md)
 - [`head_many_reply`](head_many_reply.md)
+- [`translate_keys_reply`](translate_keys_reply.md)
 - [`changes_reply`](changes_reply.md)
 - [`empty_reply`](empty_reply.md)
 - [`pull_ok`](pull_ok.md)
@@ -968,4 +971,10 @@ pub const FEATURE_STORAGE_CONDITIONAL_WRITE: &str = "storage.conditionalWrite";
 
 ```rust
 pub const FEATURE_STORAGE_CHANGES: &str = "storage.changes";
+```
+
+### FEATURE_STORAGE_TRANSLATE_KEYS
+
+```rust
+pub const FEATURE_STORAGE_TRANSLATE_KEYS: &str = "storage.translateKeys";
 ```

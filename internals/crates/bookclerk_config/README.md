@@ -84,7 +84,6 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OidcProvisionMode`](#oidcprovisionmode) | enum | How an upstream provider decides who may become a first-party User. |
 | [`ResolveOperatorTokenEnv`](#resolveoperatortokenenv) | enum | How an operator token was resolved from env (config-layer only). |
 | [`BadBookAction`](#badbookaction) | enum | How to handle acquire failures (`BadBook` setting). |
-| [`DestinationKeyStyle`](#destinationkeystyle) | enum | How a destination names what it stores, which decides how acquire sanitizes and limits keys. |
 | [`MultiDestinationMode`](#multidestinationmode) | enum | Behavior when some output destinations already have a title and others do not. |
 | [`CopyFormat`](#copyformat) | enum | The format of one copy of a book. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
@@ -116,7 +115,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`parse_replacement_characters`](#parse_replacement_characters) | function | Parse classic `ReplacementCharacters` JSON. |
 | [`posix_replacement_characters`](#posix_replacement_characters) | function | Path-separator sanitization for POSIX local filesystems. |
 | [`reconciliation_wildcard_rules`](#reconciliation_wildcard_rules) | function | Replacement rules that turn every known sanitizable character into `RECONCILE_WILDCARD`. |
-| [`resolve_replacement_characters`](#resolve_replacement_characters) | function | Resolve the character-replacement map used when sanitising storage path segments. |
+| [`resolve_replacement_characters`](#resolve_replacement_characters) | function | Resolve the character-replacement map the host applies to tag values when it fills a naming template. |
 | [`s3_replacement_characters`](#s3_replacement_characters) | function | Characters AWS recommends avoiding in S3 object keys, plus path separators. |
 | [`windows_replacement_characters`](#windows_replacement_characters) | function | NTFS-safe replacement map (classic Libation Windows defaults subset). |
 | [`checkin_due`](#checkin_due) | function | Whether a check-in is due. |
@@ -191,7 +190,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_QUALITY_BYTES`](#max_quality_bytes) | constant | Longest quality name, in bytes (`320k-mono` is nine). |
 | [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1) | constant | The constant bitrates, in kbit/s, the MP3 encoder writes. |
 | [`DEFAULT_MAX_FILENAME_LENGTH`](#default_max_filename_length) | constant | Classic Libation `LongPath.MaxFilenameLength` — per path component. |
-| [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) | constant | AWS S3 maximum object key length (UTF-8 bytes), including any prefix. |
+| [`MAX_HOST_KEY_BYTES`](#max_host_key_bytes) | constant | Largest host key, in UTF-8 bytes, including the destination's prefix: the S3 object-key limit, which file systems also accept. |
 | [`BOOKCLERK_CONFIG_ENV`](#bookclerk_config_env) | constant | Override for the config file path (`BOOKCLERK_CONFIG`). |
 | [`BOOKCLERK_FILES_DIR_ENV`](#bookclerk_files_dir_env) | constant | Environment variable for the Bookclerk data directory. |
 | [`MAX_FILTER_RULES`](#max_filter_rules) | constant | Most rules one destination filter may hold. |
@@ -1680,39 +1679,22 @@ Limits applied when hardening acquired storage keys.
 
 - `max_filename_length`: Max length per folder / file-stem segment. `0` disables per-segment caps.
 - `max_storage_key_bytes`: Max UTF-8 bytes for the full relative storage key (`folder/…/file.ext`).
-  `0` disables. For S3, set to [`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) minus prefix len.
+  `0` disables. Host keys use [`MAX_HOST_KEY_BYTES`](#max_host_key_bytes) minus the prefix length.
 - `measure`: Whether segment truncation counts Unicode scalars or UTF-8 bytes.
 
-#### PathLimits::local
+#### PathLimits::for_host_keys
 
 ```rust
-pub fn local(measure: PathLengthMeasure) -> Self
+pub fn for_host_keys(max_filename_length: u32, prefix: &str) -> Self
 ```
 
-Local-filesystem defaults: 255-length segments, no full-key cap.
+Host-key limits for a destination whose keys sit under `prefix`:
+segments of at most `max_filename_length` UTF-8 bytes, and a whole
+key of [`MAX_HOST_KEY_BYTES`](#max_host_key_bytes) minus the normalized `prefix` length
+(its trailing `/` included when the prefix is non-empty).
 
-#### PathLimits::s3
-
-```rust
-pub fn s3(prefix: &str) -> Self
-```
-
-S3 defaults: 255-byte segments plus a full-key budget of
-[`S3_MAX_OBJECT_KEY_BYTES`](#s3_max_object_key_bytes) minus the normalized `prefix` UTF-8 length
-(trailing `/` included when the prefix is non-empty).
-
-#### PathLimits::resolve
-
-```rust
-pub fn resolve(
-    max_filename_length: u32,
-    storage_is_s3: bool,
-    s3_prefix: &str,
-    path_sanitization_is_windows: bool,
-) -> Self
-```
-
-Resolve from config: Windows sanitization → char measure; S3 → key budget.
+Bytes are counted for every destination: a name that fits in bytes
+fits in characters and UTF-16 units too.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3070,11 +3052,11 @@ is empty (explicit rules always win).
 
 **Variants**
 
-- `Auto`: Pick a profile from the storage backend and host OS.
-  
-  * `output.s3.enabled = true` → [`s3_replacement_characters`](#s3_replacement_characters)
-  * Windows host + local storage → [`windows_replacement_characters`](#windows_replacement_characters)
-  * otherwise → [`posix_replacement_characters`](#posix_replacement_characters)
+- `Auto`: Leave each destination's character rules to its storage plugin:
+  the host only strips path separators
+  ([`posix_replacement_characters`](#posix_replacement_characters)), and the plugin translates the
+  key into what it can store (a Windows-safe path for `local` on
+  Windows, an S3-safe key for an object store).
 - `Windows`: NTFS / classic Libation Windows map (`: * ? " < > | / \`).
 - `Posix`: Path-separator only (`/` `\`) — suitable for Linux/macOS local disks.
 - `S3`: AWS S3 “characters to avoid” plus path separators.
@@ -3287,43 +3269,6 @@ How to handle acquire failures (`BadBook` setting).
 - `Ignore`: Skip the failed title and continue the batch.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
-
-### DestinationKeyStyle
-
-```rust
-pub enum DestinationKeyStyle {
-    Filesystem,
-    ObjectStore,
-}
-```
-
-How a destination names what it stores, which decides how acquire
-sanitizes and limits keys.
-
-**Variants**
-
-- `Filesystem`: Paths on a file system (the `local` plugin): per-component length
-  limits, and Windows-safe names on Windows hosts.
-- `ObjectStore`: Object-store keys (every other storage plugin): one key of at most
-  1024 bytes and the object-store character set.
-
-#### DestinationKeyStyle::is_object_store
-
-```rust
-pub fn is_object_store(self) -> bool
-```
-
-True for object-store keys.
-
-#### DestinationKeyStyle::is_filesystem
-
-```rust
-pub fn is_filesystem(self) -> bool
-```
-
-True for file-system paths.
-
-Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### MultiDestinationMode
 
@@ -4103,15 +4048,17 @@ POSIX, or S3 rules (or custom `replacement_characters`).
 pub fn resolve_replacement_characters(
     explicit: &[ReplacementRule],
     mode: PathSanitizationMode,
-    storage_is_s3: bool,
 ) -> Vec<ReplacementRule>
 ```
 
-Resolve the character-replacement map used when sanitising storage path segments.
+Resolve the character-replacement map the host applies to tag values
+when it fills a naming template.
 
 Explicit non-empty `replacement_characters` always wins. Otherwise
-`path_sanitization` (with `storage_is_s3` for [`PathSanitizationMode::Auto`](#pathsanitizationmode))
-selects a profile.
+`path_sanitization` selects a profile; [`PathSanitizationMode::Auto`](#pathsanitizationmode)
+strips only path separators and leaves the rest to the destination's
+storage plugin, which translates the host key into the path or object
+key it stores.
 
 ### s3_replacement_characters
 
@@ -5061,13 +5008,14 @@ pub const DEFAULT_MAX_FILENAME_LENGTH: usize = 255;
 
 Classic Libation `LongPath.MaxFilenameLength` — per path component.
 
-### S3_MAX_OBJECT_KEY_BYTES
+### MAX_HOST_KEY_BYTES
 
 ```rust
-pub const S3_MAX_OBJECT_KEY_BYTES: usize = 1024;
+pub const MAX_HOST_KEY_BYTES: usize = 1024;
 ```
 
-AWS S3 maximum object key length (UTF-8 bytes), including any prefix.
+Largest host key, in UTF-8 bytes, including the destination's prefix:
+the S3 object-key limit, which file systems also accept.
 
 ### BOOKCLERK_CONFIG_ENV
 

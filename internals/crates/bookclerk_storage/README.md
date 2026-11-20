@@ -64,6 +64,7 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 - [`fs_kind`](fs_kind.md): What kind of file system a local path lives on, so the local backend only leans on hard links, inode numbers and atomic renames where the file system keeps their promises.
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
+- [`key_syntax`](key_syntax.md): The host's key syntax, and how a storage backend turns a host key into the path or object key it stores.
 - [`s3_events`](s3_events.md): Object-store event notifications, parsed into change-feed entries.
 
 ## Traits
@@ -199,6 +200,14 @@ pub trait StorageBackend: Send + Sync {
         &'life0 self,
         keys: &'life1 [String],
     ) -> Pin<Box<dyn Future<Output = Result<Vec<KeyResult>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn translate_keys<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        keys: &'life1 [HostKey],
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + Send + 'async_trait>>
     where
         Self: 'async_trait,
         'life0: 'async_trait,
@@ -637,6 +646,30 @@ Delete each key, one outcome per key in order. The default loops
 
 Returns an error only when the whole call fails.
 
+#### StorageBackend::translate_keys
+
+```rust
+fn translate_keys<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    keys: &'life1 [HostKey],
+) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Translates each host key into the key this backend stores it
+under, one per key in order ([`crate::key_syntax`](key_syntax.md)).
+
+The default stores a host key as written. The same host key must
+always translate to the same key, and two different host keys should
+translate to different keys.
+
+##### Errors
+
+Returns an error only when the whole call fails.
+
 #### StorageBackend::head_many
 
 ```rust
@@ -963,6 +996,19 @@ FUSE mount (see [`crate::fs_kind`](fs_kind.md)), or when the operating system
 refuses it, every page says the feed may have missed changes, so the
 caller lists instead. Call it after [`Self::with_fs_kind`](#localfsbackendwith_fs_kind) for the
 override to apply.
+
+#### LocalFsBackend::keeping_host_keys
+
+```rust
+pub fn keeping_host_keys(self) -> Self
+```
+
+Stores host keys as written instead of translating them for this
+file system, and says it does not translate keys.
+
+For a branch's outbox: the files it holds are uploaded to the owner
+under host keys, and each of the owner's destinations translates
+them there.
 
 #### LocalFsBackend::with_fs_kind
 

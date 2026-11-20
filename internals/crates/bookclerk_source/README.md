@@ -845,8 +845,9 @@ Audible’s download helpers can overlay the plugin bitrate for a single fetch.
 - `max_sample_rate`: Optional ceiling for output sample rate in Hz (`None` = leave source rate).
 - `creation_time`: How to set the file creation / birth timestamp after acquire.
 - `last_write_time`: How to set the file last-write / mtime after acquire.
-- `replacement_characters`: Resolved find/replace rules for path-segment sanitisation.
-- `path_limits`: Filesystem / object-store path length limits for storage keys.
+- `replacement_characters`: Resolved find/replace rules the host applies to tag values when it
+  fills a naming template.
+- `path_limits`: Length limits for the host keys naming templates build.
 - `save_podcasts_to_parent_folder`: Save podcast episodes under the parent show folder.
 
 #### DownloadOptions::from_fetch_options
@@ -869,12 +870,7 @@ Overlays wire fetch knobs onto these options (packaging knobs untouched).
 #### DownloadOptions::for_destination
 
 ```rust
-pub fn for_destination(
-    cfg: &Config,
-    key_style: DestinationKeyStyle,
-    naming: &DestinationNaming,
-    prefix: &str,
-) -> Self
+pub fn for_destination(cfg: &Config, naming: &DestinationNaming, prefix: &str) -> Self
 ```
 
 Build acquire options stamped for one output destination.
@@ -882,7 +878,9 @@ Build acquire options stamped for one output destination.
 Packaging knobs come from global `[output]`; naming templates prefer
 the destination's own overrides, which a storage plugin may
 declare as `[[settings]]` and the host reads from the deployed
-instance document. `prefix` is that document's key prefix.
+instance document. `prefix` is that document's key prefix, which
+the host-key length budget leaves room for. The storage plugin
+translates each host key into the key it stores.
 
 #### DownloadOptions::effective_output
 

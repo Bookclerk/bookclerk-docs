@@ -462,6 +462,7 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_HEAD_MANY`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_head_many)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_MOVE`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_move)
 - [`bookclerk_plugin_abi::FEATURE_STORAGE_MOVE_MANY`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_move_many)
+- [`bookclerk_plugin_abi::FEATURE_STORAGE_TRANSLATE_KEYS`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_storage_translate_keys)
 - [`bookclerk_plugin_abi::FEATURE_STREAMS`](../../../internals/crates/bookclerk_plugin_abi/README.md#feature_streams)
 - [`bookclerk_plugin_abi::MAX_BATCH_KEYS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_batch_keys)
 - [`bookclerk_plugin_abi::MAX_CHANGES_CURSOR_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_changes_cursor_bytes)

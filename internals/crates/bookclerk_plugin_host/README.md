@@ -1690,7 +1690,6 @@ Implements: `Clone`, `Default`
 ```rust
 pub struct DeployedDestination {
     pub id: DestinationId,
-    pub key_style: DestinationKeyStyle,
     pub backend: Arc<dyn StorageBackend>,
     pub settings: DestinationSettings,
 }
@@ -1701,7 +1700,6 @@ One deployed destination as acquire sees it.
 **Fields**
 
 - `id`: The destination's id: its plugin instance id.
-- `key_style`: How the destination names keys.
 - `backend`: Storage backend over the destination's guest.
 - `settings`: Key layout from the instance document.
 
@@ -1723,8 +1721,9 @@ Long-lived external output plugins loaded at host startup.
 pub fn destinations(&self) -> Vec<DeployedDestination>
 ```
 
-Every deployed destination, one per plugin instance: destinations
-that name files as paths first, then the rest, each group by id.
+Every deployed destination, one per plugin instance, by id. No kind
+of storage plugin comes first: each translates the host's keys
+itself.
 
 Several instances of one plugin are separate destinations.
 
@@ -5704,8 +5703,8 @@ pub fn build_acquire_destinations(
 
 Build destination backends for acquire from the deployed output plugins.
 
-Every deployed storage plugin instance is a destination; path
-destinations come first, and the first destination is the primary.
+Every deployed storage plugin instance is a destination, in id order,
+and the first destination is the primary.
 
 #### Arguments
 

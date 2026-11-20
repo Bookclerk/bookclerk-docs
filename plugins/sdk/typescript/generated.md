@@ -2869,6 +2869,30 @@ Store an object from a transferred byte stream.
 
 [PutReply](#putreply)
 
+##### translateKeys()
+
+```ts
+translateKeys(keys): Promise<TranslateKeysReply>;
+```
+
+Translate up to `maxBatchKeys` host keys into the keys the guest stores
+them under (requires `storage.translateKeys`). A host key is `/`-joined
+segments, none empty, `.`, `..` or holding `` or a control character.
+The same host key must always translate to the same key. Without the
+feature the host stores each host key as written.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `keys` | `string`[] | Host keys to translate. |
+
+###### Returns
+
+`Promise`\<[`TranslateKeysReply`](#translatekeysreply)\>
+
+[TranslateKeysReply](#translatekeysreply)
+
 ***
 
 ### DiagnoseResult
@@ -9699,6 +9723,24 @@ Identifier or string-literal span in canonical SQL.
 
 ***
 
+### TranslateKeysResult
+
+Success payload of `Destination.translateKeys`.
+
+#### Properties
+
+##### keys
+
+```ts
+keys: string[];
+```
+
+One translated key per requested host key, in request order: the key
+the guest stores that host key under. Each is a relative key with no
+empty, `.` or `..` segment.
+
+***
+
 ### WriteOptions
 
 Options for `Destination.put`.
@@ -11083,6 +11125,24 @@ type TableConstraint =
 ```
 
 One table-level constraint.
+
+***
+
+### TranslateKeysReply
+
+```ts
+type TranslateKeysReply = 
+  | {
+  kind: "ok";
+  value: TranslateKeysResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Destination.translateKeys`.
 
 ***
 
