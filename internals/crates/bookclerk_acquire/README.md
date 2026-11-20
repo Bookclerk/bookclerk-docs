@@ -25,12 +25,14 @@ content-source plugins; this crate never sees license keys. See
 | [`AcquireMetadata`](#acquiremetadata) | struct | The deployed metadata providers an acquire asks for the plain-audio overlay (catalog tags, cover and chapter layout of an enriched ASIN), and what turns the overlay's cover URL into an image. |
 | [`AcquireRequest`](#acquirerequest) | struct | Request to acquire a single title. |
 | [`AcquireResult`](#acquireresult) | struct | Result after a successful acquire. |
+| [`CopyOutcome`](#copyoutcome) | struct | What one destination ended up with in one acquire. |
 | [`PlannedTitleNames`](#plannedtitlenames) | struct | The names an acquire of one title writes on one destination, as the owner plans them, to bound a host's upload of that title. |
 | [`ReconcileOptions`](#reconcileoptions) | struct | Options for `reconcile_library`. |
 | [`ReconcileSummary`](#reconcilesummary) | struct | Summary of a reconcile run. |
 | [`StorageIndex`](#storageindex) | struct | Index of storage object keys, keyed by ASIN found in the path. |
 | [`ScanCheckpoint`](#scancheckpoint) | struct | Versioned scan progress stored in the job payload checkpoint. |
 | [`AcquireError`](#acquireerror) | enum | Failures from the acquire / convert / reconcile pipeline. |
+| [`CopyResult`](#copyresult) | enum | Whether a destination holds an acquire's audio. |
 | [`convert_book`](#convert_book) | function | Convert one acquired m4b/m4a to mp3 and update the library storage key. |
 | [`from_store`](#from_store) | function | True when the library downloaded its copy from `store`, the store this install's title belongs to. A copy whose store the library does not know is never taken, and one from another store only replaces the install's own download when it is the better copy. |
 | [`match_storage_to_library`](#match_storage_to_library) | function | List audio in storage, probe metadata (no body download), match to library. |
@@ -406,6 +408,33 @@ first destination that does becomes it.
 Returns [`AcquireError::NoDestinationAccepts`](#acquireerror) when no destination's
 filter takes the book.
 
+#### AcquireDestinations::reachable
+
+```rust
+pub async fn reachable(
+    &self,
+) -> Result<(AcquireDestinations, Vec<(DestinationId, String)>)>
+```
+
+Splits the destinations into the ones that answer a listing now and
+the ones that do not.
+
+An acquire run lists every destination before it starts. One that
+is offline is left out of the run rather than failing it: the
+titles go to the destinations that answer, and the missing copies
+are written by a later run once it is back. The primary stays the
+primary when it answers; otherwise the first destination that does
+becomes it.
+
+##### Returns
+
+The destinations that answered, and each one that did not with its
+listing error.
+
+##### Errors
+
+Returns [`AcquireError::NoDestinationReachable`](#acquireerror) when none answers.
+
 #### AcquireDestinations::copy_plan
 
 ```rust
@@ -772,6 +801,7 @@ pub struct AcquireResult {
     pub written_keys: Vec<String>,
     pub matched_existing: bool,
     pub from_library: bool,
+    pub copies: Vec<CopyOutcome>,
 }
 ```
 
@@ -785,8 +815,31 @@ Result after a successful acquire.
 - `matched_existing`: True when an existing file was matched and no download ran.
 - `from_library`: True when the audio was taken from the copy a library this install
   joined already held, instead of fetched from the store.
+- `copies`: Each destination this acquire wrote or found the audio on, and the
+  ones whose writes failed; recorded as the edition's copies
+  (`edition_copies`) once the acquire returns. Empty when nothing was
+  written or checked per destination (an edition already stored
+  everywhere, or a companion PDF).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### CopyOutcome
+
+```rust
+pub struct CopyOutcome {
+    pub destination: DestinationId,
+    pub result: CopyResult,
+}
+```
+
+What one destination ended up with in one acquire.
+
+**Fields**
+
+- `destination`: The destination's id.
+- `result`: Whether the destination now holds the audio.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### PlannedTitleNames
 
@@ -1002,6 +1055,7 @@ pub enum AcquireError {
     Library(LibraryError),
     Io(Error),
     NoDestinationAccepts,
+    NoDestinationReachable { errors: String },
     Other(Error),
 }
 ```
@@ -1017,9 +1071,32 @@ Failures from the acquire / convert / reconcile pipeline.
 - `Io`: Filesystem or other I/O failure.
 - `NoDestinationAccepts`: No deployed destination's filter takes the book, so the acquire
   stops before it fetches anything.
+- `NoDestinationReachable`: No deployed destination answered a listing, so an acquire run has
+  nowhere to write.
+  - `errors`: Each destination with its listing error, `; `-separated.
 - `Other`: Catch-all for otherwise unclassified failures.
 
 Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<LibraryError>`, `From<MediaError>`, `From<SourceError>`, `From<StorageError>`
+
+### CopyResult
+
+```rust
+pub enum CopyResult {
+    Stored { key: String },
+    Failed { error: String },
+}
+```
+
+Whether a destination holds an acquire's audio.
+
+**Variants**
+
+- `Stored`: The destination holds the complete files.
+  - `key`: The edition's primary audio key there.
+- `Failed`: The destination's writes failed; the copy is retried later.
+  - `error`: The last write's error.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Functions
 

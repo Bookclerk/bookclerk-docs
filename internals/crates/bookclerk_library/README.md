@@ -155,6 +155,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
 | [`EditionAsin`](#editionasin) | struct | An ASIN a catalog match found for an edition. |
+| [`EditionCopy`](#editioncopy) | struct | One edition's copy at one destination. |
 | [`EditionEnrichment`](#editionenrichment) | struct | What an enricher fills on one edition; `None` fields are left alone. |
 | [`EditionFile`](#editionfile) | struct | Who holds a recorded file key, and what the file is. |
 | [`EnrichCandidate`](#enrichcandidate) | struct | One held edition, with what an enricher needs to look it up and the fields it may fill. |
@@ -213,6 +214,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`RecordPruneStep`](#recordprunestep) | enum | One delete of `LibraryStore::prune_record_step`, in run order. |
 | [`FieldEdit`](#fieldedit) | enum | One field of a `UserStateEdit`. |
 | [`SplitOutcome`](#splitoutcome) | enum | What `LibraryStore::split_work` did. |
+| [`CopyState`](#copystate) | enum | Where an edition's copy at one destination stands. |
 | [`DiscoverSubject`](#discoversubject) | enum | Whose Discover shelves a stored row belongs to. |
 | [`FileOwner`](#fileowner) | enum | Who a recorded file key belongs to. |
 | [`FileRole`](#filerole) | enum | What a recorded file is. |
@@ -299,6 +301,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`facet_key`](#facet_key) | function | The key a facet value or tag is stored and matched under: trimmed and lower-cased, so "Fantasy" and "fantasy " are one value. |
 | [`sort_title`](#sort_title) | function | The sort key of a title: lower case, with one leading English article dropped, so "The Hobbit" sorts under h. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
+| [`copy_retry_delay`](#copy_retry_delay) | function | The delay before the next background attempt of a copy that has now failed `attempts` times (1 for the first failure): `COPY_RETRY_BASE_DELAY` doubled per earlier failure, capped at `COPY_RETRY_MAX_DELAY`. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
 | [`fallback_work_key`](#fallback_work_key) | function | Local fallback when callers do not supply a discover `work_map_key`. |
@@ -385,7 +388,10 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
 | [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
 | [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
+| [`COPY_RETRY_BASE_DELAY`](#copy_retry_base_delay) | constant | Delay before the first background retry of a failed copy; each later failure doubles it, up to `COPY_RETRY_MAX_DELAY`. |
+| [`COPY_RETRY_MAX_DELAY`](#copy_retry_max_delay) | constant | The longest delay between two background retries of one copy. |
 | [`HOLDING_REMOVED`](#holding_removed) | constant | Event type published when a holding is removed. |
+| [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) | constant | Failed attempts after which a pending copy turns `CopyState::Failed` and is no longer retried in the background. |
 | [`MAX_QUEUE_REASONS`](#max_queue_reasons) | constant | Most taste reasons one stored row keeps, so a row stays small whatever the ranking explains. |
 | [`CLAIM_REDEEM_NONCE_HEX_LEN`](#claim_redeem_nonce_hex_len) | constant | Hex length of a browser-generated claim-redeem nonce (32 bytes). |
 
@@ -5993,6 +5999,45 @@ An ASIN a catalog match found for an edition.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### EditionCopy
+
+```rust
+pub struct EditionCopy {
+    pub edition_id: String,
+    pub destination: String,
+    pub state: CopyState,
+    pub storage_key: Option<String>,
+    pub attempts: u32,
+    pub next_attempt_at: Option<DateTime<Utc>>,
+    pub last_error: Option<String>,
+}
+```
+
+One edition's copy at one destination.
+
+**Fields**
+
+- `edition_id`: The edition (`editions.id`).
+- `destination`: The destination's plugin instance id.
+- `state`: Where the copy stands.
+- `storage_key`: The edition's primary audio key on the destination, once a write
+  there was stored.
+- `attempts`: Failed writes since the copy was last stored.
+- `next_attempt_at`: When the next background attempt is due; `None` unless pending.
+- `last_error`: The last write failure; `None` once stored.
+
+#### EditionCopy::wants_attempt
+
+```rust
+pub fn wants_attempt(&self, now: DateTime<Utc>) -> bool
+```
+
+Whether an acquire at `now` should write this copy: a pending copy
+whose delay has passed. A stored copy needs nothing, a failed one
+waits for the operator, and a pending one waits out its delay.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### EditionEnrichment
 
 ```rust
@@ -6935,6 +6980,134 @@ Keys that do not parse as a [`DiscoverSubject`](#discoversubject) are skipped.
 ##### Errors
 
 Returns the database error.
+
+#### LibraryStore::set_copy_stored
+
+```rust
+pub async fn set_copy_stored(
+    &self,
+    edition_id: &str,
+    destination: &str,
+    storage_key: &str,
+) -> Result<()>
+```
+
+Records that `destination` holds the complete files of `edition_id`,
+with its primary audio at `storage_key` there. Clears any pending
+retry.
+
+##### Errors
+
+Returns an error when the write fails.
+
+#### LibraryStore::set_copy_pending
+
+```rust
+pub async fn set_copy_pending(
+    &self,
+    edition_id: &str,
+    destination: &str,
+    error: &str,
+    now: DateTime<Utc>,
+) -> Result<CopyState>
+```
+
+Records that writing `edition_id` to `destination` failed with
+`error` at `now`. The copy turns pending with its next attempt due
+after [`copy_retry_delay`](#copy_retry_delay), or failed once it has failed
+[`MAX_COPY_ATTEMPTS`](#max_copy_attempts) times. A key an earlier stored copy recorded is
+kept.
+
+The attempt count is read, then written: the acquire job that writes
+an edition holds the node's work lock, so two writes of one copy do
+not race.
+
+##### Returns
+
+The copy's state after the failure.
+
+##### Errors
+
+Returns an error when the read or the write fails.
+
+#### LibraryStore::record_copies_from_files
+
+```rust
+pub async fn record_copies_from_files(&self, edition_id: &str) -> Result<usize>
+```
+
+Records a stored copy of `edition_id` on each destination where its
+primary audio file is recorded (`edition_files`, role `audio`) and
+no copy row exists yet.
+
+An edition acquired before copies were recorded has files but no
+copy rows; its audio rows say where the acquire wrote it. Call this
+only for an acquired edition: an acquire records each key just
+before writing it, so a row alone does not prove the write
+finished. Existing copy rows are never changed.
+
+##### Returns
+
+How many copies were recorded.
+
+##### Errors
+
+Returns an error when the read or a write fails.
+
+#### LibraryStore::copies_of_editions
+
+```rust
+pub async fn copies_of_editions(&self, edition_ids: &[String]) -> Result<Vec<EditionCopy>>
+```
+
+Every recorded copy of the editions in `edition_ids`, ordered by
+edition then destination. Rows in a state this build does not know
+are left out.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::due_copy_editions
+
+```rust
+pub async fn due_copy_editions(
+    &self,
+    now: DateTime<Utc>,
+    destinations: &[String],
+    limit: u64,
+) -> Result<Vec<String>>
+```
+
+Up to `limit` editions with a pending copy on one of `destinations`
+whose next attempt is due at `now`, soonest due first, each named
+once. A copy on a destination not in `destinations` (one no longer
+deployed) is not due anywhere.
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::defer_copy_retries
+
+```rust
+pub async fn defer_copy_retries(
+    &self,
+    edition_id: &str,
+    destinations: &[String],
+    now: DateTime<Utc>,
+) -> Result<()>
+```
+
+Moves the due retries of `edition_id`'s pending copies on
+`destinations` to their next delay from `now`, without counting an
+attempt: called once an acquire for them is queued, so the next
+pass does not queue another while that one waits. The acquire's own
+outcome then records the copy as usual.
+
+##### Errors
+
+Returns an error when the read or a write fails.
 
 #### LibraryStore::enrich_candidates_page
 
@@ -16171,6 +16344,53 @@ What [`LibraryStore::split_work`](#librarystoresplit_work) did.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### CopyState
+
+```rust
+pub enum CopyState {
+    Stored,
+    Pending,
+    Failed,
+}
+```
+
+Where an edition's copy at one destination stands.
+
+**Variants**
+
+- `Stored`: The destination holds the complete files.
+- `Pending`: A write failed or the destination was unavailable; the copy is
+  retried once its delay has passed.
+- `Failed`: The copy failed [`MAX_COPY_ATTEMPTS`](#max_copy_attempts) times in a row and is no
+  longer retried on its own.
+
+#### CopyState::ALL
+
+```rust
+pub const ALL: [Self; 3] = _
+```
+
+Every state, in stored order (the `edition_copies.state` CHECK list).
+
+#### CopyState::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### CopyState::parse
+
+```rust
+pub fn parse(stored: &str) -> Option<Self>
+```
+
+The state a stored spelling names; `None` for one this build does
+not know.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
 ### DiscoverSubject
 
 ```rust
@@ -17657,6 +17877,17 @@ whose state is in `states` (the household).
 * `states` - Stored state rows for the titles' works.
 * `users` - Whose state counts; empty for everyone's.
 
+### copy_retry_delay
+
+```rust
+pub fn copy_retry_delay(attempts: u32) -> Duration
+```
+
+The delay before the next background attempt of a copy that has now
+failed `attempts` times (1 for the first failure):
+[`COPY_RETRY_BASE_DELAY`](#copy_retry_base_delay) doubled per earlier failure, capped at
+[`COPY_RETRY_MAX_DELAY`](#copy_retry_max_delay).
+
 ### deliver_after_for
 
 ```rust
@@ -18607,6 +18838,23 @@ pub const BOOK_PAGE_MAX_LIMIT: u64 = 500;
 
 Upper clamp for a library book page. Matches the HTTP handler.
 
+### COPY_RETRY_BASE_DELAY
+
+```rust
+pub const COPY_RETRY_BASE_DELAY: Duration = _;
+```
+
+Delay before the first background retry of a failed copy; each later
+failure doubles it, up to [`COPY_RETRY_MAX_DELAY`](#copy_retry_max_delay).
+
+### COPY_RETRY_MAX_DELAY
+
+```rust
+pub const COPY_RETRY_MAX_DELAY: Duration = _;
+```
+
+The longest delay between two background retries of one copy.
+
 ### HOLDING_REMOVED
 
 ```rust
@@ -18614,6 +18862,15 @@ pub const HOLDING_REMOVED: &str = "holding_removed";
 ```
 
 Event type published when a holding is removed.
+
+### MAX_COPY_ATTEMPTS
+
+```rust
+pub const MAX_COPY_ATTEMPTS: u32 = 8;
+```
+
+Failed attempts after which a pending copy turns [`CopyState::Failed`](#copystate)
+and is no longer retried in the background.
 
 ### MAX_QUEUE_REASONS
 
