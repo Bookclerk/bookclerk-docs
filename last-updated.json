@@ -958,11 +958,11 @@
   "server/diagnostics": "2026-11-20T10:50:54Z",
   "server/integrations": "2026-11-20T13:24:29Z",
   "server/media": "2026-11-20T09:32:37Z",
-  "server/operations": "2026-11-20T11:28:38Z",
+  "server/operations": "2026-11-20T18:01:09Z",
   "server/output": "2026-11-20T13:34:37Z",
   "server/playback": "2026-11-20T16:29:27Z",
   "server/plugins": "2026-11-20T03:53:46Z",
-  "server/security": "2026-11-19T13:44:23Z",
+  "server/security": "2026-11-20T18:01:09Z",
   "server/sign-in": "2026-11-20T13:23:17Z",
   "server/stores": "2026-11-20T05:19:52Z"
  }
