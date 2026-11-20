@@ -224,6 +224,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 | [`byte_source_from_async_read`](#byte_source_from_async_read) | function | Returns a `ByteSource` client that pulls from `reader`. |
 | [`connect_plugin`](#connect_plugin) | function | Connects as the client side of a two-party vat. |
 | [`connect_socket_broker`](#connect_socket_broker) | function | Connects the host's side of the host-to-broker link (see `serve_socket_broker`). |
+| [`decode_empty_reply_bytes`](#decode_empty_reply_bytes) | function | Decodes a standalone `EmptyReply` message the way the host decodes a guest's payload-free reply, for the `abi_decode` fuzz target and its corpus replay. |
+| [`decode_plugin_error_bytes`](#decode_plugin_error_bytes) | function | Decodes a standalone `PluginError` message the way the host decodes a guest's error, for the `abi_decode` fuzz target and its corpus replay. |
 | [`pull_byte_source_to_writer`](#pull_byte_source_to_writer) | function | Pulls `source` into `writer` using bounded windows. |
 | [`roundtrip_event_read_message`](#roundtrip_event_read_message) | function | Decodes one unpacked single-segment `EventReadRequest` or `EventReadPage` message with the codec the RPC server and client use, then checks `read(write(v)) == v`. The fuzz target and its replay test drive this, so they reach the same bounds checks a peer's bytes do. |
 | [`roundtrip_socket_message`](#roundtrip_socket_message) | function | Decodes one unpacked single-segment `SocketConnectRequest` or `SocketMessage` with the codec the RPC server and client use, then checks `read(write(v)) == v`. The `socket_request` fuzz target and its replay test drive this, so they reach the same decoder a peer's bytes do; the caller then applies `crate::sockets` checks to the value. |
@@ -6946,6 +6948,35 @@ runs.
 #### Returns
 
 The broker's [`Sockets`](#sockets) and the link's RPC system.
+
+### decode_empty_reply_bytes
+
+```rust
+pub fn decode_empty_reply_bytes(bytes: &[u8]) -> Result<()>
+```
+
+Decodes a standalone `EmptyReply` message the way the host decodes a
+guest's payload-free reply, for the `abi_decode` fuzz target and its
+corpus replay.
+
+#### Errors
+
+Returns the guest's [`PluginError`](error.md#pluginerror) for an `err` reply, or a decode
+failure when the buffer is not a valid unpacked single-segment message.
+
+### decode_plugin_error_bytes
+
+```rust
+pub fn decode_plugin_error_bytes(bytes: &[u8]) -> Result<PluginError>
+```
+
+Decodes a standalone `PluginError` message the way the host decodes a
+guest's error, for the `abi_decode` fuzz target and its corpus replay.
+
+#### Errors
+
+Returns a decode failure when the buffer is not a valid unpacked
+single-segment message; the error itself is the `Ok` value.
 
 ### pull_byte_source_to_writer
 
