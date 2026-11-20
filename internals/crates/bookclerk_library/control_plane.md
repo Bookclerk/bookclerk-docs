@@ -151,6 +151,8 @@ See `docs/adr/control-plane.md`.
 | [`NodeRuntimeSettingsV1`](#noderuntimesettingsv1) | struct | Typed node-scoped runtime document, schema version 1. |
 | [`ConfigurationDocument`](#configurationdocument) | struct | A parsed domain document plus its revision metadata. |
 | [`ControlPlaneSession`](#controlplanesession) | struct | Identity, secret root, and the authoritative events document for this process. |
+| [`LinkRevoked`](#linkrevoked) | enum | What `revoke_account_link` did. |
+| [`SignInLink`](#signinlink) | enum | What `link_signed_in_account` did. |
 | [`CatalogAccept`](#catalogaccept) | enum | Outcome of `accept_catalog_batch`. |
 | [`CatalogBegin`](#catalogbegin) | enum | Outcome of `begin_catalog`. |
 | [`RequestFinished`](#requestfinished) | enum | What `finish_branch_request` did. |
@@ -196,6 +198,9 @@ See `docs/adr/control-plane.md`.
 | [`AddVersion`](#addversion) | enum | What `add_plugin_version` did. |
 | [`EventsReplace`](#eventsreplace) | enum | Outcome of `replace_events`. |
 | [`NodeRuntimeReplace`](#noderuntimereplace) | enum | Outcome of `replace_node_runtime`. |
+| [`account_slot`](#account_slot) | function | The `bookclerk_slots` key that serializes writes to one store account's sign-in and link. |
+| [`link_signed_in_account`](#link_signed_in_account) | function | Finishes an allowed store login: marks the account active with scans on and links it to `identity_id`, in one atomic batch under the account's write lock, only while the account's sign-in is stored and no other identity holds it. |
+| [`revoke_account_link`](#revoke_account_link) | function | Revokes the account `identity_id` holds: in one atomic batch under the account's write lock, marks it `revoked` with scans off, deletes its integration secrets, forgets which branch kept its login for this library (its `node:` shares and their sign-in revisions), and removes the link. Every statement applies only while the identity's link exists, and the link goes last, so the batch refuses as a whole once the link is gone. |
 | [`load_artifact_blob`](#load_artifact_blob) | function | Reads an archive stored by `put_artifact_blob`. |
 | [`put_artifact_blob`](#put_artifact_blob) | function | Stores a small archive and returns its `blob:sha256:<hex>` URL. |
 | [`accept_catalog_batch`](#accept_catalog_batch) | function | Records one batch of `node_id`'s shared titles under `fence`, then the cursor after it. Every title is checked before any is written; a title this library already holds for the branch's owner is skipped. Each other title is resolved into the library model and held by the branch (`holding_added` when new), and the holding's share state is written in one transaction with the cursor, each statement gated on the fence still being live, the branch still sharing and its credential live. A holding is stamped with the pass under way, and with `done` (the last batch of a pass) while a pass from the start is under way, the branch's holdings the pass did not name are removed (`withdrawn`) and the pass ends; `done` on a resumed incremental pass changes nothing more. |
@@ -5216,6 +5221,51 @@ Implements: `Clone`, `Debug`
 
 ## Enums
 
+### LinkRevoked
+
+```rust
+pub enum LinkRevoked {
+    Revoked,
+    NotLinked,
+}
+```
+
+What [`revoke_account_link`](#revoke_account_link) did.
+
+**Variants**
+
+- `Revoked`: The account was marked revoked, its sign-in deleted and the
+  identity's link removed.
+- `NotLinked`: The identity held no link to the account when the batch ran (a
+  concurrent revoke finished first); nothing changed.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### SignInLink
+
+```rust
+pub enum SignInLink {
+    Linked,
+    AlreadyYours,
+    LinkedToSomeoneElse,
+    SignInTakenBack,
+}
+```
+
+What [`link_signed_in_account`](#link_signed_in_account) did.
+
+**Variants**
+
+- `Linked`: The account is now linked to the identity, active with scans on.
+- `AlreadyYours`: The identity already held the link; the account is active again
+  when its sign-in is stored.
+- `LinkedToSomeoneElse`: Another identity holds the link; nothing changed.
+- `SignInTakenBack`: The account's sign-in was taken back (a refused login of the same
+  store account, or a revoke, ran after this login stored it), so
+  nothing was linked. Signing in again connects it.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### CatalogAccept
 
 ```rust
@@ -6496,6 +6546,93 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
 ## Functions
 
+### account_slot
+
+```rust
+pub fn account_slot(plugin_key: &str, account_id: &str) -> String
+```
+
+The `bookclerk_slots` key that serializes writes to one store account's
+sign-in and link.
+
+#### Arguments
+
+* `plugin_key` - The storefront's PluginKey.
+* `account_id` - The store account id.
+
+### link_signed_in_account
+
+```rust
+pub async fn link_signed_in_account(
+    store: &LibraryStore,
+    identity_id: i64,
+    plugin_key: &str,
+    account_id: &str,
+    source: &str,
+) -> Result<SignInLink>
+```
+
+Finishes an allowed store login: marks the account active with scans
+on and links it to `identity_id`, in one atomic batch under the
+account's write lock, only while the account's sign-in is stored and
+no other identity holds it.
+
+#### Arguments
+
+* `store` - The library.
+* `identity_id` - The portal identity the login ran for.
+* `plugin_key` - The storefront's PluginKey.
+* `account_id` - The store account the login signed in to.
+* `source` - The storefront alias recorded on the link (display only).
+
+#### Returns
+
+What happened; see [`SignInLink`](#signinlink).
+
+#### Errors
+
+Returns the write error.
+
+### revoke_account_link
+
+```rust
+pub async fn revoke_account_link(
+    store: &LibraryStore,
+    identity_id: i64,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<LinkRevoked>
+```
+
+Revokes the account `identity_id` holds: in one atomic batch under the
+account's write lock, marks it `revoked` with scans off, deletes its
+integration secrets, forgets which branch kept its login for this
+library (its `node:` shares and their sign-in revisions), and removes
+the link. Every statement applies only while the identity's link
+exists, and the link goes last, so the batch refuses as a whole once
+the link is gone.
+
+The best-effort store sign-out, and the removal of the account's
+holdings and scan checkpoints ([`LibraryStore::revoke_credentials`](README.md#librarystorerevoke_credentials)),
+run before it while the link still exists, so a failure there can be
+retried.
+
+#### Arguments
+
+* `store` - The library.
+* `identity_id` - The portal identity revoking its link.
+* `plugin_key` - The storefront's PluginKey.
+* `account_id` - The store account id.
+
+#### Returns
+
+What happened; see [`LinkRevoked`](#linkrevoked).
+
+#### Errors
+
+Returns the write error. The batch may have committed when the reply
+was lost; retrying then answers [`LinkRevoked::NotLinked`](#linkrevoked).
+
 ### load_artifact_blob
 
 ```rust
@@ -7325,9 +7462,13 @@ Takes back a store account a refused login stored: deletes its secrets
 and marks it `revoked` with scans off, in one atomic batch whose every
 statement applies only while no link holds the account.
 
-A link committed before the batch runs (another login of the same
-store account that finished meanwhile) keeps the account and its
-secrets as they are.
+The batch takes the account's write lock
+([`super::account_slot`](#account_slot)) first. A link committed before
+it (another login of the same store account that finished meanwhile)
+keeps the account and its secrets as they are; an allowed login that
+links after it finds the sign-in gone
+([`super::SignInLink::SignInTakenBack`](#signinlink)) instead of linking an account
+with no secret.
 
 #### Errors
 

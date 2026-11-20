@@ -156,6 +156,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`percent_to_cores`](#percent_to_cores) | function | Convert Spec/config percent-of-one-core (100 = 1.00 core) to cores (2 d.p.). |
 | [`queue_consumer_grant`](#queue_consumer_grant) | function | Grant token for consuming `queue`. |
 | [`queue_producer_grant`](#queue_producer_grant) | function | Grant token for sending through the `[[queues.producers]]` binding `binding`. |
+| [`reapprove_grant`](#reapprove_grant) | function | Re-approves the current request on top of a stored grant, keeping the operator's earlier answers. |
 | [`reconcile_host_overlay_authority`](#reconcile_host_overlay_authority) | function | Recomputes effective overlay authority and fences sessions that no longer match. |
 | [`require_binding`](#require_binding) | function | Fail closed when a delivery site needs a binding the covering grant lacks. |
 | [`require_grant`](#require_grant) | function | Require an operator grant before enable **or** every external spawn. |
@@ -5384,6 +5385,51 @@ pub fn queue_producer_grant(binding: &str) -> String
 ```
 
 Grant token for sending through the `[[queues.producers]]` binding `binding`.
+
+### reapprove_grant
+
+```rust
+pub fn reapprove_grant(
+    existing: &PluginGrant,
+    requested: &PluginGrant,
+) -> Result<PluginGrant>
+```
+
+Re-approves the current request on top of a stored grant, keeping the
+operator's earlier answers.
+
+This is what accepting the web consent dialog unchanged does, for a
+caller with no dialog (`bookclerk plugins approve`):
+
+- Structural capabilities (entrypoints, producers, consumers, jobs,
+  bindings, compatibility flags) are what the current version declares.
+- Network destinations are the request's, minus the destinations the
+  operator denied, plus the ones they added (`operator_denied_*` /
+  `operator_added_*`, rebuilt for legacy grants as [`effective_grant`](#effective_grant)
+  does). A TCP denial removes the denied ports of that host.
+- Network mode stays `deny` when the operator turned network off for a
+  version that asked for destinations; otherwise it is the request's.
+- The operator's redirect answer and the own `User-Agent` hosts they
+  refused stay answered; a host the request newly declares is approved.
+- Budgets are the request's: a grant cannot tell a budget the operator
+  chose from one it inherited, and a new version may need more.
+
+The draft then goes through [`validate_approved_grant`](#validate_approved_grant), so the stored
+`operator_*` sets are recomputed against the current request.
+
+#### Arguments
+
+* `existing` - The stored grant for this PluginKey.
+* `requested` - Consent request generated from the current manifest.
+
+#### Returns
+
+The normalized grant to store.
+
+#### Errors
+
+Returns [`PluginError`](#pluginerror) when the draft fails [`validate_approved_grant`](#validate_approved_grant)
+(for example a stored addition is no longer a valid pattern).
 
 ### reconcile_host_overlay_authority
 

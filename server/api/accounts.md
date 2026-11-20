@@ -893,6 +893,8 @@ Connects a password storefront, upserts the account, and links it to the signed-
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `403` — The library's administrator has not allowed the caller to connect store accounts here. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
+- `409` — The account has no saved sign-in when the login links it: a refused login of the same store account, or a revoke, took it back meanwhile (or the store's login saved none). Signing in again connects it. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+  - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
 - `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
@@ -1060,6 +1062,33 @@ Status `403`: The library's administrator has not allowed the caller to connect 
 ```json
 {
   "error": "this library's administrator hasn't allowed you to connect store accounts here"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON body of every portal error response.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Operator-facing error text (no structured code).",
+      "example": "not signed in"
+    }
+  }
+}
+```
+
+Status `409`: The account has no saved sign-in when the login links it: a refused login of the same store account, or a revoke, took it back meanwhile (or the store's login saved none). Signing in again connects it.
+
+```json
+{
+  "error": "this account has no saved sign-in (it was disconnected while the sign-in finished); sign in again"
 }
 ```
 
@@ -2003,11 +2032,13 @@ Links are exclusive (one identity per account), so the caller's link is
 the account's only one and revoking it always clears the credentials.
 Every step runs while the link still exists, in this order: the account
 is marked revoked (which also turns scanning off, so no job picks it up
-half-cleaned); the plugin signs it out at the store (for example, Audible
-deregisters its device), best effort; its `encrypted_secrets` rows are
-deleted; only then is the link removed. Any failed library step answers
-503 and keeps the link, so the same request retries the cleanup.
-Already-acquired library rows stay (product policy).
+half-cleaned) and its holdings and scan checkpoints go; the plugin signs
+it out at the store (for example, Audible deregisters its device), best
+effort; then one atomic batch, guarded on the link and serialized with
+logins of the same store account, marks it revoked again, deletes its
+`encrypted_secrets` rows and removes the link. Any failed library step
+answers 503 and keeps the link, so the same request retries the
+cleanup. Already-acquired library rows stay (product policy).
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
@@ -2022,7 +2053,7 @@ Already-acquired library rows stay (product policy).
 
 - `200` — The account was marked revoked, its stored credentials were deleted, and it was unlinked. Body: [`PortalOk`](schemas.md#portalok) (`application/json`)
   - `ok` *boolean*, **required** — Always `true`.
-- `400` — The account is not linked to this identity, or the library database refused to read this identity's links (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `400` — The account is not linked to this identity (also when a concurrent revoke unlinked it first), or the library database refused to read this identity's links (the body carries its message). Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `401` — The caller is not signed in, or the portal session expired. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
@@ -2030,7 +2061,7 @@ Already-acquired library rows stay (product policy).
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
-- `503` — A cleanup step failed: marking the account revoked, deleting its stored credentials, or removing the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
+- `503` — A cleanup step failed: marking the account revoked, or the batch that deletes its stored credentials and removes the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`. Body: [`PortalErrorBody`](schemas.md#portalerrorbody) (`application/json`)
   - `error` *string*, **required** — Operator-facing error text (no structured code).
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -2110,7 +2141,7 @@ Schema:
 }
 ```
 
-Status `400`: The account is not linked to this identity, or the library database refused to read this identity's links (the body carries its message).
+Status `400`: The account is not linked to this identity (also when a concurrent revoke unlinked it first), or the library database refused to read this identity's links (the body carries its message).
 
 ```json
 {
@@ -2209,7 +2240,7 @@ Schema:
 }
 ```
 
-Status `503`: A cleanup step failed: marking the account revoked, deleting its stored credentials, or removing the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`.
+Status `503`: A cleanup step failed: marking the account revoked, or the batch that deletes its stored credentials and removes the link. The account stays linked, so repeating the request runs the cleanup again. When the cleanup task itself stopped, the daemon log names it; a repeat either finishes the cleanup or, if the unlink had already run, answers 400 `account not linked to this identity`.
 
 ```json
 {
