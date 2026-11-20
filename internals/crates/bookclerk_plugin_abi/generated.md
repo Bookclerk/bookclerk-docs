@@ -450,6 +450,7 @@ pub struct CatalogCapabilities {
     pub detail_by_isbn: bool,
     pub price_by_isbn: bool,
     pub price_by_asin: bool,
+    pub detail_by_product_id: bool,
 }
 ```
 
@@ -469,6 +470,11 @@ false, so a guest that says nothing keeps the plain behaviour.
   store by the ISBNs of the card's recording before searching by title.
 - `price_by_asin`: True when `purchaseHint` / `purchaseHints` price a query by its exact
   ASIN (`lookup = asin`), as `priceByIsbn` does for ISBNs.
+- `detail_by_product_id`: True when `catalogDetail` resolves this store's own `productId` (an id
+  its search, expand or deals hits gave) to a full bibliographic record.
+  Catalog search then asks this store to fill lean result rows it listed
+  itself, and title dialogs ask it for the editions it listed. A store
+  that leaves it false is never woken for a detail lookup by product id.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

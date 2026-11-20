@@ -4564,6 +4564,7 @@ Resolves Audnexus-style title metadata for one query.
 - `narrators` *string or null* — Comma-separated narrator names when known.
 - `length_minutes` *integer (int64) or null* — Audiobook runtime in whole minutes when known.
 - `region` *string* — Marketplace / region code (`us`, `uk`, …) for catalog lookups.
+- `store_editions` *array of [`StoreEdition`](schemas.md#storeedition)* — Store editions that listed this title (the search hit's or card's `store_editions`), at most 16. A sparse record is filled from each of these stores that declared `detailByProductId`, by the product id it gave the title, before the stores that declared `detailByIsbn` are asked by ISBN.
 
 ### Responses
 

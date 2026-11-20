@@ -43,6 +43,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`DiscoverShelf`](#discovershelf) | struct | One horizontal Discover row (series to finish, more by author, …). |
 | [`ShelfKindInfo`](#shelfkindinfo) | struct | A shelf kind the operator can ignore (all offered by default). |
 | [`ShelfTaste`](#shelftaste) | struct | Taste context used to title and fill personalized shelves. |
+| [`FillStoreLookups`](#fillstorelookups) | struct | What a store declared about catalog-detail lookups, as a title-meta fill plan reads it. |
 | [`TitleMeta`](#titlemeta) | struct | Bibliographic fields suitable for an Audible-style detail panel. |
 | [`TitleMetaQuery`](#titlemetaquery) | struct | Query for public title metadata (Audnexus / Audible catalog). |
 | [`TitleReview`](#titlereview) | struct | One Audible customer review for the title detail panel. |
@@ -50,6 +51,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`TitleReviewsQuery`](#titlereviewsquery) | struct | Query for a page of Audible customer reviews. |
 | [`PooledEdition`](#poolededition) | struct | One store edition a wish names, as placed in the shared pool. |
 | [`FeedState`](#feedstate) | enum | How current a stored Discover feed is. |
+| [`FillLookup`](#filllookup) | enum | One storefront catalog-detail lookup a title-meta fill can make. |
+| [`TitleMetaQueryProblem`](#titlemetaqueryproblem) | enum | Why a title-meta query was refused before any lookup ran. |
 | [`join_branch_availability`](#join_branch_availability) | function | Sets `available_through` on every card of `feed`. |
 | [`join_search_branch_availability`](#join_search_branch_availability) | function | Sets `available_through` on every hit of a catalog search page. |
 | [`gather_storefront_candidates`](#gather_storefront_candidates) | function | Expand storefront catalogs from local taste seeds; drop already-owned ids. |
@@ -100,6 +103,8 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`flatten_feed`](#flatten_feed) | function | Flatten shelves into a unique score-sorted list (CLI / legacy). |
 | [`shelf_is_disabled`](#shelf_is_disabled) | function | Whether `shelf_id` matches an ignore entry (exact, kind prefix, or `from_store`). |
 | [`shelf_kind_catalog`](#shelf_kind_catalog) | function | Shelf kinds Discover can emit (for config / UI ignore lists). |
+| [`check_title_meta_query`](#check_title_meta_query) | function | Checks a title-meta query from a client before it is resolved. |
+| [`plan_title_meta_fill`](#plan_title_meta_fill) | function | Plans the catalog-detail lookups that can fill `query`, in the order to try them. |
 | [`resolve_title_meta`](#resolve_title_meta) | function | Resolve public metadata for a title detail dialog. |
 | [`resolve_title_meta_batch`](#resolve_title_meta_batch) | function | Resolve many title-meta queries with bounded concurrency (order preserved). |
 | [`resolve_title_reviews`](#resolve_title_reviews) | function | Resolve one page of Audible customer reviews for infinite scroll. |
@@ -124,6 +129,7 @@ See `docs/` Discover / library product docs for operator-facing behavior.
 | [`WISH_COUNT_WEIGHT`](#wish_count_weight) | constant | Per open wish on the global queue. Large enough that multi-user demand dominates typical local taste scores (~1–25) while recommend signals still order titles that share the same wish count. |
 | [`REQUEST_QUEUE_MAX_AGE`](#request_queue_max_age) | constant | How old the stored ranking may get before a read asks for a new pass, so taste changes no event announces (a book removed, a rating edited) still reach the queue within a day. |
 | [`SERIES_CAP`](#series_cap) | constant | Most titles of one series on a shelf that is not about series, so one long series cannot crowd the others out. |
+| [`TITLE_META_MAX_STORE_EDITIONS`](#title_meta_max_store_editions) | constant | Most store editions one title-meta query may name; the API rejects more (keep `TitleMetaQuery::store_editions`'s doc in step). |
 | [`MAX_WISH_EDITIONS`](#max_wish_editions) | constant | Most store editions looked up for one wish. A wish names a few; the cap bounds what a crafted request can make the server fetch. |
 
 ## Re-exports
@@ -1360,6 +1366,27 @@ Taste context used to title and fill personalized shelves.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
+### FillStoreLookups
+
+```rust
+pub struct FillStoreLookups {
+    pub plugin_key: String,
+    pub by_product_id: bool,
+    pub by_isbn: bool,
+}
+```
+
+What a store declared about catalog-detail lookups, as a title-meta fill
+plan reads it.
+
+**Fields**
+
+- `plugin_key`: The store's plugin key; two lookups for the same key and id are one.
+- `by_product_id`: The store declared `detailByProductId`.
+- `by_isbn`: The store declared `detailByIsbn`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### TitleMeta
 
 ```rust
@@ -1435,6 +1462,7 @@ pub struct TitleMetaQuery {
     pub narrators: Option<String>,
     pub length_minutes: Option<i64>,
     pub region: String,
+    pub store_editions: Vec<StoreEdition>,
 }
 ```
 
@@ -1449,6 +1477,11 @@ Query for public title metadata (Audnexus / Audible catalog).
 - `narrators`: Comma-separated narrator names when known.
 - `length_minutes`: Audiobook runtime in whole minutes when known.
 - `region`: Marketplace / region code (`us`, `uk`, …) for catalog lookups.
+- `store_editions`: Store editions that listed this title (the search hit's or card's
+  `store_editions`), at most 16. A sparse record is filled from each of
+  these stores that declared `detailByProductId`, by the product id it
+  gave the title, before the stores that declared `detailByIsbn` are
+  asked by ISBN.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
@@ -1575,6 +1608,52 @@ How current a stored Discover feed is.
 - `Preparing`: No shelves are stored yet; a fetch is queued and the page shows placeholders.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### FillLookup
+
+```rust
+pub enum FillLookup {
+    Product(String),
+    Isbn(String),
+}
+```
+
+One storefront catalog-detail lookup a title-meta fill can make.
+
+**Variants**
+
+- `Product`: The store's own product id for an edition it listed
+  (`detailByProductId`).
+- `Isbn`: The title's ISBN (`detailByIsbn`).
+
+#### FillLookup::key
+
+```rust
+pub fn key(&self) -> &str
+```
+
+The id this lookup asks the store for (a product id or an ISBN).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### TitleMetaQueryProblem
+
+```rust
+pub enum TitleMetaQueryProblem {
+    TooManyStoreEditions,
+    NothingToLookUp,
+}
+```
+
+Why a title-meta query was refused before any lookup ran.
+
+**Variants**
+
+- `TooManyStoreEditions`: The query named more than [`TITLE_META_MAX_STORE_EDITIONS`](#title_meta_max_store_editions) store
+  editions.
+- `NothingToLookUp`: The query's title, ASIN and ISBN are all blank.
+
+Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `PartialEq`
 
 ## Functions
 
@@ -2753,6 +2832,53 @@ pub fn shelf_kind_catalog() -> Vec<ShelfKindInfo>
 
 Shelf kinds Discover can emit (for config / UI ignore lists).
 
+### check_title_meta_query
+
+```rust
+pub fn check_title_meta_query(query: &TitleMetaQuery) -> Result<(), TitleMetaQueryProblem>
+```
+
+Checks a title-meta query from a client before it is resolved.
+
+#### Errors
+
+Returns [`TitleMetaQueryProblem::TooManyStoreEditions`](#titlemetaqueryproblem) when the query
+names more than [`TITLE_META_MAX_STORE_EDITIONS`](#title_meta_max_store_editions) editions, and
+[`TitleMetaQueryProblem::NothingToLookUp`](#titlemetaqueryproblem) when its title, ASIN and ISBN
+are all blank.
+
+### plan_title_meta_fill
+
+```rust
+pub fn plan_title_meta_fill<S>(
+    query: &TitleMetaQuery,
+    resolve: impl Fn(&str) -> Option<S>,
+    isbn_stores: impl IntoIterator<Item = S>,
+    lookups: impl Fn(&S) -> FillStoreLookups,
+) -> Vec<(S, FillLookup)>
+```
+
+Plans the catalog-detail lookups that can fill `query`, in the order to
+try them.
+
+Each listing store that declared `detailByProductId` comes first, by its
+own product id (in the query's edition order, at most two), then each
+store in `isbn_stores` that declared `detailByIsbn`, by the title's ISBN
+(or an ISBN-shaped ASIN). A store already asked for the same id is
+skipped, and the plan holds at most three lookups. Reads only declared
+capabilities, so no guest is woken to plan.
+
+#### Arguments
+
+* `query` - The title-meta query, already checked.
+* `resolve` - Finds the store an edition names by its source id.
+* `isbn_stores` - The stores that may be asked by ISBN, in order.
+* `lookups` - What a store declared.
+
+#### Returns
+
+The stores to ask, each with the lookup to make.
+
 ### resolve_title_meta
 
 ```rust
@@ -2766,7 +2892,9 @@ pub async fn resolve_title_meta(
 Resolve public metadata for a title detail dialog.
 
 When `sources` is provided, sparse Audible/Audnexus results are gap-filled
-from storefront `bookclerk_source::ContentSource::catalog_detail` (Libro ISBN details).
+from storefront [`bookclerk_source::ContentSource::catalog_detail`]: the
+listing stores that declared `detailByProductId`, then the stores that
+declared `detailByIsbn`.
 
 #### Arguments
 
@@ -3049,6 +3177,15 @@ pub const SERIES_CAP: usize = 2;
 
 Most titles of one series on a shelf that is not about series, so one
 long series cannot crowd the others out.
+
+### TITLE_META_MAX_STORE_EDITIONS
+
+```rust
+pub const TITLE_META_MAX_STORE_EDITIONS: usize = 16;
+```
+
+Most store editions one title-meta query may name; the API rejects more
+(keep [`TitleMetaQuery::store_editions`](#titlemetaquery)'s doc in step).
 
 ### MAX_WISH_EDITIONS
 

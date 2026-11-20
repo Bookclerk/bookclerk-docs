@@ -653,6 +653,18 @@ pub fn with_graphql_url(graphql_url: impl Into<String>) -> Self
 
 Overrides the GraphQL endpoint (tests / staging).
 
+#### ChirpSource::from_config
+
+```rust
+pub fn from_config(config: &Value) -> Self
+```
+
+Catalog client for the instance settings document `config`.
+
+Uses the document's `graphql_url` override when it has one, the same
+endpoint [`crate::guest::resolve_graphql_url`](guest.md#resolve_graphql_url) gives sign-in, scans
+and fetches, so a staging or mock endpoint reaches every entrypoint.
+
 #### ChirpSource::search_catalog
 
 ```rust

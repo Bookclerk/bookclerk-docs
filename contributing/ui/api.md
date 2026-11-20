@@ -6782,6 +6782,16 @@ narrators?: string | null;
 region?: string;
 ```
 
+##### store\_editions?
+
+```ts
+store_editions?: StoreEdition[] | null;
+```
+
+Store editions that listed the title. The server fills a sparse record
+from the stores that answer their own product ids before asking ISBN
+stores.
+
 ##### title
 
 ```ts

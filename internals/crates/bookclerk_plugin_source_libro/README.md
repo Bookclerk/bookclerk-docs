@@ -432,6 +432,18 @@ pub fn with_base_url(base_url: impl Into<String>) -> Self
 
 Override API base (wiremock / staging).
 
+#### LibroSource::from_config
+
+```rust
+pub fn from_config(config: &Value) -> Self
+```
+
+Catalog client for the instance settings document `config`.
+
+Uses the document's `base_url` override when it has one, the same
+origin [`crate::guest::resolve_base_url`](guest.md#resolve_base_url) gives sign-in, scans and
+fetches, so a staging or mock origin reaches every entrypoint.
+
 #### LibroSource::search_catalog
 
 ```rust

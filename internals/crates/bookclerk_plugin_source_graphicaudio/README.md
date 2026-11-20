@@ -631,6 +631,19 @@ pub fn with_store_url(self, store_url: impl Into<String>) -> Self
 
 Override Magento storefront base (wiremock / staging).
 
+#### GraphicAudioSource::from_config
+
+```rust
+pub fn from_config(config: &Value) -> Self
+```
+
+Catalog client for the instance settings document `config`.
+
+Uses the document's `store_url` override when it has one, the same
+storefront origin [`crate::guest::resolve_store_base_url`](guest.md#resolve_store_base_url) gives
+sign-in, scans and fetches, so a staging or mock origin reaches every
+entrypoint.
+
 #### GraphicAudioSource::search_catalog
 
 ```rust
@@ -638,6 +651,20 @@ pub async fn search_catalog(&self, opts: &CatalogSearchOpts) -> Result<Vec<Catal
 ```
 
 Searches the public catalog.
+
+The store's search answers a query it cannot match (one with
+punctuation or an author's name, say) with an alphabetical listing of
+the whole catalog. So the query goes out as plain words, and an answer
+that looks like that listing (a full grid, none of it matching the
+query's words, in alphabetical order) is not taken: the page is asked
+again with the last word dropped (an author's name usually trails the
+title), up to three requests in all, and answers nothing when every
+attempt gets the listing. Each answer is judged by the words sent for
+it, and a shortened query with no telling words left is not sent. A later page first settles the query on
+page 1 the same way, then asks for that page with it, and answers
+nothing when that page looks like the listing. An author or narrator
+search is sent once and taken as it comes: grid titles never carry a
+person's name, so the listing check cannot judge it.
 
 ##### Errors
 

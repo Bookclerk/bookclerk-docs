@@ -183,6 +183,7 @@ pub trait ContentSource: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
+    fn answers_catalog_detail_by_product_id(&self) -> bool;
     fn answers_catalog_detail_by_isbn(&self) -> bool;
     fn catalog_detail_by_isbn<'life0, 'life1, 'async_trait>(
         &'life0 self,
@@ -526,6 +527,20 @@ Fetch rich bibliographic metadata for one catalog product (no account).
 
 Default: none. Used when search/expand hits are lean (e.g. HTML scrape)
 and a title detail dialog needs narrator, runtime, description, etc.
+
+#### ContentSource::answers_catalog_detail_by_product_id
+
+```rust
+fn answers_catalog_detail_by_product_id(&self) -> bool
+```
+
+Whether [`Self::catalog_detail`](#contentsourcecatalog_detail) resolves this source's own product ids
+(the ids its search, expand and deals hits carry) to a full record:
+the guest's declared `CatalogCapabilities.detailByProductId`.
+
+Catalog search and title dialogs ask a source for an edition it listed
+only when this is `true`, so a source without a detail lookup is never
+woken for one. Default: `false`.
 
 #### ContentSource::answers_catalog_detail_by_isbn
 
