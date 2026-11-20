@@ -307,6 +307,15 @@ Normalized client session used to gate SPA views and actions.
 
 #### Properties
 
+##### administers\_nodes?
+
+```ts
+administers_nodes?: boolean;
+```
+
+Whether the session reaches node administration and the Status page:
+the operator, an Owner or Administrator, or a Member who owns a node.
+
 ##### authenticated
 
 ```ts
@@ -6435,7 +6444,7 @@ Primary authenticated SPA views mirrored in the URL path.
 ### AuthRole
 
 ```ts
-type AuthRole = "operator" | "owner" | "administrator" | "host" | "member";
+type AuthRole = "operator" | "owner" | "administrator" | "member";
 ```
 
 Session role returned by the daemon auth APIs.

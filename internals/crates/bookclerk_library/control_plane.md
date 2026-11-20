@@ -395,8 +395,8 @@ See `docs/adr/control-plane.md`.
 | [`member_control_overrides`](#member_control_overrides) | function | The overrides stored for `user_id` (none when there is no row). |
 | [`parse_member_controls`](#parse_member_controls) | function | Parses the body of `PUT /api/users/default-controls` from its raw bytes, sans IO, the way the route reads it. |
 | [`parse_user_controls_request`](#parse_user_controls_request) | function | Parses the body of `PUT /api/users/{id}/controls` from its raw bytes, sans IO, the way the route reads it. |
-| [`role_follows_default_controls`](#role_follows_default_controls) | function | Whether a role follows the library's default controls: Members and Hosts do. An Administrator may do everything except the controls set for them alone, so a default meant for patrons never limits staff. |
-| [`role_has_controls`](#role_has_controls) | function | Whether member controls ever limit a role: Members, Hosts and Administrators can be limited; Owners never are. |
+| [`role_follows_default_controls`](#role_follows_default_controls) | function | Whether a role follows the library's default controls: Members do. An Administrator may do everything except the controls set for them alone, so a default meant for patrons never limits staff. |
+| [`role_has_controls`](#role_has_controls) | function | Whether member controls ever limit a role: Members and Administrators can be limited; Owners never are. |
 | [`set_default_member_controls`](#set_default_member_controls) | function | Replaces the library's default member controls under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`set_member_control_overrides`](#set_member_control_overrides) | function | Replaces the overrides of `user_id`; with none, the user follows the library's default for every control again. |
 | [`set_member_control_overrides_for`](#set_member_control_overrides_for) | function | Replaces the overrides of `user`, as the caller read them when it checked that the actor may manage them; with none, the user follows the library's default for every control again. |
@@ -429,7 +429,7 @@ See `docs/adr/control-plane.md`.
 | [`load_default_patron_scope`](#load_default_patron_scope) | function | Loads the library's default scope document. |
 | [`parse_patron_scope`](#parse_patron_scope) | function | Parses the body of `PUT /api/users/default-scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PatronScope`, then trimmed (`PatronScope::normalized`) and checked (`PatronScope::validate`) as `set_default_patron_scope` does. |
 | [`parse_user_scope_request`](#parse_user_scope_request) | function | Parses the body of `PUT /api/users/{id}/scope` from its raw bytes, sans IO, the way the route reads it: JSON into `PutUserScope`, then the scope (when one is given) trimmed and checked as `set_patron_scope` does. |
-| [`role_is_scoped`](#role_is_scoped) | function | Whether a role is ever scoped: Members and Hosts are patrons, while Owners and Administrators always see the whole library. |
+| [`role_is_scoped`](#role_is_scoped) | function | Whether a role is ever scoped: Members are patrons, while Owners and Administrators always see the whole library. |
 | [`scope_for_user`](#scope_for_user) | function | The scope that applies to `user`: `None` for an Owner or Administrator, who see everything, and the assigned scope for a Member. |
 | [`set_default_patron_scope`](#set_default_patron_scope) | function | Replaces the library's default scope under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`set_patron_scope`](#set_patron_scope) | function | Gives a user their own scope, or with `None` returns them to the library's default. |
@@ -10316,8 +10316,8 @@ controls with boolean or `null` values, with no repeated key.
 pub fn role_follows_default_controls(role: UserRole) -> bool
 ```
 
-Whether a role follows the library's default controls: Members and
-Hosts do. An Administrator may do everything except the controls set
+Whether a role follows the library's default controls: Members do.
+An Administrator may do everything except the controls set
 for them alone, so a default meant for patrons never limits staff.
 
 ### role_has_controls
@@ -10326,8 +10326,8 @@ for them alone, so a default meant for patrons never limits staff.
 pub fn role_has_controls(role: UserRole) -> bool
 ```
 
-Whether member controls ever limit a role: Members, Hosts and
-Administrators can be limited; Owners never are.
+Whether member controls ever limit a role: Members and Administrators
+can be limited; Owners never are.
 
 An Administrator's controls are set only by an Owner or the operator,
 because an Administrator may manage Members alone.
@@ -10861,7 +10861,7 @@ shape or a scope that fails [`PatronScope::validate`](#patronscopevalidate).
 pub fn role_is_scoped(role: UserRole) -> bool
 ```
 
-Whether a role is ever scoped: Members and Hosts are patrons, while
+Whether a role is ever scoped: Members are patrons, while
 Owners and Administrators always see the whole library.
 
 ### scope_for_user

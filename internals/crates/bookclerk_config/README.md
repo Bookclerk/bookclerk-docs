@@ -3974,7 +3974,7 @@ pub fn resolve_mapped_role(
 
 Pick the highest Bookclerk role from mapped claim values.
 
-Precedence: owner > administrator > host > member.
+Precedence: owner > administrator > member.
 
 ### generate_operator_token
 

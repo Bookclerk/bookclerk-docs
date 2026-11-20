@@ -973,10 +973,11 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
 
 - `200` — Who the caller is (operator, portal user, or impersonation). Body: [`AuthMeResponse`](schemas.md#authmeresponse) (`application/json`)
   - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
-  - `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+  - `role` *string or null* — `operator`, `owner`, `administrator`, or `member` (legacy clients may still send `portal`).
   - `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
   - `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
   - `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+  - `administers_nodes` *boolean*, **required** — Whether this session reaches the node administration routes and the library Status page: the operator, an Owner or Administrator, or a Member who owns at least one node (a branch they linked).
   - `impersonating` *[`AuthMeImpersonating`](schemas.md#authmeimpersonating) or null* — Present when the operator is impersonating a User.
   - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
   - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
@@ -984,10 +985,11 @@ Resolves the caller and returns `/me` JSON; unauthenticated callers get 401.
   - `see_prices` *boolean*, **required** — Whether the caller's "See prices and store links" member control allows prices and store links. The library already drops them from its answers when it does not; the app uses this to show no store links of its own either. Always true for the operator.
 - `401` — Nobody is signed in: the same body with `authenticated` false, so the app can show the sign-in screen. Body: [`AuthMeResponse`](schemas.md#authmeresponse) (`application/json`)
   - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
-  - `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+  - `role` *string or null* — `operator`, `owner`, `administrator`, or `member` (legacy clients may still send `portal`).
   - `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
   - `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
   - `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+  - `administers_nodes` *boolean*, **required** — Whether this session reaches the node administration routes and the library Status page: the operator, an Owner or Administrator, or a Member who owns at least one node (a branch they linked).
   - `impersonating` *[`AuthMeImpersonating`](schemas.md#authmeimpersonating) or null* — Present when the operator is impersonating a User.
   - `portal` *[`PortalMeInfo`](schemas.md#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
   - `user` *[`AuthMeUser`](schemas.md#authmeuser) or null* — First-party user when the session is linked to a `users` row.
@@ -1049,6 +1051,7 @@ Status `200`: Who the caller is (operator, portal user, or impersonation).
   "default_view": "library",
   "can_acquire": true,
   "elevated": false,
+  "administers_nodes": false,
   "impersonating": {
     "user_id": 7,
     "display_name": "Sam"
@@ -1099,6 +1102,7 @@ Schema:
     "default_view",
     "can_acquire",
     "elevated",
+    "administers_nodes",
     "see_prices"
   ],
   "properties": {
@@ -1112,7 +1116,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "`operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may\nstill send `portal`).",
+      "description": "`operator`, `owner`, `administrator`, or `member` (legacy clients may\nstill send `portal`).",
       "example": "administrator"
     },
     "default_view": {
@@ -1128,6 +1132,11 @@ Schema:
     "elevated": {
       "type": "boolean",
       "description": "True when this operator session was created via Owner elevate.",
+      "example": false
+    },
+    "administers_nodes": {
+      "type": "boolean",
+      "description": "Whether this session reaches the node administration routes and the\nlibrary Status page: the operator, an Owner or Administrator, or a\nMember who owns at least one node (a branch they linked).",
       "example": false
     },
     "impersonating": {
@@ -1373,6 +1382,7 @@ Status `401`: Nobody is signed in: the same body with `authenticated` false, so 
 
 ```json
 {
+  "administers_nodes": false,
   "authenticated": false,
   "can_acquire": false,
   "default_view": "discover",
@@ -1392,6 +1402,7 @@ Schema:
     "default_view",
     "can_acquire",
     "elevated",
+    "administers_nodes",
     "see_prices"
   ],
   "properties": {
@@ -1405,7 +1416,7 @@ Schema:
         "string",
         "null"
       ],
-      "description": "`operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may\nstill send `portal`).",
+      "description": "`operator`, `owner`, `administrator`, or `member` (legacy clients may\nstill send `portal`).",
       "example": "administrator"
     },
     "default_view": {
@@ -1421,6 +1432,11 @@ Schema:
     "elevated": {
       "type": "boolean",
       "description": "True when this operator session was created via Owner elevate.",
+      "example": false
+    },
+    "administers_nodes": {
+      "type": "boolean",
+      "description": "Whether this session reaches the node administration routes and the\nlibrary Status page: the operator, an Owner or Administrator, or a\nMember who owns at least one node (a branch they linked).",
       "example": false
     },
     "impersonating": {
@@ -3336,7 +3352,7 @@ Schema:
         },
         "role": {
           "type": "string",
-          "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+          "description": "The user's role (`owner`, `administrator`, or `member`).",
           "example": "member"
         }
       }
@@ -14544,7 +14560,7 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 
 - `200` — Signed in; the response sets the portal session cookie. Body: [`PortalSessionIssued`](schemas.md#portalsessionissued) (`application/json`)
   - `ok` *boolean*, **required** — Always `true` on this success path.
-  - `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+  - `role` *string*, **required** — The user's role (`owner`, `administrator`, or `member`).
 - `400` — The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -14639,7 +14655,7 @@ Schema:
     },
     "role": {
       "type": "string",
-      "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+      "description": "The user's role (`owner`, `administrator`, or `member`).",
       "example": "member"
     }
   }
@@ -15612,7 +15628,7 @@ Completes password+TOTP login and issues a portal session cookie.
 
 - `200` — Signed in; the response sets the portal session cookie. Body: [`PortalSessionIssued`](schemas.md#portalsessionissued) (`application/json`)
   - `ok` *boolean*, **required** — Always `true` on this success path.
-  - `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+  - `role` *string*, **required** — The user's role (`owner`, `administrator`, or `member`).
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The challenge is unknown or expired, TOTP is off for the user, or the code is wrong (`invalid_code`); or the challenged user no longer exists (the standard error body). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
   - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
@@ -15704,7 +15720,7 @@ Schema:
     },
     "role": {
       "type": "string",
-      "description": "The user's role (`owner`, `administrator`, `host`, or `member`).",
+      "description": "The user's role (`owner`, `administrator`, or `member`).",
       "example": "member"
     }
   }

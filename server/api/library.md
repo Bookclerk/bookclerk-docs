@@ -573,7 +573,6 @@ Schema:
               "enum": [
                 "owner",
                 "administrator",
-                "host",
                 "member"
               ]
             }
@@ -7511,7 +7510,7 @@ A `text/plain` body: a string.
 `GET /api/config/nodes`: every node for an operator; the caller's own
 nodes for a node owner.
 
-**Access:** The operator, a signed-in Owner, Administrator or Host, or a user who owns at least one node.
+**Access:** The operator, a signed-in Owner or Administrator, or a Member who owns at least one node.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
@@ -8064,7 +8063,6 @@ Schema:
                     "enum": [
                       "owner",
                       "administrator",
-                      "host",
                       "member"
                     ]
                   }
@@ -8294,7 +8292,7 @@ library's node list. The operator or an Owner may remove any; another
 user only one they own. A running node, this node, or a branch is
 refused (a branch is revoked instead).
 
-**Access:** The operator, a signed-in Owner, Administrator or Host, or a user who owns at least one node.
+**Access:** The operator, a signed-in Owner or Administrator, or a Member who owns at least one node.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
@@ -8664,7 +8662,7 @@ an Owner sees every one, as `DELETE /api/config/nodes/{node_id}` lets
 them remove any; another user only the ones they own, which the nodes
 listing already shows them. Branches are not listed.
 
-**Access:** The operator, a signed-in Owner, Administrator or Host, or a user who owns at least one node.
+**Access:** The operator, a signed-in Owner or Administrator, or a Member who owns at least one node.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
@@ -9209,7 +9207,6 @@ Schema:
                     "enum": [
                       "owner",
                       "administrator",
-                      "host",
                       "member"
                     ]
                   }
@@ -9402,7 +9399,7 @@ A `text/plain` body: a string.
 or drain switch. Applies at that node's next heartbeat. A node owner may
 edit only the nodes it owns.
 
-**Access:** The operator, a signed-in Owner, Administrator or Host, or a user who owns at least one node.
+**Access:** The operator, a signed-in Owner or Administrator, or a Member who owns at least one node.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 

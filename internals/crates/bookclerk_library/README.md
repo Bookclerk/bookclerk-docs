@@ -195,7 +195,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`PortalSessionKind`](#portalsessionkind) | enum | Where a user's session token is presented. |
 | [`PublishDomainEventOutcome`](#publishdomaineventoutcome) | enum | Result of `crate::LibraryStore::publish_domain_event`. |
 | [`RequestStatus`](#requeststatus) | enum | Wishlist row status (`open` while wishlisted; `cancelled` after un-wishlist). |
-| [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `host` \| `member`). |
+| [`UserRole`](#userrole) | enum | First-party user role (`owner` \| `administrator` \| `member`). |
 | [`UserStatus`](#userstatus) | enum | First-party user status. |
 | [`SchemaState`](#schemastate) | enum | Durable Bookclerk library schema state. |
 | [`FacetValuesOf`](#facetvaluesof) | enum | Whose values a facet value list reads. |
@@ -3885,7 +3885,7 @@ First-party Bookclerk user (security principal for portal paths).
 **Fields**
 
 - `id`: Surrogate primary key assigned by the database.
-- `role`: First-party role (`owner`, `administrator`, `host`, or `member`).
+- `role`: First-party role (`owner`, `administrator`, or `member`).
 - `status`: Lifecycle status for the row (user, request, …).
 - `display_name`: Human-readable name shown in the UI.
 - `login_name`: Local username for password login, when set.
@@ -15562,19 +15562,16 @@ Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'
 pub enum UserRole {
     Owner,
     Administrator,
-    Host,
     Member,
 }
 ```
 
-First-party user role (`owner` | `administrator` | `host` | `member`).
+First-party user role (`owner` | `administrator` | `member`).
 
 **Variants**
 
 - `Owner`: Library super-user: may elevate to Operator after password re-auth.
 - `Administrator`: Library / user administration without Operator elevation.
-- `Host`: Member who administers the nodes they own (budgets, drain, name).
-  Not trusted with other users' work; promote to Administrator for that.
 - `Member`: Library member with scoped portal access (no operator token).
 
 #### UserRole::as_str
@@ -15616,9 +15613,8 @@ pub fn can_administer_owned_nodes(self) -> bool
 ```
 
 Whether this role reaches the node administration routes even while
-the user owns no node (Host, Administrator, Owner). Any other active
-user reaches them once they own a node: owning a node does not
-require a role.
+the user owns no node (Administrator, Owner). A Member reaches them
+once they own a node: owning a node does not require a role.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
 

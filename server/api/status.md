@@ -468,7 +468,7 @@ A `text/plain` body: a string.
 may see (node counts, committed capacity, active jobs, delivery backlog),
 plus detail for the nodes the caller may see.
 
-**Access:** The operator, a signed-in Owner, Administrator or Host, or a user who owns at least one node.
+**Access:** The operator, a signed-in Owner or Administrator, or a Member who owns at least one node.
 
 **Credentials:** `operatorToken` or `operatorSession` or `portalSession`
 
@@ -1251,7 +1251,6 @@ Schema:
                     "enum": [
                       "owner",
                       "administrator",
-                      "host",
                       "member"
                     ]
                   }

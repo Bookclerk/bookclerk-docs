@@ -92,10 +92,11 @@ Target user shown while an operator session is impersonating.
 JSON body for `GET /api/auth/me`.
 
 - `authenticated` *boolean*, **required** — Whether the request resolved to an operator, portal, or impersonated session.
-- `role` *string or null* — `operator`, `owner`, `administrator`, `host`, or `member` (legacy clients may still send `portal`).
+- `role` *string or null* — `operator`, `owner`, `administrator`, or `member` (legacy clients may still send `portal`).
 - `default_view` *string*, **required** — Configured post-auth landing view (`discover` / `library` / `accounts` / `wishlist`). Loaded from per-user DB preferences (not config.toml).
 - `can_acquire` *boolean*, **required** — Whether this session may acquire / scan / manage jobs. True for operator and administrator.
 - `elevated` *boolean*, **required** — True when this operator session was created via Owner elevate.
+- `administers_nodes` *boolean*, **required** — Whether this session reaches the node administration routes and the library Status page: the operator, an Owner or Administrator, or a Member who owns at least one node (a branch they linked).
 - `impersonating` *[`AuthMeImpersonating`](#authmeimpersonating) or null* — Present when the operator is impersonating a User.
 - `portal` *[`PortalMeInfo`](#portalmeinfo) or null* — Linked portal identity when the caller is a portal (or impersonated) user.
 - `user` *[`AuthMeUser`](#authmeuser) or null* — First-party user when the session is linked to a `users` row.
@@ -2612,7 +2613,7 @@ JSON body of a portal route that has nothing to report beyond success.
 JSON body after a portal session was minted for a first-party user.
 
 - `ok` *boolean*, **required** — Always `true` on this success path.
-- `role` *string*, **required** — The user's role (`owner`, `administrator`, `host`, or `member`).
+- `role` *string*, **required** — The user's role (`owner`, `administrator`, or `member`).
 
 ## PortalSessionKind
 
@@ -3729,9 +3730,9 @@ Body of `POST /api/users/{id}/reset-password`.
 
 ## UserRole
 
-First-party user role (`owner` | `administrator` | `host` | `member`).
+First-party user role (`owner` | `administrator` | `member`).
 
-Type: one of `owner`, `administrator`, `host`, `member`
+Type: one of `owner`, `administrator`, `member`
 
 ## UserScopeJson
 

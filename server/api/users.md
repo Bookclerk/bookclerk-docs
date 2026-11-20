@@ -163,7 +163,6 @@ Schema:
                 "enum": [
                   "owner",
                   "administrator",
-                  "host",
                   "member"
                 ]
               },
@@ -706,7 +705,6 @@ Schema:
           "enum": [
             "owner",
             "administrator",
-            "host",
             "member"
           ]
         },
@@ -1432,7 +1430,6 @@ Schema:
           "enum": [
             "owner",
             "administrator",
-            "host",
             "member"
           ]
         },
@@ -2555,7 +2552,7 @@ default with `"scope": null`.
 
 Nobody sets their own scope. Owners and Administrators always see the
 whole library, so a scope stored for one only applies if their role
-changes to Member or Host.
+changes to Member.
 
 **Access:** No auth layer. Routes that need a caller say so in `security`; the handler checks it.
 
