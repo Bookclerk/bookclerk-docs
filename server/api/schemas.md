@@ -1649,6 +1649,21 @@ One file of a `POST /api/uploads` manifest, as sent.
 - `size` *integer (int64)*, **required** — Size in bytes. At least 0.
 - `sha256` *string or null* — Lower-case hex SHA-256 of the file, checked before it is stored.
 
+## MasterKeyStatus
+
+`GET /api/config/master-key` and the `PUT` answer.
+
+- `store` *[`MasterKeyStore`](#masterkeystore)*, **required** — Where the key lives.
+- `recovery_copy` *[`RecoveryCopyAnswer`](#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
+- `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
+- `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+
+## MasterKeyStore
+
+Where this install keeps its key.
+
+Type: one of `file`, `password_file`, `keychain`
+
 ## MediaCapabilitiesJson
 
 The codecs, containers and encodings this build's media worker handles.
@@ -3163,6 +3178,30 @@ One ranked recommendation (typically an unowned storefront title).
 - `seed_title` *string or null* — Title of the book or wish the storefront was asked about to find this card, when it came from such an expansion.
 - `starter_genre` *string or null* — Starter genre this card was browsed from while the taste was thin.
 - `available_through` *array of [`BranchAvailability`](#branchavailability)* — Branches of this library that currently list this title (they answered a catalog lookup for its work). Filled when the feed is read, never stored with it.
+
+## RecoveryCopyAnswer
+
+What the operator recorded about a recovery copy of the key in use.
+
+Type: one of `unrecorded`, `saved`, `skipped`
+
+## RecoveryCopyChoiceBody
+
+What the operator did about a recovery copy.
+
+Type: one of `saved`, `skipped`
+
+## RecoveryCopyRequest
+
+`POST /api/config/master-key/recovery-copy` body.
+
+- `password` *string*, **required** — The password the copy is wrapped with: at least 12 characters. Keep it apart from the copy; without it the copy can't be restored.
+
+## RecoveryCopyStateRequest
+
+`PUT /api/config/master-key/recovery-copy/state` body.
+
+- `state` *[`RecoveryCopyChoiceBody`](#recoverycopychoicebody)*, **required** — What the operator did.
 
 ## RedeemBody
 

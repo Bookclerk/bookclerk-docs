@@ -6002,3 +6002,899 @@ request timed out
 Schema:
 
 A `text/plain` body: a string.
+
+## `GET /api/config/master-key`
+
+`GET /api/config/master-key`.
+
+**Access:** The operator, or a signed-in Owner.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — Where the key lives and what was recorded about a recovery copy. Body: [`MasterKeyStatus`](schemas.md#masterkeystatus) (`application/json`)
+  - `store` *[`MasterKeyStore`](schemas.md#masterkeystore)*, **required** — Where the key lives.
+  - `recovery_copy` *[`RecoveryCopyAnswer`](schemas.md#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
+  - `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
+  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+- `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`). Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `500` — The key could not be read (`master_key_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/master-key' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/master-key' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/master-key",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/master-key", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/master-key")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: Where the key lives and what was recorded about a recovery copy.
+
+```json
+{
+  "needs_recovery_copy": true,
+  "recorded_at": "2026-11-21T09:30:00+00:00",
+  "recovery_copy": "skipped",
+  "store": "keychain"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/config/master-key` and the `PUT` answer.",
+  "required": [
+    "store",
+    "recovery_copy",
+    "needs_recovery_copy"
+  ],
+  "properties": {
+    "store": {
+      "type": "string",
+      "description": "Where the key lives.",
+      "enum": [
+        "file",
+        "password_file",
+        "keychain"
+      ]
+    },
+    "recovery_copy": {
+      "type": "string",
+      "description": "What the operator recorded about a recovery copy of this key. A\nrecord for an earlier key (since restored or replaced) reads as\n`unrecorded`.",
+      "enum": [
+        "unrecorded",
+        "saved",
+        "skipped"
+      ]
+    },
+    "recorded_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When that was recorded (RFC 3339, UTC); absent when `unrecorded`.",
+      "example": "2026-11-21T09:30:00+00:00"
+    },
+    "needs_recovery_copy": {
+      "type": "boolean",
+      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain and no copy was recorded as saved.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller is neither the operator nor an Owner (`forbidden`), or must enroll a second factor first (`mfa_enrollment_required`).
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `500`: The key could not be read (`master_key_failed`).
+
+```json
+{
+  "detail": "this install has no master.key",
+  "error": "master_key_failed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/config/master-key/recovery-copy`
+
+`POST /api/config/master-key/recovery-copy`.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Request body
+
+`application/json`: [`RecoveryCopyRequest`](schemas.md#recoverycopyrequest)
+
+- `password` *string*, **required** — The password the copy is wrapped with: at least 12 characters. Keep it apart from the copy; without it the copy can't be restored.
+
+### Responses
+
+- `200` — The recovery copy: a `BCK2` envelope wrapped with the password, for `bookclerk config master-key import`. Sent as an attachment; nothing is recorded until `PUT …/state`. Body: [`BinaryBody`](schemas.md#binarybody) (`application/octet-stream`)
+- `400` — The password is shorter than 12 characters (`password_too_short`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `401` — The caller is not signed in as the operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The key could not be read or wrapped (`master_key_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/master-key/recovery-copy' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"password": "correct horse battery staple"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/master-key/recovery-copy' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"password": "correct horse battery staple"}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/master-key/recovery-copy",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"password": "correct horse battery staple"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/master-key/recovery-copy", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"password": "correct horse battery staple"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/master-key/recovery-copy")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"password": "correct horse battery staple"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The recovery copy: a `BCK2` envelope wrapped with the password, for `bookclerk config master-key import`. Sent as an attachment; nothing is recorded until `PUT …/state`. The body is binary (`application/octet-stream`).
+
+Schema:
+
+A `application/octet-stream` body: binary bytes.
+
+Status `400`: The password is shorter than 12 characters (`password_too_short`). As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "detail": "a recovery password needs at least 12 characters",
+  "error": "password_too_short"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in as the operator.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `password` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The key could not be read or wrapped (`master_key_failed`).
+
+```json
+{
+  "detail": "master key file /home/bookclerk/BookclerkFiles/master.key keeps the key in OS keychain item 6f1c…, which could not be read: the keychain is locked",
+  "error": "master_key_failed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/config/master-key/recovery-copy/state`
+
+`PUT /api/config/master-key/recovery-copy/state`.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Request body
+
+`application/json`: [`RecoveryCopyStateRequest`](schemas.md#recoverycopystaterequest)
+
+- `state` *[`RecoveryCopyChoiceBody`](schemas.md#recoverycopychoicebody)*, **required** — What the operator did.
+
+### Responses
+
+- `200` — The answer was recorded for the key in use. Body: [`MasterKeyStatus`](schemas.md#masterkeystatus) (`application/json`)
+  - `store` *[`MasterKeyStore`](schemas.md#masterkeystore)*, **required** — Where the key lives.
+  - `recovery_copy` *[`RecoveryCopyAnswer`](schemas.md#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
+  - `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
+  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+- `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
+- `401` — The caller is not signed in as the operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The key could not be read or the answer could not be written (`master_key_failed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/master-key/recovery-copy/state' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"state": "saved"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/master-key/recovery-copy/state' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"state": "saved"}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/config/master-key/recovery-copy/state",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"state": "saved"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/master-key/recovery-copy/state", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"state": "saved"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/config/master-key/recovery-copy/state")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"state": "saved"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The answer was recorded for the key in use.
+
+```json
+{
+  "needs_recovery_copy": false,
+  "recorded_at": "2026-11-21T09:30:00+00:00",
+  "recovery_copy": "saved",
+  "store": "keychain"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/config/master-key` and the `PUT` answer.",
+  "required": [
+    "store",
+    "recovery_copy",
+    "needs_recovery_copy"
+  ],
+  "properties": {
+    "store": {
+      "type": "string",
+      "description": "Where the key lives.",
+      "enum": [
+        "file",
+        "password_file",
+        "keychain"
+      ]
+    },
+    "recovery_copy": {
+      "type": "string",
+      "description": "What the operator recorded about a recovery copy of this key. A\nrecord for an earlier key (since restored or replaced) reads as\n`unrecorded`.",
+      "enum": [
+        "unrecorded",
+        "saved",
+        "skipped"
+      ]
+    },
+    "recorded_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When that was recorded (RFC 3339, UTC); absent when `unrecorded`.",
+      "example": "2026-11-21T09:30:00+00:00"
+    },
+    "needs_recovery_copy": {
+      "type": "boolean",
+      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain and no copy was recorded as saved.",
+      "example": true
+    }
+  }
+}
+```
+
+Status `400`: The body is not syntactically valid JSON.
+
+```text
+Failed to parse the request body as JSON: expected value at line 1 column 1
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `401`: The caller is not signed in as the operator.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The session is impersonating a user. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `state` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The key could not be read or the answer could not be written (`master_key_failed`).
+
+```json
+{
+  "detail": "failed to write /home/bookclerk/BookclerkFiles/master-key-recovery.json: No space left on device (os error 28)",
+  "error": "master_key_failed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.

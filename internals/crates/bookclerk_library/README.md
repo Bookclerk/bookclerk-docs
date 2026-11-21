@@ -460,6 +460,11 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key::MasterKeyResolution`](master_key.md#masterkeyresolution)
 - [`master_key::StoredMasterKey`](master_key.md#storedmasterkey)
 - [`master_key::AUTH_PASSWORD_ENV` as `MASTER_KEY_AUTH_PASSWORD_ENV`](master_key.md#auth_password_env)
+- [`master_key_recovery::record_recovery_copy`](master_key_recovery.md#record_recovery_copy)
+- [`master_key_recovery::recovery_copy_state`](master_key_recovery.md#recovery_copy_state)
+- [`master_key_recovery::recovery_record_path`](master_key_recovery.md#recovery_record_path)
+- [`master_key_recovery::RecoveryCopyChoice`](master_key_recovery.md#recoverycopychoice)
+- [`master_key_recovery::RecoveryCopyState`](master_key_recovery.md#recoverycopystate)
 - [`migrations::binding_bootstrap_type_env`](migrations.md#binding_bootstrap_type_env)
 - [`migrations::host_migration_plan`](migrations.md#host_migration_plan)
 - [`migrations::min_supported_schema_version`](migrations.md#min_supported_schema_version)
@@ -525,6 +530,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`entities`](entities/README.md): SeaORM entities mirroring the greenfield schema in `crate::migrations`.
 - [`library_link`](library_link.md): Named-atomic parameters for writing a resolved listing.
 - [`master_key`](master_key.md): Data-encryption key (DEK) for `encrypted_secrets`.
+- [`master_key_recovery`](master_key_recovery.md): What an install's operator did about a recovery copy of its key.
 - [`migrations`](migrations.md): Host library schema: frozen plan steps plus the unreleased development pack.
 - [`operator_token`](operator_token.md): Durable operator API token in `encrypted_secrets`.
 - [`pacing`](pacing.md): Download pacing per store account: the limits, the operator's override, and the decision whether a download may start now.

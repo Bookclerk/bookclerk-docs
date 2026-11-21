@@ -343,6 +343,9 @@ Live configuration domains and reloads.
 | [`POST /api/config/clerk/sign-out`](configuration.md#post-apiconfigclerksign-out) | `POST /api/config/clerk/sign-out`: ends a library card at the library when it can be reached, then drops the card, the books read with it, and the library from the list here whatever the library answered. |
 | [`GET /api/config/branch-enrollment`](configuration.md#get-apiconfigbranch-enrollment) | `GET /api/config/branch-enrollment`: whether branch nodes may enroll. |
 | [`PUT /api/config/branch-enrollment`](configuration.md#put-apiconfigbranch-enrollment) | `PUT /api/config/branch-enrollment`: turn branch enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
+| [`GET /api/config/master-key`](configuration.md#get-apiconfigmaster-key) | `GET /api/config/master-key`. |
+| [`POST /api/config/master-key/recovery-copy`](configuration.md#post-apiconfigmaster-keyrecovery-copy) | `POST /api/config/master-key/recovery-copy`. |
+| [`PUT /api/config/master-key/recovery-copy/state`](configuration.md#put-apiconfigmaster-keyrecovery-copystate) | `PUT /api/config/master-key/recovery-copy/state`. |
 
 ### [Accounts](accounts.md)
 

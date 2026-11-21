@@ -135,6 +135,7 @@
     "internals/crates/bookclerk_library/entities/README",
     "internals/crates/bookclerk_library/library_link",
     "internals/crates/bookclerk_library/master_key",
+    "internals/crates/bookclerk_library/master_key_recovery",
     "internals/crates/bookclerk_library/migrations",
     "internals/crates/bookclerk_library/operator_token",
     "internals/crates/bookclerk_library/pacing",
