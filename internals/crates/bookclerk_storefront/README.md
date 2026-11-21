@@ -67,6 +67,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`text::decode_html_entities_opt`](text.md#decode_html_entities_opt)
 - [`text::decode_html_entities_opt_in_place`](text.md#decode_html_entities_opt_in_place)
 - [`text::str_maybe_html_entity`](text.md#str_maybe_html_entity)
+- [`types::ChapterKind`](../bookclerk_plugin_abi/generated.md#chapterkind)
 - [`types::PriceLookup`](../bookclerk_plugin_abi/generated.md#pricelookup)
 
 ## Modules
@@ -473,6 +474,7 @@ pub struct PlainFetch {
     pub m4b_path: Option<PathBuf>,
     pub cover_path: Option<PathBuf>,
     pub chapters: Vec<(String, u64)>,
+    pub chapter_kind: ChapterKind,
     pub pdf_url: Option<String>,
 }
 ```
@@ -486,6 +488,8 @@ return clear media here — the host never sees ciphertext or keys.
 - `m4b_path`: Pre-built M4B from the store / plugin when available.
 - `cover_path`: Absolute path to a downloaded cover image when available.
 - `chapters`: Chapter titles paired with start offsets in milliseconds.
+- `chapter_kind`: What `chapters` marks: literary chapters, track boundaries, or
+  unknown.
 - `pdf_url`: Companion PDF download URL when the store exposes one.
 
 Implements: `Clone`, `Debug`, `From<PlainFetch>`, `TryFrom<PlainFetch>`

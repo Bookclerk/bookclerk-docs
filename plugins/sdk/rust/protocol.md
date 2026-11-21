@@ -35,6 +35,7 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::CatalogHit`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cataloghit)
 - [`bookclerk_plugin_abi::CatalogHits`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cataloghits)
 - [`bookclerk_plugin_abi::CatalogSort`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogsort)
+- [`bookclerk_plugin_abi::ChapterKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#chapterkind)
 - [`bookclerk_plugin_abi::ChapterMarker`](../../../internals/crates/bookclerk_plugin_abi/generated.md#chaptermarker)
 - [`bookclerk_plugin_abi::CliArg`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cliarg)
 - [`bookclerk_plugin_abi::CliArgKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cliargkind)

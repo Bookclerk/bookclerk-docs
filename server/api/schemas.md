@@ -636,12 +636,48 @@ Paged catalog-search response.
 
 ## Chapter
 
-A chapter of a book.
+One chapter of a checked list.
 
-- `id` *integer (int64)*, **required** — The chapter's place, from 0. At least 0.
-- `start` *number (double)*, **required** — Where it starts, in seconds.
-- `end` *number (double)*, **required** — Where it ends, in seconds.
-- `title` *string*, **required** — Its title.
+- `title` *string*, **required** — Chapter title; never empty, at most 512 bytes, no control characters.
+- `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline. At least 0.
+- `depth` *integer (int32)*, **required** — Nesting depth; 0 for a top-level chapter, at most 7. A chapter at depth n + 1 is nested under the nearest earlier chapter at depth n. At least 0.
+
+## ChapterClaimJson
+
+One source's chapter claim for an edition.
+
+- `source_kind` *[`ChapterSourceKind`](#chaptersourcekind)*, **required** — The kind of source.
+- `source_id` *string*, **required** — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+- `quality` *string*, **required** — Where a machine source ranks within its kind: `strong_accurate`, `strong_estimated` or `weak` for a provider, `chapters`, `tracks` or `unknown` for a store listing; empty otherwise.
+- `digest` *string*, **required** — SHA-256 of the claimed list, 64 lower-case hex characters.
+- `chapters` *array of [`Chapter`](#chapter) or null* — The claimed chapters; absent while the list's write is unfinished.
+- `runtime_ms` *integer (int64) or null* — Length of the timeline the list was measured on, in milliseconds. At least 0.
+- `input_digest` *string or null* — For a processed claim, the digest of the provider list it was aligned from.
+- `plays` *boolean*, **required** — Whether the edition plays this claim now.
+- `pinned_at` *string or null* — When an Administrator pinned it (RFC 3339); absent when unpinned.
+- `created_by_user_id` *integer (int64) or null* — The person whose edit it is; absent for a machine source or the operator.
+- `updated_at` *string*, **required** — When it last changed (RFC 3339).
+
+## ChapterClaimsJson
+
+Every chapter claim for an edition.
+
+- `claims` *array of [`ChapterClaimJson`](#chapterclaimjson)*, **required** — The claims, most recently changed first.
+
+## ChapterEditBody
+
+`PUT /api/library/editions/{id}/chapters` body: the edition's chapters
+as an Administrator sets them, in pre-order. An empty list clears them.
+
+- `chapters` *array of [`ChapterEditEntry`](#chaptereditentry)*, **required** — The chapters, at most 2,000. At most 2000 items.
+
+## ChapterEditEntry
+
+One chapter of an edit, as JSON carries it.
+
+- `title` *string*, **required** — Chapter title: 1 to 512 bytes, no control characters, no leading or trailing white space.
+- `start_ms` *integer (int64)*, **required** — Start, in milliseconds from the start of the edition's timeline; no earlier than the chapter before it. At least 0.
+- `depth` *integer (int32)* — Nesting depth, 0 for a top-level chapter; at most one more than the chapter before it, and at most 7. Left out reads as 0. At least 0.
 
 ## ChapterJsonMode
 
@@ -652,6 +688,19 @@ Default is [`Self::Off`]. Replaces the old `save_chapter_json` bool +
 chosen separately when chapters are needed for embedding).
 
 Type: one of `off`, `flat`, `tree`, `both`
+
+## ChapterPinBody
+
+`PUT /api/library/editions/{id}/chapters/pin` body: the claim to pin.
+
+- `source_kind` *[`ChapterSourceKind`](#chaptersourcekind)*, **required** — The claim's source kind, as the claims list names it.
+- `source_id` *string or null* — The claim's source id (a PluginKey; empty for an edit or for Bookclerk's own processing). Left out reads as empty.
+
+## ChapterSourceKind
+
+The kind of source a chapter claim came from (`source_kind`).
+
+Type: one of `person`, `outside_edit`, `processed`, `provider`, `listing`, `file`, `part_names`
 
 ## ClerkAuthorizeParams
 
@@ -1230,6 +1279,16 @@ the metadata every domain response carries before its settings.
 - `job_id` *string*, **required** — The acquire job, as `/api/jobs` lists it.
 - `edition_id` *string*, **required** — The edition being downloaded.
 - `already_queued` *boolean*, **required** — `true` when a download of that edition was already waiting or running; `job_id` is that download.
+
+## EditionChaptersJson
+
+The chapters an edition plays.
+
+- `edition_id` *string*, **required** — The edition.
+- `chapters` *array of [`Chapter`](#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+- `source_kind` *[`ChapterSourceKind`](#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+- `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+- `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
 
 ## EditionJson
 

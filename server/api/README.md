@@ -165,6 +165,12 @@ Books in the library, scans and acquires.
 | [`PUT /api/library/listings/{id}/pin`](library.md#put-apilibrarylistingsidpin) | Pins a store listing to the edition it sells. |
 | [`DELETE /api/library/listings/{id}/pin`](library.md#delete-apilibrarylistingsidpin) | Removes a listing's pin. |
 | [`GET /api/library/conflicts`](library.md#get-apilibraryconflicts) | Pages the conflicts the resolver could not decide, for an Administrator to settle with a pin. |
+| [`GET /api/library/editions/{id}/chapters/claims`](library.md#get-apilibraryeditionsidchaptersclaims) | Lists every source's chapter claim for an edition, with its chapters. |
+| [`GET /api/library/editions/{id}/chapters`](library.md#get-apilibraryeditionsidchapters) | Reads the chapters an edition plays. |
+| [`PUT /api/library/editions/{id}/chapters`](library.md#put-apilibraryeditionsidchapters) | Sets an edition's chapters by hand. |
+| [`DELETE /api/library/editions/{id}/chapters`](library.md#delete-apilibraryeditionsidchapters) | Removes an Administrator's chapter edit, so the edition plays the best remaining claim again. |
+| [`PUT /api/library/editions/{id}/chapters/pin`](library.md#put-apilibraryeditionsidchapterspin) | Pins one claim, so the edition plays it whatever the others say. |
+| [`DELETE /api/library/editions/{id}/chapters/pin`](library.md#delete-apilibraryeditionsidchapterspin) | Removes the pin on an edition's chapters; the resolver chooses again. |
 | [`POST /api/library/works/{id}/split`](library.md#post-apilibraryworksidsplit) | Splits a work an automatic merge joined wrongly. |
 | [`GET /api/library/works/{id}/tags`](library.md#get-apilibraryworksidtags) | Reads a work's library tags. |
 | [`PUT /api/library/works/{id}/tags`](library.md#put-apilibraryworksidtags) | Replaces the tags an Administrator set on a work. |

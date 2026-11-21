@@ -519,6 +519,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::CreditRole`](generated.md#creditrole)
 - [`generated::CreditLevel`](generated.md#creditlevel)
 - [`generated::FetchedFileRole`](generated.md#fetchedfilerole)
+- [`generated::ChapterKind`](generated.md#chapterkind)
 - [`generated::CatalogSort`](generated.md#catalogsort)
 - [`generated::CatalogField`](generated.md#catalogfield)
 - [`generated::PriceLookup`](generated.md#pricelookup)

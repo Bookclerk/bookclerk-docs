@@ -25,6 +25,8 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`books`](books.md): SeaORM entity for the `books` table.
 - [`catalog_listing_optouts`](catalog_listing_optouts.md): SeaORM entity for `catalog_listing_optouts`: on a branch, the members whose books it does not list to the libraries it joined.
 - [`catalog_lookups`](catalog_lookups.md): SeaORM entity for `catalog_lookups`: on a library, the catalog questions waiting for (or answered by) each branch (`control_plane::catalog_lookup`).
+- [`chapter_list_entries`](chapter_list_entries.md): SeaORM entity for `chapter_list_entries`: one chapter of a stored chapter list (`chapter_lists`), in pre-order.
+- [`chapter_lists`](chapter_lists.md): SeaORM entity for `chapter_lists`: one stored chapter list, named by its digest. Written by `crate::LibraryStore`'s chapter methods (`store::chapters`) after every entry of the list.
 - [`claim_tickets`](claim_tickets.md): SeaORM entity for the `claim_tickets` table.
 - [`clerk_links`](clerk_links.md): SeaORM entity for `clerk_links`: on a clerk, the libraries this install holds a library card for (written by `control_plane::record_clerk_link`).
 - [`configuration_audit`](configuration_audit.md): SeaORM entity for successful configuration commits.
@@ -44,6 +46,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`discover_tastes`](discover_tastes.md): SeaORM entity for the `discover_tastes` table.
 - [`domain_events`](domain_events.md): SeaORM entity for the durable `domain_events` outbox.
 - [`edition_acquisitions`](edition_acquisitions.md): SeaORM entity for `edition_acquisitions`: each edition's acquire state.
+- [`edition_chapters`](edition_chapters.md): SeaORM entity for `edition_chapters`: the chapter list an edition's claims resolved to (`store::chapters`).
 - [`edition_copies`](edition_copies.md): SeaORM entity for `edition_copies`: each edition's copy at each output destination and where it stands (storage destinations ADR, `docs/adr/storage-destinations.md`, decision 3).
 - [`edition_files`](edition_files.md): SeaORM entity for `edition_files`: every file key an acquire or a host upload wrote, per output destination, and the edition it belongs to (library data model ADR, `docs/adr/library-data-model.md`, section 3). Written by the acquire pipeline (`crate::LibraryStore::record_edition_file`) and by `control_plane::uploads`, which refuses an upload a key another edition holds and deletes an aborted upload's copy only while the key is still its own.
 - [`edition_identifiers`](edition_identifiers.md): SeaORM entity for the `edition_identifiers` table (composite primary key).
@@ -71,6 +74,7 @@ at the record boundary and uses these entities (`Entity::find`,
 - [`link_requests`](link_requests.md): SeaORM entity for `link_requests`: on a branch, the books a library it joined asked for through an interlibrary request (written by `control_plane::branch_requests`). The catalog sync sends that library a book recorded here for it, although the book is a member's.
 - [`listening_progress`](listening_progress.md): SeaORM entity for the `listening_progress` table.
 - [`listing_offers`](listing_offers.md): SeaORM entity for the `listing_offers` table (composite primary key).
+- [`metadata_claims`](metadata_claims.md): SeaORM entity for `metadata_claims`: one source's value for one field of one subject (`docs/adr/metadata-claims-and-file-sync.md`). Chapters of an edition are the only field so far (`store::chapters`).
 - [`node_credentials`](node_credentials.md): SeaORM entity for `node_credentials`: the public keys an enrolled branch node proves itself with.
 - [`node_enrollment_links`](node_enrollment_links.md): SeaORM entity for `node_enrollment_links`: single-use links that enroll a branch node into this library. Only the hash of each link's secret is stored.
 - [`node_status`](node_status.md): SeaORM entity for `node_status`: each node's latest daemon heartbeat.

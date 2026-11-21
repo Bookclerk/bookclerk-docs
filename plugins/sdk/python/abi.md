@@ -416,6 +416,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CreditRole`](#creditrole) | constant | A contributor's responsibility for a work, expression or edition. |
 | [`CreditLevel`](#creditlevel) | constant | Which level a credit attaches to. Ordinal 0 is the role's usual level, so a guest sets this only when a credit departs from it. |
 | [`FetchedFileRole`](#fetchedfilerole) | constant | What one fetched file is to the edition it belongs to. |
+| [`ChapterKind`](#chapterkind) | constant | What a storefront's chapter markers mark (`PlainFetch.chapterKind`). |
 | [`CatalogSort`](#catalogsort) | constant | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
 | [`PriceLookup`](#pricelookup) | constant | How a purchase-hint query names the title to price. |
@@ -4490,6 +4491,7 @@ guests decrypt before responding.
 - `chapters`: Chapter markers; empty when unknown.
 - `pdfUrl`: Companion PDF download URL when the store exposes one; the host downloads it itself. Omitted when absent (wire zero value).
 - `refreshedCredentials`: The account's credentials as the guest holds them after refreshing them during the fetch, as in `ScanPage.refreshedCredentials`. Empty when nothing changed. Omitted when absent (wire zero value).
+- `chapterKind`: What `chapters` marks. The host ranks literary chapters above track boundaries when it decides an edition's chapters.
 
 ### FetchTitleReplyOk
 
@@ -8031,6 +8033,14 @@ FetchedFileRole = Literal['unspecified', 'part', 'whole', 'cover']
 ```
 
 What one fetched file is to the edition it belongs to.
+
+### ChapterKind
+
+```python
+ChapterKind = Literal['unknown', 'chapters', 'tracks']
+```
+
+What a storefront's chapter markers mark (`PlainFetch.chapterKind`).
 
 ### CatalogSort
 

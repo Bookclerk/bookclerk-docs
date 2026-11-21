@@ -12363,6 +12363,2567 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/library/editions/{id}/chapters/claims`
+
+Lists every source's chapter claim for an edition, with its chapters.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Responses
+
+- `200` — The claims, most recently changed first. Body: [`ChapterClaimsJson`](schemas.md#chapterclaimsjson) (`application/json`)
+  - `claims` *array of [`ChapterClaimJson`](schemas.md#chapterclaimjson)*, **required** — The claims, most recently changed first.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/claims' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/claims' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters/claims",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters/claims", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/editions/<id>/chapters/claims")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The claims, most recently changed first.
+
+```json
+{
+  "claims": [
+    {
+      "source_kind": "person",
+      "source_id": "plugin:audnexus",
+      "quality": "strong_accurate",
+      "digest": "9f2c4e6a8b0d1f3e5a7c9b1d3f5e7a9c2b4d6f8e0a1c3e5b7d9f1a3c5e7b9d0f",
+      "chapters": [
+        {
+          "title": "Chapter 1: The Boy Who Lived",
+          "start_ms": 33000,
+          "depth": 0
+        }
+      ],
+      "runtime_ms": 41400000,
+      "input_digest": "4b7d9f1a3c5e7b9d0f9f2c4e6a8b0d1f3e5a7c9b1d3f5e7a9c2b4d6f8e0a1c3e",
+      "plays": true,
+      "pinned_at": "2026-11-20T19:30:00Z",
+      "created_by_user_id": 2,
+      "updated_at": "2026-11-20T19:30:00Z"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Every chapter claim for an edition.",
+  "required": [
+    "claims"
+  ],
+  "properties": {
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One source's chapter claim for an edition.",
+        "required": [
+          "source_kind",
+          "source_id",
+          "quality",
+          "digest",
+          "plays",
+          "updated_at"
+        ],
+        "properties": {
+          "source_kind": {
+            "type": "string",
+            "description": "The kind of source.",
+            "enum": [
+              "person",
+              "outside_edit",
+              "processed",
+              "provider",
+              "listing",
+              "file",
+              "part_names"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+            "example": "plugin:audnexus"
+          },
+          "quality": {
+            "type": "string",
+            "description": "Where a machine source ranks within its kind: `strong_accurate`,\n`strong_estimated` or `weak` for a provider, `chapters`, `tracks` or\n`unknown` for a store listing; empty otherwise.",
+            "example": "strong_accurate"
+          },
+          "digest": {
+            "type": "string",
+            "description": "SHA-256 of the claimed list, 64 lower-case hex characters.",
+            "example": "9f2c4e6a8b0d1f3e5a7c9b1d3f5e7a9c2b4d6f8e0a1c3e5b7d9f1a3c5e7b9d0f"
+          },
+          "chapters": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "description": "One chapter of a checked list.",
+              "required": [
+                "title",
+                "start_ms",
+                "depth"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                  "example": "Chapter 1: The Boy Who Lived"
+                },
+                "start_ms": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                  "example": 33000,
+                  "minimum": 0
+                },
+                "depth": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                  "example": 0,
+                  "minimum": 0
+                }
+              }
+            },
+            "description": "The claimed chapters; absent while the list's write is unfinished."
+          },
+          "runtime_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Length of the timeline the list was measured on, in milliseconds.",
+            "example": 41400000,
+            "minimum": 0
+          },
+          "input_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For a processed claim, the digest of the provider list it was\naligned from.",
+            "example": "4b7d9f1a3c5e7b9d0f9f2c4e6a8b0d1f3e5a7c9b1d3f5e7a9c2b4d6f8e0a1c3e"
+          },
+          "plays": {
+            "type": "boolean",
+            "description": "Whether the edition plays this claim now.",
+            "example": true
+          },
+          "pinned_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When an Administrator pinned it (RFC 3339); absent when unpinned.",
+            "example": "2026-11-20T19:30:00Z"
+          },
+          "created_by_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The person whose edit it is; absent for a machine source or the\noperator.",
+            "example": 2
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "When it last changed (RFC 3339).",
+            "example": "2026-11-20T19:30:00Z"
+          }
+        }
+      },
+      "description": "The claims, most recently changed first."
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/library/editions/{id}/chapters`
+
+Reads the chapters an edition plays.
+
+The list comes from the claim the resolver chose: a pinned claim, else
+an Administrator's edit, else the best machine source (Bookclerk's own
+aligned chapters first).
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id (an `id` in a work's `editions`).
+
+### Responses
+
+- `200` — The chapters; an empty list with no source when the edition has none yet. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+  - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+  - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
+- `401` — The session ended. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such edition, or one outside the caller's scope. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/library/editions/<id>/chapters")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The chapters; an empty list with no source when the edition has none yet.
+
+```json
+{
+  "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
+    }
+  ],
+  "source_kind": "person",
+  "source_id": "",
+  "runtime_ms": 41400000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The chapters an edition plays.",
+  "required": [
+    "edition_id",
+    "chapters"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter of a checked list.",
+        "required": [
+          "title",
+          "start_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters in pre-order, starts never decreasing; empty when the\nedition has none or an Administrator cleared them."
+    },
+    "source_kind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "The kind of source the chapters came from; absent when the edition\nhas no chapters yet.",
+          "enum": [
+            "person",
+            "outside_edit",
+            "processed",
+            "provider",
+            "listing",
+            "file",
+            "part_names"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+      "example": ""
+    },
+    "runtime_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Length of the timeline the starts were measured on, in milliseconds.",
+      "example": 41400000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: The session ended.
+
+```json
+{
+  "error": "sign in again"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such edition, or one outside the caller's scope.
+
+```json
+{
+  "error": "edition 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "the library could not be read"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/library/editions/{id}/chapters`
+
+Sets an edition's chapters by hand.
+
+The edit is checked strictly: what is stored is exactly what was sent.
+It wins over every machine source until it is removed or another claim
+is pinned. An empty list clears the chapters.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Request body
+
+`application/json`: [`ChapterEditBody`](schemas.md#chaptereditbody)
+
+- `chapters` *array of [`ChapterEditEntry`](schemas.md#chaptereditentry)*, **required** — The chapters, at most 2,000. At most 2000 items.
+
+### Responses
+
+- `200` — The chapters the edition plays now (a pinned claim still wins over the edit). Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+  - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+  - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
+- `400` — The body is not a chapter list, or a chapter breaks a rule. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The body is over 2 MiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The body is not sent as JSON. As `text/plain`, when the request did not declare a JSON body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The chapters could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"chapters": [{"title": "Chapter 1: The Boy Who Lived", "start_ms": 33000}]}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"chapters": [{"title": "Chapter 1: The Boy Who Lived", "start_ms": 33000}]}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"chapters": [{"title": "Chapter 1: The Boy Who Lived", "start_ms": 33000}]},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"chapters": [{"title": "Chapter 1: The Boy Who Lived", "start_ms": 33000}]}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/library/editions/<id>/chapters")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"chapters": [{"title": "Chapter 1: The Boy Who Lived", "start_ms": 33000}]}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The chapters the edition plays now (a pinned claim still wins over the edit).
+
+```json
+{
+  "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
+    }
+  ],
+  "source_kind": "person",
+  "source_id": "",
+  "runtime_ms": 41400000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The chapters an edition plays.",
+  "required": [
+    "edition_id",
+    "chapters"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter of a checked list.",
+        "required": [
+          "title",
+          "start_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters in pre-order, starts never decreasing; empty when the\nedition has none or an Administrator cleared them."
+    },
+    "source_kind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "The kind of source the chapters came from; absent when the edition\nhas no chapters yet.",
+          "enum": [
+            "person",
+            "outside_edit",
+            "processed",
+            "provider",
+            "listing",
+            "file",
+            "part_names"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+      "example": ""
+    },
+    "runtime_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Length of the timeline the starts were measured on, in milliseconds.",
+      "example": 41400000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: The body is not a chapter list, or a chapter breaks a rule. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "chapter 3 starts before chapter 2"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The body is over 2 MiB.
+
+```json
+{
+  "error": "the body is at most 2097152 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as JSON. As `text/plain`, when the request did not declare a JSON body.
+
+```json
+{
+  "error": "send the body with Content-Type: application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `chapters` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The chapters could not be written.
+
+```json
+{
+  "error": "the library could not be changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `DELETE /api/library/editions/{id}/chapters`
+
+Removes an Administrator's chapter edit, so the edition plays the best
+remaining claim again.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Responses
+
+- `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+  - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+  - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The edit could not be removed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/library/editions/<id>/chapters")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The chapters the edition plays now.
+
+```json
+{
+  "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
+    }
+  ],
+  "source_kind": "person",
+  "source_id": "",
+  "runtime_ms": 41400000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The chapters an edition plays.",
+  "required": [
+    "edition_id",
+    "chapters"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter of a checked list.",
+        "required": [
+          "title",
+          "start_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters in pre-order, starts never decreasing; empty when the\nedition has none or an Administrator cleared them."
+    },
+    "source_kind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "The kind of source the chapters came from; absent when the edition\nhas no chapters yet.",
+          "enum": [
+            "person",
+            "outside_edit",
+            "processed",
+            "provider",
+            "listing",
+            "file",
+            "part_names"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+      "example": ""
+    },
+    "runtime_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Length of the timeline the starts were measured on, in milliseconds.",
+      "example": 41400000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The edit could not be removed.
+
+```json
+{
+  "error": "the library could not be changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PUT /api/library/editions/{id}/chapters/pin`
+
+Pins one claim, so the edition plays it whatever the others say.
+
+Pinning replaces any earlier pin on the edition's chapters.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Request body
+
+`application/json`: [`ChapterPinBody`](schemas.md#chapterpinbody)
+
+- `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind)*, **required** — The claim's source kind, as the claims list names it.
+- `source_id` *string or null* — The claim's source id (a PluginKey; empty for an edit or for Bookclerk's own processing). Left out reads as empty.
+
+### Responses
+
+- `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+  - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+  - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
+- `400` — The body does not name a claim. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition, or it has no such claim. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The body is over 1 KiB. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The body is not sent as JSON. As `text/plain`, when the request did not declare a JSON body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The pin could not be written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin' \
+    -X PUT \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"source_kind": "person"}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin' `
+    -Method Put `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"source_kind": "person"}'
+```
+
+```python
+import requests
+
+response = requests.put(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"source_kind": "person"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin", {
+  method: "PUT",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"source_kind": "person"}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .put("http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"source_kind": "person"}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The chapters the edition plays now.
+
+```json
+{
+  "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
+    }
+  ],
+  "source_kind": "person",
+  "source_id": "",
+  "runtime_ms": 41400000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The chapters an edition plays.",
+  "required": [
+    "edition_id",
+    "chapters"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter of a checked list.",
+        "required": [
+          "title",
+          "start_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters in pre-order, starts never decreasing; empty when the\nedition has none or an Administrator cleared them."
+    },
+    "source_kind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "The kind of source the chapters came from; absent when the edition\nhas no chapters yet.",
+          "enum": [
+            "person",
+            "outside_edit",
+            "processed",
+            "provider",
+            "listing",
+            "file",
+            "part_names"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+      "example": ""
+    },
+    "runtime_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Length of the timeline the starts were measured on, in milliseconds.",
+      "example": 41400000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `400`: The body does not name a claim. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "pin body: unknown variant `wizard`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition, or it has no such claim.
+
+```json
+{
+  "error": "metadata claim listing:plugin:audible not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The body is over 1 KiB.
+
+```json
+{
+  "error": "the body is at most 1024 bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The body is not sent as JSON. As `text/plain`, when the request did not declare a JSON body.
+
+```json
+{
+  "error": "send the body with Content-Type: application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `source_kind` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The pin could not be written.
+
+```json
+{
+  "error": "the library could not be changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `DELETE /api/library/editions/{id}/chapters/pin`
+
+Removes the pin on an edition's chapters; the resolver chooses again.
+
+**Access:** The operator, or any signed-in user.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Edition id.
+
+### Responses
+
+- `200` — The chapters the edition plays now. Body: [`EditionChaptersJson`](schemas.md#editionchaptersjson) (`application/json`)
+  - `edition_id` *string*, **required** — The edition.
+  - `chapters` *array of [`Chapter`](schemas.md#chapter)*, **required** — The chapters in pre-order, starts never decreasing; empty when the edition has none or an Administrator cleared them.
+  - `source_kind` *[`ChapterSourceKind`](schemas.md#chaptersourcekind) or null* — The kind of source the chapters came from; absent when the edition has no chapters yet.
+  - `source_id` *string or null* — Which source of that kind (a PluginKey; empty for an edit or for Bookclerk's own processing).
+  - `runtime_ms` *integer (int64) or null* — Length of the timeline the starts were measured on, in milliseconds. At least 0.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `404` — No such edition. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The pin could not be removed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/library/editions/<id>/chapters/pin")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The chapters the edition plays now.
+
+```json
+{
+  "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+  "chapters": [
+    {
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
+    }
+  ],
+  "source_kind": "person",
+  "source_id": "",
+  "runtime_ms": 41400000
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The chapters an edition plays.",
+  "required": [
+    "edition_id",
+    "chapters"
+  ],
+  "properties": {
+    "edition_id": {
+      "type": "string",
+      "description": "The edition.",
+      "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One chapter of a checked list.",
+        "required": [
+          "title",
+          "start_ms",
+          "depth"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
+          }
+        }
+      },
+      "description": "The chapters in pre-order, starts never decreasing; empty when the\nedition has none or an Administrator cleared them."
+    },
+    "source_kind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "The kind of source the chapters came from; absent when the edition\nhas no chapters yet.",
+          "enum": [
+            "person",
+            "outside_edit",
+            "processed",
+            "provider",
+            "listing",
+            "file",
+            "part_names"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source of that kind (a PluginKey; empty for an edit or for\nBookclerk's own processing).",
+      "example": ""
+    },
+    "runtime_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "Length of the timeline the starts were measured on, in milliseconds.",
+      "example": 41400000,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "mfa_enrollment_required",
+  "message": "This server requires a passkey or authenticator app. Set one up to continue, or log out and finish later.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `404`: No such edition.
+
+```json
+{
+  "error": "edition 6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b not found"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The pin could not be removed.
+
+```json
+{
+  "error": "the library could not be changed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `POST /api/library/works/{id}/split`
 
 Splits a work an automatic merge joined wrongly.

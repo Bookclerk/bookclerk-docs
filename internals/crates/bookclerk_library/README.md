@@ -113,6 +113,17 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ListingDetail`](#listingdetail) | struct | The store's own text for a listing, beyond the title the resolver sees. |
 | [`ListingOffer`](#listingoffer) | struct | One price a store quoted for one listing and audience. |
 | [`RecordedListings`](#recordedlistings) | struct | What `LibraryStore::record_catalog_listings` stored for one answer. |
+| [`Chapter`](#chapter) | struct | One chapter of a checked list. |
+| [`ChapterClaim`](#chapterclaim) | struct | One stored chapter claim, without its list. |
+| [`ChapterClaimWrite`](#chapterclaimwrite) | struct | A claim to record (`LibraryStore::record_chapter_claim`). |
+| [`ChapterDigest`](#chapterdigest) | struct | Lower-case hex SHA-256 naming one stored chapter list (`ChapterList::digest`). |
+| [`ChapterInput`](#chapterinput) | struct | One chapter as a source states it, before it is checked. |
+| [`ChapterList`](#chapterlist) | struct | A checked chapter list, in pre-order with starts never decreasing. |
+| [`EditionChapters`](#editionchapters) | struct | The chapters an edition resolved to. |
+| [`ChapterEditBody`](#chaptereditbody) | struct | `PUT /api/library/editions/{id}/chapters` body: the edition's chapters as an Administrator sets them, in pre-order. An empty list clears them. |
+| [`ChapterEditEntry`](#chaptereditentry) | struct | One chapter of an edit, as JSON carries it. |
+| [`ChapterPinBody`](#chapterpinbody) | struct | `PUT /api/library/editions/{id}/chapters/pin` body: the claim to pin. |
+| [`ChapterPinRequest`](#chapterpinrequest) | struct | A checked pin request. |
 | [`TitleQuery`](#titlequery) | struct | A title someone asks about (a wish, a catalog card): what the resolver needs to say which work it belongs to. |
 | [`WorkEnrichment`](#workenrichment) | struct | Enrichment fields for `LibraryStore::set_work_enrichment`. |
 | [`ListeningIdentifiers`](#listeningidentifiers) | struct | The identifiers a listening item names its book by, as the provider reported them (any case and punctuation; normalised here). |
@@ -223,6 +234,13 @@ the external guest RPC. This crate owns the greenfield schema
 | [`HoldingHolder`](#holdingholder) | enum | Who holds a listing. |
 | [`WorkTagSource`](#worktagsource) | enum | Where a library tag came from (`work_tags.source`). |
 | [`OfferAudience`](#offeraudience) | enum | Who a `ListingOffer` price is for. |
+| [`ChapterCheck`](#chaptercheck) | enum | How strictly `ChapterList::new` reads its input. |
+| [`ChapterSource`](#chaptersource) | enum | Who states a chapter claim, as a writer names it. |
+| [`ChapterSourceKind`](#chaptersourcekind) | enum | The kind of source a chapter claim came from (`source_kind`). |
+| [`ChaptersOutcome`](#chaptersoutcome) | enum | What a chapter write changed. |
+| [`ClaimQuality`](#claimquality) | enum | Where a machine source ranks within its kind (`quality`). |
+| [`MarkerKind`](#markerkind) | enum | What a store says its markers are. |
+| [`ProviderQuality`](#providerquality) | enum | How a provider found the edition, and how exact its offsets are. |
 | [`EventPruneStep`](#eventprunestep) | enum | One delete of `LibraryStore::prune_event_deliveries`, in run order. |
 | [`PinOutcome`](#pinoutcome) | enum | What `LibraryStore::pin_listing` did. |
 | [`DownloadStarter`](#downloadstarter) | enum | Who started a download, for the ledger. |
@@ -323,6 +341,9 @@ the external guest RPC. This crate owns the greenfield schema
 | [`normalize_work_tags`](#normalize_work_tags) | function | Trims, drops empties and duplicates (by `facet_key`, first spelling kept) and checks the bounds. |
 | [`parse_work_tags_request`](#parse_work_tags_request) | function | Parses and validates a `PUT /api/library/works/{id}/tags` body from its raw bytes, sans IO, the way the route reads it: JSON into `WorkTagsBody`, then `WorkTagsBody::validate`. |
 | [`apply_user_states`](#apply_user_states) | function | Applies the state of `users` to `titles`, merged per work. |
+| [`resolve_chapters`](#resolve_chapters) | function | Picks the claim an edition's chapters resolve to. |
+| [`parse_chapter_edit_request`](#parse_chapter_edit_request) | function | Parses and checks a chapter edit body from its raw bytes, sans IO, the way the route reads it. |
+| [`parse_chapter_pin_request`](#parse_chapter_pin_request) | function | Parses and checks a pin body from its raw bytes, sans IO. |
 | [`copy_retry_delay`](#copy_retry_delay) | function | The delay before the next background attempt of a copy that has now failed `attempts` times (1 for the first failure): `COPY_RETRY_BASE_DELAY` doubled per earlier failure, capped at `COPY_RETRY_MAX_DELAY`. |
 | [`deliver_after_for`](#deliver_after_for) | function | RFC 3339 earliest delivery time for `spec`; empty when it may deliver now. |
 | [`prepare_publish_domain_event`](#prepare_publish_domain_event) | function | Mint an event id when empty and reject oversized or blank publish fields. |
@@ -389,6 +410,13 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_WORK_TAGS`](#max_work_tags) | constant | Most tags an Administrator may set on one work. With the delete this fits one batch of the smallest statement count a database plugin may advertise (40). |
 | [`MAX_WORK_TAG_BYTES`](#max_work_tag_bytes) | constant | Longest tag, in UTF-8 bytes after trimming: the longest value the page index keeps under a facet, and the longest value a scope rule matches. |
 | [`CATALOG_LISTING_REFRESH`](#catalog_listing_refresh) | constant | How long a catalog listing counts as current: a store answer for a listing seen more recently than this refreshes only its prices, not its resolution or text, so overlapping tastes cost one resolve a day. |
+| [`MAX_CHAPTERS`](#max_chapters) | constant | Most chapters one list holds, the same cap as a metadata file's (`maxMetadataFileChapters` in `plugin.capnp`). |
+| [`MAX_CHAPTER_DEPTH`](#max_chapter_depth) | constant | Deepest nesting stored; 0 is a top-level chapter. A machine source's deeper chapter is lifted to this depth; an edit's is refused. |
+| [`MAX_CHAPTER_START_MS`](#max_chapter_start_ms) | constant | Latest chapter start stored, in milliseconds: sixty days, the playback core's longest position (`crate::MAX_PLAYBACK_MS`). |
+| [`MAX_CHAPTER_TITLE_BYTES`](#max_chapter_title_bytes) | constant | Longest chapter title stored, in UTF-8 bytes. A machine source's longer title is cut at a character boundary; an edit's is refused. |
+| [`MAX_CHAPTER_EDIT_BYTES`](#max_chapter_edit_bytes) | constant | Largest chapter edit body the route reads, in bytes: room for `MAX_CHAPTERS` chapters with titles at `MAX_CHAPTER_TITLE_BYTES`, some of them escaped. |
+| [`MAX_CHAPTER_PIN_BYTES`](#max_chapter_pin_bytes) | constant | Largest pin body the route reads, in bytes. |
+| [`MAX_CHAPTER_SOURCE_ID_BYTES`](#max_chapter_source_id_bytes) | constant | Longest `source_id` a pin names, in bytes; a PluginKey is far shorter. |
 | [`MAX_CONFLICT_PAGE`](#max_conflict_page) | constant | Largest conflicts page `LibraryStore::list_resolution_conflicts` reads. |
 | [`MAX_BOOKMARKS_PER_EDITION`](#max_bookmarks_per_edition) | constant | Most bookmarks one person keeps in one edition. |
 | [`MAX_BOOKMARK_TITLE_BYTES`](#max_bookmark_title_bytes) | constant | Longest bookmark title, in bytes (well inside the minimum database profile's cell size). |
@@ -4865,6 +4893,299 @@ What [`LibraryStore::record_catalog_listings`](#librarystorerecord_catalog_listi
 
 Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
 
+### Chapter
+
+```rust
+pub struct Chapter {
+    pub title: String,
+    pub start_ms: u64,
+    pub depth: u32,
+}
+```
+
+One chapter of a checked list.
+
+**Fields**
+
+- `title`: Chapter title; never empty, at most 512 bytes, no control
+  characters.
+- `start_ms`: Start, in milliseconds from the start of the edition's timeline.
+- `depth`: Nesting depth; 0 for a top-level chapter, at most 7. A chapter at
+  depth n + 1 is nested under the nearest earlier chapter at depth n.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ChapterClaim
+
+```rust
+pub struct ChapterClaim {
+    pub source_kind: ChapterSourceKind,
+    pub source_id: String,
+    pub quality: ClaimQuality,
+    pub digest: ChapterDigest,
+    pub chapter_count: Option<u64>,
+    pub runtime_ms: Option<u64>,
+    pub input_digest: Option<ChapterDigest>,
+    pub revision: i64,
+    pub pinned_at: Option<String>,
+    pub created_by_user_id: Option<i64>,
+    pub updated_at: String,
+}
+```
+
+One stored chapter claim, without its list.
+
+**Fields**
+
+- `source_kind`: The kind of source.
+- `source_id`: Which source of that kind (a PluginKey; empty for a person's edit
+  and for Bookclerk's processing).
+- `quality`: Where a machine source ranks within its kind.
+- `digest`: The claimed list.
+- `chapter_count`: How many chapters the list has; `None` while its write is
+  unfinished.
+- `runtime_ms`: Length of the timeline the list was measured on, in milliseconds.
+- `input_digest`: For a processed claim, the list it was derived from.
+- `revision`: The edition's claim counter when this claim last changed.
+- `pinned_at`: When an Administrator pinned it (RFC 3339).
+- `created_by_user_id`: The person whose edit it is.
+- `updated_at`: When it last changed (RFC 3339).
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ChapterClaimWrite
+
+```rust
+pub struct ChapterClaimWrite {
+    pub source: ChapterSource,
+    pub list: ChapterList,
+    pub runtime_ms: Option<u64>,
+}
+```
+
+A claim to record ([`LibraryStore::record_chapter_claim`](#librarystorerecord_chapter_claim)).
+
+**Fields**
+
+- `source`: Who states it.
+- `list`: The chapters.
+- `runtime_ms`: Length of the timeline the chapters were measured on, in
+  milliseconds, when known.
+
+Implements: `Clone`, `Debug`
+
+### ChapterDigest
+
+```rust
+pub struct ChapterDigest(/* private */);
+```
+
+Lower-case hex SHA-256 naming one stored chapter list
+([`ChapterList::digest`](#chapterlistdigest)).
+
+#### ChapterDigest::parse
+
+```rust
+pub fn parse(stored: &str) -> Option<Self>
+```
+
+Reads a stored digest, refusing anything but 64 lower-case hex
+characters.
+
+#### ChapterDigest::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The digest as stored.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### ChapterInput
+
+```rust
+pub struct ChapterInput {
+    pub title: String,
+    pub start_ms: u64,
+    pub depth: u32,
+}
+```
+
+One chapter as a source states it, before it is checked.
+
+**Fields**
+
+- `title`: Chapter title.
+- `start_ms`: Start, in milliseconds from the start of the edition's timeline.
+- `depth`: Nesting depth; 0 for a top-level chapter.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ChapterList
+
+```rust
+pub struct ChapterList(/* private */);
+```
+
+A checked chapter list, in pre-order with starts never decreasing.
+
+Every list satisfies: at most [`MAX_CHAPTERS`](#max_chapters) chapters; each title
+non-empty, at most [`MAX_CHAPTER_TITLE_BYTES`](#max_chapter_title_bytes) bytes, free of control
+characters and of leading or trailing white space; each start at most
+[`MAX_CHAPTER_START_MS`](#max_chapter_start_ms) and no earlier than the one before; the first
+depth 0 and each later depth at most one more than the one before and
+at most [`MAX_CHAPTER_DEPTH`](#max_chapter_depth).
+
+#### ChapterList::new
+
+```rust
+pub fn new(input: Vec<ChapterInput>, check: ChapterCheck) -> Result<Self>
+```
+
+Checks `input` into a list.
+
+##### Arguments
+
+* `input` - The chapters in pre-order.
+* `check` - Whether to refuse or repair what breaks a rule.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) naming the first chapter that
+breaks a rule [`ChapterCheck`](#chaptercheck) does not repair.
+
+#### ChapterList::chapters
+
+```rust
+pub fn chapters(&self) -> &[Chapter]
+```
+
+The chapters, in pre-order.
+
+#### ChapterList::is_empty
+
+```rust
+pub fn is_empty(&self) -> bool
+```
+
+True when the list has no chapters.
+
+#### ChapterList::digest
+
+```rust
+pub fn digest(&self) -> ChapterDigest
+```
+
+The list's digest: SHA-256 over each chapter's start (8 bytes, big
+endian), depth (4 bytes), title length (4 bytes) and title bytes,
+in order.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
+### EditionChapters
+
+```rust
+pub struct EditionChapters {
+    pub list: ChapterList,
+    pub source_kind: ChapterSourceKind,
+    pub source_id: String,
+    pub runtime_ms: Option<u64>,
+}
+```
+
+The chapters an edition resolved to.
+
+**Fields**
+
+- `list`: The chapters; empty when an Administrator cleared them.
+- `source_kind`: The winning claim's source kind.
+- `source_id`: The winning claim's source id.
+- `runtime_ms`: Length of the timeline the list was measured on, in milliseconds.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ChapterEditBody
+
+```rust
+pub struct ChapterEditBody {
+    /* private fields */
+}
+```
+
+`PUT /api/library/editions/{id}/chapters` body: the edition's chapters
+as an Administrator sets them, in pre-order. An empty list clears them.
+
+#### ChapterEditBody::validate
+
+```rust
+pub fn validate(self) -> Result<ChapterList>
+```
+
+Checks the chapters strictly ([`ChapterCheck::Strict`](#chaptercheck)).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) naming the first chapter that
+breaks a rule.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### ChapterEditEntry
+
+```rust
+pub struct ChapterEditEntry {
+    /* private fields */
+}
+```
+
+One chapter of an edit, as JSON carries it.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### ChapterPinBody
+
+```rust
+pub struct ChapterPinBody {
+    /* private fields */
+}
+```
+
+`PUT /api/library/editions/{id}/chapters/pin` body: the claim to pin.
+
+#### ChapterPinBody::validate
+
+```rust
+pub fn validate(self) -> Result<ChapterPinRequest>
+```
+
+Checks the source id's length and characters.
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a source id over
+[`MAX_CHAPTER_SOURCE_ID_BYTES`](#max_chapter_source_id_bytes) or with a control character.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### ChapterPinRequest
+
+```rust
+pub struct ChapterPinRequest {
+    pub source_kind: ChapterSourceKind,
+    pub source_id: String,
+}
+```
+
+A checked pin request.
+
+**Fields**
+
+- `source_kind`: The claim's source kind.
+- `source_id`: The claim's source id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### TitleQuery
 
 ```rust
@@ -7133,6 +7454,145 @@ How many listings were deleted.
 ##### Errors
 
 Returns the database error.
+
+#### LibraryStore::record_chapter_claim
+
+```rust
+pub async fn record_chapter_claim(
+    &self,
+    edition_id: &str,
+    write: &ChapterClaimWrite,
+) -> Result<ChaptersOutcome>
+```
+
+Records one source's chapters for an edition and resolves the
+edition's chapters again.
+
+The list is stored first when it is new. The claim then replaces
+the source's earlier one; a claim that states the same list and
+runtime as before changes nothing, so recording the same chapters
+on every acquire costs one read.
+
+##### Arguments
+
+* `edition_id` - The edition (`editions.id`).
+* `write` - The claim.
+
+##### Returns
+
+Whether the edition's chapters changed.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) for an unknown edition, or the
+database error.
+
+#### LibraryStore::remove_chapter_edit
+
+```rust
+pub async fn remove_chapter_edit(&self, edition_id: &str) -> Result<ChaptersOutcome>
+```
+
+Removes an Administrator's edit of an edition's chapters, so they
+resolve from the other sources again.
+
+##### Returns
+
+Whether the edition's chapters changed; [`ChaptersOutcome::Unchanged`](#chaptersoutcome)
+when there was no edit.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) for an unknown edition, or the
+database error.
+
+#### LibraryStore::pin_chapter_claim
+
+```rust
+pub async fn pin_chapter_claim(
+    &self,
+    edition_id: &str,
+    target: Option<(ChapterSourceKind, &str)>,
+    user_id: Option<i64>,
+) -> Result<ChaptersOutcome>
+```
+
+Pins one of an edition's chapter claims, so it wins over every
+other source, or removes the pin.
+
+At most one claim is pinned: pinning one unpins the rest in the same
+batch. A claim that is pinned or unpinned moves to the edition's
+next revision.
+
+##### Arguments
+
+* `edition_id` - The edition.
+* `target` - The claim to pin, by source kind and source id;
+  `None` removes the pin.
+* `user_id` - The Administrator; `None` for the operator.
+
+##### Errors
+
+Returns [`LibraryError::NotFound`](#libraryerror) for an unknown edition or a
+claim it does not have, or the database error.
+
+#### LibraryStore::chapter_claims
+
+```rust
+pub async fn chapter_claims(&self, edition_id: &str) -> Result<Vec<ChapterClaim>>
+```
+
+An edition's chapter claims, newest first, each with its list's
+chapter count.
+
+##### Errors
+
+Returns the read error.
+
+#### LibraryStore::edition_chapters
+
+```rust
+pub async fn edition_chapters(&self, edition_id: &str) -> Result<Option<EditionChapters>>
+```
+
+The chapters an edition resolved to; `None` when it has none.
+
+##### Errors
+
+Returns the read error, or [`LibraryError::Other`](#libraryerror) when the stored
+list is missing or no longer passes its own checks.
+
+#### LibraryStore::chapter_list
+
+```rust
+pub async fn chapter_list(&self, digest: &ChapterDigest) -> Result<Option<ChapterList>>
+```
+
+A stored chapter list; `None` when no complete list has this
+digest.
+
+##### Errors
+
+Returns the read error, or [`LibraryError::Other`](#libraryerror) when the entries
+do not match the list's row or its digest.
+
+#### LibraryStore::resolve_edition_chapters
+
+```rust
+pub async fn resolve_edition_chapters(&self, edition_id: &str) -> Result<ChaptersOutcome>
+```
+
+Resolves an edition's chapters from its claims and writes the
+result, publishing `edition_updated` when the list changed.
+
+The write is guarded on the highest claim revision the resolution
+read; when a newer claim landed in between, the resolution is
+computed again.
+
+##### Errors
+
+Returns the database error, or [`LibraryError::Conflict`](#libraryerror) when
+claims kept changing for every attempt.
 
 #### LibraryStore::destination_feed
 
@@ -16586,6 +17046,7 @@ pub enum EntityKind {
     Job,
     SavedFilter,
     ClaimTicket,
+    MetadataClaim,
 }
 ```
 
@@ -16630,11 +17091,12 @@ such as `enrollment link`.
 - `Job`: A job.
 - `SavedFilter`: A saved library filter.
 - `ClaimTicket`: A claim ticket.
+- `MetadataClaim`: One source's metadata claim about a library subject.
 
 #### EntityKind::ALL
 
 ```rust
-pub const ALL: [Self; 34] = _
+pub const ALL: [Self; 35] = _
 ```
 
 Every kind, in declaration order.
@@ -17578,6 +18040,227 @@ pub fn parse(text: &str) -> Option<Self>
 Parses stored audience text; `None` for text a newer release wrote.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+
+### ChapterCheck
+
+```rust
+pub enum ChapterCheck {
+    Strict,
+    Lenient,
+}
+```
+
+How strictly [`ChapterList::new`](#chapterlistnew) reads its input.
+
+**Variants**
+
+- `Strict`: A person's edit: anything outside the rules is refused, so what is
+  stored is exactly what they sent.
+- `Lenient`: A machine source: control characters are dropped, titles trimmed
+  and cut to [`MAX_CHAPTER_TITLE_BYTES`](#max_chapter_title_bytes), an empty title becomes
+  "Chapter n", and a depth that skips a level or passes
+  [`MAX_CHAPTER_DEPTH`](#max_chapter_depth) is lifted. Starts out of order and too many
+  chapters are still refused, because no repair keeps their meaning.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ChapterSource
+
+```rust
+pub enum ChapterSource {
+    Person { user_id: Option<i64> },
+    Processed { input: Option<ChapterDigest> },
+    Provider { plugin: String, quality: ProviderQuality },
+    Listing { plugin: String, kind: MarkerKind },
+    PartNames { plugin: String },
+}
+```
+
+Who states a chapter claim, as a writer names it.
+
+**Variants**
+
+- `Person`: An Administrator's edit. One per edition: a newer edit replaces it.
+  - `user_id`: The Administrator (`users.id`); `None` for the operator.
+- `Processed`: Bookclerk's chapters aligned to the audio during acquire.
+  - `input`: The claim whose titles and starts were aligned.
+- `Provider`: A metadata provider's layout.
+  - `plugin`: The provider's PluginKey.
+  - `quality`: How it found the edition and whether its offsets are exact.
+- `Listing`: A store's markers.
+  - `plugin`: The storefront's PluginKey.
+  - `kind`: What the store says the markers are.
+- `PartNames`: The titles of a store's parts.
+  - `plugin`: The storefront's PluginKey.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ChapterSourceKind
+
+```rust
+pub enum ChapterSourceKind {
+    Person,
+    OutsideEdit,
+    Processed,
+    Provider,
+    Listing,
+    File,
+    PartNames,
+}
+```
+
+The kind of source a chapter claim came from (`source_kind`).
+
+**Variants**
+
+- `Person`: An Administrator's edit in Bookclerk.
+- `OutsideEdit`: A change found outside Bookclerk: a file it did not write, or an
+  edit in an integrated tool. Nothing records these yet.
+- `Processed`: Bookclerk's own chapters, aligned to the audio during acquire.
+- `Provider`: A metadata provider's chapter layout.
+- `Listing`: The markers a store returned with the audio.
+- `File`: Chapters read from a file as first imported. Nothing records these
+  yet.
+- `PartNames`: The titles of the parts a store delivered, one chapter per part.
+
+#### ChapterSourceKind::ALL
+
+```rust
+pub const ALL: [Self; 7] = _
+```
+
+Every kind, in the order the stored values are documented.
+
+#### ChapterSourceKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling.
+
+#### ChapterSourceKind::parse
+
+```rust
+pub fn parse(stored: &str) -> Option<Self>
+```
+
+Reads a stored spelling.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ChaptersOutcome
+
+```rust
+pub enum ChaptersOutcome {
+    Changed,
+    Unchanged,
+}
+```
+
+What a chapter write changed.
+
+**Variants**
+
+- `Changed`: The edition's chapters now come from another list.
+- `Unchanged`: The claims changed but the edition plays the same list.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ClaimQuality
+
+```rust
+pub enum ClaimQuality {
+    None,
+    StrongAccurate,
+    StrongEstimated,
+    Weak,
+    Chapters,
+    Tracks,
+    Unknown,
+}
+```
+
+Where a machine source ranks within its kind (`quality`).
+
+**Variants**
+
+- `None`: Not ranked within its kind: a person's edit, an outside edit,
+  Bookclerk's own processing, a file, part names.
+- `StrongAccurate`: A provider found the edition by a strong identifier and marks the
+  offsets exact.
+- `StrongEstimated`: A provider found the edition by a strong identifier; the offsets
+  are estimates.
+- `Weak`: A provider found the edition by a weak identifier or a search.
+- `Chapters`: A store's markers that it says are chapters.
+- `Tracks`: A store's markers that it says are track or part boundaries.
+- `Unknown`: A store's markers it says nothing about.
+
+#### ClaimQuality::ALL
+
+```rust
+pub const ALL: [Self; 7] = _
+```
+
+Every quality, in the order the stored values are documented.
+
+#### ClaimQuality::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored spelling; empty for [`Self::None`](#claimquality).
+
+#### ClaimQuality::parse
+
+```rust
+pub fn parse(stored: &str) -> Option<Self>
+```
+
+Reads a stored spelling.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### MarkerKind
+
+```rust
+pub enum MarkerKind {
+    Chapters,
+    Tracks,
+    Unknown,
+}
+```
+
+What a store says its markers are.
+
+**Variants**
+
+- `Chapters`: Literary chapters.
+- `Tracks`: Track or part boundaries.
+- `Unknown`: The store did not say.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### ProviderQuality
+
+```rust
+pub enum ProviderQuality {
+    StrongAccurate,
+    StrongEstimated,
+    Weak,
+}
+```
+
+How a provider found the edition, and how exact its offsets are.
+
+**Variants**
+
+- `StrongAccurate`: Found by a strong identifier; offsets marked exact.
+- `StrongEstimated`: Found by a strong identifier; offsets estimated.
+- `Weak`: Found by a weak identifier or a search.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ### EventPruneStep
 
@@ -19496,6 +20179,55 @@ whose state is in `states` (the household).
 * `states` - Stored state rows for the titles' works.
 * `users` - Whose state counts; empty for everyone's.
 
+### resolve_chapters
+
+```rust
+pub fn resolve_chapters(claims: &[ChapterClaim]) -> Option<&ChapterClaim>
+```
+
+Picks the claim an edition's chapters resolve to.
+
+In order: the claim an Administrator pinned; the newest edit made in
+Bookclerk; the newest outside edit; then the best machine source by
+the chapters machine ranking (`docs/adr/edition-chapters.md`, decision
+2), ties broken by source id. A claim whose list write is
+unfinished is never picked, and an empty list is picked only from a
+person, who cleared the chapters on purpose. The answer depends only on
+the claims, never on the order they are given in.
+
+### parse_chapter_edit_request
+
+```rust
+pub fn parse_chapter_edit_request(body: &[u8]) -> Result<ChapterList>
+```
+
+Parses and checks a chapter edit body from its raw bytes, sans IO, the
+way the route reads it.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_CHAPTER_EDIT_BYTES`](#max_chapter_edit_bytes), bytes that are not the body's JSON shape, or
+chapters that break a rule: more than [`MAX_CHAPTERS`](#max_chapters), a title that is
+empty, padded, over [`MAX_CHAPTER_TITLE_BYTES`](#max_chapter_title_bytes) or holds a control
+character, a start past [`MAX_CHAPTER_START_MS`](#max_chapter_start_ms) or before the one
+above, or a depth that skips a level or passes [`MAX_CHAPTER_DEPTH`](#max_chapter_depth).
+
+### parse_chapter_pin_request
+
+```rust
+pub fn parse_chapter_pin_request(body: &[u8]) -> Result<ChapterPinRequest>
+```
+
+Parses and checks a pin body from its raw bytes, sans IO.
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](#libraryerror) for a body over
+[`MAX_CHAPTER_PIN_BYTES`](#max_chapter_pin_bytes), bytes that are not the body's JSON shape, an
+unknown source kind, or a source id [`ChapterPinBody::validate`](#chapterpinbodyvalidate)
+refuses.
+
 ### copy_retry_delay
 
 ```rust
@@ -20271,6 +21003,68 @@ pub const CATALOG_LISTING_REFRESH: Duration = _;
 How long a catalog listing counts as current: a store answer for a
 listing seen more recently than this refreshes only its prices, not
 its resolution or text, so overlapping tastes cost one resolve a day.
+
+### MAX_CHAPTERS
+
+```rust
+pub const MAX_CHAPTERS: usize = 2000;
+```
+
+Most chapters one list holds, the same cap as a metadata file's
+(`maxMetadataFileChapters` in `plugin.capnp`).
+
+### MAX_CHAPTER_DEPTH
+
+```rust
+pub const MAX_CHAPTER_DEPTH: u32 = 7;
+```
+
+Deepest nesting stored; 0 is a top-level chapter. A machine source's
+deeper chapter is lifted to this depth; an edit's is refused.
+
+### MAX_CHAPTER_START_MS
+
+```rust
+pub const MAX_CHAPTER_START_MS: u64 = crate::store::playback::MAX_PLAYBACK_MS;
+```
+
+Latest chapter start stored, in milliseconds: sixty days, the playback
+core's longest position ([`crate::MAX_PLAYBACK_MS`](#max_playback_ms)).
+
+### MAX_CHAPTER_TITLE_BYTES
+
+```rust
+pub const MAX_CHAPTER_TITLE_BYTES: usize = 512;
+```
+
+Longest chapter title stored, in UTF-8 bytes. A machine source's longer
+title is cut at a character boundary; an edit's is refused.
+
+### MAX_CHAPTER_EDIT_BYTES
+
+```rust
+pub const MAX_CHAPTER_EDIT_BYTES: usize = _;
+```
+
+Largest chapter edit body the route reads, in bytes: room for
+[`MAX_CHAPTERS`](#max_chapters) chapters with titles at [`MAX_CHAPTER_TITLE_BYTES`](#max_chapter_title_bytes),
+some of them escaped.
+
+### MAX_CHAPTER_PIN_BYTES
+
+```rust
+pub const MAX_CHAPTER_PIN_BYTES: usize = 1024;
+```
+
+Largest pin body the route reads, in bytes.
+
+### MAX_CHAPTER_SOURCE_ID_BYTES
+
+```rust
+pub const MAX_CHAPTER_SOURCE_ID_BYTES: usize = 256;
+```
+
+Longest `source_id` a pin names, in bytes; a PluginKey is far shorter.
 
 ### MAX_CONFLICT_PAGE
 

@@ -5928,6 +5928,7 @@ Omitted when absent (wire zero value).
 ```ts
 present: (
   | "publisher"
+  | "chapters"
   | "title"
   | "series"
   | "subtitle"
@@ -5940,7 +5941,6 @@ present: (
   | "expressionKind"
   | "identifiers"
   | "credits"
-  | "chapters"
   | "duration"
   | "explicitness")[];
 ```
@@ -6058,6 +6058,7 @@ kept. At most `maxMetadataFileBytes`.
 ```ts
 fields: (
   | "publisher"
+  | "chapters"
   | "title"
   | "series"
   | "subtitle"
@@ -6070,7 +6071,6 @@ fields: (
   | "expressionKind"
   | "identifiers"
   | "credits"
-  | "chapters"
   | "duration"
   | "explicitness")[];
 ```
@@ -7758,6 +7758,15 @@ Plain (DRM-free) fetch result. Sources always return decrypted media; DRM
 guests decrypt before responding.
 
 #### Properties
+
+##### chapterKind
+
+```ts
+chapterKind: "unknown" | "chapters" | "tracks";
+```
+
+What `chapters` marks. The host ranks literary chapters above track
+boundaries when it decides an edition's chapters.
 
 ##### chapters
 
@@ -12149,6 +12158,12 @@ Re-exports [CatalogField](abi.md#catalogfield)
 ### CatalogSort
 
 Re-exports [CatalogSort](abi.md#catalogsort)
+
+***
+
+### ChapterKind
+
+Re-exports [ChapterKind](abi.md#chapterkind)
 
 ***
 

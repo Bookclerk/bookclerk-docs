@@ -128,6 +128,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CreditRole`](#creditrole) | enum | A contributor's responsibility for a work, expression or edition. |
 | [`CreditLevel`](#creditlevel) | enum | Which level a credit attaches to. Ordinal 0 is the role's usual level, so a guest sets this only when a credit departs from it. |
 | [`FetchedFileRole`](#fetchedfilerole) | enum | What one fetched file is to the edition it belongs to. |
+| [`ChapterKind`](#chapterkind) | enum | What a storefront's chapter markers mark (`PlainFetch.chapterKind`). |
 | [`CatalogSort`](#catalogsort) | enum | Catalog search ordering. |
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`PriceLookup`](#pricelookup) | enum | How a purchase-hint query names the title to price. |
@@ -1300,6 +1301,7 @@ pub struct PlainFetch {
     pub chapters: Vec<ChapterMarker>,
     pub pdf_url: Option<String>,
     pub refreshed_credentials: Option<Vec<u8>>,
+    pub chapter_kind: ChapterKind,
 }
 ```
 
@@ -1320,6 +1322,8 @@ guests decrypt before responding.
   during the fetch, as in `ScanPage.refreshedCredentials`. Empty when
   nothing changed.
   `None` when absent (wire zero value).
+- `chapter_kind`: What `chapters` marks. The host ranks literary chapters above track
+  boundaries when it decides an edition's chapters.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3615,6 +3619,43 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<FetchedFileRole>`, `Hash`, `PartialEq`, `Serialize`
+
+### ChapterKind
+
+```rust
+pub enum ChapterKind {
+    Unknown,
+    Chapters,
+    Tracks,
+}
+```
+
+What a storefront's chapter markers mark (`PlainFetch.chapterKind`).
+
+**Variants**
+
+- `Unknown`: The storefront does not say.
+- `Chapters`: Literary chapters: what a listener would call the book's chapters.
+- `Tracks`: Track or part boundaries: where the store cut its files, which need
+  not fall on a chapter.
+
+#### ChapterKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### ChapterKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<ChapterKind>`, `Hash`, `PartialEq`, `Serialize`
 
 ### CatalogSort
 

@@ -259,6 +259,7 @@ submodules unless you need module-level docs.
 - [`protocol::CatalogHit`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cataloghit)
 - [`protocol::CatalogHits`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cataloghits)
 - [`protocol::CatalogSort`](../../../internals/crates/bookclerk_plugin_abi/generated.md#catalogsort)
+- [`protocol::ChapterKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#chapterkind)
 - [`protocol::ChapterMarker`](../../../internals/crates/bookclerk_plugin_abi/generated.md#chaptermarker)
 - [`protocol::CliArg`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cliarg)
 - [`protocol::CliArgKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#cliargkind)

@@ -32,6 +32,16 @@ Union of `CATALOG_SORTS` wire names.
 
 ***
 
+### ChapterKind
+
+```ts
+type ChapterKind = typeof CHAPTER_KINDS[number];
+```
+
+Union of `CHAPTER_KINDS` wire names.
+
+***
+
 ### CliArgKind
 
 ```ts
@@ -335,6 +345,18 @@ const CATALOG_SORTS: readonly ["relevance", "popularity", "rating", "title", "au
 Catalog search ordering.
 
 Ordinal-ordered `CatalogSort` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### CHAPTER\_KINDS
+
+```ts
+const CHAPTER_KINDS: readonly ["unknown", "chapters", "tracks"];
+```
+
+What a storefront's chapter markers mark (`PlainFetch.chapterKind`).
+
+Ordinal-ordered `ChapterKind` wire names (index = Cap'n Proto ordinal).
 
 ***
 

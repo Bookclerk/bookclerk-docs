@@ -5811,37 +5811,31 @@ Schema:
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -5875,37 +5869,31 @@ Schema:
                 ],
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -7295,37 +7283,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -7359,37 +7341,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -8808,37 +8784,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -8872,37 +8842,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -9954,37 +9918,31 @@ Schema:
                                   "type": "array",
                                   "items": {
                                     "type": "object",
-                                    "description": "A chapter of a book.",
+                                    "description": "One chapter of a checked list.",
                                     "required": [
-                                      "id",
-                                      "start",
-                                      "end",
-                                      "title"
+                                      "title",
+                                      "start_ms",
+                                      "depth"
                                     ],
                                     "properties": {
-                                      "id": {
-                                        "type": "integer",
-                                        "format": "int64",
-                                        "description": "The chapter's place, from 0.",
-                                        "example": 1,
-                                        "minimum": 0
-                                      },
-                                      "start": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it starts, in seconds.",
-                                        "example": 0.0
-                                      },
-                                      "end": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it ends, in seconds.",
-                                        "example": 600.0
-                                      },
                                       "title": {
                                         "type": "string",
-                                        "description": "Its title.",
-                                        "example": "The First"
+                                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                        "example": "Chapter 1: The Boy Who Lived"
+                                      },
+                                      "start_ms": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                        "example": 33000,
+                                        "minimum": 0
+                                      },
+                                      "depth": {
+                                        "type": "integer",
+                                        "format": "int32",
+                                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                        "example": 0,
+                                        "minimum": 0
                                       }
                                     }
                                   },
@@ -10018,37 +9976,31 @@ Schema:
                             ],
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -11844,37 +11796,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -11908,37 +11854,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -13023,37 +12963,31 @@ Schema:
                                   "type": "array",
                                   "items": {
                                     "type": "object",
-                                    "description": "A chapter of a book.",
+                                    "description": "One chapter of a checked list.",
                                     "required": [
-                                      "id",
-                                      "start",
-                                      "end",
-                                      "title"
+                                      "title",
+                                      "start_ms",
+                                      "depth"
                                     ],
                                     "properties": {
-                                      "id": {
-                                        "type": "integer",
-                                        "format": "int64",
-                                        "description": "The chapter's place, from 0.",
-                                        "example": 1,
-                                        "minimum": 0
-                                      },
-                                      "start": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it starts, in seconds.",
-                                        "example": 0.0
-                                      },
-                                      "end": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it ends, in seconds.",
-                                        "example": 600.0
-                                      },
                                       "title": {
                                         "type": "string",
-                                        "description": "Its title.",
-                                        "example": "The First"
+                                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                        "example": "Chapter 1: The Boy Who Lived"
+                                      },
+                                      "start_ms": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                        "example": 33000,
+                                        "minimum": 0
+                                      },
+                                      "depth": {
+                                        "type": "integer",
+                                        "format": "int32",
+                                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                        "example": 0,
+                                        "minimum": 0
                                       }
                                     }
                                   },
@@ -13087,37 +13021,31 @@ Schema:
                             ],
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -14271,37 +14199,31 @@ Schema:
                                   "type": "array",
                                   "items": {
                                     "type": "object",
-                                    "description": "A chapter of a book.",
+                                    "description": "One chapter of a checked list.",
                                     "required": [
-                                      "id",
-                                      "start",
-                                      "end",
-                                      "title"
+                                      "title",
+                                      "start_ms",
+                                      "depth"
                                     ],
                                     "properties": {
-                                      "id": {
-                                        "type": "integer",
-                                        "format": "int64",
-                                        "description": "The chapter's place, from 0.",
-                                        "example": 1,
-                                        "minimum": 0
-                                      },
-                                      "start": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it starts, in seconds.",
-                                        "example": 0.0
-                                      },
-                                      "end": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it ends, in seconds.",
-                                        "example": 600.0
-                                      },
                                       "title": {
                                         "type": "string",
-                                        "description": "Its title.",
-                                        "example": "The First"
+                                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                        "example": "Chapter 1: The Boy Who Lived"
+                                      },
+                                      "start_ms": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                        "example": 33000,
+                                        "minimum": 0
+                                      },
+                                      "depth": {
+                                        "type": "integer",
+                                        "format": "int32",
+                                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                        "example": 0,
+                                        "minimum": 0
                                       }
                                     }
                                   },
@@ -14335,37 +14257,31 @@ Schema:
                             ],
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -15417,37 +15333,31 @@ Schema:
                                         "type": "array",
                                         "items": {
                                           "type": "object",
-                                          "description": "A chapter of a book.",
+                                          "description": "One chapter of a checked list.",
                                           "required": [
-                                            "id",
-                                            "start",
-                                            "end",
-                                            "title"
+                                            "title",
+                                            "start_ms",
+                                            "depth"
                                           ],
                                           "properties": {
-                                            "id": {
-                                              "type": "integer",
-                                              "format": "int64",
-                                              "description": "The chapter's place, from 0.",
-                                              "example": 1,
-                                              "minimum": 0
-                                            },
-                                            "start": {
-                                              "type": "number",
-                                              "format": "double",
-                                              "description": "Where it starts, in seconds.",
-                                              "example": 0.0
-                                            },
-                                            "end": {
-                                              "type": "number",
-                                              "format": "double",
-                                              "description": "Where it ends, in seconds.",
-                                              "example": 600.0
-                                            },
                                             "title": {
                                               "type": "string",
-                                              "description": "Its title.",
-                                              "example": "The First"
+                                              "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                              "example": "Chapter 1: The Boy Who Lived"
+                                            },
+                                            "start_ms": {
+                                              "type": "integer",
+                                              "format": "int64",
+                                              "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                              "example": 33000,
+                                              "minimum": 0
+                                            },
+                                            "depth": {
+                                              "type": "integer",
+                                              "format": "int32",
+                                              "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                              "example": 0,
+                                              "minimum": 0
                                             }
                                           }
                                         },
@@ -15481,37 +15391,31 @@ Schema:
                                   ],
                                   "items": {
                                     "type": "object",
-                                    "description": "A chapter of a book.",
+                                    "description": "One chapter of a checked list.",
                                     "required": [
-                                      "id",
-                                      "start",
-                                      "end",
-                                      "title"
+                                      "title",
+                                      "start_ms",
+                                      "depth"
                                     ],
                                     "properties": {
-                                      "id": {
-                                        "type": "integer",
-                                        "format": "int64",
-                                        "description": "The chapter's place, from 0.",
-                                        "example": 1,
-                                        "minimum": 0
-                                      },
-                                      "start": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it starts, in seconds.",
-                                        "example": 0.0
-                                      },
-                                      "end": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it ends, in seconds.",
-                                        "example": 600.0
-                                      },
                                       "title": {
                                         "type": "string",
-                                        "description": "Its title.",
-                                        "example": "The First"
+                                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                        "example": "Chapter 1: The Boy Who Lived"
+                                      },
+                                      "start_ms": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                        "example": 33000,
+                                        "minimum": 0
+                                      },
+                                      "depth": {
+                                        "type": "integer",
+                                        "format": "int32",
+                                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                        "example": 0,
+                                        "minimum": 0
                                       }
                                     }
                                   },
@@ -16929,37 +16833,31 @@ Schema:
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "description": "A chapter of a book.",
+                            "description": "One chapter of a checked list.",
                             "required": [
-                              "id",
-                              "start",
-                              "end",
-                              "title"
+                              "title",
+                              "start_ms",
+                              "depth"
                             ],
                             "properties": {
-                              "id": {
-                                "type": "integer",
-                                "format": "int64",
-                                "description": "The chapter's place, from 0.",
-                                "example": 1,
-                                "minimum": 0
-                              },
-                              "start": {
-                                "type": "number",
-                                "format": "double",
-                                "description": "Where it starts, in seconds.",
-                                "example": 0.0
-                              },
-                              "end": {
-                                "type": "number",
-                                "format": "double",
-                                "description": "Where it ends, in seconds.",
-                                "example": 600.0
-                              },
                               "title": {
                                 "type": "string",
-                                "description": "Its title.",
-                                "example": "The First"
+                                "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                "example": "Chapter 1: The Boy Who Lived"
+                              },
+                              "start_ms": {
+                                "type": "integer",
+                                "format": "int64",
+                                "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                "example": 33000,
+                                "minimum": 0
+                              },
+                              "depth": {
+                                "type": "integer",
+                                "format": "int32",
+                                "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                "example": 0,
+                                "minimum": 0
                               }
                             }
                           },
@@ -16993,37 +16891,31 @@ Schema:
                     ],
                     "items": {
                       "type": "object",
-                      "description": "A chapter of a book.",
+                      "description": "One chapter of a checked list.",
                       "required": [
-                        "id",
-                        "start",
-                        "end",
-                        "title"
+                        "title",
+                        "start_ms",
+                        "depth"
                       ],
                       "properties": {
-                        "id": {
-                          "type": "integer",
-                          "format": "int64",
-                          "description": "The chapter's place, from 0.",
-                          "example": 1,
-                          "minimum": 0
-                        },
-                        "start": {
-                          "type": "number",
-                          "format": "double",
-                          "description": "Where it starts, in seconds.",
-                          "example": 0.0
-                        },
-                        "end": {
-                          "type": "number",
-                          "format": "double",
-                          "description": "Where it ends, in seconds.",
-                          "example": 600.0
-                        },
                         "title": {
                           "type": "string",
-                          "description": "Its title.",
-                          "example": "The First"
+                          "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                          "example": "Chapter 1: The Boy Who Lived"
+                        },
+                        "start_ms": {
+                          "type": "integer",
+                          "format": "int64",
+                          "description": "Start, in milliseconds from the start of the edition's timeline.",
+                          "example": 33000,
+                          "minimum": 0
+                        },
+                        "depth": {
+                          "type": "integer",
+                          "format": "int32",
+                          "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                          "example": 0,
+                          "minimum": 0
                         }
                       }
                     },
@@ -18174,37 +18066,31 @@ Schema:
                                 "type": "array",
                                 "items": {
                                   "type": "object",
-                                  "description": "A chapter of a book.",
+                                  "description": "One chapter of a checked list.",
                                   "required": [
-                                    "id",
-                                    "start",
-                                    "end",
-                                    "title"
+                                    "title",
+                                    "start_ms",
+                                    "depth"
                                   ],
                                   "properties": {
-                                    "id": {
-                                      "type": "integer",
-                                      "format": "int64",
-                                      "description": "The chapter's place, from 0.",
-                                      "example": 1,
-                                      "minimum": 0
-                                    },
-                                    "start": {
-                                      "type": "number",
-                                      "format": "double",
-                                      "description": "Where it starts, in seconds.",
-                                      "example": 0.0
-                                    },
-                                    "end": {
-                                      "type": "number",
-                                      "format": "double",
-                                      "description": "Where it ends, in seconds.",
-                                      "example": 600.0
-                                    },
                                     "title": {
                                       "type": "string",
-                                      "description": "Its title.",
-                                      "example": "The First"
+                                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                      "example": "Chapter 1: The Boy Who Lived"
+                                    },
+                                    "start_ms": {
+                                      "type": "integer",
+                                      "format": "int64",
+                                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                      "example": 33000,
+                                      "minimum": 0
+                                    },
+                                    "depth": {
+                                      "type": "integer",
+                                      "format": "int32",
+                                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                      "example": 0,
+                                      "minimum": 0
                                     }
                                   }
                                 },
@@ -18238,37 +18124,31 @@ Schema:
                           ],
                           "items": {
                             "type": "object",
-                            "description": "A chapter of a book.",
+                            "description": "One chapter of a checked list.",
                             "required": [
-                              "id",
-                              "start",
-                              "end",
-                              "title"
+                              "title",
+                              "start_ms",
+                              "depth"
                             ],
                             "properties": {
-                              "id": {
-                                "type": "integer",
-                                "format": "int64",
-                                "description": "The chapter's place, from 0.",
-                                "example": 1,
-                                "minimum": 0
-                              },
-                              "start": {
-                                "type": "number",
-                                "format": "double",
-                                "description": "Where it starts, in seconds.",
-                                "example": 0.0
-                              },
-                              "end": {
-                                "type": "number",
-                                "format": "double",
-                                "description": "Where it ends, in seconds.",
-                                "example": 600.0
-                              },
                               "title": {
                                 "type": "string",
-                                "description": "Its title.",
-                                "example": "The First"
+                                "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                "example": "Chapter 1: The Boy Who Lived"
+                              },
+                              "start_ms": {
+                                "type": "integer",
+                                "format": "int64",
+                                "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                "example": 33000,
+                                "minimum": 0
+                              },
+                              "depth": {
+                                "type": "integer",
+                                "format": "int32",
+                                "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                "example": 0,
+                                "minimum": 0
                               }
                             }
                           },
@@ -19339,37 +19219,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -19403,37 +19277,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -20546,37 +20414,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -20610,37 +20472,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -21692,37 +21548,31 @@ Schema:
                                   "type": "array",
                                   "items": {
                                     "type": "object",
-                                    "description": "A chapter of a book.",
+                                    "description": "One chapter of a checked list.",
                                     "required": [
-                                      "id",
-                                      "start",
-                                      "end",
-                                      "title"
+                                      "title",
+                                      "start_ms",
+                                      "depth"
                                     ],
                                     "properties": {
-                                      "id": {
-                                        "type": "integer",
-                                        "format": "int64",
-                                        "description": "The chapter's place, from 0.",
-                                        "example": 1,
-                                        "minimum": 0
-                                      },
-                                      "start": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it starts, in seconds.",
-                                        "example": 0.0
-                                      },
-                                      "end": {
-                                        "type": "number",
-                                        "format": "double",
-                                        "description": "Where it ends, in seconds.",
-                                        "example": 600.0
-                                      },
                                       "title": {
                                         "type": "string",
-                                        "description": "Its title.",
-                                        "example": "The First"
+                                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                        "example": "Chapter 1: The Boy Who Lived"
+                                      },
+                                      "start_ms": {
+                                        "type": "integer",
+                                        "format": "int64",
+                                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                        "example": 33000,
+                                        "minimum": 0
+                                      },
+                                      "depth": {
+                                        "type": "integer",
+                                        "format": "int32",
+                                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                        "example": 0,
+                                        "minimum": 0
                                       }
                                     }
                                   },
@@ -21756,37 +21606,31 @@ Schema:
                             ],
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -23659,37 +23503,31 @@ Schema:
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -23723,37 +23561,31 @@ Schema:
                 ],
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -25196,37 +25028,31 @@ Schema:
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -25260,37 +25086,31 @@ Schema:
                 ],
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -26342,37 +26162,31 @@ Schema:
                             "type": "array",
                             "items": {
                               "type": "object",
-                              "description": "A chapter of a book.",
+                              "description": "One chapter of a checked list.",
                               "required": [
-                                "id",
-                                "start",
-                                "end",
-                                "title"
+                                "title",
+                                "start_ms",
+                                "depth"
                               ],
                               "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "format": "int64",
-                                  "description": "The chapter's place, from 0.",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "start": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it starts, in seconds.",
-                                  "example": 0.0
-                                },
-                                "end": {
-                                  "type": "number",
-                                  "format": "double",
-                                  "description": "Where it ends, in seconds.",
-                                  "example": 600.0
-                                },
                                 "title": {
                                   "type": "string",
-                                  "description": "Its title.",
-                                  "example": "The First"
+                                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                  "example": "Chapter 1: The Boy Who Lived"
+                                },
+                                "start_ms": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                  "example": 33000,
+                                  "minimum": 0
+                                },
+                                "depth": {
+                                  "type": "integer",
+                                  "format": "int32",
+                                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                  "example": 0,
+                                  "minimum": 0
                                 }
                               }
                             },
@@ -26406,37 +26220,31 @@ Schema:
                       ],
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -27091,10 +26899,9 @@ Status `200`: The item.
     ],
     "chapters": [
       {
-        "id": 1,
-        "start": 0.0,
-        "end": 600.0,
-        "title": "The First"
+        "title": "Chapter 1: The Boy Who Lived",
+        "start_ms": 33000,
+        "depth": 0
       }
     ],
     "tracks": [
@@ -27796,37 +27603,31 @@ Schema:
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -27860,37 +27661,31 @@ Schema:
           ],
           "items": {
             "type": "object",
-            "description": "A chapter of a book.",
+            "description": "One chapter of a checked list.",
             "required": [
-              "id",
-              "start",
-              "end",
-              "title"
+              "title",
+              "start_ms",
+              "depth"
             ],
             "properties": {
-              "id": {
-                "type": "integer",
-                "format": "int64",
-                "description": "The chapter's place, from 0.",
-                "example": 1,
-                "minimum": 0
-              },
-              "start": {
-                "type": "number",
-                "format": "double",
-                "description": "Where it starts, in seconds.",
-                "example": 0.0
-              },
-              "end": {
-                "type": "number",
-                "format": "double",
-                "description": "Where it ends, in seconds.",
-                "example": 600.0
-              },
               "title": {
                 "type": "string",
-                "description": "Its title.",
-                "example": "The First"
+                "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                "example": "Chapter 1: The Boy Who Lived"
+              },
+              "start_ms": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Start, in milliseconds from the start of the edition's timeline.",
+                "example": 33000,
+                "minimum": 0
+              },
+              "depth": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                "example": 0,
+                "minimum": 0
               }
             }
           },
@@ -29166,37 +28961,31 @@ Schema:
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -29230,37 +29019,31 @@ Schema:
                 ],
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -30020,10 +29803,9 @@ Status `200`: The session, its tracks and where to start.
   },
   "chapters": [
     {
-      "id": 1,
-      "start": 0.0,
-      "end": 600.0,
-      "title": "The First"
+      "title": "Chapter 1: The Boy Who Lived",
+      "start_ms": 33000,
+      "depth": 0
     }
   ],
   "displayTitle": "The First",
@@ -30146,10 +29928,9 @@ Status `200`: The session, its tracks and where to start.
       ],
       "chapters": [
         {
-          "id": 1,
-          "start": 0.0,
-          "end": 600.0,
-          "title": "The First"
+          "title": "Chapter 1: The Boy Who Lived",
+          "start_ms": 33000,
+          "depth": 0
         }
       ],
       "tracks": [
@@ -30488,37 +30269,31 @@ Schema:
       "type": "array",
       "items": {
         "type": "object",
-        "description": "A chapter of a book.",
+        "description": "One chapter of a checked list.",
         "required": [
-          "id",
-          "start",
-          "end",
-          "title"
+          "title",
+          "start_ms",
+          "depth"
         ],
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "description": "The chapter's place, from 0.",
-            "example": 1,
-            "minimum": 0
-          },
-          "start": {
-            "type": "number",
-            "format": "double",
-            "description": "Where it starts, in seconds.",
-            "example": 0.0
-          },
-          "end": {
-            "type": "number",
-            "format": "double",
-            "description": "Where it ends, in seconds.",
-            "example": 600.0
-          },
           "title": {
             "type": "string",
-            "description": "Its title.",
-            "example": "The First"
+            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+            "example": "Chapter 1: The Boy Who Lived"
+          },
+          "start_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start, in milliseconds from the start of the edition's timeline.",
+            "example": 33000,
+            "minimum": 0
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+            "example": 0,
+            "minimum": 0
           }
         }
       },
@@ -31397,37 +31172,31 @@ Schema:
                         "type": "array",
                         "items": {
                           "type": "object",
-                          "description": "A chapter of a book.",
+                          "description": "One chapter of a checked list.",
                           "required": [
-                            "id",
-                            "start",
-                            "end",
-                            "title"
+                            "title",
+                            "start_ms",
+                            "depth"
                           ],
                           "properties": {
-                            "id": {
-                              "type": "integer",
-                              "format": "int64",
-                              "description": "The chapter's place, from 0.",
-                              "example": 1,
-                              "minimum": 0
-                            },
-                            "start": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it starts, in seconds.",
-                              "example": 0.0
-                            },
-                            "end": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it ends, in seconds.",
-                              "example": 600.0
-                            },
                             "title": {
                               "type": "string",
-                              "description": "Its title.",
-                              "example": "The First"
+                              "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                              "example": "Chapter 1: The Boy Who Lived"
+                            },
+                            "start_ms": {
+                              "type": "integer",
+                              "format": "int64",
+                              "description": "Start, in milliseconds from the start of the edition's timeline.",
+                              "example": 33000,
+                              "minimum": 0
+                            },
+                            "depth": {
+                              "type": "integer",
+                              "format": "int32",
+                              "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                              "example": 0,
+                              "minimum": 0
                             }
                           }
                         },
@@ -31461,37 +31230,31 @@ Schema:
                   ],
                   "items": {
                     "type": "object",
-                    "description": "A chapter of a book.",
+                    "description": "One chapter of a checked list.",
                     "required": [
-                      "id",
-                      "start",
-                      "end",
-                      "title"
+                      "title",
+                      "start_ms",
+                      "depth"
                     ],
                     "properties": {
-                      "id": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "The chapter's place, from 0.",
-                        "example": 1,
-                        "minimum": 0
-                      },
-                      "start": {
-                        "type": "number",
-                        "format": "double",
-                        "description": "Where it starts, in seconds.",
-                        "example": 0.0
-                      },
-                      "end": {
-                        "type": "number",
-                        "format": "double",
-                        "description": "Where it ends, in seconds.",
-                        "example": 600.0
-                      },
                       "title": {
                         "type": "string",
-                        "description": "Its title.",
-                        "example": "The First"
+                        "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                        "example": "Chapter 1: The Boy Who Lived"
+                      },
+                      "start_ms": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Start, in milliseconds from the start of the edition's timeline.",
+                        "example": 33000,
+                        "minimum": 0
+                      },
+                      "depth": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                        "example": 0,
+                        "minimum": 0
                       }
                     }
                   },
@@ -34638,37 +34401,31 @@ Schema:
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "A chapter of a book.",
+                        "description": "One chapter of a checked list.",
                         "required": [
-                          "id",
-                          "start",
-                          "end",
-                          "title"
+                          "title",
+                          "start_ms",
+                          "depth"
                         ],
                         "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "The chapter's place, from 0.",
-                            "example": 1,
-                            "minimum": 0
-                          },
-                          "start": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it starts, in seconds.",
-                            "example": 0.0
-                          },
-                          "end": {
-                            "type": "number",
-                            "format": "double",
-                            "description": "Where it ends, in seconds.",
-                            "example": 600.0
-                          },
                           "title": {
                             "type": "string",
-                            "description": "Its title.",
-                            "example": "The First"
+                            "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                            "example": "Chapter 1: The Boy Who Lived"
+                          },
+                          "start_ms": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Start, in milliseconds from the start of the edition's timeline.",
+                            "example": 33000,
+                            "minimum": 0
+                          },
+                          "depth": {
+                            "type": "integer",
+                            "format": "int32",
+                            "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                            "example": 0,
+                            "minimum": 0
                           }
                         }
                       },
@@ -34702,37 +34459,31 @@ Schema:
                 ],
                 "items": {
                   "type": "object",
-                  "description": "A chapter of a book.",
+                  "description": "One chapter of a checked list.",
                   "required": [
-                    "id",
-                    "start",
-                    "end",
-                    "title"
+                    "title",
+                    "start_ms",
+                    "depth"
                   ],
                   "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The chapter's place, from 0.",
-                      "example": 1,
-                      "minimum": 0
-                    },
-                    "start": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it starts, in seconds.",
-                      "example": 0.0
-                    },
-                    "end": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "Where it ends, in seconds.",
-                      "example": 600.0
-                    },
                     "title": {
                       "type": "string",
-                      "description": "Its title.",
-                      "example": "The First"
+                      "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                      "example": "Chapter 1: The Boy Who Lived"
+                    },
+                    "start_ms": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Start, in milliseconds from the start of the edition's timeline.",
+                      "example": 33000,
+                      "minimum": 0
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                      "example": 0,
+                      "minimum": 0
                     }
                   }
                 },
@@ -35284,10 +35035,9 @@ Status `200`: A page of sessions.
       },
       "chapters": [
         {
-          "id": 1,
-          "start": 0.0,
-          "end": 600.0,
-          "title": "The First"
+          "title": "Chapter 1: The Boy Who Lived",
+          "start_ms": 33000,
+          "depth": 0
         }
       ],
       "displayTitle": "The First",
@@ -35710,37 +35460,31 @@ Schema:
             "type": "array",
             "items": {
               "type": "object",
-              "description": "A chapter of a book.",
+              "description": "One chapter of a checked list.",
               "required": [
-                "id",
-                "start",
-                "end",
-                "title"
+                "title",
+                "start_ms",
+                "depth"
               ],
               "properties": {
-                "id": {
-                  "type": "integer",
-                  "format": "int64",
-                  "description": "The chapter's place, from 0.",
-                  "example": 1,
-                  "minimum": 0
-                },
-                "start": {
-                  "type": "number",
-                  "format": "double",
-                  "description": "Where it starts, in seconds.",
-                  "example": 0.0
-                },
-                "end": {
-                  "type": "number",
-                  "format": "double",
-                  "description": "Where it ends, in seconds.",
-                  "example": 600.0
-                },
                 "title": {
                   "type": "string",
-                  "description": "Its title.",
-                  "example": "The First"
+                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                  "example": "Chapter 1: The Boy Who Lived"
+                },
+                "start_ms": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                  "example": 33000,
+                  "minimum": 0
+                },
+                "depth": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                  "example": 0,
+                  "minimum": 0
                 }
               }
             },
@@ -36619,37 +36363,31 @@ Schema:
                               "type": "array",
                               "items": {
                                 "type": "object",
-                                "description": "A chapter of a book.",
+                                "description": "One chapter of a checked list.",
                                 "required": [
-                                  "id",
-                                  "start",
-                                  "end",
-                                  "title"
+                                  "title",
+                                  "start_ms",
+                                  "depth"
                                 ],
                                 "properties": {
-                                  "id": {
-                                    "type": "integer",
-                                    "format": "int64",
-                                    "description": "The chapter's place, from 0.",
-                                    "example": 1,
-                                    "minimum": 0
-                                  },
-                                  "start": {
-                                    "type": "number",
-                                    "format": "double",
-                                    "description": "Where it starts, in seconds.",
-                                    "example": 0.0
-                                  },
-                                  "end": {
-                                    "type": "number",
-                                    "format": "double",
-                                    "description": "Where it ends, in seconds.",
-                                    "example": 600.0
-                                  },
                                   "title": {
                                     "type": "string",
-                                    "description": "Its title.",
-                                    "example": "The First"
+                                    "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                    "example": "Chapter 1: The Boy Who Lived"
+                                  },
+                                  "start_ms": {
+                                    "type": "integer",
+                                    "format": "int64",
+                                    "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                    "example": 33000,
+                                    "minimum": 0
+                                  },
+                                  "depth": {
+                                    "type": "integer",
+                                    "format": "int32",
+                                    "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                    "example": 0,
+                                    "minimum": 0
                                   }
                                 }
                               },
@@ -36683,37 +36421,31 @@ Schema:
                         ],
                         "items": {
                           "type": "object",
-                          "description": "A chapter of a book.",
+                          "description": "One chapter of a checked list.",
                           "required": [
-                            "id",
-                            "start",
-                            "end",
-                            "title"
+                            "title",
+                            "start_ms",
+                            "depth"
                           ],
                           "properties": {
-                            "id": {
-                              "type": "integer",
-                              "format": "int64",
-                              "description": "The chapter's place, from 0.",
-                              "example": 1,
-                              "minimum": 0
-                            },
-                            "start": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it starts, in seconds.",
-                              "example": 0.0
-                            },
-                            "end": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it ends, in seconds.",
-                              "example": 600.0
-                            },
                             "title": {
                               "type": "string",
-                              "description": "Its title.",
-                              "example": "The First"
+                              "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                              "example": "Chapter 1: The Boy Who Lived"
+                            },
+                            "start_ms": {
+                              "type": "integer",
+                              "format": "int64",
+                              "description": "Start, in milliseconds from the start of the edition's timeline.",
+                              "example": 33000,
+                              "minimum": 0
+                            },
+                            "depth": {
+                              "type": "integer",
+                              "format": "int32",
+                              "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                              "example": 0,
+                              "minimum": 0
                             }
                           }
                         },
@@ -37282,10 +37014,9 @@ Status `200`: Listening totals over the patron's latest 1000 sessions.
       },
       "chapters": [
         {
-          "id": 1,
-          "start": 0.0,
-          "end": 600.0,
-          "title": "The First"
+          "title": "Chapter 1: The Boy Who Lived",
+          "start_ms": 33000,
+          "depth": 0
         }
       ],
       "displayTitle": "The First",
@@ -37959,37 +37690,31 @@ Schema:
             "type": "array",
             "items": {
               "type": "object",
-              "description": "A chapter of a book.",
+              "description": "One chapter of a checked list.",
               "required": [
-                "id",
-                "start",
-                "end",
-                "title"
+                "title",
+                "start_ms",
+                "depth"
               ],
               "properties": {
-                "id": {
-                  "type": "integer",
-                  "format": "int64",
-                  "description": "The chapter's place, from 0.",
-                  "example": 1,
-                  "minimum": 0
-                },
-                "start": {
-                  "type": "number",
-                  "format": "double",
-                  "description": "Where it starts, in seconds.",
-                  "example": 0.0
-                },
-                "end": {
-                  "type": "number",
-                  "format": "double",
-                  "description": "Where it ends, in seconds.",
-                  "example": 600.0
-                },
                 "title": {
                   "type": "string",
-                  "description": "Its title.",
-                  "example": "The First"
+                  "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                  "example": "Chapter 1: The Boy Who Lived"
+                },
+                "start_ms": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Start, in milliseconds from the start of the edition's timeline.",
+                  "example": 33000,
+                  "minimum": 0
+                },
+                "depth": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                  "example": 0,
+                  "minimum": 0
                 }
               }
             },
@@ -38868,37 +38593,31 @@ Schema:
                               "type": "array",
                               "items": {
                                 "type": "object",
-                                "description": "A chapter of a book.",
+                                "description": "One chapter of a checked list.",
                                 "required": [
-                                  "id",
-                                  "start",
-                                  "end",
-                                  "title"
+                                  "title",
+                                  "start_ms",
+                                  "depth"
                                 ],
                                 "properties": {
-                                  "id": {
-                                    "type": "integer",
-                                    "format": "int64",
-                                    "description": "The chapter's place, from 0.",
-                                    "example": 1,
-                                    "minimum": 0
-                                  },
-                                  "start": {
-                                    "type": "number",
-                                    "format": "double",
-                                    "description": "Where it starts, in seconds.",
-                                    "example": 0.0
-                                  },
-                                  "end": {
-                                    "type": "number",
-                                    "format": "double",
-                                    "description": "Where it ends, in seconds.",
-                                    "example": 600.0
-                                  },
                                   "title": {
                                     "type": "string",
-                                    "description": "Its title.",
-                                    "example": "The First"
+                                    "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                                    "example": "Chapter 1: The Boy Who Lived"
+                                  },
+                                  "start_ms": {
+                                    "type": "integer",
+                                    "format": "int64",
+                                    "description": "Start, in milliseconds from the start of the edition's timeline.",
+                                    "example": 33000,
+                                    "minimum": 0
+                                  },
+                                  "depth": {
+                                    "type": "integer",
+                                    "format": "int32",
+                                    "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                                    "example": 0,
+                                    "minimum": 0
                                   }
                                 }
                               },
@@ -38932,37 +38651,31 @@ Schema:
                         ],
                         "items": {
                           "type": "object",
-                          "description": "A chapter of a book.",
+                          "description": "One chapter of a checked list.",
                           "required": [
-                            "id",
-                            "start",
-                            "end",
-                            "title"
+                            "title",
+                            "start_ms",
+                            "depth"
                           ],
                           "properties": {
-                            "id": {
-                              "type": "integer",
-                              "format": "int64",
-                              "description": "The chapter's place, from 0.",
-                              "example": 1,
-                              "minimum": 0
-                            },
-                            "start": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it starts, in seconds.",
-                              "example": 0.0
-                            },
-                            "end": {
-                              "type": "number",
-                              "format": "double",
-                              "description": "Where it ends, in seconds.",
-                              "example": 600.0
-                            },
                             "title": {
                               "type": "string",
-                              "description": "Its title.",
-                              "example": "The First"
+                              "description": "Chapter title; never empty, at most 512 bytes, no control\ncharacters.",
+                              "example": "Chapter 1: The Boy Who Lived"
+                            },
+                            "start_ms": {
+                              "type": "integer",
+                              "format": "int64",
+                              "description": "Start, in milliseconds from the start of the edition's timeline.",
+                              "example": 33000,
+                              "minimum": 0
+                            },
+                            "depth": {
+                              "type": "integer",
+                              "format": "int32",
+                              "description": "Nesting depth; 0 for a top-level chapter, at most 7. A chapter at\ndepth n + 1 is nested under the nearest earlier chapter at depth n.",
+                              "example": 0,
+                              "minimum": 0
                             }
                           }
                         },

@@ -40,6 +40,7 @@ Product narrative: `docs/plugins/README.md`. Style: `docs/contributing/code-docu
 - [`bookclerk_storefront::CatalogSearchOpts`](../bookclerk_storefront/README.md#catalogsearchopts)
 - [`bookclerk_storefront::CatalogSearchSort`](../bookclerk_storefront/README.md#catalogsearchsort)
 - [`bookclerk_storefront::CatalogSortDir`](../bookclerk_storefront/README.md#catalogsortdir)
+- [`bookclerk_storefront::ChapterKind`](../bookclerk_plugin_abi/generated.md#chapterkind)
 - [`bookclerk_storefront::ConfigOptionValue`](../bookclerk_storefront/README.md#configoptionvalue)
 - [`bookclerk_storefront::ExpandSeed`](../bookclerk_storefront/README.md#expandseed)
 - [`bookclerk_storefront::ImportCredentialsOptions`](../bookclerk_storefront/README.md#importcredentialsoptions)

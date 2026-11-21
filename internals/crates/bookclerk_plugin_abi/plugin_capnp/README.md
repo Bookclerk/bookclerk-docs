@@ -20,6 +20,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`CreditRole`](#creditrole) | enum |  |
 | [`CreditLevel`](#creditlevel) | enum |  |
 | [`FetchedFileRole`](#fetchedfilerole) | enum |  |
+| [`ChapterKind`](#chapterkind) | enum |  |
 | [`CatalogSort`](#catalogsort) | enum |  |
 | [`CatalogField`](#catalogfield) | enum |  |
 | [`PriceLookup`](#pricelookup) | enum |  |
@@ -602,6 +603,18 @@ pub enum FetchedFileRole {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<FetchedFileRole>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### ChapterKind
+
+```rust
+pub enum ChapterKind {
+    Unknown = 0,
+    Chapters = 1,
+    Tracks = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<ChapterKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### CatalogSort
 

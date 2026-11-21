@@ -91,6 +91,12 @@ pub fn get_refreshed_credentials(self) -> Result<Reader<'a>>
 pub fn has_refreshed_credentials(&self) -> bool
 ```
 
+#### Reader::get_chapter_kind
+
+```rust
+pub fn get_chapter_kind(self) -> Result<ChapterKind, NotInSchema>
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -231,6 +237,18 @@ pub fn init_refreshed_credentials(self, size: u32) -> Builder<'a>
 
 ```rust
 pub fn has_refreshed_credentials(&self) -> bool
+```
+
+#### Builder::get_chapter_kind
+
+```rust
+pub fn get_chapter_kind(self) -> Result<ChapterKind, NotInSchema>
+```
+
+#### Builder::set_chapter_kind
+
+```rust
+pub fn set_chapter_kind(&mut self, value: ChapterKind)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

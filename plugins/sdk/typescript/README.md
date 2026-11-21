@@ -1819,6 +1819,12 @@ Re-exports [ChangesRequest](plugin.md#changesrequest)
 
 ***
 
+### ChapterKind
+
+Re-exports [ChapterKind](abi.md#chapterkind)
+
+***
+
 ### ChapterMarker
 
 Re-exports [ChapterMarker](generated.md#chaptermarker)
