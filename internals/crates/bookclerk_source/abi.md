@@ -9,8 +9,8 @@ library rows a scan record becomes ([`NewBook`](../bookclerk_library/README.md#n
 
 | Item | Kind | Summary |
 | --- | --- | --- |
-| [`scanned_title`](#scanned_title) | function | The title a scan record describes: its flat row and its listing. |
-| [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto the flat `NewBook` row the library stores until it keeps works, expressions and editions, forcing `source` to the plugin id so a guest can never claim another storefront's rows. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
+| [`scanned_title`](#scanned_title) | function | The title a scan record describes: its scan fields and its listing. |
+| [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto the `NewBook` fields the library records for a title (its account, store text and, when the structured listing is refused, the listing they describe), forcing `source` to the plugin id so a guest can never claim another storefront's titles. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
 | [`offered_stream`](#offered_stream) | function | The stream a store's quality offer names, as the upgrade rule compares it (`bookclerk_library::quality::is_upgrade`). |
 
 ## Re-exports
@@ -25,10 +25,10 @@ library rows a scan record becomes ([`NewBook`](../bookclerk_library/README.md#n
 pub fn scanned_title(plugin_id: &str, book: ScanBook) -> Option<ScannedTitle>
 ```
 
-The title a scan record describes: its flat row and its listing.
+The title a scan record describes: its scan fields and its listing.
 
 The listing is `None` when the record fails listing validation (the
-flat row is still stored and its own listing derived from it); see
+library then derives the title's listing from its scan fields); see
 [`scan_book_to_new`](#scan_book_to_new) for when no title is returned at all.
 
 #### Arguments
@@ -42,9 +42,10 @@ flat row is still stored and its own listing derived from it); see
 pub fn scan_book_to_new(plugin_id: &str, book: ScanBook) -> Option<NewBook>
 ```
 
-Maps a guest scan row onto the flat [`NewBook`](../bookclerk_library/README.md#newbook) row the library stores
-until it keeps works, expressions and editions, forcing `source` to the
-plugin id so a guest can never claim another storefront's rows. The
+Maps a guest scan row onto the [`NewBook`](../bookclerk_library/README.md#newbook) fields the library records
+for a title (its account, store text and, when the structured listing
+is refused, the listing they describe), forcing `source` to the plugin
+id so a guest can never claim another storefront's titles. The
 owning `plugin_key` is stamped by the [`bookclerk_library::SourceScope`](../bookclerk_library/scope.md#sourcescope)
 on write.
 
@@ -61,10 +62,9 @@ unscoped one, before an ASIN from another marketplace.
 #### Returns
 
 `None` for a record with a blank product id, which would overwrite
-another blank row, for a record that leaves a kind unspecified (the
-host refuses those), and for an ebook or print edition: the flat table has
-no way to keep those out of acquire, so they are not stored until the
-library keeps editions.
+another blank title, for a record that leaves a kind unspecified (the
+host refuses those), and for an ebook or print edition, which the
+library does not store yet.
 
 ### offered_stream
 

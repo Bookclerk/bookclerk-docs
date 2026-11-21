@@ -614,7 +614,7 @@ See `docs/adr/control-plane.md`.
 | [`commit_upload`](#commit_upload) | function | Commits an upload whose every file was received. |
 | [`extend_job_uploads`](#extend_job_uploads) | function | Extends the token of every open upload `node_id` holds under the job's lease generation `generation`, after that lease was renewed; answers how many were extended. |
 | [`grant_upload`](#grant_upload) | function | Opens an upload of one title of the acquire job `node_id` holds at `generation`, to be received by `receiving_node_id`. |
-| [`job_titles`](#job_titles) | function | The titles the acquire `job` run by `node_id` covers, read from the account holdings as a local acquire reads them: of the job's plugins (`job_plugin_keys`), of the accounts its account selector names (`job_accounts`, so a job naming its account by label or in another case covers that account's titles) and its title when it names one (`LibraryStore::acquire_titles_named`, matched as the executor matches it), and, for a Host trusted only with its owner's accounts, one of that user's. Only titles with a flat `books` row count while `books` exists (book model step 6), as for a local acquire. `None` when the node is trusted with nothing. |
+| [`job_titles`](#job_titles) | function | The titles the acquire `job` run by `node_id` covers, read from the account holdings as a local acquire reads them: of the job's plugins (`job_plugin_keys`), of the accounts its account selector names (`job_accounts`, so a job naming its account by label or in another case covers that account's titles) and its title when it names one (`LibraryStore::acquire_titles_named`, matched as the executor matches it), and, for a Host trusted only with its owner's accounts, one of that user's. `None` when the node is trusted with nothing. |
 | [`load_upload`](#load_upload) | function | Loads one upload by id. |
 | [`record_upload_file`](#record_upload_file) | function | Records that file `index` reached every destination and extends the upload's token. Answers false when the upload is no longer open (it was aborted meanwhile: the caller deletes the copies it just wrote). |
 | [`upload_fence_live`](#upload_fence_live) | function | True while the upload's fence is the job's live lease for its node and the node is still trusted with the job. |
@@ -3803,8 +3803,7 @@ One title the library committed, as the branch kept it.
 **Fields**
 
 - `library_id`: The library this branch acquired the title for.
-- `book`: The title as the library sent it (its `uuid`, when set, is the
-  library's and is not reused here).
+- `book`: The title as the library sent it.
 - `primary_key`: Storage key of the primary audio file, the same on every
   destination of the copy.
 - `pdf_key`: Storage key of the companion PDF, when one was acquired.
@@ -7123,7 +7122,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
 ```rust
 pub enum LinkImportOutcome {
-    Imported(Box<BookRecord>),
+    Imported(Box<AcquireTitle>),
     AccountNotHere,
     NoPerson,
     KeyHeldElsewhere,
@@ -7134,14 +7133,14 @@ What [`import_link_title`](#import_link_title) did.
 
 **Variants**
 
-- `Imported`: The title is in this library now, as this row.
+- `Imported`: The title is in this library now, as this account's title.
 - `AccountNotHere`: The store account that bought it is not connected here to the
   branch's person; nothing was written.
 - `NoPerson`: This install has no single person a branch's books belong to (no
   active Owner, or several); nothing was written.
 - `KeyHeldElsewhere`: Another live edition here holds the copy's primary file key, so the
-  copy is not this title's: its row stays (not acquired) and nothing
-  else was recorded.
+  copy is not this title's: its holding stays (not acquired) and
+  nothing else was recorded.
 
 Implements: `Clone`, `Debug`
 
@@ -7213,7 +7212,8 @@ pub fn stamp_column(self) -> Option<(&'static str, &'static str)>
 The table behind the topic and its change-stamp column, which every
 write to the table sets to the time of the write.
 
-`None` for `library_links`, which has no change stamp, for
+`None` for `library`, whose writes span the library model's tables,
+for `library_links`, which has no change stamp, for
 `configuration_changes`, an append-only log whose stamp is not
 indexed, and for `playback`, which has two tables and moves only
 on some of their writes; their writes bump on a probe or outright
@@ -15219,9 +15219,7 @@ account holdings as a local acquire reads them: of the job's plugins
 case covers that account's titles) and its title when it names one
 ([`LibraryStore::acquire_titles_named`](README.md#librarystoreacquire_titles_named), matched as the executor
 matches it), and, for a Host trusted only with its owner's accounts,
-one of that user's. Only titles with a flat `books` row count while
-`books` exists (book model step 6), as for a local acquire. `None` when
-the node is trusted with nothing.
+one of that user's. `None` when the node is trusted with nothing.
 
 Without a title the holdings are read in keyset pages
 ([`LibraryStore::acquire_titles_page`](README.md#librarystoreacquire_titles_page)), so no read loads the whole

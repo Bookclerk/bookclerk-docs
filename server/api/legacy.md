@@ -18,11 +18,11 @@ Deprecated alias of `GET /api/status`.
 
 - `200` — Library counts and daemon state. Body: [`StatusResponse`](schemas.md#statusresponse) (`application/json`)
   - `accounts` *integer*, **required** — Count of configured store accounts. At least 0.
-  - `books` *integer*, **required** — Total title rows in the library. At least 0.
-  - `acquired` *integer (int64)*, **required** — Titles whose `acquire_status` is `acquired`.
-  - `pending` *integer (int64)*, **required** — Titles still needing acquire (`not_acquired`).
-  - `error` *integer (int64)*, **required** — Titles stuck in `error` after a failed acquire.
-  - `in_progress` *integer (int64)*, **required** — Titles currently `queued` or `downloading`.
+  - `books` *integer*, **required** — Held works in the library (the works page index). At least 0.
+  - `acquired` *integer (int64)*, **required** — Held works whose furthest acquire state is `acquired`.
+  - `pending` *integer (int64)*, **required** — Held works still needing acquire (`not_acquired`).
+  - `error` *integer (int64)*, **required** — Held works stuck in `error` after a failed acquire.
+  - `in_progress` *integer (int64)*, **required** — Held works currently `queued` or `downloading`.
   - `listen` *string*, **required** — Comma-joined `daemon.listen` addresses from live config.
   - `storage_backend` *string*, **required** — Comma-joined enabled destination plugin ids, or `none`.
   - `auth_enabled` *boolean*, **required** — Whether the live auth middleware requires operator credentials.
@@ -141,32 +141,32 @@ Schema:
     },
     "books": {
       "type": "integer",
-      "description": "Total title rows in the library.",
+      "description": "Held works in the library (the works page index).",
       "example": 412,
       "minimum": 0
     },
     "acquired": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles whose `acquire_status` is `acquired`.",
+      "description": "Held works whose furthest acquire state is `acquired`.",
       "example": 380
     },
     "pending": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles still needing acquire (`not_acquired`).",
+      "description": "Held works still needing acquire (`not_acquired`).",
       "example": 27
     },
     "error": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles stuck in `error` after a failed acquire.",
+      "description": "Held works stuck in `error` after a failed acquire.",
       "example": 1
     },
     "in_progress": {
       "type": "integer",
       "format": "int64",
-      "description": "Titles currently `queued` or `downloading`.",
+      "description": "Held works currently `queued` or `downloading`.",
       "example": 4
     },
     "listen": {

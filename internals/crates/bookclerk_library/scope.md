@@ -128,42 +128,46 @@ Returns an error when the operation fails.
 #### SourceScope::upsert_book
 
 ```rust
-pub async fn upsert_book(&self, book: &NewBook) -> Result<BookRecord>
+pub async fn upsert_book(&self, book: &NewBook) -> Result<AcquireTitle>
 ```
 
-Upsert a book; `plugin_key` and `source` are forced to this plugin.
+Records a title an account of this plugin holds (see
+[`LibraryStore::upsert_book`](README.md#librarystoreupsert_book)); `plugin_key` and `source` are forced
+to this plugin.
 
 ##### Errors
 
-Returns an error when the operation fails.
+As [`LibraryStore::upsert_book`](README.md#librarystoreupsert_book).
 
 #### SourceScope::upsert_scanned_title
 
 ```rust
-pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<BookRecord>
+pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<AcquireTitle>
 ```
 
-Upsert a scanned title as this plugin's, and resolve its listing.
+Records a scanned title as this plugin's (see
+[`LibraryStore::upsert_scanned_title`](README.md#librarystoreupsert_scanned_title)).
 
 ##### Errors
 
-Returns an error when a read or write fails.
+As [`LibraryStore::upsert_scanned_title`](README.md#librarystoreupsert_scanned_title).
 
 #### SourceScope::upsert_scanned_titles
 
 ```rust
-pub async fn upsert_scanned_titles(
-    &self,
-    titles: &[ScannedTitle],
-) -> Result<Vec<BookRecord>>
+pub async fn upsert_scanned_titles(&self, titles: &[ScannedTitle]) -> Result<usize>
 ```
 
-Upsert a page of scanned titles as this plugin's, and resolve their
+Records a page of scanned titles as this plugin's, resolving their
 listings as one page (see [`LibraryStore::upsert_scanned_titles`](README.md#librarystoreupsert_scanned_titles)).
+
+##### Returns
+
+How many of `titles` were recorded.
 
 ##### Errors
 
-Returns an error when a flat row cannot be read or written.
+As [`LibraryStore::upsert_scanned_titles`](README.md#librarystoreupsert_scanned_titles).
 
 #### SourceScope::scan_state
 
@@ -265,21 +269,24 @@ accounts.
 
 Returns an error when the write fails.
 
-#### SourceScope::get_book
+#### SourceScope::held_title
 
 ```rust
-pub async fn get_book(
+pub async fn held_title(
     &self,
     title_id: &str,
     account_id: &str,
-) -> Result<Option<BookRecord>>
+) -> Result<Option<AcquireTitle>>
 ```
 
-Look up one of this plugin's books by uuid, product id, ASIN, or ISBN.
+The title one of this plugin's accounts holds that `title_id` names
+(holding id, product id, ASIN or ISBN; see
+[`LibraryStore::held_title`](README.md#librarystoreheld_title)).
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns [`crate::LibraryError::Conflict`](README.md#libraryerror) when the name is
+ambiguous, or the database error.
 
 #### SourceScope::save_source_auth
 

@@ -466,8 +466,8 @@ there), its work takes the description, genres and cover it lacks, its
 expression the language it lacks, and its own cover when it has none.
 The edition then records `audible` as its enrichment source.
 
-While the flat `books` table exists, each of the edition's rows also
-takes the match as before: catalog fields win for display metadata
+Each held title of the edition's listings also takes the match: catalog
+fields win for display metadata
 (title, contributors, series, ISBN, genres, publish date), an existing
 `asin` is kept, and a store-native `length_minutes` is kept because
 Audible runtimes include brand intro/outro that plain Acquire files

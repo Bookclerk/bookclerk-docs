@@ -4486,11 +4486,11 @@ The result of a split.
 Library and daemon snapshot for `GET /api/status`.
 
 - `accounts` *integer*, **required** — Count of configured store accounts. At least 0.
-- `books` *integer*, **required** — Total title rows in the library. At least 0.
-- `acquired` *integer (int64)*, **required** — Titles whose `acquire_status` is `acquired`.
-- `pending` *integer (int64)*, **required** — Titles still needing acquire (`not_acquired`).
-- `error` *integer (int64)*, **required** — Titles stuck in `error` after a failed acquire.
-- `in_progress` *integer (int64)*, **required** — Titles currently `queued` or `downloading`.
+- `books` *integer*, **required** — Held works in the library (the works page index). At least 0.
+- `acquired` *integer (int64)*, **required** — Held works whose furthest acquire state is `acquired`.
+- `pending` *integer (int64)*, **required** — Held works still needing acquire (`not_acquired`).
+- `error` *integer (int64)*, **required** — Held works stuck in `error` after a failed acquire.
+- `in_progress` *integer (int64)*, **required** — Held works currently `queued` or `downloading`.
 - `listen` *string*, **required** — Comma-joined `daemon.listen` addresses from live config.
 - `storage_backend` *string*, **required** — Comma-joined enabled destination plugin ids, or `none`.
 - `auth_enabled` *boolean*, **required** — Whether the live auth middleware requires operator credentials.

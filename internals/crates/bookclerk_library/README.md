@@ -41,8 +41,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`ProvenPluginMigration`](#provenpluginmigration) | struct | One proven registered migration. |
 | [`AccountLinkRecord`](#accountlinkrecord) | struct | Link between a portal identity and a bookstore account. |
 | [`AccountRecord`](#accountrecord) | struct | Account row stored in the Bookclerk DB. |
-| [`AcquireStatusCounts`](#acquirestatuscounts) | struct | `books` row counts per `AcquireStatus`, read in one grouped query (see `LibraryStore::count_books_by_status`). |
-| [`BookRecord`](#bookrecord) | struct | Book / library item (one ownership row per store product per account). |
+| [`AcquireStatusCounts`](#acquirestatuscounts) | struct | Held work counts per `AcquireStatus`, read in one grouped query (see `LibraryStore::count_works_by_status`). |
 | [`BranchRequestTarget`](#branchrequesttarget) | struct | What a `JobKind::BranchRequest` asks its branch for: a work of this library, and the store listing the branch answered for it (`control_plane::catalog_lookup`). The branch is told the work by its identifiers, never by this id. |
 | [`ClaimTicketRecord`](#claimticketrecord) | struct | Claim ticket metadata (token plaintext is never stored). |
 | [`DomainEventRecord`](#domaineventrecord) | struct | Immutable outbox envelope. |
@@ -166,7 +165,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`PassStart`](#passstart) | struct | How the next pass of one account starts. |
 | [`QualityCheckState`](#qualitycheckstate) | struct | Where the quality-upgrade check of one account stands. |
 | [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
-| [`ListingRef`](#listingref) | struct | The identity of a store listing: plugin key, stored marketplace and stored product id. |
 | [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
 | [`WorkSplitBody`](#worksplitbody) | struct | `POST /api/library/works/{id}/split` body: the expressions to move. |
 | [`WorkSplitRequest`](#worksplitrequest) | struct | A validated `WorkSplitBody`: 1 to `MAX_SPLIT_EXPRESSIONS` distinct expression ids, each 1 to `MAX_SPLIT_EXPRESSION_ID_BYTES` bytes, sorted. |
@@ -175,9 +173,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`AcquiredTitleKey`](#acquiredtitlekey) | struct | One account's title of an edition acquired with a stored file, without its metadata. |
 | [`AcquiredTitleKeyPage`](#acquiredtitlekeypage) | struct | One page of `AcquiredTitleKey`s. |
 | [`AudioStream`](#audiostream) | struct | What a probe found about the audio stream of one file, besides its `FileProbe`: the encoding, channels, sample rate and the running time a player sees. |
-| [`BookPage`](#bookpage) | struct | One page of books plus the unpaged match count. |
 | [`CandidateRef`](#candidateref) | struct | One title a store returned for a subject, as written: the shared listing it is, plus why the subject got it. |
-| [`CatalogEnrichmentFields`](#catalogenrichmentfields) | struct | Durable catalog enrichment fields (blurbs, subjects, provenance). |
 | [`ChangedObject`](#changedobject) | struct | One object whose row changed after a reader's last sequence. |
 | [`DestinationFeed`](#destinationfeed) | struct | How one destination's outside changes are followed. |
 | [`EditionAcquisition`](#editionacquisition) | struct | An edition's acquire state (`edition_acquisitions`). |
@@ -191,7 +187,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`HeldIdentifiers`](#heldidentifiers) | struct | Which of a set of store identifiers belong to titles the library holds. |
 | [`LibraryStore`](#librarystore) | struct | Handle to the Bookclerk library database. |
 | [`LostCopies`](#lostcopies) | struct | What `LibraryStore::lose_copies` did with the stored copies whose file is gone. |
-| [`NewBook`](#newbook) | struct | Input for inserting / updating a book from sync. |
+| [`NewBook`](#newbook) | struct | One title as a library sync (or an import) reports it: the account that holds it, the store listing it describes and the store's text. |
 | [`NewListeningProgress`](#newlisteningprogress) | struct | Input for upserting listening progress. |
 | [`NewTitleRequest`](#newtitlerequest) | struct | Input for creating a title request / wishlist row. |
 | [`NewTitleRequestSource`](#newtitlerequestsource) | struct | Input for upserting a per-storefront wishlist snapshot. |
@@ -364,7 +360,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`parse_progress_edit_request`](#parse_progress_edit_request) | function | Parses and validates a `PUT /api/playback/progress/{edition_id}` body from its raw bytes, sans IO. |
 | [`parse_track_path`](#parse_track_path) | function | Parses the two path parts of `GET /api/playback/sessions/{id}/tracks/{n}`, sans IO. |
 | [`progress_cursor_token`](#progress_cursor_token) | function | The opaque token of a progress cursor: unpadded URL-safe Base64 of the row's change time, a `\|`, and its edition id. |
-| [`prefer_enrichment_source`](#prefer_enrichment_source) | function | Prefer an Audible ownership row with the richest metadata for enrichment. |
 | [`plan_pass`](#plan_pass) | function | Decides how the next pass of an account starts. |
 | [`set_dispatch_chunk_for_test`](#set_dispatch_chunk_for_test) | function | Override subscribers-per-plan for dispatch paging tests. |
 | [`parse_work_split_request`](#parse_work_split_request) | function | Parses and validates a `POST /api/library/works/{id}/split` body from its raw bytes, sans IO, the way the route reads it: JSON into `WorkSplitBody`, then `WorkSplitBody::validate`. |
@@ -446,8 +441,6 @@ the external guest RPC. This crate owns the greenfield schema
 | [`MAX_SPLIT_EXPRESSION_ID_BYTES`](#max_split_expression_id_bytes) | constant | Longest expression id a split body may name, in bytes; ids are UUIDs. |
 | [`ACQUIRED_KEYS_MAX_PAGE`](#acquired_keys_max_page) | constant | Upper clamp for the editions one `LibraryStore::acquired_title_keys_page` read covers. |
 | [`ACQUIRE_WRITER`](#acquire_writer) | constant | The `writer` of a key an acquire run on this node wrote. |
-| [`BOOK_PAGE_DEFAULT_LIMIT`](#book_page_default_limit) | constant | Default page size for `LibraryStore::list_books_filtered_page`. |
-| [`BOOK_PAGE_MAX_LIMIT`](#book_page_max_limit) | constant | Upper clamp for a library book page. Matches the HTTP handler. |
 | [`COPY_RETRY_BASE_DELAY`](#copy_retry_base_delay) | constant | Delay before the first background retry of a failed copy; each later failure doubles it, up to `COPY_RETRY_MAX_DELAY`. |
 | [`COPY_RETRY_MAX_DELAY`](#copy_retry_max_delay) | constant | The longest delay between two background retries of one copy. |
 | [`HOLDING_REMOVED`](#holding_removed) | constant | Event type published when a holding is removed. |
@@ -717,13 +710,12 @@ pub trait AtomicTxnBackend: Send + Sync {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
-    fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
+    fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'async_trait>(
         &'life0 self,
         holding: &'life1 TitleHolding,
-        book_uuid: Option<&'life2 str>,
         status: AcquireStatus,
-        storage_key: Option<&'life3 str>,
-        error_message: Option<&'life4 str>,
+        storage_key: Option<&'life2 str>,
+        error_message: Option<&'life3 str>,
         event: PublishDomainEventSpec,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
     where
@@ -731,8 +723,7 @@ pub trait AtomicTxnBackend: Send + Sync {
         'life0: 'async_trait,
         'life1: 'async_trait,
         'life2: 'async_trait,
-        'life3: 'async_trait,
-        'life4: 'async_trait,;
+        'life3: 'async_trait,;
     fn dispatch_event_deliveries<'life0, 'life1, 'life2, 'life3, 'async_trait>(
         &'life0 self,
         event_id: &'life1 str,
@@ -1009,13 +1000,12 @@ Persist a domain event in the outbox.
 #### AtomicTxnBackend::set_acquire_status
 
 ```rust
-fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
+fn set_acquire_status<'life0, 'life1, 'life2, 'life3, 'async_trait>(
     &'life0 self,
     holding: &'life1 TitleHolding,
-    book_uuid: Option<&'life2 str>,
     status: AcquireStatus,
-    storage_key: Option<&'life3 str>,
-    error_message: Option<&'life4 str>,
+    storage_key: Option<&'life2 str>,
+    error_message: Option<&'life3 str>,
     event: PublishDomainEventSpec,
 ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
 where
@@ -1024,15 +1014,13 @@ where
     'life1: 'async_trait,
     'life2: 'async_trait,
     'life3: 'async_trait,
-    'life4: 'async_trait,
 ```
 
 Write an edition's acquire state for the account holding that made
 the write, and publish its event, in one batch.
 
 Only the holding that acquired an edition, while it exists, changes
-it; `book_uuid` names the flat `books` row mirrored until the table
-is dropped (book model step 6).
+it.
 
 ##### Errors
 
@@ -2196,157 +2184,19 @@ pub struct AcquireStatusCounts {
 }
 ```
 
-`books` row counts per [`AcquireStatus`](#acquirestatus), read in one grouped query
-(see `LibraryStore::count_books_by_status`).
+Held work counts per [`AcquireStatus`](#acquirestatus), read in one grouped query
+(see `LibraryStore::count_works_by_status`).
 
 **Fields**
 
-- `total`: Every row, including any with a status this build does not know.
-- `not_acquired`: Rows in [`AcquireStatus::NotAcquired`](#acquirestatus).
-- `queued`: Rows in [`AcquireStatus::Queued`](#acquirestatus).
-- `downloading`: Rows in [`AcquireStatus::Downloading`](#acquirestatus).
-- `acquired`: Rows in [`AcquireStatus::Acquired`](#acquirestatus).
-- `error`: Rows in [`AcquireStatus::Error`](#acquirestatus).
+- `total`: Every work, including any with a status this build does not know.
+- `not_acquired`: Works in [`AcquireStatus::NotAcquired`](#acquirestatus).
+- `queued`: Works in [`AcquireStatus::Queued`](#acquirestatus).
+- `downloading`: Works in [`AcquireStatus::Downloading`](#acquirestatus).
+- `acquired`: Works in [`AcquireStatus::Acquired`](#acquirestatus).
+- `error`: Works in [`AcquireStatus::Error`](#acquirestatus).
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
-
-### BookRecord
-
-```rust
-pub struct BookRecord {
-    pub id: i64,
-    pub uuid: String,
-    pub plugin_key: String,
-    pub source: String,
-    pub account_id: String,
-    pub product_id: String,
-    pub asin: Option<String>,
-    pub isbn: Option<String>,
-    pub marketplace: String,
-    pub title: String,
-    pub authors: Option<String>,
-    pub narrators: Option<String>,
-    pub series: Option<String>,
-    pub series_index: Option<String>,
-    pub series_asin: Option<String>,
-    pub acquire_status: AcquireStatus,
-    pub storage_key: Option<String>,
-    pub error_message: Option<String>,
-    pub purchased_at: Option<DateTime<Utc>>,
-    pub tags: Option<String>,
-    pub rating_overall: Option<f32>,
-    pub rating_performance: Option<f32>,
-    pub rating_story: Option<f32>,
-    pub is_finished: bool,
-    pub pdf_status: AcquireStatus,
-    pub pdf_storage_key: Option<String>,
-    pub publisher: Option<String>,
-    pub length_minutes: Option<i64>,
-    pub is_abridged: bool,
-    pub content_kind: String,
-    pub categories: Option<String>,
-    pub subtitle: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub description: Option<String>,
-    pub language: Option<String>,
-    pub cover_url: Option<String>,
-    pub cover_path: Option<String>,
-    pub subjects: Option<String>,
-    pub enrich_source: Option<String>,
-    pub enrich_confidence: Option<f64>,
-    pub enrich_updated_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-```
-
-Book / library item (one ownership row per store product per account).
-
-**Fields**
-
-- `id`: Surrogate primary key assigned by the database.
-- `uuid`: Stable UUID for this row (API / foreign-key identity).
-- `plugin_key`: Provenance-qualified PluginKey that owns the account.
-- `source`: Display alias of the owning plugin (`audible`, `libro`, …).
-- `account_id`: Store or operator account id this row belongs to.
-- `product_id`: Storefront product id (ASIN, ISBN, UUID, …).
-- `asin`: Audible ASIN when known (`None` for Libro-only rows without enrichment).
-- `isbn`: ISBN-13 when known (Libro always; Audible when the API provides it).
-- `marketplace`: Store marketplace / locale code (for example `us`, `uk`).
-- `title`: Display title of the work or edition.
-- `authors`: Comma-separated or JSON author list from the storefront.
-- `narrators`: Comma-separated or JSON narrator list when present.
-- `series`: Series name when the title belongs to a series.
-- `series_index`: Position within the series (storefront string form).
-- `series_asin`: Audible series / podcast-parent ASIN (`Series.AudibleSeriesId`).
-- `acquire_status`: Download/acquire pipeline state (`not_acquired`, `queued`, …).
-- `storage_key`: Object-storage key for the primary audio artifact, if acquired.
-- `error_message`: Last acquire/convert failure message for operators.
-- `purchased_at`: RFC 3339 purchase time from the storefront, when known.
-- `tags`: Operator or storefront tags (serialized string).
-- `rating_overall`: Overall user rating from the storefront, if any.
-- `rating_performance`: Narration/performance rating from the storefront, if any.
-- `rating_story`: Story rating from the storefront, if any.
-- `is_finished`: Whether the listener marked the title finished (0/1 or bool).
-- `pdf_status`: Companion PDF acquire state (`not_acquired`, `acquired`, …).
-- `pdf_storage_key`: Object-storage key for the companion PDF, if present.
-- `publisher`: Publisher name from metadata enrichment or the storefront.
-- `length_minutes`: Runtime in whole minutes when the storefront reports it.
-- `is_abridged`: Whether the edition is abridged (0/1 or bool).
-- `content_kind`: Title kind: `book`, `episode`, `podcast`, ….
-- `categories`: Storefront category / genre path list (serialized).
-- `subtitle`: Optional subtitle from bibliographic metadata.
-- `published_at`: Publication date string from the storefront or enrichment.
-- `description`: Blurb / synopsis text (may contain HTML).
-- `language`: BCP-47 or storefront language code when known.
-- `cover_url`: HTTPS URL for cover art when known.
-- `cover_path`: Same-origin path of this cover's processed images, set by the daemon
-  when `cover_url` is an `https` URL; never stored. Append `/128`
-  (thumbnail), `/360` (card) or `/full`, so a client can show covers
-  without loading `cover_url` from another site.
-- `subjects`: Subject / topic tags (often from Open Library; `;`- or `,`-separated).
-- `enrich_source`: Plugin or catalog that last enriched bibliographic fields.
-- `enrich_confidence`: 0–1 confidence score for the last enrichment pass.
-- `enrich_updated_at`: RFC 3339 time of the last enrichment write.
-- `created_at`: RFC 3339 timestamp when the row was inserted.
-- `updated_at`: RFC 3339 timestamp when the row was last modified.
-
-#### BookRecord::title_id
-
-```rust
-pub fn title_id(&self) -> &str
-```
-
-Public stable id used for CLI / API / acquire lookups.
-
-#### BookRecord::asin_or_isbn
-
-```rust
-pub fn asin_or_isbn(&self) -> &str
-```
-
-Naming / display fallback: ASIN, else ISBN, else source product id.
-
-#### BookRecord::download_product_id
-
-```rust
-pub fn download_product_id(&self) -> &str
-```
-
-Source-native id for download / fetch APIs (`product_id`).
-
-Always the owning store's id (Audible ASIN or Libro ISBN), never an
-enrichment ASIN copied onto a non-Audible row.
-
-#### BookRecord::audible_asin
-
-```rust
-pub fn audible_asin(&self) -> Option<&str>
-```
-
-Audible ASIN for Audible license / catalog APIs when one is known.
-
-Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `Serialize`, `ToSchema`
 
 ### BranchRequestTarget
 
@@ -4859,18 +4709,16 @@ nothing matches on them.
 - `is_abridged`: Abridged (`true`), unabridged (`false`) or unknown.
 - `is_explicit`: Explicit (adult) content (`true`), clean (`false`) or unknown.
 
-#### ListingDetail::of_book
+#### ListingDetail::of_new_book
 
 ```rust
-pub fn of_book(book: &BookRecord) -> Self
+pub fn of_new_book(book: &NewBook) -> Self
 ```
 
 The store text a scanned library title carries, for its listing.
 
-Only the fields a scan reports are taken: the flat row's synopsis,
-language, cover and rating can come from metadata enrichment rather
-than the store, so they are left out. A title the store marks
-unabridged is left unknown, since the flat row cannot tell
+Only the fields a scan reports are taken. A title the store marks
+unabridged is left unknown, since a scan record cannot tell
 unabridged from unreported.
 
 #### ListingDetail::of_catalog_hit
@@ -5282,13 +5130,14 @@ Enrichment fields for [`LibraryStore::set_work_enrichment`](#librarystoreset_wor
 - `categories`: Category labels (serialized).
 - `cover_url`: HTTPS cover URL.
 
-#### WorkEnrichment::of_book
+#### WorkEnrichment::of_new_book
 
 ```rust
-pub fn of_book(book: &BookRecord) -> Self
+pub fn of_new_book(book: &NewBook) -> Self
 ```
 
-The fields a library title offers its work.
+The fields a scanned library title offers its work: its store
+categories (a scan reports no synopsis, subjects or cover).
 
 #### WorkEnrichment::is_empty
 
@@ -6287,58 +6136,6 @@ Where one account's scan stands.
 
 Implements: `Clone`, `Debug`, `Eq`, `From<Model>`, `PartialEq`
 
-### ListingRef
-
-```rust
-pub struct ListingRef {
-    /* private fields */
-}
-```
-
-The identity of a store listing: plugin key, stored marketplace and
-stored product id.
-
-Built either from a `store_listings` row or from a library title, and
-both spell it the same way, so a title and its listing meet on one
-[`Self::term`](#listingrefterm).
-
-#### ListingRef::of_book
-
-```rust
-pub fn of_book(book: &BookRecord) -> Self
-```
-
-The listing a library title's row resolves to.
-
-##### Arguments
-
-* `book` - The library title.
-
-#### ListingRef::new
-
-```rust
-pub fn new(plugin_key: &str, marketplace: &str, product_id: &str) -> Self
-```
-
-A listing from raw parts, normalized the way listings are stored.
-
-##### Arguments
-
-* `plugin_key` - The storefront's PluginKey.
-* `marketplace` - The marketplace as reported (normalized here).
-* `product_id` - The product id as reported (normalized here).
-
-#### ListingRef::term
-
-```rust
-pub fn term(&self) -> String
-```
-
-The single index term that names this listing: its three parts
-joined by the ASCII unit separator, which none of them contains.
-
-Implements: `Clone`, `Debug`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
-
 ### UserStateEdit
 
 ```rust
@@ -6450,7 +6247,6 @@ pub struct AcquireTitle {
     pub pdf_status: AcquireStatus,
     pub pdf_storage_key: Option<String>,
     pub pdf_acquired_by: Option<String>,
-    pub book_uuid: Option<String>,
 }
 ```
 
@@ -6482,7 +6278,7 @@ One title an account holds, as acquire reads it from the library model.
 - `length_minutes`: Running time in whole minutes, from the store or the edition.
 - `language`: Language as the store lists it.
 - `is_abridged`: True when the store or the expression marks it abridged.
-- `content_kind`: What the title is, in the flat row's labels: `episode` for a
+- `content_kind`: What the title is, in the scan's `content_kind` labels: `episode` for a
   podcast episode, `podcast` for a show, `book` otherwise.
 - `purchased_at`: When the account bought the title, when the store reported it.
 - `added_at`: When this library first recorded the account's holding of the
@@ -6499,8 +6295,6 @@ One title an account holds, as acquire reads it from the library model.
 - `pdf_storage_key`: Destination key of the companion PDF once acquired.
 - `pdf_acquired_by`: The account holding (`holdings.id`) whose title's write set the
   PDF state; `None` as for [`Self::acquired_by`](#acquiretitle).
-- `book_uuid`: The flat `books` row of this account's title, while that table
-  exists: writers that still mirror it name it (book model step 6).
 
 #### AcquireTitle::acquired_here
 
@@ -6527,7 +6321,7 @@ pub fn asin_or_isbn(&self) -> &str
 ```
 
 Naming and display fallback: ASIN, else ISBN, else the store's
-product id (the same order as the flat row's).
+product id.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 
@@ -6642,24 +6436,6 @@ holds and [`bookclerk_tags::MAX_DURATION_MS`](../bookclerk_tags/README.md#max_du
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
-### BookPage
-
-```rust
-pub struct BookPage {
-    pub books: Vec<BookRecord>,
-    pub total: usize,
-}
-```
-
-One page of books plus the unpaged match count.
-
-**Fields**
-
-- `books`: Rows after `ORDER BY` and `LIMIT`/`OFFSET`.
-- `total`: Rows matching the filter before pagination.
-
-Implements: `Clone`, `Debug`
-
 ### CandidateRef
 
 ```rust
@@ -6684,36 +6460,6 @@ listing it is, plus why the subject got it.
 - `starter_genre`: Starter genre it was browsed from, for a thin taste.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
-
-### CatalogEnrichmentFields
-
-```rust
-pub struct CatalogEnrichmentFields {
-    pub description: Option<String>,
-    pub language: Option<String>,
-    pub cover_url: Option<String>,
-    pub subjects: Option<String>,
-    pub categories: Option<String>,
-    pub enrich_source: Option<String>,
-    pub enrich_confidence: Option<f64>,
-    pub enrich_updated_at: Option<DateTime<Utc>>,
-}
-```
-
-Durable catalog enrichment fields (blurbs, subjects, provenance).
-
-**Fields**
-
-- `description`: Blurb / synopsis text (may contain HTML).
-- `language`: BCP-47 or storefront language code when known.
-- `cover_url`: HTTPS URL for cover art when known.
-- `subjects`: Subject / topic tags from enrichment (serialized).
-- `categories`: Storefront category / genre path list (serialized).
-- `enrich_source`: Plugin or catalog that last enriched bibliographic fields.
-- `enrich_confidence`: 0–1 confidence score for the last enrichment pass.
-- `enrich_updated_at`: RFC 3339 time of the last enrichment write.
-
-Implements: `Clone`, `Debug`, `Default`
 
 ### ChangedObject
 
@@ -7187,13 +6933,13 @@ holding order: what an acquire job given one title visits.
 
 `id` matches, ignoring ASCII case, a listing's store product id, an
 ASIN or ISBN of the listing's edition (every listing of that
-edition), a holding id, or, while `books` exists, a flat row's UUID.
+edition), or a holding id.
 
 ##### Arguments
 
 * `account_id` - Only the titles of the accounts this id or label
   names (ignoring ASCII case), when set.
-* `id` - The product id, ASIN, ISBN, holding id or library UUID.
+* `id` - The product id, ASIN, ISBN, or holding id.
 
 ##### Returns
 
@@ -7314,6 +7060,27 @@ holding order: what reconcile and storage matching walk.
 The page's titles and the cursor of the next page. A holding whose
 listing is gone has no title, so a page can be short or empty while
 more follow: walk until `next` is `None`.
+
+##### Errors
+
+Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
+
+#### LibraryStore::all_acquire_titles
+
+```rust
+pub async fn all_acquire_titles(
+    &self,
+    account_id: Option<&str>,
+) -> Result<Vec<AcquireTitle>>
+```
+
+Every account title, in holding order: [`Self::acquire_titles_page`](#librarystoreacquire_titles_page)
+walked to its end.
+
+##### Arguments
+
+* `account_id` - Only the titles of the accounts this id or label
+  names (ignoring ASCII case), when set.
 
 ##### Errors
 
@@ -8447,8 +8214,7 @@ filled it.
 The work takes the description, subjects and cover it lacks (a work
 another edition already described keeps its own values), the
 expression the language it lacks, and the edition the cover it
-lacks. The edition's `books` rows take the same fields while that
-table exists. The edition's provenance is written last, so a write
+lacks. The edition's provenance is written last, so a write
 that fails before it leaves the edition unmarked and the next run
 tries again.
 
@@ -8461,47 +8227,6 @@ tries again.
 
 Returns [`LibraryError::NotFound`](#libraryerror) when the edition is gone, or
 [`LibraryError::Orm`](#libraryerror) when a read or write fails.
-
-#### LibraryStore::edition_book_uuids
-
-```rust
-pub async fn edition_book_uuids(&self, edition_id: &str) -> Result<Vec<String>>
-```
-
-The UUIDs of the flat `books` rows whose listing sells edition
-`edition_id`, in order, for writers that still keep those rows
-current until the table is retired.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
-
-#### LibraryStore::edition_of_book
-
-```rust
-pub async fn edition_of_book(&self, book_uuid: &str) -> Result<Option<String>>
-```
-
-The edition a library title (`books.uuid`) resolves to, through its
-store listing; `None` when the title is unknown or not resolved yet.
-
-##### Errors
-
-Returns an error when a read fails.
-
-#### LibraryStore::title_holding_of_book
-
-```rust
-pub async fn title_holding_of_book(&self, book_uuid: &str) -> Result<Option<TitleHolding>>
-```
-
-The edition a library title (`books.uuid`) sells and its account's
-holding of the listing; `None` when the title is unknown, not
-resolved yet, or no longer held by its account.
-
-##### Errors
-
-Returns an error when a read fails.
 
 #### LibraryStore::edition_acquisition
 
@@ -8519,14 +8244,14 @@ queued or acquired.
 
 Returns an error when the read fails.
 
-#### LibraryStore::file_owner_of_book
+#### LibraryStore::edition_of_holding
 
 ```rust
-pub async fn file_owner_of_book(&self, book_uuid: &str) -> Result<Option<FileOwner>>
+pub async fn edition_of_holding(&self, holding_id: &str) -> Result<Option<String>>
 ```
 
-The file owner of a library title: its edition
-([`Self::edition_of_book`](#librarystoreedition_of_book)).
+The edition holding `holding_id` (`holdings.id`) holds: the one its
+listing sells; `None` when the holding or its listing is gone.
 
 ##### Errors
 
@@ -8540,19 +8265,6 @@ pub async fn file_owner_of_holding(&self, holding_id: &str) -> Result<Option<Fil
 
 The file owner of a node holding (`holdings.id`, a title a branch
 shares here): the edition its listing sells.
-
-##### Errors
-
-Returns an error when a read fails.
-
-#### LibraryStore::books_of_edition
-
-```rust
-pub async fn books_of_edition(&self, edition_id: &str) -> Result<BTreeSet<String>>
-```
-
-Every library title (`books.uuid`) whose listing sells `edition_id`:
-the account rows that share the edition's files.
 
 ##### Errors
 
@@ -10025,7 +9737,7 @@ holds one.
 The query is resolved exactly as a scanned listing would be (shared
 identifiers first, then the work's identifiers, then the work-level
 title-and-author match), but nothing is written. A query that would
-make a new work, or whose work no library title resolves to, is not
+make a new work, or whose work nothing in the library holds, is not
 owned: *Dune Messiah* is its own work beside *Dune*. A query that
 cannot form a valid listing (a blank title, or a field over the
 listing limits) matches no work, so it is not owned either.
@@ -10263,43 +9975,14 @@ Lists every work by title, with its work-level credits and series.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
 
-#### LibraryStore::work_id_for_book
+#### LibraryStore::work_of_holding
 
 ```rust
-pub async fn work_id_for_book(&self, book_uuid: &str) -> Result<Option<String>>
+pub async fn work_of_holding(&self, holding_id: &str) -> Result<Option<String>>
 ```
 
-The work a library title's listing resolves to, if it has been
-resolved.
-
-##### Arguments
-
-* `book_uuid` - Library `books.uuid`.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
-
-#### LibraryStore::work_ids_for_books
-
-```rust
-pub async fn work_ids_for_books(
-    &self,
-    book_uuids: &[String],
-) -> Result<BTreeMap<String, String>>
-```
-
-The works many library titles resolve to, read in a few bulk
-queries rather than a chain of lookups per title.
-
-##### Arguments
-
-* `book_uuids` - Library `books.uuid` values.
-
-##### Returns
-
-Each resolved title's work id, keyed by title UUID; titles not yet
-resolved are absent.
+The work holding `holding_id` (`holdings.id`) reaches through its
+listing's edition; `None` when the holding or its listing is gone.
 
 ##### Errors
 
@@ -10321,43 +10004,6 @@ fit the database's limits.
 
 Edition id to work id; an edition that no longer exists, or whose
 expression row is missing, is left out.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
-
-#### LibraryStore::book_uuids_for_work
-
-```rust
-pub async fn book_uuids_for_work(&self, work_id: &str) -> Result<Vec<String>>
-```
-
-Library title UUIDs whose listings resolve to `work_id`.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when a read fails.
-
-#### LibraryStore::book_uuids_for_works
-
-```rust
-pub async fn book_uuids_for_works(
-    &self,
-    work_ids: &[String],
-) -> Result<BTreeMap<String, Vec<String>>>
-```
-
-The library titles (`books.uuid`) whose listings reach each of
-`work_ids`, in chunked bulk reads.
-
-##### Arguments
-
-* `work_ids` - Works to look up.
-
-##### Returns
-
-Each work with at least one library title, mapped to its titles'
-uuids in ascending order; works no title reaches are absent.
 
 ##### Errors
 
@@ -11695,49 +11341,6 @@ one invalid), so its next pass is full and starts at the beginning.
 
 Returns an error when the batch fails.
 
-#### LibraryStore::listing_refs_of_edition
-
-```rust
-pub async fn listing_refs_of_edition(&self, edition_id: &str) -> Result<Vec<ListingRef>>
-```
-
-The listings that sell `edition_id`.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::listing_ref_by_id
-
-```rust
-pub async fn listing_ref_by_id(&self, listing_id: &str) -> Result<Option<ListingRef>>
-```
-
-The listing stored under `listing_id`, or `None` when it is gone.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::books_of_listing
-
-```rust
-pub async fn books_of_listing(&self, listing: &ListingRef) -> Result<Vec<BookRecord>>
-```
-
-Every library title whose row resolves to `listing`, one per
-account that holds it.
-
-A row keeps its product id as the store spelled it, padding
-included, while the listing keeps the normalized spelling, so the
-read narrows by plugin key and the product id's first word and the
-rest is compared normalized.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails, or a mapping error
-for a row the host cannot read.
-
 #### LibraryStore::storage_scan_put_object
 
 ```rust
@@ -11980,32 +11583,6 @@ them. Pass the returned cursor back; `None` means the walk wrapped.
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read or delete fails. A delete
 error leaves that generation for a later retry.
-
-#### LibraryStore::list_books_page
-
-```rust
-pub async fn list_books_page(
-    &self,
-    account_id: Option<&str>,
-    after_id: Option<i64>,
-    limit: u64,
-) -> Result<Vec<BookRecord>>
-```
-
-Pages books by surrogate id so a scan does not load the catalog at once.
-
-`limit` is clamped to 1..=64. A full page of enriched `books` rows is
-larger than the inline result cap (256 KiB); an adapter that streams
-results returns it as one read. When the guest result would exceed
-the byte budget it is read under (`maxResultBytes` on an adapter that
-only answers inline, or `maxStreamedResultBytes`), the read halves,
-and the smaller width that fits is reused until `limit` rows are
-collected or the catalog ends.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
-than a result byte cap, or when a single row still exceeds it.
 
 #### LibraryStore::taste_titles
 
@@ -13017,29 +12594,22 @@ True when any acquire job is currently running.
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
 
-#### LibraryStore::list_orphaned_acquire_books
-
-```rust
-pub async fn list_orphaned_acquire_books(&self) -> Result<Vec<BookRecord>>
-```
-
-Books left in `queued` / `downloading` with no running acquire job.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
 #### LibraryStore::reconcile_orphaned_acquire_rows
 
 ```rust
 pub async fn reconcile_orphaned_acquire_rows(&self) -> Result<u32>
 ```
 
-Mark orphaned `queued` / `downloading` books as `error` after a crash.
+Mark orphaned `queued` / `downloading` edition acquire states as
+`error` after a crash.
+
+The state is written as the holding that queued it, with its event;
+a state whose holding is gone (its account was revoked since) is
+written on its own, with no title for an event to name.
 
 ##### Returns
 
-Number of book rows updated.
+Number of edition states updated.
 
 ##### Errors
 
@@ -13101,99 +12671,6 @@ while an event-queued fetch or ranking has not finished.
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::find_books_by_any_id
-
-```rust
-pub async fn find_books_by_any_id(
-    &self,
-    account_id: Option<&str>,
-    id: &str,
-) -> Result<Vec<BookRecord>>
-```
-
-Books whose uuid, product id, ISBN or ASIN equals `id`, ignoring
-ASCII case, optionally on one account, in title order.
-
-The first read compares each id column through its index (see
-`case_variants` for how case is handled), so it touches the matching
-rows only. When that finds nothing, a second read compares
-`lower(column)` so a stored id in mixed case (a slug such as
-`The-Dresden-Files`) still matches; that read may scan the table on
-the database side but still returns only the matching rows. The
-result is the set the acquire job used to find by filtering the
-whole library in memory.
-
-##### Arguments
-
-* `account_id` - Store account to search, or every account when `None`.
-* `id` - A book uuid, store product id, ISBN or ASIN.
-
-##### Returns
-
-The matching books ordered by title; empty when none match.
-
-##### Errors
-
-Returns [`LibraryError::Orm`](#libraryerror) when the read fails.
-
-#### LibraryStore::list_books_filtered_page
-
-```rust
-pub async fn list_books_filtered_page(
-    &self,
-    account_id: Option<&str>,
-    status: Option<&str>,
-    limit: u64,
-    offset: u64,
-) -> Result<BookPage>
-```
-
-Pages books by account, acquire status, and title.
-
-`status` is the wire string from [`crate::AcquireStatus::as_str`](#acquirestatusas_str).
-`limit` is clamped to 1..=500. `total` uses the same `WHERE` as the page.
-
-Against an adapter that streams results the page is one guest read: a
-full page of enriched rows is larger than the inline result cap but
-well under the streamed budget. When a page does not fit the budget
-it was read under (an adapter that only answers inline, or rows wide
-enough to pass even the streamed budget), the page is read in pieces
-of at most 64 rows, a piece is halved when its result would exceed
-the cap, and later pieces keep that smaller width. `limit`, `offset`,
-and `total` are the caller's page, not one of those pieces. `total`
-is counted once.
-
-##### Errors
-
-Returns [`LibraryError::Other`](#libraryerror) when the read fails.
-
-#### LibraryStore::list_books_by_uuid_page
-
-```rust
-pub async fn list_books_by_uuid_page(
-    &self,
-    uuids: &[String],
-    account_id: Option<&str>,
-    status: Option<&str>,
-    limit: u64,
-    offset: u64,
-) -> Result<BookPage>
-```
-
-Pages books whose uuid is in `uuids`, then applies account and status.
-
-`uuids` may hold every hit of a search; there is no cap. Lists longer than one `IN` list (64 uuids, fewer when the adapter's
-`maxPayloadBytes` or `maxBinds` holds fewer) are ordered from narrow
-`uuid, title` reads, then only the requested page is loaded. Shorter
-lists sort and page in SQL, in pieces that shrink when a result would
-exceed the guest byte cap. An empty uuid list is an empty page. Two
-stored uuids that differ only by ASCII case are different books and
-both hydrate.
-
-##### Errors
-
-Returns [`LibraryError::Other`](#libraryerror) when the read fails.
 
 #### LibraryStore::from_connection
 
@@ -15312,176 +14789,147 @@ Returns an error when the operation fails.
 #### LibraryStore::upsert_book
 
 ```rust
-pub async fn upsert_book(&self, book: &NewBook) -> Result<BookRecord>
+pub async fn upsert_book(&self, book: &NewBook) -> Result<AcquireTitle>
 ```
 
-Upsert a book from a library sync and resolve the listing it
-describes into works, expressions and editions.
+Records a title an account holds, as a library sync lists it: the
+listing it describes, resolved into works, expressions and editions,
+the account's holding of it, the listing's store text and the fields
+it offers its work.
 
-The listing is derived from the flat row ([`listing_from_book`](#listing_from_book));
-a scan that has the plugin's structured record uses
-[`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title) instead. A row that fails listing
-validation, or whose listing cannot be resolved, is still stored,
-and the listing is skipped with a warning.
+The listing is derived from `book` ([`listing_from_book`](#listing_from_book)); a scan
+that has the plugin's structured record uses
+[`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title) instead.
+
+##### Returns
+
+The account's title, as acquire reads it.
 
 ##### Errors
 
-Returns an error when the flat row cannot be read or written.
+Returns [`LibraryError::Invalid`](#libraryerror) when `book` has no plugin key or
+fails listing validation, [`LibraryError::NotFound`](#libraryerror) when the
+holding was removed again before it could be read back, or the
+database error.
 
 #### LibraryStore::update_book_metadata
 
 ```rust
-pub async fn update_book_metadata(&self, book: &NewBook) -> Result<BookRecord>
+pub async fn update_book_metadata(&self, book: &NewBook) -> Result<()>
 ```
 
-Updates a title's metadata: the flat row, and its listing, without
-asserting that its account holds it.
+Updates a title's store text and the fields it offers its work,
+without asserting that its account holds it.
 
 For metadata from elsewhere (enrichment), which must not bring back
-a holding a scan or a revoke removed.
+a holding a scan or a revoke removed: the listing is linked as a
+catalog listing when it is not stored yet.
 
 ##### Errors
 
-Returns an error when the flat row cannot be read or written; a
-listing that cannot be resolved is logged, not returned.
+Returns [`LibraryError::Invalid`](#libraryerror) when `book` has no plugin key or
+fails listing validation, or the database error.
 
 #### LibraryStore::upsert_scanned_title
 
 ```rust
-pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<BookRecord>
+pub async fn upsert_scanned_title(&self, title: &ScannedTitle) -> Result<AcquireTitle>
 ```
 
-Upsert a scanned title: the flat row, and the listing its plugin's
-structured record describes (or, without one, the listing the flat
-row describes).
+Records a scanned title: the listing its plugin's structured record
+describes (or, without one, the listing `title.book` describes), the
+account's holding of it, its store text and the fields it offers
+its work.
 
 The listing is filed under the book's plugin, whatever plugin key it
 carries.
 
+##### Returns
+
+The account's title, as acquire reads it.
+
 ##### Errors
 
-Returns an error when the flat row cannot be read or written; a
-listing that cannot be resolved is logged, not returned.
+As [`Self::upsert_book`](#librarystoreupsert_book).
 
 #### LibraryStore::upsert_scanned_titles
 
 ```rust
-pub async fn upsert_scanned_titles(
-    &self,
-    titles: &[ScannedTitle],
-) -> Result<Vec<BookRecord>>
+pub async fn upsert_scanned_titles(&self, titles: &[ScannedTitle]) -> Result<usize>
 ```
 
-Upsert a page of scanned titles: the flat rows as
-[`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title) writes each one, read and written per
-page in batches sized from the database plugin's limits, then every
-title's listing resolved as one page (`record_listing_page`),
-so titles the library already holds as the store describes them cost
-no reads of their own.
+Records a page of scanned titles as [`Self::upsert_scanned_title`](#librarystoreupsert_scanned_title)
+records each one, with every title's listing resolved as one page
+(`record_listing_page_with_details`), so titles the library already
+holds as the store describes them cost no reads of their own.
+
+A title that fails listing validation or cannot be resolved is
+logged and skipped, so one bad title does not stop the rest of a
+scan; the next scan tries it again.
 
 ##### Returns
 
-The stored flat rows, in the order of `titles`.
+How many of `titles` were recorded.
 
 ##### Errors
 
-Returns an error when the flat rows cannot be read or written; the
-batches before the failure stay written and no listing is resolved. A listing
-that cannot be resolved is logged, not returned.
+Returns [`LibraryError::Invalid`](#libraryerror) when a title has no plugin key;
+nothing is written then.
 
-#### LibraryStore::get_book_by_uuid
-
-```rust
-pub async fn get_book_by_uuid(&self, uuid: &str) -> Result<Option<BookRecord>>
-```
-
-Look up a book by its public `uuid`.
-
-##### Errors
-
-Returns an error when the operation fails.
-
-#### LibraryStore::get_book
+#### LibraryStore::held_title
 
 ```rust
-pub async fn get_book(
+pub async fn held_title(
     &self,
     title_id: &str,
     account_id: &str,
-) -> Result<Option<BookRecord>>
+) -> Result<Option<AcquireTitle>>
 ```
 
-Look up a book by uuid, product_id, asin, or isbn for the given account.
+The title `account_id` holds that `title_id` names: its holding id,
+the store's product id, or an ASIN or ISBN of its edition.
 
-Prefer exact uuid / product_id matches, then asin, then isbn. When two
-plugins own the same account id and both match at the same priority,
-the lookup fails closed; pass the plugin key through
-[`Self::get_book_in`](#librarystoreget_book_in) instead.
+Prefers a holding id match, then a product id, then an ASIN, then
+an ISBN. When two plugins hold the same account id and both match
+at the same priority, the lookup fails closed; pass the plugin key
+through [`Self::held_title_in`](#librarystoreheld_title_in) instead.
 
 ##### Errors
 
-Returns [`LibraryError::Conflict`](#libraryerror) when the match is ambiguous.
+Returns [`LibraryError::Conflict`](#libraryerror) when the match is ambiguous, or
+the database error.
 
-#### LibraryStore::get_book_in
+#### LibraryStore::held_title_in
 
 ```rust
-pub async fn get_book_in(
+pub async fn held_title_in(
     &self,
     plugin_key: Option<&str>,
     title_id: &str,
     account_id: &str,
-) -> Result<Option<BookRecord>>
+) -> Result<Option<AcquireTitle>>
 ```
 
-[`Self::get_book`](#librarystoreget_book) narrowed to one plugin key when `plugin_key` is set.
+[`Self::held_title`](#librarystoreheld_title) narrowed to one plugin key when `plugin_key` is
+set.
 
 ##### Errors
 
-Returns [`LibraryError::Conflict`](#libraryerror) when the match is ambiguous.
+Returns [`LibraryError::Conflict`](#libraryerror) when the match is ambiguous, or
+the database error.
 
-#### LibraryStore::find_books_by_isbn
-
-```rust
-pub async fn find_books_by_isbn(&self, isbn: &str) -> Result<Vec<BookRecord>>
-```
-
-All ownership rows sharing an ISBN (cross-account / cross-store enrichment).
-
-##### Errors
-
-Returns an error when the operation fails.
-
-#### LibraryStore::list_books
+#### LibraryStore::has_held_titles
 
 ```rust
-pub async fn list_books(&self, account_id: Option<&str>) -> Result<Vec<BookRecord>>
+pub async fn has_held_titles(&self) -> Result<bool>
 ```
 
-Lists books, optionally filtered to one `account_id`.
-
-##### Arguments
-
-* `account_id` - Store account id.
-
-##### Returns
-
-`Result<Vec<BookRecord>>` — `Ok` on success.
-
-##### Errors
-
-Returns a crate error when the database operation fails or inputs are invalid.
-
-#### LibraryStore::count_books
-
-```rust
-pub async fn count_books(&self, account_id: Option<&str>) -> Result<i64>
-```
-
-Count book rows (SQL `COUNT`, not a full fetch).
+True when any account holds a title (SQL `EXISTS`-style read, not a
+full fetch).
 
 A peer writer on the same SQLite file (TRUNCATE journal) can make this
 read return `SQLITE_BUSY`. The read is repeated until the lock clears
-or the attempt budget is spent. `account_id` is unchanged.
+or the attempt budget is spent.
 
 ##### Errors
 
@@ -15500,11 +14948,19 @@ pub async fn update_user_fields(
 ) -> Result<()>
 ```
 
-Update user-defined fields (tags, ratings, finished) without touching scan metadata.
+Records user-defined fields (tags, ratings, finished) for every
+person linked to the account that holds the title, on the title's
+work, without touching scan metadata.
+
+Each person keeps their own state, so members sharing the account
+do not overwrite one another's; an account no person is linked to
+records nothing.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns [`LibraryError::NotFound`](#libraryerror) when the account holds no title
+`title_id` names, [`LibraryError::Conflict`](#libraryerror) when the name is
+ambiguous, or the database error.
 
 #### LibraryStore::set_pdf_status
 
@@ -15518,27 +14974,22 @@ pub async fn set_pdf_status(
 ) -> Result<()>
 ```
 
-Updates companion PDF acquire status and optional storage key.
-
-The status is recorded on the title row and, when the title is linked
-to an edition, on that edition's `edition_acquisitions` row too. An
-edition whose PDF another existing title already acquired keeps that
-title's PDF state.
+Records the companion PDF state of the title `account_id` holds
+that `title_id` names (see [`Self::held_title`](#librarystoreheld_title)), as
+[`Self::set_holding_pdf_status`](#librarystoreset_holding_pdf_status) records it for that holding.
 
 ##### Arguments
 
-* `title_id` - Product id / ASIN / ISBN used as the title key.
+* `title_id` - Holding id, product id, ASIN or ISBN of the title.
 * `account_id` - Store account id.
-* `status` - Acquire or request status value.
+* `status` - The new PDF state.
 * `pdf_storage_key` - Object-storage key for the companion PDF.
-
-##### Returns
-
-`Result<()>` — `Ok` on success.
 
 ##### Errors
 
-Returns a crate error when the database operation fails or inputs are invalid.
+Returns [`LibraryError::NotFound`](#libraryerror) when the account holds no such
+title, [`LibraryError::Conflict`](#libraryerror) when the name is ambiguous, or the
+database error.
 
 #### LibraryStore::set_holding_pdf_status
 
@@ -15631,29 +15082,24 @@ pub async fn set_acquire_status(
 ) -> Result<()>
 ```
 
-Updates acquire status, storage key, and optional error message.
-
-The title's edition records the write too (`edition_acquisitions`,
-read with [`Self::edition_acquisition`](#librarystoreedition_acquisition)) in the same batch, and an
-acquired title's `book_acquired` event names that edition. An
-edition another title acquired keeps its state whatever this title
-writes, while that title stays in the library.
+Records the acquire state of the title `account_id` holds that
+`title_id` names (see [`Self::held_title`](#librarystoreheld_title)), as
+[`Self::set_holding_acquire_status`](#librarystoreset_holding_acquire_status) records it for that holding.
 
 ##### Arguments
 
-* `title_id` - Product id / ASIN / ISBN used as the title key.
+* `title_id` - Holding id, product id, ASIN or ISBN of the title.
 * `account_id` - Store account id.
 * `status` - Acquire or request status value.
 * `storage_key` - Object-storage key for the primary audio artifact.
 * `error_message` - Optional failure message to persist.
 
-##### Returns
-
-`Result<()>` — `Ok` on success.
-
 ##### Errors
 
-Returns a crate error when the database operation fails or inputs are invalid.
+Returns [`LibraryError::NotFound`](#libraryerror) when the account holds no such
+title (or it stops holding the edition before the write),
+[`LibraryError::Conflict`](#libraryerror) when the name is ambiguous, or the
+database error.
 
 #### LibraryStore::set_holding_acquire_status
 
@@ -15700,11 +15146,19 @@ pub async fn bulk_set_acquire_status(
 
 Bulk-update acquire status (classic `set-status --force`).
 
-When `asins` is non-empty, matches against uuid, product_id, isbn, or asin.
+Walks every account holding (only `account`'s when set) and writes
+`status` for each title, keeping its edition's storage key. When
+`asins` is non-empty, only titles whose holding id, product id, ISBN
+or ASIN one of them names (ignoring ASCII case) are written.
+
+##### Returns
+
+How many titles were written.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns the first read or write error; titles written before it
+stay written.
 
 #### LibraryStore::list_saved_filters
 
@@ -15783,64 +15237,26 @@ Deletes a saved filter by name.
 
 Returns a crate error when the database operation fails or inputs are invalid.
 
-#### LibraryStore::count_by_status
+#### LibraryStore::count_works_by_status
 
 ```rust
-pub async fn count_by_status(&self, status: AcquireStatus) -> Result<i64>
+pub async fn count_works_by_status(&self) -> Result<AcquireStatusCounts>
 ```
 
-Counts books whose acquire status equals `status`.
-
-A peer writer on the same SQLite file (TRUNCATE journal) can make this
-read return `SQLITE_BUSY`. The read is repeated until the lock clears
-or the attempt budget is spent. `status` is unchanged.
-
-##### Arguments
-
-* `status` - Acquire or request status value.
+Counts the library's held works per acquire status in one grouped
+read of the page index (`library_work_rows`), where each work has the
+furthest state any of its editions reached.
 
 ##### Returns
 
-`Result<i64>` — `Ok` on success.
+The count for each [`AcquireStatus`](#acquirestatus) and the total. A row with a
+status this build does not know is counted in the total only.
 
 ##### Errors
 
 Returns [`LibraryError::Orm`](#libraryerror) when the read fails for a reason other
 than file-lock contention, and [`LibraryError::Unavailable`](#libraryerror) when the
 lock is still held after the retries.
-
-#### LibraryStore::count_books_by_status
-
-```rust
-pub async fn count_books_by_status(&self) -> Result<AcquireStatusCounts>
-```
-
-Counts `books` rows per acquire status in one grouped read.
-
-##### Returns
-
-The count for each [`AcquireStatus`](#acquirestatus) and the table total. A row with
-a status this build does not know is counted in the total only.
-
-##### Errors
-
-Returns an error when the read fails.
-
-#### LibraryStore::update_catalog_enrichment
-
-```rust
-pub async fn update_catalog_enrichment(
-    &self,
-    book_uuid: &str,
-    fields: &CatalogEnrichmentFields,
-) -> Result<()>
-```
-
-Persist enrichment fields without touching scan / ownership columns.
-
-##### Errors
-
-Returns an error when the operation fails.
 
 #### LibraryStore::upsert_listening_progress
 
@@ -16327,7 +15743,6 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ```rust
 pub struct NewBook {
-    pub uuid: Option<String>,
     pub product_id: String,
     pub plugin_key: String,
     pub source: String,
@@ -16352,11 +15767,11 @@ pub struct NewBook {
 }
 ```
 
-Input for inserting / updating a book from sync.
+One title as a library sync (or an import) reports it: the account
+that holds it, the store listing it describes and the store's text.
 
 **Fields**
 
-- `uuid`: Stable UUID for this row (API / foreign-key identity).
 - `product_id`: Storefront product id (ASIN, ISBN, UUID, …).
 - `plugin_key`: Provenance-qualified PluginKey that owns the account. Forced by the
   scope on write.
@@ -16678,9 +16093,10 @@ One title a storefront scan reported.
 
 **Fields**
 
-- `book`: The flat row the library views read.
+- `book`: The scan's record of the title: the account, the store text and,
+  without [`Self::listing`](#scannedtitle), the listing it describes.
 - `listing`: The listing the plugin's structured record describes; `None` when
-  only the flat row is known.
+  only `book` is known.
 - `is_explicit`: Whether the store marks the edition explicit (adult) content:
   `Some(true)` explicit, `Some(false)` clean, `None` unknown. Kept on
   the listing (`store_listings.is_explicit`).
@@ -16902,7 +16318,7 @@ pub enum DbAtomicParams {
     ConfirmTotpEnrollment { user_id: i64, format: String, ciphertext: String, cipher_algorithm: Option<String>, cipher_nonce: Option<String>, kdf_algorithm: Option<String>, kdf_salt: Option<String>, kdf_m_cost: Option<i64>, kdf_t_cost: Option<i64>, kdf_p_cost: Option<i64>, created_at: String },
     DisableUserTotp { user_id: i64 },
     PublishDomainEvent { id: String, event_type: String, schema_version: i64, account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String, queue_name: String, content_type: String, deliver_after: String },
-    SetAcquireStatus { holding_id: String, edition_id: String, book_uuid: Option<String>, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
+    SetAcquireStatus { holding_id: String, edition_id: String, status: String, storage_key: Option<String>, error_message: Option<String>, event_id: String, event_type: String, schema_version: i64, event_account_id: String, source: String, correlation_id: String, causation_id: String, dedup_key: String, payload: String, ordering_key: String },
     DispatchEventDeliveries { event_id: String, subscribers_json: String, mark_dispatched: bool },
     ClaimNextEventDelivery { owner: String, lease_secs: i64, plugin_ids_json: String, max_in_flight: i64 },
     LinkListing(Box<ListingLinkParams>),
@@ -16988,8 +16404,6 @@ Named atomic library operation compiled by the host into a generic plan.
   - `holding_id`: The account holding (`holdings.id`) that wrote the state; every
     statement is gated on it still holding `edition_id`.
   - `edition_id`: The edition whose `edition_acquisitions` row is written.
-  - `book_uuid`: The flat `books` row mirrored until the table is dropped (book
-    model step 6); `None` when the holding has none.
   - `status`: Acquire status string (`acquired`, `downloading`, …).
   - `storage_key`: Object-storage key for the primary audio artifact.
   - `error_message`: Optional failure message.
@@ -17169,7 +16583,7 @@ such as `enrollment link`.
 **Variants**
 
 - `Account`: A store account, keyed by plugin and account id.
-- `Book`: A library title (`books` row).
+- `Book`: A library title: an account's holding of a store listing.
 - `Work`: A work of the library data model.
 - `Edition`: An edition of the library data model.
 - `Listing`: A store listing of the library data model (`store_listings`).
@@ -17360,7 +16774,7 @@ Acquire / download state for a title.
 - `Queued`: Title is waiting in the acquire queue.
 - `Downloading`: Acquire pipeline is actively downloading this title.
 - `Acquired`: Primary audio artifact is stored and library status is liberated.
-- `Error`: Last acquire attempt failed; see `error_message` on the book row.
+- `Error`: Last acquire attempt failed; see the edition's `error_message`.
 
 #### AcquireStatus::ALL
 
@@ -18829,8 +18243,7 @@ Who a recorded file key belongs to.
 
 **Variants**
 
-- `Edition`: An edition (`editions.id`): every account row that holds it shares
-  the file.
+- `Edition`: An edition (`editions.id`): every holding of it shares the file.
 
 #### FileOwner::kind
 
@@ -20598,14 +20011,6 @@ pub fn progress_cursor_token(cursor: &ProgressCursor) -> String
 The opaque token of a progress cursor: unpadded URL-safe Base64 of
 the row's change time, a `|`, and its edition id.
 
-### prefer_enrichment_source
-
-```rust
-pub fn prefer_enrichment_source(books: &[BookRecord]) -> Option<&BookRecord>
-```
-
-Prefer an Audible ownership row with the richest metadata for enrichment.
-
 ### plan_pass
 
 ```rust
@@ -21417,22 +20822,6 @@ pub const ACQUIRE_WRITER: &str = "acquire";
 ```
 
 The `writer` of a key an acquire run on this node wrote.
-
-### BOOK_PAGE_DEFAULT_LIMIT
-
-```rust
-pub const BOOK_PAGE_DEFAULT_LIMIT: u64 = 40;
-```
-
-Default page size for [`LibraryStore::list_books_filtered_page`](#librarystorelist_books_filtered_page).
-
-### BOOK_PAGE_MAX_LIMIT
-
-```rust
-pub const BOOK_PAGE_MAX_LIMIT: u64 = 500;
-```
-
-Upper clamp for a library book page. Matches the HTTP handler.
 
 ### COPY_RETRY_BASE_DELAY
 

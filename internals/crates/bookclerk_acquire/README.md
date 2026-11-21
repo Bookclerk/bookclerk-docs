@@ -51,7 +51,7 @@ content-source plugins; this crate never sees license keys. See
 | [`acquire_book`](#acquire_book) | function | Run the acquire pipeline for one book. |
 | [`acquire_book_indexed`](#acquire_book_indexed) | function | Acquire with an optional pre-built `StorageIndex` (avoids re-listing storage when liberating many titles). On success, newly written keys are inserted into the index so later books in the same batch can match them. |
 | [`acquire_pdf_only`](#acquire_pdf_only) | function | Download and store companion PDF only (classic `acquire --pdf`). |
-| [`call_number_of`](#call_number_of) | function | The short Bookclerk id of the edition `book_uuid` resolves to, for `<call number>` (`bookclerk_library::call_number`). |
+| [`call_number_of`](#call_number_of) | function | The short Bookclerk id of the edition account holding `holding_id` (`holdings.id`) sells, for `<call number>` (`bookclerk_library::call_number`). |
 | [`planned_storage_key`](#planned_storage_key) | function | Compute the storage key that would be used (for dry-run / set-status). |
 | [`planned_storage_key_for`](#planned_storage_key_for) | function | Planned audio storage key for `ext`, honoring folder/file templates and `save_podcasts_to_parent_folder`: the host key the templates build, translated by the request's destination (`AcquireRequest::destination_keys`). |
 | [`planned_storage_key_with_rules`](#planned_storage_key_with_rules) | function | The host key `planned_storage_key_for` translates, built with an explicit replacement-rule set and not translated (used by reconcile to probe wildcard patterns across sanitization profiles). |
@@ -1452,20 +1452,21 @@ Returns an error when the operation fails.
 ```rust
 pub async fn call_number_of(
     library: &LibraryStore,
-    book_uuid: &str,
+    holding_id: &str,
 ) -> Result<Option<String>>
 ```
 
-The short Bookclerk id of the edition `book_uuid` resolves to, for
-`<call number>` ([`bookclerk_library::call_number`](../bookclerk_library/README.md#call_number)).
+The short Bookclerk id of the edition account holding `holding_id`
+(`holdings.id`) sells, for `<call number>`
+([`bookclerk_library::call_number`](../bookclerk_library/README.md#call_number)).
 
 #### Returns
 
-`None` when the title has no edition.
+`None` when no account holding has that id.
 
 #### Errors
 
-Returns an error when the edition cannot be read.
+Returns an error when the holding cannot be read.
 
 ### planned_storage_key
 
