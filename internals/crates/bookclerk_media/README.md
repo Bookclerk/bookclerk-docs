@@ -31,6 +31,7 @@ the worker itself calls.
 | [`PcmFormat`](#pcmformat) | struct | The PCM layout of a decoded stream. |
 | [`ChapterAlignOptions`](#chapteralignoptions) | struct | Tunables for silence / speech-onset chapter snapping. |
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
+| [`OpusEncodeOptions`](#opusencodeoptions) | struct | How an Opus copy is encoded. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
 | [`MediaPool`](#mediapool) | struct | Bounded pool of confined media workers. |
 | [`MediaPoolConfig`](#mediapoolconfig) | struct | Pool sizing and isolation settings. |
@@ -52,6 +53,7 @@ the worker itself calls.
 | [`bookclerk_tool_tag`](#bookclerk_tool_tag) | function | `bookclerk <version>` string embedded in encoder / freeform TOOL tags. |
 | [`fixup_audiobook`](#fixup_audiobook) | function | Apply metadata tags, optional cover embed, and optional chapters. |
 | [`remux_trimmed`](#remux_trimmed) | function | Remux a progressive clear M4B/M4A with an optional media-time trim (chapter split). |
+| [`encode_to_opus_native`](#encode_to_opus_native) | function | Encodes the audio in `input` to an Ogg Opus file at `output`. |
 | [`package_m4b_from_mp3`](#package_m4b_from_mp3) | function | Decode/remux ordered parts → progressive M4B. |
 | [`package_m4b_from_pcm`](#package_m4b_from_pcm) | function | Encode interleaved PCM to AAC-LC and mux an M4B (test / internal helper). |
 | [`init_pool`](#init_pool) | function | Install the process-wide pool if none is installed yet. |
@@ -59,6 +61,7 @@ the worker itself calls.
 | [`pool`](#pool) | function | The process-wide pool, creating a default one if startup never installed it. |
 | [`replace_pool`](#replace_pool) | function | Swap in `pool`, returning the one it replaced. |
 | [`encode_to_mp3`](#encode_to_mp3) | function | Re-encode audio to MP3 via Symphonia + LAME (classic Libation `DecryptToLossy`). |
+| [`encode_to_opus`](#encode_to_opus) | function | Encode audio to Ogg Opus via Symphonia + libopus. |
 | [`remux_trimmed_async`](#remux_trimmed_async) | function | Copy/trim a progressive M4B/M4A into a new file (chapter split helper). |
 | [`align_chapter_starts_async`](#align_chapter_starts_async) | function | Snap chapter starts to spoken-title onsets by local waveform analysis. |
 | [`Result`](#result) | type alias | Result alias for media packaging and worker operations in this crate. |
@@ -66,6 +69,8 @@ the worker itself calls.
 | [`COVER_THREADS_ENV`](#cover_threads_env) | constant | Environment variable carrying the cover worker's decode thread count. |
 | [`COVER_WORKER_ARG`](#cover_worker_arg) | constant | First worker argument that selects the cover server. |
 | [`BOOKCLERK_TOOL_NAME`](#bookclerk_tool_name) | constant | Product / CLI name written into tool attribution tags. |
+| [`MAX_OPUS_KBPS`](#max_opus_kbps) | constant | Highest bitrate an Opus copy is encoded at, in kbit/s (per stream; the Opus limit for stereo). |
+| [`MIN_OPUS_KBPS`](#min_opus_kbps) | constant | Lowest bitrate an Opus copy is encoded at, in kbit/s. |
 | [`JAIL_BIN_ENV`](#jail_bin_env) | constant | Environment variable naming the jail launcher (shared with plugin hosts). |
 | [`JAIL_BIN_NAME`](#jail_bin_name) | constant | File name of the jail launcher when it sits beside the host / worker. |
 | [`WORKER_BIN_ENV`](#worker_bin_env) | constant | Environment variable naming the worker binary explicitly. |
@@ -234,6 +239,26 @@ Request to fix up audiobook metadata after decrypt / download.
 - `tool`: Tool attribution (`bookclerk 0.1.0`). Defaults to [`bookclerk_tool_tag`](#bookclerk_tool_tag) when `None`.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
+
+### OpusEncodeOptions
+
+```rust
+pub struct OpusEncodeOptions {
+    pub bitrate_kbps: u16,
+    pub mono: bool,
+}
+```
+
+How an Opus copy is encoded.
+
+**Fields**
+
+- `bitrate_kbps`: Target bitrate in kbit/s, between [`MIN_OPUS_KBPS`](#min_opus_kbps) and
+  [`MAX_OPUS_KBPS`](#max_opus_kbps) (others are clamped). Opus encodes in variable
+  bitrate around it.
+- `mono`: Mix down to one channel.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### PackageM4bRequest
 
@@ -577,6 +602,7 @@ Implements: `Debug`, `Display`, `Error`, `From<Error>`, `From<Mp4Error>`
 ```rust
 pub enum MediaJob {
     EncodeMp3 { input: PathBuf, output: PathBuf, lame: Box<LameConfig>, max_sample_rate: Option<u32>, max_output_bytes: Option<u64> },
+    EncodeOpus { input: PathBuf, output: PathBuf, options: OpusEncodeOptions, max_output_bytes: Option<u64> },
     RemuxTrimmed { input: PathBuf, output: PathBuf, trim: TrimRange },
     Fixup { request: Box<FixupRequest> },
     PackageM4b { request: Box<PackageM4bRequest> },
@@ -588,7 +614,7 @@ pub enum MediaJob {
 A single codec operation.
 
 These are the CPU-bound paths that decode or encode attacker-influenced
-audio through LAME and FDK-AAC, both of which are C libraries.
+audio through LAME, FDK-AAC and libopus, all of which are C libraries.
 
 **Variants**
 
@@ -597,6 +623,11 @@ audio through LAME and FDK-AAC, both of which are C libraries.
   - `output`: Absolute path where the MP3 should be written.
   - `lame`: LAME encoder knobs for this encode.
   - `max_sample_rate`: Optional ceiling for output sample rate in Hz (`None` = leave source).
+  - `max_output_bytes`: Hard cap on bytes written to `output`. `None` does not cap the file.
+- `EncodeOpus`: Encode audio to Ogg Opus via Symphonia and libopus.
+  - `input`: Absolute path of the source audio to encode.
+  - `output`: Absolute path where the `.opus` file should be written.
+  - `options`: Bitrate and channel choice.
   - `max_output_bytes`: Hard cap on bytes written to `output`. `None` does not cap the file.
 - `RemuxTrimmed`: Copy or trim a progressive M4B/M4A into a new file.
   - `input`: Absolute path of the source M4B/M4A.
@@ -956,6 +987,34 @@ Remux a progressive clear M4B/M4A with an optional media-time trim (chapter spli
 
 Returns an error when the operation fails.
 
+### encode_to_opus_native
+
+```rust
+pub fn encode_to_opus_native(
+    input: &Path,
+    output: &Path,
+    options: OpusEncodeOptions,
+    max_output_bytes: Option<u64>,
+) -> Result<MediaOutcome>
+```
+
+Encodes the audio in `input` to an Ogg Opus file at `output`.
+
+#### Arguments
+
+* `input` - Any file the decode front opens.
+* `output` - Where the `.opus` file is written (replaced if present).
+* `options` - Bitrate and channel choice.
+* `max_output_bytes` - Fail rather than write past this many bytes.
+
+#### Errors
+
+[`MediaError::InputMissing`](#mediaerror) when the input does not exist; what the
+decode front returns for audio it cannot open or decode;
+[`MediaError::Native`](#mediaerror) when libopus refuses a setting or a frame, the
+input decodes to nothing, or the byte budget would be passed; an I/O
+error when the output cannot be written.
+
 ### package_m4b_from_mp3
 
 ```rust
@@ -1078,6 +1137,26 @@ Runs in a confined media worker; see the module documentation.
 Returns [`MediaError::InputMissing`](#mediaerror) when `input` does not exist, and
 propagates encode and worker failures otherwise.
 
+### encode_to_opus
+
+```rust
+pub async fn encode_to_opus(
+    input: &Path,
+    output: &Path,
+    options: OpusEncodeOptions,
+    max_output_bytes: Option<u64>,
+) -> Result<MediaOutcome>
+```
+
+Encode audio to Ogg Opus via Symphonia + libopus.
+
+Runs in a confined media worker; see the module documentation.
+
+#### Errors
+
+Returns [`MediaError::InputMissing`](#mediaerror) when `input` does not exist, and
+propagates encode and worker failures otherwise.
+
 ### remux_trimmed_async
 
 ```rust
@@ -1160,6 +1239,23 @@ pub const BOOKCLERK_TOOL_NAME: &str = "bookclerk";
 ```
 
 Product / CLI name written into tool attribution tags.
+
+### MAX_OPUS_KBPS
+
+```rust
+pub const MAX_OPUS_KBPS: u16 = 510;
+```
+
+Highest bitrate an Opus copy is encoded at, in kbit/s (per stream; the
+Opus limit for stereo).
+
+### MIN_OPUS_KBPS
+
+```rust
+pub const MIN_OPUS_KBPS: u16 = 6;
+```
+
+Lowest bitrate an Opus copy is encoded at, in kbit/s.
 
 ### JAIL_BIN_ENV
 

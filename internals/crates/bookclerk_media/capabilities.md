@@ -6,7 +6,10 @@ Hosts ask here before handing the worker audio, instead of keeping their
 own list of formats: the acquire pipeline takes a library's copy from
 another store only when an output that re-encodes or repackages audio
 can read it. The answers follow the crate's decode front: the
-Symphonia features this crate enables, and FDK for every AAC profile.
+Symphonia features this crate enables, FDK for every AAC profile and
+libopus for Opus. The daemon serves the same report at
+`GET /api/status/media` and the CLI prints it with
+`bookclerk media capabilities`.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -15,7 +18,7 @@ Symphonia features this crate enables, and FDK for every AAC profile.
 | [`decodes`](#decodes) | function | True when the worker decodes audio encoded as `codec`. |
 | [`reads_content_type`](#reads_content_type) | function | True when the worker opens files of media type `content_type` (compared without case or parameters). |
 | [`capabilities`](#capabilities-1) | function | The report for this build. |
-| [`READABLE_CONTENT_TYPES`](#readable_content_types) | constant | Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF and Core Audio Format. The container is still sniffed from the bytes when the file is opened; this list only says which kinds are worth sending. |
+| [`READABLE_CONTENT_TYPES`](#readable_content_types) | constant | Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF, Core Audio Format and Ogg (Opus or Vorbis). The container is still sniffed from the bytes when the file is opened; this list only says which kinds are worth sending. |
 | [`OUTPUT_ENCODINGS`](#output_encodings) | constant | What the worker produces from decoded audio. |
 
 ## Structs
@@ -48,6 +51,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 pub enum OutputEncoding {
     AacLcM4b,
     Mp3,
+    Opus,
 }
 ```
 
@@ -57,6 +61,25 @@ One encoding the worker can write.
 
 - `AacLcM4b`: AAC-LC in an M4B, through FDK.
 - `Mp3`: MP3, through LAME.
+- `Opus`: Opus in an Ogg file, through libopus.
+
+#### OutputEncoding::name
+
+```rust
+pub fn name(self) -> &'static str
+```
+
+The output format id that selects this encoding (`m4b`, `mp3`,
+`opus`), as copy formats spell it.
+
+#### OutputEncoding::is_advanced
+
+```rust
+pub fn is_advanced(self) -> bool
+```
+
+True for an encoding settings pages offer only under their advanced
+options: one that fewer players open than M4B and MP3.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -71,7 +94,8 @@ pub fn decodes(codec: AudioCodec) -> bool
 True when the worker decodes audio encoded as `codec`.
 
 AAC covers every profile (LC, HE, HE v2, xHE). MP3 covers MPEG audio
-layers I and II too, which the tag reader reports as MP3.
+layers I and II too, which the tag reader reports as MP3. Opus covers
+mono and stereo streams; surround Opus (several streams) fails to open.
 
 ### reads_content_type
 
@@ -99,8 +123,8 @@ pub const READABLE_CONTENT_TYPES: &[&str] = _;
 ```
 
 Media types of whole files the worker opens: MP4 (`.m4a`/`.m4b`, AAC
-or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF and Core
-Audio Format. The container is still sniffed from the bytes when the
+or ALAC), MPEG audio layers I–III, FLAC, ADTS AAC, WAV, AIFF, Core
+Audio Format and Ogg (Opus or Vorbis). The container is still sniffed from the bytes when the
 file is opened; this list only says which kinds are worth sending.
 
 ### OUTPUT_ENCODINGS

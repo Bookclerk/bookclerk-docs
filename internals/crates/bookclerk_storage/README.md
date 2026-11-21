@@ -1701,7 +1701,7 @@ pub const AUDIO_EXTENSIONS: &[&str] = _;
 
 Audio extensions considered acquired media for storage matching.
 
-Includes default remux/encode outputs (`m4b` / `mp3` / `m4a`) plus plain
+Includes default remux/encode outputs (`m4b` / `mp3` / `m4a` / `opus`) plus plain
 passthrough containers Chirp / GraphicAudio may store under noop/`as_is`
 output (`flac` / `aac` / `ogg` / `oga`). Keep aligned with
 `bookclerk_source::media` sniffing and GraphicAudio ZIP audio filters.

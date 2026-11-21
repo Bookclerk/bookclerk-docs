@@ -1278,7 +1278,8 @@ Schema:
                       "m4b",
                       "mp3",
                       "mp3_chapters",
-                      "original"
+                      "original",
+                      "opus"
                     ]
                   },
                   "quality": {
@@ -1287,7 +1288,7 @@ Schema:
                     "examples": [
                       "64k-mono"
                     ],
-                    "pattern": "^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
+                    "pattern": "^(original|((16|24|32|48|64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
                   }
                 },
                 "additionalProperties": false
@@ -2045,7 +2046,8 @@ Schema:
                           "m4b",
                           "mp3",
                           "mp3_chapters",
-                          "original"
+                          "original",
+                          "opus"
                         ]
                       },
                       "quality": {
@@ -2054,7 +2056,7 @@ Schema:
                         "examples": [
                           "64k-mono"
                         ],
-                        "pattern": "^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
+                        "pattern": "^(original|((16|24|32|48|64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$"
                       }
                     },
                     "additionalProperties": false

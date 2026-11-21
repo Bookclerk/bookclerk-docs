@@ -273,6 +273,7 @@ Library and daemon snapshot.
 | Route | Summary |
 | --- | --- |
 | [`GET /api/status`](status.md#get-apistatus) | Returns library counts, listen addresses, storage backends, and whether operator auth is on. |
+| [`GET /api/status/media`](status.md#get-apistatusmedia) | Returns the audio codecs, file types and output encodings this build's media worker handles. |
 | [`GET /api/library-status`](status.md#get-apilibrary-status) | `GET /api/library-status`: library-wide health every node administrator may see (node counts, committed capacity, active jobs, delivery backlog), plus detail for the nodes the caller may see. |
 
 ### [Settings](settings.md)

@@ -41,6 +41,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`OutputConfig`](#outputconfig) | struct | Acquire packaging (`[output]`). |
 | [`CopyError`](#copyerror) | struct | Why a copy list was refused. |
 | [`CopyQuality`](#copyquality) | struct | The quality of one copy, by name. |
+| [`OpusSettings`](#opussettings) | struct | The Opus encoder settings one output is written with. |
 | [`OutputCopy`](#outputcopy) | struct | One copy of every acquired book: a format at a quality. |
 | [`PathLimits`](#pathlimits) | struct | Limits applied when hardening acquired storage keys. |
 | [`Paths`](#paths) | struct | Resolved filesystem locations for Bookclerk data. |
@@ -89,7 +90,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`CopyFormat`](#copyformat) | enum | The format of one copy of a book. |
 | [`PathLengthMeasure`](#pathlengthmeasure) | enum | How to measure path component length when truncating. |
 | [`ChapterJsonMode`](#chapterjsonmode) | enum | Whether / which chapter JSON sidecars to write beside acquired audio. |
-| [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` and `opus` parse but are not implemented yet: the acquire pipeline rejects a job that selects either before downloading. |
+| [`OutputFormat`](#outputformat) | enum | Post-download output formatting. Default is enriched M4B (tags + chapters). `split_mp3_by_size` parses but is not implemented yet: the acquire pipeline rejects a job that selects it before downloading. |
 | [`FilterEffect`](#filtereffect) | enum | Whether a `FilterRule` lets matching books in or keeps them out. |
 | [`FilterField`](#filterfield) | enum | The book field a `FilterRule` matches one value of. |
 | [`PlacementMediaKind`](#placementmediakind) | enum | What a book is, as a destination filter sees it. |
@@ -190,6 +191,8 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_EXTRA_COPIES`](#max_extra_copies) | constant | Most copies a library may keep beside its main output. |
 | [`MAX_QUALITY_BYTES`](#max_quality_bytes) | constant | Longest quality name, in bytes (`320k-mono` is nine). |
 | [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1) | constant | The constant bitrates, in kbit/s, the MP3 encoder writes. |
+| [`OPUS_KBPS`](#opus_kbps) | constant | The bitrates, in kbit/s, an Opus copy is named by. Opus encodes in variable bitrate around the target, so these are targets, not caps. |
+| [`OPUS_MAIN_KBPS`](#opus_main_kbps) | constant | The quality of the main output when it is Opus (`format = "opus"`): 64 kbit/s, keeping the source's channels up to stereo. Another bitrate takes an Opus extra copy beside an M4B main output. |
 | [`DEFAULT_MAX_FILENAME_LENGTH`](#default_max_filename_length) | constant | Classic Libation `LongPath.MaxFilenameLength` — per path component. |
 | [`MAX_HOST_KEY_BYTES`](#max_host_key_bytes) | constant | Largest host key, in UTF-8 bytes, including the destination's prefix: the S3 object-key limit, which file systems also accept. |
 | [`BOOKCLERK_CONFIG_ENV`](#bookclerk_config_env) | constant | Override for the config file path (`BOOKCLERK_CONFIG`). |
@@ -1548,10 +1551,12 @@ pub struct CopyQuality {
 The quality of one copy, by name.
 
 The names are `original` (the store's audio, re-packaged without
-re-encoding where the format allows), a constant bitrate such as `64k`
-(one of the encoder's rates, [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1)) or a LAME VBR quality
-`v0` to `v9`; either of the last two may end in `-mono` for a copy mixed
-down to one channel. Names are stored in lower case.
+re-encoding where the format allows), a bitrate such as `64k` (one of
+the MP3 encoder's constant rates, [`MP3_CBR_KBPS`](#mp3_cbr_kbps-1), or an Opus target,
+[`OPUS_KBPS`](#opus_kbps)) or a LAME VBR quality `v0` to `v9`; either of the last
+two may end in `-mono` for a copy mixed down to one channel. Which names
+suit which format is [`OutputCopy::validate`](#outputcopyvalidate)'s to say. Names are stored
+in lower case.
 
 #### CopyQuality::ORIGINAL
 
@@ -1578,6 +1583,23 @@ pub fn is_original(&self) -> bool
 
 True for `original`.
 
+#### CopyQuality::is_mono
+
+```rust
+pub fn is_mono(&self) -> bool
+```
+
+True for a copy mixed down to one channel (`-mono`).
+
+#### CopyQuality::kbps
+
+```rust
+pub fn kbps(&self) -> Option<u16>
+```
+
+The bitrate the name gives, in kbit/s; `None` for `original` and
+the VBR levels.
+
 #### CopyQuality::of_lame
 
 ```rust
@@ -1597,6 +1619,28 @@ constant bitrate, a VBR level a VBR quality, and `-mono` mixes down.
 `original` leaves `base` as it is.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `PartialSchema`, `Serialize`, `ToSchema`
+
+### OpusSettings
+
+```rust
+pub struct OpusSettings {
+    pub kbps: u16,
+    pub mono: bool,
+}
+```
+
+The Opus encoder settings one output is written with.
+
+The main output uses [`OPUS_MAIN_KBPS`](#opus_main_kbps), keeping the source's channels
+up to stereo; an Opus copy takes the
+bitrate and channel choice its quality names ([`OutputCopy::opus_kbps`](#outputcopyopus_kbps)).
+
+**Fields**
+
+- `kbps`: Target bitrate in kbit/s; Opus encodes in variable bitrate around it.
+- `mono`: When true, the encoder downmixes to one channel.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### OutputCopy
 
@@ -1621,9 +1665,9 @@ pub fn main(format: OutputFormat, lame: &LameConfig) -> Option<Self>
 ```
 
 The copy the library's main output makes: its format, with
-`original` quality for M4B and as-delivered output and the LAME
-settings' quality for MP3. `None` for an output format the acquire
-pipeline refuses.
+`original` quality for M4B and as-delivered output, the LAME
+settings' quality for MP3 and [`OPUS_MAIN_KBPS`](#opus_main_kbps) for Opus. `None`
+for an output format the acquire pipeline refuses.
 
 #### OutputCopy::validate
 
@@ -1633,11 +1677,21 @@ pub fn validate(&self) -> Result<(), CopyError>
 
 Checks that the quality suits the format: M4B and as-delivered
 copies are `original` only (the M4B is re-packaged, not
-re-encoded), and MP3 copies need an encoder setting.
+re-encoded), MP3 copies need one of the MP3 encoder's constant
+rates or a VBR quality, and Opus copies one of the Opus targets.
 
 ##### Errors
 
 Returns a [`CopyError`](#copyerror) naming the copy when they do not suit.
+
+#### OutputCopy::opus_kbps
+
+```rust
+pub fn opus_kbps(&self) -> Option<(u16, bool)>
+```
+
+The Opus encoder settings for an Opus copy at this quality; `None`
+for any other format or a quality without a bitrate.
 
 #### OutputCopy::label
 
@@ -3343,6 +3397,7 @@ pub enum CopyFormat {
     Mp3,
     Mp3Chapters,
     Original,
+    Opus,
 }
 ```
 
@@ -3354,11 +3409,13 @@ The format of one copy of a book.
 - `Mp3`: One MP3 (output format `single_mp3`).
 - `Mp3Chapters`: One MP3 per chapter (output format `split_mp3_by_chapter`).
 - `Original`: The audio as the store delivered it (output format `none`).
+- `Opus`: One Ogg Opus file with tags and chapters (output format `opus`), an
+  advanced format.
 
 #### CopyFormat::ALL
 
 ```rust
-pub const ALL: [Self; 4] = _
+pub const ALL: [Self; 5] = _
 ```
 
 Every format, in the order the names are documented.
@@ -3370,6 +3427,16 @@ pub fn as_str(self) -> &'static str
 ```
 
 The format's name in settings, filter rules and file rows.
+
+#### CopyFormat::is_advanced
+
+```rust
+pub fn is_advanced(self) -> bool
+```
+
+True for the advanced formats: ones players and servers read less
+widely than M4B and MP3, which settings screens list apart from the
+common ones.
 
 #### CopyFormat::parse
 
@@ -3385,8 +3452,8 @@ Reads a format name, without case; `None` for any other text.
 pub fn of_output(format: OutputFormat) -> Option<Self>
 ```
 
-The copy format an output format produces; `None` for the formats
-the acquire pipeline refuses (`split_mp3_by_size`, `opus`).
+The copy format an output format produces; `None` for the format
+the acquire pipeline refuses (`split_mp3_by_size`).
 
 #### CopyFormat::output
 
@@ -3402,8 +3469,8 @@ The output format the acquire pipeline packages this copy with.
 pub fn is_encoded(self) -> bool
 ```
 
-True for the formats the MP3 encoder writes, whose quality is an
-encoder setting rather than `original`.
+True for the formats an encoder writes (MP3, Opus), whose quality
+is an encoder setting rather than `original`.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
 
@@ -3497,8 +3564,8 @@ pub enum OutputFormat {
 ```
 
 Post-download output formatting. Default is enriched M4B (tags + chapters).
-`split_mp3_by_size` and `opus` parse but are not implemented yet: the
-acquire pipeline rejects a job that selects either before downloading.
+`split_mp3_by_size` parses but is not implemented yet: the acquire
+pipeline rejects a job that selects it before downloading.
 
 **Variants**
 
@@ -3507,8 +3574,8 @@ acquire pipeline rejects a job that selects either before downloading.
 - `SplitMp3ByChapter`: One MP3 per chapter (after M4B chapter split).
 - `SplitMp3BySize`: Split MP3 by target file size (see `split_mp3_max_mb`). Not yet
   implemented: the acquire pipeline rejects it before downloading.
-- `Opus`: Opus output. Not yet implemented: the acquire pipeline rejects it
-  before downloading.
+- `Opus`: One Ogg Opus file (libopus, 64 kbit/s, the source's channels up to
+  stereo) with Vorbis comment tags, chapters and cover.
 - `None`: Leave store-delivered media as-is (no remux/transcode/re-encode).
 
 #### OutputFormat::parse
@@ -3561,7 +3628,7 @@ True when store-delivered media is left as-is (no remux/transcode).
 pub fn wants_opus(self) -> bool
 ```
 
-True when Opus packaging is selected (not yet implemented).
+True when the format encodes to Ogg Opus.
 
 #### OutputFormat::prefers_m4b_container
 
@@ -5042,6 +5109,25 @@ The constant bitrates, in kbit/s, the MP3 encoder writes.
 `bookclerk-media` rounds any other requested bitrate up to the next of
 these (and anything above 256 to 320), so a quality name only offers
 these rates: the name then always describes the audio written.
+
+### OPUS_KBPS
+
+```rust
+pub const OPUS_KBPS: [u16; 7] = _;
+```
+
+The bitrates, in kbit/s, an Opus copy is named by. Opus encodes in
+variable bitrate around the target, so these are targets, not caps.
+
+### OPUS_MAIN_KBPS
+
+```rust
+pub const OPUS_MAIN_KBPS: u16 = 64;
+```
+
+The quality of the main output when it is Opus (`format = "opus"`):
+64 kbit/s, keeping the source's channels up to stereo. Another bitrate takes an Opus extra copy beside an
+M4B main output.
 
 ### DEFAULT_MAX_FILENAME_LENGTH
 

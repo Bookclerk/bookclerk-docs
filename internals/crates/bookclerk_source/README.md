@@ -792,6 +792,7 @@ pub struct DownloadOptions {
     pub download_speed_limit_kbps: u32,
     pub lame: LameConfig,
     pub copies: Vec<OutputCopy>,
+    pub opus: OpusSettings,
     pub max_sample_rate: Option<u32>,
     pub creation_time: FileTimestampMode,
     pub last_write_time: FileTimestampMode,
@@ -842,6 +843,8 @@ Audible’s download helpers can overlay the plugin bitrate for a single fetch.
 - `lame`: LAME encoder knobs used when packaging to MP3.
 - `copies`: Further copies of each book beside the one [`Self::format`](#downloadoptions) and
   [`Self::lame`](#downloadoptions) make (`output.copies`).
+- `opus`: Opus encoder settings used when [`Self::format`](#downloadoptions) is `opus`: the main
+  output's defaults, or an Opus copy's quality after [`Self::for_copy`](#downloadoptionsfor_copy).
 - `max_sample_rate`: Optional ceiling for output sample rate in Hz (`None` = leave source rate).
 - `creation_time`: How to set the file creation / birth timestamp after acquire.
 - `last_write_time`: How to set the file last-write / mtime after acquire.
@@ -939,7 +942,7 @@ True when store-delivered media is left as-is (no remux/transcode).
 pub fn wants_opus(&self) -> bool
 ```
 
-True when Opus packaging is selected (not yet implemented).
+True when the effective format encodes to Ogg Opus.
 
 #### DownloadOptions::wants_split_by_size
 

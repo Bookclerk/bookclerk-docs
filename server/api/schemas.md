@@ -719,15 +719,15 @@ allowed for an Administrator.
 
 The format of one copy of a book.
 
-Type: one of `m4b`, `mp3`, `mp3_chapters`, `original`
+Type: one of `m4b`, `mp3`, `mp3_chapters`, `original`, `opus`
 
 ## CopyQuality
 
-A copy's quality: `original`, a constant bitrate the MP3 encoder writes (`64k`, `96k`, `128k`, `160k`, `192k`, `256k` or `320k`), or a LAME VBR quality `v0` to `v9`; the last two may end in `-mono`.
+A copy's quality: `original`, a bitrate (for MP3 a constant rate the encoder writes: `64k`, `96k`, `128k`, `160k`, `192k`, `256k` or `320k`; for Opus a target: `16k`, `24k`, `32k`, `48k`, `64k`, `96k` or `128k`), or a LAME VBR quality `v0` to `v9` (MP3 only); the last two may end in `-mono`.
 
 Type: string
 
-Constraints: matches `^(original|((64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$`
+Constraints: matches `^(original|((16|24|32|48|64|96|128|160|192|256|320)k|v[0-9])(-mono)?)$`
 
 ## CreatePluginInstance
 
@@ -1582,6 +1582,14 @@ One file of a `POST /api/uploads` manifest, as sent.
 - `size` *integer (int64)*, **required** — Size in bytes. At least 0.
 - `sha256` *string or null* — Lower-case hex SHA-256 of the file, checked before it is stored.
 
+## MediaCapabilitiesJson
+
+The codecs, containers and encodings this build's media worker handles.
+
+- `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`).
+- `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters.
+- `encodes` *array of [`OutputEncodingJson`](#outputencodingjson)*, **required** — Encodings the worker writes.
+
 ## MediaKindJson
 
 Carrier of an edition (`editions.media_kind`).
@@ -2032,11 +2040,18 @@ Includes every field of [`DomainRevision`](#domainrevision).
 
 - `document` *[`OutputSettingsV1`](#outputsettingsv1)*, **required** — The settings at that revision (schema version 1).
 
+## OutputEncodingJson
+
+One encoding the media worker writes.
+
+- `name` *string*, **required** — The output format id that selects it (`m4b`, `mp3` or `opus`).
+- `advanced` *boolean*, **required** — True when settings offer it only under their advanced options, because fewer players open it than M4B and MP3.
+
 ## OutputFormat
 
 Post-download output formatting. Default is enriched M4B (tags + chapters).
-`split_mp3_by_size` and `opus` parse but are not implemented yet: the
-acquire pipeline rejects a job that selects either before downloading.
+`split_mp3_by_size` parses but is not implemented yet: the acquire
+pipeline rejects a job that selects it before downloading.
 
 Type: one of `enriched_m4b`, `single_mp3`, `split_mp3_by_chapter`, `split_mp3_by_size`, `opus`, `none`
 

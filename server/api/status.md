@@ -462,6 +462,334 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/status/media`
+
+Returns the audio codecs, file types and output encodings this build's
+media worker handles.
+
+**Access:** The operator, or a signed-in Administrator, Owner or user allowed to acquire.
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession`
+
+### Responses
+
+- `200` — What the media worker reads and writes. Body: [`MediaCapabilitiesJson`](schemas.md#mediacapabilitiesjson) (`application/json`)
+  - `decodes` *array of string*, **required** — Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`, `opus`, `vorbis`).
+  - `reads` *array of string*, **required** — Media types of files the worker opens, compared without case or parameters.
+  - `encodes` *array of [`OutputEncodingJson`](schemas.md#outputencodingjson)*, **required** — Encodings the worker writes.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/status/media' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/status/media' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/status/media",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/status/media", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/status/media")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: What the media worker reads and writes.
+
+```json
+{
+  "decodes": [
+    "aac",
+    "alac",
+    "flac",
+    "mp3",
+    "opus",
+    "vorbis"
+  ],
+  "reads": [
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/flac",
+    "audio/ogg"
+  ],
+  "encodes": [
+    {
+      "advanced": false,
+      "name": "m4b"
+    },
+    {
+      "advanced": false,
+      "name": "mp3"
+    },
+    {
+      "advanced": true,
+      "name": "opus"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The codecs, containers and encodings this build's media worker handles.",
+  "required": [
+    "decodes",
+    "reads",
+    "encodes"
+  ],
+  "properties": {
+    "decodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Audio codecs the worker decodes (`aac`, `alac`, `flac`, `mp3`,\n`opus`, `vorbis`).",
+      "example": [
+        "aac",
+        "alac",
+        "flac",
+        "mp3",
+        "opus",
+        "vorbis"
+      ]
+    },
+    "reads": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Media types of files the worker opens, compared without case or\nparameters.",
+      "example": [
+        "audio/mp4",
+        "audio/mpeg",
+        "audio/flac",
+        "audio/ogg"
+      ]
+    },
+    "encodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One encoding the media worker writes.",
+        "required": [
+          "name",
+          "advanced"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The output format id that selects it (`m4b`, `mp3` or `opus`).",
+            "example": "opus"
+          },
+          "advanced": {
+            "type": "boolean",
+            "description": "True when settings offer it only under their advanced options,\nbecause fewer players open it than M4B and MP3.",
+            "example": true
+          }
+        }
+      },
+      "description": "Encodings the worker writes.",
+      "example": [
+        {
+          "advanced": false,
+          "name": "m4b"
+        },
+        {
+          "advanced": false,
+          "name": "mp3"
+        },
+        {
+          "advanced": true,
+          "name": "opus"
+        }
+      ]
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/library-status`
 
 `GET /api/library-status`: library-wide health every node administrator

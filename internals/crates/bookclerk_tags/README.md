@@ -18,7 +18,8 @@ every record it gets back with [`TagRecord::validate`](#tagrecordvalidate).
 
 Supported containers: MP4 (`ilst` items, QuickTime chapter tracks and
 Nero `chpl`), MP3 (ID3v2 with `CHAP`, ID3v1, Xing/Info/VBRI frame counts)
-and FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`).
+FLAC (Vorbis comments, `PICTURE`, `STREAMINFO`) and Ogg Opus or Vorbis
+(comment header, `METADATA_BLOCK_PICTURE`, last granule position).
 
 | Item | Kind | Summary |
 | --- | --- | --- |
@@ -359,6 +360,7 @@ pub enum AudioCodec {
     Flac,
     Mp3,
     Opus,
+    Vorbis,
     Eac3,
     Ac4,
 }
@@ -376,9 +378,19 @@ edition (library data model ADR, section 3).
 - `Alac`: Apple Lossless (`alac` sample entry).
 - `Flac`: FLAC, in its own container or in MP4 (`fLaC` sample entry).
 - `Mp3`: MPEG audio layer I, II or III, lossy.
-- `Opus`: Opus in MP4 (`Opus` sample entry), lossy.
+- `Opus`: Opus, in Ogg or in MP4 (`Opus` sample entry), lossy.
+- `Vorbis`: Vorbis, in Ogg, lossy.
 - `Eac3`: Dolby Digital Plus (`ec-3` sample entry), lossy.
 - `Ac4`: Dolby AC-4 (`ac-4` sample entry), lossy.
+
+#### AudioCodec::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The codec's name as records and the web API spell it (`aac`,
+`opus`, `eac3`, ...), the same as its serialized form.
 
 #### AudioCodec::is_lossless
 
@@ -428,6 +440,7 @@ pub enum Container {
     Mp4,
     Mp3,
     Flac,
+    Ogg,
 }
 ```
 
@@ -440,6 +453,8 @@ The container formats the reader understands.
 - `Mp3`: MPEG audio (`.mp3`): an ID3v2 tag at the start, or failing that an
   ID3v1 tag at the end.
 - `Flac`: FLAC: Vorbis comments, pictures and `STREAMINFO`.
+- `Ogg`: Ogg (`.opus`, `.ogg`, `.oga`) holding Opus or Vorbis: the stream's
+  comment header and the last page's granule position.
 
 #### Container::content_type
 
