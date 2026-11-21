@@ -102,6 +102,16 @@ Union of `ENTRYPOINTS` wire names.
 
 ***
 
+### Explicitness
+
+```ts
+type Explicitness = typeof EXPLICITNESSS[number];
+```
+
+Union of `EXPLICITNESSS` wire names.
+
+***
+
 ### ExpressionKind
 
 ```ts
@@ -413,6 +423,19 @@ analogue). Each value is a capability the host calls over RPC; triggers on
 the default entrypoint (`event`, `job`) are declared separately.
 
 Ordinal-ordered `Entrypoint` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### EXPLICITNESSS
+
+```ts
+const EXPLICITNESSS: readonly ["unknown", "clean", "explicit"];
+```
+
+Whether an edition is marked as explicit (adult) content. A patron scope
+can hide explicit editions; `unknown` and `clean` editions stay visible.
+
+Ordinal-ordered `Explicitness` wire names (index = Cap'n Proto ordinal).
 
 ***
 
@@ -1091,7 +1114,7 @@ Ordinal-ordered `MediaKind` wire names (index = Cap'n Proto ordinal).
 ### METADATA\_FIELDS
 
 ```ts
-const METADATA_FIELDS: readonly ["title", "subtitle", "description", "publisher", "publishedAt", "language", "genres", "tags", "abridgement", "expressionKind", "identifiers", "credits", "series", "chapters", "duration"];
+const METADATA_FIELDS: readonly ["title", "subtitle", "description", "publisher", "publishedAt", "language", "genres", "tags", "abridgement", "expressionKind", "identifiers", "credits", "series", "chapters", "duration", "explicitness"];
 ```
 
 A field of a `MetadataFileRecord`. Dialects declare in the manifest which

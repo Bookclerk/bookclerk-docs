@@ -420,6 +420,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CatalogField`](#catalogfield) | constant | Catalog search facet restricting which field the query matches. |
 | [`PriceLookup`](#pricelookup) | constant | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
+| [`Explicitness`](#explicitness) | constant | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -4345,6 +4346,7 @@ editions, maps the record onto one flat library row.
 - `publishedAt`: Publication date as RFC 3339 when known. Omitted when absent (wire zero value).
 - `purchasedAt`: When the account bought or added the title, as RFC 3339, when known. Omitted when absent (wire zero value).
 - `categories`: Category / genre labels as a single string when known. Omitted when absent (wire zero value).
+- `explicitness`: Whether the storefront marks the edition explicit (adult) content.
 
 ### ScanPage
 
@@ -4699,6 +4701,7 @@ One catalog / candidate hit returned by `searchCatalog`,
 - `seriesEntries`: Series the work belongs to.
 - `parentProductId`: Product id of the parent podcast show, for a podcast episode. Omitted when absent (wire zero value).
 - `rankHint`: The storefront's own rank for this hit in `searchCatalog` results 1-based position in the store's ordering for the requested sort across all pages (page 2 of 20-hit pages starts at 21), or a store-wide popularity rank when the store has one. 0 means unranked. Catalog search merges stores by it for relevance and popularity sorts and puts unranked hits after ranked ones. Other catalog methods leave it 0. Omitted when absent (wire zero value).
+- `explicitness`: Whether the storefront marks the edition explicit (adult) content.
 
 ### CatalogHits
 
@@ -5883,6 +5886,7 @@ caps and refuses a record that states a field its dialect does not carry.
 - `seriesEntries`: Series the work belongs to.
 - `chapters`: Chapter layout in pre-order (see `MetadataChapter`); at most `maxMetadataFileChapters`, starts never decreasing.
 - `durationMs`: Running time in milliseconds. Omitted when absent (wire zero value).
+- `explicitness`: Whether the edition is explicit (adult) content; `unknown` when the file does not say.
 
 ### MetadataFileParseParams
 
@@ -8059,6 +8063,15 @@ Abridgement = Literal['unknown', 'unabridged', 'abridged']
 ```
 
 Whether an edition is abridged.
+
+### Explicitness
+
+```python
+Explicitness = Literal['unknown', 'clean', 'explicit']
+```
+
+Whether an edition is marked as explicit (adult) content. A patron scope
+can hide explicit editions; `unknown` and `clean` editions stay visible.
 
 ### MetadataField
 

@@ -725,7 +725,14 @@ card.
 
 - `library_id` *string*, **required** — The library to ask: one this install holds an active card for.
 - `work_id` *string*, **required** — The library's own work id: 1 to 64 ASCII letters, digits and `-`.
-- `node_id` *string or null* — The library's branch to ask, from the work's `available_through` there; absent asks the first branch that lists it.
+- `from` *[`ClerkRequestFrom`](#clerkrequestfrom)*, **required** — Where the copy comes from: the edition's `request.from` in the window books.
+- `node_id` *string or null* — The library's branch to ask, from the work's `available_through` there; absent asks the first branch that lists it. Only with `from` `branch`.
+
+## ClerkRequestFrom
+
+Where a clerk's request asks the library to get a copy from.
+
+Type: one of `branch`, `library`
 
 ## ClerkRequestSent
 
@@ -1210,6 +1217,20 @@ the metadata every domain response carries before its settings.
 - `updated_at` *string*, **required** — RFC 3339 time of the last write.
 - `updated_by` *string*, **required** — Audit identity of the last writer.
 
+## DownloadRequestBody
+
+`POST /api/download-requests` body: the work to download.
+
+- `work_id` *string*, **required** — This library's work id, as its window books and search name it.
+
+## DownloadRequestQueued
+
+`POST /api/download-requests` answer.
+
+- `job_id` *string*, **required** — The acquire job, as `/api/jobs` lists it.
+- `edition_id` *string*, **required** — The edition being downloaded.
+- `already_queued` *boolean*, **required** — `true` when a download of that edition was already waiting or running; `job_id` is that download.
+
 ## EditionJson
 
 One edition of a work.
@@ -1383,6 +1404,12 @@ Typed `[events]` document, schema version 1.
 - `retention_days` *integer (int64)*, **required** — Days to keep acked and rejected deliveries. At least 0.
 - `dead_letter_retention_days` *integer (int64)*, **required** — Days to keep dead-lettered deliveries. At least 0.
 - `concurrency` *integer (int32)*, **required** — Local delivery workers and the library in-flight cap. At least 0.
+
+## ExplicitContent
+
+Whether a patron sees books marked as explicit (adult) content.
+
+Type: one of `allow`, `hide`
 
 ## ExpressionKindJson
 
@@ -2849,6 +2876,7 @@ Type: one of `auto`, `windows`, `posix`, `s3`, `none`
 Which part of the library a patron sees.
 
 - `rules` *array of [`ScopeRule`](#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
+- `explicit` *[`ExplicitContent`](#explicitcontent)* — Whether books marked explicit are visible; left out means `allow`.
 
 ## Permissions
 
@@ -4999,7 +5027,7 @@ One edition in [`WindowBooks`], and the library that holds it.
 - `series_index` *string or null* — Position in the series, when known.
 - `length_minutes` *integer (int64) or null* — Length in minutes, when known.
 - `yours` *boolean*, **required** — True when this install's person holds it there through a store account of their own; false for a book only other people there hold.
-- `requestable_work` *string or null* — The library's own work id to ask it for this edition with (`POST /api/config/clerk/request`): set when this install holds a card for the library, the library holds no copy, and one of its branches lists it. Absent otherwise.
+- `request` *[`WindowRequestView`](#windowrequestview) or null* — How to ask the library for a copy of this edition (`POST /api/config/clerk/request`): set when this install holds a card for the library and the library holds no copy, while one of its branches lists it (`from` is `branch`) or one of its own store accounts holds it (`from` is `library`). Absent otherwise.
 
 ## WindowEntryView
 
@@ -5008,6 +5036,13 @@ One work in [`WindowBooks`]: every edition its libraries hold for the person.
 - `key` *string*, **required** — A key that stays the same while the entry's editions do.
 - `work_id` *string or null* — The work of this install's own library the entry was placed on, by identifier; absent when none was.
 - `editions` *array of [`WindowEditionView`](#windoweditionview)*, **required** — The editions, in library then store order; the first names the entry.
+
+## WindowRequestView
+
+How a clerk asks a library for a copy of one edition in [`WindowBooks`].
+
+- `work_id` *string*, **required** — The library's own work id to ask for.
+- `from` *[`ClerkRequestFrom`](#clerkrequestfrom)*, **required** — Where the copy would come from.
 
 ## WishlistPurchaseHint
 

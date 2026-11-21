@@ -17,6 +17,8 @@ Wire optionality follows the ABI convention: empty text / zero numbers mean
 | [`FetchConversionError`](#fetchconversionerror) | enum | Why a fetch the guest answered cannot become a host `PlainFetch`. |
 | [`abridgement_from_flag`](#abridgement_from_flag) | function | Tri-state abridgement flag ↔ the host's `Option<bool>`. |
 | [`abridgement_to_flag`](#abridgement_to_flag) | function | Host `Option<bool>` view of the wire tri-state abridgement flag. |
+| [`explicitness_from_flag`](#explicitness_from_flag) | function | Tri-state explicit flag ↔ the host's `Option<bool>`. |
+| [`explicitness_to_flag`](#explicitness_to_flag) | function | Host `Option<bool>` view of the wire tri-state explicit flag. |
 | [`catalog_field_to_abi`](#catalog_field_to_abi) | function | Wire facet for an optional host search field (`None` → `any`). |
 | [`catalog_field_from_abi`](#catalog_field_from_abi) | function | Host search field for a wire facet (`any` → `None`). |
 | [`expand_candidates_params`](#expand_candidates_params) | function | Builds `expandCandidates` params from a seed plus the result cap. |
@@ -68,6 +70,22 @@ pub fn abridgement_to_flag(abridgement: Abridgement) -> Option<bool>
 ```
 
 Host `Option<bool>` view of the wire tri-state abridgement flag.
+
+### explicitness_from_flag
+
+```rust
+pub fn explicitness_from_flag(is_explicit: Option<bool>) -> Explicitness
+```
+
+Tri-state explicit flag ↔ the host's `Option<bool>`.
+
+### explicitness_to_flag
+
+```rust
+pub fn explicitness_to_flag(explicitness: Explicitness) -> Option<bool>
+```
+
+Host `Option<bool>` view of the wire tri-state explicit flag.
 
 ### catalog_field_to_abi
 

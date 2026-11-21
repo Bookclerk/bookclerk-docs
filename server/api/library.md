@@ -18472,13 +18472,35 @@ Schema:
                   "description": "True when this install's person holds it there through a store\naccount of their own; false for a book only other people there\nhold.",
                   "example": true
                 },
-                "requestable_work": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "The library's own work id to ask it for this edition with\n(`POST /api/config/clerk/request`): set when this install holds a\ncard for the library, the library holds no copy, and one of its\nbranches lists it. Absent otherwise.",
-                  "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+                "request": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "description": "How to ask the library for a copy of this edition\n(`POST /api/config/clerk/request`): set when this install holds a\ncard for the library and the library holds no copy, while one of\nits branches lists it (`from` is `branch`) or one of its own store\naccounts holds it (`from` is `library`). Absent otherwise.",
+                      "required": [
+                        "work_id",
+                        "from"
+                      ],
+                      "properties": {
+                        "work_id": {
+                          "type": "string",
+                          "description": "The library's own work id to ask for.",
+                          "example": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"
+                        },
+                        "from": {
+                          "type": "string",
+                          "description": "Where the copy would come from.",
+                          "enum": [
+                            "branch",
+                            "library"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               }
             },

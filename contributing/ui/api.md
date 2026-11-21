@@ -3385,6 +3385,15 @@ Which part of the library a patron sees.
 
 #### Properties
 
+##### explicit?
+
+```ts
+explicit?: ExplicitContent;
+```
+
+Whether books a store or metadata file marks explicit are visible;
+left out means `allow`.
+
 ##### rules
 
 ```ts
@@ -7368,6 +7377,16 @@ type Entitlement = "purchase" | "plus" | "loan" | "free";
 ```
 
 How a holder came to hold a listing.
+
+***
+
+### ExplicitContent
+
+```ts
+type ExplicitContent = "allow" | "hide";
+```
+
+Whether a patron sees books marked as explicit content.
 
 ***
 

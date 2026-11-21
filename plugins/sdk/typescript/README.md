@@ -2473,6 +2473,12 @@ Re-exports [ExpandCandidatesParams](generated.md#expandcandidatesparams)
 
 ***
 
+### Explicitness
+
+Re-exports [Explicitness](abi.md#explicitness)
+
+***
+
 ### ExpressionKind
 
 Re-exports [ExpressionKind](abi.md#expressionkind)

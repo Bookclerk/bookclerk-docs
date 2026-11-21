@@ -247,6 +247,7 @@ Titles users have asked for.
 | [`DELETE /api/wishlist/{uuid}`](wishlist.md#delete-apiwishlistuuid) | Cancels an open wishlist item the caller owns; others get 403. |
 | [`GET /api/request-queue`](wishlist.md#get-apirequest-queue) | Reads the shared open-request queue from its stored ranking. |
 | [`POST /api/branch-requests`](wishlist.md#post-apibranch-requests) | Asks a branch for a book it listed. |
+| [`POST /api/download-requests`](wishlist.md#post-apidownload-requests) | Asks this library to download a book it holds but has no copy of. |
 
 ### [Jobs](jobs.md)
 
@@ -347,7 +348,7 @@ Live configuration domains and reloads.
 | [`POST /api/config/clerk/start`](configuration.md#post-apiconfigclerkstart) | `POST /api/config/clerk/start`. |
 | [`POST /api/config/clerk/callback`](configuration.md#post-apiconfigclerkcallback) | `POST /api/config/clerk/callback`: redeems the library's code with the sign-in's verifier, seals the card and starts reading the person's books. The pending sign-in is ended whatever the outcome; a failed one is started again. |
 | [`POST /api/config/clerk/sign-out`](configuration.md#post-apiconfigclerksign-out) | `POST /api/config/clerk/sign-out`: ends a library card at the library when it can be reached, then drops the card, the books read with it, and the library from the list here whatever the library answered. |
-| [`POST /api/config/clerk/request`](configuration.md#post-apiconfigclerkrequest) | `POST /api/config/clerk/request`: asks a library this install holds a card for to fetch a book from one of its branches, with the card. |
+| [`POST /api/config/clerk/request`](configuration.md#post-apiconfigclerkrequest) | `POST /api/config/clerk/request`: asks a library this install holds a card for, with the card, to get a copy of a book: from one of its branches (`from` `branch`) or by downloading it on one of its own store accounts (`from` `library`). |
 | [`GET /api/config/branch-enrollment`](configuration.md#get-apiconfigbranch-enrollment) | `GET /api/config/branch-enrollment`: whether branch nodes may enroll. |
 | [`PUT /api/config/branch-enrollment`](configuration.md#put-apiconfigbranch-enrollment) | `PUT /api/config/branch-enrollment`: turn branch enrollment on or off. The operator may always; a user only while the stored role is an active Owner. |
 | [`GET /api/config/master-key`](configuration.md#get-apiconfigmaster-key) | `GET /api/config/master-key`. |

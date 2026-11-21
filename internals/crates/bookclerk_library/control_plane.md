@@ -59,6 +59,9 @@ See `docs/adr/control-plane.md`.
 | [`VerifiedLibraryOwner`](#verifiedlibraryowner) | struct | Proof that a user was an active Owner when the write was authorized. |
 | [`VerifiedNodeOwner`](#verifiednodeowner) | struct | Proof that a user owned a node when the write was authorized. |
 | [`VerifiedPatronAdministrator`](#verifiedpatronadministrator) | struct | Proof that a user was an active Owner or Administrator when a write of the library's patron defaults was authorized. |
+| [`DownloadRequestAsk`](#downloadrequestask) | struct | A validated `DownloadRequestBody`: the work id trimmed and well formed. |
+| [`DownloadRequestBody`](#downloadrequestbody) | struct | `POST /api/download-requests` body: the work to download. |
+| [`DownloadRequestPlan`](#downloadrequestplan) | struct | What a download request for a work fetches. |
 | [`BranchEnrollmentSettings`](#branchenrollmentsettings) | struct | The branch-enrollment switch as stored, or its default when no document was ever written. |
 | [`BranchEnrollmentSettingsV1`](#branchenrollmentsettingsv1) | struct | Typed `core.branch_enrollment` document, schema version 1. |
 | [`EnrolledNode`](#enrollednode) | struct | Result of a successful redeem. |
@@ -205,6 +208,7 @@ See `docs/adr/control-plane.md`.
 | [`MemberControl`](#membercontrol) | enum | One thing a patron may be allowed or refused. |
 | [`NodeMessage`](#nodemessage) | enum | One message on a `node.<node_id>` queue. The body is the JSON of this enum (`{"type": "deployment.changed", ...}`). |
 | [`OutputReplace`](#outputreplace) | enum | Outcome of `replace_output`. |
+| [`ExplicitContent`](#explicitcontent) | enum | Whether a patron sees books marked as explicit (adult) content. |
 | [`RuleEffect`](#ruleeffect) | enum | Whether a `ScopeRule` lets matching books in or keeps them out. |
 | [`ScopeField`](#scopefield) | enum | The book field a `ScopeRule` matches one value of. |
 | [`PlacementWrite`](#placementwrite) | enum | Outcome of `put_plugin_placement`. |
@@ -338,6 +342,8 @@ See `docs/adr/control-plane.md`.
 | [`set_destination_filter`](#set_destination_filter) | function | Replaces one destination's filter under compare-and-swap, creating the document when absent and retrying a few times on a concurrent edit. |
 | [`audit_count`](#audit_count) | function | Counts audit rows for one namespace. |
 | [`change_count`](#change_count) | function | Counts committed change notices for one namespace. |
+| [`parse_download_request`](#parse_download_request) | function | Parses and validates a `POST /api/download-requests` body from its raw bytes, sans IO, the way the route reads it: JSON into `DownloadRequestBody`, then `DownloadRequestBody::validate`. |
+| [`plan_download_request`](#plan_download_request) | function | Plans a download request for `work_id`. |
 | [`authorized_enrollment_link`](#authorized_enrollment_link) | function | The link a branch or shared branch sign-in redeems through: its id and secret are derived from the authorization code and the PKCE verifier, so a retry of the same exchange (same code, verifier and keys) finds the same link and answers from its receipt, and a wrong verifier can never redeem it. |
 | [`check_redeem_request`](#check_redeem_request) | function | Checks what a redeem would refuse as malformed before anything is written: its keys (canonical Curve25519 points) and `software_version`. A sign-in's redeem runs this before it spends its code, so a malformed request leaves the code for a corrected retry. |
 | [`enrollment_link_brings_accounts`](#enrollment_link_brings_accounts) | function | Whether the user who approved the sign-in behind `link_id` chose to bring their store connections to the branch (`record_authorized_enrollment_link`). `false` for an unknown link and for every minted invite. |
@@ -717,6 +723,7 @@ See `docs/adr/control-plane.md`.
 | [`OUTPUT_SCHEMA_VERSION`](#output_schema_version) | constant | Schema version of `OutputSettingsV1`. |
 | [`OUTPUT_SETTING_ALIASES`](#output_setting_aliases) | constant | Write-only aliases `OutputSettingsV1::set` also accepts. |
 | [`OUTPUT_SETTING_KEYS`](#output_setting_keys) | constant | Every `output.*` key `OutputSettingsV1::get` and `OutputSettingsV1::set` accept, in display order. |
+| [`EXPLICIT_FACET_KEY`](#explicit_facet_key) | constant | The page index value a work marked explicit carries under `WorkFacet::Explicit`. |
 | [`MAX_SCOPE_JSON_BYTES`](#max_scope_json_bytes) | constant | Largest scope as compact JSON, in bytes: one cell of the smallest reply the host accepts from a database plugin (`HOST_MIN_CELL_BYTES`), so a stored scope can be read back on every supported database. Sixteen rules fit when their values are short. |
 | [`MAX_SCOPE_RULES`](#max_scope_rules) | constant | Most rules one scope may hold. |
 | [`MAX_SCOPE_VALUE_BYTES`](#max_scope_value_bytes) | constant | Longest rule value, in UTF-8 bytes. |
@@ -2153,6 +2160,67 @@ pub fn user_id(&self) -> i64
 ```
 
 The user's id.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DownloadRequestAsk
+
+```rust
+pub struct DownloadRequestAsk {
+    pub work_id: String,
+}
+```
+
+A validated [`DownloadRequestBody`]: the work id trimmed and well
+formed.
+
+**Fields**
+
+- `work_id`: The work id: 1 to 64 ASCII letters, digits and `-`.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### DownloadRequestBody
+
+```rust
+pub struct DownloadRequestBody {
+    /* private fields */
+}
+```
+
+`POST /api/download-requests` body: the work to download.
+
+#### DownloadRequestBody::validate
+
+```rust
+pub fn validate(self) -> Result<DownloadRequestAsk>
+```
+
+Checks the body: a well-formed work id (with surrounding whitespace
+removed).
+
+##### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for a malformed work id.
+
+Implements: `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### DownloadRequestPlan
+
+```rust
+pub struct DownloadRequestPlan {
+    pub edition_id: String,
+    pub title: String,
+}
+```
+
+What a download request for a work fetches.
+
+**Fields**
+
+- `edition_id`: The edition to download (`editions.id`).
+- `title`: The acquire job's title: one account holding of that edition
+  (`holdings.id`).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -4407,6 +4475,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 ```rust
 pub struct PatronScope {
     pub rules: Vec<ScopeRule>,
+    pub explicit: ExplicitContent,
 }
 ```
 
@@ -4416,6 +4485,7 @@ Which part of the library a patron sees.
 
 - `rules`: Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means
   every book is visible.
+- `explicit`: Whether books marked explicit are visible; left out means `allow`.
 
 #### PatronScope::unrestricted
 
@@ -4431,7 +4501,8 @@ A scope that restricts nothing: no rules.
 pub fn sees_everything(&self) -> bool
 ```
 
-True when the scope hides no book.
+True when the scope hides no book: no rules, and explicit books
+allowed.
 
 #### PatronScope::facet_keys
 
@@ -4440,7 +4511,8 @@ pub fn facet_keys(&self, effect: RuleEffect) -> Vec<(WorkFacet, String)>
 ```
 
 The rules with the given effect, as `(facet, facet key)` pairs for
-the page index.
+the page index. Hiding explicit books adds an exclude pair on
+[`WorkFacet::Explicit`](README.md#workfacet).
 
 #### PatronScope::validate
 
@@ -7167,6 +7239,34 @@ Outcome of [`replace_output`](#replace_output).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### ExplicitContent
+
+```rust
+pub enum ExplicitContent {
+    Allow,
+    Hide,
+}
+```
+
+Whether a patron sees books marked as explicit (adult) content.
+
+**Variants**
+
+- `Allow`: Explicit books are visible (the default: explicit flags are
+  incomplete, so hiding is a choice an Administrator makes).
+- `Hide`: Books a store or metadata file marks explicit are hidden, whatever
+  the include rules say; books with no flag stay visible.
+
+#### ExplicitContent::is_allow
+
+```rust
+pub fn is_allow(&self) -> bool
+```
+
+True for [`Self::Allow`](#explicitcontent), which a stored scope leaves out.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`, `ToSchema`
+
 ### RuleEffect
 
 ```rust
@@ -9872,6 +9972,51 @@ Counts committed change notices for one namespace.
 #### Errors
 
 Returns an error when the read fails.
+
+### parse_download_request
+
+```rust
+pub fn parse_download_request(body: &[u8]) -> Result<DownloadRequestAsk>
+```
+
+Parses and validates a `POST /api/download-requests` body from its raw
+bytes, sans IO, the way the route reads it: JSON into
+[`DownloadRequestBody`](#downloadrequestbody), then [`DownloadRequestBody::validate`](#downloadrequestbodyvalidate).
+
+#### Errors
+
+Returns [`LibraryError::Invalid`](README.md#libraryerror) for bytes that are not the body's JSON
+shape (unknown or repeated fields, wrong types, a missing `work_id`) or a
+malformed work id.
+
+### plan_download_request
+
+```rust
+pub async fn plan_download_request(
+    store: &LibraryStore,
+    work_id: &str,
+) -> Result<DownloadRequestPlan>
+```
+
+Plans a download request for `work_id`.
+
+The work's editions are read in edition id order; the first one a store
+account of this library holds is downloaded, through the account
+holding [`super::acquire_titles_of_editions`](#acquire_titles_of_editions) picks for it. The
+request is the library's own download, so any of its accounts may
+serve it, as for an acquire the operator starts.
+
+#### Arguments
+
+* `work_id` - This library's work.
+
+#### Errors
+
+- [`LibraryError::NotFound`](README.md#libraryerror) when the work has no edition, or none on a
+  store account of this library.
+- [`LibraryError::Conflict`](README.md#libraryerror) when the library already has a copy of an
+  edition of the work (the patron can take that one).
+- [`LibraryError::Orm`](README.md#libraryerror) when a read fails.
 
 ### authorized_enrollment_link
 
@@ -16169,6 +16314,15 @@ pub const OUTPUT_SETTING_KEYS: &[&str] = _;
 
 Every `output.*` key [`OutputSettingsV1::get`](#outputsettingsv1get) and [`OutputSettingsV1::set`](#outputsettingsv1set)
 accept, in display order.
+
+### EXPLICIT_FACET_KEY
+
+```rust
+pub const EXPLICIT_FACET_KEY: &str = "explicit";
+```
+
+The page index value a work marked explicit carries under
+[`WorkFacet::Explicit`](README.md#workfacet).
 
 ### MAX_SCOPE_JSON_BYTES
 

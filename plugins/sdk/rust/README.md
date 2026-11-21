@@ -274,6 +274,7 @@ submodules unless you need module-level docs.
 - [`protocol::CreditRole`](../../../internals/crates/bookclerk_plugin_abi/generated.md#creditrole)
 - [`protocol::EventPollResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#eventpollresult)
 - [`protocol::ExpandCandidatesParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#expandcandidatesparams)
+- [`protocol::Explicitness`](../../../internals/crates/bookclerk_plugin_abi/generated.md#explicitness)
 - [`protocol::ExpressionKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#expressionkind)
 - [`protocol::ExternalUser`](../../../internals/crates/bookclerk_plugin_abi/generated.md#externaluser)
 - [`protocol::FetchOptions`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchoptions)

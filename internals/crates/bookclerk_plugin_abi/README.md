@@ -523,6 +523,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::CatalogField`](generated.md#catalogfield)
 - [`generated::PriceLookup`](generated.md#pricelookup)
 - [`generated::Abridgement`](generated.md#abridgement)
+- [`generated::Explicitness`](generated.md#explicitness)
 - [`generated::MetadataField`](generated.md#metadatafield)
 - [`generated::NotificationSeverity`](generated.md#notificationseverity)
 - [`generated::NotificationAudience`](generated.md#notificationaudience)

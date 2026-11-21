@@ -50,6 +50,7 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::CreditRole`](../../../internals/crates/bookclerk_plugin_abi/generated.md#creditrole)
 - [`bookclerk_plugin_abi::EventPollResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#eventpollresult)
 - [`bookclerk_plugin_abi::ExpandCandidatesParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#expandcandidatesparams)
+- [`bookclerk_plugin_abi::Explicitness`](../../../internals/crates/bookclerk_plugin_abi/generated.md#explicitness)
 - [`bookclerk_plugin_abi::ExpressionKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#expressionkind)
 - [`bookclerk_plugin_abi::ExternalUser`](../../../internals/crates/bookclerk_plugin_abi/generated.md#externaluser)
 - [`bookclerk_plugin_abi::FetchOptions`](../../../internals/crates/bookclerk_plugin_abi/generated.md#fetchoptions)

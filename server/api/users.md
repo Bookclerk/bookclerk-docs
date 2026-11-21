@@ -1967,7 +1967,8 @@ Status `200`: The default scope.
         "value": "Kids",
         "effect": "include"
       }
-    ]
+    ],
+    "explicit": "allow"
   }
 }
 ```
@@ -2027,6 +2028,14 @@ Schema:
           },
           "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
           "maxItems": 16
+        },
+        "explicit": {
+          "type": "string",
+          "description": "Whether books marked explicit are visible; left out means `allow`.",
+          "enum": [
+            "allow",
+            "hide"
+          ]
         }
       },
       "additionalProperties": false
@@ -2183,6 +2192,7 @@ scope follows the change at once.
 `application/json`: [`PatronScope`](schemas.md#patronscope)
 
 - `rules` *array of [`ScopeRule`](schemas.md#scoperule)* — Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means every book is visible. At most 16 items.
+- `explicit` *[`ExplicitContent`](schemas.md#explicitcontent)* — Whether books marked explicit are visible; left out means `allow`.
 
 ### Responses
 
@@ -2268,7 +2278,8 @@ Status `200`: The default scope after the change.
         "value": "Kids",
         "effect": "include"
       }
-    ]
+    ],
+    "explicit": "allow"
   }
 }
 ```
@@ -2328,6 +2339,14 @@ Schema:
           },
           "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
           "maxItems": 16
+        },
+        "explicit": {
+          "type": "string",
+          "description": "Whether books marked explicit are visible; left out means `allow`.",
+          "enum": [
+            "allow",
+            "hide"
+          ]
         }
       },
       "additionalProperties": false
@@ -2630,7 +2649,8 @@ Status `200`: The patron's scope.
         "value": "Kids",
         "effect": "include"
       }
-    ]
+    ],
+    "explicit": "allow"
   },
   "own": false,
   "applies": true
@@ -2701,6 +2721,14 @@ Schema:
           },
           "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
           "maxItems": 16
+        },
+        "explicit": {
+          "type": "string",
+          "description": "Whether books marked explicit are visible; left out means `allow`.",
+          "enum": [
+            "allow",
+            "hide"
+          ]
         }
       },
       "additionalProperties": false
@@ -2991,7 +3019,8 @@ Status `200`: The patron's scope after the change.
         "value": "Kids",
         "effect": "include"
       }
-    ]
+    ],
+    "explicit": "allow"
   },
   "own": false,
   "applies": true
@@ -3062,6 +3091,14 @@ Schema:
           },
           "description": "Visibility rules, at most 16 and 1,024 bytes as JSON. Empty means\nevery book is visible.",
           "maxItems": 16
+        },
+        "explicit": {
+          "type": "string",
+          "description": "Whether books marked explicit are visible; left out means `allow`.",
+          "enum": [
+            "allow",
+            "hide"
+          ]
         }
       },
       "additionalProperties": false

@@ -836,6 +836,14 @@ description?: string;
 Long description / blurb when fetched.
 Omitted when absent (wire zero value).
 
+##### explicitness
+
+```ts
+explicitness: "unknown" | "clean" | "explicit";
+```
+
+Whether the storefront marks the edition explicit (adult) content.
+
 ##### expressionKind
 
 ```ts
@@ -5867,6 +5875,15 @@ durationMs?: number;
 Running time in milliseconds.
 Omitted when absent (wire zero value).
 
+##### explicitness
+
+```ts
+explicitness: "unknown" | "clean" | "explicit";
+```
+
+Whether the edition is explicit (adult) content; `unknown` when the
+file does not say.
+
 ##### expressionKind
 
 ```ts
@@ -5924,7 +5941,8 @@ present: (
   | "identifiers"
   | "credits"
   | "chapters"
-  | "duration")[];
+  | "duration"
+  | "explicitness")[];
 ```
 
 Fields the file states, each at most once; at most the fields the
@@ -6053,7 +6071,8 @@ fields: (
   | "identifiers"
   | "credits"
   | "chapters"
-  | "duration")[];
+  | "duration"
+  | "explicitness")[];
 ```
 
 Fields to set, each at most once and all declared by the dialect. A
@@ -9348,6 +9367,14 @@ credits: Credit[];
 
 Credited contributors in billing order.
 
+##### explicitness
+
+```ts
+explicitness: "unknown" | "clean" | "explicit";
+```
+
+Whether the storefront marks the edition explicit (adult) content.
+
 ##### expressionKind
 
 ```ts
@@ -12164,6 +12191,12 @@ Re-exports [DbType](abi.md#dbtype)
 ### Entrypoint
 
 Re-exports [Entrypoint](abi.md#entrypoint)
+
+***
+
+### Explicitness
+
+Re-exports [Explicitness](abi.md#explicitness)
 
 ***
 

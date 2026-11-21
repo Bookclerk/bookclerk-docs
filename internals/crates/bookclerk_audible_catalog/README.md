@@ -76,6 +76,7 @@ pub struct CatalogProduct {
     pub price_label: Option<String>,
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
+    pub is_explicit: Option<bool>,
 }
 ```
 
@@ -111,6 +112,8 @@ One Audible catalog product (public search hit).
 - `price_label`: Human-readable price string from the storefront (e.g. `$14.95`).
 - `rating_overall`: Overall community rating when the `rating` response group is present.
 - `rating_count`: Count of star ratings (`rating.num_ratings`) when present.
+- `is_explicit`: Audible's adult flag (`is_adult_product`, in `product_attrs`):
+  `Some(true)` for explicit content, `None` when the reply omits it.
 
 Implements: `Clone`, `Debug`, `PartialEq`
 

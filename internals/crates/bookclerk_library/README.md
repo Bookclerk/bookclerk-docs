@@ -4748,6 +4748,7 @@ pub struct ListingDetail {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
+    pub is_explicit: Option<bool>,
 }
 ```
 
@@ -4775,6 +4776,7 @@ nothing matches on them.
 - `rating_overall`: Community rating (0 to 5).
 - `rating_count`: How many ratings back the rating.
 - `is_abridged`: Abridged (`true`), unabridged (`false`) or unknown.
+- `is_explicit`: Explicit (adult) content (`true`), clean (`false`) or unknown.
 
 #### ListingDetail::of_book
 
@@ -16093,6 +16095,7 @@ Implements: `Clone`, `Debug`
 pub struct ScannedTitle {
     pub book: NewBook,
     pub listing: Option<Listing>,
+    pub is_explicit: Option<bool>,
 }
 ```
 
@@ -16103,6 +16106,9 @@ One title a storefront scan reported.
 - `book`: The flat row the library views read.
 - `listing`: The listing the plugin's structured record describes; `None` when
   only the flat row is known.
+- `is_explicit`: Whether the store marks the edition explicit (adult) content:
+  `Some(true)` explicit, `Some(false)` clean, `None` unknown. Kept on
+  the listing (`store_listings.is_explicit`).
 
 Implements: `Clone`, `Debug`, `From<NewBook>`
 
@@ -17388,6 +17394,7 @@ pub enum WorkFacet {
     Source,
     Tag,
     Collection,
+    Explicit,
 }
 ```
 
@@ -17404,11 +17411,14 @@ A filter value list of the page index (`library_work_facets`).
 - `Tag`: Library tags (`work_tags`): set by an Administrator or read from a
   sidecar, the same for everyone.
 - `Collection`: Collections (`core.collections`) one of the work's files is in.
+- `Explicit`: Whether a store marks one of the work's listings explicit (adult)
+  content: the single value `explicit`, which a patron scope that
+  hides explicit books excludes. Not offered as a Library filter.
 
 #### WorkFacet::ALL
 
 ```rust
-pub const ALL: [Self; 8] = _
+pub const ALL: [Self; 9] = _
 ```
 
 Every facet, in the order a work's values are written.

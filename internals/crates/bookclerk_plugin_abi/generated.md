@@ -132,6 +132,7 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`CatalogField`](#catalogfield) | enum | Catalog search facet restricting which field the query matches. |
 | [`PriceLookup`](#pricelookup) | enum | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
+| [`Explicitness`](#explicitness) | enum | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -1084,6 +1085,7 @@ pub struct ScanBook {
     pub published_at: Option<String>,
     pub purchased_at: Option<String>,
     pub categories: Option<String>,
+    pub explicitness: Explicitness,
 }
 ```
 
@@ -1121,6 +1123,7 @@ editions, maps the record onto one flat library row.
   `None` when absent (wire zero value).
 - `categories`: Category / genre labels as a single string when known.
   `None` when absent (wire zero value).
+- `explicitness`: Whether the storefront marks the edition explicit (adult) content.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1533,6 +1536,7 @@ pub struct CatalogHit {
     pub series_entries: Vec<SeriesEntry>,
     pub parent_product_id: Option<String>,
     pub rank_hint: Option<u32>,
+    pub explicitness: Explicitness,
 }
 ```
 
@@ -1588,6 +1592,7 @@ One catalog / candidate hit returned by `searchCatalog`,
   merges stores by it for relevance and popularity sorts and puts unranked
   hits after ranked ones. Other catalog methods leave it 0.
   `None` when absent (wire zero value).
+- `explicitness`: Whether the storefront marks the edition explicit (adult) content.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
 
@@ -2574,6 +2579,7 @@ pub struct MetadataFileRecord {
     pub series_entries: Vec<SeriesEntry>,
     pub chapters: Vec<MetadataChapter>,
     pub duration_ms: Option<u64>,
+    pub explicitness: Explicitness,
 }
 ```
 
@@ -2614,6 +2620,8 @@ caps and refuses a record that states a field its dialect does not carry.
   `maxMetadataFileChapters`, starts never decreasing.
 - `duration_ms`: Running time in milliseconds.
   `None` when absent (wire zero value).
+- `explicitness`: Whether the edition is explicit (adult) content; `unknown` when the
+  file does not say.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -3768,6 +3776,43 @@ Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<Abridgement>`, `Hash`, `PartialEq`, `Serialize`
 
+### Explicitness
+
+```rust
+pub enum Explicitness {
+    Unknown,
+    Clean,
+    Explicit,
+}
+```
+
+Whether an edition is marked as explicit (adult) content. A patron scope
+can hide explicit editions; `unknown` and `clean` editions stay visible.
+
+**Variants**
+
+- `Unknown`: The storefront or file did not say.
+- `Clean`: Marked as not explicit.
+- `Explicit`: Marked as explicit (adult) content.
+
+#### Explicitness::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### Explicitness::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<Explicitness>`, `Hash`, `PartialEq`, `Serialize`
+
 ### MetadataField
 
 ```rust
@@ -3787,6 +3832,7 @@ pub enum MetadataField {
     Series,
     Chapters,
     Duration,
+    Explicitness,
 }
 ```
 
@@ -3811,6 +3857,7 @@ states, and a render request lists the ones to write.
 - `Series`: `MetadataFileRecord.seriesEntries`.
 - `Chapters`: `MetadataFileRecord.chapters`.
 - `Duration`: `MetadataFileRecord.durationMs`.
+- `Explicitness`: `MetadataFileRecord.explicitness`.
 
 #### MetadataField::wire_name
 

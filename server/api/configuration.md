@@ -5317,7 +5317,12 @@ A `text/plain` body: a string.
 ## `POST /api/config/clerk/request`
 
 `POST /api/config/clerk/request`: asks a library this install holds a
-card for to fetch a book from one of its branches, with the card.
+card for, with the card, to get a copy of a book: from one of its
+branches (`from` `branch`) or by downloading it on one of its own store
+accounts (`from` `library`).
+
+Only an active Owner of this install, or its operator, may send it: the
+request goes out with this install's library card.
 
 **Access:** The operator, or any signed-in user.
 
@@ -5329,13 +5334,14 @@ card for to fetch a book from one of its branches, with the card.
 
 - `library_id` *string*, **required** — The library to ask: one this install holds an active card for.
 - `work_id` *string*, **required** — The library's own work id: 1 to 64 ASCII letters, digits and `-`.
-- `node_id` *string or null* — The library's branch to ask, from the work's `available_through` there; absent asks the first branch that lists it.
+- `from` *[`ClerkRequestFrom`](schemas.md#clerkrequestfrom)*, **required** — Where the copy comes from: the edition's `request.from` in the window books.
+- `node_id` *string or null* — The library's branch to ask, from the work's `available_through` there; absent asks the first branch that lists it. Only with `from` `branch`.
 
 ### Responses
 
-- `200` — The library took the request; it shows there with the person's other requests. Body: [`ClerkRequestSent`](schemas.md#clerkrequestsent) (`application/json`)
+- `200` — The library took the request; it shows there with the person's other requests, or as a download in its jobs. Body: [`ClerkRequestSent`](schemas.md#clerkrequestsent) (`application/json`)
   - `library_id` *string*, **required** — The library that took the request.
-- `400` — The work or node id is malformed (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
+- `400` — The work or node id is malformed, or a node id was given with `from` `library` (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
@@ -5343,7 +5349,10 @@ card for to fetch a book from one of its branches, with the card.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
 - `403` — The user is not an active Owner (`forbidden`), or the library's member controls turn requesting books off for the person (`not_allowed`). A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorAnswer`](schemas.md#erroranswer) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
-- `404` — This install holds no active card for that library (`not_found`), or no branch of the library lists the work now (`not_listed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+- `404` — This install holds no active card for that library (`not_found`), or no branch of the library lists the work now, or none of its store accounts holds it (`not_listed`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug clients branch on.
+  - `detail` *string*, **required** — What went wrong, for the person reading the answer.
+- `409` — The library already has a copy of the work (`already_there`). Body: [`ErrorDetail`](schemas.md#errordetail) (`application/json`)
   - `error` *string*, **required** — Stable machine slug clients branch on.
   - `detail` *string*, **required** — What went wrong, for the person reading the answer.
 - `415` — The request did not declare a JSON body. Body: string (`text/plain`)
@@ -5363,7 +5372,7 @@ $ curl 'http://127.0.0.1:8787/api/config/clerk/request' \
     -X POST \
     -H 'Authorization: Bearer <operatorToken>' \
     -H 'Content-Type: application/json' \
-    -d '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}'
+    -d '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b", "from": "branch"}'
 ```
 
 ```powershell
@@ -5371,7 +5380,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/clerk/request' `
     -Method Post `
     -Headers @{ Authorization = 'Bearer <operatorToken>' } `
     -ContentType 'application/json' `
-    -Body '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}'
+    -Body '{"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b", "from": "branch"}'
 ```
 
 ```python
@@ -5380,7 +5389,7 @@ import requests
 response = requests.post(
     "http://127.0.0.1:8787/api/config/clerk/request",
     headers={"Authorization": "Bearer <operatorToken>"},
-    json={"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"},
+    json={"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b", "from": "branch"},
 )
 print(response.status_code, response.text)
 ```
@@ -5389,7 +5398,7 @@ print(response.status_code, response.text)
 const response = await fetch("http://127.0.0.1:8787/api/config/clerk/request", {
   method: "POST",
   headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
-  body: JSON.stringify({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}),
+  body: JSON.stringify({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b", "from": "branch"}),
 });
 console.log(response.status, await response.text());
 ```
@@ -5399,7 +5408,7 @@ let client = reqwest::Client::new();
 let response = client
     .post("http://127.0.0.1:8787/api/config/clerk/request")
     .header("Authorization", "Bearer <operatorToken>")
-    .json(&serde_json::json!({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b"}))
+    .json(&serde_json::json!({"library_id": "c1f2e3d4-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "work_id": "0b8f6a52-3c1d-4e2f-9a7b-6c5d4e3f2a1b", "from": "branch"}))
     .send()
     .await?;
 println!("{} {}", response.status(), response.text().await?);
@@ -5407,7 +5416,7 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The library took the request; it shows there with the person's other requests.
+Status `200`: The library took the request; it shows there with the person's other requests, or as a download in its jobs.
 
 ```json
 {
@@ -5434,7 +5443,7 @@ Schema:
 }
 ```
 
-Status `400`: The work or node id is malformed (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON.
+Status `400`: The work or node id is malformed, or a node id was given with `from` `library` (`invalid_request`). As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -5627,12 +5636,46 @@ Schema:
 }
 ```
 
-Status `404`: This install holds no active card for that library (`not_found`), or no branch of the library lists the work now (`not_listed`).
+Status `404`: This install holds no active card for that library (`not_found`), or no branch of the library lists the work now, or none of its store accounts holds it (`not_listed`).
 
 ```json
 {
   "detail": "no branch of that library lists this book now",
   "error": "not_listed"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error body with a machine slug and a longer explanation (`detail`).",
+  "required": [
+    "error",
+    "detail"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug clients branch on.",
+      "example": "invalid_request"
+    },
+    "detail": {
+      "type": "string",
+      "description": "What went wrong, for the person reading the answer.",
+      "example": "the redirect URI must be loopback or https"
+    }
+  }
+}
+```
+
+Status `409`: The library already has a copy of the work (`already_there`).
+
+```json
+{
+  "detail": "the library already has a copy; it shows here after the next refresh",
+  "error": "already_there"
 }
 ```
 

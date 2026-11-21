@@ -223,6 +223,12 @@ pub fn has_chapters(&self) -> bool
 pub fn get_duration_ms(self) -> u64
 ```
 
+#### Reader::get_explicitness
+
+```rust
+pub fn get_explicitness(self) -> Result<Explicitness, NotInSchema>
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -630,6 +636,18 @@ pub fn get_duration_ms(self) -> u64
 
 ```rust
 pub fn set_duration_ms(&mut self, value: u64)
+```
+
+#### Builder::get_explicitness
+
+```rust
+pub fn get_explicitness(self) -> Result<Explicitness, NotInSchema>
+```
+
+#### Builder::set_explicitness
+
+```rust
+pub fn set_explicitness(&mut self, value: Explicitness)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

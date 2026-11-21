@@ -24,6 +24,7 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`CatalogField`](#catalogfield) | enum |  |
 | [`PriceLookup`](#pricelookup) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
+| [`Explicitness`](#explicitness) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
 | [`NotificationSeverity`](#notificationseverity) | enum |  |
 | [`NotificationAudience`](#notificationaudience) | enum |  |
@@ -656,6 +657,18 @@ pub enum Abridgement {
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<Abridgement>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
+### Explicitness
+
+```rust
+pub enum Explicitness {
+    Unknown = 0,
+    Clean = 1,
+    Explicit = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<Explicitness>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
 ### MetadataField
 
 ```rust
@@ -675,6 +688,7 @@ pub enum MetadataField {
     Series = 12,
     Chapters = 13,
     Duration = 14,
+    Explicitness = 15,
 }
 ```
 

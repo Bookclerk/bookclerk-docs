@@ -135,6 +135,7 @@ pub struct CatalogHit {
     pub rating_overall: Option<f64>,
     pub rating_count: Option<i64>,
     pub is_abridged: Option<bool>,
+    pub is_explicit: Option<bool>,
     pub work_kind: WorkKind,
     pub expression_kind: ExpressionKind,
     pub media_kind: MediaKind,
@@ -173,6 +174,8 @@ second Audnexus / purchase-hint round-trip for Discover detail).
 - `rating_count`: Number of star ratings backing [`Self::rating_overall`](#cataloghit) when known.
 - `is_abridged`: `Some(true)` when the storefront marks the title abridged; `Some(false)`
   for unabridged; `None` when unknown.
+- `is_explicit`: `Some(true)` when the storefront marks the edition explicit (adult)
+  content; `Some(false)` when it marks it clean; `None` when unknown.
 - `work_kind`: Kind of work the hit is.
 - `expression_kind`: How the work is realised in this edition.
 - `media_kind`: Form of this edition; print and ebook hits are never acquired.
