@@ -1071,6 +1071,12 @@ Re-exports [IdentifierScheme](abi.md#identifierscheme)
 
 ***
 
+### IngressEntrypoint
+
+Re-exports [IngressEntrypoint](plugin.md#ingressentrypoint)
+
+***
+
 ### Instant
 
 Re-exports [Instant](plugin.md#instant)
@@ -1548,6 +1554,36 @@ Re-exports [OidcClientTemplate](generated.md#oidcclienttemplate)
 ### OidcEntrypoint
 
 Re-exports [OidcEntrypoint](plugin.md#oidcentrypoint)
+
+***
+
+### OriginBinding
+
+Re-exports [OriginBinding](README.md#originbinding)
+
+***
+
+### OriginFetchOptions
+
+Re-exports [OriginFetchOptions](README.md#originfetchoptions)
+
+***
+
+### OriginTransport
+
+Re-exports [OriginTransport](README.md#origintransport)
+
+***
+
+### OriginTransportReply
+
+Re-exports [OriginTransportReply](README.md#origintransportreply)
+
+***
+
+### OriginTransportResponse
+
+Re-exports [OriginTransportResponse](README.md#origintransportresponse)
 
 ***
 

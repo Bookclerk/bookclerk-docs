@@ -75,6 +75,10 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_SOCKET_AUTO_RESPONSE_BYTES`](#max_socket_auto_response_bytes) | constant |  |
 | [`MAX_SOCKET_URL_BYTES`](#max_socket_url_bytes) | constant |  |
 | [`MAX_SOCKET_HEADERS`](#max_socket_headers) | constant |  |
+| [`MAX_ORIGIN_HEADERS`](#max_origin_headers) | constant |  |
+| [`MAX_ORIGIN_HEADER_BYTES`](#max_origin_header_bytes) | constant |  |
+| [`MAX_ORIGIN_TARGET_BYTES`](#max_origin_target_bytes) | constant |  |
+| [`MAX_INGRESS_ORIGIN_BYTES`](#max_ingress_origin_bytes) | constant |  |
 | [`MAX_KV_METADATA_BYTES`](#max_kv_metadata_bytes) | constant |  |
 | [`MAX_NETWORK_GRANT_ENTRIES`](#max_network_grant_entries) | constant |  |
 | [`MAX_PLUGIN_MIGRATION_OPS`](#max_plugin_migration_ops) | constant |  |
@@ -173,6 +177,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`adapter_session_reply`](adapter_session_reply.md)
 - [`guest_database_reply`](guest_database_reply.md)
 - [`byte_source`](byte_source/README.md)
+- [`origin_response`](origin_response.md)
+- [`origin_fetch_reply`](origin_fetch_reply.md)
 - [`destination`](destination/README.md)
 - [`source`](source/README.md)
 - [`progress_sink`](progress_sink/README.md)
@@ -189,6 +195,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`named_kv`](named_kv.md)
 - [`sockets`](sockets/README.md)
 - [`socket_handler`](socket_handler/README.md)
+- [`origin`](origin/README.md)
+- [`ingress`](ingress/README.md)
 - [`content_source`](content_source/README.md)
 - [`remote_library`](remote_library/README.md)
 - [`plugin_cli`](plugin_cli/README.md)
@@ -338,6 +346,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`socket_message_ok`](socket_message_ok.md)
 - [`socket_message`](socket_message.md)
 - [`socket_closed`](socket_closed.md)
+- [`origin_header`](origin_header.md)
+- [`origin_request`](origin_request.md)
+- [`ingress_started`](ingress_started.md)
+- [`ingress_start_reply`](ingress_start_reply.md)
+- [`ingress_health`](ingress_health.md)
+- [`ingress_health_reply`](ingress_health_reply.md)
 - [`db_value`](db_value.md)
 - [`db_column`](db_column.md)
 - [`db_row`](db_row.md)
@@ -460,6 +474,7 @@ pub enum Entrypoint {
     Covers = 7,
     MetadataFiles = 8,
     Notifier = 9,
+    Ingress = 10,
 }
 ```
 
@@ -1031,6 +1046,30 @@ pub const MAX_SOCKET_URL_BYTES: u32 = 2048;
 
 ```rust
 pub const MAX_SOCKET_HEADERS: u32 = 16;
+```
+
+### MAX_ORIGIN_HEADERS
+
+```rust
+pub const MAX_ORIGIN_HEADERS: u32 = 128;
+```
+
+### MAX_ORIGIN_HEADER_BYTES
+
+```rust
+pub const MAX_ORIGIN_HEADER_BYTES: u32 = 65536;
+```
+
+### MAX_ORIGIN_TARGET_BYTES
+
+```rust
+pub const MAX_ORIGIN_TARGET_BYTES: u32 = 8192;
+```
+
+### MAX_INGRESS_ORIGIN_BYTES
+
+```rust
+pub const MAX_INGRESS_ORIGIN_BYTES: u32 = 253;
 ```
 
 ### MAX_KV_METADATA_BYTES

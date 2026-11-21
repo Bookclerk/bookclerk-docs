@@ -34,6 +34,7 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`KvNamespace`](#kvnamespace) | class | `[[kv_namespaces]]` binding (`env.<BINDING>`): Workers `KVNamespace`-shaped storage. |
 | [`CoverEntrypoint`](#coverentrypoint) | class | `covers` entrypoint: downloads cover images for the host. |
 | [`MetadataFilesEntrypoint`](#metadatafilesentrypoint) | class | `metadataFiles` entrypoint: reads and writes metadata files for the host. |
+| [`IngressEntrypoint`](#ingressentrypoint) | class | `ingress` entrypoint: gives the library a public `https` address. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
 | [`NotifierEntrypoint`](#notifierentrypoint) | class | `notifier` entrypoint: delivers messages the host already rendered. |
@@ -1002,6 +1003,47 @@ async def render(self, _params: abi.MetadataFileRenderParams) -> bytes | str
 The new file: `existing` with `fields` set from `record`.
 
 Everything else in the file is kept; a `str` is written as UTF-8.
+
+### IngressEntrypoint
+
+```python
+class IngressEntrypoint(NamedEntrypoint)
+```
+
+`ingress` entrypoint: gives the library a public `https` address.
+
+The host starts at most one ingress instance at a time. The Python SDK
+serves `[ingress] kind = "direct"` plugins (dynamic DNS, port mapping),
+which keep the address current and never receive requests; the `ORIGIN`
+binding a relay plugin hands requests to is provided by the TypeScript
+SDK only.
+
+#### IngressEntrypoint.start
+
+```python
+async def start(self) -> abi.IngressStarted
+```
+
+Bring the address up and return it once it serves (`IngressStarted`).
+
+The origin is `https://` and a host name, with no port, path or
+trailing slash.
+
+#### IngressEntrypoint.health
+
+```python
+async def health(self) -> abi.IngressHealth
+```
+
+Whether the address is serving (`IngressHealth`).
+
+#### IngressEntrypoint.stop
+
+```python
+async def stop(self) -> None
+```
+
+Take the address down; the host stops relying on it after this returns.
 
 ### MetadataEntrypoint
 

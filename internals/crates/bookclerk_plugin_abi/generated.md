@@ -114,6 +114,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`SocketMessageOk`](#socketmessageok) | struct | What a guest asks of the host after handling one pushed message. |
 | [`SocketMessage`](#socketmessage) | struct | Argument of `SocketHandler.message`. |
 | [`SocketClosed`](#socketclosed) | struct | Argument of `SocketHandler.closed`. |
+| [`OriginHeader`](#originheader) | struct | One header field on an `Origin.fetch` request or response. |
+| [`OriginRequest`](#originrequest) | struct | The head of one public request a relay `ingress` plugin carries (`Origin.fetch`). Its scheme is `https` and its authority is the library's public origin; neither is the plugin's to choose. |
+| [`IngressStarted`](#ingressstarted) | struct | Success payload of `Ingress.start`. |
+| [`IngressHealth`](#ingresshealth) | struct | Success payload of `Ingress.health`. |
 | [`Entrypoint`](#entrypoint) | enum | Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint analogue). Each value is a capability the host calls over RPC; triggers on the default entrypoint (`event`, `job`) are declared separately. |
 | [`PortalAuthMode`](#portalauthmode) | enum | Portal Accounts connect mode for storefronts. |
 | [`CliArgKind`](#cliargkind) | enum | Value kind for a `CliArgSpec`. |
@@ -414,6 +418,18 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_socket_message`](#read_socket_message) | function | Decode a `SocketMessage` from a Cap'n Proto reader. |
 | [`write_socket_closed`](#write_socket_closed) | function | Encode a `SocketClosed` onto a Cap'n Proto builder. |
 | [`read_socket_closed`](#read_socket_closed) | function | Decode a `SocketClosed` from a Cap'n Proto reader. |
+| [`write_origin_header`](#write_origin_header) | function | Encode a `OriginHeader` onto a Cap'n Proto builder. |
+| [`read_origin_header`](#read_origin_header) | function | Decode a `OriginHeader` from a Cap'n Proto reader. |
+| [`write_origin_request`](#write_origin_request) | function | Encode a `OriginRequest` onto a Cap'n Proto builder. |
+| [`read_origin_request`](#read_origin_request) | function | Decode a `OriginRequest` from a Cap'n Proto reader. |
+| [`write_ingress_started`](#write_ingress_started) | function | Encode a `IngressStarted` onto a Cap'n Proto builder. |
+| [`read_ingress_started`](#read_ingress_started) | function | Decode a `IngressStarted` from a Cap'n Proto reader. |
+| [`write_ingress_start_reply`](#write_ingress_start_reply) | function | Encode a `IngressStartReply` union from a typed result. |
+| [`read_ingress_start_reply`](#read_ingress_start_reply) | function | Decode a `IngressStartReply` union into a typed result. |
+| [`write_ingress_health`](#write_ingress_health) | function | Encode a `IngressHealth` onto a Cap'n Proto builder. |
+| [`read_ingress_health`](#read_ingress_health) | function | Decode a `IngressHealth` from a Cap'n Proto reader. |
+| [`write_ingress_health_reply`](#write_ingress_health_reply) | function | Encode a `IngressHealthReply` union from a typed result. |
+| [`read_ingress_health_reply`](#read_ingress_health_reply) | function | Decode a `IngressHealthReply` union into a typed result. |
 | [`read_any_message`](#read_any_message) | function | Decodes `bytes` as an unpacked single-segment Cap'n Proto message whose root is the struct `selector` names, through that struct's `read_*` codec, and drops the result. |
 | [`roundtrip_any_message`](#roundtrip_any_message) | function | Decodes `bytes` as the struct `selector` names (as `read_any_message` does), writes the value back through that struct's `write_*` codec, decodes the result and requires it to equal the first value. |
 | [`READ_ANY_COUNT`](#read_any_count) | constant | Number of root structs `read_any_message` can decode; selectors are `0..READ_ANY_COUNT` in schema order. |
@@ -3081,6 +3097,89 @@ Argument of `SocketHandler.closed`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### OriginHeader
+
+```rust
+pub struct OriginHeader {
+    pub name: String,
+    pub value: String,
+}
+```
+
+One header field on an `Origin.fetch` request or response.
+
+**Fields**
+
+- `name`: Field name, an HTTP token; the host refuses hop-by-hop names.
+- `value`: Field value, visible ASCII, spaces and tabs. May carry a credential (a
+  cookie, an authorization): the host never logs it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### OriginRequest
+
+```rust
+pub struct OriginRequest {
+    pub method: String,
+    pub target: String,
+    pub headers: Vec<OriginHeader>,
+    pub client_address: Option<String>,
+}
+```
+
+The head of one public request a relay `ingress` plugin carries
+(`Origin.fetch`). Its scheme is `https` and its authority is the library's
+public origin; neither is the plugin's to choose.
+
+**Fields**
+
+- `method`: Request method, an HTTP token (`GET`, `PUT`, ...).
+- `target`: Path and query in origin form (`/api/status?x=1`), at most
+  `maxOriginTargetBytes`.
+- `headers`: Request header fields in order, at most `maxOriginHeaders` and
+  `maxOriginHeaderBytes`. `host` and forwarding headers are ignored.
+- `client_address`: IP address of the client, from the provider's own connection metadata;
+  empty when the provider gives none.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### IngressStarted
+
+```rust
+pub struct IngressStarted {
+    pub origin: String,
+}
+```
+
+Success payload of `Ingress.start`.
+
+**Fields**
+
+- `origin`: The public origin now serving: `https://` and a host name, no port, path
+  or trailing slash, at most `maxIngressOriginBytes` after the scheme.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### IngressHealth
+
+```rust
+pub struct IngressHealth {
+    pub serving: bool,
+    pub detail: Option<String>,
+}
+```
+
+Success payload of `Ingress.health`.
+
+**Fields**
+
+- `serving`: True when the address is serving.
+- `detail`: Why it is not serving, for the operator; empty when serving.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ## Enums
 
 ### Entrypoint
@@ -3097,6 +3196,7 @@ pub enum Entrypoint {
     Covers,
     MetadataFiles,
     Notifier,
+    Ingress,
 }
 ```
 
@@ -3118,6 +3218,7 @@ the default entrypoint (`event`, `job`) are declared separately.
 - `Covers`: Cover fetcher: `fetchCovers` (`CoverFetcher`).
 - `MetadataFiles`: Metadata file dialects: `parse` and `render` (`MetadataFiles`).
 - `Notifier`: Notification delivery: `send` and `validateDestination` (`Notifier`).
+- `Ingress`: Public address provider: `start`, `health` and `stop` (`Ingress`).
 
 #### Entrypoint::wire_name
 
@@ -7421,6 +7522,160 @@ Decode a [`SocketClosed`](#socketclosed) from a Cap'n Proto reader.
 
 Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
 
+### write_origin_header
+
+```rust
+pub fn write_origin_header(b: Builder<'_>, v: &OriginHeader) -> Result<()>
+```
+
+Encode a [`OriginHeader`](#originheader) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_origin_header
+
+```rust
+pub fn read_origin_header(r: Reader<'_>) -> Result<OriginHeader>
+```
+
+Decode a [`OriginHeader`](#originheader) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_origin_request
+
+```rust
+pub fn write_origin_request(b: Builder<'_>, v: &OriginRequest) -> Result<()>
+```
+
+Encode a [`OriginRequest`](#originrequest) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_origin_request
+
+```rust
+pub fn read_origin_request(r: Reader<'_>) -> Result<OriginRequest>
+```
+
+Decode a [`OriginRequest`](#originrequest) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ingress_started
+
+```rust
+pub fn write_ingress_started(b: Builder<'_>, v: &IngressStarted) -> Result<()>
+```
+
+Encode a [`IngressStarted`](#ingressstarted) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ingress_started
+
+```rust
+pub fn read_ingress_started(r: Reader<'_>) -> Result<IngressStarted>
+```
+
+Decode a [`IngressStarted`](#ingressstarted) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ingress_start_reply
+
+```rust
+pub fn write_ingress_start_reply(
+    b: Builder<'_>,
+    v: &Result<IngressStarted, PluginError>,
+) -> Result<()>
+```
+
+Encode a `IngressStartReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_ingress_start_reply
+
+```rust
+pub fn read_ingress_start_reply(
+    r: Reader<'_>,
+) -> Result<Result<IngressStarted, PluginError>>
+```
+
+Decode a `IngressStartReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_ingress_health
+
+```rust
+pub fn write_ingress_health(b: Builder<'_>, v: &IngressHealth) -> Result<()>
+```
+
+Encode a [`IngressHealth`](#ingresshealth) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_ingress_health
+
+```rust
+pub fn read_ingress_health(r: Reader<'_>) -> Result<IngressHealth>
+```
+
+Decode a [`IngressHealth`](#ingresshealth) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_ingress_health_reply
+
+```rust
+pub fn write_ingress_health_reply(
+    b: Builder<'_>,
+    v: &Result<IngressHealth, PluginError>,
+) -> Result<()>
+```
+
+Encode a `IngressHealthReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_ingress_health_reply
+
+```rust
+pub fn read_ingress_health_reply(
+    r: Reader<'_>,
+) -> Result<Result<IngressHealth, PluginError>>
+```
+
+Decode a `IngressHealthReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### read_any_message
 
 ```rust
@@ -7473,7 +7728,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 139;
+pub const READ_ANY_COUNT: u8 = 145;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

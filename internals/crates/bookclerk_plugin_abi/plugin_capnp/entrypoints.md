@@ -217,6 +217,18 @@ pub fn get_notifier(self) -> Result<Client>
 pub fn has_notifier(&self) -> bool
 ```
 
+#### Reader::get_ingress
+
+```rust
+pub fn get_ingress(self) -> Result<Client>
+```
+
+#### Reader::has_ingress
+
+```rust
+pub fn has_ingress(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -521,6 +533,24 @@ pub fn set_notifier(&mut self, value: Client)
 pub fn has_notifier(&self) -> bool
 ```
 
+#### Builder::get_ingress
+
+```rust
+pub fn get_ingress(self) -> Result<Client>
+```
+
+#### Builder::set_ingress
+
+```rust
+pub fn set_ingress(&mut self, value: Client)
+```
+
+#### Builder::has_ingress
+
+```rust
+pub fn has_ingress(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -619,6 +649,12 @@ pub fn get_metadata_files(&self) -> Client
 
 ```rust
 pub fn get_notifier(&self) -> Client
+```
+
+#### Pipeline::get_ingress
+
+```rust
+pub fn get_ingress(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

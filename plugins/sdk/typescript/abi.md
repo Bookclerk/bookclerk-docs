@@ -405,7 +405,7 @@ Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier", "ingress"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -702,6 +702,16 @@ Maximum plugin / account identifier length (bytes).
 
 ***
 
+### MAX\_INGRESS\_ORIGIN\_BYTES
+
+```ts
+const MAX_INGRESS_ORIGIN_BYTES: 253;
+```
+
+Longest `IngressStarted.origin`, in bytes.
+
+***
+
 ### MAX\_KV\_KEY\_BYTES
 
 ```ts
@@ -876,6 +886,38 @@ const MAX_NOTIFIER_ADDRESS_BYTES: 4096;
 ```
 
 Longest destination address document (`addressJson`), in UTF-8 bytes.
+
+***
+
+### MAX\_ORIGIN\_HEADER\_BYTES
+
+```ts
+const MAX_ORIGIN_HEADER_BYTES: 65536;
+```
+
+Largest total UTF-8 bytes of header names and values on one `Origin.fetch`
+request, and separately on its response.
+
+***
+
+### MAX\_ORIGIN\_HEADERS
+
+```ts
+const MAX_ORIGIN_HEADERS: 128;
+```
+
+Most header fields on one `Origin.fetch` request, and separately on its
+response.
+
+***
+
+### MAX\_ORIGIN\_TARGET\_BYTES
+
+```ts
+const MAX_ORIGIN_TARGET_BYTES: 8192;
+```
+
+Longest `OriginRequest.target` (path and query), in bytes.
 
 ***
 

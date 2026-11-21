@@ -471,6 +471,17 @@ notify?: NotificationRaiser | null;
 `[[notifications.types]]`; null when it declares none.
 Null when the guest does not export this capability.
 
+##### origin?
+
+```ts
+origin?: Origin | null;
+```
+
+`ORIGIN`: the library itself, for a relay `ingress` plugin to send the
+public requests it carries to; null unless the plugin is the library's
+active relay ingress.
+Null when the guest does not export this capability.
+
 ##### queues
 
 ```ts
@@ -3103,6 +3114,15 @@ eventConsumer?: EventConsumer | null;
 `[[events.consumers]]` trigger: `event(batch)` handler.
 Null when the guest does not export this capability.
 
+##### ingress?
+
+```ts
+ingress?: Ingress | null;
+```
+
+`ingress` entrypoint.
+Null when the guest does not export this capability.
+
 ##### jobRunner?
 
 ```ts
@@ -4376,6 +4396,101 @@ table: string;
 ```
 
 Table whose identity column the mark belongs to.
+
+***
+
+### Ingress
+
+A public address provider (`Entrypoints.ingress`): the one `ingress`
+family instance the library runs. A relay provider carries traffic to
+`Bindings.origin`; a direct provider keeps a DNS name pointing at this
+install.
+
+#### Methods
+
+##### health()
+
+```ts
+health(): Promise<IngressHealthReply>;
+```
+
+Whether the public address is serving now.
+
+###### Returns
+
+`Promise`\<[`IngressHealthReply`](#ingresshealthreply)\>
+
+[IngressHealthReply](#ingresshealthreply)
+
+##### start()
+
+```ts
+start(): Promise<IngressStartReply>;
+```
+
+Bring the public address up; answers the origin it serves.
+
+###### Returns
+
+`Promise`\<[`IngressStartReply`](#ingressstartreply)\>
+
+[IngressStartReply](#ingressstartreply)
+
+##### stop()
+
+```ts
+stop(): Promise<EmptyReply>;
+```
+
+Take the public address down; stopping a stopped one is not an error.
+
+###### Returns
+
+`Promise`\<[`EmptyReply`](#emptyreply)\>
+
+[EmptyReply](#emptyreply)
+
+***
+
+### IngressHealth
+
+Success payload of `Ingress.health`.
+
+#### Properties
+
+##### detail?
+
+```ts
+detail?: string;
+```
+
+Why it is not serving, for the operator; empty when serving.
+Omitted when absent (wire zero value).
+
+##### serving
+
+```ts
+serving: boolean;
+```
+
+True when the address is serving.
+
+***
+
+### IngressStarted
+
+Success payload of `Ingress.start`.
+
+#### Properties
+
+##### origin
+
+```ts
+origin: string;
+```
+
+The public origin now serving: `https://` and a host name, no port, path
+or trailing slash, at most `maxIngressOriginBytes` after the scheme.
 
 ***
 
@@ -7455,6 +7570,145 @@ Object metadata.
 
 ***
 
+### Origin
+
+The library, as a relay `ingress` plugin reaches it (`Bindings.origin`,
+`ORIGIN` in the Workers idiom). The plugin turns each request its provider
+delivers into a `fetch` and streams the response back. The host treats
+every request as the `tunnel` transport: public `https`, never loopback,
+with the client address the plugin reports.
+
+#### Methods
+
+##### fetch()
+
+```ts
+fetch(request, body): Promise<OriginFetchReply>;
+```
+
+Serve one request; the response body streams as the library writes it.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | [`OriginRequest`](#originrequest) | Method, target, headers, client address. |
+| `body` | [`ByteSource`](#bytesource) | Request body; null when the request has none. |
+
+###### Returns
+
+`Promise`\<[`OriginFetchReply`](#originfetchreply)\>
+
+[OriginFetchReply](#originfetchreply)
+
+***
+
+### OriginHeader
+
+One header field on an `Origin.fetch` request or response.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Field name, an HTTP token; the host refuses hop-by-hop names.
+
+##### value
+
+```ts
+value: string;
+```
+
+Field value, visible ASCII, spaces and tabs. May carry a credential (a
+cookie, an authorization): the host never logs it.
+
+***
+
+### OriginRequest
+
+The head of one public request a relay `ingress` plugin carries
+(`Origin.fetch`). Its scheme is `https` and its authority is the library's
+public origin; neither is the plugin's to choose.
+
+#### Properties
+
+##### clientAddress?
+
+```ts
+clientAddress?: string;
+```
+
+IP address of the client, from the provider's own connection metadata;
+empty when the provider gives none.
+Omitted when absent (wire zero value).
+
+##### headers
+
+```ts
+headers: OriginHeader[];
+```
+
+Request header fields in order, at most `maxOriginHeaders` and
+`maxOriginHeaderBytes`. `host` and forwarding headers are ignored.
+
+##### method
+
+```ts
+method: string;
+```
+
+Request method, an HTTP token (`GET`, `PUT`, ...).
+
+##### target
+
+```ts
+target: string;
+```
+
+Path and query in origin form (`/api/status?x=1`), at most
+`maxOriginTargetBytes`.
+
+***
+
+### OriginResponse
+
+Success payload of `Origin.fetch`: the library's response head and its
+streamed body.
+
+#### Properties
+
+##### body?
+
+```ts
+body?: ByteSource | null;
+```
+
+Response body; read to `done`. Null when the response has no body.
+Null when the guest does not export this capability.
+
+##### headers
+
+```ts
+headers: OriginHeader[];
+```
+
+Response header fields in order, at most `maxOriginHeaders` and
+`maxOriginHeaderBytes`; repeated names (`set-cookie`) stay separate.
+
+##### status
+
+```ts
+status: number;
+```
+
+HTTP status code, 100 to 599.
+
+***
+
 ### PhysicalAccess
 
 Physical table/column access used for authorization.
@@ -7590,7 +7844,8 @@ entrypoints: (
   | "metadata"
   | "covers"
   | "metadataFiles"
-  | "notifier")[];
+  | "notifier"
+  | "ingress")[];
 ```
 
 Named entrypoints the guest exports.
@@ -11016,6 +11271,42 @@ Result union of `AdapterDatabaseSession.exportIdentity`.
 
 ***
 
+### IngressHealthReply
+
+```ts
+type IngressHealthReply = 
+  | {
+  kind: "ok";
+  value: IngressHealth;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Ingress.health`.
+
+***
+
+### IngressStartReply
+
+```ts
+type IngressStartReply = 
+  | {
+  kind: "ok";
+  value: IngressStarted;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Ingress.start`.
+
+***
+
 ### JobOutcome
 
 ```ts
@@ -11404,6 +11695,24 @@ type OptionalColumnReference =
 ```
 
 Per-column `REFERENCES` slot in `CreateTableSchema`.
+
+***
+
+### OriginFetchReply
+
+```ts
+type OriginFetchReply = 
+  | {
+  kind: "ok";
+  value: OriginResponse;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Origin.fetch`.
 
 ***
 

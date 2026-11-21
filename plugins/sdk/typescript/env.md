@@ -72,6 +72,15 @@ OAUTH?: unknown;
 
 `[oauth]` loopback helper; surface reserved.
 
+##### ORIGIN?
+
+```ts
+ORIGIN?: OriginBinding;
+```
+
+The library a relay `ingress` plugin serves; present only while this
+instance is the active ingress.
+
 ##### SECRETS?
 
 ```ts

@@ -121,6 +121,9 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`GuestDatabaseReplyOk`](#guestdatabasereplyok) | class | `GuestDatabaseReply` member `ok`. |
 | [`GuestDatabaseReplyErr`](#guestdatabasereplyerr) | class | `GuestDatabaseReply` member `err`. |
 | [`ByteSource`](#bytesource) | class | Transferred readable byte stream. The capability *is* the stream; callers pull bounded windows. Abort is capability drop / RPC cancel. A failed pull MUST set `err` — never a successful empty EOF. |
+| [`OriginResponse`](#originresponse) | class | Success payload of `Origin.fetch`: the library's response head and its streamed body. |
+| [`OriginFetchReplyOk`](#originfetchreplyok) | class | `OriginFetchReply` member `ok`. |
+| [`OriginFetchReplyErr`](#originfetchreplyerr) | class | `OriginFetchReply` member `err`. |
 | [`Destination`](#destination) | class | Object store the host writes acquired media into (`output.*` plugins). Keys are relative object paths; the plugin owns the physical layout. |
 | [`Source`](#source) | class | Read-only byte source for job inputs (not a storefront). |
 | [`ProgressSink`](#progresssink) | class | Host-side progress reporter handed to job handlers. |
@@ -137,6 +140,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`NamedKv`](#namedkv) | class | One named durable namespace delivered on `Bindings.kv`. |
 | [`Sockets`](#sockets) | class | Host-brokered outbound WebSockets, granted through `Bindings.sockets`. |
 | [`SocketHandler`](#sockethandler) | class | Guest handler for host-brokered sockets (`Entrypoints.socketHandler`). |
+| [`Origin`](#origin) | class | The library, as a relay `ingress` plugin reaches it (`Bindings.origin`, `ORIGIN` in the Workers idiom). The plugin turns each request its provider delivers into a `fetch` and streams the response back. The host treats every request as the `tunnel` transport: public `https`, never loopback, with the client address the plugin reports. |
+| [`Ingress`](#ingress) | class | A public address provider (`Entrypoints.ingress`): the one `ingress` family instance the library runs. A relay provider carries traffic to `Bindings.origin`; a direct provider keeps a DNS name pointing at this install. |
 | [`ContentSource`](#contentsource) | class | Storefront content source (not byte Source). Every method takes and returns typed structs from the "Typed method payloads" section. |
 | [`RemoteLibrary`](#remotelibrary) | class | `remoteLibrary` entrypoint: long-running remote-library lifecycle (start / stop, library rescan, listening sync, external-user polling). Event delivery is `EventConsumer`; credential verification is `Oidc`. |
 | [`PluginCli`](#plugincli) | class | `cli` entrypoint: guest commands under `bookclerk plugins <id> <command>`. |
@@ -320,6 +325,14 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketMessageOk`](#socketmessageok) | class | What a guest asks of the host after handling one pushed message. |
 | [`SocketMessage`](#socketmessage) | class | Argument of `SocketHandler.message`. |
 | [`SocketClosed`](#socketclosed) | class | Argument of `SocketHandler.closed`. |
+| [`OriginHeader`](#originheader) | class | One header field on an `Origin.fetch` request or response. |
+| [`OriginRequest`](#originrequest) | class | The head of one public request a relay `ingress` plugin carries (`Origin.fetch`). Its scheme is `https` and its authority is the library's public origin; neither is the plugin's to choose. |
+| [`IngressStarted`](#ingressstarted) | class | Success payload of `Ingress.start`. |
+| [`IngressStartReplyOk`](#ingressstartreplyok) | class | `IngressStartReply` member `ok`. |
+| [`IngressStartReplyErr`](#ingressstartreplyerr) | class | `IngressStartReply` member `err`. |
+| [`IngressHealth`](#ingresshealth) | class | Success payload of `Ingress.health`. |
+| [`IngressHealthReplyOk`](#ingresshealthreplyok) | class | `IngressHealthReply` member `ok`. |
+| [`IngressHealthReplyErr`](#ingresshealthreplyerr) | class | `IngressHealthReply` member `err`. |
 | [`DbValueNull`](#dbvaluenull) | class | `DbValue` member `null`. |
 | [`DbValueBoolean`](#dbvalueboolean) | class | `DbValue` member `boolean`. |
 | [`DbValueInt64`](#dbvalueint64) | class | `DbValue` member `int64`. |
@@ -445,6 +458,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`HealthReply`](#healthreply) | constant | Result union of `health`. |
 | [`AdapterSessionReply`](#adaptersessionreply) | constant | Result union of `Database.openSession`. |
 | [`GuestDatabaseReply`](#guestdatabasereply) | constant | Result union of `guest database opens`. |
+| [`OriginFetchReply`](#originfetchreply) | constant | Result union of `Origin.fetch`. |
 | [`CliSchemaReply`](#clischemareply) | constant | Result union of `PluginCli.describe`. |
 | [`CliInvokeReply`](#cliinvokereply) | constant | Result union of `PluginCli.invoke`. |
 | [`DiagnoseReply`](#diagnosereply) | constant | Result union of `diagnose`. |
@@ -480,6 +494,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
 | [`SocketMessageReply`](#socketmessagereply) | constant | Reply of `SocketHandler.message`. |
+| [`IngressStartReply`](#ingressstartreply) | constant | Result union of `Ingress.start`. |
+| [`IngressHealthReply`](#ingresshealthreply) | constant | Result union of `Ingress.health`. |
 | [`DbValue`](#dbvalue) | constant | One typed SQL cell or bind parameter. |
 | [`OptionalColumnReference`](#optionalcolumnreference) | constant | Per-column `REFERENCES` slot in `CreateTableSchema`. |
 | [`TableConstraint`](#tableconstraint) | constant | One table-level constraint. |
@@ -973,6 +989,7 @@ the binding.
 - `sockets`: `SOCKETS`: host-brokered outbound WebSockets that stay open while the guest sleeps; null unless `[sockets]` is declared and granted. Null when the guest does not export this capability.
 - `notify`: `NOTIFY`: raises the notification types the plugin declares in `[[notifications.types]]`; null when it declares none. Null when the guest does not export this capability.
 - `network`: `NETWORK`: what the operator granted this plugin's network, including the destination each network setting names and whether it is approved, so a guest can tell an unapproved destination from an unreachable one.
+- `origin`: `ORIGIN`: the library itself, for a relay `ingress` plugin to send the public requests it carries to; null unless the plugin is the library's active relay ingress. Null when the guest does not export this capability.
 
 ### NetworkGrant
 
@@ -1033,6 +1050,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `socketHandler`: `[sockets]` handler: messages and closes on host-brokered sockets. Null when the guest does not export this capability.
 - `metadataFiles`: `metadataFiles` entrypoint. Null when the guest does not export this capability.
 - `notifier`: `notifier` entrypoint. Null when the guest does not export this capability.
+- `ingress`: `ingress` entrypoint. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -2184,6 +2202,52 @@ Pull the next window of bytes. `done = true` on the final chunk.
 
 `PullReply`
 
+### OriginResponse
+
+```python
+class OriginResponse(TypedDict)
+```
+
+Success payload of `Origin.fetch`: the library's response head and its
+streamed body.
+
+**Attributes**
+
+- `status`: HTTP status code, 100 to 599.
+- `headers`: Response header fields in order, at most `maxOriginHeaders` and `maxOriginHeaderBytes`; repeated names (`set-cookie`) stay separate.
+- `body`: Response body; read to `done`. Null when the response has no body. Null when the guest does not export this capability.
+
+### OriginFetchReplyOk
+
+```python
+class OriginFetchReplyOk(TypedDict)
+```
+
+`OriginFetchReply` member `ok`.
+
+Success: the library answered (any HTTP status).
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the library answered (any HTTP status).
+
+### OriginFetchReplyErr
+
+```python
+class OriginFetchReplyErr(TypedDict)
+```
+
+`OriginFetchReply` member `err`.
+
+Typed failure: the request was refused before the library saw it
+(`invalid_params`) or the library is unavailable.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure: the request was refused before the library saw it (`invalid_params`) or the library is unavailable.
+
 ### Destination
 
 ```python
@@ -2943,6 +3007,82 @@ A socket closed, by the remote side, the network, or the host.
 **Args**
 
 - `event`: Socket, close code, and attachment.
+
+**Returns**
+
+`EmptyReply`
+
+### Origin
+
+```python
+class Origin(Protocol)
+```
+
+The library, as a relay `ingress` plugin reaches it (`Bindings.origin`,
+`ORIGIN` in the Workers idiom). The plugin turns each request its provider
+delivers into a `fetch` and streams the response back. The host treats
+every request as the `tunnel` transport: public `https`, never loopback,
+with the client address the plugin reports.
+
+#### Origin.fetch
+
+```python
+async def fetch(self, request: OriginRequest, body: ByteSource) -> OriginFetchReply
+```
+
+Serve one request; the response body streams as the library writes it.
+
+**Args**
+
+- `request`: Method, target, headers, client address.
+- `body`: Request body; null when the request has none.
+
+**Returns**
+
+`OriginFetchReply`
+
+### Ingress
+
+```python
+class Ingress(Protocol)
+```
+
+A public address provider (`Entrypoints.ingress`): the one `ingress`
+family instance the library runs. A relay provider carries traffic to
+`Bindings.origin`; a direct provider keeps a DNS name pointing at this
+install.
+
+#### Ingress.start
+
+```python
+async def start(self) -> IngressStartReply
+```
+
+Bring the public address up; answers the origin it serves.
+
+**Returns**
+
+`IngressStartReply`
+
+#### Ingress.health
+
+```python
+async def health(self) -> IngressHealthReply
+```
+
+Whether the public address is serving now.
+
+**Returns**
+
+`IngressHealthReply`
+
+#### Ingress.stop
+
+```python
+async def stop(self) -> EmptyReply
+```
+
+Take the public address down; stopping a stopped one is not an error.
 
 **Returns**
 
@@ -6326,6 +6466,121 @@ Argument of `SocketHandler.closed`.
 - `clean`: True when the close handshake completed.
 - `attachment`: The socket's last attachment.
 
+### OriginHeader
+
+```python
+class OriginHeader(TypedDict)
+```
+
+One header field on an `Origin.fetch` request or response.
+
+**Attributes**
+
+- `name`: Field name, an HTTP token; the host refuses hop-by-hop names.
+- `value`: Field value, visible ASCII, spaces and tabs. May carry a credential (a cookie, an authorization): the host never logs it.
+
+### OriginRequest
+
+```python
+class OriginRequest(TypedDict)
+```
+
+The head of one public request a relay `ingress` plugin carries
+(`Origin.fetch`). Its scheme is `https` and its authority is the library's
+public origin; neither is the plugin's to choose.
+
+**Attributes**
+
+- `method`: Request method, an HTTP token (`GET`, `PUT`, ...).
+- `target`: Path and query in origin form (`/api/status?x=1`), at most `maxOriginTargetBytes`.
+- `headers`: Request header fields in order, at most `maxOriginHeaders` and `maxOriginHeaderBytes`. `host` and forwarding headers are ignored.
+- `clientAddress`: IP address of the client, from the provider's own connection metadata; empty when the provider gives none. Omitted when absent (wire zero value).
+
+### IngressStarted
+
+```python
+class IngressStarted(TypedDict)
+```
+
+Success payload of `Ingress.start`.
+
+**Attributes**
+
+- `origin`: The public origin now serving: `https://` and a host name, no port, path or trailing slash, at most `maxIngressOriginBytes` after the scheme.
+
+### IngressStartReplyOk
+
+```python
+class IngressStartReplyOk(TypedDict)
+```
+
+`IngressStartReply` member `ok`.
+
+Success: the address is up.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the address is up.
+
+### IngressStartReplyErr
+
+```python
+class IngressStartReplyErr(TypedDict)
+```
+
+`IngressStartReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### IngressHealth
+
+```python
+class IngressHealth(TypedDict)
+```
+
+Success payload of `Ingress.health`.
+
+**Attributes**
+
+- `serving`: True when the address is serving.
+- `detail`: Why it is not serving, for the operator; empty when serving. Omitted when absent (wire zero value).
+
+### IngressHealthReplyOk
+
+```python
+class IngressHealthReplyOk(TypedDict)
+```
+
+`IngressHealthReply` member `ok`.
+
+Success: the provider's view of the address.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: the provider's view of the address.
+
+### IngressHealthReplyErr
+
+```python
+class IngressHealthReplyErr(TypedDict)
+```
+
+`IngressHealthReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### DbValueNull
 
 ```python
@@ -8121,6 +8376,14 @@ GuestDatabaseReply = Union[GuestDatabaseReplyOk, GuestDatabaseReplyErr]
 
 Result union of `guest database opens`.
 
+### OriginFetchReply
+
+```python
+OriginFetchReply = Union[OriginFetchReplyOk, OriginFetchReplyErr]
+```
+
+Result union of `Origin.fetch`.
+
 ### CliSchemaReply
 
 ```python
@@ -8403,6 +8666,22 @@ SocketMessageReply = Union[SocketMessageReplyOk, SocketMessageReplyErr]
 ```
 
 Reply of `SocketHandler.message`.
+
+### IngressStartReply
+
+```python
+IngressStartReply = Union[IngressStartReplyOk, IngressStartReplyErr]
+```
+
+Result union of `Ingress.start`.
+
+### IngressHealthReply
+
+```python
+IngressHealthReply = Union[IngressHealthReplyOk, IngressHealthReplyErr]
+```
+
+Result union of `Ingress.health`.
 
 ### DbValue
 

@@ -79,6 +79,7 @@ pub struct GrantedSlot {
     pub kv: Option<Rc<dyn KvNamespace>>,
     pub sockets: Option<Rc<dyn Sockets>>,
     pub notify: Option<Rc<dyn NotificationRaiser>>,
+    pub origin: Option<Rc<dyn Origin>>,
 }
 ```
 
@@ -110,6 +111,17 @@ or an `EVENTS` publisher.
 - `sockets`: Host socket broker, when this grant is the `SOCKETS` binding.
 - `notify`: Host notification router entry, when this grant is the `NOTIFY`
   binding.
+- `origin`: The library, when this grant is a relay ingress plugin's `ORIGIN`
+  binding.
+
+#### GrantedSlot::origin_only
+
+```rust
+pub fn origin_only(origin: Rc<dyn Origin>, expires: Instant) -> Self
+```
+
+A grant that only reaches the library over `/origin/fetch` (no
+streams, no database, no events, no KV, no sockets).
 
 #### GrantedSlot::sockets_only
 

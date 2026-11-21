@@ -49,6 +49,7 @@ extending its base:
 | `entrypoints = ["covers"]` | `Covers` | `CoverEntrypoint` |
 | `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
 | `entrypoints = ["notifier"]` | `Notifier` | `NotifierEntrypoint` |
+| `entrypoints = ["ingress"]` | `Ingress` | `IngressEntrypoint` |
 
 ```ts
 import {
@@ -132,6 +133,10 @@ resumably; see
 A storefront's `scan` can hand its paging to `scanPage(params, fetch)`,
 which slices the store's own pages into replies the host accepts; see
 [Paged scans](../../abi.md#paged-scans).
+A relay [`[ingress]`](../../manifest.md#ingress-public-address) plugin also
+gets `ORIGIN` while it is the active ingress; `ORIGIN.fetch(request, {
+clientAddress })` hands one request to the library (see
+[Public addresses](../../abi.md#public-addresses-ingress)).
 Generate the `Env` type from `plugin.toml`:
 
 ```bash
@@ -770,6 +775,140 @@ The observed value that exceeded `cap`.
 
 ***
 
+### OriginBinding
+
+`env.ORIGIN`: the library as a relay `ingress` plugin reaches it. The host
+serves each request on public `https` (never as loopback) with the client
+address the plugin reports.
+
+#### Methods
+
+##### fetch()
+
+```ts
+fetch(request, options?): Promise<Response>;
+```
+
+Serves one request through the library.
+
+Only the path and query of `request.url` are sent; the library answers
+on its own public origin. Connection headers (`connection`, `upgrade`,
+...) and forwarding headers (`host`, `x-forwarded-*`, `forwarded`,
+`x-real-ip`) are dropped.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `request` | `Request` | The request the provider delivered. |
+| `options?` | [`OriginFetchOptions`](#originfetchoptions) | The client address, when the provider reports one. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+The library's response; its body streams.
+
+###### Throws
+
+`invalid_params` for a request the host refuses
+  (bad method, target or headers past `maxOriginHeaders` /
+  `maxOriginHeaderBytes`); `unavailable` when the library cannot serve.
+
+***
+
+### OriginFetchOptions
+
+Options for one [OriginBinding.fetch](#fetch).
+
+#### Properties
+
+##### clientAddress?
+
+```ts
+clientAddress?: string;
+```
+
+IP address of the client from the provider's own connection metadata
+(for example `cf-connecting-ip` on a Cloudflare relay). Omit it when the
+provider gives none; never take it from a header the client controls.
+
+***
+
+### OriginTransport
+
+The adapter's origin grant, as the author isolate reaches it. Never
+throws: every failure comes back as `err`.
+
+#### Methods
+
+##### fetch()
+
+```ts
+fetch(head, body): Promise<OriginTransportReply>;
+```
+
+Hand one request to the library.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `head` | [`OriginRequest`](generated.md#originrequest) | Method, origin-form target, header fields and client address. |
+| `body` | `ReadableStream`\<`Uint8Array`\<`ArrayBufferLike`\>\> \| `null` | Request body; `null` when the request has none. |
+
+###### Returns
+
+`Promise`\<[`OriginTransportReply`](#origintransportreply)\>
+
+The library's response or a typed failure.
+
+***
+
+### OriginTransportResponse
+
+One library response as the transport hands it to the author isolate.
+
+#### Extends
+
+- `OriginResponseHead`
+
+#### Properties
+
+##### body
+
+```ts
+body: ReadableStream<Uint8Array<ArrayBufferLike>> | null;
+```
+
+Response body; `null` when the response has none.
+
+##### headers
+
+```ts
+headers: OriginHeader[];
+```
+
+Response header fields in order; repeated names stay separate.
+
+###### Inherited from
+
+`OriginResponseHead.headers`
+
+##### status
+
+```ts
+status: number;
+```
+
+HTTP status code, 100 to 599.
+
+###### Inherited from
+
+`OriginResponseHead.status`
+
+***
+
 ### StorePage
 
 One page of a storefront's own library listing, as the plugin fetched it.
@@ -861,6 +1000,25 @@ Fetches one store page.
 `Promise`\<[`StorePage`](#storepage)\>
 
 That store page.
+
+***
+
+### OriginTransportReply
+
+```ts
+type OriginTransportReply = 
+  | {
+  ok: OriginTransportResponse;
+}
+  | {
+  err: {
+     code: string;
+     message: string;
+  };
+};
+```
+
+One transport answer: the library's response, or a typed failure.
 
 ## Variables
 
@@ -2549,6 +2707,42 @@ Re-exports [IdentityHighWater](generated.md#identityhighwater)
 
 ***
 
+### Ingress
+
+Re-exports [Ingress](generated.md#ingress-1)
+
+***
+
+### IngressEntrypoint
+
+Re-exports [IngressEntrypoint](plugin.md#ingressentrypoint)
+
+***
+
+### IngressHealth
+
+Re-exports [IngressHealth](generated.md#ingresshealth-1)
+
+***
+
+### IngressHealthReply
+
+Re-exports [IngressHealthReply](generated.md#ingresshealthreply)
+
+***
+
+### IngressStarted
+
+Re-exports [IngressStarted](generated.md#ingressstarted)
+
+***
+
+### IngressStartReply
+
+Re-exports [IngressStartReply](generated.md#ingressstartreply)
+
+***
+
 ### Instant
 
 Re-exports [Instant](plugin.md#instant)
@@ -3344,6 +3538,36 @@ Re-exports [OpenReply](generated.md#openreply)
 ### OptionalColumnReference
 
 Re-exports [OptionalColumnReference](generated.md#optionalcolumnreference)
+
+***
+
+### Origin
+
+Re-exports [Origin](generated.md#origin-3)
+
+***
+
+### OriginFetchReply
+
+Re-exports [OriginFetchReply](generated.md#originfetchreply)
+
+***
+
+### OriginHeader
+
+Re-exports [OriginHeader](generated.md#originheader)
+
+***
+
+### OriginRequest
+
+Re-exports [OriginRequest](generated.md#originrequest)
+
+***
+
+### OriginResponse
+
+Re-exports [OriginResponse](generated.md#originresponse)
 
 ***
 

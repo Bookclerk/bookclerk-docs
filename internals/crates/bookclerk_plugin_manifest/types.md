@@ -11,6 +11,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | --- | --- | --- |
 | [`MediaManifest`](#mediamanifest) | struct | `[media]`: the work kinds and edition carriers a storefront or metadata provider reports, and the carriers a storefront can download. |
 | [`AcquireManifest`](#acquiremanifest) | struct | `[acquire]`: how fast the host may download from one store account of this storefront when it starts the downloads itself. |
+| [`IngressManifest`](#ingressmanifest) | struct | `[ingress]`: how an `ingress` plugin gives the library its public address. Required for that entrypoint and forbidden without it. |
 | [`MetadataFilesManifest`](#metadatafilesmanifest) | struct | `[metadata_files]`: the metadata file dialects a `metadataFiles` plugin implements. Required for that entrypoint and forbidden without it. |
 | [`MetadataFileDialectManifest`](#metadatafiledialectmanifest) | struct | One `[[metadata_files.dialects]]` row: a file format the plugin reads, and writes when `writes` is true. |
 | [`NotifierManifest`](#notifiermanifest) | struct | `[notifier]`: what a `notifier` plugin can carry. Required for that entrypoint and forbidden without it. |
@@ -42,6 +43,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`PluginFamily`](#pluginfamily) | enum | Handler family — how the daemon, CLI, and UI group plugins and which `config.toml` prefix holds their settings. |
 | [`PluginRuntimeKind`](#pluginruntimekind) | enum | Guest runtime selection (`runtime` key in `plugin.toml`). |
 | [`CredentialSharing`](#credentialsharing) | enum | How a storefront's store credentials may be used from several Bookclerk instances at once (`credentials` key in `plugin.toml`). |
+| [`IngressKind`](#ingresskind) | enum | How public requests reach the library. |
 | [`NotifierDestination`](#notifierdestination) | enum | Kind of destination a notifier sends to (`[notifier].destinations`). |
 | [`NotifierFormat`](#notifierformat) | enum | Body format a notifier renders (`[notifier].formats`). |
 | [`NetworkMode`](#networkmode) | enum | Network mode declared in `[capabilities.network]`. |
@@ -185,6 +187,23 @@ Python author tools (`manifest-cases.json`).
 Returns [`Error::Message`](error.md#error) naming the first field outside its range.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### IngressManifest
+
+```rust
+pub struct IngressManifest {
+    pub kind: IngressKind,
+}
+```
+
+`[ingress]`: how an `ingress` plugin gives the library its public
+address. Required for that entrypoint and forbidden without it.
+
+**Fields**
+
+- `kind`: Whether requests arrive through `ORIGIN` or straight at the daemon.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### MetadataFilesManifest
 
@@ -994,6 +1013,7 @@ pub struct PluginManifest {
     pub metadata_files: Option<MetadataFilesManifest>,
     pub notifier: Option<NotifierManifest>,
     pub notifications: NotificationsManifest,
+    pub ingress: Option<IngressManifest>,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -1084,6 +1104,9 @@ rejected.
   plugin; see [`NotifierManifest`](#notifiermanifest).
 - `notifications`: Notification types the plugin raises through `NOTIFY`
   (`[[notifications.types]]`).
+- `ingress`: How the plugin serves the library publicly (`[ingress]`): required
+  for plugins that export the `ingress` entrypoint and forbidden for
+  every other plugin; see [`IngressManifest`](#ingressmanifest).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
@@ -1274,13 +1297,13 @@ pub fn families(&self) -> Vec<PluginFamily>
 Handler families this plugin belongs to, in
 [`PluginFamily::ALL`](#pluginfamilyall) priority order.
 
-A plugin joins the `Source` / `Output` / `Database` families through
+A plugin joins the `Source` / `Output` / `Database` / `Ingress` families through
 the matching named entrypoint and the `Integration` family through
 event consumers, queue consumers, crons, `RemoteLibrary`, `Cli`,
 `Oidc`, `Metadata`, `Covers`, `MetadataFiles`, or `Notifier`.
 
 Job triggers make a plugin an integration only when it has no
-`storefront`, `storage` or `databaseAdapter` entrypoint. Beside one of
+`storefront`, `storage`, `databaseAdapter` or `ingress` entrypoint. Beside one of
 those, jobs run on that entrypoint's session (the host's `stream_copy`
 job runs on the storage guest's destination session), so the plugin
 stays in that one family and a deployment registers it there instead
@@ -1299,7 +1322,7 @@ pub fn primary_family(&self) -> PluginFamily
 Primary handler family: the first of [`Self::families`](#pluginmanifestfamilies).
 
 Picks the `config.toml` settings prefix (`database.*` > `sources.*` >
-`output.*` > `integrations.*`) and the API grouping.
+`output.*` > `ingress.*` > `integrations.*`) and the API grouping.
 
 ##### Returns
 
@@ -1573,6 +1596,7 @@ pub enum PluginFamily {
     Integration,
     Output,
     Database,
+    Ingress,
 }
 ```
 
@@ -1581,7 +1605,7 @@ Handler family — how the daemon, CLI, and UI group plugins and which
 
 Derived from the exported [`Entrypoint`](../bookclerk_plugin_abi/generated.md#entrypoint)s and declared triggers (see
 [`PluginManifest::families`](#pluginmanifestfamilies)); never written to `plugin.toml`. Wire values
-are lowercase (`source`, `integration`, `output`, `database`).
+are lowercase (`source`, `integration`, `output`, `database`, `ingress`).
 
 **Variants**
 
@@ -1591,11 +1615,13 @@ are lowercase (`source`, `integration`, `output`, `database`).
   notifier.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).
+- `Ingress`: Public address provider (`Ingress` entrypoint): a relay or a
+  dynamic DNS name for the library.
 
 #### PluginFamily::ALL
 
 ```rust
-pub const ALL: [Self; 4] = _
+pub const ALL: [Self; 5] = _
 ```
 
 Every family in settings-prefix priority order.
@@ -1610,7 +1636,8 @@ Returns the lowercase wire name used in API paths and config prefixes.
 
 ##### Returns
 
-One of `"source"`, `"integration"`, `"output"`, or `"database"`.
+One of `"source"`, `"integration"`, `"output"`, `"database"`, or
+`"ingress"`.
 
 #### PluginFamily::parse
 
@@ -1693,6 +1720,35 @@ pub fn as_str(self) -> &'static str
 The `plugin.toml` spelling (`shareable` or `single_keeper`).
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### IngressKind
+
+```rust
+pub enum IngressKind {
+    Relay,
+    Direct,
+}
+```
+
+How public requests reach the library.
+
+**Variants**
+
+- `Relay`: The provider holds the public address and relays each request to the
+  plugin, which hands it to the library through the `ORIGIN` binding.
+- `Direct`: The public address points at the daemon itself (port mapping or
+  dynamic DNS); the plugin only keeps the address current and never
+  receives `ORIGIN`.
+
+#### IngressKind::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The `plugin.toml` spelling: `"relay"` or `"direct"`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### NotifierDestination
 
@@ -1856,7 +1912,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 10] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 11] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
@@ -1864,7 +1920,7 @@ Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
 ### REGISTRY_ENTRYPOINTS
 
 ```rust
-pub const REGISTRY_ENTRYPOINTS: [Entrypoint; 3] = _;
+pub const REGISTRY_ENTRYPOINTS: [Entrypoint; 4] = _;
 ```
 
 Entrypoints the host loads into their own registry (sources,
