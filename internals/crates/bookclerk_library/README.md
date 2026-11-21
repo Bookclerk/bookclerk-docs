@@ -351,6 +351,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`EVENT_RESOURCE_CLASS_NETWORK`](#event_resource_class_network) | constant | Default delivery resource class (`network`). |
 | [`EVENT_SUBSCRIBER_HEARTBEAT_TTL_SECS`](#event_subscriber_heartbeat_ttl_secs) | constant | Live catalog rows quieter than this many seconds are ignored at dispatch. |
 | [`HOST_CONSUMER_PREFIX`](#host_consumer_prefix) | constant | Prefix of subscriber ids the daemon itself consumes under (`host:discover`, `host:search-index:<node>`). Their deliveries never expire. |
+| [`INGEST_BATCH_FINISHED`](#ingest_batch_finished) | constant | Host event type published when an ingest batch (an upload or a storage intake) reaches a final state (payload `batchId`, `state`, `source`, `intakeInstance`, `detail`). |
 | [`JOB_PAYLOAD_VERSION`](#job_payload_version) | constant | Current job command envelope version stored in `JobPayload::v`. |
 | [`LISTENING_SYNCED`](#listening_synced) | constant | Host event published when a listening sync changed what Discover reads from a stored row: its owner, matched book or work, authors, or how far they got (started, quarter, finished). |
 | [`MAX_QUEUE_NAME_LEN`](#max_queue_name_len) | constant | Longest queue name. |
@@ -2973,6 +2974,7 @@ pub struct JobPayload {
     pub subject: Option<String>,
     pub node_id: Option<String>,
     pub branch_request: Option<BranchRequestTarget>,
+    pub ingest_batch: Option<String>,
 }
 ```
 
@@ -3030,7 +3032,8 @@ JSON command envelope stored on a job row.
 - `subject`: For [`JobKind::DiscoverCandidates`](#jobkind) and [`JobKind::DiscoverFeed`]: the
   Discover subject key (`operator`, `user:<id>`, `portal:<id>`).
 - `node_id`: The one node that may claim this job, for work on that node's own
-  disk ([`JobKind::CacheSweep`](#jobkind), [`JobKind::SearchIndexRebuild`](#jobkind)).
+  disk ([`JobKind::CacheSweep`](#jobkind), [`JobKind::SearchIndexRebuild`](#jobkind),
+  [`JobKind::IngestBatch`](#jobkind)).
   
   `None` lets any node that meets [`Self::requires`](#jobpayload) claim it. The
   routed claim (`control_plane::claim_routed_job`) skips a job pinned
@@ -3039,6 +3042,7 @@ JSON command envelope stored on a job row.
   node has stopped heartbeating (`control_plane::sweep_job_requirements`).
 - `branch_request`: For [`JobKind::BranchRequest`]: the work asked for and the branch
   listing it was asked from.
+- `ingest_batch`: For [`JobKind::IngestBatch`]: the `ingest_batches.id` to run.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -15654,6 +15658,7 @@ pub enum JobKind {
     SearchIndexRebuild,
     LibraryIndexRebuild,
     BranchRequest,
+    IngestBatch,
     Invalid,
 }
 ```
@@ -15691,12 +15696,16 @@ Kind of durable daemon work stored in the `jobs` table.
   [`JobPayload::node_id`](#jobpayload) to that branch, which claims it over the
   node socket (`requests.claim`) and never through the plugin job
   path; no node of this library runs it.
+- `IngestBatch`: Identify and store one ingest batch (`ingest_batch`): uploaded files
+  or storage references, held by the batch's patron. Pinned by
+  [`JobPayload::node_id`](#jobpayload) to the node whose disk holds the staged
+  bytes, and run only by a node that holds the library database.
 - `Invalid`: Terminal placeholder after an unreadable persisted command is rejected.
 
 #### JobKind::ALL
 
 ```rust
-pub const ALL: [Self; 14] = _
+pub const ALL: [Self; 15] = _
 ```
 
 Every kind, in declaration order; the SQL plans derive their kind
@@ -16242,6 +16251,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Part
 pub enum HoldingHolder {
     Account { plugin_key: String, account_id: String },
     Node { node_id: String },
+    Patron { user_id: i64 },
 }
 ```
 
@@ -16254,6 +16264,8 @@ Who holds a listing.
   - `account_id`: The account id at that plugin.
 - `Node`: A branch library's node, by node id.
   - `node_id`: The node id.
+- `Patron`: A patron who uploaded the book, by user id.
+  - `user_id`: The person's `users.id`.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -18719,6 +18731,16 @@ pub const HOST_CONSUMER_PREFIX: &str = "host:";
 
 Prefix of subscriber ids the daemon itself consumes under (`host:discover`,
 `host:search-index:<node>`). Their deliveries never expire.
+
+### INGEST_BATCH_FINISHED
+
+```rust
+pub const INGEST_BATCH_FINISHED: &str = "ingest_batch_finished";
+```
+
+Host event type published when an ingest batch (an upload or a storage
+intake) reaches a final state (payload `batchId`, `state`, `source`,
+`intakeInstance`, `detail`).
 
 ### JOB_PAYLOAD_VERSION
 

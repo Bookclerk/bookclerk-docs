@@ -19972,6 +19972,28 @@ Schema:
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "description": "A patron who uploaded the book.",
+                            "required": [
+                              "user_id",
+                              "kind"
+                            ],
+                            "properties": {
+                              "user_id": {
+                                "type": "integer",
+                                "format": "int64",
+                                "description": "The person's user id.",
+                                "example": 3
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "patron"
+                                ]
+                              }
+                            }
                           }
                         ],
                         "description": "Who holds the listing."
@@ -19983,7 +20005,8 @@ Schema:
                           "purchase",
                           "plus",
                           "loan",
-                          "free"
+                          "free",
+                          "own"
                         ]
                       },
                       "purchased_at": {
@@ -22878,6 +22901,3259 @@ Schema:
       "minimum": 0
     }
   }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/uploads`
+
+Lists the caller's uploads, newest first.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Responses
+
+- `200` — The caller's uploads. Body: [`UploadList`](schemas.md#uploadlist) (`application/json`)
+  - `uploads` *array of [`UploadJson`](schemas.md#uploadjson)*, **required** — At most 50 uploads, without their files.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The sign-in is linked to no patron. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The uploads could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/uploads",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/uploads")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The caller's uploads.
+
+```json
+{
+  "uploads": [
+    {
+      "id": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99",
+      "state": "open",
+      "source": "upload",
+      "fileCount": 2,
+      "declaredBytes": 734068736,
+      "jobId": null,
+      "detail": null,
+      "createdAt": "2026-11-20T09:00:00Z",
+      "updatedAt": "2026-11-20T09:05:00Z",
+      "finishedAt": null,
+      "files": [
+        {
+          "memberNo": 0,
+          "path": "Dune/01 Dune.m4b",
+          "size": 734003200,
+          "received": 734003200,
+          "outcome": "matched"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "The caller's uploads, newest first.",
+  "required": [
+    "uploads"
+  ],
+  "properties": {
+    "uploads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One upload.",
+        "required": [
+          "id",
+          "state",
+          "source",
+          "fileCount",
+          "declaredBytes",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The upload id (32 hex digits).",
+            "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99"
+          },
+          "state": {
+            "type": "string",
+            "description": "`open` (taking bytes), `committed` (queued), `running`, `done`,\n`failed` or `cancelled`.",
+            "example": "open"
+          },
+          "source": {
+            "type": "string",
+            "description": "`upload`, or `intake` for a batch a drop folder made.",
+            "example": "upload"
+          },
+          "fileCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Files the manifest named.",
+            "example": 2,
+            "minimum": 0
+          },
+          "declaredBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bytes the manifest declared.",
+            "example": 734068736,
+            "minimum": 0
+          },
+          "jobId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The ingest job, once committed.",
+            "example": null
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the upload failed.",
+            "example": null
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was created (RFC 3339).",
+            "example": "2026-11-20T09:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Its last activity (RFC 3339).",
+            "example": "2026-11-20T09:05:00Z"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When it finished (RFC 3339).",
+            "example": null
+          },
+          "files": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "description": "One file of an upload.",
+              "required": [
+                "memberNo",
+                "path",
+                "size",
+                "received",
+                "outcome"
+              ],
+              "properties": {
+                "memberNo": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Its number in the upload; manifest files are numbered from 0 in\norder, an archive's entries after every earlier file.",
+                  "example": 0,
+                  "minimum": 0
+                },
+                "parentNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int32",
+                  "description": "The archive it was expanded from.",
+                  "example": null,
+                  "minimum": 0
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Its path in the upload (for a refused archive entry, its cleaned\nname).",
+                  "example": "Dune/01 Dune.m4b"
+                },
+                "size": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Its size in bytes.",
+                  "example": 734003200,
+                  "minimum": 0
+                },
+                "received": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Bytes received so far; resume a `PATCH` here.",
+                  "example": 734003200,
+                  "minimum": 0
+                },
+                "outcome": {
+                  "type": "string",
+                  "description": "What became of it: `pending`, `expanded` (an archive), `matched`,\n`needs_review`, `duplicate`, `refused` or `failed`.",
+                  "example": "matched"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Why it was refused or failed, as a stable code.",
+                  "example": null
+                },
+                "editionId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The edition it was stored under.",
+                  "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+                }
+              }
+            },
+            "description": "Its files; left out of lists."
+          }
+        }
+      },
+      "description": "At most 50 uploads, without their files."
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The sign-in is linked to no patron. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `500`: The uploads could not be read.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/uploads`
+
+Starts an upload from a manifest of the files to come.
+
+The caller must be allowed to upload (the `upload` member control). The
+operator's uploads are held by the library's first active Owner. Paths
+are relative (`Folder/File.m4b`), at most 10,000 files, each within
+`uploads.max_file_bytes`, all within the caller's staging quota.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Request body
+
+`application/json`: [`UploadManifest`](schemas.md#uploadmanifest)
+
+- `files` *array of [`ManifestFile`](schemas.md#manifestfile)*, **required** — Every file of the batch, in the order their numbers follow.
+
+### Responses
+
+- `201` — The upload is open for bytes. Body: [`UploadJson`](schemas.md#uploadjson) (`application/json`)
+  - `id` *string*, **required** — The upload id (32 hex digits).
+  - `state` *string*, **required** — `open` (taking bytes), `committed` (queued), `running`, `done`, `failed` or `cancelled`.
+  - `source` *string*, **required** — `upload`, or `intake` for a batch a drop folder made.
+  - `fileCount` *integer (int64)*, **required** — Files the manifest named. At least 0.
+  - `declaredBytes` *integer (int64)*, **required** — Bytes the manifest declared. At least 0.
+  - `jobId` *string or null* — The ingest job, once committed.
+  - `detail` *string or null* — Why the upload failed.
+  - `createdAt` *string*, **required** — When it was created (RFC 3339).
+  - `updatedAt` *string*, **required** — Its last activity (RFC 3339).
+  - `finishedAt` *string or null* — When it finished (RFC 3339).
+  - `files` *array of [`UploadMemberJson`](schemas.md#uploadmemberjson) or null* — Its files; left out of lists.
+- `400` — The manifest is malformed, names no file or too many, or a path is refused or clashes. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller may not upload. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `413` — A file passes the per-file limit or the upload passes the staging quota. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The body is not JSON. As `text/plain`, when the request did not declare a JSON body. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The upload could not be created. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+- `507` — The disk would drop below its free-space floor. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{"files": [{"path": "The Hobbit/01 Chapter One.mp3", "size": 52428800}]}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{"files": [{"path": "The Hobbit/01 Chapter One.mp3", "size": 52428800}]}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/uploads",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={"files": [{"path": "The Hobbit/01 Chapter One.mp3", "size": 52428800}]},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({"files": [{"path": "The Hobbit/01 Chapter One.mp3", "size": 52428800}]}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/uploads")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({"files": [{"path": "The Hobbit/01 Chapter One.mp3", "size": 52428800}]}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `201`: The upload is open for bytes.
+
+```json
+{
+  "id": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99",
+  "state": "open",
+  "source": "upload",
+  "fileCount": 2,
+  "declaredBytes": 734068736,
+  "jobId": null,
+  "detail": null,
+  "createdAt": "2026-11-20T09:00:00Z",
+  "updatedAt": "2026-11-20T09:05:00Z",
+  "finishedAt": null,
+  "files": [
+    {
+      "memberNo": 0,
+      "parentNo": null,
+      "path": "Dune/01 Dune.m4b",
+      "size": 734003200,
+      "received": 734003200,
+      "outcome": "matched",
+      "reason": null,
+      "editionId": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "One upload.",
+  "required": [
+    "id",
+    "state",
+    "source",
+    "fileCount",
+    "declaredBytes",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The upload id (32 hex digits).",
+      "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99"
+    },
+    "state": {
+      "type": "string",
+      "description": "`open` (taking bytes), `committed` (queued), `running`, `done`,\n`failed` or `cancelled`.",
+      "example": "open"
+    },
+    "source": {
+      "type": "string",
+      "description": "`upload`, or `intake` for a batch a drop folder made.",
+      "example": "upload"
+    },
+    "fileCount": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Files the manifest named.",
+      "example": 2,
+      "minimum": 0
+    },
+    "declaredBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Bytes the manifest declared.",
+      "example": 734068736,
+      "minimum": 0
+    },
+    "jobId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The ingest job, once committed.",
+      "example": null
+    },
+    "detail": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why the upload failed.",
+      "example": null
+    },
+    "createdAt": {
+      "type": "string",
+      "description": "When it was created (RFC 3339).",
+      "example": "2026-11-20T09:00:00Z"
+    },
+    "updatedAt": {
+      "type": "string",
+      "description": "Its last activity (RFC 3339).",
+      "example": "2026-11-20T09:05:00Z"
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When it finished (RFC 3339).",
+      "example": null
+    },
+    "files": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "description": "One file of an upload.",
+        "required": [
+          "memberNo",
+          "path",
+          "size",
+          "received",
+          "outcome"
+        ],
+        "properties": {
+          "memberNo": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Its number in the upload; manifest files are numbered from 0 in\norder, an archive's entries after every earlier file.",
+            "example": 0,
+            "minimum": 0
+          },
+          "parentNo": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The archive it was expanded from.",
+            "example": null,
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "Its path in the upload (for a refused archive entry, its cleaned\nname).",
+            "example": "Dune/01 Dune.m4b"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its size in bytes.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "received": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bytes received so far; resume a `PATCH` here.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "outcome": {
+            "type": "string",
+            "description": "What became of it: `pending`, `expanded` (an archive), `matched`,\n`needs_review`, `duplicate`, `refused` or `failed`.",
+            "example": "matched"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it was refused or failed, as a stable code.",
+            "example": null
+          },
+          "editionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition it was stored under.",
+            "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+          }
+        }
+      },
+      "description": "Its files; left out of lists."
+    }
+  }
+}
+```
+
+Status `400`: The manifest is malformed, names no file or too many, or a path is refused or clashes. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "file 1 has the same path as an earlier file"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller may not upload. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `413`: A file passes the per-file limit or the upload passes the staging quota.
+
+```json
+{
+  "error": "file 0 is larger than the per-file limit"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The body is not JSON. As `text/plain`, when the request did not declare a JSON body.
+
+```json
+{
+  "error": "send the manifest as application/json"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: missing field `files` at line 1 column 2
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The upload could not be created.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `507`: The disk would drop below its free-space floor.
+
+```json
+{
+  "error": "this server is low on disk space"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+## `GET /api/uploads/review`
+
+Lists uploaded books stored under a new local edition because nothing
+strong identified them, for an Administrator to check and, when they
+are a known edition, pin.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `cursor` (path) *string or null*, **required** — The `next_cursor` of the previous page.
+
+### Responses
+
+- `200` — One page of books to review. Body: [`ReviewPage`](schemas.md#reviewpage) (`application/json`)
+  - `items` *array of [`ReviewItemJson`](schemas.md#reviewitemjson)*, **required** — The books, oldest upload first.
+  - `next_cursor` *string or null* — Pass as `cursor` for the next page; absent when this page is empty.
+- `400` — The cursor is not one this route made. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `500` — The list could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads/review' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads/review' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/uploads/review",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads/review", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/uploads/review")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: One page of books to review.
+
+```json
+{
+  "items": [
+    {
+      "upload_id": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99",
+      "member_no": 0,
+      "path": "Unknown/track01.mp3",
+      "edition_id": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b",
+      "user_id": 3
+    }
+  ],
+  "next_cursor": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99:0"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "One page of books to review.",
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One stored book to review.",
+        "required": [
+          "upload_id",
+          "member_no",
+          "path",
+          "user_id"
+        ],
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "description": "The upload.",
+            "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99"
+          },
+          "member_no": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The file's number in it.",
+            "example": 0,
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "The file's path in the upload.",
+            "example": "Unknown/track01.mp3"
+          },
+          "edition_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The local edition it was stored under.",
+            "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+          },
+          "user_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The patron who uploaded it.",
+            "example": 3
+          }
+        }
+      },
+      "description": "The books, oldest upload first."
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Pass as `cursor` for the next page; absent when this page is empty.",
+      "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99:0"
+    }
+  }
+}
+```
+
+Status `400`: The cursor is not one this route made.
+
+```json
+{
+  "error": "invalid page cursor"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: The caller is not an Administrator. A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "What went wrong, as the handler describes it.",
+                  "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+              "required": [
+                "error",
+                "message",
+                "status"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "Machine slug (same as [`ErrorBody::code`]).",
+                  "example": "not_found"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Operator-facing explanation.",
+                  "example": "That page or resource was not found."
+                },
+                "status": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "Numeric HTTP status (duplicates the response status for clients).",
+                  "example": 404,
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+          "required": [
+            "error",
+            "message",
+            "status"
+          ],
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Machine slug (same as [`ErrorBody::code`]).",
+              "example": "not_found"
+            },
+            "message": {
+              "type": "string",
+              "description": "Operator-facing explanation.",
+              "example": "That page or resource was not found."
+            },
+            "status": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Numeric HTTP status (duplicates the response status for clients).",
+              "example": 404,
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
+```
+
+Status `500`: The list could not be read.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `GET /api/uploads/{id}`
+
+Reads one of the caller's uploads with every file: how many bytes each
+has received (where to resume) and, once ingested, what became of it.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Upload id.
+
+### Responses
+
+- `200` — The upload and its files. Body: [`UploadJson`](schemas.md#uploadjson) (`application/json`)
+  - `id` *string*, **required** — The upload id (32 hex digits).
+  - `state` *string*, **required** — `open` (taking bytes), `committed` (queued), `running`, `done`, `failed` or `cancelled`.
+  - `source` *string*, **required** — `upload`, or `intake` for a batch a drop folder made.
+  - `fileCount` *integer (int64)*, **required** — Files the manifest named. At least 0.
+  - `declaredBytes` *integer (int64)*, **required** — Bytes the manifest declared. At least 0.
+  - `jobId` *string or null* — The ingest job, once committed.
+  - `detail` *string or null* — Why the upload failed.
+  - `createdAt` *string*, **required** — When it was created (RFC 3339).
+  - `updatedAt` *string*, **required** — Its last activity (RFC 3339).
+  - `finishedAt` *string or null* — When it finished (RFC 3339).
+  - `files` *array of [`UploadMemberJson`](schemas.md#uploadmemberjson) or null* — Its files; left out of lists.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such upload of the caller's. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The upload could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads/<id>' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads/<id>' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/uploads/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads/<id>", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/uploads/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The upload and its files.
+
+```json
+{
+  "id": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99",
+  "state": "open",
+  "source": "upload",
+  "fileCount": 2,
+  "declaredBytes": 734068736,
+  "jobId": null,
+  "detail": null,
+  "createdAt": "2026-11-20T09:00:00Z",
+  "updatedAt": "2026-11-20T09:05:00Z",
+  "finishedAt": null,
+  "files": [
+    {
+      "memberNo": 0,
+      "parentNo": null,
+      "path": "Dune/01 Dune.m4b",
+      "size": 734003200,
+      "received": 734003200,
+      "outcome": "matched",
+      "reason": null,
+      "editionId": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "One upload.",
+  "required": [
+    "id",
+    "state",
+    "source",
+    "fileCount",
+    "declaredBytes",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The upload id (32 hex digits).",
+      "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99"
+    },
+    "state": {
+      "type": "string",
+      "description": "`open` (taking bytes), `committed` (queued), `running`, `done`,\n`failed` or `cancelled`.",
+      "example": "open"
+    },
+    "source": {
+      "type": "string",
+      "description": "`upload`, or `intake` for a batch a drop folder made.",
+      "example": "upload"
+    },
+    "fileCount": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Files the manifest named.",
+      "example": 2,
+      "minimum": 0
+    },
+    "declaredBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Bytes the manifest declared.",
+      "example": 734068736,
+      "minimum": 0
+    },
+    "jobId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The ingest job, once committed.",
+      "example": null
+    },
+    "detail": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why the upload failed.",
+      "example": null
+    },
+    "createdAt": {
+      "type": "string",
+      "description": "When it was created (RFC 3339).",
+      "example": "2026-11-20T09:00:00Z"
+    },
+    "updatedAt": {
+      "type": "string",
+      "description": "Its last activity (RFC 3339).",
+      "example": "2026-11-20T09:05:00Z"
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When it finished (RFC 3339).",
+      "example": null
+    },
+    "files": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "description": "One file of an upload.",
+        "required": [
+          "memberNo",
+          "path",
+          "size",
+          "received",
+          "outcome"
+        ],
+        "properties": {
+          "memberNo": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Its number in the upload; manifest files are numbered from 0 in\norder, an archive's entries after every earlier file.",
+            "example": 0,
+            "minimum": 0
+          },
+          "parentNo": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The archive it was expanded from.",
+            "example": null,
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "Its path in the upload (for a refused archive entry, its cleaned\nname).",
+            "example": "Dune/01 Dune.m4b"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its size in bytes.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "received": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bytes received so far; resume a `PATCH` here.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "outcome": {
+            "type": "string",
+            "description": "What became of it: `pending`, `expanded` (an archive), `matched`,\n`needs_review`, `duplicate`, `refused` or `failed`.",
+            "example": "matched"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it was refused or failed, as a stable code.",
+            "example": null
+          },
+          "editionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition it was stored under.",
+            "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+          }
+        }
+      },
+      "description": "Its files; left out of lists."
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such upload of the caller's.
+
+```json
+{
+  "error": "no such upload"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The upload could not be read.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `DELETE /api/uploads/{id}`
+
+Cancels an upload that has not started ingesting and drops its bytes.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Upload id.
+
+### Responses
+
+- `204` — The upload is cancelled. No body.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such upload of the caller's. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The upload is already ingesting or finished. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The upload could not be cancelled. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads/<id>' \
+    -X DELETE \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads/<id>' `
+    -Method Delete `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.delete(
+    "http://127.0.0.1:8787/api/uploads/<id>",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads/<id>", {
+  method: "DELETE",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .delete("http://127.0.0.1:8787/api/uploads/<id>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `204`: The upload is cancelled. No body.
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such upload of the caller's.
+
+```json
+{
+  "error": "no such upload"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The upload is already ingesting or finished.
+
+```json
+{
+  "error": "the upload is already ingesting or finished"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The upload could not be cancelled.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `PATCH /api/uploads/{id}/files/{member_no}`
+
+Sends bytes of one file, from the offset in the `Upload-Offset` header.
+
+The body is `application/offset+octet-stream`. A request that breaks
+off keeps the bytes that arrived; read the upload (or the answer's
+`received`) and resume from there. Bytes past the file's declared size
+are refused.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Upload id.
+- `member_no` (path) *integer (int32)*, **required** — The file's number in the manifest.
+- `Upload-Offset` (header) *integer (int64)*, **required** — Bytes of the file already received.
+
+### Request body
+
+`application/offset+octet-stream`: [`BinaryBody`](schemas.md#binarybody)
+
+### Responses
+
+- `200` — The bytes were stored. Body: [`ReceivedJson`](schemas.md#receivedjson) (`application/json`)
+  - `memberNo` *integer (int32)*, **required** — The file's number. At least 0.
+  - `received` *integer (int64)*, **required** — Bytes received; send the next `PATCH` from here. At least 0.
+  - `complete` *boolean*, **required** — True once every byte has arrived.
+- `400` — The Upload-Offset header is missing or malformed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such upload of the caller's, or no such file in it. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — The offset is not where the file stands, another request is sending this file, or the upload no longer takes bytes. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `413` — The bytes run past the file's declared size. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The body is not application/offset+octet-stream. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The bytes could not be stored. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+- `507` — The disk would drop below its free-space floor. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads/<id>/files/<member_no>' \
+    -X PATCH \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/offset+octet-stream' \
+    --data-binary @file
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads/<id>/files/<member_no>' `
+    -Method Patch `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/offset+octet-stream' `
+    -InFile 'file'
+```
+
+```python
+import requests
+
+response = requests.patch(
+    "http://127.0.0.1:8787/api/uploads/<id>/files/<member_no>",
+    headers={"Authorization": "Bearer <operatorToken>", "Content-Type": "application/offset+octet-stream"},
+    data=open("file", "rb"),
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+import { readFile } from "node:fs/promises";
+
+const response = await fetch("http://127.0.0.1:8787/api/uploads/<id>/files/<member_no>", {
+  method: "PATCH",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/offset+octet-stream" },
+  body: await readFile("file"),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .patch("http://127.0.0.1:8787/api/uploads/<id>/files/<member_no>")
+    .header("Authorization", "Bearer <operatorToken>")
+    .header("Content-Type", "application/offset+octet-stream")
+    .body(std::fs::read("file")?)
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The bytes were stored.
+
+```json
+{
+  "memberNo": 0,
+  "received": 67108864,
+  "complete": false
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "Where a file's bytes stand after a `PATCH`.",
+  "required": [
+    "memberNo",
+    "received",
+    "complete"
+  ],
+  "properties": {
+    "memberNo": {
+      "type": "integer",
+      "format": "int32",
+      "description": "The file's number.",
+      "example": 0,
+      "minimum": 0
+    },
+    "received": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Bytes received; send the next `PATCH` from here.",
+      "example": 67108864,
+      "minimum": 0
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "True once every byte has arrived.",
+      "example": false
+    }
+  }
+}
+```
+
+Status `400`: The Upload-Offset header is missing or malformed.
+
+```json
+{
+  "error": "send the Upload-Offset header"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such upload of the caller's, or no such file in it.
+
+```json
+{
+  "error": "no such upload"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: The offset is not where the file stands, another request is sending this file, or the upload no longer takes bytes.
+
+```json
+{
+  "error": "the file has 1024 bytes; resume from there"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `413`: The bytes run past the file's declared size.
+
+```json
+{
+  "error": "the bytes run past the file's declared size"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The body is not application/offset+octet-stream.
+
+```json
+{
+  "error": "send the bytes as application/offset+octet-stream"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The bytes could not be stored.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The sign-in could not be checked because the library did not answer in time (`session_check_unavailable`). The response carries `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "session_check_unavailable",
+  "message": "Your sign-in could not be checked yet. Try again in a moment.",
+  "status": 503
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `507`: The disk would drop below its free-space floor.
+
+```json
+{
+  "error": "this server is low on disk space"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+## `POST /api/uploads/{id}/commit`
+
+Commits an upload whose files have all arrived: queues its ingest job.
+
+**Access:** The operator, or any library session, including a library card (refused with 403 `transport_insecure` off loopback without TLS, or `clerk_sign_in_unavailable` where remote installs are not served).
+
+**Credentials:** `operatorToken` or `operatorSession` or `portalSession` or `clerkToken`
+
+### Parameters
+
+- `id` (path) *string*, **required** — Upload id.
+
+### Responses
+
+- `202` — The ingest job is queued. Body: [`UploadJson`](schemas.md#uploadjson) (`application/json`)
+  - `id` *string*, **required** — The upload id (32 hex digits).
+  - `state` *string*, **required** — `open` (taking bytes), `committed` (queued), `running`, `done`, `failed` or `cancelled`.
+  - `source` *string*, **required** — `upload`, or `intake` for a batch a drop folder made.
+  - `fileCount` *integer (int64)*, **required** — Files the manifest named. At least 0.
+  - `declaredBytes` *integer (int64)*, **required** — Bytes the manifest declared. At least 0.
+  - `jobId` *string or null* — The ingest job, once committed.
+  - `detail` *string or null* — Why the upload failed.
+  - `createdAt` *string*, **required** — When it was created (RFC 3339).
+  - `updatedAt` *string*, **required** — Its last activity (RFC 3339).
+  - `finishedAt` *string or null* — When it finished (RFC 3339).
+  - `files` *array of [`UploadMemberJson`](schemas.md#uploadmemberjson) or null* — Its files; left out of lists.
+- `401` — No one is signed in. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `403` — A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+  - `error` *string*, **required** — Machine slug (same as [`ErrorBody::code`]).
+  - `message` *string*, **required** — Operator-facing explanation.
+  - `status` *integer (int32)*, **required** — Numeric HTTP status (duplicates the response status for clients). At least 0.
+- `404` — No such upload of the caller's. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `409` — Files are still missing bytes, or the upload is not open. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `500` — The upload could not be committed. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `503` — The job queue is full; try again later. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out. Body: [`ErrorMessage`](schemas.md#errormessage) or [`ErrorJson`](schemas.md#errorjson) (`application/json`)
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/uploads/<id>/commit' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/uploads/<id>/commit' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/uploads/<id>/commit",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/uploads/<id>/commit", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/uploads/<id>/commit")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `202`: The ingest job is queued.
+
+```json
+{
+  "id": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99",
+  "state": "open",
+  "source": "upload",
+  "fileCount": 2,
+  "declaredBytes": 734068736,
+  "jobId": null,
+  "detail": null,
+  "createdAt": "2026-11-20T09:00:00Z",
+  "updatedAt": "2026-11-20T09:05:00Z",
+  "finishedAt": null,
+  "files": [
+    {
+      "memberNo": 0,
+      "parentNo": null,
+      "path": "Dune/01 Dune.m4b",
+      "size": 734003200,
+      "received": 734003200,
+      "outcome": "matched",
+      "reason": null,
+      "editionId": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "One upload.",
+  "required": [
+    "id",
+    "state",
+    "source",
+    "fileCount",
+    "declaredBytes",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The upload id (32 hex digits).",
+      "example": "4f3c2b1a0e9d8c7b6a5f4e3d2c1b0a99"
+    },
+    "state": {
+      "type": "string",
+      "description": "`open` (taking bytes), `committed` (queued), `running`, `done`,\n`failed` or `cancelled`.",
+      "example": "open"
+    },
+    "source": {
+      "type": "string",
+      "description": "`upload`, or `intake` for a batch a drop folder made.",
+      "example": "upload"
+    },
+    "fileCount": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Files the manifest named.",
+      "example": 2,
+      "minimum": 0
+    },
+    "declaredBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Bytes the manifest declared.",
+      "example": 734068736,
+      "minimum": 0
+    },
+    "jobId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The ingest job, once committed.",
+      "example": null
+    },
+    "detail": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why the upload failed.",
+      "example": null
+    },
+    "createdAt": {
+      "type": "string",
+      "description": "When it was created (RFC 3339).",
+      "example": "2026-11-20T09:00:00Z"
+    },
+    "updatedAt": {
+      "type": "string",
+      "description": "Its last activity (RFC 3339).",
+      "example": "2026-11-20T09:05:00Z"
+    },
+    "finishedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When it finished (RFC 3339).",
+      "example": null
+    },
+    "files": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "description": "One file of an upload.",
+        "required": [
+          "memberNo",
+          "path",
+          "size",
+          "received",
+          "outcome"
+        ],
+        "properties": {
+          "memberNo": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Its number in the upload; manifest files are numbered from 0 in\norder, an archive's entries after every earlier file.",
+            "example": 0,
+            "minimum": 0
+          },
+          "parentNo": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The archive it was expanded from.",
+            "example": null,
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "Its path in the upload (for a refused archive entry, its cleaned\nname).",
+            "example": "Dune/01 Dune.m4b"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its size in bytes.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "received": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Bytes received so far; resume a `PATCH` here.",
+            "example": 734003200,
+            "minimum": 0
+          },
+          "outcome": {
+            "type": "string",
+            "description": "What became of it: `pending`, `expanded` (an archive), `matched`,\n`needs_review`, `duplicate`, `refused` or `failed`.",
+            "example": "matched"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it was refused or failed, as a stable code.",
+            "example": null
+          },
+          "editionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The edition it was stored under.",
+            "example": "6c1f2e8a-4b3d-4f5e-8a9b-0c1d2e3f4a5b"
+          }
+        }
+      },
+      "description": "Its files; left out of lists."
+    }
+  }
+}
+```
+
+Status `401`: No one is signed in.
+
+```json
+{
+  "error": "sign in first"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `403`: A signed-in user who must enroll a second factor first gets `mfa_enrollment_required`. A library card sent over plain HTTP from another machine gets `transport_insecure`. A library card sent where the node API is not mounted gets `clerk_sign_in_unavailable`. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "clerk_sign_in_unavailable",
+  "message": "This library does not accept clerks on this address.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+  "required": [
+    "error",
+    "message",
+    "status"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Machine slug (same as [`ErrorBody::code`]).",
+      "example": "not_found"
+    },
+    "message": {
+      "type": "string",
+      "description": "Operator-facing explanation.",
+      "example": "That page or resource was not found."
+    },
+    "status": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Numeric HTTP status (duplicates the response status for clients).",
+      "example": 404,
+      "minimum": 0
+    }
+  }
+}
+```
+
+Status `404`: No such upload of the caller's.
+
+```json
+{
+  "error": "no such upload"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `409`: Files are still missing bytes, or the upload is not open.
+
+```json
+{
+  "error": "2 files are still missing bytes"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `500`: The upload could not be committed.
+
+```json
+{
+  "error": "the upload could not be read or written"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `503`: The job queue is full; try again later. When the sign-in could not be checked because the library did not answer in time, the answer is `session_check_unavailable` instead, with `Retry-After`; ask again rather than treating the caller as signed out.
+
+```json
+{
+  "error": "the job queue is full"
+}
+```
+
+Schema:
+
+```json
+{
+  "anyOf": [
+    {
+      "type": "object",
+      "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "What went wrong, as the handler describes it.",
+          "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "JSON error object (`error`, `message`, numeric `status`) for API clients.",
+      "required": [
+        "error",
+        "message",
+        "status"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Machine slug (same as [`ErrorBody::code`]).",
+          "example": "not_found"
+        },
+        "message": {
+          "type": "string",
+          "description": "Operator-facing explanation.",
+          "example": "That page or resource was not found."
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Numeric HTTP status (duplicates the response status for clients).",
+          "example": 404,
+          "minimum": 0
+        }
+      }
+    }
+  ]
 }
 ```
 

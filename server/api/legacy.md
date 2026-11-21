@@ -1197,6 +1197,7 @@ Schema:
           "search_index_rebuild",
           "library_index_rebuild",
           "branch_request",
+          "ingest_batch",
           "invalid"
         ]
       },

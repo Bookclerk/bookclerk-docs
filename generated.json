@@ -101,6 +101,8 @@
    "landing": false,
    "pages": [
     "internals/crates/bookclerk_acquire/README",
+    "internals/crates/bookclerk_archive/README",
+    "internals/crates/bookclerk_archive/fixtures",
     "internals/crates/bookclerk_audible_catalog/README",
     "internals/crates/bookclerk_config/README",
     "internals/crates/bookclerk_cover/README",
@@ -185,6 +187,8 @@
     "internals/crates/bookclerk_library/entities/expressions",
     "internals/crates/bookclerk_library/entities/holdings",
     "internals/crates/bookclerk_library/entities/ignored_titles",
+    "internals/crates/bookclerk_library/entities/ingest_batches",
+    "internals/crates/bookclerk_library/entities/ingest_members",
     "internals/crates/bookclerk_library/entities/job_secret_handoffs",
     "internals/crates/bookclerk_library/entities/job_temp_paths",
     "internals/crates/bookclerk_library/entities/jobs",
@@ -941,6 +945,7 @@
  ],
  "sources": {
   "internals/crates/bookclerk_acquire": "crates/bookclerk-acquire",
+  "internals/crates/bookclerk_archive": "crates/bookclerk-archive",
   "internals/crates/bookclerk_audible_catalog": "crates/bookclerk-audible-catalog",
   "internals/crates/bookclerk_config": "crates/bookclerk-config",
   "internals/crates/bookclerk_cover": "crates/bookclerk-cover",

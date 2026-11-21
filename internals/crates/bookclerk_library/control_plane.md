@@ -63,6 +63,18 @@ See `docs/adr/control-plane.md`.
 | [`RedeemRequest`](#redeemrequest) | struct | What a host submits to redeem a link. |
 | [`NodeIdentity`](#nodeidentity) | struct | Bootstrap identity loaded from `NODE_IDENTITY_FILE`. |
 | [`NodeRecord`](#noderecord) | struct | Durable node row plus the latest observation columns. |
+| [`ExpandedEntry`](#expandedentry) | struct | One entry an archive member expanded into. |
+| [`IngestBatch`](#ingestbatch) | struct | One stored batch. |
+| [`IngestBatchId`](#ingestbatchid) | struct | A batch id: 32 lower-case hex digits, safe as one path segment. |
+| [`IngestMember`](#ingestmember) | struct | One stored member. |
+| [`IntakeRef`](#intakeref) | struct | An intake member's place in its storage instance. |
+| [`ManifestFile`](#manifestfile) | struct | One file of a `POST /api/uploads` manifest, as sent. |
+| [`MemberSpec`](#memberspec) | struct | One file a manifest names. |
+| [`OutcomeUpdate`](#outcomeupdate) | struct | One member's outcome, as the job decided it. |
+| [`ReviewItem`](#reviewitem) | struct | One stored book an Administrator should review: a member stored under a new local edition because nothing strong named one. |
+| [`Sha256Hex`](#sha256hex) | struct | A lower-case hex SHA-256 digest a manifest declared for a file. |
+| [`UploadManifest`](#uploadmanifest) | struct | `POST /api/uploads` body: the files of one batch. |
+| [`UploadQuota`](#uploadquota) | struct | The upload limits a batch is admitted under (`uploads.*` settings). |
 | [`InstanceBindingGrant`](#instancebindinggrant) | struct | Whether the plugin-instance config grant includes `config` or `secrets`. |
 | [`InstanceConfigDocument`](#instanceconfigdocument) | struct | A parsed instance document plus its revision. |
 | [`InstanceSecretRefV1`](#instancesecretrefv1) | struct | A name in `encrypted_secrets`. The ciphertext is not part of the document. |
@@ -170,6 +182,11 @@ See `docs/adr/control-plane.md`.
 | [`EnrollmentActor`](#enrollmentactor) | enum | Who is acting on enrollment links and node credentials. |
 | [`BranchRelationship`](#branchrelationship) | enum | How a node relates to the library, as people are told: a shared branch serves the library from its database, and a branch with its own database is a remote branch when it reports a public address (it is a core branch other installs can reach) and a local branch when it does not. |
 | [`NodeKind`](#nodekind) | enum | How a node joined the library. |
+| [`CreateRefusal`](#createrefusal) | enum | Why a batch was not created. |
+| [`IngestSource`](#ingestsource) | enum | Where a batch's bytes come from. |
+| [`IngestState`](#ingeststate) | enum | Where a batch is in its life. |
+| [`ManifestError`](#manifesterror) | enum | Why a manifest was refused before any batch was made. |
+| [`MemberOutcome`](#memberoutcome) | enum | What became of one member. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
 | [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
@@ -323,6 +340,30 @@ See `docs/adr/control-plane.md`.
 | [`load_or_create_node_identity`](#load_or_create_node_identity) | function | Loads the identity file or creates a new node id. |
 | [`node_identity_path`](#node_identity_path) | function | Path of the node identity file. |
 | [`node_target`](#node_target) | function | Bookclerk artifact target this binary runs as (`linux-x64-gnu`, `macos-arm64`, …). Matches `bookclerk_plugin_catalog::host_bookclerk_target` (a plugin-host test pins the two together). |
+| [`add_expanded_members`](#add_expanded_members) | function | Adds the entries archive member `parent_no` expanded into, numbered after the batch's last member, and marks the archive expanded, with `parent_reason` when the walk stopped early. |
+| [`batch_exists`](#batch_exists) | function | Whether a batch row exists for `id`, in any state. |
+| [`batch_members`](#batch_members) | function | Reads every member of a batch, in member order. |
+| [`cancel_batch`](#cancel_batch) | function | Cancels a batch the job has not started. |
+| [`create_intake_batch`](#create_intake_batch) | function | Creates an intake batch: files read in place from `instance`, held by `user_id`, run on `node_id`. The host creates these itself (the drop folder); the person must be active. |
+| [`create_upload_batch`](#create_upload_batch) | function | Creates an upload batch for `user_id`, staged on `node_id`. |
+| [`delete_finished_before`](#delete_finished_before) | function | Deletes final batches (and their members) that finished before `before`, at most one result page per call. |
+| [`final_batches_on`](#final_batches_on) | function | Batches on `node_id` in a final state: their staged bytes are no longer needed. |
+| [`finish_batch`](#finish_batch) | function | Ends a running batch as `state` (done or failed), with `detail` for a failure. |
+| [`first_active_owner`](#first_active_owner) | function | The library's first active Owner: who holds what the operator uploads with no person of their own. |
+| [`idle_upload_batches`](#idle_upload_batches) | function | Open upload batches on `node_id` idle since before `before`: the prune cancels them and removes their staged bytes. |
+| [`load_batch`](#load_batch) | function | Reads one batch. |
+| [`load_member`](#load_member) | function | Reads one member. |
+| [`mark_committed`](#mark_committed) | function | Hands an open batch to its job: every member must be complete and the manifest's every file present. |
+| [`parse_upload_manifest`](#parse_upload_manifest) | function | Parses a `POST /api/uploads` body into the batch's members, checking every path with the archive path policy. Sans-IO: the `upload_manifest` fuzz target drives this same function. |
+| [`parse_upload_offset`](#parse_upload_offset) | function | Parses an `Upload-Offset` header: plain ASCII digits (no sign, space or leading `+`), at most 19 of them, and no larger than `i64::MAX`. |
+| [`patron_holding_id`](#patron_holding_id) | function | The id of the patron holding `user_id` has of `listing_id`, if any. |
+| [`record_ingest_acquired`](#record_ingest_acquired) | function | Marks an edition acquired by a patron holding after the ingest job wrote its files, and publishes `edition_acquire_changed` so the library's page index picks the book up. |
+| [`record_received`](#record_received) | function | Records that `received` bytes of a member are staged, and that the batch was active now. |
+| [`review_items`](#review_items) | function | Members stored for review, oldest batch first, after `after` (a `(batch id, member)` cursor), at most one result page. |
+| [`set_member_outcomes`](#set_member_outcomes) | function | Records outcomes the job decided, `MEMBERS_PER_WRITE` per host batch, while the batch is running. |
+| [`staged_bytes`](#staged_bytes) | function | Bytes `user_id` has in live upload batches (open, committed or running), which the staging quota counts. |
+| [`start_batch`](#start_batch) | function | Starts (or, after a crash, resumes) the job's run of a batch. |
+| [`user_batches`](#user_batches) | function | A person's batches, newest first, at most `limit`. |
 | [`import_instance_config_if_absent`](#import_instance_config_if_absent) | function | Inserts the document when it is absent. |
 | [`load_instance_config`](#load_instance_config) | function | Loads and parses the instance config document. |
 | [`parse_setting_text`](#parse_setting_text) | function | Parses an operator-typed value for `key` according to the schema. |
@@ -513,7 +554,7 @@ See `docs/adr/control-plane.md`.
 | [`strip_install_state`](#strip_install_state) | function | Removes this install's own state from the library so that copies of it can start as installs of their own. |
 | [`accounts_owned_by`](#accounts_owned_by) | function | Store accounts linked to `user_id` through any of the user's identities. |
 | [`acquire_titles_of_editions`](#acquire_titles_of_editions) | function | The library titles an acquire by edition queues: for each edition, one title (`books.uuid`) that sells it in an account `requester` may acquire for, and in `account` when one is named. |
-| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only or paced acquire runs only on a node that holds the library database, since the host acquire path does none of them (a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). |
+| [`claimant_may_run`](#claimant_may_run) | function | True when a `claimant` may run `job` at all, whatever it is trusted with: a forced, PDF-only or paced acquire runs only on a node that holds the library database, since the host acquire path does none of them (a paced acquire checks and records the account's pace in the library database before each download, `crate::pacing`). An interlibrary request (`JobKind::BranchRequest`) is never run through the routed claim: only its branch claims it, over `requests.claim` (`super::claim_branch_requests`). An ingest batch runs only on a node that holds the library database. |
 | [`handoff_routed_job`](#handoff_routed_job) | function | Re-checks a claimed job just before its secrets are handed to the claiming node. |
 | [`job_for_node_owner`](#job_for_node_owner) | function | True when every store account `job` touches belongs to the user who owns `node_id`: the job is the branch owner's own work (`bookclerk_node_proto::WorkJob::for_node_owner`). |
 | [`job_item_accounts`](#job_item_accounts) | function | The store accounts a scan or acquire touches: its items. |
@@ -610,6 +651,9 @@ See `docs/adr/control-plane.md`.
 | [`MIN_LINK_TTL`](#min_link_ttl) | constant | Shortest lifetime a link may be minted with. |
 | [`NODE_PUBLIC_KEY_LEN`](#node_public_key_len) | constant | Size of an Ed25519 or X25519 public key. |
 | [`NODE_IDENTITY_FILE`](#node_identity_file) | constant | Bootstrap file under `$BOOKCLERK_FILES_DIR` that stores the stable node id. |
+| [`MAX_BATCH_FILES`](#max_batch_files) | constant | Most files one batch's manifest may name. |
+| [`MAX_INTAKE_REF_BYTES`](#max_intake_ref_bytes) | constant | Longest intake storage key or signature a member may carry, in bytes; both are stored in one cell. |
+| [`MAX_REASON_BYTES`](#max_reason_bytes) | constant | Longest outcome reason, in bytes. |
 | [`MAX_INSTANCE_SECRET_REFS`](#max_instance_secret_refs) | constant | Maximum secret refs in one schema-1 document. |
 | [`MAX_INSTANCE_SETTINGS`](#max_instance_settings) | constant | Maximum settings in one schema-1 document. |
 | [`MAX_INSTANCE_SETTING_BYTES`](#max_instance_setting_bytes) | constant | Maximum UTF-8 size of one string setting. |
@@ -2077,6 +2121,315 @@ Durable node row plus the latest observation columns.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### ExpandedEntry
+
+```rust
+pub struct ExpandedEntry {
+    pub path: String,
+    pub size: u64,
+    pub outcome: MemberOutcome,
+    pub reason: Option<String>,
+}
+```
+
+One entry an archive member expanded into.
+
+**Fields**
+
+- `path`: Its path in the batch, or the sanitized name of a refused entry.
+- `size`: Bytes written (0 for a refused entry).
+- `outcome`: `Pending` for a written entry, `Refused` with a reason otherwise.
+- `reason`: Why it was refused.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### IngestBatch
+
+```rust
+pub struct IngestBatch {
+    pub id: IngestBatchId,
+    pub user_id: i64,
+    pub node_id: String,
+    pub source: IngestSource,
+    pub intake_instance: Option<String>,
+    pub state: IngestState,
+    pub file_count: u64,
+    pub declared_bytes: u64,
+    pub job_id: Option<String>,
+    pub detail: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+}
+```
+
+One stored batch.
+
+**Fields**
+
+- `id`: The batch id.
+- `user_id`: The patron who holds its books.
+- `node_id`: The node that holds its bytes and runs it.
+- `source`: Upload or intake.
+- `intake_instance`: For an intake batch, the storage instance it reads.
+- `state`: Its state.
+- `file_count`: Files the manifest named.
+- `declared_bytes`: Bytes the manifest declared.
+- `job_id`: Its job, once committed.
+- `detail`: Why it failed.
+- `created_at`: Creation time.
+- `updated_at`: Last activity.
+- `finished_at`: When it reached a final state.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### IngestBatchId
+
+```rust
+pub struct IngestBatchId(/* private */);
+```
+
+A batch id: 32 lower-case hex digits, safe as one path segment.
+
+#### IngestBatchId::new
+
+```rust
+pub fn new() -> Self
+```
+
+A new random id.
+
+#### IngestBatchId::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses an id, refusing anything but 32 lower-case hex digits.
+
+#### IngestBatchId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as stored.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### IngestMember
+
+```rust
+pub struct IngestMember {
+    pub member_no: u32,
+    pub parent_no: Option<u32>,
+    pub path: String,
+    pub size: u64,
+    pub sha256: Option<String>,
+    pub received: u64,
+    pub storage_key: Option<String>,
+    pub signature: Option<String>,
+    pub outcome: MemberOutcome,
+    pub reason: Option<String>,
+    pub edition_id: Option<String>,
+}
+```
+
+One stored member.
+
+**Fields**
+
+- `member_no`: Its position in the batch.
+- `parent_no`: The archive member it was expanded from.
+- `path`: Its relative path (or a refused entry's sanitized name).
+- `size`: Its size in bytes.
+- `sha256`: The digest the manifest declared.
+- `received`: Bytes staged so far.
+- `storage_key`: For an intake member, its key.
+- `signature`: For an intake member, its listed signature.
+- `outcome`: What became of it.
+- `reason`: Why it was refused or failed.
+- `edition_id`: The edition it was stored under.
+
+#### IngestMember::complete
+
+```rust
+pub fn complete(&self) -> bool
+```
+
+True once every declared byte is staged.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### IntakeRef
+
+```rust
+pub struct IntakeRef {
+    pub key: String,
+    pub signature: Option<String>,
+}
+```
+
+An intake member's place in its storage instance.
+
+**Fields**
+
+- `key`: The key in the intake instance.
+- `signature`: The signature the key was listed with, when the backend gives one.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ManifestFile
+
+```rust
+pub struct ManifestFile {
+    pub path: String,
+    pub size: u64,
+    pub sha256: Option<String>,
+}
+```
+
+One file of a `POST /api/uploads` manifest, as sent.
+
+**Fields**
+
+- `path`: Relative path, folders kept (`Book/01 Chapter.mp3`); `\` reads as
+  `/`. Refused when absolute, when it climbs out with `..`, or when it
+  is too long or too deep.
+- `size`: Size in bytes.
+- `sha256`: Lower-case hex SHA-256 of the file, checked before it is stored.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### MemberSpec
+
+```rust
+pub struct MemberSpec {
+    pub path: EntryPath,
+    pub size: u64,
+    pub sha256: Option<Sha256Hex>,
+    pub intake: Option<IntakeRef>,
+}
+```
+
+One file a manifest names.
+
+**Fields**
+
+- `path`: Its relative path in the batch.
+- `size`: Its size in bytes.
+- `sha256`: Its digest, when the client declared one.
+- `intake`: For an intake batch, where the file is; `None` for an upload.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### OutcomeUpdate
+
+```rust
+pub struct OutcomeUpdate {
+    pub member_no: u32,
+    pub outcome: MemberOutcome,
+    pub reason: Option<String>,
+    pub edition_id: Option<String>,
+}
+```
+
+One member's outcome, as the job decided it.
+
+**Fields**
+
+- `member_no`: The member.
+- `outcome`: Its outcome.
+- `reason`: The reason for a refusal or failure, cut to [`MAX_REASON_BYTES`](#max_reason_bytes).
+- `edition_id`: The edition it was stored under.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ReviewItem
+
+```rust
+pub struct ReviewItem {
+    pub batch_id: IngestBatchId,
+    pub member_no: u32,
+    pub path: String,
+    pub edition_id: Option<String>,
+    pub user_id: i64,
+}
+```
+
+One stored book an Administrator should review: a member stored under
+a new local edition because nothing strong named one.
+
+**Fields**
+
+- `batch_id`: The batch.
+- `member_no`: The member.
+- `path`: Its path in the batch.
+- `edition_id`: The local edition it was stored under.
+- `user_id`: The patron who uploaded it.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### Sha256Hex
+
+```rust
+pub struct Sha256Hex(/* private */);
+```
+
+A lower-case hex SHA-256 digest a manifest declared for a file.
+
+#### Sha256Hex::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses 64 hex digits, folding them to lower case.
+
+#### Sha256Hex::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The digest as stored.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`
+
+### UploadManifest
+
+```rust
+pub struct UploadManifest {
+    pub files: Vec<ManifestFile>,
+}
+```
+
+`POST /api/uploads` body: the files of one batch.
+
+**Fields**
+
+- `files`: Every file of the batch, in the order their numbers follow.
+
+Implements: `Clone`, `ComposeSchema`, `Debug`, `Deserialize<'de>`, `ToSchema`
+
+### UploadQuota
+
+```rust
+pub struct UploadQuota {
+    pub max_file_bytes: u64,
+    pub max_staged_bytes: u64,
+}
+```
+
+The upload limits a batch is admitted under (`uploads.*` settings).
+
+**Fields**
+
+- `max_file_bytes`: Largest file, in bytes.
+- `max_staged_bytes`: Most bytes one person may have staged in live upload batches.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### InstanceBindingGrant
 
 ```rust
@@ -3208,7 +3561,7 @@ one user.
 - `link_accounts`: May connect store accounts ([`MemberControl::LinkAccounts`](#membercontrol)).
 - `download`: May take copies of the library's files ([`MemberControl::Download`](#membercontrol)).
 - `edit_metadata`: May change metadata ([`MemberControl::EditMetadata`](#membercontrol)).
-- `upload`: May upload books ([`MemberControl::Upload`](#membercontrol)).
+- `upload`: May upload books ([`MemberControl::Upload`](#membercontrol)); off unless set.
 - `request_books`: May ask branches for books ([`MemberControl::RequestBooks`](#membercontrol)).
 - `see_prices`: May see prices and store links ([`MemberControl::SeePrices`](#membercontrol)).
 
@@ -5818,6 +6171,221 @@ pub fn parse(raw: &str) -> Self
 Parses stored text; anything unknown reads as [`Self::Shared`](#nodekind).
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
+
+### CreateRefusal
+
+```rust
+pub enum CreateRefusal {
+    NotAllowed,
+    Empty,
+    TooManyFiles,
+    FileTooLarge { member_no: usize },
+    PathClash { member_no: usize },
+    BadReference { member_no: usize },
+    OverQuota { staged: u64, requested: u64, limit: u64 },
+}
+```
+
+Why a batch was not created.
+
+**Variants**
+
+- `NotAllowed`: The person may not upload (the `upload` member control), is not
+  active, or is unknown.
+- `Empty`: The manifest names no file.
+- `TooManyFiles`: The manifest names more than [`MAX_BATCH_FILES`](#max_batch_files) files.
+- `FileTooLarge`: A file is larger than the per-file limit.
+  - `member_no`: The file's position in the manifest.
+- `PathClash`: Two files share a path, or a path folds onto another (case,
+  Unicode form, or a file where a folder is).
+  - `member_no`: The later file's position in the manifest.
+- `BadReference`: An intake member lacks its storage reference, an upload member has
+  one, or a reference is too long.
+  - `member_no`: The file's position in the manifest.
+- `OverQuota`: Admitting the batch would pass the person's staging quota.
+  - `staged`: Bytes the person already has staged.
+  - `requested`: Bytes this batch declares.
+  - `limit`: The quota.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
+
+### IngestSource
+
+```rust
+pub enum IngestSource {
+    Upload,
+    Intake,
+}
+```
+
+Where a batch's bytes come from.
+
+**Variants**
+
+- `Upload`: Staged on the receiving node by the upload API.
+- `Intake`: Read in place from an intake storage instance.
+
+#### IngestSource::ALL
+
+```rust
+pub const ALL: &'static [Self] = _
+```
+
+Every value, in declaration order.
+
+#### IngestSource::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored text.
+
+#### IngestSource::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses stored text; `None` for anything else.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### IngestState
+
+```rust
+pub enum IngestState {
+    Open,
+    Committed,
+    Running,
+    Done,
+    Failed,
+    Cancelled,
+}
+```
+
+Where a batch is in its life.
+
+**Variants**
+
+- `Open`: Taking bytes; nothing identified yet.
+- `Committed`: Every file arrived and the job is queued.
+- `Running`: The job is identifying and storing it.
+- `Done`: Every member has its outcome.
+- `Failed`: The job gave up; members keep the outcomes they reached.
+- `Cancelled`: Cancelled before the job started.
+
+#### IngestState::ALL
+
+```rust
+pub const ALL: &'static [Self] = _
+```
+
+Every value, in declaration order.
+
+#### IngestState::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored text.
+
+#### IngestState::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses stored text; `None` for anything else.
+
+#### IngestState::is_final
+
+```rust
+pub fn is_final(self) -> bool
+```
+
+True for a state the batch never leaves.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### ManifestError
+
+```rust
+pub enum ManifestError {
+    Malformed(String),
+    Path { member_no: usize, refusal: PathRefusal },
+    Digest { member_no: usize },
+    TooManyFiles,
+}
+```
+
+Why a manifest was refused before any batch was made.
+
+**Variants**
+
+- `Malformed`: The body is not the documented JSON.
+- `Path`: A file's path is not usable.
+  - `member_no`: The file's position.
+  - `refusal`: Why.
+- `Digest`: A file's digest is not 64 hex digits.
+  - `member_no`: The file's position.
+- `TooManyFiles`: The manifest names more than [`MAX_BATCH_FILES`](#max_batch_files) files.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `PartialEq`
+
+### MemberOutcome
+
+```rust
+pub enum MemberOutcome {
+    Pending,
+    Expanded,
+    Matched,
+    NeedsReview,
+    Duplicate,
+    Refused,
+    Failed,
+}
+```
+
+What became of one member.
+
+**Variants**
+
+- `Pending`: Not decided yet.
+- `Expanded`: An archive whose entries joined the batch as their own members.
+- `Matched`: Stored as part of an edition a strong identifier or ISBN named.
+- `NeedsReview`: Stored as part of a new local edition an Administrator should
+  review.
+- `Duplicate`: Its edition already had files here; the existing copy was kept.
+- `Refused`: Not stored, for the given reason.
+- `Failed`: Storing it failed.
+
+#### MemberOutcome::ALL
+
+```rust
+pub const ALL: &'static [Self] = _
+```
+
+Every value, in declaration order.
+
+#### MemberOutcome::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+The stored text.
+
+#### MemberOutcome::parse
+
+```rust
+pub fn parse(raw: &str) -> Option<Self>
+```
+
+Parses stored text; `None` for anything else.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
 
 ### InstanceConfigReplace
 
@@ -9020,6 +9588,438 @@ pub fn node_target() -> &'static str
 Bookclerk artifact target this binary runs as (`linux-x64-gnu`,
 `macos-arm64`, …). Matches `bookclerk_plugin_catalog::host_bookclerk_target`
 (a plugin-host test pins the two together).
+
+### add_expanded_members
+
+```rust
+pub async fn add_expanded_members(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    parent_no: u32,
+    entries: &[ExpandedEntry],
+    parent_reason: Option<&str>,
+) -> Result<u32>
+```
+
+Adds the entries archive member `parent_no` expanded into, numbered
+after the batch's last member, and marks the archive expanded, with
+`parent_reason` when the walk stopped early.
+
+Only the batch's running job calls this, so the numbering read here
+cannot race another writer.
+
+#### Returns
+
+The number given to the first entry; the rest follow in order.
+
+#### Errors
+
+Returns a read or write error.
+
+### batch_exists
+
+```rust
+pub async fn batch_exists(store: &LibraryStore, id: &IngestBatchId) -> Result<bool>
+```
+
+Whether a batch row exists for `id`, in any state.
+
+#### Errors
+
+Returns a read error.
+
+### batch_members
+
+```rust
+pub async fn batch_members(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+) -> Result<Vec<IngestMember>>
+```
+
+Reads every member of a batch, in member order.
+
+#### Errors
+
+Returns a read error, or an error for a corrupt row.
+
+### cancel_batch
+
+```rust
+pub async fn cancel_batch(store: &LibraryStore, id: &IngestBatchId) -> Result<bool>
+```
+
+Cancels a batch the job has not started.
+
+#### Returns
+
+`false` when the batch is running or already final.
+
+#### Errors
+
+Returns the write error.
+
+### create_intake_batch
+
+```rust
+pub async fn create_intake_batch(
+    store: &LibraryStore,
+    user_id: i64,
+    node_id: &str,
+    instance: &str,
+    specs: &[MemberSpec],
+) -> Result<Result<IngestBatch, CreateRefusal>>
+```
+
+Creates an intake batch: files read in place from `instance`, held by
+`user_id`, run on `node_id`. The host creates these itself (the drop
+folder); the person must be active.
+
+#### Returns
+
+The new batch, open, or why it was refused. Its members are complete
+from the start, so it can be committed at once.
+
+#### Errors
+
+Returns a read or write error.
+
+### create_upload_batch
+
+```rust
+pub async fn create_upload_batch(
+    store: &LibraryStore,
+    user_id: i64,
+    node_id: &str,
+    specs: &[MemberSpec],
+    quota: UploadQuota,
+) -> Result<Result<IngestBatch, CreateRefusal>>
+```
+
+Creates an upload batch for `user_id`, staged on `node_id`.
+
+The person must be allowed to upload (the `upload` member control) and
+the batch must fit their staging quota; both are checked again inside
+the write. The node's free-disk floor is the caller's to check.
+
+#### Returns
+
+The new batch, open and taking bytes, or why it was refused.
+
+#### Errors
+
+Returns a read or write error.
+
+### delete_finished_before
+
+```rust
+pub async fn delete_finished_before(
+    store: &LibraryStore,
+    before: DateTime<Utc>,
+) -> Result<usize>
+```
+
+Deletes final batches (and their members) that finished before
+`before`, at most one result page per call.
+
+#### Returns
+
+How many batches were deleted.
+
+#### Errors
+
+Returns a read or write error.
+
+### final_batches_on
+
+```rust
+pub async fn final_batches_on(
+    store: &LibraryStore,
+    node_id: &str,
+) -> Result<Vec<IngestBatchId>>
+```
+
+Batches on `node_id` in a final state: their staged bytes are no
+longer needed.
+
+#### Errors
+
+Returns a read error.
+
+### finish_batch
+
+```rust
+pub async fn finish_batch(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    state: IngestState,
+    detail: Option<&str>,
+) -> Result<()>
+```
+
+Ends a running batch as `state` (done or failed), with `detail` for a
+failure.
+
+#### Errors
+
+Returns the write error, or an error when `state` is not final.
+
+### first_active_owner
+
+```rust
+pub async fn first_active_owner(store: &LibraryStore) -> Result<Option<i64>>
+```
+
+The library's first active Owner: who holds what the operator uploads
+with no person of their own.
+
+#### Errors
+
+Returns a read error.
+
+### idle_upload_batches
+
+```rust
+pub async fn idle_upload_batches(
+    store: &LibraryStore,
+    node_id: &str,
+    before: DateTime<Utc>,
+) -> Result<Vec<IngestBatchId>>
+```
+
+Open upload batches on `node_id` idle since before `before`: the
+prune cancels them and removes their staged bytes.
+
+#### Errors
+
+Returns a read error.
+
+### load_batch
+
+```rust
+pub async fn load_batch(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+) -> Result<Option<IngestBatch>>
+```
+
+Reads one batch.
+
+#### Errors
+
+Returns a read error, or an error for a corrupt row.
+
+### load_member
+
+```rust
+pub async fn load_member(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    member_no: u32,
+) -> Result<Option<IngestMember>>
+```
+
+Reads one member.
+
+#### Errors
+
+Returns a read error, or an error for a corrupt row.
+
+### mark_committed
+
+```rust
+pub async fn mark_committed(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    job_id: &str,
+) -> Result<bool>
+```
+
+Hands an open batch to its job: every member must be complete and the
+manifest's every file present.
+
+#### Returns
+
+`false` when the batch is not open or a file is incomplete.
+
+#### Errors
+
+Returns the write error.
+
+### parse_upload_manifest
+
+```rust
+pub fn parse_upload_manifest(body: &[u8]) -> Result<Vec<MemberSpec>, ManifestError>
+```
+
+Parses a `POST /api/uploads` body into the batch's members, checking
+every path with the archive path policy. Sans-IO: the
+`upload_manifest` fuzz target drives this same function.
+
+Duplicate and folding paths, sizes and quotas are checked when the
+batch is created ([`create_upload_batch`](#create_upload_batch)).
+
+#### Errors
+
+Returns [`ManifestError`](#manifesterror) for a body that is not the documented JSON,
+a path the policy refuses, a malformed digest or too many files.
+
+### parse_upload_offset
+
+```rust
+pub fn parse_upload_offset(raw: &str) -> Option<u64>
+```
+
+Parses an `Upload-Offset` header: plain ASCII digits (no sign, space or
+leading `+`), at most 19 of them, and no larger than `i64::MAX`.
+
+### patron_holding_id
+
+```rust
+pub async fn patron_holding_id(
+    store: &LibraryStore,
+    listing_id: &str,
+    user_id: i64,
+) -> Result<Option<String>>
+```
+
+The id of the patron holding `user_id` has of `listing_id`, if any.
+
+#### Errors
+
+Returns a read error.
+
+### record_ingest_acquired
+
+```rust
+pub async fn record_ingest_acquired(
+    store: &LibraryStore,
+    edition_id: &str,
+    holding_id: &str,
+    storage_key: &str,
+) -> Result<bool>
+```
+
+Marks an edition acquired by a patron holding after the ingest job
+wrote its files, and publishes `edition_acquire_changed` so the
+library's page index picks the book up.
+
+The holding must still hold the edition; an edition another live
+holding already acquired keeps that holding's files.
+
+#### Returns
+
+`true` when the edition is now acquired by `holding_id`.
+
+#### Errors
+
+Returns the write error.
+
+### record_received
+
+```rust
+pub async fn record_received(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    member_no: u32,
+    received: u64,
+) -> Result<bool>
+```
+
+Records that `received` bytes of a member are staged, and that the
+batch was active now.
+
+#### Returns
+
+`false` when the batch is no longer open or `received` passes the
+member's size; nothing is written then.
+
+#### Errors
+
+Returns the write error.
+
+### review_items
+
+```rust
+pub async fn review_items(
+    store: &LibraryStore,
+    after: Option<(&IngestBatchId, u32)>,
+) -> Result<Vec<ReviewItem>>
+```
+
+Members stored for review, oldest batch first, after `after` (a
+`(batch id, member)` cursor), at most one result page.
+
+#### Errors
+
+Returns a read error, or an error for a corrupt row.
+
+### set_member_outcomes
+
+```rust
+pub async fn set_member_outcomes(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    updates: &[OutcomeUpdate],
+) -> Result<()>
+```
+
+Records outcomes the job decided, `MEMBERS_PER_WRITE` per host batch,
+while the batch is running.
+
+#### Errors
+
+Returns the write error.
+
+### staged_bytes
+
+```rust
+pub async fn staged_bytes(store: &LibraryStore, user_id: i64) -> Result<u64>
+```
+
+Bytes `user_id` has in live upload batches (open, committed or
+running), which the staging quota counts.
+
+#### Errors
+
+Returns the read error.
+
+### start_batch
+
+```rust
+pub async fn start_batch(
+    store: &LibraryStore,
+    id: &IngestBatchId,
+    job_id: &str,
+) -> Result<bool>
+```
+
+Starts (or, after a crash, resumes) the job's run of a batch.
+
+#### Returns
+
+`false` when the batch is neither committed nor running under
+`job_id`: it was cancelled, or belongs to another job.
+
+#### Errors
+
+Returns the write error.
+
+### user_batches
+
+```rust
+pub async fn user_batches(
+    store: &LibraryStore,
+    user_id: i64,
+    limit: u64,
+) -> Result<Vec<IngestBatch>>
+```
+
+A person's batches, newest first, at most `limit`.
+
+#### Errors
+
+Returns a read error, or an error for a corrupt row.
 
 ### import_instance_config_if_absent
 
@@ -12611,7 +13611,8 @@ paced acquire checks and records the account's pace in the library
 database before each download, `crate::pacing`). An
 interlibrary request ([`JobKind::BranchRequest`](README.md#jobkind)) is never run through
 the routed claim: only its branch claims it, over `requests.claim`
-(`super::claim_branch_requests`).
+(`super::claim_branch_requests`). An ingest batch runs only on a node
+that holds the library database.
 
 ### handoff_routed_job
 
@@ -14074,6 +15075,31 @@ pub const NODE_IDENTITY_FILE: &str = "node-identity.json";
 ```
 
 Bootstrap file under `$BOOKCLERK_FILES_DIR` that stores the stable node id.
+
+### MAX_BATCH_FILES
+
+```rust
+pub const MAX_BATCH_FILES: usize = 10_000;
+```
+
+Most files one batch's manifest may name.
+
+### MAX_INTAKE_REF_BYTES
+
+```rust
+pub const MAX_INTAKE_REF_BYTES: usize = 1_024;
+```
+
+Longest intake storage key or signature a member may carry, in bytes;
+both are stored in one cell.
+
+### MAX_REASON_BYTES
+
+```rust
+pub const MAX_REASON_BYTES: usize = 128;
+```
+
+Longest outcome reason, in bytes.
 
 ### MAX_INSTANCE_SECRET_REFS
 

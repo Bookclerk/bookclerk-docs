@@ -45,6 +45,8 @@ the worker itself calls.
 | [`Confinement`](#confinement) | enum | How strictly a worker must be confined before it will process a job. |
 | [`decode_pcm_bytes`](#decode_pcm_bytes) | function | Decodes a whole media file held in memory to PCM, the path the `media_decode` fuzz target and its replay test drive. |
 | [`write_output_within_budget`](#write_output_within_budget) | function | Appends `data` only when the result stays within `max`. |
+| [`check_archive_report`](#check_archive_report) | function | Checks a worker's report against the limits and the files on disk. |
+| [`extract_archive`](#extract_archive) | function | Expands `input` into the empty folder `output_dir` in a confined media worker, then checks the result. |
 | [`align_chapter_starts`](#align_chapter_starts) | function | Snap chapter starts just before nearby speech onsets (spoken chapter titles). |
 | [`scale_chapters_to_duration`](#scale_chapters_to_duration) | function | Scale rebased chapter starts so they span the probed plain-audio duration. |
 | [`bookclerk_tool_tag`](#bookclerk_tool_tag) | function | `bookclerk <version>` string embedded in encoder / freeform TOOL tags. |
@@ -535,6 +537,7 @@ pub enum MediaError {
     NotIsolated { job: &'static str, detail: String },
     Cover(String),
     Tags(String),
+    Archive(String),
     Io(Error),
     Other(Error),
 }
@@ -562,6 +565,8 @@ Errors from in-process codecs, MP4 plumbing, and confined media workers.
   undecodable. The message comes from the cover pipeline.
 - `Tags`: A file's embedded tags could not be read: not an MP4, MP3 or FLAC
   file, or a malformed one. The message comes from the tag reader.
+- `Archive`: An uploaded archive could not be expanded, or the worker's report of
+  the expansion did not hold up when the host checked it.
 - `Io`: Local filesystem I/O failure.
 - `Other`: Catch-all for wrapped media failures.
 
@@ -576,6 +581,7 @@ pub enum MediaJob {
     Fixup { request: Box<FixupRequest> },
     PackageM4b { request: Box<PackageM4bRequest> },
     AlignChapters { path: PathBuf, chapters: Vec<(String, u64)>, options: ChapterAlignOptions },
+    ExtractArchive { input: PathBuf, output_dir: PathBuf, limits: Limits },
 }
 ```
 
@@ -604,6 +610,11 @@ audio through LAME and FDK-AAC, both of which are C libraries.
   - `path`: Absolute path of the audio file to analyse.
   - `chapters`: Chapter titles paired with start offsets in milliseconds.
   - `options`: Waveform-alignment tuning (window sizes, thresholds).
+- `ExtractArchive`: Expand an uploaded ZIP or tar archive into an empty folder under
+  caps ([`bookclerk_archive::extract`](../bookclerk_archive/README.md#extract)).
+  - `input`: Absolute path of the archive.
+  - `output_dir`: Absolute path of the empty folder the files go into.
+  - `limits`: The caps for this archive.
 
 #### MediaJob::read_paths
 
@@ -679,6 +690,7 @@ pub enum MediaJobOutput {
     File { output: PathBuf },
     FileWithChapters { output: PathBuf, chapters: Vec<(String, u64)> },
     Chapters { chapters: Vec<(String, u64)> },
+    Extracted { report: Box<ExtractReport> },
 }
 ```
 
@@ -693,6 +705,8 @@ What a finished job produced.
   - `chapters`: Chapter titles paired with start offsets in milliseconds.
 - `Chapters`: Adjusted chapter starts; writes nothing.
   - `chapters`: Chapter titles paired with start offsets in milliseconds.
+- `Extracted`: What an archive expansion wrote and refused.
+  - `report`: The walk's report; the host re-checks it before trusting it.
 
 #### MediaJobOutput::output
 
@@ -822,6 +836,53 @@ The failing call writes nothing, so the file length never passes the budget.
 
 Returns [`MediaError::Native`](#mediaerror) when `written + data.len()` would exceed
 `max`. Returns [`MediaError::Io`](#mediaerror) when the accepted bytes cannot be written.
+
+### check_archive_report
+
+```rust
+pub fn check_archive_report(
+    report: &ExtractReport,
+    output_dir: &Path,
+    limits: &Limits,
+) -> Result<()>
+```
+
+Checks a worker's report against the limits and the files on disk.
+
+#### Errors
+
+[`MediaError::Archive`](#mediaerror) naming what does not hold.
+
+### extract_archive
+
+```rust
+pub async fn extract_archive(
+    input: &Path,
+    output_dir: &Path,
+    limits: Limits,
+) -> Result<ExtractReport>
+```
+
+Expands `input` into the empty folder `output_dir` in a confined media
+worker, then checks the result.
+
+The report is validated against `limits` (`ExtractReport::validate`),
+and every file it lists must be a regular file (not a link) at its path
+under `output_dir`, with the size the report states. A stopped walk is
+returned as is: the caller discards the folder.
+
+#### Arguments
+
+* `input` - The archive.
+* `output_dir` - An empty folder; created if missing.
+* `limits` - The caps for this archive.
+
+#### Errors
+
+[`MediaError::Archive`](#mediaerror) when `output_dir` is not empty, the input is not
+a recognised archive, or the report does not hold up;
+[`MediaError::NotIsolated`](#mediaerror) when isolation is required and no worker is
+available; worker and I/O failures otherwise.
 
 ### align_chapter_starts
 

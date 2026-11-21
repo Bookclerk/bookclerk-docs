@@ -319,6 +319,7 @@ Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 pub enum Holder {
     Account(String),
     Node(String),
+    Patron(i64),
 }
 ```
 
@@ -328,6 +329,7 @@ Who owns a listing (`holdings.holder`).
 
 - `Account`: A store account of the listing's plugin, by account id.
 - `Node`: A branch library, by node id (`node:<node_id>` provenance).
+- `Patron`: A patron who uploaded the book, by user id (`patron:<user id>`).
 
 #### Holder::stored
 
@@ -335,7 +337,7 @@ Who owns a listing (`holdings.holder`).
 pub fn stored(&self) -> String
 ```
 
-The stored text: `account:<id>` or `node:<id>`.
+The stored text: `account:<id>`, `node:<id>` or `patron:<user id>`.
 
 #### Holder::parse
 

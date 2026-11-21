@@ -1051,7 +1051,7 @@ An enrollment link as the invites routes list it; never its secret.
 
 On what terms a holder has a listing.
 
-Type: one of `purchase`, `plus`, `loan`, `free`
+Type: one of `purchase`, `plus`, `loan`, `free`, `own`
 
 ## ErrorAnswer
 
@@ -1339,7 +1339,7 @@ Snapshot of one queued or running control-plane job.
 
 Kind of durable daemon work stored in the `jobs` table.
 
-Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `invalid`
+Type: one of `scan`, `acquire`, `listen_sync`, `integration_scan`, `plugin_copy`, `plugin_scheduled`, `discover_candidates`, `discover_feed`, `discover_request_queue`, `cache_sweep`, `search_index_rebuild`, `library_index_rebuild`, `branch_request`, `ingest_batch`, `invalid`
 
 ## JobState
 
@@ -1574,6 +1574,14 @@ TOTP code plus the challenge id from password login.
 - `challenge_id` *string*, **required** — Server-issued challenge id (5-minute TTL, single use).
 - `code` *string*, **required** — Six-digit authenticator code.
 
+## ManifestFile
+
+One file of a `POST /api/uploads` manifest, as sent.
+
+- `path` *string*, **required** — Relative path, folders kept (`Book/01 Chapter.mp3`); `\` reads as `/`. Refused when absolute, when it climbs out with `..`, or when it is too long or too deep.
+- `size` *integer (int64)*, **required** — Size in bytes. At least 0.
+- `sha256` *string or null* — Lower-case hex SHA-256 of the file, checked before it is stored.
+
 ## MediaKindJson
 
 Carrier of an edition (`editions.media_kind`).
@@ -1588,7 +1596,7 @@ one user.
 - `link_accounts` *boolean* — May connect store accounts ([`MemberControl::LinkAccounts`]).
 - `download` *boolean* — May take copies of the library's files ([`MemberControl::Download`]).
 - `edit_metadata` *boolean* — May change metadata ([`MemberControl::EditMetadata`]).
-- `upload` *boolean* — May upload books ([`MemberControl::Upload`]).
+- `upload` *boolean* — May upload books ([`MemberControl::Upload`]); off unless set.
 - `request_books` *boolean* — May ask branches for books ([`MemberControl::RequestBooks`]).
 - `see_prices` *boolean* — May see prices and store links ([`MemberControl::SeePrices`]).
 
@@ -2969,6 +2977,14 @@ heavy wish-count weight (shared order; not per-viewer personalized).
 - `taste_score` *number (double)*, **required** — Local taste / embedding component before the wish-count boost.
 - `reasons` *array of string*, **required** — Short human-readable explanations for why this item was ranked here.
 
+## ReceivedJson
+
+Where a file's bytes stand after a `PATCH`.
+
+- `memberNo` *integer (int32)*, **required** — The file's number. At least 0.
+- `received` *integer (int64)*, **required** — Bytes received; send the next `PATCH` from here. At least 0.
+- `complete` *boolean*, **required** — True once every byte has arrived.
+
 ## Recommendation
 
 One ranked recommendation (typically an unowned storefront title).
@@ -3113,6 +3129,23 @@ The archive an owner library deploys to this install.
 Wishlist row status (`open` while wishlisted; `cancelled` after un-wishlist).
 
 Type: one of `open`, `cancelled`
+
+## ReviewItemJson
+
+One stored book to review.
+
+- `upload_id` *string*, **required** — The upload.
+- `member_no` *integer (int32)*, **required** — The file's number in it. At least 0.
+- `path` *string*, **required** — The file's path in the upload.
+- `edition_id` *string or null* — The local edition it was stored under.
+- `user_id` *integer (int64)*, **required** — The patron who uploaded it.
+
+## ReviewPage
+
+One page of books to review.
+
+- `items` *array of [`ReviewItemJson`](#reviewitemjson)*, **required** — The books, oldest upload first.
+- `next_cursor` *string or null* — Pass as `cursor` for the next page; absent when this page is empty.
 
 ## RevisionConflict
 
@@ -3735,6 +3768,47 @@ Body of `POST <UPLOADS_PATH><upload_id>/commit`.
 
 - `finish` *boolean* — Complete the job with this commit (the job's closing upload).
 - `detail` *string or null* — Outcome text recorded as the job's progress when `finish` is set.
+
+## UploadJson
+
+One upload.
+
+- `id` *string*, **required** — The upload id (32 hex digits).
+- `state` *string*, **required** — `open` (taking bytes), `committed` (queued), `running`, `done`, `failed` or `cancelled`.
+- `source` *string*, **required** — `upload`, or `intake` for a batch a drop folder made.
+- `fileCount` *integer (int64)*, **required** — Files the manifest named. At least 0.
+- `declaredBytes` *integer (int64)*, **required** — Bytes the manifest declared. At least 0.
+- `jobId` *string or null* — The ingest job, once committed.
+- `detail` *string or null* — Why the upload failed.
+- `createdAt` *string*, **required** — When it was created (RFC 3339).
+- `updatedAt` *string*, **required** — Its last activity (RFC 3339).
+- `finishedAt` *string or null* — When it finished (RFC 3339).
+- `files` *array of [`UploadMemberJson`](#uploadmemberjson) or null* — Its files; left out of lists.
+
+## UploadList
+
+The caller's uploads, newest first.
+
+- `uploads` *array of [`UploadJson`](#uploadjson)*, **required** — At most 50 uploads, without their files.
+
+## UploadManifest
+
+`POST /api/uploads` body: the files of one batch.
+
+- `files` *array of [`ManifestFile`](#manifestfile)*, **required** — Every file of the batch, in the order their numbers follow.
+
+## UploadMemberJson
+
+One file of an upload.
+
+- `memberNo` *integer (int32)*, **required** — Its number in the upload; manifest files are numbered from 0 in order, an archive's entries after every earlier file. At least 0.
+- `parentNo` *integer (int32) or null* — The archive it was expanded from. At least 0.
+- `path` *string*, **required** — Its path in the upload (for a refused archive entry, its cleaned name).
+- `size` *integer (int64)*, **required** — Its size in bytes. At least 0.
+- `received` *integer (int64)*, **required** — Bytes received so far; resume a `PATCH` here. At least 0.
+- `outcome` *string*, **required** — What became of it: `pending`, `expanded` (an archive), `matched`, `needs_review`, `duplicate`, `refused` or `failed`.
+- `reason` *string or null* — Why it was refused or failed, as a stable code.
+- `editionId` *string or null* — The edition it was stored under.
 
 ## UserChangeConflict
 

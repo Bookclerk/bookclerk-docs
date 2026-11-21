@@ -445,6 +445,7 @@ pub enum Entitlement {
     Plus,
     Loan,
     Free,
+    Own,
 }
 ```
 
@@ -456,6 +457,8 @@ How a holder came to own a listing (`holdings.entitlement`).
 - `Plus`: Included with a store membership while it lasts.
 - `Loan`: Borrowed for a time.
 - `Free`: Given away by the store.
+- `Own`: The holder's own copy, uploaded by them rather than bought from
+  a store (a `core.import` listing).
 
 #### Entitlement::ALL
 

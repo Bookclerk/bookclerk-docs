@@ -36,6 +36,7 @@ The crates the hosts are built from. Not a stable API.
 | Crate | Description |
 | --- | --- |
 | [`bookclerk_acquire`](bookclerk_acquire/README.md) | End-to-end acquire pipeline: license, download, decrypt, store |
+| [`bookclerk_archive`](bookclerk_archive/README.md) | Bounded, sans-IO extraction of uploaded ZIP and tar archives: entry path policy, size and ratio limits, and the report the media worker returns |
 | [`bookclerk_audible_catalog`](bookclerk_audible_catalog/README.md) | Unauthenticated Audible catalog HTTP (search, genres, ratings, reviews) shared by the Audible guest and host enrichment |
 | [`bookclerk_config`](bookclerk_config/README.md) | Bookclerk settings, paths, and naming template config |
 | [`bookclerk_cover`](bookclerk_cover/README.md) | Cover image pipeline: sniff, decode under limits, resize and re-encode untrusted cover art as JPEG |

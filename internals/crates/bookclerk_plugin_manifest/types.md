@@ -1814,7 +1814,7 @@ Most `[triggers] crons` entries one manifest may declare.
 ### HOST_EVENT_TYPES
 
 ```rust
-pub const HOST_EVENT_TYPES: [&str; 11] = _;
+pub const HOST_EVENT_TYPES: [&str; 12] = _;
 ```
 
 Domain event types only the host emits.
@@ -1829,6 +1829,8 @@ longer lists it, or its account was revoked or remapped).
 `edition_acquire_changed` is written with an edition's acquire state
 when it moves to anything other than acquired (queued, in progress,
 failed); becoming acquired publishes `book_acquired` instead.
+`ingest_batch_finished` is written when an upload or storage intake
+batch reaches a final state.
 `wishlist_changed` is written when a wishlist entry is added or changes
 status, and `listening_synced` when a listening sync changed what someone
 has started or finished. `playback_started` is written when someone

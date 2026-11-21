@@ -116,7 +116,7 @@ Status `200`: The library's users.
         "link_accounts": false,
         "download": true,
         "edit_metadata": true,
-        "upload": true,
+        "upload": false,
         "request_books": true,
         "see_prices": true
       },
@@ -396,8 +396,8 @@ Schema:
                   },
                   "upload": {
                     "type": "boolean",
-                    "description": "May upload books ([`MemberControl::Upload`]).",
-                    "example": true
+                    "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+                    "example": false
                   },
                   "request_books": {
                     "type": "boolean",
@@ -3354,7 +3354,7 @@ Status `200`: The default controls.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   }
@@ -3392,8 +3392,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",
@@ -3563,7 +3563,7 @@ Administrators do not follow the default.
 - `link_accounts` *boolean* — May connect store accounts ([`MemberControl::LinkAccounts`]).
 - `download` *boolean* — May take copies of the library's files ([`MemberControl::Download`]).
 - `edit_metadata` *boolean* — May change metadata ([`MemberControl::EditMetadata`]).
-- `upload` *boolean* — May upload books ([`MemberControl::Upload`]).
+- `upload` *boolean* — May upload books ([`MemberControl::Upload`]); off unless set.
 - `request_books` *boolean* — May ask branches for books ([`MemberControl::RequestBooks`]).
 - `see_prices` *boolean* — May see prices and store links ([`MemberControl::SeePrices`]).
 
@@ -3648,7 +3648,7 @@ Status `200`: The default controls after the change.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   }
@@ -3686,8 +3686,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",
@@ -4000,7 +4000,7 @@ Status `200`: The patron's controls.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   },
@@ -4016,7 +4016,7 @@ Status `200`: The patron's controls.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   },
@@ -4067,8 +4067,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",
@@ -4159,8 +4159,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",
@@ -4464,7 +4464,7 @@ Status `200`: The patron's controls after the change.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   },
@@ -4480,7 +4480,7 @@ Status `200`: The patron's controls after the change.
     "link_accounts": false,
     "download": true,
     "edit_metadata": true,
-    "upload": true,
+    "upload": false,
     "request_books": true,
     "see_prices": true
   },
@@ -4531,8 +4531,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",
@@ -4623,8 +4623,8 @@ Schema:
         },
         "upload": {
           "type": "boolean",
-          "description": "May upload books ([`MemberControl::Upload`]).",
-          "example": true
+          "description": "May upload books ([`MemberControl::Upload`]); off unless set.",
+          "example": false
         },
         "request_books": {
           "type": "boolean",

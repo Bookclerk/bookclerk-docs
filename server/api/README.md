@@ -178,6 +178,13 @@ Books in the library, scans and acquires.
 | [`GET /api/library/editions/{id}/playback`](library.md#get-apilibraryeditionsidplayback) | Reads whether and what the caller may play of an edition, with their own progress and bookmarks. |
 | [`GET /api/library/editions/{id}/bookmarks`](library.md#get-apilibraryeditionsidbookmarks) | Lists the caller's bookmarks in an edition. |
 | [`POST /api/library/editions/{id}/bookmarks`](library.md#post-apilibraryeditionsidbookmarks) | Adds a bookmark of the caller's in an edition. |
+| [`GET /api/uploads`](library.md#get-apiuploads) | Lists the caller's uploads, newest first. |
+| [`POST /api/uploads`](library.md#post-apiuploads) | Starts an upload from a manifest of the files to come. |
+| [`GET /api/uploads/review`](library.md#get-apiuploadsreview) | Lists uploaded books stored under a new local edition because nothing strong identified them, for an Administrator to check and, when they are a known edition, pin. |
+| [`GET /api/uploads/{id}`](library.md#get-apiuploadsid) | Reads one of the caller's uploads with every file: how many bytes each has received (where to resume) and, once ingested, what became of it. |
+| [`DELETE /api/uploads/{id}`](library.md#delete-apiuploadsid) | Cancels an upload that has not started ingesting and drops its bytes. |
+| [`PATCH /api/uploads/{id}/files/{member_no}`](library.md#patch-apiuploadsidfilesmember_no) | Sends bytes of one file, from the offset in the `Upload-Offset` header. |
+| [`POST /api/uploads/{id}/commit`](library.md#post-apiuploadsidcommit) | Commits an upload whose files have all arrived: queues its ingest job. |
 
 ### [Playback](playback.md)
 

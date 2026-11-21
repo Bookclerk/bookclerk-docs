@@ -70,6 +70,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`LibraryConfig`](#libraryconfig) | struct | Library / scan related settings. |
 | [`NodeApiConfig`](#nodeapiconfig) | struct | `[daemon.node_api]`: transport policy for branch nodes. |
 | [`ProcessEnvGuard`](#processenvguard) | struct | Process-wide lock around `BOOKCLERK_*` environment reads and test writes. |
+| [`UploadsConfig`](#uploadsconfig) | struct | `[uploads]`: per-node upload limits. |
 | [`CacheSettingError`](#cachesettingerror) | enum | Why a `cache.*` value was refused. |
 | [`CacheSettingKey`](#cachesettingkey) | enum | A `cache.*` settings key. |
 | [`DatabasePluginKind`](#databasepluginkind) | enum | Which first-party database plugin is active. |
@@ -2324,6 +2325,7 @@ pub struct Config {
     pub jobs: JobsConfig,
     pub events: EventsConfig,
     pub plugins: PluginsConfig,
+    pub uploads: UploadsConfig,
     pub events_revision: Option<i64>,
     pub events_authority: Option<String>,
     pub output_revision: Option<i64>,
@@ -2350,6 +2352,7 @@ Top-level Bookclerk configuration.
 - `jobs`: Durable job queue (`[jobs]`).
 - `events`: Durable domain-event outbox (`[events]`).
 - `plugins`: How external plugin guests are run (`[plugins]`).
+- `uploads`: Upload limits on this node (`[uploads]`).
 - `events_revision`: Revision of the DB-authoritative `[events]` document after overlay.
   
   Absent until control-plane bootstrap or reconcile loads `core.events`.
@@ -2831,6 +2834,46 @@ pub fn enter() -> Self
 Blocks until this thread owns the process environment lock.
 
 Implements: `Drop`
+
+### UploadsConfig
+
+```rust
+pub struct UploadsConfig {
+    pub max_file_bytes: u64,
+    pub max_staged_bytes: u64,
+    pub free_disk_floor_percent: u8,
+    pub idle_ttl_hours: u64,
+}
+```
+
+`[uploads]`: per-node upload limits.
+
+**Fields**
+
+- `max_file_bytes`: Largest single file, in bytes.
+- `max_staged_bytes`: Most bytes one person may have staged in unfinished batches.
+- `free_disk_floor_percent`: Percent of the node's disk (0 to 90) that must stay free; a batch
+  or chunk that would leave less is refused.
+- `idle_ttl_hours`: Hours an open batch may sit without a chunk before it is pruned.
+
+#### UploadsConfig::free_disk_floor
+
+```rust
+pub fn free_disk_floor(&self) -> u8
+```
+
+The free-disk floor as a share, capped at 90 percent so a typo
+cannot close staging for good.
+
+#### UploadsConfig::idle_ttl
+
+```rust
+pub fn idle_ttl(&self) -> Duration
+```
+
+The idle time, at least one hour.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ## Enums
 
