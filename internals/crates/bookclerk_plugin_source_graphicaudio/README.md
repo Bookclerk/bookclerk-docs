@@ -271,31 +271,19 @@ pub async fn links(&self, product_id: &str) -> Result<DownloadLinks>
 
 Returns an error when the operation fails.
 
-#### GraphicAudioClient::download_bytes
-
-```rust
-pub async fn download_bytes(&self, url: &str) -> Result<Bytes>
-```
-
-Download bytes from an absolute media URL (no Authorization).
-
-Prefer [`Self::download_to_path`](#graphicaudioclientdownload_to_path) for large Hi/Lo media (~100MB–500MB+).
-
-##### Errors
-
-Returns an error when the operation fails.
-
 #### GraphicAudioClient::download_to_path
 
 ```rust
 pub async fn download_to_path(&self, url: &str, path: &Path) -> Result<()>
 ```
 
-Stream an absolute media URL to `path` without buffering the whole body.
+Stream an absolute media URL to `path` without buffering the whole
+body, resuming a dropped transfer.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns an error when the store refuses the file or the transfer
+keeps failing.
 
 #### GraphicAudioClient::remove_activation
 
@@ -546,7 +534,8 @@ Returns an error when the operation fails.
 pub async fn download_to_path(&self, url: &str, path: &Path) -> Result<()>
 ```
 
-Stream `url` to `path` (uses Magento/CloudFront cookies when present).
+Stream `url` to `path`, resuming a dropped transfer (uses
+Magento/CloudFront cookies when present).
 
 ##### Errors
 

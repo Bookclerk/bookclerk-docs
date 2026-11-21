@@ -476,17 +476,24 @@ Current Chirp free deals — no auth required.
 
 Returns an error when the operation fails.
 
-#### ChirpClient::download_bytes
+#### ChirpClient::download_to_file
 
 ```rust
-pub async fn download_bytes(&self, url: &str) -> Result<Bytes>
+pub async fn download_to_file(&self, url: &str, dest: &Path) -> Result<u64>
 ```
 
-Download bytes from an absolute media URL.
+Streams a track or cover URL to `dest`, resuming a dropped transfer
+through the SDK's resumable download (`bookclerk_plugin_sdk::download`)
+instead of holding the file in memory.
+
+##### Returns
+
+The file's length in bytes.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns [`ChirpError::Download`](#chirperror) when the store refuses the file or
+the transfer keeps failing.
 
 Implements: `Clone`, `Debug`, `Default`
 

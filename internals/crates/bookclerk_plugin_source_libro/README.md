@@ -319,17 +319,29 @@ Packaged M4B metadata when available (`None` on 404 / missing URL).
 
 Returns an error when the operation fails.
 
-#### LibroClient::download_bytes
+#### LibroClient::download_to_file
 
 ```rust
-pub async fn download_bytes(&self, url: &str) -> Result<Bytes>
+pub async fn download_to_file(&self, url: &str, dest: &Path) -> Result<u64>
 ```
 
-Download arbitrary URL bytes (CDN part or M4B). Sends auth headers for libro.fm hosts.
+Downloads a URL (CDN part or M4B) to `dest`, resuming dropped
+transfers. Sends auth headers for libro.fm hosts.
+
+The body streams to disk through the SDK's resumable download
+(`bookclerk_plugin_sdk::download`), so a multi-gigabyte M4B is
+never held in memory and a dropped connection asks only for the
+missing bytes.
+
+##### Returns
+
+The file's length in bytes.
 
 ##### Errors
 
-Returns an error when the operation fails.
+Returns [`LibroError::Download`](#libroerror) when the store refuses the file or
+the transfer keeps failing, and [`LibroError::Api`](#libroerror) when the auth
+headers cannot be built.
 
 Implements: `Clone`, `Debug`, `Default`
 
