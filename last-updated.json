@@ -821,7 +821,7 @@
   "internals/crates/bookclerk_plugin_abi/sockets": "2026-11-15T13:32:52Z",
   "internals/crates/bookclerk_plugin_abi/sql_desugar": "2026-11-06T01:24:45Z",
   "internals/crates/bookclerk_plugin_abi/sql_types": "2026-11-06T01:24:45Z",
-  "internals/crates/bookclerk_plugin_catalog/README": "2026-11-19T15:12:47Z",
+  "internals/crates/bookclerk_plugin_catalog/README": "2026-11-21T05:34:29Z",
   "internals/crates/bookclerk_plugin_database_d1/README": "2026-11-10T11:16:26Z",
   "internals/crates/bookclerk_plugin_database_d1/adapter": "2026-11-10T11:16:26Z",
   "internals/crates/bookclerk_plugin_database_d1/atomic": "2026-11-08T02:44:20Z",

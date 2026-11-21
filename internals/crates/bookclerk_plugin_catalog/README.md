@@ -1318,6 +1318,9 @@ pub fn covers_plugins_root(&self, plugins_root: &Path) -> bool
 
 True when `plugins_root` is the `plugins/` directory under this lock.
 
+The parent matches either as spelled or once canonicalized, so the
+same directory reached through a symlink is still covered.
+
 #### PluginMutationLock::require_plugins_root
 
 ```rust
