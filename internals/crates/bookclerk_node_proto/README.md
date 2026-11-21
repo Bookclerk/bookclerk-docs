@@ -43,7 +43,8 @@ token ([`WorkJob::scan_tokens`](#workjob) hands it back) and prunes after a
 complete full pass. An acquire asks
 [`Body::AcquirePlan`](#body) for its titles, then for each title asks
 [`Body::UploadGrant`](#body) and streams the files over HTTP at
-[`UPLOADS_PATH`](#uploads_path) with the token sealed in [`Body::UploadGranted`](#body); the
+[`UPLOADS_PATH`](#uploads_path) with the token sealed in [`Body::UploadGranted`](#body) (a file
+larger than [`UPLOAD_PART_BYTES`](#upload_part_bytes) as consecutive [`UploadPart`](#uploadpart)s); the
 owner streams them on to its output destinations without staging them,
 and the job completes when the last title's upload commits.
 
@@ -141,6 +142,7 @@ bytes.
 | [`SharedBranchBootstrap`](#sharedbranchbootstrap) | struct | What a shared branch receives at redeem: the `[database]` bootstrap and the DEK, for the node id the library recorded (`kind = shared`). `Debug` prints no secret. |
 | [`ArtifactRequest`](#artifactrequest) | struct | What a signed artifact request covers. |
 | [`AuthContext`](#authcontext) | struct | What a handshake signature covers. |
+| [`UploadPart`](#uploadpart) | struct | A part of a declared file: at least one byte, inside the file. |
 | [`WindowCopy`](#windowcopy) | struct | The copy of an edition's primary audio file a library holds, as its probe of the file found it: enough for a reader to decide whether to take the library's copy or fetch its own, without asking again. |
 | [`WindowCursor`](#windowcursor) | struct | Where a page of the person's books starts: an opaque key the library handed out as the previous page's `next`, or empty for the first page. |
 | [`WindowEdition`](#windowedition) | struct | One edition of a `WindowWork`: the edition as the library holds it, and whether it is the person's own. |
@@ -165,6 +167,7 @@ bytes.
 | [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`SharedBranchDatabase`](#sharedbranchdatabase) | enum | The library's database, as a shared branch needs it to connect. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
+| [`UploadRange`](#uploadrange) | enum | What a `Content-Range` on an upload `PUT` asks for. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `library_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
 | [`check_account_bundle`](#check_account_bundle) | function | Checks `bundle` against every rule `parse_account_bundle` applies. |
@@ -245,6 +248,8 @@ bytes.
 | [`sign_auth`](#sign_auth) | function | Signs a handshake; the result is base64url without padding. |
 | [`verify_artifact_request`](#verify_artifact_request) | function | Verifies a signed artifact request with the node's enrolled key and checks its time against `now` (unix seconds). |
 | [`verify_auth`](#verify_auth) | function | Verifies a handshake signature with the node's enrolled public key. Uses strict verification (no malleable or small-order signatures). |
+| [`parse_upload_range`](#parse_upload_range) | function | Reads a `Content-Range` header value on an upload `PUT` of a declared file of `size` bytes. |
+| [`upload_parts`](#upload_parts) | function | The parts a host sends a file of `size` bytes in, each at most `part_bytes` (at least 1) long, in order; empty when the file fits in one request (`size <= part_bytes`), which is then sent whole. |
 | [`window_page_problem`](#window_page_problem) | function | Why a `crate::Body::WindowPage` is malformed, or `None`: at most `MAX_WINDOW_WORKS` well-formed works with distinct grouping keys, and a next cursor, when there is one, past `after` (the cursor the window asked with), so paging always moves forward. |
 | [`ACCOUNT_BUNDLE_AAD_DOMAIN`](#account_bundle_aad_domain) | constant | Domain tag that starts the associated data of an account bundle. |
 | [`ACCOUNT_BUNDLE_VERSION`](#account_bundle_version) | constant | Version of an `AccountBundle`. |
@@ -338,6 +343,7 @@ bytes.
 | [`ARTIFACT_REQUEST_MAX_SKEW_SECS`](#artifact_request_max_skew_secs) | constant | How far a signed artifact request's time may be from the owner's clock. |
 | [`AUTH_DOMAIN`](#auth_domain) | constant | Domain tag that starts every signed transcript. |
 | [`NONCE_LEN`](#nonce_len) | constant | Length of a challenge nonce. |
+| [`UPLOAD_PART_BYTES`](#upload_part_bytes) | constant | Largest part a host sends (64 MiB): under the request-body caps of the relays an install can sit behind (100 MB on Cloudflare's Free plan). |
 | [`MAX_COPY_CONTENT_TYPE_BYTES`](#max_copy_content_type_bytes) | constant | Longest `WindowCopy::content_type`, in bytes. |
 | [`MAX_COPY_VERSION_BYTES`](#max_copy_version_bytes) | constant | Longest `WindowCopy::version`, in bytes. |
 | [`MAX_WINDOW_WORKS`](#max_window_works) | constant | Most works one `crate::Body::WindowPage` may carry. |
@@ -1225,6 +1231,7 @@ Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 pub struct UploadAnswer {
     pub status: String,
     pub reason: Option<String>,
+    pub offset: Option<u64>,
     pub job_completed: bool,
 }
 ```
@@ -1233,9 +1240,13 @@ Answer of the upload endpoint (every status carries one).
 
 **Fields**
 
-- `status`: Stable outcome: `received`, `committed`, `lost`, `refused`,
+- `status`: Stable outcome: `received`, `partial` (a part that is not the
+  file's last was taken), `committed`, `lost`, `refused`,
   `misdirected`, `unauthorized`, `unavailable`.
-- `reason`: Why, for `refused`.
+- `reason`: Why, for `refused`, and `resume` for an `unavailable` part that
+  does not continue the open file at [`Self::offset`](#uploadanswer).
+- `offset`: For `partial`, and an `unavailable` part with reason `resume`: the
+  offset of the next byte of the file the owner needs.
 - `job_completed`: For `committed`: the job is finished.
 
 Implements: `Clone`, `ComposeSchema`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`, `ToSchema`
@@ -1851,6 +1862,49 @@ What a handshake signature covers.
 - `owner_origin`: Owner origin as [`canonical_origin`](#canonical_origin) spells it. The host uses the
   origin it dialed; the owner uses its own configured origin, so a
   signature relayed through another server does not verify.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### UploadPart
+
+```rust
+pub struct UploadPart {
+    pub offset: u64,
+    pub length: u64,
+}
+```
+
+A part of a declared file: at least one byte, inside the file.
+
+**Fields**
+
+- `offset`: Offset of the part's first byte in the file.
+- `length`: Bytes in the part; at least 1.
+
+#### UploadPart::end
+
+```rust
+pub fn end(&self) -> u64
+```
+
+Offset just past the part's last byte.
+
+#### UploadPart::is_last
+
+```rust
+pub fn is_last(&self, size: u64) -> bool
+```
+
+Whether the part ends the file of `size` bytes.
+
+#### UploadPart::content_range
+
+```rust
+pub fn content_range(&self, size: u64) -> String
+```
+
+The `Content-Range` value naming this part of a file of `size`
+bytes, as [`parse_upload_range`](#parse_upload_range) reads it.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -3016,6 +3070,34 @@ Why a handshake signature was refused.
 
 Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
+### UploadRange
+
+```rust
+pub enum UploadRange {
+    Part(UploadPart),
+    Status,
+}
+```
+
+What a `Content-Range` on an upload `PUT` asks for.
+
+**Variants**
+
+- `Part`: The body is this part of the file.
+- `Status`: No body: answer with the offset the owner needs next
+  (`bytes */<size>`).
+
+#### UploadRange::status_header
+
+```rust
+pub fn status_header(size: u64) -> String
+```
+
+The status query's `Content-Range` value for a file of `size`
+bytes.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ## Functions
 
 ### account_bundle_aad
@@ -4168,6 +4250,38 @@ Uses strict verification (no malleable or small-order signatures).
 Returns [`AuthError`](#autherror) when the key is invalid, the signature is
 malformed, or it does not verify.
 
+### parse_upload_range
+
+```rust
+pub fn parse_upload_range(header: &[u8], size: u64) -> Option<UploadRange>
+```
+
+Reads a `Content-Range` header value on an upload `PUT` of a declared
+file of `size` bytes.
+
+#### Arguments
+
+* `header` - the header value as sent.
+* `size` - the file's declared size from the upload's manifest.
+
+#### Returns
+
+[`UploadRange::Part`](#uploadrange) for exactly `bytes <first>-<last>/<size>`, with
+canonical decimal numbers, `first <= last < size` and the declared size;
+[`UploadRange::Status`](#uploadrange) for exactly `bytes */<size>` with the declared
+size; `None` for anything else, including a part of an empty file
+(which is always sent whole).
+
+### upload_parts
+
+```rust
+pub fn upload_parts(size: u64, part_bytes: u64) -> Vec<UploadPart>
+```
+
+The parts a host sends a file of `size` bytes in, each at most
+`part_bytes` (at least 1) long, in order; empty when the file fits in
+one request (`size <= part_bytes`), which is then sent whole.
+
 ### window_page_problem
 
 ```rust
@@ -4942,6 +5056,15 @@ pub const NONCE_LEN: usize = 32;
 ```
 
 Length of a challenge nonce.
+
+### UPLOAD_PART_BYTES
+
+```rust
+pub const UPLOAD_PART_BYTES: u64 = _;
+```
+
+Largest part a host sends (64 MiB): under the request-body caps of the
+relays an install can sit behind (100 MB on Cloudflare's Free plan).
 
 ### MAX_COPY_CONTENT_TYPE_BYTES
 

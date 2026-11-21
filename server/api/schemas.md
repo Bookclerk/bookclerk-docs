@@ -3758,8 +3758,9 @@ JSON returned to the tray after a successful prepare.
 
 Answer of the upload endpoint (every status carries one).
 
-- `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-- `reason` *string or null* — Why, for `refused`.
+- `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+- `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+- `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
 - `job_completed` *boolean* — For `committed`: the job is finished.
 
 ## UploadCommitRequest

@@ -59,6 +59,7 @@ job runs its guest are the daemon's.
 | --- | --- | --- |
 | [`HeartbeatSource`](#heartbeatsource) | trait | Measurements for `heartbeat` frames. |
 | [`OwnerIo`](#ownerio) | trait | A byte stream to the owner, plain (loopback) or TLS. |
+| [`UploadSource`](#uploadsource) | trait | Where an uploaded file's bytes come from: readable from any offset, so an interrupted file resends only what the owner lacks. |
 | [`HostJobRunner`](#hostjobrunner) | trait | Runs claimed jobs on this host. |
 | [`BranchAuthorization`](#branchauthorization) | struct | One sign-in about to start. `Debug` prints no secret. |
 | [`BranchRedeem`](#branchredeem) | struct | What `redeem_branch_code` needs besides the keys. |
@@ -74,6 +75,7 @@ job runs its guest are the daemon's.
 | [`HostClientConfig`](#hostclientconfig) | struct | What one client connects with. |
 | [`HostClientHandle`](#hostclienthandle) | struct | Watches a running client. |
 | [`OfferedAccounts`](#offeredaccounts) | struct | What the library kept of an `HostClientHandle::offer_accounts`. |
+| [`LocalFileSource`](#localfilesource) | struct | A file on this install's disk as an `UploadSource`. |
 | [`OwnerEndpoint`](#ownerendpoint) | struct | Where and how to reach one owner. |
 | [`TlsProbe`](#tlsprobe) | struct | What a first TLS handshake showed of an owner's certificate, before any pin is known (`OwnerEndpoint::probe_json`). |
 | [`GrantedCopy`](#grantedcopy) | struct | A copy of an edition the library granted this node (`crate::HostClientHandle::copy_grant`): what it is, its files, and the bearer token of its downloads. The token is zeroized on drop and never shown by `Debug`. |
@@ -124,6 +126,7 @@ job runs its guest are the daemon's.
 | [`SECRETS_UNOPENABLE`](#secrets_unopenable) | constant | Error kind reported when a job's secrets do not open with this node's box key. |
 | [`CONNECT_PATH`](#connect_path) | constant | Path of the node socket. |
 | [`ENROLL_PATH`](#enroll_path) | constant | Path of the enroll endpoint. |
+| [`MAX_UPLOAD_RESUMES`](#max_upload_resumes) | constant | Most times one file sent in parts resumes before `OwnerEndpoint::put_file` gives up (a later attempt resumes again). |
 | [`DATABASE_ENV_OVERRIDES`](#database_env_overrides) | constant | Environment variables that would outrank a shared branch's `[database]` bootstrap; a shared branch join is refused while one is set. |
 | [`SHARED_BRANCH_POSTGRES_URL_FILE`](#shared_branch_postgres_url_file) | constant | File under the files directory that holds a shared branch's Postgres URL, mode `0600`. `[database.postgres].url_file` names it by its absolute path (a relative `url_file` would be read from the daemon's working directory). |
 
@@ -165,6 +168,37 @@ pub trait OwnerIo: AsyncRead + AsyncWrite + Unpin + Send {}
 A byte stream to the owner, plain (loopback) or TLS.
 
 Implemented by: `T`
+
+### UploadSource
+
+```rust
+pub trait UploadSource: Sync {
+    fn open_at(
+        &self,
+        offset: u64,
+    ) -> impl Future<Output = Result<Pin<Box<dyn AsyncRead + Send>>>> + Send;
+}
+```
+
+Where an uploaded file's bytes come from: readable from any offset, so
+an interrupted file resends only what the owner lacks.
+
+#### UploadSource::open_at
+
+```rust
+fn open_at(
+    &self,
+    offset: u64,
+) -> impl Future<Output = Result<Pin<Box<dyn AsyncRead + Send>>>> + Send
+```
+
+A reader of the file from `offset` to its end.
+
+##### Errors
+
+An I/O error when the file cannot be opened at `offset`.
+
+Implemented by: `LocalFileSource`
 
 ### HostJobRunner
 
@@ -959,17 +993,18 @@ Returns [`OwnerCallError`](#ownercallerror).
 #### HostClientHandle::upload_catalog_file
 
 ```rust
-pub async fn upload_catalog_file<R: AsyncRead + Unpin + Send>(
+pub async fn upload_catalog_file<S: UploadSource + ?Sized>(
     &self,
     upload: &HostUpload,
     index: usize,
     length: u64,
-    body: R,
+    source: &S,
 ) -> Result<(), OwnerCallError>
 ```
 
 Streams declared file `index` of a catalog `upload` (`length` bytes
-of `body`) to the library's upload endpoint.
+read from `source`) to the library's upload endpoint, resuming an
+interrupted file where the library stands.
 
 ##### Errors
 
@@ -1015,6 +1050,16 @@ What the library kept of an [`HostClientHandle::offer_accounts`](#hostclienthand
 - `not_allowed`: The library's operator does not let the person connect accounts.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### LocalFileSource
+
+```rust
+pub struct LocalFileSource(pub PathBuf);
+```
+
+A file on this install's disk as an [`UploadSource`](#uploadsource).
+
+Implements: `Clone`, `Debug`, `UploadSource`
 
 ### OwnerEndpoint
 
@@ -1208,6 +1253,39 @@ Returns [`DialError`](#dialerror) when the request cannot be made, `body` ends
 early, a read or write stalls ([`DialError::Timeout`](#dialerror)), or the
 answer is malformed or does not come within
 `UPLOAD_ANSWER_TIMEOUT_SECS` of the last byte.
+
+#### OwnerEndpoint::put_file
+
+```rust
+pub async fn put_file<S: UploadSource + ?Sized>(
+    &self,
+    path: &str,
+    authorization: &str,
+    size: u64,
+    part_bytes: u64,
+    source: &S,
+) -> Result<(u16, Vec<u8>), DialError>
+```
+
+`PUT path` of a declared upload file of `size` bytes read from
+`source`: in one request when it fits in `part_bytes`, otherwise as
+consecutive parts of at most `part_bytes`, each its own request with
+`Content-Range` ([`UploadPart`](../bookclerk_node_proto/README.md#uploadpart)), so a relay that caps request bodies
+passes it.
+
+A file sent in parts resumes: it first asks where the owner is
+(`bytes */<size>`, `UploadRange::Status`) and sends from that
+offset, and after a broken part or a `resume` answer it asks again
+and sends only the rest, at most [`MAX_UPLOAD_RESUMES`](#max_upload_resumes) times.
+Answers the status and body of the request that settled the file:
+the last part's, the first that was neither `200 partial` nor a
+`resume`, or the first that says the owner already holds the whole
+file (`received`).
+
+##### Errors
+
+As [`Self::put_stream`](#ownerendpointput_stream), once the resumes run out; and
+[`DialError::Io`](#dialerror) when `source` cannot be read from an offset.
 
 #### OwnerEndpoint::post_json_authorized
 
@@ -1605,18 +1683,18 @@ Returns [`OwnerCallError`](#ownercallerror); `Lost` also cancels the job.
 #### HostJobCtx::upload_file
 
 ```rust
-pub async fn upload_file<R: AsyncRead + Unpin + Send>(
+pub async fn upload_file<S: UploadSource + ?Sized>(
     &self,
     upload: &HostUpload,
     index: usize,
     length: u64,
-    body: R,
+    source: &S,
 ) -> Result<(), OwnerCallError>
 ```
 
-Streams declared file `index` of `upload` (`length` bytes of
-`body`) to the owner, which writes it to its destinations as it
-arrives.
+Streams declared file `index` of `upload` (`length` bytes read from
+`source`) to the owner, which writes it to its destinations as it
+arrives; an interrupted file resumes where the owner stands.
 
 ##### Errors
 
@@ -2586,6 +2664,15 @@ pub const ENROLL_PATH: &str = "/api/node/v1/enroll";
 ```
 
 Path of the enroll endpoint.
+
+### MAX_UPLOAD_RESUMES
+
+```rust
+pub const MAX_UPLOAD_RESUMES: u32 = 8;
+```
+
+Most times one file sent in parts resumes before
+[`OwnerEndpoint::put_file`](#ownerendpointput_file) gives up (a later attempt resumes again).
 
 ### DATABASE_ENV_OVERRIDES
 

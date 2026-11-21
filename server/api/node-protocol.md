@@ -1469,6 +1469,7 @@ A `text/plain` body: a string.
 
 - `upload_id` (path) *string*, **required** — Upload id.
 - `index` (path) *integer (int32)*, **required** — File index in the upload.
+- `Content-Range` (header) *string or null* — For a file sent in parts: `bytes <first>-<last>/<size>`, the part this body is, each its own request in order; or `bytes */<size>` with an empty body, which asks for the offset the owner needs next (to resume). A file sent whole carries no range.
 
 ### Request body
 
@@ -1476,13 +1477,15 @@ A `text/plain` body: a string.
 
 ### Responses
 
-- `200` — The file was stored (`received`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+- `200` — The file was stored (`received`), or a part that is not the file's last was taken, or a status query was answered, with the offset the owner needs next (`partial`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `401` — The upload token is missing or wrong, or names no live upload (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`). Body: [`TransportRefused`](schemas.md#transportrefused) (`application/json`)
   - `error` *string*, **required** — Always `transport_insecure`.
@@ -1490,20 +1493,24 @@ A `text/plain` body: a string.
 - `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
-- `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+- `422` — The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
-- `503` — Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+- `503` — Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). With reason `resume`, a part did not start where the open file stands, or broke part way: send the file from `offset` (0 when no write is open here). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 
 ### Example request
@@ -1560,12 +1567,13 @@ println!("{} {}", response.status(), response.text().await?);
 
 ### Example response
 
-Status `200`: The file was stored (`received`).
+Status `200`: The file was stored (`received`), or a part that is not the file's last was taken, or a status query was answered, with the offset the owner needs next (`partial`).
 
 ```json
 {
   "job_completed": false,
-  "status": "received"
+  "offset": 67108864,
+  "status": "partial"
 }
 ```
 
@@ -1581,7 +1589,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1589,8 +1597,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1622,7 +1640,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1630,8 +1648,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1724,7 +1752,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1732,8 +1760,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1765,7 +1803,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1773,8 +1811,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1785,7 +1833,7 @@ Schema:
 }
 ```
 
-Status `422`: The file was refused (`refused`): not in the upload (`unknown_file`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`).
+Status `422`: The file was refused (`refused`): not in the upload (`unknown_file`), a `Content-Range` that is not exactly a part of the declared file (`invalid_range`), a size or content mismatch (`size_mismatch`, `content_mismatch`), the destinations changed (`destinations_changed`), or a granted storage key now belongs to another title or writer (`key_taken`).
 
 ```json
 {
@@ -1807,7 +1855,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1815,8 +1863,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1827,11 +1885,13 @@ Schema:
 }
 ```
 
-Status `503`: Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`).
+Status `503`: Storage or the upload record is unavailable, or the file lock timed out; retry (`unavailable`). With reason `resume`, a part did not start where the open file stands, or broke part way: send the file from `offset` (0 when no write is open here).
 
 ```json
 {
   "job_completed": false,
+  "offset": 67108864,
+  "reason": "resume",
   "status": "unavailable"
 }
 ```
@@ -1848,7 +1908,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -1856,8 +1916,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -1890,12 +1960,14 @@ Schema:
 ### Responses
 
 - `200` — The upload was committed to the destinations (`committed`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `401` — The upload token is missing or wrong, or names no live upload (`unauthorized`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `403` — The connection failed the transport policy (`transport_insecure`, with the check in `reason`). Body: [`TransportRefused`](schemas.md#transportrefused) (`application/json`)
   - `error` *string*, **required** — Always `transport_insecure`.
@@ -1903,20 +1975,24 @@ Schema:
 - `404` — The node API is not mounted on this listener (`node_api_unmounted`). Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
   - `error` *string*, **required** — What went wrong, as the handler describes it.
 - `409` — The upload lost its fence to a newer one (`lost`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `421` — This node is not the upload's receiving node (`misdirected`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `422` — The commit was refused (`refused`), with the cause in `reason`: the body does not parse (`invalid_body`); the upload is unknown, aborted, or its job was cancelled (`unknown_upload`, `upload_aborted`, `job_cancelled`); not every granted file arrived (`files_missing`); the destinations changed since the grant (`destinations_changed`); a storage key now belongs to another title or writer, or the title's holding is gone (`key_taken`, `unknown_title`); or the closing upload is mismatched: an ordinary upload claims to finish the job (`not_a_closing_upload`), the closing upload does not (`closing_upload_must_finish`), or it arrives while titles are still pending (`titles_remaining`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `503` — Storage or the upload record is unavailable; retry (`unavailable`). Body: [`UploadAnswer`](schemas.md#uploadanswer) (`application/json`)
-  - `status` *string*, **required** — Stable outcome: `received`, `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
-  - `reason` *string or null* — Why, for `refused`.
+  - `status` *string*, **required** — Stable outcome: `received`, `partial` (a part that is not the file's last was taken), `committed`, `lost`, `refused`, `misdirected`, `unauthorized`, `unavailable`.
+  - `reason` *string or null* — Why, for `refused`, and `resume` for an `unavailable` part that does not continue the open file at [`Self::offset`].
+  - `offset` *integer (int64) or null* — For `partial`, and an `unavailable` part with reason `resume`: the offset of the next byte of the file the owner needs. At least 0.
   - `job_completed` *boolean* — For `committed`: the job is finished.
 - `504` — The request ran past the API's time budget. Body: string (`text/plain`)
 
@@ -1992,7 +2068,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2000,8 +2076,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -2033,7 +2119,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2041,8 +2127,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -2135,7 +2231,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2143,8 +2239,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -2176,7 +2282,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2184,8 +2290,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -2218,7 +2334,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2226,8 +2342,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
@@ -2259,7 +2385,7 @@ Schema:
   "properties": {
     "status": {
       "type": "string",
-      "description": "Stable outcome: `received`, `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
+      "description": "Stable outcome: `received`, `partial` (a part that is not the\nfile's last was taken), `committed`, `lost`, `refused`,\n`misdirected`, `unauthorized`, `unavailable`.",
       "example": "received"
     },
     "reason": {
@@ -2267,8 +2393,18 @@ Schema:
         "string",
         "null"
       ],
-      "description": "Why, for `refused`.",
+      "description": "Why, for `refused`, and `resume` for an `unavailable` part that\ndoes not continue the open file at [`Self::offset`].",
       "example": "size_mismatch"
+    },
+    "offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "int64",
+      "description": "For `partial`, and an `unavailable` part with reason `resume`: the\noffset of the next byte of the file the owner needs.",
+      "example": 67108864,
+      "minimum": 0
     },
     "job_completed": {
       "type": "boolean",
