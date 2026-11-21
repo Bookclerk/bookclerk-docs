@@ -428,6 +428,7 @@ the external guest RPC. This crate owns the greenfield schema
 
 ## Re-exports
 
+- [`bookclerk_keystore::CREDENTIAL_NAME` as `SYSTEMD_CREDENTIAL_NAME`](../bookclerk_keystore/README.md#credential_name)
 - [`bookclerk_plugin_abi::AdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#adapterbackupops)
 - [`bookclerk_plugin_abi::GuestSqlPolicy`](../bookclerk_plugin_abi/guest_sql.md#guestsqlpolicy)
 - [`bookclerk_plugin_abi::SharedAdapterBackupOps`](../bookclerk_plugin_abi/backup_ops.md#sharedadapterbackupops)
@@ -452,6 +453,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key::inspect_master_key`](master_key.md#inspect_master_key)
 - [`master_key::install_master_key`](master_key.md#install_master_key)
 - [`master_key::key_store_preference`](master_key.md#key_store_preference)
+- [`master_key::master_key_envelope`](master_key.md#master_key_envelope)
 - [`master_key::master_key_fingerprint`](master_key.md#master_key_fingerprint)
 - [`master_key::master_key_is_wrapped`](master_key.md#master_key_is_wrapped)
 - [`master_key::master_key_path`](master_key.md#master_key_path)
@@ -461,6 +463,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key::resolve_master_key_detailed`](master_key.md#resolve_master_key_detailed)
 - [`master_key::set_key_store_preference`](master_key.md#set_key_store_preference)
 - [`master_key::set_keychain_vault`](master_key.md#set_keychain_vault)
+- [`master_key::set_systemd_creds_vault`](master_key.md#set_systemd_creds_vault)
 - [`master_key::store_master_key`](master_key.md#store_master_key)
 - [`master_key::uncache_master_key`](master_key.md#uncache_master_key)
 - [`master_key::warn_unwrapped_master_key`](master_key.md#warn_unwrapped_master_key)
@@ -470,6 +473,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`master_key::MasterKeyFormat`](master_key.md#masterkeyformat)
 - [`master_key::MasterKeyResolution`](master_key.md#masterkeyresolution)
 - [`master_key::StoredMasterKey`](master_key.md#storedmasterkey)
+- [`master_key::SystemdCredsFactory`](master_key.md#systemdcredsfactory)
 - [`master_key::AUTH_PASSWORD_ENV` as `MASTER_KEY_AUTH_PASSWORD_ENV`](master_key.md#auth_password_env)
 - [`master_key_recovery::record_recovery_copy`](master_key_recovery.md#record_recovery_copy)
 - [`master_key_recovery::recovery_copy_state`](master_key_recovery.md#recovery_copy_state)

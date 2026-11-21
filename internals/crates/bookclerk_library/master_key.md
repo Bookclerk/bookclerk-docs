@@ -47,6 +47,7 @@ recovers the whole credential.
 | [`set_key_store_preference`](#set_key_store_preference) | function | Sets where this process writes new keys (first mint, a shared branch's installed key, an import). Existing keys stay where `master.key` says. |
 | [`key_store_preference`](#key_store_preference) | function | The current store preference. |
 | [`set_keychain_vault`](#set_keychain_vault) | function | Replaces the keychain this process uses, for tests (a `bookclerk_keystore::MemoryVault`) and for hosts that substitute their own store. |
+| [`set_systemd_creds_vault`](#set_systemd_creds_vault) | function | Replaces how this process builds its `systemd-creds` store, for tests (a fake tool, or a `bookclerk_keystore::MemoryVault`). |
 | [`master_key_path`](#master_key_path) | function | Path to `{files_dir}/master.key`. |
 | [`inspect_master_key`](#inspect_master_key) | function | Inspect the on-disk envelope without unlocking (missing → `None`). |
 | [`master_key_is_wrapped`](#master_key_is_wrapped) | function | Whether the key is password-wrapped (`BCK2`), reading the keychain item when `master.key` is a pointer. `None` when there is no `master.key`. |
@@ -66,10 +67,12 @@ recovers the whole credential.
 | [`encode_master_key_file`](#encode_master_key_file) | function | The key envelope for `dek`: `BCK2` (Argon2id + XChaCha20-Poly1305) when `password` is set and non-empty after trimming, `BCK1` otherwise. It touches no store; `store_master_key` places an envelope where the store preference says. |
 | [`store_master_key`](#store_master_key) | function | The bytes `master.key` must hold for `dek`, after putting the envelope where the `key_store_preference` says: the envelope itself for the file store, or a `BCK3` pointer to the keychain item this call just wrote. A caller that stages the file itself (a shared branch applying its bootstrap as one recoverable step) writes these bytes with mode `0600`. |
 | [`move_master_key`](#move_master_key) | function | Moves the existing key to `to`, keeping its bytes (and its password wrap) unchanged, so every sealed secret stays readable. |
+| [`master_key_envelope`](#master_key_envelope) | function | The key's envelope exactly as it is stored (`BCK1`, or `BCK2` under the auth password), for an administrator who seals it into a unit credential themselves (`systemd-creds encrypt --name=bookclerk-master-key` on systemd older than 256, or a system-wide credential store). A `systemd-creds` move then adopts that credential instead of sealing its own copy, because the bytes match. |
 | [`export_master_key`](#export_master_key) | function | A recovery copy of the key: a `BCK2` envelope wrapped with `recovery_password`, readable by `import_master_key` on any machine. |
 | [`import_master_key`](#import_master_key) | function | Restores a key from a recovery copy (`export_master_key`, or a copied `master.key` in `BCK1`/`BCK2`) on an install that has no `master.key`, placing it where the `key_store_preference` says. |
 | [`seal_with_dek`](#seal_with_dek) | function | Seal plaintext with the DEK (random nonce). Fast — no Argon2. |
 | [`unseal_with_dek`](#unseal_with_dek) | function | Unseal ciphertext with the DEK. |
+| [`SystemdCredsFactory`](#systemdcredsfactory) | type alias | Builds the `systemd-creds` store for a files directory. |
 | [`AUTH_PASSWORD_ENV`](#auth_password_env) | constant | Env var that wraps the DEK in `master.key` (optional). |
 | [`MASTER_KEY_FILE_NAME`](#master_key_file_name) | constant | Bootstrap key file under `BOOKCLERK_FILES_DIR` (auto-minted when missing). |
 
@@ -166,13 +169,14 @@ pub fn bytes(&self) -> &[u8]
 
 The bytes `master.key` must hold (write them with mode `0600`).
 
-#### StoredMasterKey::in_keychain
+#### StoredMasterKey::store
 
 ```rust
-pub fn in_keychain(&self) -> bool
+pub fn store(&self) -> KeyStoreKind
 ```
 
-Whether the key went to the OS keychain (`master.key` is a pointer).
+The store the key went to: the file, or the store `master.key`
+points at.
 
 #### StoredMasterKey::discard
 
@@ -180,8 +184,8 @@ Whether the key went to the OS keychain (`master.key` is a pointer).
 pub fn discard(self)
 ```
 
-Deletes the keychain item again, for a caller whose `master.key`
-was never published. Does nothing for a key kept in the file.
+Deletes the store item again, for a caller whose `master.key` was
+never published. Does nothing for a key kept in the file.
 
 ## Enums
 
@@ -192,6 +196,7 @@ pub enum MasterKeyFormat {
     Raw,
     Wrapped,
     Keychain,
+    SystemdCreds,
 }
 ```
 
@@ -203,6 +208,8 @@ On-disk `master.key` envelope kind.
 - `Wrapped`: Password-wrapped DEK (`BCK2`).
 - `Keychain`: A pointer to an OS keychain item (`BCK3`); the item holds `BCK1` or
   `BCK2`.
+- `SystemdCreds`: A pointer to a `systemd-creds` credential (`BCK4`); the credential
+  holds `BCK1` or `BCK2`.
 
 #### MasterKeyFormat::header
 
@@ -210,7 +217,7 @@ On-disk `master.key` envelope kind.
 pub fn header(self) -> &'static str
 ```
 
-The four-character header: `BCK1`, `BCK2` or `BCK3`.
+The four-character header: `BCK1`, `BCK2`, `BCK3` or `BCK4`.
 
 #### MasterKeyFormat::store
 
@@ -258,6 +265,19 @@ their own store.
 #### Arguments
 
 * `vault` - the keychain to read and write items in.
+
+### set_systemd_creds_vault
+
+```rust
+pub fn set_systemd_creds_vault(factory: Arc<SystemdCredsFactory>)
+```
+
+Replaces how this process builds its `systemd-creds` store, for tests
+(a fake tool, or a [`bookclerk_keystore::MemoryVault`](../bookclerk_keystore/README.md#memoryvault)).
+
+#### Arguments
+
+* `factory` - builds the store for a files directory.
 
 ### master_key_path
 
@@ -502,7 +522,11 @@ wrapping error.
 ### store_master_key
 
 ```rust
-pub fn store_master_key(dek: &[u8], password: Option<&str>) -> Result<StoredMasterKey>
+pub fn store_master_key(
+    files_dir: &Path,
+    dek: &[u8],
+    password: Option<&str>,
+) -> Result<StoredMasterKey>
 ```
 
 The bytes `master.key` must hold for `dek`, after putting the envelope
@@ -514,6 +538,8 @@ its bootstrap as one recoverable step) writes these bytes with mode
 
 #### Arguments
 
+* `files_dir` - the files directory `master.key` will be written in
+  (where a `systemd-creds` credential lives beside it).
 * `dek` - the 32-byte data-encryption key.
 * `password` - wraps the envelope as `BCK2` when set and non-empty.
 
@@ -535,10 +561,13 @@ pub fn move_master_key(
 Moves the existing key to `to`, keeping its bytes (and its password
 wrap) unchanged, so every sealed secret stays readable.
 
-To the keychain: writes a new item, reads it back, then replaces
-`master.key` with a pointer atomically. To the file: writes the envelope
-over the pointer atomically, reloads it, then deletes the old item.
-Moving to the store the key is already in does nothing.
+To the keychain or `systemd-creds`: writes a new item, reads it back,
+replaces `master.key` with a pointer atomically, then deletes any item
+the key was in before. To the file: writes the envelope over the pointer
+atomically, reloads it, then deletes the old item. Moving to the store
+the key is already in does nothing. Unlike starting a library, an
+explicit move never falls back: a store that can't take the key is an
+error.
 
 #### Arguments
 
@@ -554,6 +583,32 @@ The format `master.key` has afterwards.
 
 Returns an error when there is no key, it can't be unwrapped, or the
 target store can't take it. On error the key stays where it was.
+
+### master_key_envelope
+
+```rust
+pub fn master_key_envelope(
+    files_dir: &Path,
+    password: Option<&str>,
+) -> Result<Zeroizing<Vec<u8>>>
+```
+
+The key's envelope exactly as it is stored (`BCK1`, or `BCK2` under the
+auth password), for an administrator who seals it into a unit
+credential themselves (`systemd-creds encrypt --name=bookclerk-master-key`
+on systemd older than 256, or a system-wide credential store). A
+`systemd-creds` move then adopts that credential instead of sealing its
+own copy, because the bytes match.
+
+#### Arguments
+
+* `files_dir` - the files directory holding `master.key`.
+* `password` - the auth password, needed when the key is wrapped (the
+  envelope stays wrapped; the password only proves it opens).
+
+#### Errors
+
+Returns an error when there is no key or it can't be unwrapped.
 
 ### export_master_key
 
@@ -638,6 +693,16 @@ Unseal ciphertext with the DEK.
 #### Errors
 
 Returns an error when the operation fails.
+
+## Type aliases
+
+### SystemdCredsFactory
+
+```rust
+pub type SystemdCredsFactory = dyn Fn(&Path) -> Arc<dyn Vault> + Send + Sync;
+```
+
+Builds the `systemd-creds` store for a files directory.
 
 ## Constants
 

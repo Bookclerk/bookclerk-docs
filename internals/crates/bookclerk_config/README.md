@@ -2419,8 +2419,9 @@ daemon config reload — no GUI in this surface.
 - `key_store`: Where this install keeps the library's data-encryption key
   (`[auth].key_store`). Unset means the host's default: the OS keychain
   for the desktop app, the `master.key` file for the daemon and CLI.
-  Set, it is required: a keychain that can't be reached is an error
-  rather than a fallback to the file.
+  Set to `keychain`, it is required: a keychain that can't be reached
+  is an error rather than a fallback to the file. `systemd-creds`
+  always falls back to the file when the key can't be sealed.
 - `oidc`: Optional upstream OIDC/OAuth identity broker (`[auth.oidc]`).
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
@@ -4053,6 +4054,7 @@ Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Part
 pub enum KeyStoreKind {
     File,
     Keychain,
+    SystemdCreds,
 }
 ```
 
@@ -4064,6 +4066,9 @@ Where an install keeps the library's data-encryption key.
   under the auth password).
 - `Keychain`: The OS keychain (Keychain Services, Credential Manager or Secret
   Service) holds the key; `master.key` only names the item (`BCK3`).
+- `SystemdCreds`: `systemd-creds` seals the key to this machine (its TPM where there
+  is one) and the daemon's user, or the service unit hands it in;
+  `master.key` only names the item (`BCK4`). For headless Linux.
 
 #### KeyStoreKind::as_str
 
@@ -4071,7 +4076,7 @@ Where an install keeps the library's data-encryption key.
 pub fn as_str(self) -> &'static str
 ```
 
-The setting's spelling: `file` or `keychain`.
+The setting's spelling: `file`, `keychain` or `systemd-creds`.
 
 Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `FromStr`, `PartialEq`, `Serialize`
 

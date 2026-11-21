@@ -2074,13 +2074,13 @@ One file of a `POST /api/uploads` manifest, as sent.
 - `store` *[`MasterKeyStore`](#masterkeystore)*, **required** — Where the key lives.
 - `recovery_copy` *[`RecoveryCopyAnswer`](#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
 - `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
-- `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+- `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain or sealed with `systemd-creds` (so backups of the files directory don't include it) and no copy was recorded as saved.
 
 ## MasterKeyStore
 
 Where this install keeps its key.
 
-Type: one of `file`, `password_file`, `keychain`
+Type: one of `file`, `password_file`, `keychain`, `systemd_creds`
 
 ## MediaCapabilitiesJson
 

@@ -30,16 +30,20 @@ See `docs/adr/master-key-store.md`.
 | Item | Kind | Summary |
 | --- | --- | --- |
 | [`Vault`](#vault) | trait | A store of master-key items: the OS keychain, or memory in tests. |
+| [`SystemdCredsVault`](#systemdcredsvault) | struct | A master-key store that seals items with `systemd-creds`. |
 | [`KeystoreError`](#keystoreerror) | struct | A keychain failure, without any item bytes. |
 | [`KeychainItemId`](#keychainitemid) | struct | Identifier of one install's master-key item: the item's account name under `KEYCHAIN_SERVICE`. |
-| [`KeychainPointer`](#keychainpointer) | struct | What `master.key` holds on a keychain install: which item carries the key, and the fingerprint the key inside must match. No key material. |
+| [`KeychainPointer`](#keychainpointer) | struct | What `master.key` holds on a keychain or `systemd-creds` install: which store and item carry the key, and the fingerprint the key inside must match. No key material. |
 | [`OsKeychain`](#oskeychain) | struct | The operating system's credential store. |
 | [`MemoryVault`](#memoryvault) | struct | Items kept in process memory: for tests, and for hosts that must not touch the OS keychain. |
 | [`KeystoreErrorKind`](#keystoreerrorkind) | enum | Why a keychain operation failed. |
+| [`PointerStore`](#pointerstore) | enum | Which store a pointer record names. |
 | [`PointerError`](#pointererror) | enum | Why a byte string is not a pointer record. |
 | [`Result`](#result) | type alias | Result alias for keychain operations. |
+| [`CREDENTIAL_NAME`](#credential_name) | constant | The credential name the key is sealed under, and the name a service unit hands it in as (`LoadCredentialEncrypted=bookclerk-master-key`). |
 | [`KEYCHAIN_SERVICE`](#keychain_service) | constant | Keychain service name every Bookclerk master-key item is stored under. |
-| [`POINTER_MAGIC`](#pointer_magic) | constant | Four-byte header of a `master.key` pointer record (`BCK3`). |
+| [`POINTER_MAGIC`](#pointer_magic) | constant | Four-byte header of a `master.key` pointer record for an OS keychain item (`BCK3`). |
+| [`CREDS_POINTER_MAGIC`](#creds_pointer_magic) | constant | Four-byte header of a `master.key` pointer record for a key sealed with `systemd-creds` (`BCK4`): the same layout as `POINTER_MAGIC`'s. |
 | [`FINGERPRINT_LEN`](#fingerprint_len) | constant | Length in bytes of a key fingerprint (SHA-256 of the DEK). |
 | [`POINTER_LEN`](#pointer_len) | constant | Length in bytes of an encoded `KeychainPointer`: header, 16-byte item id, 32-byte fingerprint. |
 | [`MAX_ITEM_LEN`](#max_item_len) | constant | Largest item, in bytes, a `Vault` accepts. |
@@ -96,9 +100,76 @@ Deletes an item. Deleting a missing item succeeds.
 
 The store's failures other than a missing item.
 
-Implemented by: `MemoryVault`, `OsKeychain`
+Implemented by: `MemoryVault`, `OsKeychain`, `SystemdCredsVault`
 
 ## Structs
+
+### SystemdCredsVault
+
+```rust
+pub struct SystemdCredsVault {
+    /* private fields */
+}
+```
+
+A master-key store that seals items with `systemd-creds`.
+
+Items live in one directory (the files directory) as
+`master-key-<item>.cred`. See the module docs.
+
+#### SystemdCredsVault::new
+
+```rust
+pub fn new(dir: impl Into<PathBuf>) -> Self
+```
+
+A store sealing items into `dir` with the system's `systemd-creds`,
+reading a unit-provided copy from `$CREDENTIALS_DIRECTORY` when set.
+
+##### Arguments
+
+* `dir` - the directory sealed items go in (the files directory).
+
+#### SystemdCredsVault::with_program
+
+```rust
+pub fn with_program(
+    dir: impl Into<PathBuf>,
+    program: Option<PathBuf>,
+    credentials_dir: Option<PathBuf>,
+) -> Self
+```
+
+A store with an explicit tool and credentials directory, for tests
+and for systems that install `systemd-creds` elsewhere.
+
+##### Arguments
+
+* `dir` - the directory sealed items go in.
+* `program` - the `systemd-creds` binary, or `None` for none.
+* `credentials_dir` - the unit's credentials directory, if any.
+
+#### SystemdCredsVault::sealed_path
+
+```rust
+pub fn sealed_path(&self, item: KeychainItemId) -> PathBuf
+```
+
+Where `item` is sealed: `<dir>/master-key-<item>.cred`.
+
+##### Arguments
+
+* `item` - the item id `master.key` names.
+
+#### SystemdCredsVault::unit_credential
+
+```rust
+pub fn unit_credential(&self) -> Option<PathBuf>
+```
+
+The copy the service unit handed in, when there is one.
+
+Implements: `Clone`, `Debug`, `Vault`
 
 ### KeystoreError
 
@@ -170,17 +241,20 @@ Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `PartialEq`
 
 ```rust
 pub struct KeychainPointer {
+    pub store: PointerStore,
     pub item: KeychainItemId,
     pub fingerprint: [u8; 32],
 }
 ```
 
-What `master.key` holds on a keychain install: which item carries the
-key, and the fingerprint the key inside must match. No key material.
+What `master.key` holds on a keychain or `systemd-creds` install: which
+store and item carry the key, and the fingerprint the key inside must
+match. No key material.
 
 **Fields**
 
-- `item`: The keychain item that holds the key envelope.
+- `store`: The store that holds the item.
+- `item`: The item that holds the key envelope.
 - `fingerprint`: SHA-256 of the unwrapped DEK, the same value `library_identity`
   stores. A key read from the item must hash to this.
 
@@ -190,7 +264,8 @@ key, and the fingerprint the key inside must match. No key material.
 pub fn encode(&self) -> [u8; 52]
 ```
 
-Encodes the record: `BCK3`, the item id, the fingerprint.
+Encodes the record: the store's header (`BCK3` or `BCK4`), the item
+id, the fingerprint.
 
 #### KeychainPointer::parse
 
@@ -206,9 +281,9 @@ Parses a record [`Self::encode`](#keychainpointerencode) wrote.
 
 ##### Errors
 
-[`PointerError::NotAPointer`](#pointererror) when the header is not `BCK3`, and
-[`PointerError::BadLength`](#pointererror) when the length is not exactly
-[`POINTER_LEN`](#pointer_len).
+[`PointerError::NotAPointer`](#pointererror) when the header is neither `BCK3` nor
+`BCK4`, and [`PointerError::BadLength`](#pointererror) when the length is not
+exactly [`POINTER_LEN`](#pointer_len).
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
 
@@ -314,6 +389,45 @@ Why a keychain operation failed.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### PointerStore
+
+```rust
+pub enum PointerStore {
+    Keychain,
+    SystemdCreds,
+}
+```
+
+Which store a pointer record names.
+
+**Variants**
+
+- `Keychain`: The OS keychain ([`OsKeychain`](#oskeychain)); the record starts `BCK3`.
+- `SystemdCreds`: A credential sealed with `systemd-creds` ([`SystemdCredsVault`](#systemdcredsvault)); the
+  record starts `BCK4`.
+
+#### PointerStore::magic
+
+```rust
+pub fn magic(self) -> &'static [u8; 4]
+```
+
+The record header for this store.
+
+#### PointerStore::for_header
+
+```rust
+pub fn for_header(raw: &[u8]) -> Option<Self>
+```
+
+The store whose records start with `raw`'s first four bytes, if any.
+
+##### Arguments
+
+* `raw` - the start of `master.key`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### PointerError
 
 ```rust
@@ -327,7 +441,8 @@ Why a byte string is not a pointer record.
 
 **Variants**
 
-- `NotAPointer`: The bytes don't start with [`POINTER_MAGIC`](#pointer_magic).
+- `NotAPointer`: The bytes start with neither [`POINTER_MAGIC`](#pointer_magic) nor
+  [`CREDS_POINTER_MAGIC`](#creds_pointer_magic).
 - `BadLength`: The header is right but the record is not exactly [`POINTER_LEN`](#pointer_len) bytes.
 
 Implements: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
@@ -343,6 +458,15 @@ pub type Result<T> = Result<T, KeystoreError>;
 Result alias for keychain operations.
 
 ## Constants
+
+### CREDENTIAL_NAME
+
+```rust
+pub const CREDENTIAL_NAME: &str = "bookclerk-master-key";
+```
+
+The credential name the key is sealed under, and the name a service
+unit hands it in as (`LoadCredentialEncrypted=bookclerk-master-key`).
 
 ### KEYCHAIN_SERVICE
 
@@ -362,7 +486,17 @@ separate items.
 pub const POINTER_MAGIC: &[u8; 4] = b"BCK3";
 ```
 
-Four-byte header of a `master.key` pointer record (`BCK3`).
+Four-byte header of a `master.key` pointer record for an OS keychain
+item (`BCK3`).
+
+### CREDS_POINTER_MAGIC
+
+```rust
+pub const CREDS_POINTER_MAGIC: &[u8; 4] = b"BCK4";
+```
+
+Four-byte header of a `master.key` pointer record for a key sealed with
+`systemd-creds` (`BCK4`): the same layout as [`POINTER_MAGIC`](#pointer_magic)'s.
 
 ### FINGERPRINT_LEN
 

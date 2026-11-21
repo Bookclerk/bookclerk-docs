@@ -6564,7 +6564,7 @@ A `text/plain` body: a string.
   - `store` *[`MasterKeyStore`](schemas.md#masterkeystore)*, **required** — Where the key lives.
   - `recovery_copy` *[`RecoveryCopyAnswer`](schemas.md#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
   - `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
-  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain or sealed with `systemd-creds` (so backups of the files directory don't include it) and no copy was recorded as saved.
 - `401` — The caller is not signed in. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
@@ -6652,7 +6652,8 @@ Schema:
       "enum": [
         "file",
         "password_file",
-        "keychain"
+        "keychain",
+        "systemd_creds"
       ]
     },
     "recovery_copy": {
@@ -6674,7 +6675,7 @@ Schema:
     },
     "needs_recovery_copy": {
       "type": "boolean",
-      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain and no copy was recorded as saved.",
+      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain or sealed with `systemd-creds` (so backups\nof the files directory don't include it) and no copy was recorded as\nsaved.",
       "example": true
     }
   }
@@ -7156,7 +7157,7 @@ A `text/plain` body: a string.
   - `store` *[`MasterKeyStore`](schemas.md#masterkeystore)*, **required** — Where the key lives.
   - `recovery_copy` *[`RecoveryCopyAnswer`](schemas.md#recoverycopyanswer)*, **required** — What the operator recorded about a recovery copy of this key. A record for an earlier key (since restored or replaced) reads as `unrecorded`.
   - `recorded_at` *string or null* — When that was recorded (RFC 3339, UTC); absent when `unrecorded`.
-  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain and no copy was recorded as saved.
+  - `needs_recovery_copy` *boolean*, **required** — Whether the web app should remind the operator to save a copy: the key is in the OS keychain or sealed with `systemd-creds` (so backups of the files directory don't include it) and no copy was recorded as saved.
 - `400` — The body is not syntactically valid JSON. Body: string (`text/plain`)
 - `401` — The caller is not signed in as the operator. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
   - `error` *string*, **required** — Stable machine slug.
@@ -7253,7 +7254,8 @@ Schema:
       "enum": [
         "file",
         "password_file",
-        "keychain"
+        "keychain",
+        "systemd_creds"
       ]
     },
     "recovery_copy": {
@@ -7275,7 +7277,7 @@ Schema:
     },
     "needs_recovery_copy": {
       "type": "boolean",
-      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain and no copy was recorded as saved.",
+      "description": "Whether the web app should remind the operator to save a copy: the\nkey is in the OS keychain or sealed with `systemd-creds` (so backups\nof the files directory don't include it) and no copy was recorded as\nsaved.",
       "example": true
     }
   }
