@@ -2046,7 +2046,10 @@ One work the library holds for the window's person.
 - `identifiers`: The work's identifiers in the library, strong ones first; at most
   [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers), and empty when the library has none.
 - `editions`: The library's editions of the work; 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions),
-  each [`Availability::Owned`](#availability).
+  each [`Availability::Owned`](#availability) (the library holds it on a store
+  account) or, on a clerk's page, [`Availability::Reachable`](#availability) (only a
+  branch of the library lists it; never the person's and with no
+  copy).
 
 #### WindowWork::problem
 
@@ -2057,9 +2060,10 @@ pub fn problem(&self) -> Option<&'static str>
 Why the work is malformed, or `None`: a grouping key
 ([`is_work_ref`](#is_work_ref)), at most [`MAX_LOOKUP_IDENTIFIERS`](#max_lookup_identifiers) distinct
 well-formed identifiers, and 1 to [`MAX_LOOKUP_EDITIONS`](#max_lookup_editions) well-formed
-editions the library holds, with distinct (store, marketplace,
-product id) and, where one is stated, a well-formed copy
-([`WindowCopy::is_well_formed`](#windowcopyis_well_formed)).
+editions, with distinct (store, marketplace, product id) and, where
+one is stated, a well-formed copy ([`WindowCopy::is_well_formed`](#windowcopyis_well_formed)).
+An edition is [`Availability::Owned`](#availability), or [`Availability::Reachable`](#availability)
+with neither a copy nor [`WindowEdition::yours`](#windowedition).
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 

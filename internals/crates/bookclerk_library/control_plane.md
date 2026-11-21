@@ -5757,6 +5757,7 @@ pub struct WindowEntryEdition {
     pub edition: LookupEdition,
     pub yours: bool,
     pub copy: Option<WindowCopy>,
+    pub work_ref: String,
 }
 ```
 
@@ -5770,6 +5771,9 @@ One edition of a [`WindowEntry`](#windowentry), and the library that holds it.
 - `yours`: Whether the person holds it there through a store account of their
   own.
 - `copy`: The copy of its audio that library holds, when it stated one.
+- `work_ref`: That library's own key for the edition's work (its work id, or
+  `edition-<id>` for an edition with no work there): what to ask the
+  library for when only one of its branches lists the edition.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
@@ -15134,6 +15138,11 @@ with that person's library card reads them over the client
 socket (`GET /api/clerk/v1/connect`): the same works, grouping and
 limits as [`window_books_page`](#window_books_page), for the person the card belongs to
 rather than a branch node's owner.
+
+After the books on its store accounts, a clerk's pages go on with the
+books only the library's branches hold, each edition
+`Availability::Reachable`, for the person to ask the library for with
+its member request route (`POST /api/branch-requests`).
 
 #### Arguments
 

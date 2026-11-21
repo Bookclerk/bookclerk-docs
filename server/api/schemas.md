@@ -560,6 +560,20 @@ card.
 - `state` *string*, **required** — `active`, or `signed_out` once the library ended the card.
 - `signed_in_at` *string*, **required** — RFC 3339 sign-in time.
 
+## ClerkRequestBody
+
+`POST /api/config/clerk/request` body.
+
+- `library_id` *string*, **required** — The library to ask: one this install holds an active card for.
+- `work_id` *string*, **required** — The library's own work id: 1 to 64 ASCII letters, digits and `-`.
+- `node_id` *string or null* — The library's branch to ask, from the work's `available_through` there; absent asks the first branch that lists it.
+
+## ClerkRequestSent
+
+JSON body for `POST /api/config/clerk/request`.
+
+- `library_id` *string*, **required** — The library that took the request.
+
 ## ClerkSignedIn
 
 JSON body for `POST /api/config/clerk/callback`.
@@ -4215,6 +4229,7 @@ One edition in [`WindowBooks`], and the library that holds it.
 - `series_index` *string or null* — Position in the series, when known.
 - `length_minutes` *integer (int64) or null* — Length in minutes, when known.
 - `yours` *boolean*, **required** — True when this install's person holds it there through a store account of their own; false for a book only other people there hold.
+- `requestable_work` *string or null* — The library's own work id to ask it for this edition with (`POST /api/config/clerk/request`): set when this install holds a card for the library, the library holds no copy, and one of its branches lists it. Absent otherwise.
 
 ## WindowEntryView
 
