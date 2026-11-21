@@ -106,7 +106,7 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`AudioQuality`](#audioquality) | enum | Audible download bitrate tier (`high` / `normal` in TOML). |
 | [`KeyStoreKind`](#keystorekind) | enum | Where an install keeps the library's data-encryption key. |
 | [`NodeApiMode`](#nodeapimode) | enum | How branch nodes may reach the node API (`[daemon.node_api] mode`). |
-| [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs). The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
+| [`replace_file`](#replace_file) | function | Replace `to` with `from`, both in the same directory. `to` may already exist; on Windows this goes through `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING \| MOVEFILE_WRITE_THROUGH` (see the module docs), retrying briefly while another replace of `to` settles. The moved file keeps its own permissions, so a `0600` staging file lands as a `0600` target. |
 | [`parse_cache_setting`](#parse_cache_setting) | function | Parses one `cache.*` setting. |
 | [`cookie_secure_suffix`](#cookie_secure_suffix) | function | Append `; Secure` when the configured public origin is HTTPS. |
 | [`oidc_transaction_cookie_flags`](#oidc_transaction_cookie_flags) | function | Cookie flags for the OIDC login transaction (`state` binding). |
@@ -4161,7 +4161,8 @@ pub fn replace_file(from: &Path, to: &Path) -> Result<()>
 Replace `to` with `from`, both in the same directory. `to` may already
 exist; on Windows this goes through `MoveFileExW` with
 `MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH` (see the module
-docs). The moved file keeps its own permissions, so a `0600` staging file
+docs), retrying briefly while another replace of `to` settles. The moved
+file keeps its own permissions, so a `0600` staging file
 lands as a `0600` target.
 
 #### Errors

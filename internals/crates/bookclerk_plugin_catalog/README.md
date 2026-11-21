@@ -49,6 +49,7 @@ See `docs/plugins/registry.md`.
 | [`evaluate_install`](#evaluate_install) | function | Evaluate identity + provenance for an install directory. |
 | [`evaluate_install_in`](#evaluate_install_in) | function | Evaluate identity + provenance, consulting the host install ledger under `files_dir` when provided. |
 | [`stamp_platform_receipt`](#stamp_platform_receipt) | function | Build a host-owned platform-bundled receipt **and** ledger row. |
+| [`detect_archive_format`](#detect_archive_format) | function | Reads which format a plugin archive is in from its first bytes. |
 | [`extract_archive`](#extract_archive) | function | Extract an archive into `dest`, refusing path traversal and oversized output. |
 | [`require_mutable_child`](#require_mutable_child) | function | Lexical child path under `root` safe for `remove_dir_all` / `rename` / create. |
 | [`require_under`](#require_under) | function | Returns `path` when it stays under `root` (canonical containment). |
@@ -1809,6 +1810,27 @@ pub fn for_target(bookclerk_target: &str) -> Self
 
 Returns the conventional archive format for a Bookclerk target id.
 
+#### ArchiveFormat::sniff
+
+```rust
+pub fn sniff(head: &[u8]) -> Option<Self>
+```
+
+Recognises a plugin archive from its first bytes.
+
+The bytes decide, never the file name or the target: a package built
+on one platform for another still extracts, and a mislabelled file is
+refused rather than handed to the wrong parser.
+
+##### Arguments
+
+* `head` - the archive's leading bytes; four are enough.
+
+##### Returns
+
+[`ArchiveFormat::TarGz`](#archiveformat) for a gzip stream, [`ArchiveFormat::Zip`](#archiveformat)
+for a zip local-file or empty-archive header, `None` for anything else.
+
 #### ArchiveFormat::extension
 
 ```rust
@@ -1948,6 +1970,27 @@ Only [`crate::identity::PLATFORM_ARTIFACTS`](#platform_artifacts) may be stamped
 
 Returns an error when `package_name`/`manifest.id` are not a known
 platform pair, hashing fails, or the ledger cannot be written.
+
+### detect_archive_format
+
+```rust
+pub fn detect_archive_format(archive: &Path) -> Result<ArchiveFormat>
+```
+
+Reads which format a plugin archive is in from its first bytes.
+
+#### Arguments
+
+* `archive` - the downloaded or local archive.
+
+#### Returns
+
+The format [`ArchiveFormat::sniff`](#archiveformatsniff) recognises.
+
+#### Errors
+
+Returns an error when the file cannot be read or is neither a gzip tar
+nor a zip archive.
 
 ### extract_archive
 
