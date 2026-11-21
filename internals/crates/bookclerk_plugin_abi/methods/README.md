@@ -4,7 +4,8 @@ Role capability method names (camelCase on the wire).
 
 Each submodule exposes a single [`NAME`](health.md#name) constant equal to
 the corresponding `ContentSource` / `RemoteLibrary` / `Oidc` /
-`MetadataProvider` / `CoverFetcher` / `MetadataFiles` / `Cli` /
+`MetadataProvider` / `CoverFetcher` / `MetadataFiles` / `Notifier` /
+`NotificationRaiser` / `Cli` /
 `EventConsumer` / `EventPublisher` / `QueueConsumer` / `QueueProducer` /
 `PluginWorker` method in
 `schema/plugin.capnp`. Prefer these constants over string literals when
@@ -25,7 +26,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`read`](read.md): Read one page of past outbox events (Cap'n Proto `EventPublisher.read`).
 - [`queue`](queue.md): Deliver one ordered batch of queue messages (Cap'n Proto `QueueConsumer.queue`).
 - [`scheduled`](scheduled.md): Run one cron fire (Cap'n Proto `ScheduledHandler.scheduled`).
-- [`send`](send.md): Send one message into a granted queue (Cap'n Proto `QueueProducer.send`).
+- [`send`](send.md): Send one message into a granted queue (Cap'n Proto `QueueProducer.send`), or deliver one notification to one destination (Cap'n Proto `Notifier.send`).
 - [`send_batch`](send_batch.md): Send a batch of messages into a granted queue (Cap'n Proto `QueueProducer.sendBatch`).
 - [`poll_events`](poll_events.md): Poll for plugin-observed external users after `start`.
 - [`scan_library`](scan_library.md): Trigger an integration library scan against a remote server (e.g. ABS).
@@ -37,6 +38,8 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`fetch_covers`](fetch_covers.md): Cover image bodies streamed into a host sink (Cap'n Proto `CoverFetcher.fetchCovers`).
 - [`parse`](parse.md): What one metadata file says (Cap'n Proto `MetadataFiles.parse`).
 - [`render`](render.md): A metadata file's bytes with chosen fields rewritten (Cap'n Proto `MetadataFiles.render`).
+- [`validate_destination`](validate_destination.md): Normalise and check a patron's address on a notifier (Cap'n Proto `Notifier.validateDestination`).
+- [`raise`](raise.md): Raise a notification type the plugin declared (Cap'n Proto `NotificationRaiser.raise`).
 - [`clients`](clients.md): Plugin-provided OIDC client templates (Cap'n Proto `Oidc.clients`).
 - [`describe`](describe.md): Return the guest's declared CLI schema (`crate::CliSchema`; Cap'n Proto `PluginCli.describe`). Also the root `PluginWorker.describe` identity call.
 - [`invoke`](invoke.md): Invoke a declared plugin CLI command (Cap'n Proto `PluginCli.invoke`).

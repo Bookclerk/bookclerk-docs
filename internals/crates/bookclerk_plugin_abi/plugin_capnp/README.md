@@ -23,6 +23,10 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`PriceLookup`](#pricelookup) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
+| [`NotificationSeverity`](#notificationseverity) | enum |  |
+| [`NotificationAudience`](#notificationaudience) | enum |  |
+| [`NotificationAlertAction`](#notificationalertaction) | enum |  |
+| [`NotifyDestinationKind`](#notifydestinationkind) | enum |  |
 | [`DbType`](#dbtype) | enum |  |
 | [`DbStatementKind`](#dbstatementkind) | enum |  |
 | [`DbResultSelection`](#dbresultselection) | enum |  |
@@ -54,6 +58,12 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`MAX_METADATA_FILE_TEXT_BYTES`](#max_metadata_file_text_bytes) | constant |  |
 | [`MAX_METADATA_FILE_LIST_ENTRIES`](#max_metadata_file_list_entries) | constant |  |
 | [`MAX_METADATA_FILE_CHAPTERS`](#max_metadata_file_chapters) | constant |  |
+| [`MAX_NOTIFICATION_TITLE_BYTES`](#max_notification_title_bytes) | constant |  |
+| [`MAX_NOTIFICATION_TEXT_BYTES`](#max_notification_text_bytes) | constant |  |
+| [`MAX_NOTIFICATION_HTML_BYTES`](#max_notification_html_bytes) | constant |  |
+| [`MAX_NOTIFICATION_FIELDS`](#max_notification_fields) | constant |  |
+| [`MAX_NOTIFICATION_FIELD_BYTES`](#max_notification_field_bytes) | constant |  |
+| [`MAX_NOTIFIER_ADDRESS_BYTES`](#max_notifier_address_bytes) | constant |  |
 | [`MAX_METADATA_AUDIO_FILES`](#max_metadata_audio_files) | constant |  |
 | [`MAX_KV_KEY_BYTES`](#max_kv_key_bytes) | constant |  |
 | [`MAX_SOCKET_FRAME_BYTES`](#max_socket_frame_bytes) | constant |  |
@@ -181,6 +191,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_provider`](metadata_provider/README.md)
 - [`cover_fetcher`](cover_fetcher/README.md)
 - [`metadata_files`](metadata_files/README.md)
+- [`notifier`](notifier/README.md)
+- [`notification_raiser`](notification_raiser/README.md)
 - [`json_enum`](json_enum.md)
 - [`event_consumer_spec`](event_consumer_spec.md)
 - [`plugin_capabilities`](plugin_capabilities.md)
@@ -297,6 +309,18 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`metadata_file_render_params`](metadata_file_render_params.md)
 - [`metadata_file_rendered`](metadata_file_rendered.md)
 - [`metadata_file_render_reply`](metadata_file_render_reply.md)
+- [`notification_field`](notification_field.md)
+- [`notification_message`](notification_message.md)
+- [`notify_destination`](notify_destination.md)
+- [`notify_send_params`](notify_send_params.md)
+- [`notify_sent`](notify_sent.md)
+- [`notify_send_reply`](notify_send_reply.md)
+- [`notify_validate_params`](notify_validate_params.md)
+- [`notify_validated`](notify_validated.md)
+- [`notify_validate_reply`](notify_validate_reply.md)
+- [`notify_raise_params`](notify_raise_params.md)
+- [`notify_raised`](notify_raised.md)
+- [`notify_raise_reply`](notify_raise_reply.md)
 - [`socket_frame`](socket_frame.md)
 - [`socket_header`](socket_header.md)
 - [`socket_auto_response`](socket_auto_response.md)
@@ -405,6 +429,7 @@ pub enum Entrypoint {
     Metadata = 6,
     Covers = 7,
     MetadataFiles = 8,
+    Notifier = 9,
 }
 ```
 
@@ -609,6 +634,53 @@ pub enum MetadataField {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<MetadataField>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### NotificationSeverity
+
+```rust
+pub enum NotificationSeverity {
+    Info = 0,
+    Warning = 1,
+    Critical = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotificationSeverity>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### NotificationAudience
+
+```rust
+pub enum NotificationAudience {
+    Operational = 0,
+    Patron = 1,
+    Account = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotificationAudience>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### NotificationAlertAction
+
+```rust
+pub enum NotificationAlertAction {
+    None = 0,
+    Trigger = 1,
+    Resolve = 2,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotificationAlertAction>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### NotifyDestinationKind
+
+```rust
+pub enum NotifyDestinationKind {
+    Channel = 0,
+    Personal = 1,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<NotifyDestinationKind>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### DbType
 
@@ -839,6 +911,42 @@ pub const MAX_METADATA_FILE_LIST_ENTRIES: u32 = 256;
 
 ```rust
 pub const MAX_METADATA_FILE_CHAPTERS: u32 = 2000;
+```
+
+### MAX_NOTIFICATION_TITLE_BYTES
+
+```rust
+pub const MAX_NOTIFICATION_TITLE_BYTES: u32 = 256;
+```
+
+### MAX_NOTIFICATION_TEXT_BYTES
+
+```rust
+pub const MAX_NOTIFICATION_TEXT_BYTES: u32 = 16384;
+```
+
+### MAX_NOTIFICATION_HTML_BYTES
+
+```rust
+pub const MAX_NOTIFICATION_HTML_BYTES: u32 = 65536;
+```
+
+### MAX_NOTIFICATION_FIELDS
+
+```rust
+pub const MAX_NOTIFICATION_FIELDS: u32 = 25;
+```
+
+### MAX_NOTIFICATION_FIELD_BYTES
+
+```rust
+pub const MAX_NOTIFICATION_FIELD_BYTES: u32 = 1024;
+```
+
+### MAX_NOTIFIER_ADDRESS_BYTES
+
+```rust
+pub const MAX_NOTIFIER_ADDRESS_BYTES: u32 = 4096;
 ```
 
 ### MAX_METADATA_AUDIO_FILES

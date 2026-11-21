@@ -2671,6 +2671,7 @@ which installs the granted bindings on `env` before dispatching.
 - [`MetadataEntrypoint`](#metadataentrypoint)
 - [`CoverEntrypoint`](#coverentrypoint)
 - [`MetadataFilesEntrypoint`](#metadatafilesentrypoint)
+- [`NotifierEntrypoint`](#notifierentrypoint)
 
 #### Type Parameters
 
@@ -2791,6 +2792,213 @@ Always a 404 empty response.
 
 ***
 
+### NotifierEntrypoint
+
+`notifier` entrypoint (`Notifier`): delivers messages the host already
+rendered to one outside service (a chat webhook, a mail relay, a paging
+service). The host decides what to send and where; the entrypoint only
+sends. `[notifier]` in `plugin.toml` declares the destination kinds,
+formats and personal address fields. Export it as
+`export class Notifier extends NotifierEntrypoint`.
+
+#### Extends
+
+- [`NamedEntrypoint`](#namedentrypoint)\<`Env`\>
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new NotifierEntrypoint<Env>(ctx, env): NotifierEntrypoint<Env>;
+```
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ctx` | `ExecutionContext` |
+| `env` | `Env` |
+
+###### Returns
+
+[`NotifierEntrypoint`](#notifierentrypoint)\<`Env`\>
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`constructor`](#constructor-11)
+
+#### Properties
+
+##### ctx
+
+```ts
+readonly ctx: ExecutionContext;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`ctx`](#ctx-6)
+
+##### env
+
+```ts
+readonly env: Env;
+```
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`env`](#env-6)
+
+##### invocation
+
+```ts
+invocation: Invocation;
+```
+
+Invocation identity of the current call (set by `bookclerkInvoke`).
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`invocation`](#invocation-7)
+
+##### bookclerkMethods
+
+```ts
+static bookclerkMethods: readonly string[];
+```
+
+Methods the adapter may dispatch on this entrypoint.
+
+###### Overrides
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkMethods`](#bookclerkmethods-5)
+
+#### Methods
+
+##### bookclerkInvoke()
+
+```ts
+bookclerkInvoke(
+   context, 
+   method, 
+   ...args
+): Promise<unknown>;
+```
+
+**`Internal`**
+
+Adapter dispatch: install granted bindings, then call `method`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `context` | [`GrantedContext`](#grantedcontext) | Granted bindings for this invocation. |
+| `method` | `string` | Method name from the static allowlist. |
+| ...`args` | `unknown`[] | Method arguments. |
+
+###### Returns
+
+`Promise`\<`unknown`\>
+
+Method result.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`bookclerkInvoke`](#bookclerkinvoke-5)
+
+##### fetch()
+
+```ts
+fetch(_request?): Promise<Response>;
+```
+
+Rejects HTTP fetch — workerd guests are Workers-RPC only.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_request?` | `Request` | Incoming HTTP request when the entrypoint is fetch-facing. |
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+Always a 404 empty response.
+
+###### Inherited from
+
+[`NamedEntrypoint`](#namedentrypoint).[`fetch`](#fetch-6)
+
+##### health()
+
+```ts
+health(): Promise<HealthOk>;
+```
+
+Reports whether the service can be reached with the current settings.
+
+###### Returns
+
+`Promise`\<[`HealthOk`](generated.md#healthok)\>
+
+Health flag plus detail.
+
+##### send()
+
+```ts
+send(_params): Promise<NotifySent>;
+```
+
+Delivers one message to one destination. Throw `rate_limited` (with
+`details.retryAfterMs` when the service says when) or `unavailable` for
+a failure worth retrying; any other error fails this destination. Never
+log `params.message` when `sensitive` is set, nor `addressJson`.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`NotifySendParams`](generated.md#notifysendparams) | The rendered message and its destination. |
+
+###### Returns
+
+`Promise`\<[`NotifySent`](generated.md#notifysent)\>
+
+The service's message id, when it gives one.
+
+##### validateDestination()
+
+```ts
+validateDestination(params): Promise<NotifyValidated>;
+```
+
+Checks and normalises a personal address a patron entered. Throw
+`invalid_params` for an address the service would refuse. The default
+accepts the address as given.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`NotifyValidateParams`](generated.md#notifyvalidateparams) | The address document as entered. |
+
+###### Returns
+
+`Promise`\<[`NotifyValidated`](generated.md#notifyvalidated)\>
+
+The address to save and an optional label that is never a secret.
+
+***
+
 ### OidcEntrypoint
 
 `oidc` entrypoint: relying-party client templates and credential
@@ -2804,7 +3012,7 @@ verification. Export it as `export class Oidc extends OidcEntrypoint`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-7"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3292,7 +3500,7 @@ polling for a remote library server. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-8"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-9"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -3589,7 +3797,7 @@ writes acquired media into. Export it as
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-9"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-10"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4037,7 +4245,7 @@ and returns the typed ABI structs generated from `schema/plugin.capnp`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| <a id="type-parameter-env-10"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
+| <a id="type-parameter-env-11"></a> `Env` *extends* [`BookclerkEnv`](env.md#bookclerkenv) | [`BookclerkEnv`](env.md#bookclerkenv) |
 
 #### Constructors
 
@@ -4629,7 +4837,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-14)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-15)
 
 ##### kv?
 
@@ -4638,6 +4846,26 @@ kv?: Record<string, string>;
 ```
 
 `[[kv_namespaces]]` binding → kv-only bearer for `/kv/*`.
+
+##### notify?
+
+```ts
+notify?: NotifyBinding;
+```
+
+`NOTIFY` binding, when `[[notifications.types]]` is declared.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`notify`](#notify-1)
+
+##### notifyToken?
+
+```ts
+notifyToken?: string;
+```
+
+Granted-channel bearer for `env.NOTIFY.raise`; stripped before dispatch.
 
 ##### queues?
 
@@ -4922,6 +5150,14 @@ kv?: NamedKv[];
 ```
 
 `[[kv_namespaces]]` bindings, when granted.
+
+##### notify?
+
+```ts
+notify?: NotifyBinding;
+```
+
+`NOTIFY` binding, when `[[notifications.types]]` is declared.
 
 ##### queues?
 
@@ -5322,7 +5558,7 @@ Invocation identity (`Invocation` struct).
 
 ###### Inherited from
 
-[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-14)
+[`GrantedContext`](#grantedcontext).[`invocation`](#invocation-15)
 
 ##### jobId?
 
@@ -5343,6 +5579,18 @@ kv?: NamedKv[];
 ###### Inherited from
 
 [`GrantedContext`](#grantedcontext).[`kv`](#kv-1)
+
+##### notify?
+
+```ts
+notify?: NotifyBinding;
+```
+
+`NOTIFY` binding, when `[[notifications.types]]` is declared.
+
+###### Inherited from
+
+[`GrantedContext`](#grantedcontext).[`notify`](#notify-1)
 
 ##### queues?
 
@@ -6230,7 +6478,8 @@ type EntrypointName =
   | "oidc"
   | "metadata"
   | "covers"
-  | "metadataFiles";
+  | "metadataFiles"
+  | "notifier";
 ```
 
 Wire name of each named entrypoint (`plugin.toml` `entrypoints`).
@@ -7045,6 +7294,84 @@ Re-exports [MetadataRecord](generated.md#metadatarecord)
 ### MetadataSearchParams
 
 Re-exports [MetadataSearchParams](generated.md#metadatasearchparams)
+
+***
+
+### NotificationAlertAction
+
+Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
+
+***
+
+### NotificationAudience
+
+Re-exports [NotificationAudience](abi.md#notificationaudience)
+
+***
+
+### NotificationField
+
+Re-exports [NotificationField](generated.md#notificationfield)
+
+***
+
+### NotificationMessage
+
+Re-exports [NotificationMessage](generated.md#notificationmessage)
+
+***
+
+### NotificationSeverity
+
+Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### NotifyDestination
+
+Re-exports [NotifyDestination](generated.md#notifydestination)
+
+***
+
+### NotifyDestinationKind
+
+Re-exports [NotifyDestinationKind](abi.md#notifydestinationkind)
+
+***
+
+### NotifyRaised
+
+Re-exports [NotifyRaised](generated.md#notifyraised)
+
+***
+
+### NotifyRaiseParams
+
+Re-exports [NotifyRaiseParams](generated.md#notifyraiseparams)
+
+***
+
+### NotifySendParams
+
+Re-exports [NotifySendParams](generated.md#notifysendparams)
+
+***
+
+### NotifySent
+
+Re-exports [NotifySent](generated.md#notifysent)
+
+***
+
+### NotifyValidated
+
+Re-exports [NotifyValidated](generated.md#notifyvalidated)
+
+***
+
+### NotifyValidateParams
+
+Re-exports [NotifyValidateParams](generated.md#notifyvalidateparams)
 
 ***
 

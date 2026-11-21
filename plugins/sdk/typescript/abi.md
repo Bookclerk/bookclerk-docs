@@ -172,6 +172,46 @@ Union of `METADATA_FIELDS` wire names.
 
 ***
 
+### NotificationAlertAction
+
+```ts
+type NotificationAlertAction = typeof NOTIFICATION_ALERT_ACTIONS[number];
+```
+
+Union of `NOTIFICATION_ALERT_ACTIONS` wire names.
+
+***
+
+### NotificationAudience
+
+```ts
+type NotificationAudience = typeof NOTIFICATION_AUDIENCES[number];
+```
+
+Union of `NOTIFICATION_AUDIENCES` wire names.
+
+***
+
+### NotificationSeverity
+
+```ts
+type NotificationSeverity = typeof NOTIFICATION_SEVERITYS[number];
+```
+
+Union of `NOTIFICATION_SEVERITYS` wire names.
+
+***
+
+### NotifyDestinationKind
+
+```ts
+type NotifyDestinationKind = typeof NOTIFY_DESTINATION_KINDS[number];
+```
+
+Union of `NOTIFY_DESTINATION_KINDS` wire names.
+
+***
+
 ### ObjectChangeKind
 
 ```ts
@@ -345,7 +385,7 @@ Ordinal-ordered `DbType` wire names (index = Cap'n Proto ordinal).
 ### ENTRYPOINTS
 
 ```ts
-const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles"];
+const ENTRYPOINTS: readonly ["storefront", "storage", "databaseAdapter", "remoteLibrary", "cli", "oidc", "metadata", "covers", "metadataFiles", "notifier"];
 ```
 
 Named entrypoint a plugin exports (Cloudflare Workers named-entrypoint
@@ -746,6 +786,68 @@ genre, a chapter title), in UTF-8 bytes.
 
 ***
 
+### MAX\_NOTIFICATION\_FIELD\_BYTES
+
+```ts
+const MAX_NOTIFICATION_FIELD_BYTES: 1024;
+```
+
+Longest `NotificationField.value`, link, group key or alert key, in UTF-8
+bytes.
+
+***
+
+### MAX\_NOTIFICATION\_FIELDS
+
+```ts
+const MAX_NOTIFICATION_FIELDS: 25;
+```
+
+Most `NotificationField`s on one message or raise.
+
+***
+
+### MAX\_NOTIFICATION\_HTML\_BYTES
+
+```ts
+const MAX_NOTIFICATION_HTML_BYTES: 65536;
+```
+
+Longest `NotificationMessage.html`, in UTF-8 bytes.
+
+***
+
+### MAX\_NOTIFICATION\_TEXT\_BYTES
+
+```ts
+const MAX_NOTIFICATION_TEXT_BYTES: 16384;
+```
+
+Longest `NotificationMessage.text` or `markdown`, in UTF-8 bytes.
+
+***
+
+### MAX\_NOTIFICATION\_TITLE\_BYTES
+
+```ts
+const MAX_NOTIFICATION_TITLE_BYTES: 256;
+```
+
+Longest `NotificationMessage.title` and `NotificationField` name, in UTF-8
+bytes.
+
+***
+
+### MAX\_NOTIFIER\_ADDRESS\_BYTES
+
+```ts
+const MAX_NOTIFIER_ADDRESS_BYTES: 4096;
+```
+
+Longest destination address document (`addressJson`), in UTF-8 bytes.
+
+***
+
 ### MAX\_PLUGIN\_MIGRATION\_OPS
 
 ```ts
@@ -924,6 +1026,56 @@ fields their format carries; a parsed record lists the ones its file
 states, and a render request lists the ones to write.
 
 Ordinal-ordered `MetadataField` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### NOTIFICATION\_ALERT\_ACTIONS
+
+```ts
+const NOTIFICATION_ALERT_ACTIONS: readonly ["none", "trigger", "resolve"];
+```
+
+Lifecycle step of an alert, for services such as PagerDuty that open and
+close incidents.
+
+Ordinal-ordered `NotificationAlertAction` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### NOTIFICATION\_AUDIENCES
+
+```ts
+const NOTIFICATION_AUDIENCES: readonly ["operational", "patron", "account"];
+```
+
+Who a notification type is for. The account audience is reserved to the
+host; a plugin may declare only operational and patron types.
+
+Ordinal-ordered `NotificationAudience` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### NOTIFICATION\_SEVERITYS
+
+```ts
+const NOTIFICATION_SEVERITYS: readonly ["info", "warning", "critical"];
+```
+
+How urgent a notification is. Routing rules carry a minimum severity.
+
+Ordinal-ordered `NotificationSeverity` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### NOTIFY\_DESTINATION\_KINDS
+
+```ts
+const NOTIFY_DESTINATION_KINDS: readonly ["channel", "personal"];
+```
+
+Kind of destination a `Notifier` sends to.
+
+Ordinal-ordered `NotifyDestinationKind` wire names (index = Cap'n Proto ordinal).
 
 ***
 

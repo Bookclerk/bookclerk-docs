@@ -4,7 +4,8 @@ Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job`
 streams (`Source` / `Destination` / `ProgressSink`), the job's
 `Cancellation` long poll (`/cancel`), named database sessions
 (`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox binding
-(`/events/publish`, `/events/read`), and the `SOCKETS` broker binding
+(`/events/publish`, `/events/read`), the `NOTIFY` binding
+(`/notify/raise`), and the `SOCKETS` broker binding
 (`/sockets/*`, parsed in [`crate::granted_sockets`](granted_sockets.md)).
 
 HTTP accept/read/write runs on the multi-thread runtime (`tokio::spawn`) so
@@ -19,6 +20,7 @@ vat thread via a command channel.
 | [`parse_event_read_body`](#parse_event_read_body) | function | Parses a `/events/read` body: the JSON form of `EventReadRequest` (`bookclerk_plugin_abi::parse_event_read_json`). Bounds and consent are checked later by the host publisher (`bookclerk_plugin_abi::validate_event_read_request`). |
 | [`GrantedTable`](#grantedtable) | type alias | Invocation-id → granted stubs. |
 | [`MAX_EVENT_PUBLISH_BODY_BYTES`](#max_event_publish_body_bytes) | constant | Largest `/events/publish` request body: a base64 payload at `MAX_EVENT_PAYLOAD_BYTES` plus the envelope fields. |
+| [`MAX_NOTIFY_RAISE_BODY_BYTES`](#max_notify_raise_body_bytes) | constant | Largest `/notify/raise` request body: a raise of up to `maxNotificationFields` fields at their caps with every character JSON-escaped to two bytes (about 70 KiB), plus the envelope. |
 | [`MAX_EVENT_READ_BODY_BYTES`](#max_event_read_body_bytes) | constant | Largest `/events/read` request body: a cursor plus up to `maxListPage` event types. |
 | [`MAX_QUEUE_SEND_BODY_BYTES`](#max_queue_send_body_bytes) | constant | Largest `/queues/send` request body: a `sendBatch` of base64 bodies. The host producer still caps every message at `MAX_EVENT_PAYLOAD_BYTES` and every batch at `maxListPage`; this only bounds the read. |
 | [`CANCEL_POLL_WINDOW`](#cancel_poll_window) | constant | How long one `GET /cancel` long poll waits before answering `204` so the isolate re-arms; short enough that a dropped isolate cannot pin the cancellation stub for long. |
@@ -76,6 +78,7 @@ pub struct GrantedSlot {
     pub queue: Option<Rc<dyn QueueProducer>>,
     pub kv: Option<Rc<dyn KvNamespace>>,
     pub sockets: Option<Rc<dyn Sockets>>,
+    pub notify: Option<Rc<dyn NotificationRaiser>>,
 }
 ```
 
@@ -105,6 +108,8 @@ or an `EVENTS` publisher.
   binding.
 - `kv`: Host KV namespace, when this grant is one `[[kv_namespaces]]` binding.
 - `sockets`: Host socket broker, when this grant is the `SOCKETS` binding.
+- `notify`: Host notification router entry, when this grant is the `NOTIFY`
+  binding.
 
 #### GrantedSlot::sockets_only
 
@@ -140,6 +145,15 @@ pub fn queue_only(producer: Rc<dyn QueueProducer>, expires: Instant) -> Self
 ```
 
 A grant that only sends into one queue (no streams, no database).
+
+#### GrantedSlot::notify_only
+
+```rust
+pub fn notify_only(notify: Rc<dyn NotificationRaiser>, expires: Instant) -> Self
+```
+
+A grant that only raises notifications over `/notify/raise` (no
+streams, no database, no events).
 
 #### GrantedSlot::events_only
 
@@ -209,6 +223,16 @@ pub const MAX_EVENT_PUBLISH_BODY_BYTES: u32 = _;
 
 Largest `/events/publish` request body: a base64 payload at
 [`MAX_EVENT_PAYLOAD_BYTES`](../bookclerk_plugin_abi/README.md#max_event_payload_bytes) plus the envelope fields.
+
+### MAX_NOTIFY_RAISE_BODY_BYTES
+
+```rust
+pub const MAX_NOTIFY_RAISE_BODY_BYTES: u32 = _;
+```
+
+Largest `/notify/raise` request body: a raise of up to
+`maxNotificationFields` fields at their caps with every character
+JSON-escaped to two bytes (about 70 KiB), plus the envelope.
 
 ### MAX_EVENT_READ_BODY_BYTES
 

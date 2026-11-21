@@ -11,7 +11,7 @@ The default export is a module-level `Default` class extending
 [`BookclerkEntrypoint`](#bookclerkentrypoint) with optional `event(batch)` / `job(job)`
 triggers. Named entrypoints from `plugin.toml` `entrypoints` are module-level
 classes named after the wire name (`Storefront`, `Storage`, `RemoteLibrary`,
-`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`) extending the matching `*Entrypoint`
+`DatabaseAdapter`, `Cli`, `Oidc`, `Metadata`, `Covers`, `MetadataFiles`, `Notifier`) extending the matching `*Entrypoint`
 base. The launcher's adapter isolate reaches them only through the
 `bookclerk*` dispatch methods; authors neither call nor override those.
 
@@ -36,6 +36,8 @@ Outside the isolate (authoring / unit tests), lightweight stubs stand in for
 | [`MetadataFilesEntrypoint`](#metadatafilesentrypoint) | class | `metadataFiles` entrypoint: reads and writes metadata files for the host. |
 | [`MetadataEntrypoint`](#metadataentrypoint) | class | `metadata` entrypoint: bibliographic lookups against a public catalog. |
 | [`NamedEntrypoint`](#namedentrypoint) | class | Base for named entrypoints. |
+| [`NotifierEntrypoint`](#notifierentrypoint) | class | `notifier` entrypoint: delivers messages the host already rendered. |
+| [`NotifyBinding`](#notifybinding) | class | `NOTIFY` binding, present when `plugin.toml` declares `[[notifications.types]]`. |
 | [`OidcEntrypoint`](#oidcentrypoint) | class | `oidc` entrypoint: relying-party client templates and credential verification. |
 | [`PluginError`](#pluginerror) | class | SDK-thrown failure. Unknown wire codes stay on `wire_code`. |
 | [`QueueBatch`](#queuebatch) | class | One `queue(batch)` delivery (`QueueBatch` struct), Workers `MessageBatch`-shaped. |
@@ -1087,6 +1089,110 @@ Adapter dispatch: call `method` with the granted bindings installed.
 **Raises**
 
 - `PluginError`: `unsupported` for methods outside `bookclerk_methods`.
+
+### NotifierEntrypoint
+
+```python
+class NotifierEntrypoint(NamedEntrypoint)
+```
+
+`notifier` entrypoint: delivers messages the host already rendered.
+
+The host decides what to send and where; the entrypoint only sends to
+one outside service (a chat webhook, a mail relay, a paging service).
+`[notifier]` in `plugin.toml` declares the destination kinds, formats
+and personal address fields.
+
+#### NotifierEntrypoint.health
+
+```python
+async def health(self) -> abi.HealthOk
+```
+
+Liveness / readiness probe (`HealthOk`).
+
+#### NotifierEntrypoint.send
+
+```python
+async def send(self, _params: abi.NotifySendParams) -> abi.NotifySent | None
+```
+
+Deliver one message to one destination (`NotifySent`).
+
+Raise `rate_limited` (with `retryAfterMs` in the details when the
+service says when) or `unavailable` for a failure worth retrying; any
+other error fails this destination. Never log the message when
+`sensitive` is set, nor `addressJson`. `None` means the service
+gave no message id.
+
+#### NotifierEntrypoint.validateDestination
+
+```python
+async def validateDestination(
+    self,
+    params: abi.NotifyValidateParams,
+) -> abi.NotifyValidated
+```
+
+Check and normalise a personal address (`NotifyValidated`).
+
+Raise `invalid_params` for an address the service would refuse. The
+default accepts the address as given.
+
+### NotifyBinding
+
+```python
+class NotifyBinding
+```
+
+`NOTIFY` binding, present when `plugin.toml` declares `[[notifications.types]]`.
+
+The host routes each raise by the administrators' rules and each
+patron's preferences; the plugin never learns where it went. The adapter
+isolate owns the notify grant; this wrapper converts Python values into
+the JS values the adapter stub expects.
+
+#### NotifyBinding.__init__
+
+```python
+def __init__(self, stub: Any) -> None
+```
+
+#### NotifyBinding.raise_
+
+```python
+async def raise_(
+    self,
+    notification_type: str,
+    *,
+    fields: list[abi.NotificationField] | dict[str, str] | None=None,
+    patron_id: str='',
+    link_path: str='',
+    group_key: str='',
+    alert_action: abi.NotificationAlertAction='none',
+    alert_key: str='',
+) -> abi.NotifyRaised
+```
+
+Raise one declared notification type (`env.NOTIFY.raise`).
+
+**Args**
+
+- `notification_type`: Type id from `[[notifications.types]]`, without a plugin prefix.
+- `fields`: Labelled values as `{"name", "value"}` rows or a plain `name -> value` dict (at most `MAX_NOTIFICATION_FIELDS`).
+- `patron_id`: Patron the notification is for; required for a `patron` type and must be inside the invocation's account scope.
+- `link_path`: Path inside the library to link to (`/books/42`).
+- `group_key`: Notifications with one group key may be threaded together.
+- `alert_action`: `none`, `trigger` or `resolve`.
+- `alert_key`: Alert to open or close; required unless `alert_action` is `none`.
+
+**Returns**
+
+`{"notificationId": ...}` the host assigned.
+
+**Raises**
+
+- `PluginError`: `invalid_params` for an undeclared type or a malformed raise, `forbidden` for a patron outside the account scope, `rate_limited` past the per-instance raise budget.
 
 ### OidcEntrypoint
 

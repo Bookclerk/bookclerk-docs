@@ -142,6 +142,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataProvider`](#metadataprovider) | class | `metadata` entrypoint: bibliographic lookups against a public catalog (OpenLibrary, Audnexus, ...). A provider describes what it finds as edition records; the host decides identity and never trusts a record to name an existing library row. Network access is limited to the domains the manifest's `[capabilities.network]` declares. |
 | [`CoverFetcher`](#coverfetcher) | class | `covers` entrypoint: downloads cover images on the host's behalf, so the host itself never makes an outbound request to a URL a plugin or a store supplied. The fetcher only transports bytes: the host sniffs, decodes and re-encodes every image in its media worker before anything stores or serves it. Network access is limited to what the manifest's `[capabilities.network]` declares. |
 | [`MetadataFiles`](#metadatafiles) | class | `metadataFiles` entrypoint: reads and writes metadata files that sit next to an edition's media (sidecars such as `metadata.json`, OPF, NFO or CUE), one dialect per format. The plugin only converts bytes: the host reads the file, chooses every path and writes the result, so a dialect plugin needs no network or file grants. The manifest's `[metadata_files]` table names each dialect, the file names it reads and the fields it carries, so the host routes a file to a sleeping plugin without starting it. |
+| [`Notifier`](#notifier) | class | `notifier` entrypoint: delivers one host-rendered message to one destination (an email address, a chat webhook, a push subscription). The host decides what is worth a notification, who gets it and which instance carries it; the plugin only sends. Each send is one claimed `notify.send` job, so the host owns retries: a reply of `rate_limited`, `unavailable`, `deadline_exceeded` or `cancelled` is retried (`rate_limited` honouring `details.retryAfterMs`), any other error is a permanent failure for that destination. |
+| [`NotificationRaiser`](#notificationraiser) | class | `NOTIFY` binding: raises a notification type the plugin declared in `[[notifications.types]]`. The host router applies the administrators' routing and each patron's preferences; the raising plugin never learns where the notification went. |
 | [`EventConsumerSpec`](#eventconsumerspec) | class | One declared event consumer: a `[[events.consumers]]` row the default entrypoint's `event(batch)` handler accepts. |
 | [`PluginCapabilities`](#plugincapabilities) | class | Typed capability declaration returned by `describe()`. The host compares it with `plugin.toml` and the operator grant; widening is rejected at spawn. |
 | [`CatalogCapabilities`](#catalogcapabilities) | class | Catalog behaviours a storefront declares in `describe()`. Catalog search reads them instead of special-casing plugin ids; every flag defaults to false, so a guest that says nothing keeps the plain behaviour. |
@@ -285,6 +287,21 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`MetadataFileRendered`](#metadatafilerendered) | class | Success payload of `MetadataFiles.render`. |
 | [`MetadataFileRenderReplyOk`](#metadatafilerenderreplyok) | class | `MetadataFileRenderReply` member `ok`. |
 | [`MetadataFileRenderReplyErr`](#metadatafilerenderreplyerr) | class | `MetadataFileRenderReply` member `err`. |
+| [`NotificationField`](#notificationfield) | class | One labelled value shown with a notification. |
+| [`NotificationMessage`](#notificationmessage) | class | A message the host rendered for one notification. Every link is built from the library's public origin, never from a request. |
+| [`NotifyDestination`](#notifydestination) | class | Where a `Notifier.send` goes. |
+| [`NotifySendParams`](#notifysendparams) | class | Params of `Notifier.send`. |
+| [`NotifySent`](#notifysent) | class | Success payload of `Notifier.send`. |
+| [`NotifySendReplyOk`](#notifysendreplyok) | class | `NotifySendReply` member `ok`. |
+| [`NotifySendReplyErr`](#notifysendreplyerr) | class | `NotifySendReply` member `err`. |
+| [`NotifyValidateParams`](#notifyvalidateparams) | class | Params of `Notifier.validateDestination`. |
+| [`NotifyValidated`](#notifyvalidated) | class | Success payload of `Notifier.validateDestination`. |
+| [`NotifyValidateReplyOk`](#notifyvalidatereplyok) | class | `NotifyValidateReply` member `ok`. |
+| [`NotifyValidateReplyErr`](#notifyvalidatereplyerr) | class | `NotifyValidateReply` member `err`. |
+| [`NotifyRaiseParams`](#notifyraiseparams) | class | Params of `NotificationRaiser.raise`. |
+| [`NotifyRaised`](#notifyraised) | class | Success payload of `NotificationRaiser.raise`. |
+| [`NotifyRaiseReplyOk`](#notifyraisereplyok) | class | `NotifyRaiseReply` member `ok`. |
+| [`NotifyRaiseReplyErr`](#notifyraisereplyerr) | class | `NotifyRaiseReply` member `err`. |
 | [`SocketFrameText`](#socketframetext) | class | `SocketFrame` member `text`. |
 | [`SocketFrameBinary`](#socketframebinary) | class | `SocketFrame` member `binary`. |
 | [`SocketHeader`](#socketheader) | class | One request header on `Sockets.connect`. |
@@ -387,6 +404,10 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PriceLookup`](#pricelookup) | constant | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
+| [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
+| [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
+| [`NotificationAlertAction`](#notificationalertaction) | constant | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
+| [`NotifyDestinationKind`](#notifydestinationkind) | constant | Kind of destination a `Notifier` sends to. |
 | [`DbType`](#dbtype) | constant | Universal database cell/parameter domain. Engine-native arrays, enums, unsigned integers, and JSON text sentinels are not baseline ABI values. |
 | [`DbStatementKind`](#dbstatementkind) | constant | How the host classifies a statement for result handling. |
 | [`DbResultSelection`](#dbresultselection) | constant | Which part of a statement's outcome the caller wants back. |
@@ -448,6 +469,9 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CoverImagesReply`](#coverimagesreply) | constant | Result union of `CoverFetcher.fetchCovers`. |
 | [`MetadataFileParseReply`](#metadatafileparsereply) | constant | Result union of `MetadataFiles.parse`. A file the dialect cannot read is `invalid_params`, so the host records it as unreadable and moves on. |
 | [`MetadataFileRenderReply`](#metadatafilerenderreply) | constant | Result union of `MetadataFiles.render`. |
+| [`NotifySendReply`](#notifysendreply) | constant | Result union of `Notifier.send`. |
+| [`NotifyValidateReply`](#notifyvalidatereply) | constant | Result union of `Notifier.validateDestination`. An address the plugin refuses is `invalid_params`. |
+| [`NotifyRaiseReply`](#notifyraisereply) | constant | Result union of `NotificationRaiser.raise`. |
 | [`SocketFrame`](#socketframe) | constant | One WebSocket message. |
 | [`SocketConnectReply`](#socketconnectreply) | constant | Result union of `Sockets.connect`. |
 | [`SocketListReply`](#socketlistreply) | constant | Result union of `Sockets.list`. |
@@ -943,6 +967,7 @@ the binding.
 - `queues`: Named `[[queues.producers]]` bindings: one host-served producer per binding, each sending into the queue the row names. Empty when the manifest declares none.
 - `kv`: Named `[[kv_namespaces]]` bindings: one host-served durable namespace per binding, scoped to this plugin. Empty when the manifest declares none.
 - `sockets`: `SOCKETS`: host-brokered outbound WebSockets that stay open while the guest sleeps; null unless `[sockets]` is declared and granted. Null when the guest does not export this capability.
+- `notify`: `NOTIFY`: raises the notification types the plugin declares in `[[notifications.types]]`; null when it declares none. Null when the guest does not export this capability.
 
 ### Entrypoints
 
@@ -970,6 +995,7 @@ refuses an entrypoint the manifest or operator grant did not allow.
 - `covers`: `covers` entrypoint. Null when the guest does not export this capability.
 - `socketHandler`: `[sockets]` handler: messages and closes on host-brokered sockets. Null when the guest does not export this capability.
 - `metadataFiles`: `metadataFiles` entrypoint. Null when the guest does not export this capability.
+- `notifier`: `notifier` entrypoint. Null when the guest does not export this capability.
 
 ### EntrypointsReplyOk
 
@@ -3477,6 +3503,93 @@ values and everything else kept from the existing file.
 
 `MetadataFileRenderReply`
 
+### Notifier
+
+```python
+class Notifier(Protocol)
+```
+
+`notifier` entrypoint: delivers one host-rendered message to one
+destination (an email address, a chat webhook, a push subscription). The
+host decides what is worth a notification, who gets it and which instance
+carries it; the plugin only sends. Each send is one claimed `notify.send`
+job, so the host owns retries: a reply of `rate_limited`, `unavailable`,
+`deadline_exceeded` or `cancelled` is retried (`rate_limited` honouring
+`details.retryAfterMs`), any other error is a permanent failure for that
+destination.
+
+#### Notifier.health
+
+```python
+async def health(self) -> HealthReply
+```
+
+Liveness / readiness probe: credentials and reachability.
+
+**Returns**
+
+`HealthReply`
+
+#### Notifier.send
+
+```python
+async def send(self, params: NotifySendParams) -> NotifySendReply
+```
+
+Deliver one message to one destination.
+
+**Args**
+
+- `params`: Message and destination.
+
+**Returns**
+
+`NotifySendReply`
+
+#### Notifier.validate_destination
+
+```python
+async def validate_destination(self, params: NotifyValidateParams) -> NotifyValidateReply
+```
+
+Normalise and check a personal destination's address before the host
+saves it.
+
+**Args**
+
+- `params`: Address document to check.
+
+**Returns**
+
+`NotifyValidateReply`
+
+### NotificationRaiser
+
+```python
+class NotificationRaiser(Protocol)
+```
+
+`NOTIFY` binding: raises a notification type the plugin declared in
+`[[notifications.types]]`. The host router applies the administrators'
+routing and each patron's preferences; the raising plugin never learns
+where the notification went.
+
+#### NotificationRaiser.raise_
+
+```python
+async def raise_(self, params: NotifyRaiseParams) -> NotifyRaiseReply
+```
+
+Raise one notification.
+
+**Args**
+
+- `params`: Declared type, fields and optional patron.
+
+**Returns**
+
+`NotifyRaiseReply`
+
 ### EventConsumerSpec
 
 ```python
@@ -5722,6 +5835,228 @@ Typed failure; `code` is a `PluginErrorCode` wire string.
 - `kind`: Always `"err"`.
 - `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
 
+### NotificationField
+
+```python
+class NotificationField(TypedDict)
+```
+
+One labelled value shown with a notification.
+
+**Attributes**
+
+- `name`: Label; at most `maxNotificationTitleBytes`.
+- `value`: Value; at most `maxNotificationFieldBytes`.
+
+### NotificationMessage
+
+```python
+class NotificationMessage(TypedDict)
+```
+
+A message the host rendered for one notification. Every link is built
+from the library's public origin, never from a request.
+
+**Attributes**
+
+- `notificationId`: Host-assigned id, the same on every destination's copy; plugins use it as an idempotency key where the service takes one.
+- `notificationType`: Notification type id (`job_failed`, `<plugin>:sync_failed`).
+- `severity`: How urgent it is.
+- `title`: Short title; at most `maxNotificationTitleBytes`.
+- `text`: Plain-text body; at most `maxNotificationTextBytes`.
+- `markdown`: Markdown body for chat services; at most `maxNotificationTextBytes`. Omitted when absent (wire zero value).
+- `html`: Minimal HTML body for email; at most `maxNotificationHtmlBytes`. Omitted when absent (wire zero value).
+- `link`: Absolute `https` (or loopback `http`) link into the library. Omitted when absent (wire zero value).
+- `fields`: Labelled values, at most `maxNotificationFields`.
+- `groupKey`: Messages with one group key may be threaded or collapsed together. Omitted when absent (wire zero value).
+- `alertAction`: Alert lifecycle step; `none` for a one-off message.
+- `alertKey`: Alert this message opens or closes; required unless `alertAction` is `none`. Omitted when absent (wire zero value).
+- `sensitive`: True when the body carries a secret (an account-mail link): the plugin and SDKs must never log it.
+
+### NotifyDestination
+
+```python
+class NotifyDestination(TypedDict)
+```
+
+Where a `Notifier.send` goes.
+
+**Attributes**
+
+- `kind`: Channel or personal destination.
+- `destinationId`: Host id of the destination, stable across sends.
+- `addressJson`: Personal address as a JSON object of the fields the manifest's `[[notifier.address_fields]]` declare; empty for a channel. At most `maxNotifierAddressBytes`. May hold secrets; never logged.
+
+### NotifySendParams
+
+```python
+class NotifySendParams(TypedDict)
+```
+
+Params of `Notifier.send`.
+
+**Attributes**
+
+- `message`: What to send.
+- `destination`: Where to send it.
+
+### NotifySent
+
+```python
+class NotifySent(TypedDict)
+```
+
+Success payload of `Notifier.send`.
+
+**Attributes**
+
+- `providerId`: The service's id for the delivered message, when it gives one. Omitted when absent (wire zero value).
+
+### NotifySendReplyOk
+
+```python
+class NotifySendReplyOk(TypedDict)
+```
+
+`NotifySendReply` member `ok`.
+
+Delivered.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Delivered.
+
+### NotifySendReplyErr
+
+```python
+class NotifySendReplyErr(TypedDict)
+```
+
+`NotifySendReply` member `err`.
+
+Typed failure; `rate_limited`, `unavailable`, `deadline_exceeded` and `cancelled` are retried.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `rate_limited`, `unavailable`, `deadline_exceeded` and `cancelled` are retried.
+
+### NotifyValidateParams
+
+```python
+class NotifyValidateParams(TypedDict)
+```
+
+Params of `Notifier.validateDestination`.
+
+**Attributes**
+
+- `addressJson`: Address document as the patron entered it; at most `maxNotifierAddressBytes`.
+
+### NotifyValidated
+
+```python
+class NotifyValidated(TypedDict)
+```
+
+Success payload of `Notifier.validateDestination`.
+
+**Attributes**
+
+- `addressJson`: Normalised address document the host saves; at most `maxNotifierAddressBytes`.
+- `label`: Short label shown to the patron (`a***@example.com`); never a secret. Omitted when absent (wire zero value).
+
+### NotifyValidateReplyOk
+
+```python
+class NotifyValidateReplyOk(TypedDict)
+```
+
+`NotifyValidateReply` member `ok`.
+
+Accepted, normalised address.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Accepted, normalised address.
+
+### NotifyValidateReplyErr
+
+```python
+class NotifyValidateReplyErr(TypedDict)
+```
+
+`NotifyValidateReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### NotifyRaiseParams
+
+```python
+class NotifyRaiseParams(TypedDict)
+```
+
+Params of `NotificationRaiser.raise`.
+
+**Attributes**
+
+- `notificationType`: Type id from the plugin's `[[notifications.types]]` (without the plugin prefix the host adds).
+- `fields`: Labelled values, at most `maxNotificationFields`.
+- `patronId`: Patron the notification is for; required for a patron-audience type and must be inside the invocation's account scope; empty otherwise. Omitted when absent (wire zero value).
+- `linkPath`: Path inside the library the notification links to (starts with `/`); the host prefixes the public origin. Omitted when absent (wire zero value).
+- `groupKey`: Messages with one group key may be threaded or collapsed together. Omitted when absent (wire zero value).
+- `alertAction`: Alert lifecycle step; `none` for a one-off notification.
+- `alertKey`: Alert this raise opens or closes; required unless `alertAction` is `none`. Omitted when absent (wire zero value).
+
+### NotifyRaised
+
+```python
+class NotifyRaised(TypedDict)
+```
+
+Success payload of `NotificationRaiser.raise`.
+
+**Attributes**
+
+- `notificationId`: Host-assigned notification id.
+
+### NotifyRaiseReplyOk
+
+```python
+class NotifyRaiseReplyOk(TypedDict)
+```
+
+`NotifyRaiseReply` member `ok`.
+
+Accepted by the router.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Accepted by the router.
+
+### NotifyRaiseReplyErr
+
+```python
+class NotifyRaiseReplyErr(TypedDict)
+```
+
+`NotifyRaiseReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
 ### SocketFrameText
 
 ```python
@@ -7427,6 +7762,40 @@ A field of a `MetadataFileRecord`. Dialects declare in the manifest which
 fields their format carries; a parsed record lists the ones its file
 states, and a render request lists the ones to write.
 
+### NotificationSeverity
+
+```python
+NotificationSeverity = Literal['info', 'warning', 'critical']
+```
+
+How urgent a notification is. Routing rules carry a minimum severity.
+
+### NotificationAudience
+
+```python
+NotificationAudience = Literal['operational', 'patron', 'account']
+```
+
+Who a notification type is for. The account audience is reserved to the
+host; a plugin may declare only operational and patron types.
+
+### NotificationAlertAction
+
+```python
+NotificationAlertAction = Literal['none', 'trigger', 'resolve']
+```
+
+Lifecycle step of an alert, for services such as PagerDuty that open and
+close incidents.
+
+### NotifyDestinationKind
+
+```python
+NotifyDestinationKind = Literal['channel', 'personal']
+```
+
+Kind of destination a `Notifier` sends to.
+
 ### DbType
 
 ```python
@@ -7924,6 +8293,31 @@ MetadataFileRenderReply = Union[MetadataFileRenderReplyOk, MetadataFileRenderRep
 ```
 
 Result union of `MetadataFiles.render`.
+
+### NotifySendReply
+
+```python
+NotifySendReply = Union[NotifySendReplyOk, NotifySendReplyErr]
+```
+
+Result union of `Notifier.send`.
+
+### NotifyValidateReply
+
+```python
+NotifyValidateReply = Union[NotifyValidateReplyOk, NotifyValidateReplyErr]
+```
+
+Result union of `Notifier.validateDestination`. An address the plugin
+refuses is `invalid_params`.
+
+### NotifyRaiseReply
+
+```python
+NotifyRaiseReply = Union[NotifyRaiseReplyOk, NotifyRaiseReplyErr]
+```
+
+Result union of `NotificationRaiser.raise`.
 
 ### SocketFrame
 

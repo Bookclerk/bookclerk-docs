@@ -157,6 +157,18 @@ pub fn get_sockets(self) -> Result<Client>
 pub fn has_sockets(&self) -> bool
 ```
 
+#### Reader::get_notify
+
+```rust
+pub fn get_notify(self) -> Result<Client>
+```
+
+#### Reader::has_notify
+
+```rust
+pub fn has_notify(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -407,6 +419,24 @@ pub fn set_sockets(&mut self, value: Client)
 pub fn has_sockets(&self) -> bool
 ```
 
+#### Builder::get_notify
+
+```rust
+pub fn get_notify(self) -> Result<Client>
+```
+
+#### Builder::set_notify
+
+```rust
+pub fn set_notify(&mut self, value: Client)
+```
+
+#### Builder::has_notify
+
+```rust
+pub fn has_notify(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -457,6 +487,12 @@ pub fn get_storage(&self) -> Client
 
 ```rust
 pub fn get_sockets(&self) -> Client
+```
+
+#### Pipeline::get_notify
+
+```rust
+pub fn get_notify(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

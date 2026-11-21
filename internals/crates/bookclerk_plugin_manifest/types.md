@@ -13,6 +13,10 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`AcquireManifest`](#acquiremanifest) | struct | `[acquire]`: how fast the host may download from one store account of this storefront when it starts the downloads itself. |
 | [`MetadataFilesManifest`](#metadatafilesmanifest) | struct | `[metadata_files]`: the metadata file dialects a `metadataFiles` plugin implements. Required for that entrypoint and forbidden without it. |
 | [`MetadataFileDialectManifest`](#metadatafiledialectmanifest) | struct | One `[[metadata_files.dialects]]` row: a file format the plugin reads, and writes when `writes` is true. |
+| [`NotifierManifest`](#notifiermanifest) | struct | `[notifier]`: what a `notifier` plugin can carry. Required for that entrypoint and forbidden without it. |
+| [`NotifierAddressField`](#notifieraddressfield) | struct | One `[[notifier.address_fields]]` row: a value a patron enters to receive notifications on this service. |
+| [`NotificationsManifest`](#notificationsmanifest) | struct | `[notifications]`: the notification types a plugin raises through its `NOTIFY` binding. |
+| [`NotificationTypeManifest`](#notificationtypemanifest) | struct | One `[[notifications.types]]` row. |
 | [`TcpCapability`](#tcpcapability) | struct | One raw TCP grant: hostname or wildcard plus allowed destination ports. |
 | [`NetworkCapabilities`](#networkcapabilities) | struct | `[capabilities.network]` — mode plus optional workerd host allowlist. |
 | [`OwnUserAgent`](#ownuseragent) | struct | `[capabilities.network.own_user_agent]`: where a plugin keeps its own `User-Agent`. |
@@ -38,9 +42,12 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`PluginFamily`](#pluginfamily) | enum | Handler family — how the daemon, CLI, and UI group plugins and which `config.toml` prefix holds their settings. |
 | [`PluginRuntimeKind`](#pluginruntimekind) | enum | Guest runtime selection (`runtime` key in `plugin.toml`). |
 | [`CredentialSharing`](#credentialsharing) | enum | How a storefront's store credentials may be used from several Bookclerk instances at once (`credentials` key in `plugin.toml`). |
+| [`NotifierDestination`](#notifierdestination) | enum | Kind of destination a notifier sends to (`[notifier].destinations`). |
+| [`NotifierFormat`](#notifierformat) | enum | Body format a notifier renders (`[notifier].formats`). |
 | [`NetworkMode`](#networkmode) | enum | Network mode declared in `[capabilities.network]`. |
 | [`JailNetworkNeed`](#jailnetworkneed) | enum | OS jail network capability derived from manifest network + oauth binding. |
 | [`entrypoint_family`](#entrypoint_family) | function | Handler family an `Entrypoint` belongs to. |
+| [`reaches_notification_host`](#reaches_notification_host) | function | Whether a declared or granted network host (exact, `*.` wildcard, or `crate::ANY_PUBLIC_HOST`) reaches one of `KNOWN_NOTIFICATION_HOSTS`. |
 | [`is_valid_database_binding_name`](#is_valid_database_binding_name) | function | True when `name` is a valid Workers-style binding name (`A-Z*`). |
 | [`is_host_event_type`](#is_host_event_type) | function | True when `event_type` is in `HOST_EVENT_TYPES`. |
 | [`is_valid_queue_name`](#is_valid_queue_name) | function | True when `name` is a valid queue name: `a-z0-9*`, at most `MAX_QUEUE_NAME_LEN` characters. |
@@ -50,6 +57,10 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`MAX_DOWNLOADS_PER_DAY`](#max_downloads_per_day) | constant | Most downloads a day `[acquire].downloads_per_day` may declare. |
 | [`MAX_MIN_GAP_SECONDS`](#max_min_gap_seconds) | constant | Longest gap between downloads `[acquire].min_gap_seconds` may declare (one day). |
 | [`MAX_COOLDOWN_SECONDS`](#max_cooldown_seconds) | constant | Longest cool-down `[acquire].cooldown_seconds` may declare (one week). |
+| [`MAX_NOTIFIER_ADDRESS_FIELDS`](#max_notifier_address_fields) | constant | Most `[[notifier.address_fields]]` rows; the same as the most keys an address document may carry. |
+| [`MAX_NOTIFICATION_TYPES`](#max_notification_types) | constant | Most `[[notifications.types]]` rows one plugin may declare. |
+| [`KNOWN_NOTIFICATION_HOSTS`](#known_notification_hosts) | constant | Hosts of chat, push and email services that notifier plugins talk to. A plugin that is not a notifier but asks for one of these is flagged: its consent screen says it can send messages outside Bookclerk. |
+| [`SMTP_PORTS`](#smtp_ports) | constant | TCP ports of mail submission and relay (SMTP 25, SMTPS 465, submission 587); a non-notifier asking for them is flagged too. |
 | [`MAX_OWN_USER_AGENT_REASON_CHARS`](#max_own_user_agent_reason_chars) | constant | Longest `OwnUserAgent::reason` a manifest may declare, in characters. |
 | [`MAX_OWN_USER_AGENT_HOSTS`](#max_own_user_agent_hosts) | constant | Most hosts one `OwnUserAgent` table may list. |
 | [`MAX_DATABASE_BINDINGS`](#max_database_bindings) | constant | Maximum named database bindings one plugin may declare. |
@@ -62,6 +73,7 @@ Semantic rules that cannot be expressed in serde alone live in
 | [`DEFAULT_WORK_FS_BINDING`](#default_work_fs_binding) | constant | Default `binding` for `[work_fs]`. |
 | [`DEFAULT_OAUTH_BINDING`](#default_oauth_binding) | constant | Default `binding` for `[oauth]`. |
 | [`DEFAULT_SOCKETS_BINDING`](#default_sockets_binding) | constant | Default `binding` for `[sockets]`. |
+| [`NOTIFY_BINDING`](#notify_binding) | constant | The `NOTIFY` binding a plugin with `[[notifications.types]]` receives; its name is fixed, so no other binding may take it. |
 | [`DEFAULT_KV_BINDING`](#default_kv_binding) | constant | Default `binding` for `[[kv_namespaces]]`. |
 | [`DEFAULT_EVENTS_BINDING`](#default_events_binding) | constant | Default `binding` for `[[events.producers]]`. |
 | [`CONFIG_BINDING`](#config_binding) | constant | Binding name the host uses for operator config (`[vars]`). |
@@ -240,6 +252,125 @@ The row as the host's record checks take it.
 The dialect's id, fields, credit roles and write flag.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifierManifest
+
+```rust
+pub struct NotifierManifest {
+    pub destinations: Vec<NotifierDestination>,
+    pub account_mail: bool,
+    pub formats: Vec<NotifierFormat>,
+    pub address_fields: Vec<NotifierAddressField>,
+}
+```
+
+`[notifier]`: what a `notifier` plugin can carry. Required for that
+entrypoint and forbidden without it.
+
+**Fields**
+
+- `destinations`: Destination kinds the plugin sends to; never empty.
+- `account_mail`: Whether administrators may mark an instance for account mail
+  (invites, password resets). Needs a `personal` destination with an
+  `email` address field.
+- `formats`: Body formats the plugin renders; must include `text`.
+- `address_fields`: Fields a personal destination's address holds; required exactly
+  when `destinations` names `personal`.
+
+#### NotifierManifest::sends_to
+
+```rust
+pub fn sends_to(&self, kind: NotifierDestination) -> bool
+```
+
+Whether the plugin sends to `kind`.
+
+#### NotifierManifest::address_rules
+
+```rust
+pub fn address_rules(&self) -> Vec<AddressFieldRule>
+```
+
+The address fields as the host's address checks take them.
+
+##### Returns
+
+One rule per `[[notifier.address_fields]]` row.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifierAddressField
+
+```rust
+pub struct NotifierAddressField {
+    pub key: String,
+    pub label: String,
+    pub required: bool,
+    pub secret: bool,
+}
+```
+
+One `[[notifier.address_fields]]` row: a value a patron enters to
+receive notifications on this service.
+
+**Fields**
+
+- `key`: Key in the address document (`[a-z][a-z0-9_]{0,63}`).
+- `label`: Label shown on the patron's form.
+- `required`: Whether a destination must carry it.
+- `secret`: Whether the value is a secret (a push subscription key): shown
+  masked and never logged.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotificationsManifest
+
+```rust
+pub struct NotificationsManifest {
+    pub types: Vec<NotificationTypeManifest>,
+}
+```
+
+`[notifications]`: the notification types a plugin raises through its
+`NOTIFY` binding.
+
+**Fields**
+
+- `types`: One row per type (`[[notifications.types]]`).
+
+#### NotificationsManifest::is_default
+
+```rust
+pub fn is_default(&self) -> bool
+```
+
+Whether no type is declared (the table is then omitted).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotificationTypeManifest
+
+```rust
+pub struct NotificationTypeManifest {
+    pub id: String,
+    pub audience: NotificationAudience,
+    pub severity: NotificationSeverity,
+    pub title: String,
+}
+```
+
+One `[[notifications.types]]` row.
+
+**Fields**
+
+- `id`: Type id (`[a-z][a-z0-9_]{0,63}`), unique within the plugin; routed
+  as `<plugin id>:<id>`.
+- `audience`: Who it is for: `operational` or `patron` (`account` is the host's).
+- `severity`: Default severity (`info`, `warning`, `critical`).
+- `title`: Title administrators and patrons see in the routing matrix and on
+  each notification.
+
+Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### TcpCapability
 
@@ -860,6 +991,8 @@ pub struct PluginManifest {
     pub media: Option<MediaManifest>,
     pub acquire: Option<AcquireManifest>,
     pub metadata_files: Option<MetadataFilesManifest>,
+    pub notifier: Option<NotifierManifest>,
+    pub notifications: NotificationsManifest,
     pub capabilities: CapabilitiesManifest,
     pub cli: Option<CliSchema>,
     pub oidc: OidcManifest,
@@ -945,6 +1078,11 @@ rejected.
 - `metadata_files`: Metadata file dialects (`[metadata_files]`): required for plugins
   that export the `metadataFiles` entrypoint and forbidden for every
   other plugin; see [`MetadataFilesManifest`](#metadatafilesmanifest).
+- `notifier`: What a notifier carries (`[notifier]`): required for plugins that
+  export the `notifier` entrypoint and forbidden for every other
+  plugin; see [`NotifierManifest`](#notifiermanifest).
+- `notifications`: Notification types the plugin raises through `NOTIFY`
+  (`[[notifications.types]]`).
 - `capabilities`: Declared network capability (consent has no Wrangler analogue).
 - `cli`: Optional CLI schema advertised to `bookclerk plugins <id>` (from
   `bookclerk-plugin-abi::CliSchema`). Requires the `Cli` entrypoint.
@@ -1138,7 +1276,7 @@ Handler families this plugin belongs to, in
 A plugin joins the `Source` / `Output` / `Database` families through
 the matching named entrypoint and the `Integration` family through
 event consumers, queue consumers, crons, `RemoteLibrary`, `Cli`,
-`Oidc`, `Metadata`, `Covers`, or `MetadataFiles`.
+`Oidc`, `Metadata`, `Covers`, `MetadataFiles`, or `Notifier`.
 
 Job triggers make a plugin an integration only when it has no
 `storefront`, `storage` or `databaseAdapter` entrypoint. Beside one of
@@ -1301,6 +1439,24 @@ even though the parser accepts its absence.
 
 Returns [`Error::Message`](error.md#error) when `version` is missing or not semver.
 
+#### PluginManifest::notification_hosts_requested
+
+```rust
+pub fn notification_hosts_requested(&self) -> Vec<String>
+```
+
+Notification hosts a plugin that is not a notifier asks to reach.
+
+Nothing technical stops a plugin with a network grant from posting
+to a chat service itself, so the author check warns and the
+consent screen says the plugin can send messages outside Bookclerk.
+
+##### Returns
+
+The declared domains and TCP grants (`host:port`) that reach a
+[`KNOWN_NOTIFICATION_HOSTS`](#known_notification_hosts) entry or an SMTP port, in declaration
+order; empty for a notifier.
+
 #### PluginManifest::validate
 
 ```rust
@@ -1430,7 +1586,8 @@ are lowercase (`source`, `integration`, `output`, `database`).
 
 - `Source`: Storefront / library source (`Storefront` entrypoint).
 - `Integration`: Event consumer, job runner, remote library, CLI, OIDC bridge,
-  metadata provider, cover fetcher, or metadata file dialects.
+  metadata provider, cover fetcher, metadata file dialects, or
+  notifier.
 - `Output`: Destination / output backend (`Storage` entrypoint).
 - `Database`: Library database backend (`DatabaseAdapter` entrypoint).
 
@@ -1536,6 +1693,46 @@ The `plugin.toml` spelling (`shareable` or `single_keeper`).
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### NotifierDestination
+
+```rust
+pub enum NotifierDestination {
+    Channel,
+    Personal,
+}
+```
+
+Kind of destination a notifier sends to (`[notifier].destinations`).
+
+**Variants**
+
+- `Channel`: A library channel the instance's own settings name (a Slack
+  webhook, a PagerDuty service), which administrators route to.
+- `Personal`: A patron's own address on the service (an email address, a
+  Telegram chat), described by `[[notifier.address_fields]]`.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
+### NotifierFormat
+
+```rust
+pub enum NotifierFormat {
+    Text,
+    Markdown,
+    Html,
+}
+```
+
+Body format a notifier renders (`[notifier].formats`).
+
+**Variants**
+
+- `Text`: Plain text; every notifier takes it.
+- `Markdown`: Markdown, for chat services.
+- `Html`: Minimal HTML, for email.
+
+Implements: `Clone`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Ord`, `PartialEq`, `PartialOrd`, `Serialize`
+
 ### NetworkMode
 
 ```rust
@@ -1603,6 +1800,23 @@ Handler family an [`Entrypoint`](../bookclerk_plugin_abi/generated.md#entrypoint
 The [`PluginFamily`](#pluginfamily) whose `config.toml` prefix and API group hold plugins
 exporting this entrypoint.
 
+### reaches_notification_host
+
+```rust
+pub fn reaches_notification_host(declared: &str) -> bool
+```
+
+Whether a declared or granted network host (exact, `*.` wildcard, or
+[`crate::ANY_PUBLIC_HOST`](egress.md#any_public_host)) reaches one of [`KNOWN_NOTIFICATION_HOSTS`](#known_notification_hosts).
+
+#### Arguments
+
+* `declared` - The host as `plugin.toml` or a grant names it.
+
+#### Returns
+
+True when a request to a known notification service would pass it.
+
 ### is_valid_database_binding_name
 
 ```rust
@@ -1641,7 +1855,7 @@ True when `name` starts with a [`RESERVED_QUEUE_PREFIXES`](#reserved_queue_prefi
 ### ALL_ENTRYPOINTS
 
 ```rust
-pub const ALL_ENTRYPOINTS: [Entrypoint; 9] = _;
+pub const ALL_ENTRYPOINTS: [Entrypoint; 10] = _;
 ```
 
 Every entrypoint in declaration order (mirrors the Cap'n Proto enum).
@@ -1682,6 +1896,42 @@ pub const MAX_COOLDOWN_SECONDS: i64 = 604_800;
 ```
 
 Longest cool-down `[acquire].cooldown_seconds` may declare (one week).
+
+### MAX_NOTIFIER_ADDRESS_FIELDS
+
+```rust
+pub const MAX_NOTIFIER_ADDRESS_FIELDS: usize = bookclerk_plugin_abi::notifications::MAX_NOTIFY_ADDRESS_KEYS;
+```
+
+Most `[[notifier.address_fields]]` rows; the same as the most keys an
+address document may carry.
+
+### MAX_NOTIFICATION_TYPES
+
+```rust
+pub const MAX_NOTIFICATION_TYPES: usize = 64;
+```
+
+Most `[[notifications.types]]` rows one plugin may declare.
+
+### KNOWN_NOTIFICATION_HOSTS
+
+```rust
+pub const KNOWN_NOTIFICATION_HOSTS: &[&str] = _;
+```
+
+Hosts of chat, push and email services that notifier plugins talk to.
+A plugin that is not a notifier but asks for one of these is flagged:
+its consent screen says it can send messages outside Bookclerk.
+
+### SMTP_PORTS
+
+```rust
+pub const SMTP_PORTS: [u16; 3] = _;
+```
+
+TCP ports of mail submission and relay (SMTP 25, SMTPS 465,
+submission 587); a non-notifier asking for them is flagged too.
 
 ### MAX_OWN_USER_AGENT_REASON_CHARS
 
@@ -1778,6 +2028,15 @@ pub const DEFAULT_SOCKETS_BINDING: &str = "SOCKETS";
 ```
 
 Default `binding` for `[sockets]`.
+
+### NOTIFY_BINDING
+
+```rust
+pub const NOTIFY_BINDING: &str = "NOTIFY";
+```
+
+The `NOTIFY` binding a plugin with `[[notifications.types]]` receives;
+its name is fixed, so no other binding may take it.
 
 ### DEFAULT_KV_BINDING
 

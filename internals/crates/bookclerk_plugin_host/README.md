@@ -894,7 +894,7 @@ One approved grant snapshot for a provenance-qualified plugin.
 - `plugin_id`: Display / CLI alias from `plugin.toml` (not security authoritative).
 - `entrypoints`: Approved named entrypoints (wire names: `storefront`, `storage`,
   `databaseAdapter`, `remoteLibrary`, `cli`, `oidc`, `metadata`, `covers`,
-  `metadataFiles`).
+  `metadataFiles`, `notifier`).
 - `producers`: Approved event types the plugin may publish through its events binding.
 - `consumers`: Approved event-consumer subscriptions (type + schema + suspend + filter).
 - `jobs`: Approved `[triggers].jobs` types the plugin may handle.
@@ -3450,6 +3450,26 @@ runtime.
 
 Returns a plugin error when the guest did not export `metadataFiles`
 or the method fails.
+
+#### PluginSession::notifier
+
+```rust
+pub async fn notifier<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn Notifier>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `notifier` method on the opened primary entrypoints.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `notifier` or
+the method fails.
 
 #### PluginSession::deliver_socket_event
 

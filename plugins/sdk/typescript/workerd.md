@@ -1431,6 +1431,96 @@ Re-exports [NamedSockets](plugin.md#namedsockets)
 
 ***
 
+### NotificationAlertAction
+
+Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
+
+***
+
+### NotificationAudience
+
+Re-exports [NotificationAudience](abi.md#notificationaudience)
+
+***
+
+### NotificationField
+
+Re-exports [NotificationField](generated.md#notificationfield)
+
+***
+
+### NotificationMessage
+
+Re-exports [NotificationMessage](generated.md#notificationmessage)
+
+***
+
+### NotificationSeverity
+
+Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### NotifierEntrypoint
+
+Re-exports [NotifierEntrypoint](plugin.md#notifierentrypoint)
+
+***
+
+### NotifyBinding
+
+Re-exports [NotifyBinding](env.md#notifybinding)
+
+***
+
+### NotifyDestination
+
+Re-exports [NotifyDestination](generated.md#notifydestination)
+
+***
+
+### NotifyDestinationKind
+
+Re-exports [NotifyDestinationKind](abi.md#notifydestinationkind)
+
+***
+
+### NotifyRaise
+
+Re-exports [NotifyRaise](env.md#notifyraise)
+
+***
+
+### NotifyRaised
+
+Re-exports [NotifyRaised](generated.md#notifyraised)
+
+***
+
+### NotifySendParams
+
+Re-exports [NotifySendParams](generated.md#notifysendparams)
+
+***
+
+### NotifySent
+
+Re-exports [NotifySent](generated.md#notifysent)
+
+***
+
+### NotifyValidated
+
+Re-exports [NotifyValidated](generated.md#notifyvalidated)
+
+***
+
+### NotifyValidateParams
+
+Re-exports [NotifyValidateParams](generated.md#notifyvalidateparams)
+
+***
+
 ### ObjectChange
 
 Re-exports [ObjectChange](plugin.md#objectchange)

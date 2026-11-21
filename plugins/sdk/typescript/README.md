@@ -48,6 +48,7 @@ extending its base:
 | `entrypoints = ["metadata"]` | `Metadata` | `MetadataEntrypoint` |
 | `entrypoints = ["covers"]` | `Covers` | `CoverEntrypoint` |
 | `entrypoints = ["metadataFiles"]` | `MetadataFiles` | `MetadataFilesEntrypoint` |
+| `entrypoints = ["notifier"]` | `Notifier` | `NotifierEntrypoint` |
 
 ```ts
 import {
@@ -3120,6 +3121,132 @@ Re-exports [NamedSqlType](generated.md#namedsqltype)
 ### NamedStub
 
 Re-exports [NamedStub](plugin.md#namedstub)
+
+***
+
+### NotificationAlertAction
+
+Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
+
+***
+
+### NotificationAudience
+
+Re-exports [NotificationAudience](abi.md#notificationaudience)
+
+***
+
+### NotificationField
+
+Re-exports [NotificationField](generated.md#notificationfield)
+
+***
+
+### NotificationMessage
+
+Re-exports [NotificationMessage](generated.md#notificationmessage)
+
+***
+
+### NotificationRaiser
+
+Re-exports [NotificationRaiser](generated.md#notificationraiser)
+
+***
+
+### NotificationSeverity
+
+Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### Notifier
+
+Re-exports [Notifier](generated.md#notifier-1)
+
+***
+
+### NotifierEntrypoint
+
+Re-exports [NotifierEntrypoint](plugin.md#notifierentrypoint)
+
+***
+
+### NotifyBinding
+
+Re-exports [NotifyBinding](env.md#notifybinding)
+
+***
+
+### NotifyDestination
+
+Re-exports [NotifyDestination](generated.md#notifydestination)
+
+***
+
+### NotifyDestinationKind
+
+Re-exports [NotifyDestinationKind](abi.md#notifydestinationkind)
+
+***
+
+### NotifyRaise
+
+Re-exports [NotifyRaise](env.md#notifyraise)
+
+***
+
+### NotifyRaised
+
+Re-exports [NotifyRaised](generated.md#notifyraised)
+
+***
+
+### NotifyRaiseParams
+
+Re-exports [NotifyRaiseParams](generated.md#notifyraiseparams)
+
+***
+
+### NotifyRaiseReply
+
+Re-exports [NotifyRaiseReply](generated.md#notifyraisereply)
+
+***
+
+### NotifySendParams
+
+Re-exports [NotifySendParams](generated.md#notifysendparams)
+
+***
+
+### NotifySendReply
+
+Re-exports [NotifySendReply](generated.md#notifysendreply)
+
+***
+
+### NotifySent
+
+Re-exports [NotifySent](generated.md#notifysent)
+
+***
+
+### NotifyValidated
+
+Re-exports [NotifyValidated](generated.md#notifyvalidated)
+
+***
+
+### NotifyValidateParams
+
+Re-exports [NotifyValidateParams](generated.md#notifyvalidateparams)
+
+***
+
+### NotifyValidateReply
+
+Re-exports [NotifyValidateReply](generated.md#notifyvalidatereply)
 
 ***
 

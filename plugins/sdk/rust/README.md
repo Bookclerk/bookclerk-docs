@@ -28,8 +28,8 @@ A native guest implements `PluginWorker` (`describe`, and
 `open(invocation, bindings) -> Entrypoints`) and calls `serve`, the
 stdin and stdout Cap'n Proto runner. The entrypoints it returns are the
 same named entrypoints the other SDKs export as classes: storefront,
-storage, remote library, database adapter, CLI, OIDC, metadata, covers
-and metadata files. The
+storage, remote library, database adapter, CLI, OIDC, metadata, covers,
+metadata files and notifier. The
 crate root re-exports the DTOs and helpers a guest needs; prefer
 `use bookclerk_plugin_sdk::…` over reaching into submodules.
 
@@ -410,6 +410,23 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::NamedKvBinding`](../../../internals/crates/bookclerk_plugin_abi/README.md#namedkvbinding)
 - [`bookclerk_plugin_abi::NamedQueueBinding`](../../../internals/crates/bookclerk_plugin_abi/README.md#namedqueuebinding)
 - [`bookclerk_plugin_abi::NeverCancel`](../../../internals/crates/bookclerk_plugin_abi/README.md#nevercancel)
+- [`bookclerk_plugin_abi::NotificationAlertAction`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notificationalertaction)
+- [`bookclerk_plugin_abi::NotificationAudience`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notificationaudience)
+- [`bookclerk_plugin_abi::NotificationField`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notificationfield)
+- [`bookclerk_plugin_abi::NotificationMessage`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notificationmessage)
+- [`bookclerk_plugin_abi::NotificationRaiser`](../../../internals/crates/bookclerk_plugin_abi/README.md#notificationraiser)
+- [`bookclerk_plugin_abi::NotificationRaiserClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#notificationraiserclient)
+- [`bookclerk_plugin_abi::NotificationSeverity`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notificationseverity)
+- [`bookclerk_plugin_abi::Notifier`](../../../internals/crates/bookclerk_plugin_abi/README.md#notifier)
+- [`bookclerk_plugin_abi::NotifierClient`](../../../internals/crates/bookclerk_plugin_abi/README.md#notifierclient)
+- [`bookclerk_plugin_abi::NotifyDestination`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifydestination)
+- [`bookclerk_plugin_abi::NotifyDestinationKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifydestinationkind)
+- [`bookclerk_plugin_abi::NotifyRaiseParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifyraiseparams)
+- [`bookclerk_plugin_abi::NotifyRaised`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifyraised)
+- [`bookclerk_plugin_abi::NotifySendParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifysendparams)
+- [`bookclerk_plugin_abi::NotifySent`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifysent)
+- [`bookclerk_plugin_abi::NotifyValidateParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifyvalidateparams)
+- [`bookclerk_plugin_abi::NotifyValidated`](../../../internals/crates/bookclerk_plugin_abi/generated.md#notifyvalidated)
 - [`bookclerk_plugin_abi::ObjectChange`](../../../internals/crates/bookclerk_plugin_abi/README.md#objectchange)
 - [`bookclerk_plugin_abi::ObjectChangeKind`](../../../internals/crates/bookclerk_plugin_abi/README.md#objectchangekind)
 - [`bookclerk_plugin_abi::ObjectInfo`](../../../internals/crates/bookclerk_plugin_abi/README.md#objectinfo)
@@ -477,6 +494,12 @@ submodules unless you need module-level docs.
 - [`bookclerk_plugin_abi::MAX_METADATA_FILE_DESCRIPTION_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_description_bytes)
 - [`bookclerk_plugin_abi::MAX_METADATA_FILE_LIST_ENTRIES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_list_entries)
 - [`bookclerk_plugin_abi::MAX_METADATA_FILE_TEXT_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_metadata_file_text_bytes)
+- [`bookclerk_plugin_abi::MAX_NOTIFICATION_FIELDS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notification_fields)
+- [`bookclerk_plugin_abi::MAX_NOTIFICATION_FIELD_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notification_field_bytes)
+- [`bookclerk_plugin_abi::MAX_NOTIFICATION_HTML_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notification_html_bytes)
+- [`bookclerk_plugin_abi::MAX_NOTIFICATION_TEXT_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notification_text_bytes)
+- [`bookclerk_plugin_abi::MAX_NOTIFICATION_TITLE_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notification_title_bytes)
+- [`bookclerk_plugin_abi::MAX_NOTIFIER_ADDRESS_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_notifier_address_bytes)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_ops)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_REGISTRATION_BYTES`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_registration_bytes)
 - [`bookclerk_plugin_abi::MAX_PLUGIN_MIGRATION_TOTAL_OPS`](../../../internals/crates/bookclerk_plugin_abi/README.md#max_plugin_migration_total_ops)

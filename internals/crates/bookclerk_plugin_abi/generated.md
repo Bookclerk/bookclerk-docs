@@ -97,6 +97,15 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`MetadataAudioFile`](#metadataaudiofile) | struct | One audio file of the edition a sidecar describes, for formats that name their audio (a CUE sheet's `FILE` lines). |
 | [`MetadataFileRenderParams`](#metadatafilerenderparams) | struct | Params of `MetadataFiles.render`. |
 | [`MetadataFileRendered`](#metadatafilerendered) | struct | Success payload of `MetadataFiles.render`. |
+| [`NotificationField`](#notificationfield) | struct | One labelled value shown with a notification. |
+| [`NotificationMessage`](#notificationmessage) | struct | A message the host rendered for one notification. Every link is built from the library's public origin, never from a request. |
+| [`NotifyDestination`](#notifydestination) | struct | Where a `Notifier.send` goes. |
+| [`NotifySendParams`](#notifysendparams) | struct | Params of `Notifier.send`. |
+| [`NotifySent`](#notifysent) | struct | Success payload of `Notifier.send`. |
+| [`NotifyValidateParams`](#notifyvalidateparams) | struct | Params of `Notifier.validateDestination`. |
+| [`NotifyValidated`](#notifyvalidated) | struct | Success payload of `Notifier.validateDestination`. |
+| [`NotifyRaiseParams`](#notifyraiseparams) | struct | Params of `NotificationRaiser.raise`. |
+| [`NotifyRaised`](#notifyraised) | struct | Success payload of `NotificationRaiser.raise`. |
 | [`SocketHeader`](#socketheader) | struct | One request header on `Sockets.connect`. |
 | [`SocketAutoResponse`](#socketautoresponse) | struct | A heartbeat the broker answers itself: when `request` arrives byte for byte, it sends `response` and does not wake the guest. |
 | [`SocketConnectRequest`](#socketconnectrequest) | struct | Arguments of `Sockets.connect`. |
@@ -120,6 +129,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`PriceLookup`](#pricelookup) | enum | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
+| [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
+| [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
+| [`NotificationAlertAction`](#notificationalertaction) | enum | Lifecycle step of an alert, for services such as PagerDuty that open and close incidents. |
+| [`NotifyDestinationKind`](#notifydestinationkind) | enum | Kind of destination a `Notifier` sends to. |
 | [`QueueResult`](#queueresult) | enum | Per-message outcome inside a `QueueConsumer.queue` batch reply. |
 | [`SocketFrame`](#socketframe) | enum | One WebSocket message. |
 | [`RoundTripFailure`](#roundtripfailure) | enum | Why `roundtrip_any_message` could not show `read(write(v)) == v`. |
@@ -353,6 +366,30 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_metadata_file_rendered`](#read_metadata_file_rendered) | function | Decode a `MetadataFileRendered` from a Cap'n Proto reader. |
 | [`write_metadata_file_render_reply`](#write_metadata_file_render_reply) | function | Encode a `MetadataFileRenderReply` union from a typed result. |
 | [`read_metadata_file_render_reply`](#read_metadata_file_render_reply) | function | Decode a `MetadataFileRenderReply` union into a typed result. |
+| [`write_notification_field`](#write_notification_field) | function | Encode a `NotificationField` onto a Cap'n Proto builder. |
+| [`read_notification_field`](#read_notification_field) | function | Decode a `NotificationField` from a Cap'n Proto reader. |
+| [`write_notification_message`](#write_notification_message) | function | Encode a `NotificationMessage` onto a Cap'n Proto builder. |
+| [`read_notification_message`](#read_notification_message) | function | Decode a `NotificationMessage` from a Cap'n Proto reader. |
+| [`write_notify_destination`](#write_notify_destination) | function | Encode a `NotifyDestination` onto a Cap'n Proto builder. |
+| [`read_notify_destination`](#read_notify_destination) | function | Decode a `NotifyDestination` from a Cap'n Proto reader. |
+| [`write_notify_send_params`](#write_notify_send_params) | function | Encode a `NotifySendParams` onto a Cap'n Proto builder. |
+| [`read_notify_send_params`](#read_notify_send_params) | function | Decode a `NotifySendParams` from a Cap'n Proto reader. |
+| [`write_notify_sent`](#write_notify_sent) | function | Encode a `NotifySent` onto a Cap'n Proto builder. |
+| [`read_notify_sent`](#read_notify_sent) | function | Decode a `NotifySent` from a Cap'n Proto reader. |
+| [`write_notify_send_reply`](#write_notify_send_reply) | function | Encode a `NotifySendReply` union from a typed result. |
+| [`read_notify_send_reply`](#read_notify_send_reply) | function | Decode a `NotifySendReply` union into a typed result. |
+| [`write_notify_validate_params`](#write_notify_validate_params) | function | Encode a `NotifyValidateParams` onto a Cap'n Proto builder. |
+| [`read_notify_validate_params`](#read_notify_validate_params) | function | Decode a `NotifyValidateParams` from a Cap'n Proto reader. |
+| [`write_notify_validated`](#write_notify_validated) | function | Encode a `NotifyValidated` onto a Cap'n Proto builder. |
+| [`read_notify_validated`](#read_notify_validated) | function | Decode a `NotifyValidated` from a Cap'n Proto reader. |
+| [`write_notify_validate_reply`](#write_notify_validate_reply) | function | Encode a `NotifyValidateReply` union from a typed result. |
+| [`read_notify_validate_reply`](#read_notify_validate_reply) | function | Decode a `NotifyValidateReply` union into a typed result. |
+| [`write_notify_raise_params`](#write_notify_raise_params) | function | Encode a `NotifyRaiseParams` onto a Cap'n Proto builder. |
+| [`read_notify_raise_params`](#read_notify_raise_params) | function | Decode a `NotifyRaiseParams` from a Cap'n Proto reader. |
+| [`write_notify_raised`](#write_notify_raised) | function | Encode a `NotifyRaised` onto a Cap'n Proto builder. |
+| [`read_notify_raised`](#read_notify_raised) | function | Decode a `NotifyRaised` from a Cap'n Proto reader. |
+| [`write_notify_raise_reply`](#write_notify_raise_reply) | function | Encode a `NotifyRaiseReply` union from a typed result. |
+| [`read_notify_raise_reply`](#read_notify_raise_reply) | function | Decode a `NotifyRaiseReply` union into a typed result. |
 | [`write_socket_frame`](#write_socket_frame) | function | Encode a `SocketFrame` union. |
 | [`read_socket_frame`](#read_socket_frame) | function | Decode a `SocketFrame` union. |
 | [`write_socket_header`](#write_socket_header) | function | Encode a `SocketHeader` onto a Cap'n Proto builder. |
@@ -2666,6 +2703,219 @@ Success payload of `MetadataFiles.render`.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
+### NotificationField
+
+```rust
+pub struct NotificationField {
+    pub name: String,
+    pub value: String,
+}
+```
+
+One labelled value shown with a notification.
+
+**Fields**
+
+- `name`: Label; at most `maxNotificationTitleBytes`.
+- `value`: Value; at most `maxNotificationFieldBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotificationMessage
+
+```rust
+pub struct NotificationMessage {
+    pub notification_id: String,
+    pub notification_type: String,
+    pub severity: NotificationSeverity,
+    pub title: String,
+    pub text: String,
+    pub markdown: Option<String>,
+    pub html: Option<String>,
+    pub link: Option<String>,
+    pub fields: Vec<NotificationField>,
+    pub group_key: Option<String>,
+    pub alert_action: NotificationAlertAction,
+    pub alert_key: Option<String>,
+    pub sensitive: bool,
+}
+```
+
+A message the host rendered for one notification. Every link is built
+from the library's public origin, never from a request.
+
+**Fields**
+
+- `notification_id`: Host-assigned id, the same on every destination's copy; plugins use it
+  as an idempotency key where the service takes one.
+- `notification_type`: Notification type id (`job_failed`, `<plugin>:sync_failed`).
+- `severity`: How urgent it is.
+- `title`: Short title; at most `maxNotificationTitleBytes`.
+- `text`: Plain-text body; at most `maxNotificationTextBytes`.
+- `markdown`: Markdown body for chat services; at most `maxNotificationTextBytes`.
+  `None` when absent (wire zero value).
+- `html`: Minimal HTML body for email; at most `maxNotificationHtmlBytes`.
+  `None` when absent (wire zero value).
+- `link`: Absolute `https` (or loopback `http`) link into the library.
+  `None` when absent (wire zero value).
+- `fields`: Labelled values, at most `maxNotificationFields`.
+- `group_key`: Messages with one group key may be threaded or collapsed together.
+  `None` when absent (wire zero value).
+- `alert_action`: Alert lifecycle step; `none` for a one-off message.
+- `alert_key`: Alert this message opens or closes; required unless `alertAction` is
+  `none`.
+  `None` when absent (wire zero value).
+- `sensitive`: True when the body carries a secret (an account-mail link): the plugin
+  and SDKs must never log it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyDestination
+
+```rust
+pub struct NotifyDestination {
+    pub kind: NotifyDestinationKind,
+    pub destination_id: String,
+    pub address_json: String,
+}
+```
+
+Where a `Notifier.send` goes.
+
+**Fields**
+
+- `kind`: Channel or personal destination.
+- `destination_id`: Host id of the destination, stable across sends.
+- `address_json`: Personal address as a JSON object of the fields the manifest's
+  `\[\[notifier.address_fields\]\]` declare; empty for a channel. At most
+  `maxNotifierAddressBytes`. May hold secrets; never logged.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifySendParams
+
+```rust
+pub struct NotifySendParams {
+    pub message: NotificationMessage,
+    pub destination: NotifyDestination,
+}
+```
+
+Params of `Notifier.send`.
+
+**Fields**
+
+- `message`: What to send.
+- `destination`: Where to send it.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifySent
+
+```rust
+pub struct NotifySent {
+    pub provider_id: Option<String>,
+}
+```
+
+Success payload of `Notifier.send`.
+
+**Fields**
+
+- `provider_id`: The service's id for the delivered message, when it gives one.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyValidateParams
+
+```rust
+pub struct NotifyValidateParams {
+    pub address_json: String,
+}
+```
+
+Params of `Notifier.validateDestination`.
+
+**Fields**
+
+- `address_json`: Address document as the patron entered it; at most
+  `maxNotifierAddressBytes`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyValidated
+
+```rust
+pub struct NotifyValidated {
+    pub address_json: String,
+    pub label: Option<String>,
+}
+```
+
+Success payload of `Notifier.validateDestination`.
+
+**Fields**
+
+- `address_json`: Normalised address document the host saves; at most
+  `maxNotifierAddressBytes`.
+- `label`: Short label shown to the patron (`a***@example.com`); never a secret.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyRaiseParams
+
+```rust
+pub struct NotifyRaiseParams {
+    pub notification_type: String,
+    pub fields: Vec<NotificationField>,
+    pub patron_id: Option<String>,
+    pub link_path: Option<String>,
+    pub group_key: Option<String>,
+    pub alert_action: NotificationAlertAction,
+    pub alert_key: Option<String>,
+}
+```
+
+Params of `NotificationRaiser.raise`.
+
+**Fields**
+
+- `notification_type`: Type id from the plugin's `\[\[notifications.types\]\]` (without the plugin
+  prefix the host adds).
+- `fields`: Labelled values, at most `maxNotificationFields`.
+- `patron_id`: Patron the notification is for; required for a patron-audience type
+  and must be inside the invocation's account scope; empty otherwise.
+  `None` when absent (wire zero value).
+- `link_path`: Path inside the library the notification links to (starts with `/`);
+  the host prefixes the public origin.
+  `None` when absent (wire zero value).
+- `group_key`: Messages with one group key may be threaded or collapsed together.
+  `None` when absent (wire zero value).
+- `alert_action`: Alert lifecycle step; `none` for a one-off notification.
+- `alert_key`: Alert this raise opens or closes; required unless `alertAction` is
+  `none`.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### NotifyRaised
+
+```rust
+pub struct NotifyRaised {
+    pub notification_id: String,
+}
+```
+
+Success payload of `NotificationRaiser.raise`.
+
+**Fields**
+
+- `notification_id`: Host-assigned notification id.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
 ### SocketHeader
 
 ```rust
@@ -2846,6 +3096,7 @@ pub enum Entrypoint {
     Metadata,
     Covers,
     MetadataFiles,
+    Notifier,
 }
 ```
 
@@ -2866,6 +3117,7 @@ the default entrypoint (`event`, `job`) are declared separately.
   (`MetadataProvider`).
 - `Covers`: Cover fetcher: `fetchCovers` (`CoverFetcher`).
 - `MetadataFiles`: Metadata file dialects: `parse` and `render` (`MetadataFiles`).
+- `Notifier`: Notification delivery: `send` and `validateDestination` (`Notifier`).
 
 #### Entrypoint::wire_name
 
@@ -3476,6 +3728,151 @@ pub fn from_wire_name(name: &str) -> Option<Self>
 Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<MetadataField>`, `Hash`, `PartialEq`, `Serialize`
+
+### NotificationSeverity
+
+```rust
+pub enum NotificationSeverity {
+    Info,
+    Warning,
+    Critical,
+}
+```
+
+How urgent a notification is. Routing rules carry a minimum severity.
+
+**Variants**
+
+- `Info`: Informational.
+- `Warning`: Needs attention soon.
+- `Critical`: Needs attention now; ignores quiet hours for administrators.
+
+#### NotificationSeverity::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### NotificationSeverity::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotificationSeverity>`, `Hash`, `PartialEq`, `Serialize`
+
+### NotificationAudience
+
+```rust
+pub enum NotificationAudience {
+    Operational,
+    Patron,
+    Account,
+}
+```
+
+Who a notification type is for. The account audience is reserved to the
+host; a plugin may declare only operational and patron types.
+
+**Variants**
+
+- `Operational`: Administrators and library channels.
+- `Patron`: One patron, under their own preferences.
+- `Account`: Account mail and security notices; host-only.
+
+#### NotificationAudience::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### NotificationAudience::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotificationAudience>`, `Hash`, `PartialEq`, `Serialize`
+
+### NotificationAlertAction
+
+```rust
+pub enum NotificationAlertAction {
+    None,
+    Trigger,
+    Resolve,
+}
+```
+
+Lifecycle step of an alert, for services such as PagerDuty that open and
+close incidents.
+
+**Variants**
+
+- `None`: Not an alert: a one-off message.
+- `Trigger`: Open (or update) the alert named by `alertKey`.
+- `Resolve`: Close the alert named by `alertKey`.
+
+#### NotificationAlertAction::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### NotificationAlertAction::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotificationAlertAction>`, `Hash`, `PartialEq`, `Serialize`
+
+### NotifyDestinationKind
+
+```rust
+pub enum NotifyDestinationKind {
+    Channel,
+    Personal,
+}
+```
+
+Kind of destination a `Notifier` sends to.
+
+**Variants**
+
+- `Channel`: A library channel the instance itself is configured for (its settings
+  hold the webhook or service key); `addressJson` is empty.
+- `Personal`: One patron's own address on this instance (`addressJson`).
+
+#### NotifyDestinationKind::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### NotifyDestinationKind::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<NotifyDestinationKind>`, `Hash`, `PartialEq`, `Serialize`
 
 ### QueueResult
 
@@ -6420,6 +6817,308 @@ Decode a `MetadataFileRenderReply` union into a typed result.
 
 Returns a Cap'n Proto error when the union is unset or a field is malformed.
 
+### write_notification_field
+
+```rust
+pub fn write_notification_field(b: Builder<'_>, v: &NotificationField) -> Result<()>
+```
+
+Encode a [`NotificationField`](#notificationfield) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notification_field
+
+```rust
+pub fn read_notification_field(r: Reader<'_>) -> Result<NotificationField>
+```
+
+Decode a [`NotificationField`](#notificationfield) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notification_message
+
+```rust
+pub fn write_notification_message(b: Builder<'_>, v: &NotificationMessage) -> Result<()>
+```
+
+Encode a [`NotificationMessage`](#notificationmessage) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notification_message
+
+```rust
+pub fn read_notification_message(r: Reader<'_>) -> Result<NotificationMessage>
+```
+
+Decode a [`NotificationMessage`](#notificationmessage) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_destination
+
+```rust
+pub fn write_notify_destination(b: Builder<'_>, v: &NotifyDestination) -> Result<()>
+```
+
+Encode a [`NotifyDestination`](#notifydestination) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_destination
+
+```rust
+pub fn read_notify_destination(r: Reader<'_>) -> Result<NotifyDestination>
+```
+
+Decode a [`NotifyDestination`](#notifydestination) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_send_params
+
+```rust
+pub fn write_notify_send_params(b: Builder<'_>, v: &NotifySendParams) -> Result<()>
+```
+
+Encode a [`NotifySendParams`](#notifysendparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_send_params
+
+```rust
+pub fn read_notify_send_params(r: Reader<'_>) -> Result<NotifySendParams>
+```
+
+Decode a [`NotifySendParams`](#notifysendparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_sent
+
+```rust
+pub fn write_notify_sent(b: Builder<'_>, v: &NotifySent) -> Result<()>
+```
+
+Encode a [`NotifySent`](#notifysent) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_sent
+
+```rust
+pub fn read_notify_sent(r: Reader<'_>) -> Result<NotifySent>
+```
+
+Decode a [`NotifySent`](#notifysent) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_send_reply
+
+```rust
+pub fn write_notify_send_reply(
+    b: Builder<'_>,
+    v: &Result<NotifySent, PluginError>,
+) -> Result<()>
+```
+
+Encode a `NotifySendReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_notify_send_reply
+
+```rust
+pub fn read_notify_send_reply(r: Reader<'_>) -> Result<Result<NotifySent, PluginError>>
+```
+
+Decode a `NotifySendReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_notify_validate_params
+
+```rust
+pub fn write_notify_validate_params(
+    b: Builder<'_>,
+    v: &NotifyValidateParams,
+) -> Result<()>
+```
+
+Encode a [`NotifyValidateParams`](#notifyvalidateparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_validate_params
+
+```rust
+pub fn read_notify_validate_params(r: Reader<'_>) -> Result<NotifyValidateParams>
+```
+
+Decode a [`NotifyValidateParams`](#notifyvalidateparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_validated
+
+```rust
+pub fn write_notify_validated(b: Builder<'_>, v: &NotifyValidated) -> Result<()>
+```
+
+Encode a [`NotifyValidated`](#notifyvalidated) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_validated
+
+```rust
+pub fn read_notify_validated(r: Reader<'_>) -> Result<NotifyValidated>
+```
+
+Decode a [`NotifyValidated`](#notifyvalidated) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_validate_reply
+
+```rust
+pub fn write_notify_validate_reply(
+    b: Builder<'_>,
+    v: &Result<NotifyValidated, PluginError>,
+) -> Result<()>
+```
+
+Encode a `NotifyValidateReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_notify_validate_reply
+
+```rust
+pub fn read_notify_validate_reply(
+    r: Reader<'_>,
+) -> Result<Result<NotifyValidated, PluginError>>
+```
+
+Decode a `NotifyValidateReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_notify_raise_params
+
+```rust
+pub fn write_notify_raise_params(b: Builder<'_>, v: &NotifyRaiseParams) -> Result<()>
+```
+
+Encode a [`NotifyRaiseParams`](#notifyraiseparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_raise_params
+
+```rust
+pub fn read_notify_raise_params(r: Reader<'_>) -> Result<NotifyRaiseParams>
+```
+
+Decode a [`NotifyRaiseParams`](#notifyraiseparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_raised
+
+```rust
+pub fn write_notify_raised(b: Builder<'_>, v: &NotifyRaised) -> Result<()>
+```
+
+Encode a [`NotifyRaised`](#notifyraised) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_notify_raised
+
+```rust
+pub fn read_notify_raised(r: Reader<'_>) -> Result<NotifyRaised>
+```
+
+Decode a [`NotifyRaised`](#notifyraised) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_notify_raise_reply
+
+```rust
+pub fn write_notify_raise_reply(
+    b: Builder<'_>,
+    v: &Result<NotifyRaised, PluginError>,
+) -> Result<()>
+```
+
+Encode a `NotifyRaiseReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_notify_raise_reply
+
+```rust
+pub fn read_notify_raise_reply(r: Reader<'_>) -> Result<Result<NotifyRaised, PluginError>>
+```
+
+Decode a `NotifyRaiseReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
 ### write_socket_frame
 
 ```rust
@@ -6774,7 +7473,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 127;
+pub const READ_ANY_COUNT: u8 = 139;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

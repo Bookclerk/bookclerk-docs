@@ -46,6 +46,14 @@ KV?: KvNamespaceBinding;
 
 `[[kv_namespaces]]` durable KV binding (default name).
 
+##### NOTIFY?
+
+```ts
+NOTIFY?: NotifyBinding;
+```
+
+`[[notifications.types]]` raiser.
+
 ##### OAUTH?
 
 ```ts
@@ -683,6 +691,111 @@ value: T | null;
 ```
 
 Decoded value, or `null` when the key is absent or expired.
+
+***
+
+### NotifyBinding
+
+`NOTIFY` binding, present when `plugin.toml` declares
+`[[notifications.types]]`. The host routes each raise by the
+administrators' rules and each patron's preferences; the plugin never
+learns where it went.
+
+#### Methods
+
+##### raise()
+
+```ts
+raise(raise): Promise<NotifyRaised>;
+```
+
+Raise one declared notification type.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `raise` | [`NotifyRaise`](#notifyraise) | Type, fields, optional patron, link path and alert. |
+
+###### Returns
+
+`Promise`\<[`NotifyRaised`](generated.md#notifyraised)\>
+
+The host's notification id.
+
+###### Throws
+
+PluginError `invalid_params` for an undeclared type or a malformed
+  raise, `forbidden` for a patron outside the account scope, `rate_limited`
+  past the per-instance raise budget.
+
+***
+
+### NotifyRaise
+
+One notification a plugin raises through [NotifyBinding.raise](#raise).
+
+#### Properties
+
+##### alertAction?
+
+```ts
+alertAction?: "none" | "trigger" | "resolve";
+```
+
+Alert lifecycle step; `none` (the default) for a one-off notification.
+
+##### alertKey?
+
+```ts
+alertKey?: string;
+```
+
+Alert to open or close; required unless `alertAction` is `none`.
+
+##### fields?
+
+```ts
+fields?: 
+  | Record<string, string>
+  | NotificationField[];
+```
+
+Labelled values shown with the notification, as `{ name, value }` rows or
+a plain object (at most `MAX_NOTIFICATION_FIELDS`).
+
+##### groupKey?
+
+```ts
+groupKey?: string;
+```
+
+Notifications with one group key may be threaded or collapsed together.
+
+##### linkPath?
+
+```ts
+linkPath?: string;
+```
+
+Path inside the library to link to (`/books/42`); the host adds its origin.
+
+##### notificationType
+
+```ts
+notificationType: string;
+```
+
+Type id from the plugin's `[[notifications.types]]`, without a plugin prefix.
+
+##### patronId?
+
+```ts
+patronId?: string;
+```
+
+Patron the notification is for; required for a `patron` type and must be
+inside the invocation's account scope.
 
 ***
 

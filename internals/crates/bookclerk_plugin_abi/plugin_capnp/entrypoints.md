@@ -205,6 +205,18 @@ pub fn get_metadata_files(self) -> Result<Client>
 pub fn has_metadata_files(&self) -> bool
 ```
 
+#### Reader::get_notifier
+
+```rust
+pub fn get_notifier(self) -> Result<Client>
+```
+
+#### Reader::has_notifier
+
+```rust
+pub fn has_notifier(&self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -491,6 +503,24 @@ pub fn set_metadata_files(&mut self, value: Client)
 pub fn has_metadata_files(&self) -> bool
 ```
 
+#### Builder::get_notifier
+
+```rust
+pub fn get_notifier(self) -> Result<Client>
+```
+
+#### Builder::set_notifier
+
+```rust
+pub fn set_notifier(&mut self, value: Client)
+```
+
+#### Builder::has_notifier
+
+```rust
+pub fn has_notifier(&self) -> bool
+```
+
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`
 
 ### Pipeline
@@ -583,6 +613,12 @@ pub fn get_socket_handler(&self) -> Client
 
 ```rust
 pub fn get_metadata_files(&self) -> Client
+```
+
+#### Pipeline::get_notifier
+
+```rust
+pub fn get_notifier(&self) -> Client
 ```
 
 Implements: `FromTypelessPipeline`

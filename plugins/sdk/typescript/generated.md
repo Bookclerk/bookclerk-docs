@@ -451,6 +451,16 @@ kv: NamedKv[];
 Named `[[kv_namespaces]]` bindings: one host-served durable namespace per
 binding, scoped to this plugin. Empty when the manifest declares none.
 
+##### notify?
+
+```ts
+notify?: NotificationRaiser | null;
+```
+
+`NOTIFY`: raises the notification types the plugin declares in
+`[[notifications.types]]`; null when it declares none.
+Null when the guest does not export this capability.
+
 ##### queues
 
 ```ts
@@ -3108,6 +3118,15 @@ metadataFiles?: MetadataFiles | null;
 ```
 
 `metadataFiles` entrypoint.
+Null when the guest does not export this capability.
+
+##### notifier?
+
+```ts
+notifier?: Notifier | null;
+```
+
+`notifier` entrypoint.
 Null when the guest does not export this capability.
 
 ##### oidc?
@@ -6613,6 +6632,458 @@ Resolved type.
 
 ***
 
+### NotificationField
+
+One labelled value shown with a notification.
+
+#### Properties
+
+##### name
+
+```ts
+name: string;
+```
+
+Label; at most `maxNotificationTitleBytes`.
+
+##### value
+
+```ts
+value: string;
+```
+
+Value; at most `maxNotificationFieldBytes`.
+
+***
+
+### NotificationMessage
+
+A message the host rendered for one notification. Every link is built
+from the library's public origin, never from a request.
+
+#### Properties
+
+##### alertAction
+
+```ts
+alertAction: "none" | "trigger" | "resolve";
+```
+
+Alert lifecycle step; `none` for a one-off message.
+
+##### alertKey?
+
+```ts
+alertKey?: string;
+```
+
+Alert this message opens or closes; required unless `alertAction` is
+`none`.
+Omitted when absent (wire zero value).
+
+##### fields
+
+```ts
+fields: NotificationField[];
+```
+
+Labelled values, at most `maxNotificationFields`.
+
+##### groupKey?
+
+```ts
+groupKey?: string;
+```
+
+Messages with one group key may be threaded or collapsed together.
+Omitted when absent (wire zero value).
+
+##### html?
+
+```ts
+html?: string;
+```
+
+Minimal HTML body for email; at most `maxNotificationHtmlBytes`.
+Omitted when absent (wire zero value).
+
+##### link?
+
+```ts
+link?: string;
+```
+
+Absolute `https` (or loopback `http`) link into the library.
+Omitted when absent (wire zero value).
+
+##### markdown?
+
+```ts
+markdown?: string;
+```
+
+Markdown body for chat services; at most `maxNotificationTextBytes`.
+Omitted when absent (wire zero value).
+
+##### notificationId
+
+```ts
+notificationId: string;
+```
+
+Host-assigned id, the same on every destination's copy; plugins use it
+as an idempotency key where the service takes one.
+
+##### notificationType
+
+```ts
+notificationType: string;
+```
+
+Notification type id (`job_failed`, `<plugin>:sync_failed`).
+
+##### sensitive
+
+```ts
+sensitive: boolean;
+```
+
+True when the body carries a secret (an account-mail link): the plugin
+and SDKs must never log it.
+
+##### severity
+
+```ts
+severity: "info" | "warning" | "critical";
+```
+
+How urgent it is.
+
+##### text
+
+```ts
+text: string;
+```
+
+Plain-text body; at most `maxNotificationTextBytes`.
+
+##### title
+
+```ts
+title: string;
+```
+
+Short title; at most `maxNotificationTitleBytes`.
+
+***
+
+### NotificationRaiser
+
+`NOTIFY` binding: raises a notification type the plugin declared in
+`[[notifications.types]]`. The host router applies the administrators'
+routing and each patron's preferences; the raising plugin never learns
+where the notification went.
+
+#### Methods
+
+##### raise()
+
+```ts
+raise(params): Promise<NotifyRaiseReply>;
+```
+
+Raise one notification.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`NotifyRaiseParams`](#notifyraiseparams) | Declared type, fields and optional patron. |
+
+###### Returns
+
+`Promise`\<[`NotifyRaiseReply`](#notifyraisereply)\>
+
+[NotifyRaiseReply](#notifyraisereply)
+
+***
+
+### Notifier
+
+`notifier` entrypoint: delivers one host-rendered message to one
+destination (an email address, a chat webhook, a push subscription). The
+host decides what is worth a notification, who gets it and which instance
+carries it; the plugin only sends. Each send is one claimed `notify.send`
+job, so the host owns retries: a reply of `rate_limited`, `unavailable`,
+`deadline_exceeded` or `cancelled` is retried (`rate_limited` honouring
+`details.retryAfterMs`), any other error is a permanent failure for that
+destination.
+
+#### Methods
+
+##### health()
+
+```ts
+health(): Promise<HealthReply>;
+```
+
+Liveness / readiness probe: credentials and reachability.
+
+###### Returns
+
+`Promise`\<[`HealthReply`](#healthreply)\>
+
+[HealthReply](#healthreply)
+
+##### send()
+
+```ts
+send(params): Promise<NotifySendReply>;
+```
+
+Deliver one message to one destination.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`NotifySendParams`](#notifysendparams) | Message and destination. |
+
+###### Returns
+
+`Promise`\<[`NotifySendReply`](#notifysendreply)\>
+
+[NotifySendReply](#notifysendreply)
+
+##### validateDestination()
+
+```ts
+validateDestination(params): Promise<NotifyValidateReply>;
+```
+
+Normalise and check a personal destination's address before the host
+saves it.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`NotifyValidateParams`](#notifyvalidateparams) | Address document to check. |
+
+###### Returns
+
+`Promise`\<[`NotifyValidateReply`](#notifyvalidatereply)\>
+
+[NotifyValidateReply](#notifyvalidatereply)
+
+***
+
+### NotifyDestination
+
+Where a `Notifier.send` goes.
+
+#### Properties
+
+##### addressJson
+
+```ts
+addressJson: string;
+```
+
+Personal address as a JSON object of the fields the manifest's
+`[[notifier.address_fields]]` declare; empty for a channel. At most
+`maxNotifierAddressBytes`. May hold secrets; never logged.
+
+##### destinationId
+
+```ts
+destinationId: string;
+```
+
+Host id of the destination, stable across sends.
+
+##### kind
+
+```ts
+kind: "channel" | "personal";
+```
+
+Channel or personal destination.
+
+***
+
+### NotifyRaised
+
+Success payload of `NotificationRaiser.raise`.
+
+#### Properties
+
+##### notificationId
+
+```ts
+notificationId: string;
+```
+
+Host-assigned notification id.
+
+***
+
+### NotifyRaiseParams
+
+Params of `NotificationRaiser.raise`.
+
+#### Properties
+
+##### alertAction
+
+```ts
+alertAction: "none" | "trigger" | "resolve";
+```
+
+Alert lifecycle step; `none` for a one-off notification.
+
+##### alertKey?
+
+```ts
+alertKey?: string;
+```
+
+Alert this raise opens or closes; required unless `alertAction` is
+`none`.
+Omitted when absent (wire zero value).
+
+##### fields
+
+```ts
+fields: NotificationField[];
+```
+
+Labelled values, at most `maxNotificationFields`.
+
+##### groupKey?
+
+```ts
+groupKey?: string;
+```
+
+Messages with one group key may be threaded or collapsed together.
+Omitted when absent (wire zero value).
+
+##### linkPath?
+
+```ts
+linkPath?: string;
+```
+
+Path inside the library the notification links to (starts with `/`);
+the host prefixes the public origin.
+Omitted when absent (wire zero value).
+
+##### notificationType
+
+```ts
+notificationType: string;
+```
+
+Type id from the plugin's `[[notifications.types]]` (without the plugin
+prefix the host adds).
+
+##### patronId?
+
+```ts
+patronId?: string;
+```
+
+Patron the notification is for; required for a patron-audience type
+and must be inside the invocation's account scope; empty otherwise.
+Omitted when absent (wire zero value).
+
+***
+
+### NotifySendParams
+
+Params of `Notifier.send`.
+
+#### Properties
+
+##### destination
+
+```ts
+destination: NotifyDestination;
+```
+
+Where to send it.
+
+##### message
+
+```ts
+message: NotificationMessage;
+```
+
+What to send.
+
+***
+
+### NotifySent
+
+Success payload of `Notifier.send`.
+
+#### Properties
+
+##### providerId?
+
+```ts
+providerId?: string;
+```
+
+The service's id for the delivered message, when it gives one.
+Omitted when absent (wire zero value).
+
+***
+
+### NotifyValidated
+
+Success payload of `Notifier.validateDestination`.
+
+#### Properties
+
+##### addressJson
+
+```ts
+addressJson: string;
+```
+
+Normalised address document the host saves; at most
+`maxNotifierAddressBytes`.
+
+##### label?
+
+```ts
+label?: string;
+```
+
+Short label shown to the patron (`a***@example.com`); never a secret.
+Omitted when absent (wire zero value).
+
+***
+
+### NotifyValidateParams
+
+Params of `Notifier.validateDestination`.
+
+#### Properties
+
+##### addressJson
+
+```ts
+addressJson: string;
+```
+
+Address document as the patron entered it; at most
+`maxNotifierAddressBytes`.
+
+***
+
 ### ObjectChange
 
 One entry of a change feed.
@@ -7063,7 +7534,8 @@ entrypoints: (
   | "oidc"
   | "metadata"
   | "covers"
-  | "metadataFiles")[];
+  | "metadataFiles"
+  | "notifier")[];
 ```
 
 Named entrypoints the guest exports.
@@ -10720,6 +11192,61 @@ Result union of `Destination.move`.
 
 ***
 
+### NotifyRaiseReply
+
+```ts
+type NotifyRaiseReply = 
+  | {
+  kind: "ok";
+  value: NotifyRaised;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `NotificationRaiser.raise`.
+
+***
+
+### NotifySendReply
+
+```ts
+type NotifySendReply = 
+  | {
+  kind: "ok";
+  value: NotifySent;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Notifier.send`.
+
+***
+
+### NotifyValidateReply
+
+```ts
+type NotifyValidateReply = 
+  | {
+  kind: "ok";
+  value: NotifyValidated;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `Notifier.validateDestination`. An address the plugin
+refuses is `invalid_params`.
+
+***
+
 ### OidcClientsReply
 
 ```ts
@@ -11263,6 +11790,30 @@ Re-exports [MediaKind](abi.md#mediakind)
 ### MetadataField
 
 Re-exports [MetadataField](abi.md#metadatafield)
+
+***
+
+### NotificationAlertAction
+
+Re-exports [NotificationAlertAction](abi.md#notificationalertaction)
+
+***
+
+### NotificationAudience
+
+Re-exports [NotificationAudience](abi.md#notificationaudience)
+
+***
+
+### NotificationSeverity
+
+Re-exports [NotificationSeverity](abi.md#notificationseverity)
+
+***
+
+### NotifyDestinationKind
+
+Re-exports [NotifyDestinationKind](abi.md#notifydestinationkind)
 
 ***
 
