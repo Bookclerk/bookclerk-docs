@@ -23,6 +23,7 @@ the library database.
 | [`guest_fetch_title`](#guest_fetch_title) | function | Download + decrypt one title; return plain paths (never encrypted on the wire). |
 | [`guest_login_complete`](#guest_login_complete) | function | Await a pending OAuth session and return account + opaque credential bytes. |
 | [`guest_login_start`](#guest_login_start) | function | Start LoginServer OAuth; return `(session_id, browser_url)`. |
+| [`guest_quality_offers`](#guest_quality_offers) | function | Answers `qualityOffers`: the stream the account would download for each title today, from Audible's content metadata (nothing is licensed). |
 | [`guest_revoke_account`](#guest_revoke_account) | function | Deregister the Audible device that login registered for these credentials. |
 | [`guest_scan_page`](#guest_scan_page) | function | RPC scan: one page of one account's pass (the host upserts books). |
 | [`collect_account_books`](#collect_account_books) | function | Fetch every library page for one account without touching the library DB (a full pass). |
@@ -33,6 +34,7 @@ the library database.
 ## Modules
 
 - [`catalog`](catalog.md): Public Audible catalog helpers for Discover (`search_catalog` / expand / purchase).
+- [`quality`](quality.md): `qualityOffers`: which stream an account would download for a title today, read from Audible's content metadata endpoint without licensing anything.
 
 ## Structs
 
@@ -427,6 +429,27 @@ on forwarded streams (required under Windows AppContainer).
 #### Errors
 
 Returns an error when the operation fails.
+
+### guest_quality_offers
+
+```rust
+pub async fn guest_quality_offers(
+    credentials: &Value,
+    params: &QualityOffersParams,
+) -> Result<QualityOffersResult>
+```
+
+Answers `qualityOffers`: the stream the account would download for each
+title today, from Audible's content metadata (nothing is licensed).
+
+The host's fetch options in `params.fetch` (DRM path, xHE-AAC) and the
+instance's `bitrate` setting pick the request, as for a download. A
+token refreshed on the way is handed back.
+
+#### Errors
+
+Returns an error when the credentials do not sign in or Audible
+throttles the account.
 
 ### guest_revoke_account
 

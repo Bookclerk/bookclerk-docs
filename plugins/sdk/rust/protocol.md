@@ -68,6 +68,8 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::LoginStartResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#loginstartresult)
 - [`bookclerk_plugin_abi::MediaKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#mediakind)
 - [`bookclerk_plugin_abi::MediaSupport`](../../../internals/crates/bookclerk_plugin_abi/generated.md#mediasupport)
+- [`bookclerk_plugin_abi::OfferedAacProfile`](../../../internals/crates/bookclerk_plugin_abi/generated.md#offeredaacprofile)
+- [`bookclerk_plugin_abi::OfferedCodec`](../../../internals/crates/bookclerk_plugin_abi/generated.md#offeredcodec)
 - [`bookclerk_plugin_abi::OutputLocalContextDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#outputlocalcontextdto)
 - [`bookclerk_plugin_abi::OutputS3ContextDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#outputs3contextdto)
 - [`bookclerk_plugin_abi::PlainFetch`](../../../internals/crates/bookclerk_plugin_abi/generated.md#plainfetch)
@@ -77,6 +79,9 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::PurchaseHintResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintresult)
 - [`bookclerk_plugin_abi::PurchaseHintsParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintsparams)
 - [`bookclerk_plugin_abi::PurchaseHintsResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#purchasehintsresult)
+- [`bookclerk_plugin_abi::QualityOffer`](../../../internals/crates/bookclerk_plugin_abi/generated.md#qualityoffer)
+- [`bookclerk_plugin_abi::QualityOffersParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#qualityoffersparams)
+- [`bookclerk_plugin_abi::QualityOffersResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#qualityoffersresult)
 - [`bookclerk_plugin_abi::RevokeAccountParams`](../../../internals/crates/bookclerk_plugin_abi/generated.md#revokeaccountparams)
 - [`bookclerk_plugin_abi::S3CredentialsDto`](../../../internals/crates/bookclerk_plugin_abi/kind.md#s3credentialsdto)
 - [`bookclerk_plugin_abi::ScanBook`](../../../internals/crates/bookclerk_plugin_abi/generated.md#scanbook)
@@ -88,6 +93,7 @@ Prefer product docs under `docs/plugins/README.md` for jail / capability rules.
 - [`bookclerk_plugin_abi::SourceAccount`](../../../internals/crates/bookclerk_plugin_abi/generated.md#sourceaccount)
 - [`bookclerk_plugin_abi::SourceAccounts`](../../../internals/crates/bookclerk_plugin_abi/generated.md#sourceaccounts)
 - [`bookclerk_plugin_abi::SyncListeningResult`](../../../internals/crates/bookclerk_plugin_abi/generated.md#synclisteningresult)
+- [`bookclerk_plugin_abi::TitleQualityOffer`](../../../internals/crates/bookclerk_plugin_abi/generated.md#titlequalityoffer)
 - [`bookclerk_plugin_abi::WorkKind`](../../../internals/crates/bookclerk_plugin_abi/generated.md#workkind)
 
 ## Constants

@@ -26,6 +26,8 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 | [`PriceLookup`](#pricelookup) | enum |  |
 | [`Abridgement`](#abridgement) | enum |  |
 | [`Explicitness`](#explicitness) | enum |  |
+| [`OfferedCodec`](#offeredcodec) | enum |  |
+| [`OfferedAacProfile`](#offeredaacprofile) | enum |  |
 | [`MetadataField`](#metadatafield) | enum |  |
 | [`NotificationSeverity`](#notificationseverity) | enum |  |
 | [`NotificationAudience`](#notificationaudience) | enum |  |
@@ -268,6 +270,11 @@ Included at crate root because `capnpc` emits `crate::plugin_capnp` paths.
 - [`purchase_hints_params`](purchase_hints_params.md)
 - [`purchase_hints_result`](purchase_hints_result.md)
 - [`purchase_hints_reply`](purchase_hints_reply.md)
+- [`quality_offer`](quality_offer.md)
+- [`quality_offers_params`](quality_offers_params.md)
+- [`title_quality_offer`](title_quality_offer.md)
+- [`quality_offers_result`](quality_offers_result.md)
+- [`quality_offers_reply`](quality_offers_reply.md)
 - [`scan_library_params`](scan_library_params.md)
 - [`authenticate_user_params`](authenticate_user_params.md)
 - [`external_user`](external_user.md)
@@ -681,6 +688,38 @@ pub enum Explicitness {
 ```
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<Explicitness>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### OfferedCodec
+
+```rust
+pub enum OfferedCodec {
+    Unknown = 0,
+    Aac = 1,
+    Alac = 2,
+    Flac = 3,
+    Mp3 = 4,
+    Opus = 5,
+    Vorbis = 6,
+    Eac3 = 7,
+    Ac4 = 8,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<OfferedCodec>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
+
+### OfferedAacProfile
+
+```rust
+pub enum OfferedAacProfile {
+    Unknown = 0,
+    Lc = 1,
+    He = 2,
+    HeV2 = 3,
+    Xhe = 4,
+}
+```
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `From<OfferedAacProfile>`, `HasTypeId`, `Introspect`, `PartialEq`, `TryFrom<u16>`
 
 ### MetadataField
 

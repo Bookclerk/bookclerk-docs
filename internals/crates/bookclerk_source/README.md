@@ -230,6 +230,21 @@ pub trait ContentSource: Send + Sync {
         Self: 'async_trait,
         'life0: 'async_trait,
         'life1: 'async_trait,;
+    fn answers_quality_offers(&self) -> bool;
+    fn quality_offers<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
+        &'life0 self,
+        scope: &'life1 SourceScope,
+        account_id: &'life2 str,
+        title_ids: &'life3 [String],
+        download: &'life4 DownloadOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Option<StreamQuality>>>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        'life2: 'async_trait,
+        'life3: 'async_trait,
+        'life4: 'async_trait,;
     fn list_deals<'life0, 'async_trait>(
         &'life0 self,
         limit: usize,
@@ -698,6 +713,50 @@ the records a `PriceLookup::Title` query returned.
 ##### Errors
 
 As [`Self::purchase_hints`](#contentsourcepurchase_hints).
+
+#### ContentSource::answers_quality_offers
+
+```rust
+fn answers_quality_offers(&self) -> bool
+```
+
+Whether [`Self::quality_offers`](#contentsourcequality_offers) answers which stream an account
+would download today (the guest's declared
+`CatalogCapabilities.qualityOffers`).
+
+Default: `false`, so the quality-upgrade check skips the store.
+
+#### ContentSource::quality_offers
+
+```rust
+fn quality_offers<'life0, 'life1, 'life2, 'life3, 'life4, 'async_trait>(
+    &'life0 self,
+    scope: &'life1 SourceScope,
+    account_id: &'life2 str,
+    title_ids: &'life3 [String],
+    download: &'life4 DownloadOptions,
+) -> Pin<Box<dyn Future<Output = Result<Vec<Option<StreamQuality>>>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+    'life2: 'async_trait,
+    'life3: 'async_trait,
+    'life4: 'async_trait,
+```
+
+The stream `account_id` would download for each of `title_ids` (the
+store's product ids) today with `download`'s fetch options, one
+answer per id in order; `None` where the store could not say.
+Nothing is licensed or downloaded.
+
+Default: no answers.
+
+##### Errors
+
+Returns `SourceError::RateLimited` when the store asked to slow
+down, and another error when the credentials cannot be read or the
+call or its reply fails; either applies to the whole batch.
 
 #### ContentSource::list_deals
 

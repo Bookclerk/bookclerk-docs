@@ -726,6 +726,16 @@ ISBN (`lookup = isbn`): the answer is the store's listing of that ISBN
 or not found, never a title match. The host then prices a card at this
 store by the ISBNs of the card's recording before searching by title.
 
+##### qualityOffers
+
+```ts
+qualityOffers: boolean;
+```
+
+True when `qualityOffers` answers which audio quality an account would
+download for a title. The host's quality-upgrade check asks only stores
+that declare it.
+
 ***
 
 ### CatalogDetail
@@ -1697,6 +1707,29 @@ page of cards. A guest that cannot batch answers each query as
 `Promise`\<[`PurchaseHintsReply`](#purchasehintsreply)\>
 
 [PurchaseHintsReply](#purchasehintsreply)
+
+##### qualityOffers()
+
+```ts
+qualityOffers(params): Promise<QualityOffersReply>;
+```
+
+The audio quality one account would download for each of several
+titles today, so the host can tell when a better file than the one it
+holds is on offer. Asked only of guests that declare
+`CatalogCapabilities.qualityOffers`; it must not license or download.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `params` | [`QualityOffersParams`](#qualityoffersparams) | Account, credentials, and title ids. |
+
+###### Returns
+
+`Promise`\<[`QualityOffersReply`](#qualityoffersreply)\>
+
+[QualityOffersReply](#qualityoffersreply)
 
 ##### revokeAccount()
 
@@ -8744,6 +8777,147 @@ Version id of the stored object; empty when none.
 
 ***
 
+### QualityOffer
+
+The stream one account would download for a title today.
+
+#### Properties
+
+##### aacProfile
+
+```ts
+aacProfile: "unknown" | "lc" | "he" | "heV2" | "xhe";
+```
+
+AAC profile when `codec` is `aac`; `unknown` otherwise.
+
+##### bitrateKbps?
+
+```ts
+bitrateKbps?: number;
+```
+
+Average bitrate in kbit/s; zero when unknown.
+Omitted when absent (wire zero value).
+
+##### channels?
+
+```ts
+channels?: number;
+```
+
+Channel count; zero when unknown.
+Omitted when absent (wire zero value).
+
+##### codec
+
+```ts
+codec: 
+  | "unknown"
+  | "aac"
+  | "alac"
+  | "flac"
+  | "mp3"
+  | "opus"
+  | "vorbis"
+  | "eac3"
+  | "ac4";
+```
+
+Codec of the offered stream.
+
+##### sampleRateHz?
+
+```ts
+sampleRateHz?: number;
+```
+
+Sample rate in Hz; zero when unknown.
+Omitted when absent (wire zero value).
+
+***
+
+### QualityOffersParams
+
+Params of `ContentSource.qualityOffers`: the titles one account holds.
+
+#### Properties
+
+##### accountId
+
+```ts
+accountId: string;
+```
+
+Account whose download would be made.
+
+##### credentials?
+
+```ts
+credentials?: Uint8Array<ArrayBufferLike>;
+```
+
+Decrypted credential blob for this account; never log it. Empty when
+none is stored.
+Omitted when absent (wire zero value).
+
+##### fetch
+
+```ts
+fetch: FetchOptions;
+```
+
+The fetch options a download would carry (DRM path, xHE-AAC), so the
+answer names what that download would get.
+
+##### sourceConfig
+
+```ts
+sourceConfig: ExtensibleConfig;
+```
+
+The instance's settings as `application/json` (bitrate tier and the
+like, which change what a download gets).
+
+##### titleIds
+
+```ts
+titleIds: string[];
+```
+
+Store product ids, as the account's scan listed them; at most
+`maxListPage`.
+
+***
+
+### QualityOffersResult
+
+Success payload of `ContentSource.qualityOffers`.
+
+#### Properties
+
+##### offers
+
+```ts
+offers: TitleQualityOffer[];
+```
+
+One answer per title id, in the order they were sent. A short list
+leaves the rest unanswered.
+
+##### refreshedCredentials?
+
+```ts
+refreshedCredentials?: Uint8Array<ArrayBufferLike>;
+```
+
+The account's credentials as the guest holds them after refreshing them
+during the call, as in `ScanPage.refreshedCredentials`. Empty when
+nothing changed.
+Omitted when absent (wire zero value).
+
+***
+
 ### QueueBatch
 
 One `QueueConsumer.queue` delivery: messages from one queue in send order.
@@ -10593,6 +10767,30 @@ Identifier or string-literal span in canonical SQL.
 
 ***
 
+### TitleQualityOffer
+
+One title's answer in `QualityOffersResult`.
+
+#### Properties
+
+##### found
+
+```ts
+found: boolean;
+```
+
+False when the store could not say for this title (`offer` is empty).
+
+##### offer
+
+```ts
+offer: QualityOffer;
+```
+
+What a download would get, when `found`.
+
+***
+
 ### TranslateKeysResult
 
 Success payload of `Destination.translateKeys`.
@@ -11881,6 +12079,25 @@ Result union of `Destination.put` / `Destination.commit`.
 
 ***
 
+### QualityOffersReply
+
+```ts
+type QualityOffersReply = 
+  | {
+  kind: "ok";
+  value: QualityOffersResult;
+}
+  | {
+  kind: "err";
+  value: PluginError;
+};
+```
+
+Result union of `ContentSource.qualityOffers`. A whole-batch `err` (for
+example `rateLimited`) applies to every title in it.
+
+***
+
 ### QueueBatchReply
 
 ```ts
@@ -12284,6 +12501,18 @@ Re-exports [NotifyDestinationKind](abi.md#notifydestinationkind)
 ### ObjectChangeKind
 
 Re-exports [ObjectChangeKind](abi.md#objectchangekind)
+
+***
+
+### OfferedAacProfile
+
+Re-exports [OfferedAacProfile](abi.md#offeredaacprofile)
+
+***
+
+### OfferedCodec
+
+Re-exports [OfferedCodec](abi.md#offeredcodec)
 
 ***
 

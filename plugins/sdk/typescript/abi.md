@@ -242,6 +242,26 @@ Union of `OBJECT_CHANGE_KINDS` wire names.
 
 ***
 
+### OfferedAacProfile
+
+```ts
+type OfferedAacProfile = typeof OFFERED_AAC_PROFILES[number];
+```
+
+Union of `OFFERED_AAC_PROFILES` wire names.
+
+***
+
+### OfferedCodec
+
+```ts
+type OfferedCodec = typeof OFFERED_CODECS[number];
+```
+
+Union of `OFFERED_CODECS` wire names.
+
+***
+
 ### PluginErrorCode
 
 ```ts
@@ -1003,7 +1023,8 @@ const MAX_REFRESHED_CREDENTIAL_BYTES: 65536;
 ```
 
 Maximum bytes of refreshed credentials a storefront hands back
-(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`).
+(`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`,
+`QualityOffersResult.refreshedCredentials`).
 
 ***
 
@@ -1207,6 +1228,31 @@ What happened to an object in a change feed. Unknown codes are kept and
 treated as `changed`.
 
 Ordinal-ordered `ObjectChangeKind` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### OFFERED\_AAC\_PROFILES
+
+```ts
+const OFFERED_AAC_PROFILES: readonly ["unknown", "lc", "he", "heV2", "xhe"];
+```
+
+AAC profile of an offered AAC stream (`QualityOffer.aacProfile`).
+
+Ordinal-ordered `OfferedAacProfile` wire names (index = Cap'n Proto ordinal).
+
+***
+
+### OFFERED\_CODECS
+
+```ts
+const OFFERED_CODECS: readonly ["unknown", "aac", "alac", "flac", "mp3", "opus", "vorbis", "eac3", "ac4"];
+```
+
+Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as
+the host's probed codecs are, so an offer compares with a held file.
+
+Ordinal-ordered `OfferedCodec` wire names (index = Cap'n Proto ordinal).
 
 ***
 

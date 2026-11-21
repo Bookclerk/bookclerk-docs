@@ -52,6 +52,7 @@ drift tests. Flat `UPPER_SNAKE` aliases live under [`names`](names.md).
 - [`expand_candidates`](expand_candidates.md): Expand related catalog candidates from a seed title.
 - [`purchase_hint`](purchase_hint.md): Resolve a purchase URL / price hint for a catalog product.
 - [`purchase_hints`](purchase_hints.md): Resolve purchase URLs / price hints for several catalog products at once.
+- [`quality_offers`](quality_offers.md): Report the audio quality one account would download for several titles.
 - [`list_deals`](list_deals.md): List current storefront deals / promotions.
 - [`list_accounts`](list_accounts.md): List source accounts known to the guest (host usually prefers DB rows).
 - [`catalog_detail`](catalog_detail.md): Fetch rich catalog detail for one product id.

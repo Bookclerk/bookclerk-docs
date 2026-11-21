@@ -57,6 +57,10 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`PricedRecord`](#pricedrecord) | struct | One priced listing returned by a title search. |
 | [`PurchaseHintsParams`](#purchasehintsparams) | struct | Params of `ContentSource.purchaseHints`: the titles to price together. |
 | [`PurchaseHintsResult`](#purchasehintsresult) | struct | Success payload of `ContentSource.purchaseHints`. |
+| [`QualityOffer`](#qualityoffer) | struct | The stream one account would download for a title today. |
+| [`QualityOffersParams`](#qualityoffersparams) | struct | Params of `ContentSource.qualityOffers`: the titles one account holds. |
+| [`TitleQualityOffer`](#titlequalityoffer) | struct | One title's answer in `QualityOffersResult`. |
+| [`QualityOffersResult`](#qualityoffersresult) | struct | Success payload of `ContentSource.qualityOffers`. |
 | [`ScanLibraryParams`](#scanlibraryparams) | struct | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
 | [`AuthenticateUserParams`](#authenticateuserparams) | struct | Params of `Oidc.authenticateUser`. |
 | [`ExternalUser`](#externaluser) | struct | One external user observed by an integration. The host may mint claim tickets without exposing portal details to the guest. |
@@ -134,6 +138,8 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`PriceLookup`](#pricelookup) | enum | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | enum | Whether an edition is abridged. |
 | [`Explicitness`](#explicitness) | enum | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
+| [`OfferedCodec`](#offeredcodec) | enum | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
+| [`OfferedAacProfile`](#offeredaacprofile) | enum | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
 | [`MetadataField`](#metadatafield) | enum | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | enum | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | enum | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -260,6 +266,16 @@ the capnpc builders and readers. `$optional` scalars are `Option<T>`
 | [`read_purchase_hints_result`](#read_purchase_hints_result) | function | Decode a `PurchaseHintsResult` from a Cap'n Proto reader. |
 | [`write_purchase_hints_reply`](#write_purchase_hints_reply) | function | Encode a `PurchaseHintsReply` union from a typed result. |
 | [`read_purchase_hints_reply`](#read_purchase_hints_reply) | function | Decode a `PurchaseHintsReply` union into a typed result. |
+| [`write_quality_offer`](#write_quality_offer) | function | Encode a `QualityOffer` onto a Cap'n Proto builder. |
+| [`read_quality_offer`](#read_quality_offer) | function | Decode a `QualityOffer` from a Cap'n Proto reader. |
+| [`write_quality_offers_params`](#write_quality_offers_params) | function | Encode a `QualityOffersParams` onto a Cap'n Proto builder. |
+| [`read_quality_offers_params`](#read_quality_offers_params) | function | Decode a `QualityOffersParams` from a Cap'n Proto reader. |
+| [`write_title_quality_offer`](#write_title_quality_offer) | function | Encode a `TitleQualityOffer` onto a Cap'n Proto builder. |
+| [`read_title_quality_offer`](#read_title_quality_offer) | function | Decode a `TitleQualityOffer` from a Cap'n Proto reader. |
+| [`write_quality_offers_result`](#write_quality_offers_result) | function | Encode a `QualityOffersResult` onto a Cap'n Proto builder. |
+| [`read_quality_offers_result`](#read_quality_offers_result) | function | Decode a `QualityOffersResult` from a Cap'n Proto reader. |
+| [`write_quality_offers_reply`](#write_quality_offers_reply) | function | Encode a `QualityOffersReply` union from a typed result. |
+| [`read_quality_offers_reply`](#read_quality_offers_reply) | function | Decode a `QualityOffersReply` union into a typed result. |
 | [`write_scan_library_params`](#write_scan_library_params) | function | Encode a `ScanLibraryParams` onto a Cap'n Proto builder. |
 | [`read_scan_library_params`](#read_scan_library_params) | function | Decode a `ScanLibraryParams` from a Cap'n Proto reader. |
 | [`write_authenticate_user_params`](#write_authenticate_user_params) | function | Encode a `AuthenticateUserParams` onto a Cap'n Proto builder. |
@@ -506,6 +522,7 @@ pub struct CatalogCapabilities {
     pub price_by_isbn: bool,
     pub price_by_asin: bool,
     pub detail_by_product_id: bool,
+    pub quality_offers: bool,
 }
 ```
 
@@ -530,6 +547,9 @@ false, so a guest that says nothing keeps the plain behaviour.
   Catalog search then asks this store to fill lean result rows it listed
   itself, and title dialogs ask it for the editions it listed. A store
   that leaves it false is never woken for a detail lookup by product id.
+- `quality_offers`: True when `qualityOffers` answers which audio quality an account would
+  download for a title. The host's quality-upgrade check asks only stores
+  that declare it.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -1750,6 +1770,102 @@ Success payload of `ContentSource.purchaseHints`.
 - `results`: One answer per query, in the order the queries were sent.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `PartialEq`, `Serialize`
+
+### QualityOffer
+
+```rust
+pub struct QualityOffer {
+    pub codec: OfferedCodec,
+    pub aac_profile: OfferedAacProfile,
+    pub bitrate_kbps: Option<u32>,
+    pub sample_rate_hz: Option<u32>,
+    pub channels: Option<u32>,
+}
+```
+
+The stream one account would download for a title today.
+
+**Fields**
+
+- `codec`: Codec of the offered stream.
+- `aac_profile`: AAC profile when `codec` is `aac`; `unknown` otherwise.
+- `bitrate_kbps`: Average bitrate in kbit/s; zero when unknown.
+  `None` when absent (wire zero value).
+- `sample_rate_hz`: Sample rate in Hz; zero when unknown.
+  `None` when absent (wire zero value).
+- `channels`: Channel count; zero when unknown.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### QualityOffersParams
+
+```rust
+pub struct QualityOffersParams {
+    pub account_id: String,
+    pub credentials: Option<Vec<u8>>,
+    pub source_config: ExtensibleConfig,
+    pub title_ids: Vec<String>,
+    pub fetch: FetchOptions,
+}
+```
+
+Params of `ContentSource.qualityOffers`: the titles one account holds.
+
+**Fields**
+
+- `account_id`: Account whose download would be made.
+- `credentials`: Decrypted credential blob for this account; never log it. Empty when
+  none is stored.
+  `None` when absent (wire zero value).
+- `source_config`: The instance's settings as `application/json` (bitrate tier and the
+  like, which change what a download gets).
+- `title_ids`: Store product ids, as the account's scan listed them; at most
+  `maxListPage`.
+- `fetch`: The fetch options a download would carry (DRM path, xHE-AAC), so the
+  answer names what that download would get.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### TitleQualityOffer
+
+```rust
+pub struct TitleQualityOffer {
+    pub found: bool,
+    pub offer: QualityOffer,
+}
+```
+
+One title's answer in `QualityOffersResult`.
+
+**Fields**
+
+- `found`: False when the store could not say for this title (`offer` is empty).
+- `offer`: What a download would get, when `found`.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
+
+### QualityOffersResult
+
+```rust
+pub struct QualityOffersResult {
+    pub offers: Vec<TitleQualityOffer>,
+    pub refreshed_credentials: Option<Vec<u8>>,
+}
+```
+
+Success payload of `ContentSource.qualityOffers`.
+
+**Fields**
+
+- `offers`: One answer per title id, in the order they were sent. A short list
+  leaves the rest unanswered.
+- `refreshed_credentials`: The account's credentials as the guest holds them after refreshing them
+  during the call, as in `ScanPage.refreshedCredentials`. Empty when
+  nothing changed.
+  `None` when absent (wire zero value).
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### ScanLibraryParams
 
@@ -3854,6 +3970,95 @@ Parse a wire name; `None` for unknown strings.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<Explicitness>`, `Hash`, `PartialEq`, `Serialize`
 
+### OfferedCodec
+
+```rust
+pub enum OfferedCodec {
+    Unknown,
+    Aac,
+    Alac,
+    Flac,
+    Mp3,
+    Opus,
+    Vorbis,
+    Eac3,
+    Ac4,
+}
+```
+
+Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as
+the host's probed codecs are, so an offer compares with a held file.
+
+**Variants**
+
+- `Unknown`: The store did not say; the host never upgrades to an unknown codec.
+- `Aac`: MPEG-4 AAC, lossy.
+- `Alac`: Apple Lossless.
+- `Flac`: FLAC, lossless.
+- `Mp3`: MPEG audio layer III (or I / II), lossy.
+- `Opus`: Opus, lossy.
+- `Vorbis`: Vorbis, lossy.
+- `Eac3`: Dolby Digital Plus (E-AC-3), lossy.
+- `Ac4`: Dolby AC-4, lossy.
+
+#### OfferedCodec::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### OfferedCodec::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<OfferedCodec>`, `Hash`, `PartialEq`, `Serialize`
+
+### OfferedAacProfile
+
+```rust
+pub enum OfferedAacProfile {
+    Unknown,
+    Lc,
+    He,
+    HeV2,
+    Xhe,
+}
+```
+
+AAC profile of an offered AAC stream (`QualityOffer.aacProfile`).
+
+**Variants**
+
+- `Unknown`: Not AAC, or the store did not say.
+- `Lc`: AAC-LC.
+- `He`: HE-AAC (AAC-LC plus SBR).
+- `HeV2`: HE-AAC v2 (SBR plus parametric stereo).
+- `Xhe`: xHE-AAC (USAC).
+
+#### OfferedAacProfile::wire_name
+
+```rust
+pub fn wire_name(self) -> &'static str
+```
+
+Wire name of this enumerant (matches the TypeScript / Python SDK literal).
+
+#### OfferedAacProfile::from_wire_name
+
+```rust
+pub fn from_wire_name(name: &str) -> Option<Self>
+```
+
+Parse a wire name; `None` for unknown strings.
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `From<OfferedAacProfile>`, `Hash`, `PartialEq`, `Serialize`
+
 ### MetadataField
 
 ```rust
@@ -5583,6 +5788,131 @@ pub fn read_purchase_hints_reply(
 ```
 
 Decode a `PurchaseHintsReply` union into a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when the union is unset or a field is malformed.
+
+### write_quality_offer
+
+```rust
+pub fn write_quality_offer(b: Builder<'_>, v: &QualityOffer) -> Result<()>
+```
+
+Encode a [`QualityOffer`](#qualityoffer) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_quality_offer
+
+```rust
+pub fn read_quality_offer(r: Reader<'_>) -> Result<QualityOffer>
+```
+
+Decode a [`QualityOffer`](#qualityoffer) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_quality_offers_params
+
+```rust
+pub fn write_quality_offers_params(b: Builder<'_>, v: &QualityOffersParams) -> Result<()>
+```
+
+Encode a [`QualityOffersParams`](#qualityoffersparams) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_quality_offers_params
+
+```rust
+pub fn read_quality_offers_params(r: Reader<'_>) -> Result<QualityOffersParams>
+```
+
+Decode a [`QualityOffersParams`](#qualityoffersparams) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_title_quality_offer
+
+```rust
+pub fn write_title_quality_offer(b: Builder<'_>, v: &TitleQualityOffer) -> Result<()>
+```
+
+Encode a [`TitleQualityOffer`](#titlequalityoffer) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_title_quality_offer
+
+```rust
+pub fn read_title_quality_offer(r: Reader<'_>) -> Result<TitleQualityOffer>
+```
+
+Decode a [`TitleQualityOffer`](#titlequalityoffer) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_quality_offers_result
+
+```rust
+pub fn write_quality_offers_result(b: Builder<'_>, v: &QualityOffersResult) -> Result<()>
+```
+
+Encode a [`QualityOffersResult`](#qualityoffersresult) onto a Cap'n Proto builder.
+
+#### Errors
+
+Returns a Cap'n Proto error when a list is too long or a nested field cannot be encoded.
+
+### read_quality_offers_result
+
+```rust
+pub fn read_quality_offers_result(r: Reader<'_>) -> Result<QualityOffersResult>
+```
+
+Decode a [`QualityOffersResult`](#qualityoffersresult) from a Cap'n Proto reader.
+
+#### Errors
+
+Returns a Cap'n Proto error when a text field is not UTF-8 or a pointer is malformed.
+
+### write_quality_offers_reply
+
+```rust
+pub fn write_quality_offers_reply(
+    b: Builder<'_>,
+    v: &Result<QualityOffersResult, PluginError>,
+) -> Result<()>
+```
+
+Encode a `QualityOffersReply` union from a typed result.
+
+#### Errors
+
+Returns a Cap'n Proto error when a nested field cannot be encoded.
+
+### read_quality_offers_reply
+
+```rust
+pub fn read_quality_offers_reply(
+    r: Reader<'_>,
+) -> Result<Result<QualityOffersResult, PluginError>>
+```
+
+Decode a `QualityOffersReply` union into a typed result.
 
 #### Errors
 
@@ -7816,7 +8146,7 @@ when the decoded value does not survive `write_*` then `read_*` intact.
 ### READ_ANY_COUNT
 
 ```rust
-pub const READ_ANY_COUNT: u8 = 145;
+pub const READ_ANY_COUNT: u8 = 150;
 ```
 
 Number of root structs [`read_any_message`](#read_any_message) can decode; selectors are

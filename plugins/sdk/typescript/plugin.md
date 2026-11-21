@@ -4816,6 +4816,30 @@ long) when the store asks to slow down, so the host leaves it alone.
 
 One hint, answer with records, or `null` per query.
 
+##### qualityOffers()
+
+```ts
+qualityOffers(_params): Promise<QualityOffersResult>;
+```
+
+The audio quality one account would download for each title today, one
+answer per title id in order (`found: false` when the store cannot
+say). It must not license or download anything. The host asks only a
+store that declares `catalog.qualityOffers` in `describe()`; the
+default rejects as unsupported.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `_params` | [`QualityOffersParams`](generated.md#qualityoffersparams) | Account, its credentials, settings and title ids. |
+
+###### Returns
+
+`Promise`\<[`QualityOffersResult`](generated.md#qualityoffersresult)\>
+
+One answer per title, plus any refreshed credentials.
+
 ##### revokeAccount()
 
 ```ts

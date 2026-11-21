@@ -61,6 +61,12 @@ pub fn get_price_by_asin(self) -> bool
 pub fn get_detail_by_product_id(self) -> bool
 ```
 
+#### Reader::get_quality_offers
+
+```rust
+pub fn get_quality_offers(self) -> bool
+```
+
 Implements: `Clone`, `Copy`, `Debug`, `From<Reader<'a>>`, `From<StructReader<'a>>`, `FromPointerReader<'a>`, `HasTypeId`, `Imbue<'a>`, `IntoInternalStructReader<'a>`, `SetterInput<Owned>`
 
 ### Builder
@@ -141,6 +147,18 @@ pub fn get_detail_by_product_id(self) -> bool
 
 ```rust
 pub fn set_detail_by_product_id(&mut self, value: bool)
+```
+
+#### Builder::get_quality_offers
+
+```rust
+pub fn get_quality_offers(self) -> bool
+```
+
+#### Builder::set_quality_offers
+
+```rust
+pub fn set_quality_offers(&mut self, value: bool)
 ```
 
 Implements: `From<Builder<'a>>`, `From<StructBuilder<'a>>`, `FromPointerBuilder<'a>`, `HasStructSize`, `HasTypeId`, `ImbueMut<'a>`

@@ -36,6 +36,8 @@
 | [`RevokeAccountResults`](#revokeaccountresults) | type alias |  |
 | [`PurchaseHintsParams`](#purchasehintsparams) | type alias |  |
 | [`PurchaseHintsResults`](#purchasehintsresults) | type alias |  |
+| [`QualityOffersParams`](#qualityoffersparams) | type alias |  |
+| [`QualityOffersResults`](#qualityoffersresults) | type alias |  |
 
 ## Modules
 
@@ -69,6 +71,8 @@
 - [`revoke_account_results`](revoke_account_results.md)
 - [`purchase_hints_params`](purchase_hints_params.md)
 - [`purchase_hints_results`](purchase_hints_results.md)
+- [`quality_offers_params`](quality_offers_params.md)
+- [`quality_offers_results`](quality_offers_results.md)
 
 ## Traits
 
@@ -150,6 +154,11 @@ pub trait Server: 'static {
         self: Rc<Self>,
         _: PurchaseHintsParams,
         _: PurchaseHintsResults,
+    ) -> impl Future<Output = Result<(), Error>> + 'static;
+    fn quality_offers(
+        self: Rc<Self>,
+        _: QualityOffersParams,
+        _: QualityOffersResults,
     ) -> impl Future<Output = Result<(), Error>> + 'static;
 }
 ```
@@ -304,6 +313,16 @@ fn purchase_hints(
 ) -> impl Future<Output = Result<(), Error>> + 'static
 ```
 
+#### Server::quality_offers
+
+```rust
+fn quality_offers(
+    self: Rc<Self>,
+    _: QualityOffersParams,
+    _: QualityOffersResults,
+) -> impl Future<Output = Result<(), Error>> + 'static
+```
+
 ## Structs
 
 ### Client
@@ -402,6 +421,12 @@ pub fn revoke_account_request(&self) -> Request<Owned, Owned>
 
 ```rust
 pub fn purchase_hints_request(&self) -> Request<Owned, Owned>
+```
+
+#### Client::quality_offers_request
+
+```rust
+pub fn quality_offers_request(&self) -> Request<Owned, Owned>
 ```
 
 Implements: `Clone`, `FromClientHook`, `FromPointerBuilder<'a>`, `FromPointerReader<'a>`, `FromServer<_S>`, `HasTypeId`, `SetterInput<Owned>`
@@ -615,4 +640,16 @@ pub type PurchaseHintsParams = Params<Owned>;
 
 ```rust
 pub type PurchaseHintsResults = Results<Owned>;
+```
+
+### QualityOffersParams
+
+```rust
+pub type QualityOffersParams = Params<Owned>;
+```
+
+### QualityOffersResults
+
+```rust
+pub type QualityOffersResults = Results<Owned>;
 ```

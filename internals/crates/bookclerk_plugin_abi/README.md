@@ -492,6 +492,14 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`network_grant::SettingGrantState`](network_grant.md#settinggrantstate)
 - [`network_grant::SettingNetworkGrant`](network_grant.md#settingnetworkgrant)
 - [`network_grant::MAX_NETWORK_GRANT_ENTRIES`](network_grant.md#max_network_grant_entries)
+- [`quality_offers::decode_quality_offers_bytes`](quality_offers.md#decode_quality_offers_bytes)
+- [`quality_offers::encode_quality_offers_bytes`](quality_offers.md#encode_quality_offers_bytes)
+- [`quality_offers::validate_quality_offers`](quality_offers.md#validate_quality_offers)
+- [`quality_offers::OfferField`](quality_offers.md#offerfield)
+- [`quality_offers::QualityOffersError`](quality_offers.md#qualityofferserror)
+- [`quality_offers::MAX_OFFER_BITRATE_KBPS`](quality_offers.md#max_offer_bitrate_kbps)
+- [`quality_offers::MAX_OFFER_CHANNELS`](quality_offers.md#max_offer_channels)
+- [`quality_offers::MAX_OFFER_SAMPLE_RATE_HZ`](quality_offers.md#max_offer_sample_rate_hz)
 - [`scan_page::decode_scan_page_bytes`](scan_page.md#decode_scan_page_bytes)
 - [`scan_page::encode_scan_page_bytes`](scan_page.md#encode_scan_page_bytes)
 - [`scan_page::validate_refreshed_credentials`](scan_page.md#validate_refreshed_credentials)
@@ -525,6 +533,8 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::PriceLookup`](generated.md#pricelookup)
 - [`generated::Abridgement`](generated.md#abridgement)
 - [`generated::Explicitness`](generated.md#explicitness)
+- [`generated::OfferedCodec`](generated.md#offeredcodec)
+- [`generated::OfferedAacProfile`](generated.md#offeredaacprofile)
 - [`generated::MetadataField`](generated.md#metadatafield)
 - [`generated::NotificationSeverity`](generated.md#notificationseverity)
 - [`generated::NotificationAudience`](generated.md#notificationaudience)
@@ -577,6 +587,10 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::PricedRecord`](generated.md#pricedrecord)
 - [`generated::PurchaseHintsParams`](generated.md#purchasehintsparams)
 - [`generated::PurchaseHintsResult`](generated.md#purchasehintsresult)
+- [`generated::QualityOffer`](generated.md#qualityoffer)
+- [`generated::QualityOffersParams`](generated.md#qualityoffersparams)
+- [`generated::TitleQualityOffer`](generated.md#titlequalityoffer)
+- [`generated::QualityOffersResult`](generated.md#qualityoffersresult)
 - [`generated::ScanLibraryParams`](generated.md#scanlibraryparams)
 - [`generated::AuthenticateUserParams`](generated.md#authenticateuserparams)
 - [`generated::ExternalUser`](generated.md#externaluser)
@@ -758,6 +772,16 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`generated::read_purchase_hints_result`](generated.md#read_purchase_hints_result)
 - [`generated::write_purchase_hints_reply`](generated.md#write_purchase_hints_reply)
 - [`generated::read_purchase_hints_reply`](generated.md#read_purchase_hints_reply)
+- [`generated::write_quality_offer`](generated.md#write_quality_offer)
+- [`generated::read_quality_offer`](generated.md#read_quality_offer)
+- [`generated::write_quality_offers_params`](generated.md#write_quality_offers_params)
+- [`generated::read_quality_offers_params`](generated.md#read_quality_offers_params)
+- [`generated::write_title_quality_offer`](generated.md#write_title_quality_offer)
+- [`generated::read_title_quality_offer`](generated.md#read_title_quality_offer)
+- [`generated::write_quality_offers_result`](generated.md#write_quality_offers_result)
+- [`generated::read_quality_offers_result`](generated.md#read_quality_offers_result)
+- [`generated::write_quality_offers_reply`](generated.md#write_quality_offers_reply)
+- [`generated::read_quality_offers_reply`](generated.md#read_quality_offers_reply)
 - [`generated::write_scan_library_params`](generated.md#write_scan_library_params)
 - [`generated::read_scan_library_params`](generated.md#read_scan_library_params)
 - [`generated::write_authenticate_user_params`](generated.md#write_authenticate_user_params)
@@ -958,6 +982,7 @@ RPC). Product spawn requires `plugin.toml` `api_version = 3`. There is no
 - [`notifications`](notifications.md): The checks the host runs on notification requests and replies.
 - [`origin`](origin.md): Sans-IO checks for the `ORIGIN` binding and the `ingress` entrypoint.
 - [`package_version`](package_version.md): `plugin.toml` `version` as a semantic version.
+- [`quality_offers`](quality_offers.md): Validation of one `ContentSource.qualityOffers` reply before the host compares it with the files it holds.
 - [`scan_page`](scan_page.md): Validation of one `ContentSource.scan` page before the host writes it.
 - [`settings_schema`](settings_schema.md): Operator-facing plugin settings schema (`[[settings]]` in `plugin.toml`).
 - [`sockets`](sockets.md): Sans-IO checks for host-brokered sockets (`Bindings.sockets`).
@@ -1586,6 +1611,13 @@ pub trait ContentSource {
     where
         Self: 'async_trait,
         'life0: 'async_trait,;
+    fn quality_offers<'life0, 'async_trait>(
+        &'life0 self,
+        _params: QualityOffersParams,
+    ) -> Pin<Box<dyn Future<Output = Result<QualityOffersResult>> + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,;
     fn revoke_account<'life0, 'async_trait>(
         &'life0 self,
         _params: RevokeAccountParams,
@@ -1831,6 +1863,28 @@ where
 ```
 
 Full catalog record for one product; `Ok(None)` when unknown.
+
+#### ContentSource::quality_offers
+
+```rust
+fn quality_offers<'life0, 'async_trait>(
+    &'life0 self,
+    _params: QualityOffersParams,
+) -> Pin<Box<dyn Future<Output = Result<QualityOffersResult>> + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+```
+
+The audio quality `params.account_id` would download for each title
+today, one answer per title id in order. It must not license or
+download anything; the host asks only when the guest declares
+`CatalogCapabilities.quality_offers`.
+
+##### Errors
+
+The default answers `unsupported`; a store's own error fails the
+whole batch.
 
 #### ContentSource::revoke_account
 

@@ -222,6 +222,12 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PurchaseHintsResult`](#purchasehintsresult) | class | Success payload of `ContentSource.purchaseHints`. |
 | [`PurchaseHintsReplyOk`](#purchasehintsreplyok) | class | `PurchaseHintsReply` member `ok`. |
 | [`PurchaseHintsReplyErr`](#purchasehintsreplyerr) | class | `PurchaseHintsReply` member `err`. |
+| [`QualityOffer`](#qualityoffer) | class | The stream one account would download for a title today. |
+| [`QualityOffersParams`](#qualityoffersparams) | class | Params of `ContentSource.qualityOffers`: the titles one account holds. |
+| [`TitleQualityOffer`](#titlequalityoffer) | class | One title's answer in `QualityOffersResult`. |
+| [`QualityOffersResult`](#qualityoffersresult) | class | Success payload of `ContentSource.qualityOffers`. |
+| [`QualityOffersReplyOk`](#qualityoffersreplyok) | class | `QualityOffersReply` member `ok`. |
+| [`QualityOffersReplyErr`](#qualityoffersreplyerr) | class | `QualityOffersReply` member `err`. |
 | [`ScanLibraryParams`](#scanlibraryparams) | class | Params of `RemoteLibrary.scanLibrary` (remote library sync). |
 | [`AuthenticateUserParams`](#authenticateuserparams) | class | Params of `Oidc.authenticateUser`. |
 | [`ExternalUser`](#externaluser) | class | One external user observed by an integration. The host may mint claim tickets without exposing portal details to the guest. |
@@ -422,6 +428,8 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`PriceLookup`](#pricelookup) | constant | How a purchase-hint query names the title to price. |
 | [`Abridgement`](#abridgement) | constant | Whether an edition is abridged. |
 | [`Explicitness`](#explicitness) | constant | Whether an edition is marked as explicit (adult) content. A patron scope can hide explicit editions; `unknown` and `clean` editions stay visible. |
+| [`OfferedCodec`](#offeredcodec) | constant | Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as the host's probed codecs are, so an offer compares with a held file. |
+| [`OfferedAacProfile`](#offeredaacprofile) | constant | AAC profile of an offered AAC stream (`QualityOffer.aacProfile`). |
 | [`MetadataField`](#metadatafield) | constant | A field of a `MetadataFileRecord`. Dialects declare in the manifest which fields their format carries; a parsed record lists the ones its file states, and a render request lists the ones to write. |
 | [`NotificationSeverity`](#notificationseverity) | constant | How urgent a notification is. Routing rules carry a minimum severity. |
 | [`NotificationAudience`](#notificationaudience) | constant | Who a notification type is for. The account audience is reserved to the host; a plugin may declare only operational and patron types. |
@@ -473,6 +481,7 @@ is `bytes`. Interfaces are `Protocol` classes with `async` methods.
 | [`CatalogDetailReply`](#catalogdetailreply) | constant | Result union of `ContentSource.catalogDetail`. |
 | [`PurchaseHintReply`](#purchasehintreply) | constant | Result union of `ContentSource.purchaseHint`. |
 | [`PurchaseHintsReply`](#purchasehintsreply) | constant | Result union of `ContentSource.purchaseHints`. A whole-batch `err` (for example `rateLimited`) applies to every query in it. |
+| [`QualityOffersReply`](#qualityoffersreply) | constant | Result union of `ContentSource.qualityOffers`. A whole-batch `err` (for example `rateLimited`) applies to every title in it. |
 | [`ExternalUserReply`](#externaluserreply) | constant | Result union of `Oidc.authenticateUser`. |
 | [`EventPollReply`](#eventpollreply) | constant | Result union of `RemoteLibrary.pollEvents`. |
 | [`SyncListeningReply`](#synclisteningreply) | constant | Result union of `RemoteLibrary.syncListening`. |
@@ -3332,6 +3341,25 @@ page of cards. A guest that cannot batch answers each query as
 
 `PurchaseHintsReply`
 
+#### ContentSource.quality_offers
+
+```python
+async def quality_offers(self, params: QualityOffersParams) -> QualityOffersReply
+```
+
+The audio quality one account would download for each of several
+titles today, so the host can tell when a better file than the one it
+holds is on offer. Asked only of guests that declare
+`CatalogCapabilities.qualityOffers`; it must not license or download.
+
+**Args**
+
+- `params`: Account, credentials, and title ids.
+
+**Returns**
+
+`QualityOffersReply`
+
 ### RemoteLibrary
 
 ```python
@@ -3822,6 +3850,7 @@ false, so a guest that says nothing keeps the plain behaviour.
 - `priceByIsbn`: True when `purchaseHint` / `purchaseHints` price a query by its exact ISBN (`lookup = isbn`): the answer is the store's listing of that ISBN or not found, never a title match. The host then prices a card at this store by the ISBNs of the card's recording before searching by title.
 - `priceByAsin`: True when `purchaseHint` / `purchaseHints` price a query by its exact ASIN (`lookup = asin`), as `priceByIsbn` does for ISBNs.
 - `detailByProductId`: True when `catalogDetail` resolves this store's own `productId` (an id its search, expand or deals hits gave) to a full bibliographic record. Catalog search then asks this store to fill lean result rows it listed itself, and title dialogs ask it for the editions it listed. A store that leaves it false is never woken for a detail lookup by product id.
+- `qualityOffers`: True when `qualityOffers` answers which audio quality an account would download for a title. The host's quality-upgrade check asks only stores that declare it.
 
 ### Brand
 
@@ -4914,6 +4943,94 @@ class PurchaseHintsReplyErr(TypedDict)
 ```
 
 `PurchaseHintsReply` member `err`.
+
+Typed failure; `code` is a `PluginErrorCode` wire string.
+
+**Attributes**
+
+- `kind`: Always `"err"`.
+- `value`: Typed failure; `code` is a `PluginErrorCode` wire string.
+
+### QualityOffer
+
+```python
+class QualityOffer(TypedDict)
+```
+
+The stream one account would download for a title today.
+
+**Attributes**
+
+- `codec`: Codec of the offered stream.
+- `aacProfile`: AAC profile when `codec` is `aac`; `unknown` otherwise.
+- `bitrateKbps`: Average bitrate in kbit/s; zero when unknown. Omitted when absent (wire zero value).
+- `sampleRateHz`: Sample rate in Hz; zero when unknown. Omitted when absent (wire zero value).
+- `channels`: Channel count; zero when unknown. Omitted when absent (wire zero value).
+
+### QualityOffersParams
+
+```python
+class QualityOffersParams(TypedDict)
+```
+
+Params of `ContentSource.qualityOffers`: the titles one account holds.
+
+**Attributes**
+
+- `accountId`: Account whose download would be made.
+- `credentials`: Decrypted credential blob for this account; never log it. Empty when none is stored. Omitted when absent (wire zero value).
+- `sourceConfig`: The instance's settings as `application/json` (bitrate tier and the like, which change what a download gets).
+- `titleIds`: Store product ids, as the account's scan listed them; at most `maxListPage`.
+- `fetch`: The fetch options a download would carry (DRM path, xHE-AAC), so the answer names what that download would get.
+
+### TitleQualityOffer
+
+```python
+class TitleQualityOffer(TypedDict)
+```
+
+One title's answer in `QualityOffersResult`.
+
+**Attributes**
+
+- `found`: False when the store could not say for this title (`offer` is empty).
+- `offer`: What a download would get, when `found`.
+
+### QualityOffersResult
+
+```python
+class QualityOffersResult(TypedDict)
+```
+
+Success payload of `ContentSource.qualityOffers`.
+
+**Attributes**
+
+- `offers`: One answer per title id, in the order they were sent. A short list leaves the rest unanswered.
+- `refreshedCredentials`: The account's credentials as the guest holds them after refreshing them during the call, as in `ScanPage.refreshedCredentials`. Empty when nothing changed. Omitted when absent (wire zero value).
+
+### QualityOffersReplyOk
+
+```python
+class QualityOffersReplyOk(TypedDict)
+```
+
+`QualityOffersReply` member `ok`.
+
+Success: an answer per title.
+
+**Attributes**
+
+- `kind`: Always `"ok"`.
+- `value`: Success: an answer per title.
+
+### QualityOffersReplyErr
+
+```python
+class QualityOffersReplyErr(TypedDict)
+```
+
+`QualityOffersReply` member `err`.
 
 Typed failure; `code` is a `PluginErrorCode` wire string.
 
@@ -8083,6 +8200,23 @@ Explicitness = Literal['unknown', 'clean', 'explicit']
 Whether an edition is marked as explicit (adult) content. A patron scope
 can hide explicit editions; `unknown` and `clean` editions stay visible.
 
+### OfferedCodec
+
+```python
+OfferedCodec = Literal['unknown', 'aac', 'alac', 'flac', 'mp3', 'opus', 'vorbis', 'eac3', 'a...
+```
+
+Audio codec of a stream a store offers (`QualityOffer.codec`). Spelled as
+the host's probed codecs are, so an offer compares with a held file.
+
+### OfferedAacProfile
+
+```python
+OfferedAacProfile = Literal['unknown', 'lc', 'he', 'heV2', 'xhe']
+```
+
+AAC profile of an offered AAC stream (`QualityOffer.aacProfile`).
+
 ### MetadataField
 
 ```python
@@ -8503,6 +8637,15 @@ PurchaseHintsReply = Union[PurchaseHintsReplyOk, PurchaseHintsReplyErr]
 
 Result union of `ContentSource.purchaseHints`. A whole-batch `err` (for
 example `rateLimited`) applies to every query in it.
+
+### QualityOffersReply
+
+```python
+QualityOffersReply = Union[QualityOffersReplyOk, QualityOffersReplyErr]
+```
+
+Result union of `ContentSource.qualityOffers`. A whole-batch `err` (for
+example `rateLimited`) applies to every title in it.
 
 ### ExternalUserReply
 

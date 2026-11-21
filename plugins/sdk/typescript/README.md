@@ -3505,6 +3505,18 @@ Re-exports [ObjectMetadata](plugin.md#objectmetadata)
 
 ***
 
+### OfferedAacProfile
+
+Re-exports [OfferedAacProfile](abi.md#offeredaacprofile)
+
+***
+
+### OfferedCodec
+
+Re-exports [OfferedCodec](abi.md#offeredcodec)
+
+***
+
 ### Oidc
 
 Re-exports [Oidc](generated.md#oidc-1)
@@ -3784,6 +3796,30 @@ Re-exports [PutReply](generated.md#putreply)
 ### PutResult
 
 Re-exports [PutResult](plugin.md#putresult)
+
+***
+
+### QualityOffer
+
+Re-exports [QualityOffer](generated.md#qualityoffer)
+
+***
+
+### QualityOffersParams
+
+Re-exports [QualityOffersParams](generated.md#qualityoffersparams)
+
+***
+
+### QualityOffersReply
+
+Re-exports [QualityOffersReply](generated.md#qualityoffersreply)
+
+***
+
+### QualityOffersResult
+
+Re-exports [QualityOffersResult](generated.md#qualityoffersresult)
 
 ***
 
@@ -4258,6 +4294,12 @@ Re-exports [TableConstraint](generated.md#tableconstraint)
 ### TextCollateSite
 
 Re-exports [TextCollateSite](generated.md#textcollatesite)
+
+***
+
+### TitleQualityOffer
+
+Re-exports [TitleQualityOffer](generated.md#titlequalityoffer)
 
 ***
 

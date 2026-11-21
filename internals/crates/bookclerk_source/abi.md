@@ -11,6 +11,7 @@ library rows a scan record becomes ([`NewBook`](../bookclerk_library/README.md#n
 | --- | --- | --- |
 | [`scanned_title`](#scanned_title) | function | The title a scan record describes: its flat row and its listing. |
 | [`scan_book_to_new`](#scan_book_to_new) | function | Maps a guest scan row onto the flat `NewBook` row the library stores until it keeps works, expressions and editions, forcing `source` to the plugin id so a guest can never claim another storefront's rows. The owning `plugin_key` is stamped by the `bookclerk_library::SourceScope` on write. |
+| [`offered_stream`](#offered_stream) | function | The stream a store's quality offer names, as the upgrade rule compares it (`bookclerk_library::quality::is_upgrade`). |
 
 ## Re-exports
 
@@ -64,3 +65,17 @@ another blank row, for a record that leaves a kind unspecified (the
 host refuses those), and for an ebook or print edition: the flat table has
 no way to keep those out of acquire, so they are not stored until the
 library keeps editions.
+
+### offered_stream
+
+```rust
+pub fn offered_stream(answer: &TitleQualityOffer) -> Option<StreamQuality>
+```
+
+The stream a store's quality offer names, as the upgrade rule compares
+it ([`bookclerk_library::quality::is_upgrade`](../bookclerk_library/quality.md#is_upgrade)).
+
+#### Returns
+
+`None` for an answer that is not `found` or names no codec, which the
+host treats as "the store did not say".

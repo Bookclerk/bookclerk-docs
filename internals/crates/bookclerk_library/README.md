@@ -163,6 +163,7 @@ the external guest RPC. This crate owns the greenfield schema
 | [`KvListPage`](#kvlistpage) | struct | One page of `LibraryStore::kv_list`. |
 | [`KvWriteSpec`](#kvwritespec) | struct | A write plus the namespace limits it must satisfy. |
 | [`PassStart`](#passstart) | struct | How the next pass of one account starts. |
+| [`QualityCheckState`](#qualitycheckstate) | struct | Where the quality-upgrade check of one account stands. |
 | [`ScanState`](#scanstate) | struct | Where one account's scan stands. |
 | [`ListingRef`](#listingref) | struct | The identity of a store listing: plugin key, stored marketplace and stored product id. |
 | [`UserStateEdit`](#userstateedit) | struct | A change to one user's state for one work, applied by `LibraryStore::edit_user_title_state`. |
@@ -579,6 +580,7 @@ the external guest RPC. This crate owns the greenfield schema
 - [`pacing`](pacing.md): Download pacing per store account: the limits, the operator's override, and the decision whether a download may start now.
 - [`password`](password.md): Argon2id password hashing for first-party local login.
 - [`proxy_txn`](proxy_txn.md): Fail-closed transaction injects re-exported from `bookclerk_db_exec`.
+- [`quality`](quality.md): When a store's offer is a better file than the one the library holds.
 - [`scope`](scope.md): Plugin-scoped library access.
 - [`secrets`](secrets.md): Encrypted secrets store — DB-backed credential storage.
 - [`sql_plan`](sql_plan/README.md): Host-owned generic SQL atomic plans for database adapters. Host-owned SQL atomic plans for database plugins.
@@ -6193,6 +6195,25 @@ How the next pass of one account starts.
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
 
+### QualityCheckState
+
+```rust
+pub struct QualityCheckState {
+    pub cursor: String,
+    pub checked_at: Option<DateTime<Utc>>,
+}
+```
+
+Where the quality-upgrade check of one account stands.
+
+**Fields**
+
+- `cursor`: Holding id the next check continues after; empty to start from the
+  account's first holding.
+- `checked_at`: When the check last ran; `None` before it first ran.
+
+Implements: `Clone`, `Debug`, `Default`, `Eq`, `PartialEq`
+
 ### ScanState
 
 ```rust
@@ -11507,6 +11528,49 @@ Runs one retention delete as of `now` and answers how many rows
 
 Returns [`LibraryError::Orm`](#libraryerror) when a read or delete fails; rows the
 step had not reached yet are left for the next pass.
+
+#### LibraryStore::quality_check_state
+
+```rust
+pub async fn quality_check_state(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+) -> Result<Option<QualityCheckState>>
+```
+
+Reads where an account's quality-upgrade check stands.
+
+##### Returns
+
+`None` when the account has no scan state yet (it was never
+scanned, so it holds nothing to check).
+
+##### Errors
+
+Returns an error when the read fails.
+
+#### LibraryStore::save_quality_check
+
+```rust
+pub async fn save_quality_check(
+    &self,
+    plugin_key: &str,
+    account_id: &str,
+    cursor: &str,
+    at: DateTime<Utc>,
+) -> Result<()>
+```
+
+Records that a quality-upgrade check of an account ran at `at` and
+continues after holding `cursor` next time (empty starts over).
+
+Writes only an existing row of an account that is not revoked; the
+scan creates the row.
+
+##### Errors
+
+Returns an error when the batch fails.
 
 #### LibraryStore::scan_state
 

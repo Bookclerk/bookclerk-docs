@@ -213,7 +213,9 @@ Product narrative: `docs/server/configuration.md`, `docs/server/diagnostics.md`.
 | [`MAX_SUBMIT_REPLY_BYTES`](#max_submit_reply_bytes) | constant | Longest collector reply, in bytes, that `parse_submit_reply` reads. The real reply is about 200 bytes. |
 | [`REPORT_HISTORY_FILE`](#report_history_file) | constant | File, relative to the files directory, that holds the report history. |
 | [`MAX_LOOKUP_REPLY_BYTES`](#max_lookup_reply_bytes) | constant | Longest collector answer, in bytes, that `parse_lookup_reply` and `parse_delete_reply` read. A stored report is at most 256 KiB, and the answer caps every event, so a real answer is well under this. |
+| [`DEFAULT_UPGRADE_DAILY_LIMIT`](#default_upgrade_daily_limit) | constant | Default for `LibraryConfig::upgrade_daily_limit`. |
 | [`LETS_ENCRYPT_DIRECTORY`](#lets_encrypt_directory) | constant | Let's Encrypt's production ACME directory. |
+| [`MAX_UPGRADE_DAILY_LIMIT`](#max_upgrade_daily_limit) | constant | Highest `LibraryConfig::upgrade_daily_limit` the settings accept. |
 | [`NODE_API_ACME_DIR`](#node_api_acme_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the ACME account and certificate cache (mode 0700 on Unix). |
 | [`NODE_API_SELF_SIGNED_DIR`](#node_api_self_signed_dir) | constant | Directory under `$BOOKCLERK_FILES_DIR` holding the self-signed node API certificate, its key, and its SPKI pin (mode 0700 on Unix). |
 | [`NODE_API_SPKI_PIN_FILE`](#node_api_spki_pin_file) | constant | File in `NODE_API_SELF_SIGNED_DIR` holding the SPKI pin (base64url SHA-256 of the certificate's SubjectPublicKeyInfo). |
@@ -2853,6 +2855,8 @@ pub struct LibraryConfig {
     pub enrich_from_audible: bool,
     pub enrich_min_confidence: u8,
     pub fix_storage_layout: bool,
+    pub upgrade_quality: bool,
+    pub upgrade_daily_limit: u32,
 }
 ```
 
@@ -2873,6 +2877,12 @@ Library / scan related settings.
 - `fix_storage_layout`: When matching storage to the library, relocate matched audio (and
   accompanying sidecars) onto the configured naming-profile layout.
   Default false — match in place without moving files.
+- `upgrade_quality`: Once a day, ask each store that answers quality offers whether an
+  account would now download a better file than the one the library
+  holds, and download it again when it would (`bookclerkd`). Off by
+  default.
+- `upgrade_daily_limit`: Most quality upgrades queued per store account per day (at least
+  1); each download also waits for the account's pace.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -5427,6 +5437,14 @@ Longest collector answer, in bytes, that [`parse_lookup_reply`](#parse_lookup_re
 [`parse_delete_reply`](#parse_delete_reply) read. A stored report is at most 256 KiB, and the
 answer caps every event, so a real answer is well under this.
 
+### DEFAULT_UPGRADE_DAILY_LIMIT
+
+```rust
+pub const DEFAULT_UPGRADE_DAILY_LIMIT: u32 = 5;
+```
+
+Default for [`LibraryConfig::upgrade_daily_limit`](#libraryconfig).
+
 ### LETS_ENCRYPT_DIRECTORY
 
 ```rust
@@ -5434,6 +5452,14 @@ pub const LETS_ENCRYPT_DIRECTORY: &str = "https://acme-v02.api.letsencrypt.org/d
 ```
 
 Let's Encrypt's production ACME directory.
+
+### MAX_UPGRADE_DAILY_LIMIT
+
+```rust
+pub const MAX_UPGRADE_DAILY_LIMIT: u32 = 100;
+```
+
+Highest [`LibraryConfig::upgrade_daily_limit`](#libraryconfig) the settings accept.
 
 ### NODE_API_ACME_DIR
 
