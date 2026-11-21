@@ -31,12 +31,13 @@ See `docs/adr/master-key-store.md`.
 | --- | --- | --- |
 | [`Vault`](#vault) | trait | A store of master-key items: the OS keychain, or memory in tests. |
 | [`SystemdCredsVault`](#systemdcredsvault) | struct | A master-key store that seals items with `systemd-creds`. |
-| [`KeystoreError`](#keystoreerror) | struct | A keychain failure, without any item bytes. |
+| [`KeystoreError`](#keystoreerror) | struct | A key store failure, without any item bytes. |
 | [`KeychainItemId`](#keychainitemid) | struct | Identifier of one install's master-key item: the item's account name under `KEYCHAIN_SERVICE`. |
 | [`KeychainPointer`](#keychainpointer) | struct | What `master.key` holds on a keychain or `systemd-creds` install: which store and item carry the key, and the fingerprint the key inside must match. No key material. |
 | [`OsKeychain`](#oskeychain) | struct | The operating system's credential store. |
 | [`MemoryVault`](#memoryvault) | struct | Items kept in process memory: for tests, and for hosts that must not touch the OS keychain. |
 | [`KeystoreErrorKind`](#keystoreerrorkind) | enum | Why a keychain operation failed. |
+| [`ErrorStore`](#errorstore) | enum | Which store a `KeystoreError` came from, so messages name the store the operator configured. |
 | [`PointerStore`](#pointerstore) | enum | Which store a pointer record names. |
 | [`PointerError`](#pointererror) | enum | Why a byte string is not a pointer record. |
 | [`Result`](#result) | type alias | Result alias for keychain operations. |
@@ -176,15 +177,17 @@ Implements: `Clone`, `Debug`, `Vault`
 ```rust
 pub struct KeystoreError {
     pub kind: KeystoreErrorKind,
+    pub store: ErrorStore,
     pub message: String,
 }
 ```
 
-A keychain failure, without any item bytes.
+A key store failure, without any item bytes.
 
 **Fields**
 
 - `kind`: What went wrong, for callers that branch on it.
+- `store`: The store that failed.
 - `message`: A human-readable explanation that never contains item bytes.
 
 #### KeystoreError::new
@@ -193,12 +196,25 @@ A keychain failure, without any item bytes.
 pub fn new(kind: KeystoreErrorKind, message: impl Into<String>) -> Self
 ```
 
-Builds an error of `kind` with `message`.
+Builds an OS keychain error of `kind` with `message`; see
+[`KeystoreError::in_store`](#keystoreerrorin_store) for another store.
 
 ##### Arguments
 
 * `kind` - the failure category.
 * `message` - a safe, secret-free explanation.
+
+#### KeystoreError::in_store
+
+```rust
+pub fn in_store(self, store: ErrorStore) -> Self
+```
+
+The same error, naming `store` as the one that failed.
+
+##### Arguments
+
+* `store` - the store the error came from.
 
 Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
@@ -388,6 +404,25 @@ Why a keychain operation failed.
 - `Rejected`: The store rejected the request (too long, bad attributes, ambiguous).
 
 Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### ErrorStore
+
+```rust
+pub enum ErrorStore {
+    OsKeychain,
+    SystemdCreds,
+}
+```
+
+Which store a [`KeystoreError`](#keystoreerror) came from, so messages name the store
+the operator configured.
+
+**Variants**
+
+- `OsKeychain`: The OS keychain (also the label for the in-memory test store).
+- `SystemdCreds`: A `systemd-creds` credential ([`SystemdCredsVault`](#systemdcredsvault)).
+
+Implements: `Clone`, `Copy`, `Debug`, `Default`, `Eq`, `PartialEq`
 
 ### PointerStore
 
