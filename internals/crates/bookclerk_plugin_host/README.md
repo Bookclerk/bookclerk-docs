@@ -4380,7 +4380,10 @@ For [`GuestRuntimeKind::NativeBehindWorkerd`](#guestruntimekind) this is the uni
 pub fn gateway_executable_reads(&self) -> Vec<PathBuf>
 ```
 
-Executables the gateway jail may read: `bookclerk-workerd` and `workerd`.
+Paths the gateway jail may read to run: `bookclerk-workerd`, `workerd`
+and, when present, the pinned Pyodide bundle directory beside
+`workerd`, which Python isolates load at start because workerd has no
+network of its own.
 
 Direct native uses the guest command as the (only) launcher.
 

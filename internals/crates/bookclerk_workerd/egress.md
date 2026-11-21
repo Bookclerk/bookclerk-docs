@@ -49,6 +49,30 @@ Builds egress constraints from an already-approved host policy.
 
 Updated `Self` for chaining.
 
+#### EgressProxy::with_relay
+
+```rust
+pub fn with_relay(self, addr: impl Into<String>) -> Self
+```
+
+Routes the isolate's egress through the launcher's relay.
+
+##### Arguments
+
+* `addr` - Workerd `external` address the relay listens on.
+
+##### Returns
+
+Updated `Self` for chaining.
+
+#### EgressProxy::relay
+
+```rust
+pub fn relay(&self) -> Option<&str>
+```
+
+Workerd `external` address of the egress relay, when one is set.
+
 #### EgressProxy::policy
 
 ```rust

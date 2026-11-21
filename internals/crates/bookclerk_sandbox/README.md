@@ -108,6 +108,9 @@ use so a missing jail can never pass silently.
 | [`SOCKET_PROXY_ENV`](#socket_proxy_env) | constant | Env var naming the socket-proxy link for a native guest (SDK `net::connect`). |
 | [`SOCKET_PROXY_WRITE_ENV`](#socket_proxy_write_env) | constant | Windows-only env var naming the guest's overlapped write half of the proxy. |
 | [`TEST_EXTRA_ENDPOINT_FD`](#test_extra_endpoint_fd) | constant | Test-only extra endpoint in the native guest. Production preserve lists omit it. |
+| [`WORKERD_EGRESS_ENV`](#workerd_egress_env) | constant | Env var naming the host's CONNECT link for a workerd launcher's egress. |
+| [`WORKERD_EGRESS_FD`](#workerd_egress_fd) | constant | Child fd a single workerd launcher uses for the host egress link (`BOOKCLERK_WORKERD_EGRESS`). |
+| [`WORKERD_EGRESS_WRITE_ENV`](#workerd_egress_write_env) | constant | Windows-only env var naming the launcher's overlapped write half of the host egress link. |
 | [`WORKERD_STATE_DIR_ENV`](#workerd_state_dir_env) | constant | Host-chosen workerd session directory (`0700`, under `$TMPDIR`). |
 | [`BACKEND`](#backend) | constant | Backend name reported in diagnostics. |
 | [`SPAWN_DIAG_MAX_LINES`](#spawn_diag_max_lines) | constant | Maximum lines in that ring. The byte cap is the budget; this only stops a flood of tiny lines. |
@@ -1086,6 +1089,7 @@ pub enum NetPolicy {
     Outbound,
     OutboundListen,
     Full,
+    LocalIpc,
 }
 ```
 
@@ -1109,6 +1113,15 @@ Network reachability granted to the confined process.
   every fixed port, while Seatbelt filters by address and restricts the
   listener to loopback. Neither confines it to both at once.
 - `Full`: Unrestricted. The daemon binds its own control-plane listener.
+- `LocalIpc`: No IP reach beyond the process's own local IPC: a workerd jail.
+  
+  On Linux and macOS this is [`Deny`](#netpolicy): no IPv4, IPv6 or
+  packet sockets, only the Unix sockets the policy's socket directories
+  allow. Workerd on Windows has no Unix sockets, so there its bridge
+  listens on loopback inside the AppContainer: the container gets
+  `privateNetworkClientServer` (needed for that loopback bind) and no
+  `internetClient`. That capability also opens the local network on
+  Windows; see `docs/internals/guest-jail.md`.
 
 Implements: `Clone`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -2071,6 +2084,42 @@ The slot sits above the descriptors a dynamic loader opens after the jail
 closes every fd it does not preserve. A low number would be reused by that
 loader; an open non-socket there is a numeric collision, not proof the
 endpoint is absent. Production guests still preserve only [`GUEST_PROXY_FD`](#guest_proxy_fd).
+
+### WORKERD_EGRESS_ENV
+
+```rust
+pub const WORKERD_EGRESS_ENV: &str = "BOOKCLERK_WORKERD_EGRESS";
+```
+
+Env var naming the host's CONNECT link for a workerd launcher's egress.
+
+The launcher (`bookclerk-workerd`, as an isolate front door or a socket
+broker) is the client: every outbound connection its isolate or broker
+makes is a tunnel the host checks against the grant and dials. Its jail
+has no IP reach of its own. Unix: one duplex socket, `fd:<n>` (always
+[`WORKERD_EGRESS_FD`](#workerd_egress_fd)). Windows: the launcher's overlapped read half,
+`handle:<n>`; the write half is [`WORKERD_EGRESS_WRITE_ENV`](#workerd_egress_write_env). Absent when
+the grant denies the network.
+
+### WORKERD_EGRESS_FD
+
+```rust
+pub const WORKERD_EGRESS_FD: i32 = 3;
+```
+
+Child fd a single workerd launcher uses for the host egress link
+(`BOOKCLERK_WORKERD_EGRESS`).
+
+### WORKERD_EGRESS_WRITE_ENV
+
+```rust
+pub const WORKERD_EGRESS_WRITE_ENV: &str = "BOOKCLERK_WORKERD_EGRESS_WRITE";
+```
+
+Windows-only env var naming the launcher's overlapped write half of the
+host egress link.
+
+Absent on Unix, where [`WORKERD_EGRESS_ENV`](#workerd_egress_env) is a full-duplex socket.
 
 ### WORKERD_STATE_DIR_ENV
 

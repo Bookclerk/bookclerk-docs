@@ -286,6 +286,7 @@ one) before [`run_appcontainer`](#run_appcontainer).
 | [`Deny`](README.md#netpolicy) | _(none)_ |
 | [`Outbound`](README.md#netpolicy) | `internetClient` |
 | [`OutboundListen`](README.md#netpolicy) | `internetClient`, `privateNetworkClientServer` |
+| [`LocalIpc`](README.md#netpolicy) | `privateNetworkClientServer` (in-container loopback bridge) |
 | [`Full`](README.md#netpolicy) | `internetClient`, `internetClientServer`, `privateNetworkClientServer` |
 
 ### profile_name_for_label

@@ -71,6 +71,8 @@ Serialized as camelCase for injection into workerd `EGRESS_POLICY`.
   never imply TCP.
 - [`Self::allows_ip`](#egresspolicyallows_ip) — public Internet by default; extra CIDRs are
   explicit. Redirect-to-undeclared-public never implies private ranges.
+- [`Self::allows_isolate_tunnel`](#egresspolicyallows_isolate_tunnel) — the host's backstop for a workerd
+  guest's tunnels: the union of the TCP, fetch and redirect rules.
 
 **Fields**
 
@@ -334,6 +336,38 @@ Deny mode always returns `false`. Outbound mode requires
 `hop_index < max_redirects`. The hop host must match the fetch
 allowlist unless [`Self::allow_undeclared_public_redirects`](#egresspolicy) is set,
 in which case only public destinations (plus explicit CIDRs) pass.
+
+#### EgressPolicy::allows_isolate_tunnel
+
+```rust
+pub fn allows_isolate_tunnel(&self, host: &str, port: u16) -> bool
+```
+
+Host-side check for a `CONNECT` that arrives from a workerd isolate.
+
+A workerd guest's outbound traffic leaves its jail through the host's
+`CONNECT` proxy, one tunnel per `fetch()` request or `connect()`
+socket. The jail labels nothing the host can trust, so the host can't
+tell which call opened a tunnel. It therefore admits the union of what
+either call may reach: a TCP grant for `host:port`, a fetch host
+([`Self::allows_initial`](#egresspolicyallows_initial)), or a host a redirect could reach
+([`Self::allows_redirect`](#egresspolicyallows_redirect) at hop 0, which covers
+[`Self::allow_undeclared_public_redirects`](#egresspolicy)). Fetch grants name hosts,
+not ports, so a fetch host is admitted on any port. The resolved
+addresses still have to pass [`Self::allows_ip`](#egresspolicyallows_ip) before the host dials.
+
+The isolate's own egress worker enforces the narrower per-call rules
+(the fetch allowlist, each redirect hop, the subrequest budget). This
+check is the backstop that holds when the isolate does not.
+
+##### Arguments
+
+* `host` - Tunnel target host from the `CONNECT` line.
+* `port` - Tunnel target port from the `CONNECT` line.
+
+##### Returns
+
+`true` when outbound mode admits `host:port` for a workerd guest.
 
 #### EgressPolicy::to_policy_json
 

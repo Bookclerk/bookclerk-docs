@@ -10,7 +10,9 @@ listener.
 
 | Item | Kind | Summary |
 | --- | --- | --- |
+| [`LinkPolicy`](#linkpolicy) | struct | The policy one proxy link enforces: the approved egress policy and the rule that applies it to a `CONNECT` target. |
 | [`ProxyServer`](#proxyserver) | struct | In-flight host CONNECT proxy. Dropping it cancels accepts and handlers. |
+| [`TunnelRule`](#tunnelrule) | enum | Which grants decide whether a tunnel may be dialed. |
 | [`spawn_unix`](#spawn_unix) | function | Serve HTTP CONNECT on a Unix listener until the task is cancelled. |
 | [`spawn_link`](#spawn_link) | function | Serve HTTP CONNECT on mux-accepted streams from an inherited sibling link. |
 | [`spawn_link_with_challenge`](#spawn_link_with_challenge) | function | `spawn_link` that reads a 32-byte session challenge before any mux frame. |
@@ -25,6 +27,59 @@ listener.
 | [`TEST_CHANNEL_IDENT_PORT`](#test_channel_ident_port) | constant | Port paired with `TEST_CHANNEL_IDENT_HOST`. |
 
 ## Structs
+
+### LinkPolicy
+
+```rust
+pub struct LinkPolicy {
+    pub egress: EgressPolicy,
+    pub rule: TunnelRule,
+}
+```
+
+The policy one proxy link enforces: the approved egress policy and the
+rule that applies it to a `CONNECT` target.
+
+**Fields**
+
+- `egress`: Effective egress policy (manifest narrowed by the operator grant).
+- `rule`: How a `CONNECT` target is judged against [`Self::egress`](#linkpolicy).
+
+#### LinkPolicy::isolate
+
+```rust
+pub fn isolate(egress: EgressPolicy) -> Self
+```
+
+Policy for a workerd isolate's egress link.
+
+##### Arguments
+
+* `egress` - Effective egress policy for the plugin.
+
+##### Returns
+
+A [`LinkPolicy`](#linkpolicy) with [`TunnelRule::IsolateEgress`](#tunnelrule).
+
+#### LinkPolicy::admits
+
+```rust
+pub fn admits(&self, host: &str, port: u16) -> bool
+```
+
+Whether a tunnel to `host:port` may be dialed under this link's rule.
+
+##### Arguments
+
+* `host` - `CONNECT` target host.
+* `port` - `CONNECT` target port.
+
+##### Returns
+
+`true` when the rule admits the target. The resolved addresses are
+checked separately.
+
+Implements: `Clone`, `Debug`, `From<EgressPolicy>`
 
 ### ProxyServer
 
@@ -66,6 +121,29 @@ Handler tasks that have not finished.
 
 Implements: `Drop`
 
+## Enums
+
+### TunnelRule
+
+```rust
+pub enum TunnelRule {
+    TcpGrants,
+    IsolateEgress,
+}
+```
+
+Which grants decide whether a tunnel may be dialed.
+
+**Variants**
+
+- `TcpGrants`: A native guest's socket: only a TCP grant for `host:port`
+  (`EgressPolicy::allows_tcp`).
+- `IsolateEgress`: A workerd isolate's egress, which carries both `fetch()` and
+  `connect()` traffic: the union the isolate may reach
+  (`EgressPolicy::allows_isolate_tunnel`).
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ## Functions
 
 ### spawn_unix
@@ -73,7 +151,7 @@ Implements: `Drop`
 ```rust
 pub fn spawn_unix(
     listener: UnixListener,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
 ) -> Result<ProxyServer>
 ```
@@ -108,7 +186,7 @@ Returns an error only if the accept task cannot be spawned (it does not).
 ```rust
 pub fn spawn_link_with_challenge<S>(
     link: S,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
     challenge: [u8; 32],
 ) -> Result<ProxyServer>
@@ -131,7 +209,7 @@ Returns an error only if the accept task cannot be spawned (it does not).
 pub fn spawn_halves<R, W>(
     reader: R,
     writer: W,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
 ) -> Result<ProxyServer>
 where
@@ -154,7 +232,7 @@ Returns an error only if the accept task cannot be spawned (it does not).
 pub fn spawn_halves_with_challenge<R, W>(
     reader: R,
     writer: W,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
     challenge: [u8; 32],
 ) -> Result<ProxyServer>
@@ -174,7 +252,7 @@ Returns an error only if the accept task cannot be spawned (it does not).
 ```rust
 pub fn spawn_link_with_challenge_tag<S>(
     link: S,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
     challenge: [u8; 32],
     channel_tag: &str,
@@ -201,7 +279,7 @@ accept task cannot be spawned.
 pub fn spawn_halves_with_challenge_tag<R, W>(
     reader: R,
     writer: W,
-    policy: EgressPolicy,
+    policy: impl Into<LinkPolicy>,
     fence: Arc<AtomicBool>,
     challenge: [u8; 32],
     channel_tag: &str,

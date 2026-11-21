@@ -33,6 +33,7 @@ the worker itself calls.
 | [`FixupRequest`](#fixuprequest) | struct | Request to fix up audiobook metadata after decrypt / download. |
 | [`OpusEncodeOptions`](#opusencodeoptions) | struct | How an Opus copy is encoded. |
 | [`PackageM4bRequest`](#packagem4brequest) | struct | Request to package ordered MP3 parts into one M4B. |
+| [`PcmStream`](#pcmstream) | struct | Decoded samples of one file from one start position. |
 | [`MediaPool`](#mediapool) | struct | Bounded pool of confined media workers. |
 | [`MediaPoolConfig`](#mediapoolconfig) | struct | Pool sizing and isolation settings. |
 | [`AudioProbe`](#audioprobe) | struct | What a probe found in one audio file. |
@@ -56,6 +57,7 @@ the worker itself calls.
 | [`encode_to_opus_native`](#encode_to_opus_native) | function | Encodes the audio in `input` to an Ogg Opus file at `output`. |
 | [`package_m4b_from_mp3`](#package_m4b_from_mp3) | function | Decode/remux ordered parts → progressive M4B. |
 | [`package_m4b_from_pcm`](#package_m4b_from_pcm) | function | Encode interleaved PCM to AAC-LC and mux an M4B (test / internal helper). |
+| [`serve_pcm`](#serve_pcm) | function | Serves one PCM decode over `input` and `output` (the worker's stdin and stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or `Failed` when the file cannot be decoded. |
 | [`init_pool`](#init_pool) | function | Install the process-wide pool if none is installed yet. |
 | [`init_pool_from_config`](#init_pool_from_config) | function | Build the pool from `[media]` config and install it, logging what it will do. |
 | [`pool`](#pool) | function | The process-wide pool, creating a default one if startup never installed it. |
@@ -95,10 +97,13 @@ the worker itself calls.
 - [`bookclerk_mp4::TrimRange`](../bookclerk_mp4/README.md#trimrange)
 - [`bookclerk_tags::ByteSpan`](../bookclerk_tags/README.md#bytespan)
 - [`bookclerk_tags::TagRecord`](../bookclerk_tags/README.md#tagrecord)
+- [`pcm_wire::PcmHeader`](pcm_wire.md#pcmheader)
+- [`pcm_wire::PCM_WORKER_ARG`](pcm_wire.md#pcm_worker_arg)
 
 ## Modules
 
 - [`capabilities`](capabilities.md): What this build of the media worker can read and write.
+- [`pcm_wire`](pcm_wire.md): Frames the host and `bookclerk-media-worker pcm` exchange over the worker's stdio.
 
 ## Traits
 
@@ -280,6 +285,48 @@ Request to package ordered MP3 parts into one M4B.
 
 Implements: `Clone`, `Debug`, `Deserialize<'de>`, `Serialize`
 
+### PcmStream
+
+```rust
+pub struct PcmStream {
+    /* private fields */
+}
+```
+
+Decoded samples of one file from one start position.
+
+Dropping it stops the worker.
+
+#### PcmStream::header
+
+```rust
+pub fn header(&self) -> PcmHeader
+```
+
+The sample rate, channels, actual start and stated duration.
+
+#### PcmStream::next_chunk
+
+```rust
+pub async fn next_chunk(&mut self) -> Option<Result<Vec<i16>>>
+```
+
+The next chunk of interleaved samples: a whole number of frames in
+[`Self::header`](#pcmstreamheader)'s layout.
+
+##### Returns
+
+`None` once the file decoded to its end.
+
+##### Errors
+
+[`MediaError::Native`](#mediaerror) when the worker could not decode the rest,
+[`MediaError::Io`](#mediaerror) when the source failed, and
+[`MediaError::Worker`](#mediaerror) when the worker died, stalled or broke the
+protocol. The stream ends after an error.
+
+Implements: `Debug`, `Drop`
+
 ### MediaPool
 
 ```rust
@@ -407,6 +454,42 @@ is malformed, [`MediaError::Io`](#mediaerror) when `source` fails,
 was found, and [`MediaError::Worker`](#mediaerror) when the worker cannot be
 started, dies, stalls for 30 s, or answers outside the reader's
 limits (the worker is then restarted).
+
+#### MediaPool::open_pcm
+
+```rust
+pub async fn open_pcm<S: RangeSource + 'static>(
+    &self,
+    size: u64,
+    start_ms: u64,
+    source: S,
+) -> Result<PcmStream>
+```
+
+Decodes one audio file to PCM for a player, from `start_ms` to its
+end (`bookclerk-media-worker pcm`).
+
+Each call starts its own worker, jailed to no path and no network,
+which asks for the byte ranges its demuxer reads; this call fetches
+them from `source`. It does not take a job slot. The stream holds
+at most a few chunks ahead of the player, so a paused player keeps
+the worker waiting rather than decoding the whole book. Seeking is a
+new call; dropping the stream stops its worker. With isolation off,
+playback is refused, never decoded in this process.
+
+##### Arguments
+
+* `size` - The file's size in bytes.
+* `start_ms` - Where to start, in milliseconds into the file.
+* `source` - Where its bytes come from.
+
+##### Errors
+
+[`MediaError::NotIsolated`](#mediaerror) when isolation is off or no worker was
+found, [`MediaError::Native`](#mediaerror) when the file cannot be decoded,
+[`MediaError::Io`](#mediaerror) when `source` fails, and [`MediaError::Worker`](#mediaerror)
+when the worker cannot be started, stalls for 30 s before its
+format, or breaks the protocol.
 
 #### MediaPool::run
 
@@ -1056,6 +1139,30 @@ duplicate the full stream as AAC access units in memory.
 #### Errors
 
 Returns an error when the operation fails.
+
+### serve_pcm
+
+```rust
+pub fn serve_pcm<R, W>(input: R, output: W) -> Result<(), String>
+where
+    R: Read + Send + Sync + 'static,
+    W: Write + Send + Sync + 'static,
+```
+
+Serves one PCM decode over `input` and `output` (the worker's stdin and
+stdout): reads `Open`, then streams `Format`, `Pcm` frames and `End`, or
+`Failed` when the file cannot be decoded.
+
+#### Arguments
+
+* `input` - Request frames from the host.
+* `output` - Reply frames to the host.
+
+#### Errors
+
+Why the stream broke: the host sent no `Open`, or a pipe failed. A file
+that cannot be decoded is not an error here: the host is told with
+`Failed`.
 
 ### init_pool
 

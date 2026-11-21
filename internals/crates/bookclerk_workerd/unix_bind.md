@@ -25,10 +25,15 @@ is the process scratch (`TMPDIR`).
 | [`set_cloexec`](#set_cloexec) | function | Sets `FD_CLOEXEC` so a later `workerd` spawn cannot keep a sibling link open. |
 | [`random_abstract_name`](#random_abstract_name) | function | Random Linux abstract name (`bc-{kind}-{16 hex}`), always far under `sun_path`. |
 | [`bind_granted`](#bind_granted) | function | Binds the adapter-private GRANTED channel. |
+| [`bind_rpc`](#bind_rpc) | function | Binds the bridge RPC listener workerd inherits with `--socket-fd`. |
+| [`bind_egress`](#bind_egress) | function | Binds the egress relay listener workerd's `hostegress` service dials. |
+| [`connect_pathname`](#connect_pathname) | function | Connects to a pathname Unix socket, falling back like `bind_pathname` when the absolute path exceeds `sun_path`. |
 | [`bind_abstract`](#bind_abstract) | function | Binds a Linux abstract-namespace Unix listener (`sun_path[0] == NUL`). |
 | [`bind_pathname`](#bind_pathname) | function | Binds a pathname socket, falling back when the absolute path exceeds `sun_path`. |
 | [`GRANTED_SOCK_FILE`](#granted_sock_file) | constant | Pathname leaf for the GRANTED channel on non-Linux Unix. |
 | [`GRANTED_RELATIVE_ADDR`](#granted_relative_addr) | constant | workerd / KJ address for a relative GRANTED pathname (cwd = state dir). |
+| [`RPC_SOCK_FILE`](#rpc_sock_file) | constant | Pathname leaf for the bridge RPC socket on non-Linux Unix. |
+| [`EGRESS_SOCK_FILE`](#egress_sock_file) | constant | Pathname leaf for the egress relay socket on non-Linux Unix. |
 
 ## Functions
 
@@ -82,6 +87,67 @@ binds [`GRANTED_SOCK_FILE`](#granted_sock_file) under `state_dir` and returns
 
 Returns an I/O error when the listener cannot be bound.
 
+### bind_rpc
+
+```rust
+pub fn bind_rpc(state_dir: &Path) -> Result<(BridgeAddr, UnixListener)>
+```
+
+Binds the bridge RPC listener workerd inherits with `--socket-fd`.
+
+Linux binds an abstract name; other Unix binds [`RPC_SOCK_FILE`](#rpc_sock_file) under
+`state_dir`.
+
+#### Arguments
+
+* `state_dir` - The session's state directory.
+
+#### Returns
+
+The address the launcher connects to and the listener to hand workerd.
+
+#### Errors
+
+Returns an I/O error when the listener cannot be bound.
+
+### bind_egress
+
+```rust
+pub fn bind_egress(state_dir: &Path) -> Result<(String, UnixListener)>
+```
+
+Binds the egress relay listener workerd's `hostegress` service dials.
+
+Linux returns a `unix-abstract:` address; other Unix binds
+[`EGRESS_SOCK_FILE`](#egress_sock_file) under `state_dir` and returns `unix:egress.sock`
+(workerd's cwd is that directory).
+
+#### Arguments
+
+* `state_dir` - The session's state directory.
+
+#### Returns
+
+The workerd `external` address and the listener the relay accepts on.
+
+#### Errors
+
+Returns an I/O error when the listener cannot be bound.
+
+### connect_pathname
+
+```rust
+pub async fn connect_pathname(path: &Path) -> Result<UnixStream>
+```
+
+Connects to a pathname Unix socket, falling back like [`bind_pathname`](#bind_pathname)
+when the absolute path exceeds `sun_path`.
+
+#### Errors
+
+Returns an I/O error when the connection is refused or the path has no
+parent or file name.
+
 ### bind_abstract
 
 ```rust
@@ -127,3 +193,19 @@ pub const GRANTED_RELATIVE_ADDR: &str = "unix:granted.sock";
 ```
 
 workerd / KJ address for a relative GRANTED pathname (cwd = state dir).
+
+### RPC_SOCK_FILE
+
+```rust
+pub const RPC_SOCK_FILE: &str = "rpc.sock";
+```
+
+Pathname leaf for the bridge RPC socket on non-Linux Unix.
+
+### EGRESS_SOCK_FILE
+
+```rust
+pub const EGRESS_SOCK_FILE: &str = "egress.sock";
+```
+
+Pathname leaf for the egress relay socket on non-Linux Unix.

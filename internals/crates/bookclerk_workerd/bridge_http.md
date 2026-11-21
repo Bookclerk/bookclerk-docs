@@ -8,7 +8,7 @@ Proto `/invoke` bodies, and streamed object bodies).
 | [`BridgeHttp`](#bridgehttp) | struct | Loopback HTTP client for the isolate bridge. |
 | [`CapnpResponse`](#capnpresponse) | struct | Fully buffered reply of `BridgeHttp::capnp_post`. |
 | [`generate_bridge_token`](#generate_bridge_token) | function | Generate a 32-byte hex bearer token for one isolate (`BRIDGE_TOKEN`). |
-| [`check_health`](#check_health) | function | `GET /health` on the bridge at `127.0.0.1:<port>` with `token`, through `BridgeHttp::health`. |
+| [`check_health`](#check_health) | function | `GET /health` on the bridge at `addr` with `token`, through `BridgeHttp::health`. |
 
 ## Structs
 
@@ -16,20 +16,21 @@ Proto `/invoke` bodies, and streamed object bodies).
 
 ```rust
 pub struct BridgeHttp {
-    pub port: u16,
+    pub addr: BridgeAddr,
     pub token: String,
 }
 ```
 
 Loopback HTTP client for the isolate bridge.
 
-It writes HTTP/1.1 straight to a `TcpStream` on `127.0.0.1`, so proxy
-environment variables (`ALL_PROXY`, `HTTPS_PROXY`, `HTTP_PROXY`) never
-route a request, and the bearer token never leaves loopback.
+It writes HTTP/1.1 straight to the bridge socket (a Unix socket in the
+session directory, or `127.0.0.1` on Windows), so proxy environment
+variables (`ALL_PROXY`, `HTTPS_PROXY`, `HTTP_PROXY`) never route a
+request, and the bearer token never leaves the jail.
 
 **Fields**
 
-- `port`: Bridge TCP port.
+- `addr`: Where the bridge listens.
 - `token`: Bearer token (`BRIDGE_TOKEN`).
 
 #### BridgeHttp::health
@@ -189,10 +190,10 @@ Generate a 32-byte hex bearer token for one isolate (`BRIDGE_TOKEN`).
 ### check_health
 
 ```rust
-pub async fn check_health(port: u16, token: &str) -> Result<()>
+pub async fn check_health(addr: &BridgeAddr, token: &str) -> Result<()>
 ```
 
-`GET /health` on the bridge at `127.0.0.1:<port>` with `token`, through
+`GET /health` on the bridge at `addr` with `token`, through
 [`BridgeHttp::health`](#bridgehttphealth).
 
 The launcher polls this until the isolate is up. Like every other bridge
@@ -201,7 +202,8 @@ token stays on loopback.
 
 #### Arguments
 
-* `port` - The bridge's loopback TCP port.
+* `addr` - Where the bridge listens (Unix socket, or loopback TCP on
+  Windows).
 * `token` - The session's `BRIDGE_TOKEN`.
 
 #### Errors

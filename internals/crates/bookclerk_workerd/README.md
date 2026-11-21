@@ -22,21 +22,29 @@ See `docs/plugins/README.md` for jail / workerd isolation requirements.
 - [`config::ListenSpec`](config.md#listenspec)
 - [`config::WORKERD_SERVE_EXPERIMENTAL`](config.md#workerd_serve_experimental)
 - [`egress::EgressProxy`](egress.md#egressproxy)
+- [`ensure::ensure_pyodide_bundle`](ensure.md#ensure_pyodide_bundle)
 - [`ensure::ensure_workerd`](ensure.md#ensure_workerd)
+- [`ensure::pyodide_bundle_dir`](ensure.md#pyodide_bundle_dir)
 - [`ensure::workerd_bin_path`](ensure.md#workerd_bin_path)
 - [`grant::OperatorGrantEnv`](grant.md#operatorgrantenv)
 - [`pin::binary_name`](pin.md#binary_name)
+- [`pin::pyodide_bundle_url`](pin.md#pyodide_bundle_url)
 - [`pin::BUNDLED_WORKERD_COMPAT_DATE`](pin.md#bundled_workerd_compat_date)
+- [`pin::PYODIDE_BUNDLE_DIR`](pin.md#pyodide_bundle_dir)
+- [`pin::PYODIDE_BUNDLE_FILE`](pin.md#pyodide_bundle_file)
+- [`pin::PYODIDE_BUNDLE_SHA256_HEX`](pin.md#pyodide_bundle_sha256_hex)
 - [`pin::WORKERD_RELEASE_TAG`](pin.md#workerd_release_tag)
 - [`pin::WORKERD_VERSION_STAMP`](pin.md#workerd_version_stamp)
 
 ## Modules
 
+- [`bridge_addr`](bridge_addr.md): Where the launcher reaches workerd's bridge RPC socket, and the stream it gets.
 - [`bridge_http`](bridge_http.md): Minimal HTTP/1.1 client for the workerd bridge (JSON control plane, Cap'n Proto `/invoke` bodies, and streamed object bodies).
 - [`bridge_stdio`](bridge_stdio.md): Bookclerk Cap'n Proto stdio adapter over the workerd HTTP bridge.
 - [`config`](config.md): Generate a real workerd Cap'n Proto config for one plugin isolate.
 - [`control`](control.md): Control messages workerd writes on `--control-fd`: the port each socket bound.
 - [`egress`](egress.md): Host egress policy for workerd guests (wraps shared `EgressPolicy`).
+- [`egress_relay`](egress_relay.md): The launcher's egress relay: a workerd isolate's only way out of its jail.
 - [`ensure`](ensure.md): Download / refresh the pinned Cloudflare `workerd` binary.
 - [`grant`](grant.md): Operator consent grant overrides delivered to `bookclerk-workerd` via env.
 - [`granted`](granted.md): Host-granted HTTP reverse channel for workerd isolates: `JobRunner.job` streams (`Source` / `Destination` / `ProgressSink`), the job's `Cancellation` long poll (`/cancel`), named database sessions (`/db/execute`, `/db/execute-streamed`), and the `EVENTS` outbox binding (`/events/publish`, `/events/read`), the `NOTIFY` binding (`/notify/raise`), and the `SOCKETS` broker binding (`/sockets/*`, parsed in `crate::granted_sockets`).

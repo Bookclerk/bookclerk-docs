@@ -69,6 +69,26 @@ local tasks because the host's handler is a Cap'n Proto capability.
 * `id_prefix` - Prefix for socket ids, unique per broker start so ids
   are not reused across restarts.
 
+#### SocketBroker::with_tunnels
+
+```rust
+pub fn with_tunnels(self, tunnels: Arc<Mux>) -> Self
+```
+
+Sends every dial through the host's proxy link as a tunnel.
+
+##### Arguments
+
+* `tunnels` - The host proxy link.
+
+##### Returns
+
+Updated `Self` for chaining.
+
+##### Panics
+
+Never: the shared state has no other owner until the broker serves.
+
 Implements: `Sockets`
 
 ## Functions
@@ -102,7 +122,7 @@ itself. Either way the addresses are checked afterwards.
 ### serve_stdio
 
 ```rust
-pub async fn serve_stdio(policy: EgressPolicy) -> Result<()>
+pub async fn serve_stdio(policy: EgressPolicy, tunnels: Option<Arc<Mux>>) -> Result<()>
 ```
 
 Serves the broker on stdio until the host hangs up.
@@ -110,6 +130,9 @@ Serves the broker on stdio until the host hangs up.
 #### Arguments
 
 * `policy` - The plugin's effective egress policy.
+* `tunnels` - The host's CONNECT link. When set, every socket is dialed
+  through it, so the broker's own jail needs no network; `None` dials
+  directly (diagnostic spawns only).
 
 #### Errors
 

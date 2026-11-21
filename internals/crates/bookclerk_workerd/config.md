@@ -88,7 +88,7 @@ Materialize bridge assets + config under `root`, return config path and socket a
 pub enum ListenSpec {
     TcpLoopback(u16),
     ReportedTcp,
-    InheritedTcp { port: u16 },
+    Inherited,
 }
 ```
 
@@ -106,10 +106,9 @@ How the bridge HTTP socket is exposed to `bookclerk-workerd`.
   The generated config turns on structured logging with this variant, so
   isolate `console.*` output on the shared stdout cannot pose as a
   control message.
-- `InheritedTcp`: Parent already bound `127.0.0.1:0`; workerd inherits via `--socket-fd`.
-  Required under Linux Landlock `OutboundListen` (only `bind(port=0)` is
-  allowed — rebinding a concrete ephemeral port is EPERM).
-  - `port`: Ephemeral port already bound by the parent (informational for clients).
+- `Inherited`: The launcher already bound the bridge listener (a Unix socket) and
+  workerd inherits it with `--socket-fd`. Neither process needs an IP
+  socket, so the jail can deny them all.
 
 #### ListenSpec::workerd_socket_line
 
@@ -132,7 +131,7 @@ HTTP origin the workerd isolate uses to call back into Bookclerk.
 ##### Returns
 
 `None` for [`Self::ReportedTcp`](#listenspec), whose port is known only once workerd
-reports it.
+reports it, and for [`Self::Inherited`](#listenspec), which is a Unix socket.
 
 #### ListenSpec::port
 
@@ -145,7 +144,8 @@ TCP port the bridge socket binds.
 ##### Returns
 
 `None` for [`Self::ReportedTcp`](#listenspec), whose port is known only once workerd
-reports it on its control channel.
+reports it on its control channel, and for [`Self::Inherited`](#listenspec), which
+is a Unix socket.
 
 #### ListenSpec::reports_port
 

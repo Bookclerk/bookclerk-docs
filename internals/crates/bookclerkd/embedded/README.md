@@ -65,6 +65,7 @@ the page over its own channel.
 | [`EmbeddedOptions`](#embeddedoptions) | struct | Where the embedded host reads its files and configuration, as `bookclerkd`'s `--bookclerk-files` and `--config` do. |
 | [`EmbeddedHost`](#embeddedhost) | struct | A running host with no listener, answering requests handed to it. |
 | [`WindowRequest`](#windowrequest) | struct | Marks a request the window handed to the router. The window refuses pages from other origins itself, before routing, so the cookie CSRF check (`csrf::require_csrf_for_cookie_api`), which compares `Origin` with `integrations.public_origin`, does not apply. Only the embedded host can set it: it is a request extension, not a header. |
+| [`TrackError`](#trackerror) | enum | Why a track cannot be played, in words for the listener. |
 | [`MAX_RESPONSE_BYTES`](#max_response_bytes) | constant | Largest response body the window receives. Larger answers (none of the web app's routes produce one) become `502 Bad Gateway`. |
 | [`RESPONSE_TIMEOUT`](#response_timeout) | constant | Longest a single request may take before it is answered with `504 Gateway Timeout`. A route that streams without end (none should be reachable here) would otherwise hold the request forever. |
 
@@ -76,6 +77,8 @@ the page over its own channel.
 - [`bookclerk_window_policy::APP_ORIGINS`](../../bookclerk_window_policy/README.md#app_origins)
 - [`bookclerk_window_policy::EMBEDDED_ORIGIN`](../../bookclerk_window_policy/README.md#embedded_origin)
 - [`bookclerk_window_policy::MAIN_WINDOW_LABEL`](../../bookclerk_window_policy/README.md#main_window_label)
+- [`bookclerk_media::PcmHeader`](../../bookclerk_media/pcm_wire.md#pcmheader)
+- [`bookclerk_media::PcmStream`](../../bookclerk_media/README.md#pcmstream)
 
 ## Modules
 
@@ -194,6 +197,27 @@ the socket.
 
 * `send` - Takes each frame's JSON text; false stops the feed.
 
+#### EmbeddedHost::open_track
+
+```rust
+pub async fn open_track(&self, path: &str, start_ms: u64) -> Result<PcmStream, TrackError>
+```
+
+Opens a play session's track for the window's own player, decoded
+to PCM by a confined media worker from `start_ms`. The bytes are
+read through the session's stream route,
+so its checks apply to every block.
+
+##### Arguments
+
+* `path` - The track's stream path, as the session listed it.
+* `start_ms` - Where to start, in milliseconds into the track.
+
+##### Errors
+
+A [`TrackError`](#trackerror) when the path is not a session's track, the route
+refuses it, or the worker cannot decode it.
+
 #### EmbeddedHost::shutdown
 
 ```rust
@@ -218,6 +242,33 @@ check (`csrf::require_csrf_for_cookie_api`), which compares `Origin` with
 set it: it is a request extension, not a header.
 
 Implements: `Clone`, `Copy`, `Debug`
+
+## Enums
+
+### TrackError
+
+```rust
+pub enum TrackError {
+    NotATrack,
+    SessionEnded,
+    Refused(u16),
+    UnknownSize,
+    Media(String),
+}
+```
+
+Why a track cannot be played, in words for the listener.
+
+**Variants**
+
+- `NotATrack`: The path is not a play session's track.
+- `SessionEnded`: The session ended (closed, idle, or the edition changed): the
+  player opens a new one.
+- `Refused`: The stream route refused the track.
+- `UnknownSize`: The track's size could not be read from the route's answer.
+- `Media`: The media worker could not start or decode the track.
+
+Implements: `Clone`, `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
 ## Constants
 
