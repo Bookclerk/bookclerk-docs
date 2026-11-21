@@ -85,6 +85,7 @@ See `docs/adr/control-plane.md`.
 | [`Sha256Hex`](#sha256hex) | struct | A lower-case hex SHA-256 digest a manifest declared for a file. |
 | [`UploadManifest`](#uploadmanifest) | struct | `POST /api/uploads` body: the files of one batch. |
 | [`UploadQuota`](#uploadquota) | struct | The upload limits a batch is admitted under (`uploads.*` settings). |
+| [`IngressSettings`](#ingresssettings) | struct | The `core.ingress` document. |
 | [`InstanceBindingGrant`](#instancebindinggrant) | struct | Whether the plugin-instance config grant includes `config` or `secrets`. |
 | [`InstanceConfigDocument`](#instanceconfigdocument) | struct | A parsed instance document plus its revision. |
 | [`InstanceSecretRefV1`](#instancesecretrefv1) | struct | A name in `encrypted_secrets`. The ciphertext is not part of the document. |
@@ -199,6 +200,8 @@ See `docs/adr/control-plane.md`.
 | [`IngestState`](#ingeststate) | enum | Where a batch is in its life. |
 | [`ManifestError`](#manifesterror) | enum | Why a manifest was refused before any batch was made. |
 | [`MemberOutcome`](#memberoutcome) | enum | What became of one member. |
+| [`IngressExposure`](#ingressexposure) | enum | What public traffic from the ingress may reach. |
+| [`OriginReport`](#originreport) | enum | What `record_started` did with a reported origin. |
 | [`InstanceConfigReplace`](#instanceconfigreplace) | enum | Outcome of `replace_instance_config`. |
 | [`SettingCell`](#settingcell) | enum | One cell of a table setting row: the scalar kinds only. |
 | [`SettingValue`](#settingvalue) | enum | One setting value: a scalar, or the rows of a table setting. |
@@ -395,6 +398,13 @@ See `docs/adr/control-plane.md`.
 | [`staged_bytes`](#staged_bytes) | function | Bytes `user_id` has in live upload batches (open, committed or running), which the staging quota counts. |
 | [`start_batch`](#start_batch) | function | Starts (or, after a crash, resumes) the job's run of a batch. |
 | [`user_batches`](#user_batches) | function | A person's batches, newest first, at most `limit`. |
+| [`accept_reported_origin`](#accept_reported_origin) | function | Adopts the origin the active instance reported and is waiting on the operator. |
+| [`activate_ingress`](#activate_ingress) | function | Makes `instance` the library's active ingress, replacing any other. |
+| [`deactivate_ingress`](#deactivate_ingress) | function | Turns ingress off. The adopted origin is kept, so turning the same provider back on serves under the same name. |
+| [`ingress_settings`](#ingress_settings) | function | The ingress settings: the stored document, or ingress off. |
+| [`load_ingress_settings`](#load_ingress_settings) | function | Loads the `core.ingress` document. |
+| [`record_started`](#record_started) | function | Records what `instance` reported from `Ingress.start`. |
+| [`set_ingress_exposure`](#set_ingress_exposure) | function | Sets what public traffic may reach. |
 | [`import_instance_config_if_absent`](#import_instance_config_if_absent) | function | Inserts the document when it is absent. |
 | [`load_instance_config`](#load_instance_config) | function | Loads and parses the instance config document. |
 | [`parse_setting_text`](#parse_setting_text) | function | Parses an operator-typed value for `key` according to the schema. |
@@ -693,6 +703,8 @@ See `docs/adr/control-plane.md`.
 | [`MAX_BATCH_FILES`](#max_batch_files) | constant | Most files one batch's manifest may name. |
 | [`MAX_INTAKE_REF_BYTES`](#max_intake_ref_bytes) | constant | Longest intake storage key or signature a member may carry, in bytes; both are stored in one cell. |
 | [`MAX_REASON_BYTES`](#max_reason_bytes) | constant | Longest outcome reason, in bytes. |
+| [`INGRESS_NAMESPACE`](#ingress_namespace) | constant | Namespace of the library document that holds the ingress settings. |
+| [`INGRESS_SCHEMA_VERSION`](#ingress_schema_version) | constant | Schema version of `IngressSettings`. |
 | [`MAX_INSTANCE_SECRET_REFS`](#max_instance_secret_refs) | constant | Maximum secret refs in one schema-1 document. |
 | [`MAX_INSTANCE_SETTINGS`](#max_instance_settings) | constant | Maximum settings in one schema-1 document. |
 | [`MAX_INSTANCE_SETTING_BYTES`](#max_instance_setting_bytes) | constant | Maximum UTF-8 size of one string setting. |
@@ -2843,6 +2855,53 @@ The upload limits a batch is admitted under (`uploads.*` settings).
 - `max_staged_bytes`: Most bytes one person may have staged in live upload batches.
 
 Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### IngressSettings
+
+```rust
+pub struct IngressSettings {
+    pub active_instance: Option<String>,
+    pub exposure: IngressExposure,
+    pub origin: Option<String>,
+    pub reported_origin: Option<String>,
+}
+```
+
+The `core.ingress` document.
+
+**Fields**
+
+- `active_instance`: The plugin instance serving the library's public address, as its
+  hyphenated UUID; `None` when ingress is off.
+- `exposure`: What public traffic may reach.
+- `origin`: The adopted public origin, `https://<host>`; `None` until the active
+  instance first reports one.
+- `reported_origin`: The last origin the active instance reported when it differs from
+  [`IngressSettings::origin`](#ingresssettings); waits for the operator to accept it.
+
+#### IngressSettings::active
+
+```rust
+pub fn active(&self) -> Option<PluginInstanceId>
+```
+
+The active instance, parsed.
+
+##### Returns
+
+`None` when ingress is off or the stored id does not parse (a
+document written by hand); either way no instance is active.
+
+#### IngressSettings::serving_origin
+
+```rust
+pub fn serving_origin(&self) -> Option<&str>
+```
+
+The public origin to serve while ingress is on: the adopted origin of
+the active instance, `None` when ingress is off.
+
+Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
 ### InstanceBindingGrant
 
@@ -6905,6 +6964,58 @@ Parses stored text; `None` for anything else.
 
 Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
 
+### IngressExposure
+
+```rust
+pub enum IngressExposure {
+    Branches,
+    Library,
+}
+```
+
+What public traffic from the ingress may reach.
+
+**Variants**
+
+- `Branches`: Only what branches and clerks need: the node API, sign-in and the
+  clerk routes. The default, so turning ingress on never publishes the
+  web app by surprise.
+- `Library`: The whole library, web app included.
+
+#### IngressExposure::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Stable spelling used by the CLI and the API.
+
+Implements: `Clone`, `ComposeSchema`, `Copy`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `Hash`, `PartialEq`, `Serialize`, `ToSchema`
+
+### OriginReport
+
+```rust
+pub enum OriginReport {
+    Adopted(IngressOrigin),
+    Pending { adopted: String, reported: IngressOrigin },
+    NotActive,
+}
+```
+
+What [`record_started`](#record_started) did with a reported origin.
+
+**Variants**
+
+- `Adopted`: The origin is the library's public origin now (first report, or the
+  same host again).
+- `Pending`: The origin differs from the adopted one; it is recorded and waits for
+  the operator.
+  - `adopted`: The origin the library keeps serving under.
+  - `reported`: The origin the plugin reported.
+- `NotActive`: The reporting instance is not the active one; nothing was written.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### InstanceConfigReplace
 
 ```rust
@@ -10909,6 +11020,147 @@ A person's batches, newest first, at most `limit`.
 #### Errors
 
 Returns a read error, or an error for a corrupt row.
+
+### accept_reported_origin
+
+```rust
+pub async fn accept_reported_origin(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+) -> Result<ConfigurationDocument<IngressSettings>>
+```
+
+Adopts the origin the active instance reported and is waiting on the
+operator.
+
+#### Returns
+
+The document after the change; unchanged when nothing was pending.
+
+#### Errors
+
+Returns an error when the actor may not write or the write fails.
+
+### activate_ingress
+
+```rust
+pub async fn activate_ingress(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    instance: &PluginInstanceId,
+) -> Result<ConfigurationDocument<IngressSettings>>
+```
+
+Makes `instance` the library's active ingress, replacing any other.
+
+Switching to another instance keeps the adopted origin: the new instance's
+first report then has to match it or wait for the operator, like any
+change of name.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - The operator or a verified Owner.
+* `instance` - The plugin instance to activate.
+
+#### Errors
+
+Returns an error when the actor may not write, the store refuses the
+write, or the document keeps changing underneath.
+
+### deactivate_ingress
+
+```rust
+pub async fn deactivate_ingress(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+) -> Result<ConfigurationDocument<IngressSettings>>
+```
+
+Turns ingress off. The adopted origin is kept, so turning the same
+provider back on serves under the same name.
+
+#### Errors
+
+Returns an error when the actor may not write or the write fails.
+
+### ingress_settings
+
+```rust
+pub async fn ingress_settings(store: &LibraryStore) -> Result<IngressSettings>
+```
+
+The ingress settings: the stored document, or ingress off.
+
+#### Errors
+
+Returns the read or parse error.
+
+### load_ingress_settings
+
+```rust
+pub async fn load_ingress_settings(
+    store: &LibraryStore,
+) -> Result<Option<ConfigurationDocument<IngressSettings>>>
+```
+
+Loads the `core.ingress` document.
+
+#### Returns
+
+The stored document, or `None` when nobody has written one: ingress is
+then off.
+
+#### Errors
+
+Returns the read error, or an error when the stored document is invalid
+or of an unknown schema.
+
+### record_started
+
+```rust
+pub async fn record_started(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    instance: &PluginInstanceId,
+    started: &IngressStarted,
+) -> Result<OriginReport>
+```
+
+Records what `instance` reported from `Ingress.start`.
+
+#### Arguments
+
+* `store` - The library database.
+* `actor` - The host writing on the plugin's behalf.
+* `instance` - The instance that started.
+* `started` - Its report, checked here with [`parse_ingress_origin`](../bookclerk_plugin_abi/origin.md#parse_ingress_origin).
+
+#### Returns
+
+Whether the origin was adopted, is waiting for the operator, or came from
+an instance that is not active.
+
+#### Errors
+
+[`LibraryError::Invalid`](README.md#libraryerror) when the origin is not `https://` and a DNS
+name, or the write error.
+
+### set_ingress_exposure
+
+```rust
+pub async fn set_ingress_exposure(
+    store: &LibraryStore,
+    actor: &ConfigActor,
+    exposure: IngressExposure,
+) -> Result<ConfigurationDocument<IngressSettings>>
+```
+
+Sets what public traffic may reach.
+
+#### Errors
+
+Returns an error when the actor may not write or the write fails.
 
 ### import_instance_config_if_absent
 
@@ -16062,6 +16314,22 @@ pub const MAX_REASON_BYTES: usize = 128;
 ```
 
 Longest outcome reason, in bytes.
+
+### INGRESS_NAMESPACE
+
+```rust
+pub const INGRESS_NAMESPACE: &str = "core.ingress";
+```
+
+Namespace of the library document that holds the ingress settings.
+
+### INGRESS_SCHEMA_VERSION
+
+```rust
+pub const INGRESS_SCHEMA_VERSION: i64 = 1;
+```
+
+Schema version of [`IngressSettings`](#ingresssettings).
 
 ### MAX_INSTANCE_SECRET_REFS
 

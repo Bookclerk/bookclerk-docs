@@ -1598,6 +1598,36 @@ JSON body after an operator session started impersonating a user.
 - `ok` *boolean*, **required** — Always `true` on this success path.
 - `impersonating` *[`AuthMeImpersonating`](#authmeimpersonating)*, **required** — The user the session now acts as.
 
+## IngressChange
+
+`POST /api/config/ingress` body: each field is one change, applied in order
+(off or on, then exposure, then accepting a reported origin).
+
+- `activate` *string or null* — Makes this the library's active ingress: a plugin instance UUID, or a plugin key for that plugin's default instance.
+- `deactivate` *boolean* — Turns ingress off; the adopted origin is kept.
+- `exposure` *[`IngressExposure`](#ingressexposure) or null* — What public traffic may reach.
+- `accept_reported_origin` *boolean* — Adopts the origin the active instance reported. Renaming the library breaks passkeys and sign-in redirects registered under the old name.
+
+## IngressExposure
+
+What public traffic from the ingress may reach.
+
+Type: one of `branches`, `library`
+
+## IngressStatus
+
+`GET /api/config/ingress` and the answer to `POST /api/config/ingress`: the library's
+ingress settings and what they mean now.
+
+- `active_instance` *string or null* — The plugin instance serving the library's public address, as its UUID; `null` when ingress is off.
+- `plugin_key` *string or null* — The active instance's plugin, when the instance exists.
+- `exposure` *[`IngressExposure`](#ingressexposure)*, **required** — What public traffic may reach.
+- `origin` *string or null* — The adopted public origin, kept while ingress is off.
+- `reported_origin` *string or null* — A different origin the active instance reported, waiting for the operator to accept it.
+- `public_origin` *string or null* — The origin the library serves under now: `integrations.public_origin` when set, else the ingress origin while the instance runs.
+- `operator_override` *boolean*, **required** — True when `integrations.public_origin` in `config.toml` overrides the ingress origin.
+- `blocked` *string or null* — Why ingress can't run now (no Owner yet, or operator auth off); `null` when it can.
+
 ## InspectBody
 
 `POST /api/config/join/inspect` body.

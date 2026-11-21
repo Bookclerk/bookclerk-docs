@@ -167,6 +167,8 @@ bytes.
 | [`ConnectionType`](#connectiontype) | enum | How a joining install connects to a library. |
 | [`SharedBranchDatabase`](#sharedbranchdatabase) | enum | The library's database, as a shared branch needs it to connect. |
 | [`AuthError`](#autherror) | enum | Why a handshake signature was refused. |
+| [`TunnelExposure`](#tunnelexposure) | enum | What public traffic may reach. |
+| [`TunnelRefusal`](#tunnelrefusal) | enum | Why a tunnel request was refused. |
 | [`UploadRange`](#uploadrange) | enum | What a `Content-Range` on an upload `PUT` asks for. |
 | [`account_bundle_aad`](#account_bundle_aad) | function | Associated data of the account bundle for `node_id` of `library_id`: the domain tag, then each field as a 4-byte big-endian length and its bytes. |
 | [`account_offer_aad`](#account_offer_aad) | function | Associated data of an account offer from `node_id` to its library `library_id`: `ACCOUNT_OFFER_AAD_DOMAIN`, then the two ids as in `account_bundle_aad`. |
@@ -248,6 +250,8 @@ bytes.
 | [`sign_auth`](#sign_auth) | function | Signs a handshake; the result is base64url without padding. |
 | [`verify_artifact_request`](#verify_artifact_request) | function | Verifies a signed artifact request with the node's enrolled key and checks its time against `now` (unix seconds). |
 | [`verify_auth`](#verify_auth) | function | Verifies a handshake signature with the node's enrolled public key. Uses strict verification (no malleable or small-order signatures). |
+| [`normalize_tunnel_path`](#normalize_tunnel_path) | function | The path the router matches for `raw`: the router trims trailing slashes and keeps exactly one leading slash, so `//api/node/` routes as `/api/node`. |
+| [`tunnel_refusal`](#tunnel_refusal) | function | Whether a tunnel request for `path` is refused. |
 | [`parse_upload_range`](#parse_upload_range) | function | Reads a `Content-Range` header value on an upload `PUT` of a declared file of `size` bytes. |
 | [`upload_parts`](#upload_parts) | function | The parts a host sends a file of `size` bytes in, each at most `part_bytes` (at least 1) long, in order; empty when the file fits in one request (`size <= part_bytes`), which is then sent whole. |
 | [`window_page_problem`](#window_page_problem) | function | Why a `crate::Body::WindowPage` is malformed, or `None`: at most `MAX_WINDOW_WORKS` well-formed works with distinct grouping keys, and a next cursor, when there is one, past `after` (the cursor the window asked with), so paging always moves forward. |
@@ -343,6 +347,9 @@ bytes.
 | [`ARTIFACT_REQUEST_MAX_SKEW_SECS`](#artifact_request_max_skew_secs) | constant | How far a signed artifact request's time may be from the owner's clock. |
 | [`AUTH_DOMAIN`](#auth_domain) | constant | Domain tag that starts every signed transcript. |
 | [`NONCE_LEN`](#nonce_len) | constant | Length of a challenge nonce. |
+| [`BRANCH_API_PATHS`](#branch_api_paths) | constant | API paths `TunnelExposure::Branches` serves. Each also covers the paths below it. |
+| [`LEGACY_CONTROL_PATHS`](#legacy_control_paths) | constant | Legacy control routes outside `/api/` that `TunnelExposure::Branches` refuses. Each also covers the paths below it. |
+| [`OPERATOR_ONLY_PATHS`](#operator_only_paths) | constant | Paths no tunnel request reaches: the operator-token sign-in, the loopback tray handoff, operator elevation and the operator's first-Owner bootstrap. Each also covers the paths below it. |
 | [`UPLOAD_PART_BYTES`](#upload_part_bytes) | constant | Largest part a host sends (64 MiB): under the request-body caps of the relays an install can sit behind (100 MB on Cloudflare's Free plan). |
 | [`MAX_COPY_CONTENT_TYPE_BYTES`](#max_copy_content_type_bytes) | constant | Longest `WindowCopy::content_type`, in bytes. |
 | [`MAX_COPY_VERSION_BYTES`](#max_copy_version_bytes) | constant | Longest `WindowCopy::version`, in bytes. |
@@ -3074,6 +3081,50 @@ Why a handshake signature was refused.
 
 Implements: `Debug`, `Display`, `Eq`, `Error`, `PartialEq`
 
+### TunnelExposure
+
+```rust
+pub enum TunnelExposure {
+    Branches,
+    Library,
+}
+```
+
+What public traffic may reach.
+
+**Variants**
+
+- `Branches`: Only what branches and clerks need.
+- `Library`: The whole library, web app included.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
+### TunnelRefusal
+
+```rust
+pub enum TunnelRefusal {
+    OperatorOnly,
+    NotExposed,
+}
+```
+
+Why a tunnel request was refused.
+
+**Variants**
+
+- `OperatorOnly`: The path is for the operator on this machine only.
+- `NotExposed`: The exposure the operator chose does not include the path.
+
+#### TunnelRefusal::as_str
+
+```rust
+pub fn as_str(self) -> &'static str
+```
+
+Stable code for the response body and logs.
+
+Implements: `Clone`, `Copy`, `Debug`, `Eq`, `PartialEq`
+
 ### UploadRange
 
 ```rust
@@ -4254,6 +4305,41 @@ Uses strict verification (no malleable or small-order signatures).
 Returns [`AuthError`](#autherror) when the key is invalid, the signature is
 malformed, or it does not verify.
 
+### normalize_tunnel_path
+
+```rust
+pub fn normalize_tunnel_path(raw: &str) -> String
+```
+
+The path the router matches for `raw`: the router trims trailing slashes
+and keeps exactly one leading slash, so `//api/node/` routes as
+`/api/node`.
+
+#### Arguments
+
+* `raw` - The request target's path, without the query.
+
+#### Returns
+
+`raw` without leading or trailing slashes, behind one leading slash.
+
+### tunnel_refusal
+
+```rust
+pub fn tunnel_refusal(path: &str, exposure: TunnelExposure) -> Option<TunnelRefusal>
+```
+
+Whether a tunnel request for `path` is refused.
+
+#### Arguments
+
+* `path` - The path from [`normalize_tunnel_path`](#normalize_tunnel_path).
+* `exposure` - What the operator chose to expose.
+
+#### Returns
+
+`None` to serve the request, or why it is refused.
+
 ### parse_upload_range
 
 ```rust
@@ -5060,6 +5146,35 @@ pub const NONCE_LEN: usize = 32;
 ```
 
 Length of a challenge nonce.
+
+### BRANCH_API_PATHS
+
+```rust
+pub const BRANCH_API_PATHS: [&str; 13] = _;
+```
+
+API paths [`TunnelExposure::Branches`](#tunnelexposure) serves. Each also covers the paths
+below it.
+
+### LEGACY_CONTROL_PATHS
+
+```rust
+pub const LEGACY_CONTROL_PATHS: [&str; 5] = _;
+```
+
+Legacy control routes outside `/api/` that
+[`TunnelExposure::Branches`](#tunnelexposure) refuses. Each also covers the paths below
+it.
+
+### OPERATOR_ONLY_PATHS
+
+```rust
+pub const OPERATOR_ONLY_PATHS: [&str; 6] = _;
+```
+
+Paths no tunnel request reaches: the operator-token sign-in, the loopback
+tray handoff, operator elevation and the operator's first-Owner
+bootstrap. Each also covers the paths below it.
 
 ### UPLOAD_PART_BYTES
 

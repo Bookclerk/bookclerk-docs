@@ -349,6 +349,8 @@ Live configuration domains and reloads.
 | [`PUT /api/config/domains/core.events`](configuration.md#put-apiconfigdomainscoreevents) | `PUT /api/config/domains/core.events`. |
 | [`GET /api/config/domains/core.output`](configuration.md#get-apiconfigdomainscoreoutput) | `GET /api/config/domains/core.output`. |
 | [`PUT /api/config/domains/core.output`](configuration.md#put-apiconfigdomainscoreoutput) | `PUT /api/config/domains/core.output`. |
+| [`GET /api/config/ingress`](configuration.md#get-apiconfigingress) | `GET /api/config/ingress`: the library's public address settings. |
+| [`POST /api/config/ingress`](configuration.md#post-apiconfigingress) | `POST /api/config/ingress`: turns ingress on or off, sets what it exposes, or accepts a reported origin. The deployment reconciler then starts or stops the instance. |
 | [`GET /api/config/clerk`](configuration.md#get-apiconfigclerk) | `GET /api/config/clerk`. |
 | [`POST /api/config/clerk/inspect`](configuration.md#post-apiconfigclerkinspect) | `POST /api/config/clerk/inspect`. |
 | [`POST /api/config/clerk/start`](configuration.md#post-apiconfigclerkstart) | `POST /api/config/clerk/start`. |

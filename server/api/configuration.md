@@ -2656,6 +2656,687 @@ Schema:
 
 A `text/plain` body: a string.
 
+## `GET /api/config/ingress`
+
+`GET /api/config/ingress`: the library's public address settings.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Responses
+
+- `200` — The ingress settings. Body: [`IngressStatus`](schemas.md#ingressstatus) (`application/json`)
+  - `active_instance` *string or null* — The plugin instance serving the library's public address, as its UUID; `null` when ingress is off.
+  - `plugin_key` *string or null* — The active instance's plugin, when the instance exists.
+  - `exposure` *[`IngressExposure`](schemas.md#ingressexposure)*, **required** — What public traffic may reach.
+  - `origin` *string or null* — The adopted public origin, kept while ingress is off.
+  - `reported_origin` *string or null* — A different origin the active instance reported, waiting for the operator to accept it.
+  - `public_origin` *string or null* — The origin the library serves under now: `integrations.public_origin` when set, else the ingress origin while the instance runs.
+  - `operator_override` *boolean*, **required** — True when `integrations.public_origin` in `config.toml` overrides the ingress origin.
+  - `blocked` *string or null* — Why ingress can't run now (no Owner yet, or operator auth off); `null` when it can.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `500` — The library could not be read. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/ingress' \
+    -H 'Authorization: Bearer <operatorToken>'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/ingress' `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' }
+```
+
+```python
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:8787/api/config/ingress",
+    headers={"Authorization": "Bearer <operatorToken>"},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/ingress", {
+  headers: { Authorization: "Bearer <operatorToken>" },
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .get("http://127.0.0.1:8787/api/config/ingress")
+    .header("Authorization", "Bearer <operatorToken>")
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The ingress settings.
+
+```json
+{
+  "active_instance": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "plugin_key": "cloudflare-relay",
+  "exposure": "branches",
+  "origin": "https://relay.example.workers.dev",
+  "reported_origin": "https://library.example.net",
+  "public_origin": "https://relay.example.workers.dev",
+  "operator_override": false,
+  "blocked": null
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/config/ingress` and the answer to `POST /api/config/ingress`: the library's\ningress settings and what they mean now.",
+  "required": [
+    "exposure",
+    "operator_override"
+  ],
+  "properties": {
+    "active_instance": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The plugin instance serving the library's public address, as its\nUUID; `null` when ingress is off.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "plugin_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The active instance's plugin, when the instance exists.",
+      "example": "cloudflare-relay"
+    },
+    "exposure": {
+      "type": "string",
+      "description": "What public traffic may reach.",
+      "enum": [
+        "branches",
+        "library"
+      ]
+    },
+    "origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The adopted public origin, kept while ingress is off.",
+      "example": "https://relay.example.workers.dev"
+    },
+    "reported_origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A different origin the active instance reported, waiting for the\noperator to accept it.",
+      "example": "https://library.example.net"
+    },
+    "public_origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The origin the library serves under now: `integrations.public_origin`\nwhen set, else the ingress origin while the instance runs.",
+      "example": "https://relay.example.workers.dev"
+    },
+    "operator_override": {
+      "type": "boolean",
+      "description": "True when `integrations.public_origin` in `config.toml` overrides the\ningress origin.",
+      "example": false
+    },
+    "blocked": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why ingress can't run now (no Owner yet, or operator auth off);\n`null` when it can.",
+      "example": null
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `500`: The library could not be read.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+## `POST /api/config/ingress`
+
+`POST /api/config/ingress`: turns ingress on or off, sets what it exposes, or
+accepts a reported origin. The deployment reconciler then starts or
+stops the instance.
+
+**Access:** The operator (token or session) only.
+
+**Credentials:** `operatorToken` or `operatorSession`
+
+### Request body
+
+`application/json`: [`IngressChange`](schemas.md#ingresschange)
+
+- `activate` *string or null* — Makes this the library's active ingress: a plugin instance UUID, or a plugin key for that plugin's default instance.
+- `deactivate` *boolean* — Turns ingress off; the adopted origin is kept.
+- `exposure` *[`IngressExposure`](schemas.md#ingressexposure) or null* — What public traffic may reach.
+- `accept_reported_origin` *boolean* — Adopts the origin the active instance reported. Renaming the library breaks passkeys and sign-in redirects registered under the old name.
+
+### Responses
+
+- `200` — The settings after the change. Body: [`IngressStatus`](schemas.md#ingressstatus) (`application/json`)
+  - `active_instance` *string or null* — The plugin instance serving the library's public address, as its UUID; `null` when ingress is off.
+  - `plugin_key` *string or null* — The active instance's plugin, when the instance exists.
+  - `exposure` *[`IngressExposure`](schemas.md#ingressexposure)*, **required** — What public traffic may reach.
+  - `origin` *string or null* — The adopted public origin, kept while ingress is off.
+  - `reported_origin` *string or null* — A different origin the active instance reported, waiting for the operator to accept it.
+  - `public_origin` *string or null* — The origin the library serves under now: `integrations.public_origin` when set, else the ingress origin while the instance runs.
+  - `operator_override` *boolean*, **required** — True when `integrations.public_origin` in `config.toml` overrides the ingress origin.
+  - `blocked` *string or null* — Why ingress can't run now (no Owner yet, or operator auth off); `null` when it can.
+- `400` — `activate` and `deactivate` were both set, or `activate` is neither an instance id nor a plugin key with an instance. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`); string (`text/plain`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `401` — The caller is not signed in, or the credential is wrong. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `403` — The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused. Body: [`ApiError`](schemas.md#apierror) (`application/json`)
+  - `error` *string*, **required** — Stable machine slug.
+  - `message` *string* — Explanation for people.
+  - `status` *integer* — The HTTP status, repeated.
+- `409` — Ingress can't be turned on yet: no Owner exists, or operator auth is off. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `415` — The request did not declare a JSON body. Body: string (`text/plain`)
+- `422` — The JSON does not fit the body: a missing field, a wrong type or an unknown shape. Body: string (`text/plain`)
+- `500` — The library could not be read or written. Body: [`ErrorMessage`](schemas.md#errormessage) (`application/json`)
+  - `error` *string*, **required** — What went wrong, as the handler describes it.
+- `504` — The request ran past the API's time budget. Body: string (`text/plain`)
+
+### Example request
+
+```console
+$ curl 'http://127.0.0.1:8787/api/config/ingress' \
+    -X POST \
+    -H 'Authorization: Bearer <operatorToken>' \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/config/ingress' `
+    -Method Post `
+    -Headers @{ Authorization = 'Bearer <operatorToken>' } `
+    -ContentType 'application/json' `
+    -Body '{}'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "http://127.0.0.1:8787/api/config/ingress",
+    headers={"Authorization": "Bearer <operatorToken>"},
+    json={},
+)
+print(response.status_code, response.text)
+```
+
+```javascript
+const response = await fetch("http://127.0.0.1:8787/api/config/ingress", {
+  method: "POST",
+  headers: { Authorization: "Bearer <operatorToken>", "Content-Type": "application/json" },
+  body: JSON.stringify({}),
+});
+console.log(response.status, await response.text());
+```
+
+```rust
+let client = reqwest::Client::new();
+let response = client
+    .post("http://127.0.0.1:8787/api/config/ingress")
+    .header("Authorization", "Bearer <operatorToken>")
+    .json(&serde_json::json!({}))
+    .send()
+    .await?;
+println!("{} {}", response.status(), response.text().await?);
+```
+
+### Example response
+
+Status `200`: The settings after the change.
+
+```json
+{
+  "active_instance": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b",
+  "plugin_key": "cloudflare-relay",
+  "exposure": "branches",
+  "origin": "https://relay.example.workers.dev",
+  "reported_origin": "https://library.example.net",
+  "public_origin": "https://relay.example.workers.dev",
+  "operator_override": false,
+  "blocked": null
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "`GET /api/config/ingress` and the answer to `POST /api/config/ingress`: the library's\ningress settings and what they mean now.",
+  "required": [
+    "exposure",
+    "operator_override"
+  ],
+  "properties": {
+    "active_instance": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The plugin instance serving the library's public address, as its\nUUID; `null` when ingress is off.",
+      "example": "3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b"
+    },
+    "plugin_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The active instance's plugin, when the instance exists.",
+      "example": "cloudflare-relay"
+    },
+    "exposure": {
+      "type": "string",
+      "description": "What public traffic may reach.",
+      "enum": [
+        "branches",
+        "library"
+      ]
+    },
+    "origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The adopted public origin, kept while ingress is off.",
+      "example": "https://relay.example.workers.dev"
+    },
+    "reported_origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "A different origin the active instance reported, waiting for the\noperator to accept it.",
+      "example": "https://library.example.net"
+    },
+    "public_origin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The origin the library serves under now: `integrations.public_origin`\nwhen set, else the ingress origin while the instance runs.",
+      "example": "https://relay.example.workers.dev"
+    },
+    "operator_override": {
+      "type": "boolean",
+      "description": "True when `integrations.public_origin` in `config.toml` overrides the\ningress origin.",
+      "example": false
+    },
+    "blocked": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why ingress can't run now (no Owner yet, or operator auth off);\n`null` when it can.",
+      "example": null
+    }
+  }
+}
+```
+
+Status `400`: `activate` and `deactivate` were both set, or `activate` is neither an instance id nor a plugin key with an instance. As `text/plain`, when the body is not syntactically valid JSON.
+
+```json
+{
+  "error": "no plugin instance for `cloudflare-relay`"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `401`: The caller is not signed in, or the credential is wrong.
+
+```json
+{
+  "error": "unauthorized",
+  "message": "Operator authentication is required. Sign in with your operator token.",
+  "status": 401
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `403`: The caller's role does not allow this route. A write sent with a session cookie but without a matching `Origin` or `Referer` is refused.
+
+```json
+{
+  "error": "forbidden",
+  "message": "You do not have access to this resource.",
+  "status": 403
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "An error. `error` is a stable slug; bodies the error middleware writes also carry `message` and `status`, and some routes add fields of their own.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "Stable machine slug.",
+      "examples": [
+        "not_found"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "Explanation for people.",
+      "examples": [
+        "That page or resource was not found."
+      ]
+    },
+    "status": {
+      "type": "integer",
+      "description": "The HTTP status, repeated.",
+      "examples": [
+        404
+      ]
+    }
+  }
+}
+```
+
+Status `409`: Ingress can't be turned on yet: no Owner exists, or operator auth is off.
+
+```json
+{
+  "error": "no Owner account exists yet: claim the library on this machine first, so first-run setup is never public"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `415`: The request did not declare a JSON body.
+
+```text
+Expected request with `Content-Type: application/json`
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `422`: The JSON does not fit the body: a missing field, a wrong type or an unknown shape.
+
+```text
+Failed to deserialize the JSON body into the target type: activate: invalid type: integer `1`, expected a string at line 1 column 13
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
+Status `500`: The library could not be read or written.
+
+```json
+{
+  "error": "ORM / database plugin error: Connection Error: pool timed out while waiting for an open connection"
+}
+```
+
+Schema:
+
+```json
+{
+  "type": "object",
+  "description": "JSON error object with a single `error` message, written by handlers\nthat report a library or plugin error in their own words.",
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "string",
+      "description": "What went wrong, as the handler describes it.",
+      "example": "plugin instance 3f9c2b7e-1d4a-4c8e-9b2f-6a7d8e9f0a1b not found"
+    }
+  }
+}
+```
+
+Status `504`: The request ran past the API's time budget.
+
+```text
+request timed out
+```
+
+Schema:
+
+A `text/plain` body: a string.
+
 ## `GET /api/config/clerk`
 
 `GET /api/config/clerk`.

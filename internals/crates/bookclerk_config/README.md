@@ -2005,6 +2005,7 @@ pub struct IntegrationsConfig {
     pub claim_ticket_ttl_hours: u64,
     pub public_origin: Option<String>,
     pub portal_session_ttl_hours: u64,
+    pub ingress_origin: Option<String>,
 }
 ```
 
@@ -2020,6 +2021,28 @@ instances; their settings live on the instance, not here.
   (e.g. `https://bookclerk.example.com`). `None` accepts only a bound
   loopback `Origin` / `Host`; non-loopback hosts must set this pin.
 - `portal_session_ttl_hours`: Hours a portal browser session cookie remains valid (default 12).
+- `ingress_origin`: Public origin the library's active ingress plugin reported, loaded
+  from the database at run time.
+  
+  Never read from or written to `config.toml`: handlers write the
+  in-memory configuration back to the file, and a plugin-reported name
+  must not become the operator's override. Read the origin through
+  [`IntegrationsConfig::effective_public_origin`](#integrationsconfigeffective_public_origin).
+
+#### IntegrationsConfig::effective_public_origin
+
+```rust
+pub fn effective_public_origin(&self) -> Option<&str>
+```
+
+The library's public origin: the operator's
+`integrations.public_origin` when set, otherwise the origin the
+active ingress plugin reported.
+
+##### Returns
+
+The origin as written (callers trim and normalize it), or `None` when
+neither is set.
 
 Implements: `Clone`, `Debug`, `Default`, `Deserialize<'de>`, `Eq`, `PartialEq`, `Serialize`
 
@@ -4098,6 +4121,7 @@ pub enum NodeApiMode {
     Proxy,
     Acme,
     SelfSigned,
+    Tunnel,
 }
 ```
 
@@ -4112,6 +4136,9 @@ Plain HTTP is accepted only on loopback, in every mode.
 - `Acme`: The built-in TLS listener with an ACME (Let's Encrypt) certificate.
 - `SelfSigned`: The built-in TLS listener with a self-signed certificate whose SPKI
   pin travels in enrollment links.
+- `Tunnel`: The library's active relay ingress plugin carries public traffic
+  through its `ORIGIN` binding; branches verify the relay's edge
+  certificate against the webpki roots.
 
 #### NodeApiMode::as_str
 

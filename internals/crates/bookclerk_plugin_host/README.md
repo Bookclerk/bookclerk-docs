@@ -38,6 +38,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`OnDemandStatus`](#ondemandstatus) | trait | What the deployment reconciler reads from, and does to, any on-demand proxy. |
 | [`DeploymentRuntime`](#deploymentruntime) | trait | Install health and spawn for one deployment row. |
 | [`RefreshedCredentialSink`](#refreshedcredentialsink) | trait | Receives the credentials a guest refreshed while it used credentials an library handed with a job (`ScanPage.refreshedCredentials`, `PlainFetch.refreshedCredentials`), already checked against the ABI bounds. The daemon writes them back to the owner under the job's fence. |
+| [`IngressHost`](#ingresshost) | trait | What the daemon supplies to run the library's ingress. |
 | [`SocketSink`](#socketsink) | trait | Where a plugin instance's socket events go: its guest's `socketHandler`. |
 | [`CallbackProxy`](#callbackproxy) | struct | Active host callback proxy for one OAuth session. |
 | [`GrantedEventConsumer`](#grantedeventconsumer) | struct | One approved event-consumer subscription (structural authority). |
@@ -293,6 +294,7 @@ See `docs/plugins/README.md`, `docs/adr/plugin-workers-rpc-workerd.md`, and
 | [`WORKERD_GRANT_POLICY_ENV`](#workerd_grant_policy_env) | constant | Canonical JSON `EgressPolicy` (preferred over piecemeal domain env vars). |
 | [`WORKERD_GRANT_SUBREQUESTS_ENV`](#workerd_grant_subrequests_env) | constant | Grant subrequest budget injected into workerd `EGRESS_POLICY`. |
 | [`AUTHORIZED_PACKAGE_DIR`](#authorized_package_dir) | constant | Directory under the files dir that holds operator-placed package archives. |
+| [`INGRESS_HEALTH_INTERVAL`](#ingress_health_interval) | constant | How often a running ingress is asked whether it is serving. |
 | [`VERSION_CACHE_DIR`](#version_cache_dir) | constant | Directory under `plugins/` holding materialized version trees. |
 | [`VERSION_CACHE_GRACE`](#version_cache_grace) | constant | How long an unreferenced cached digest survives before the sweep. |
 | [`KV_GRANT_BINDING`](#kv_grant_binding) | constant | Grant token that authorizes every `[[kv_namespaces]]` row of a plugin. |
@@ -652,6 +654,106 @@ fn latest(&self, account_id: &str) -> Option<Vec<u8>>
 
 The newest credentials handed to [`Self::refreshed`](#refreshedcredentialsinkrefreshed) for
 `account_id` during this job, if any; they replace the handed ones.
+
+### IngressHost
+
+```rust
+pub trait IngressHost: Send + Sync {
+    fn admit<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        plugin_instance_id: &'life1 str,
+    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn origin(&self) -> Arc<dyn Origin + Send + Sync>;
+    fn started<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        plugin_instance_id: &'life1 str,
+        started: IngressStarted,
+    ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+    fn stopped<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        plugin_instance_id: &'life1 str,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+    where
+        Self: 'async_trait,
+        'life0: 'async_trait,
+        'life1: 'async_trait,;
+}
+```
+
+What the daemon supplies to run the library's ingress.
+
+#### IngressHost::admit
+
+```rust
+fn admit<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    plugin_instance_id: &'life1 str,
+) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+Whether `plugin_instance_id` may serve the library's public address
+now.
+
+##### Errors
+
+Returns why not, for the deployment observation: not the active
+ingress, no Owner yet, or the settings could not be read.
+
+#### IngressHost::origin
+
+```rust
+fn origin(&self) -> Arc<dyn Origin + Send + Sync>
+```
+
+The library as relay plugins reach it (`ORIGIN`).
+
+#### IngressHost::started
+
+```rust
+fn started<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    plugin_instance_id: &'life1 str,
+    started: IngressStarted,
+) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+`plugin_instance_id` started and reported `started`.
+
+##### Errors
+
+Returns why the report was refused (an origin that is not `https://`
+and a DNS name); the instance is then stopped.
+
+#### IngressHost::stopped
+
+```rust
+fn stopped<'life0, 'life1, 'async_trait>(
+    &'life0 self,
+    plugin_instance_id: &'life1 str,
+) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+where
+    Self: 'async_trait,
+    'life0: 'async_trait,
+    'life1: 'async_trait,
+```
+
+`plugin_instance_id` stopped serving: retired, replaced, or refused.
 
 ### SocketSink
 
@@ -1365,6 +1467,15 @@ pub fn new(
 ```
 
 Runtime bound to the daemon's live registries.
+
+#### LiveDeploymentRuntime::set_ingress_host
+
+```rust
+pub fn set_ingress_host(&self, host: Arc<dyn IngressHost>)
+```
+
+Stores what the daemon supplies to run the library's ingress. Until
+it is set, ingress plugins are not spawned.
 
 #### LiveDeploymentRuntime::on_demand
 
@@ -3539,6 +3650,27 @@ runtime.
 Returns a plugin error when the guest did not export `notifier` or
 the method fails.
 
+#### PluginSession::ingress
+
+```rust
+pub async fn ingress<T, F, Fut>(&self, call: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce(Box<dyn Ingress>) -> Fut + Send + 'static,
+    Fut: Future<Output = Result<T, PluginError>> + 'static,
+```
+
+One typed `ingress` method (`start`, `health` or `stop`) on the
+opened primary entrypoints.
+
+`call` runs on the vat thread; its output crosses back to the caller's
+runtime.
+
+##### Errors
+
+Returns a plugin error when the guest did not export `ingress` or the
+method fails.
+
 #### PluginSession::deliver_socket_event
 
 ```rust
@@ -4170,6 +4302,7 @@ pub struct SessionServices {
     pub local_output_root: Option<PathBuf>,
     pub deployed_endpoint: Option<Option<String>>,
     pub sockets: Option<SocketBroker>,
+    pub origin: Option<Arc<dyn Origin + Send + Sync>>,
 }
 ```
 
@@ -4207,6 +4340,13 @@ binding on the manifest declaration plus the covering consent grant.
   session hands it out only when the manifest declares `[sockets]` and
   the covering grant has the `sockets` token; `None` never exposes
   `SOCKETS`.
+- `origin`: The library as a relay ingress plugin reaches it, behind the `ORIGIN`
+  binding.
+  
+  The deployment sets it only for the library's active ingress
+  instance. The session hands it out only when the manifest also
+  exports `ingress` with `[ingress] kind = "relay"`; `None` never
+  exposes `ORIGIN`.
 
 #### SessionServices::with_event_outbox
 
@@ -7634,6 +7774,14 @@ pub const AUTHORIZED_PACKAGE_DIR: &str = "plugin-packages";
 ```
 
 Directory under the files dir that holds operator-placed package archives.
+
+### INGRESS_HEALTH_INTERVAL
+
+```rust
+pub const INGRESS_HEALTH_INTERVAL: Duration = _;
+```
+
+How often a running ingress is asked whether it is serving.
 
 ### VERSION_CACHE_DIR
 
