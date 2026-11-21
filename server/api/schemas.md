@@ -112,6 +112,17 @@ An error. `error` is a stable slug; bodies the error middleware writes also carr
 - `deny_own_user_agent_hosts` *array of string* — Requested hosts to refuse the plugin's own User-Agent on; requests to them carry Bookclerk's agent instead. No duplicates.
 - `deny_network` *boolean* — Deny all network access.
 
+## AssertionFinish
+
+`POST /api/auth/passkeys/login/finish` and `elevate/finish` body: the
+browser's assertion plus the challenge id from the matching `begin`.
+
+The credential is read straight into WebAuthn's typed assertion, so the
+handler never decodes caller JSON itself.
+
+- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
+
 ## AuthMeImpersonating
 
 Target user shown while an operator session is impersonating.
@@ -475,14 +486,6 @@ Paged catalog-search response.
 - `next_cursor` *string or null* — Opaque cursor for the next page; omit or `None` when exhausted.
 - `sort` *string*, **required** — Sort field applied to the merged result set.
 - `sort_dir` *string* — Ascending or descending order for [`Self::sort`].
-
-## CeremonyFinish
-
-Browser attestation/assertion plus the challenge id from `begin`.
-
-- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
-- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
-- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ## ChapterJsonMode
 
@@ -3224,6 +3227,18 @@ JSON body for `POST /redeem` (claim ticket plus retry nonce).
 - `ticket` *string*, **required** — Raw claim-ticket token to redeem into a portal session.
 - `nonce` *string*, **required** — Browser-generated one-time nonce persisted across HTTP retries.
 - `password` *string or null* — Required when the linked local user has no password (invite / reset).
+
+## RegistrationFinish
+
+`POST /api/auth/passkeys/register/finish` body: the browser's attestation
+plus the challenge id from `register/begin`.
+
+The credential is read straight into WebAuthn's typed attestation, so the
+handler never decodes caller JSON itself.
+
+- `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
+- `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
+- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ## RemoteConsentView
 

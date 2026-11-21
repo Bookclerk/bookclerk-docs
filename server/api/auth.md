@@ -13661,7 +13661,7 @@ Completes registration, stores the passkey, and revokes elevated operator sessio
 
 ### Request body
 
-`application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
+`application/json`: [`RegistrationFinish`](schemas.md#registrationfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
 - `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
@@ -14993,18 +14993,17 @@ Verifies the assertion, updates the credential counter, and issues a portal sess
 
 ### Request body
 
-`application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
+`application/json`: [`AssertionFinish`](schemas.md#assertionfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
 - `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
-- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
 
 - `200` — Signed in; the response sets the portal session cookie. Body: [`PortalSessionIssued`](schemas.md#portalsessionissued) (`application/json`)
   - `ok` *boolean*, **required** — Always `true` on this success path.
   - `role` *string*, **required** — The user's role (`owner`, `administrator`, or `member`).
-- `400` — The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
+- `400` — The challenge is unknown or expired, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -15105,7 +15104,7 @@ Schema:
 }
 ```
 
-Status `400`: The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON.
+Status `400`: The challenge is unknown or expired, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
@@ -15758,11 +15757,10 @@ Completes Owner elevation only when the assertion is user-verified.
 
 ### Request body
 
-`application/json`: [`CeremonyFinish`](schemas.md#ceremonyfinish)
+`application/json`: [`AssertionFinish`](schemas.md#assertionfinish)
 
 - `challenge_id` *string*, **required** — Server-issued challenge id (consumed once; 5-minute TTL).
 - `credential` *any JSON*, **required** — W3C PublicKeyCredential as the browser serializes it: a registration attestation (`response.attestationObject`) or an authentication assertion (`response.authenticatorData`, `signature`, `userHandle`), binary fields base64url-encoded.
-- `name` *string or null* — Label stored with the credential (`Passkey` when empty).
 
 ### Responses
 
@@ -15770,7 +15768,7 @@ Completes Owner elevation only when the assertion is user-verified.
   - `ok` *boolean*, **required** — Always `true` on this success path.
   - `elevated` *boolean*, **required** — Always `true`: the cookie the response sets is an elevated operator session.
   - `expires_in_secs` *integer (int64)*, **required** — Seconds until the elevated session expires. At least 0.
-- `400` — The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
+- `400` — The challenge is unknown or expired, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON. Body: [`ApiError`](schemas.md#apierror) (`application/json`); string (`text/plain`)
   - `error` *string*, **required** — Stable machine slug.
   - `message` *string* — Explanation for people.
   - `status` *integer* — The HTTP status, repeated.
@@ -15893,7 +15891,7 @@ Schema:
 }
 ```
 
-Status `400`: The challenge is unknown or expired, the credential is malformed, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON.
+Status `400`: The challenge is unknown or expired, or the daemon's origin is not a valid WebAuthn relying party. As `text/plain`, when the body is not syntactically valid JSON.
 
 ```json
 {
