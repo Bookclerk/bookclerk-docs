@@ -23,6 +23,7 @@ First-party plugins: databases, destinations, sources and integrations.
 | [`bookclerk_plugin_database_postgres`](bookclerk_plugin_database_postgres/README.md) | Optional PostgreSQL library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_database_sqlite`](bookclerk_plugin_database_sqlite/README.md) | Platform SQLite library database plugin (Workers RPC guest) |
 | [`bookclerk_plugin_destination_local`](bookclerk_plugin_destination_local/README.md) | Local filesystem output plugin: Workers RPC guest for Bookclerk |
+| [`bookclerk_plugin_destination_r2`](bookclerk_plugin_destination_r2/README.md) | Cloudflare R2 output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_destination_s3`](bookclerk_plugin_destination_s3/README.md) | S3 / MinIO output plugin: Workers RPC guest for Bookclerk |
 | [`bookclerk_plugin_source_audible`](bookclerk_plugin_source_audible/README.md) | Audible storefront plugin guest (jailed native binary) |
 | [`bookclerk_plugin_source_chirp`](bookclerk_plugin_source_chirp/README.md) | Chirp source plugin: native storefront guest binary |

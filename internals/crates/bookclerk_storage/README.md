@@ -15,6 +15,9 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 | [`StorageBackend`](#storagebackend) | trait | Pluggable storage for acquired audio and sidecar files. |
 | [`FanoutBackend`](#fanoutbackend) | struct | Multiplexes one logical storage key across multiple backends. |
 | [`LocalFsBackend`](#localfsbackend) | struct | Stores objects under a root directory; keys map to relative paths. |
+| [`CloudflareAccountId`](#cloudflareaccountid) | struct | A Cloudflare account id: 32 lowercase hex digits. |
+| [`CloudflareApiToken`](#cloudflareapitoken) | struct | A Cloudflare API token with Queues read and write on the account. |
+| [`CloudflareQueueId`](#cloudflarequeueid) | struct | A Cloudflare Queue id: 32 lowercase hex digits (the queue's id, not its name). |
 | [`S3Backend`](#s3backend) | struct | S3-compatible object storage. |
 | [`S3Credentials`](#s3credentials) | struct | Static AWS-style credentials for the S3 destination. |
 | [`S3Settings`](#s3settings) | struct | Connection settings for one S3 / MinIO destination. |
@@ -65,7 +68,9 @@ Product narrative: destination sections in `docs/server/configuration.md`. Style
 - [`guest`](guest.md): Serving a backend's intent operations from a storage guest. Serves a `StorageBackend`'s intent operations through a storage guest's `Destination` capability.
 - [`intent`](intent.md): Intent operations (moves, batches, conditional writes, change feeds) and their fallbacks. Intent-based storage operations and the host's fallback for each.
 - [`key_syntax`](key_syntax.md): The host's key syntax, and how a storage backend turns a host key into the path or object key it stores.
+- [`r2_events`](r2_events.md): Cloudflare R2 event notifications and Queues pull replies, parsed into change-feed entries.
 - [`s3_events`](s3_events.md): Object-store event notifications, parsed into change-feed entries.
+- [`s3_guest`](s3_guest.md): A storage guest's `Destination` capability over an `S3Backend`.
 
 ## Traits
 
@@ -1034,6 +1039,90 @@ Production backends leave this unset and use [`crate::node_placement_id`](#node_
 
 Implements: `Clone`, `Debug`, `StorageBackend`
 
+### CloudflareAccountId
+
+```rust
+pub struct CloudflareAccountId(/* private */);
+```
+
+A Cloudflare account id: 32 lowercase hex digits.
+
+#### CloudflareAccountId::parse
+
+```rust
+pub fn parse(id: &str) -> Result<Self>
+```
+
+Checks an account id.
+
+##### Errors
+
+Returns [`StorageError::S3`](#storageerror) when `id` is not 32 hex digits.
+
+#### CloudflareAccountId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as text.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
+### CloudflareApiToken
+
+```rust
+pub struct CloudflareApiToken(/* private */);
+```
+
+A Cloudflare API token with Queues read and write on the account.
+
+#### CloudflareApiToken::new
+
+```rust
+pub fn new(token: String) -> Result<Self>
+```
+
+Wraps a token.
+
+##### Errors
+
+Returns [`StorageError::S3`](#storageerror) for an empty token or one holding
+characters a header cannot carry.
+
+Implements: `Clone`, `Debug`
+
+### CloudflareQueueId
+
+```rust
+pub struct CloudflareQueueId(/* private */);
+```
+
+A Cloudflare Queue id: 32 lowercase hex digits (the queue's id, not its
+name).
+
+#### CloudflareQueueId::parse
+
+```rust
+pub fn parse(id: &str) -> Result<Self>
+```
+
+Checks a queue id.
+
+##### Errors
+
+Returns [`StorageError::S3`](#storageerror) when `id` is not 32 hex digits.
+
+#### CloudflareQueueId::as_str
+
+```rust
+pub fn as_str(&self) -> &str
+```
+
+The id as text.
+
+Implements: `Clone`, `Debug`, `Eq`, `PartialEq`
+
 ### S3Backend
 
 ```rust
@@ -1107,6 +1196,39 @@ The bucket must send its object-created and object-removed events to
 nothing else may drain the queue. The feed keeps the receipts of the
 messages it has handed out in `state_dir` (the guest's `HOME`) until
 the host's next call says it has read them.
+
+##### Errors
+
+Returns an error when the queue client cannot be built or
+`state_dir` cannot be created.
+
+#### S3Backend::with_cloudflare_queue
+
+```rust
+pub fn with_cloudflare_queue(
+    self,
+    account: &CloudflareAccountId,
+    queue: &CloudflareQueueId,
+    token: CloudflareApiToken,
+    state_dir: &Path,
+) -> Result<Self>
+```
+
+Serves `changes` from an R2 bucket's event notifications, pulled
+from a Cloudflare Queue.
+
+The bucket's event notification rule must send object-create and
+object-delete events to `queue`, HTTP pull must be on for it, and
+nothing else may consume it. Like the SQS feed, the feed keeps the
+lease ids it has handed out in `state_dir` (the guest's `HOME`) until
+the host's next call says it has read them.
+
+##### Arguments
+
+* `account` - the Cloudflare account the bucket and queue belong to.
+* `queue` - the queue's id.
+* `token` - an API token with Queues read and write on the account.
+* `state_dir` - where the feed keeps its state.
 
 ##### Errors
 
